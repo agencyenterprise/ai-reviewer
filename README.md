@@ -91,7 +91,7 @@ docker compose up -d
 uv run alembic upgrade head
 ```
 
-That's it! The PostgreSQL database will be running on port 5433 and your app will be available.
+That's it! The PostgreSQL database will be running on port 5432 and your app will be available.
 
 ### Notes
 

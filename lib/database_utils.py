@@ -55,7 +55,7 @@ def get_db_session():
 
 def print_database_info():
     """Print database configuration info."""
-    print("🔧 Database Configuration:")
+    print("Database Configuration:")
     print(f"  Database URL: {config.DATABASE_URL}")
     print(f"  Host: {config.POSTGRES_HOST}")
     print(f"  Port: {config.POSTGRES_PORT}")
@@ -88,7 +88,7 @@ if __name__ == "__main__":
             print("Available commands: check, migrate, create-tables")
             sys.exit(1)
     else:
-        print("\n🚀 Available commands:")
+        print("\n Available commands:")
         print("  python -m lib.database_utils check       - Check database connection")
         print("  python -m lib.database_utils migrate     - Run Alembic migrations")
         print("  python -m lib.database_utils create-tables - Create tables directly")
