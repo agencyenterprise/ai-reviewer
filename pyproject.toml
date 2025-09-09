@@ -8,5 +8,7 @@ dependencies = [
     "black>=25.1.0",
     "dotenv>=0.9.9",
     "langchain>=0.3.27",
+    "langchain-openai>=0.3.32",
+    "langfuse>=3.3.4",
     "streamlit>=1.49.1",
 ]
