@@ -46,6 +46,12 @@ Execute the app using uv (no manual activation needed):
 uv run python main.py
 ```
 
+Streamlit (temporary UI for PoC)
+
+```
+streamlit run streamlit/main.py
+```
+
 ### Optional: activate the virtual environment
 
 ```bash
