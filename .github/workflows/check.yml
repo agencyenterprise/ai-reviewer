@@ -1,0 +1,14 @@
+name: reviewdog
+on: [pull_request]
+jobs:
+  linter_name:
+    name: runner / black formatter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: reviewdog/action-black@v3.22.4
+        with:
+          github_token: ${{ secrets.github_token }}
+          reporter: github-pr-check
+          level: error
