@@ -79,7 +79,22 @@ uv remove <package>
 uv lock --upgrade && uv sync --frozen
 ```
 
+### Docker Setup (Recommended)
+
+The simplest way to get started:
+
+```bash
+# Start the database and app services
+docker compose up -d
+
+# Run database migrations
+uv run alembic upgrade head
+```
+
+That's it! The PostgreSQL database will be running on port 5432 and your app will be available.
+
 ### Notes
 
 - Python version is pinned to 3.13 via `.python-version` and `pyproject.toml`.
 - Use `uv sync --reinstall` if your environment becomes inconsistent.
+- Database runs on port `5432`

@@ -1,0 +1,63 @@
+services:
+  # PostgreSQL Database Service
+  db:
+    image: postgres:16-alpine
+    container_name: rand-ai-reviewer-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: rand_ai_reviewer
+      POSTGRES_USER: rand_user
+      POSTGRES_PASSWORD: rand_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rand_user -d rand_ai_reviewer"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - app_network
+
+  # Application Service
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: rand-ai-reviewer-app
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      - DATABASE_URL=postgresql://rand_user:rand_password@db:5432/rand_ai_reviewer
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=rand_ai_reviewer
+      - POSTGRES_USER=rand_user
+      - POSTGRES_PASSWORD=rand_password
+    env_file:
+      - .env
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  app_network:
+    driver: bridge
