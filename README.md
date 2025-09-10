@@ -106,7 +106,15 @@ This project uses **Infrastructure as Code** through Railway's Config as Code fe
 2. **GitHub Repository Secrets**:
    Go to **Settings** → **Secrets and variables** → **Actions**, add:
    - `RAILWAY_TOKEN`: Get from Railway dashboard → Account → Tokens
-   - `RAILWAY_PROJECT_ID` (optional): Your Railway project ID for linking
+   - `RAILWAY_PROJECT_ID`: Your Railway project ID for linking
+   - `RAILWAY_SERVICE_ID`: Your application service ID (not the database service)
+     
+   **How to find your Service ID:**
+   ```bash
+   # Run this in your project directory
+   railway service list
+   # Copy the ID of your application service (not Postgres)
+   ```
 
 3. **Environment Variables in Railway**:
    After first deployment, set in your Railway service's **Variables** tab:
