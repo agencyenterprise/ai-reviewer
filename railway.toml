@@ -2,7 +2,7 @@
 builder = "dockerfile"
 
 [deploy]
-startCommand = "uv run streamlit run streamlit/main.py --server.port=$PORT --server.address=0.0.0.0"
+startCommand = "uv run streamlit run streamlit/main.py --server.address=0.0.0.0"
 healthcheckPath = "/_stcore/health"
 healthcheckTimeout = 300
 restartPolicyType = "always"
