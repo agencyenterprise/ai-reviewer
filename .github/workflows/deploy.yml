@@ -23,7 +23,7 @@ jobs:
         run: railway up -- --project=${{ env.PROJECT_ID }} --service=${{ env.SERVICE_ID }}
 
       - name: Run database migrations
-        run: railway run--  --project=${{ env.PROJECT_ID }} --service=${{ env.SERVICE_ID }} uv run alembic upgrade head
+        run: railway run --  --project=${{ env.PROJECT_ID }} --service=${{ env.SERVICE_ID }} uv run alembic upgrade head
 
   build-check:
     runs-on: ubuntu-latest
