@@ -35,8 +35,12 @@ jobs:
 
       - name: Setup Railway Infrastructure
         run: |
-          # Link to project (creates if doesn't exist)
-          railway link ${{ secrets.RAILWAY_PROJECT_ID || 'rand-ai-reviewer' }}
+          if [ -n "${{ secrets.RAILWAY_PROJECT_ID }}" ]; then
+            railway link -p ${{ secrets.RAILWAY_PROJECT_ID }}
+          else
+            provided
+            railway init --name "rand-ai-reviewer"
+          fi
           
           # Create PostgreSQL service if it doesn't exist
           if ! railway service list | grep -q "Postgres"; then
