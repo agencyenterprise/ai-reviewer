@@ -1,0 +1,17 @@
+[build]
+builder = "dockerfile"
+
+[deploy]
+startCommand = "uv run streamlit run streamlit/main.py --server.port=$PORT --server.address=0.0.0.0"
+healthcheckPath = "/_stcore/health"
+healthcheckTimeout = 300
+restartPolicyType = "always"
+
+# Auto-reference PostgreSQL service variables
+[env]
+DATABASE_URL = "${{Postgres.DATABASE_URL}}"
+POSTGRES_HOST = "${{Postgres.PGHOST}}"
+POSTGRES_PORT = "${{Postgres.PGPORT}}"
+POSTGRES_DB = "${{Postgres.PGDATABASE}}"
+POSTGRES_USER = "${{Postgres.PGUSER}}"
+POSTGRES_PASSWORD = "${{Postgres.PGPASSWORD}}"

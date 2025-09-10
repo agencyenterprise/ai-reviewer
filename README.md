@@ -93,6 +93,77 @@ uv run alembic upgrade head
 
 That's it! The PostgreSQL database will be running on port 5432 and your app will be available.
 
+## Deployment
+
+### Railway Deployment (Infrastructure as Code)
+
+This project uses **Infrastructure as Code** through Railway's Config as Code feature. All infrastructure is defined in `railway.toml`.
+
+#### One-Time Setup
+
+1. **Railway Account**: Sign up at [railway.app](https://railway.app)
+
+2. **GitHub Repository Secrets**:
+   Go to **Settings** → **Secrets and variables** → **Actions**, add:
+   - `RAILWAY_TOKEN`: Get from Railway dashboard → Account → Tokens
+   - `RAILWAY_PROJECT_ID` (optional): Your Railway project ID for linking
+
+3. **Environment Variables in Railway**:
+   After first deployment, set in your Railway service's **Variables** tab:
+   ```
+   OPENAI_API_KEY=your_openai_api_key
+   LANGFUSE_SECRET_KEY=your_langfuse_secret_key  
+   LANGFUSE_PUBLIC_KEY=your_langfuse_public_key
+   LANGFUSE_HOST=https://cloud.langfuse.com
+   ```
+   
+   > **Database variables are automatic**: `railway.toml` references PostgreSQL variables automatically
+
+#### Infrastructure as Code Files
+
+- **`railway.toml`**: Defines build and deployment configuration
+- **`.github/workflows/deploy.yml`**: Automated CI/CD pipeline
+- **`Dockerfile`**: Container configuration
+
+#### Deployment Workflow
+
+- **Push to `main`**: 
+  1. Creates PostgreSQL service (if doesn't exist)
+  2. Deploys application service
+  3. Runs database migrations automatically
+- **Pull Requests**: Runs build validation checks only  
+
+**100% Infrastructure as Code** - PostgreSQL database, environment variable linking, and deployments all automated!
+
+### Environment Variables
+
+Required environment variables (set in Railway for production, `.env` for local):
+
+```bash
+# AI/ML Services
+OPENAI_API_KEY=your_openai_api_key
+
+# Langfuse (observability)
+LANGFUSE_SECRET_KEY=your_langfuse_secret_key
+LANGFUSE_PUBLIC_KEY=your_langfuse_public_key  
+LANGFUSE_HOST=https://cloud.langfuse.com
+
+# Database (Railway provides DATABASE_URL automatically)
+DATABASE_URL=postgresql://user:password@host:port/database
+```
+
+**Local Development**: Create a `.env` file in the project root:
+```bash
+# Copy this template and fill in your values
+cat > .env << EOF
+OPENAI_API_KEY=your_openai_api_key_here
+LANGFUSE_SECRET_KEY=your_langfuse_secret_key
+LANGFUSE_PUBLIC_KEY=your_langfuse_public_key
+LANGFUSE_HOST=https://cloud.langfuse.com
+DATABASE_URL=postgresql://rand_user:rand_password@localhost:5432/rand_ai_reviewer
+EOF
+```
+
 ### Notes
 
 - Python version is pinned to 3.13 via `.python-version` and `pyproject.toml`.
