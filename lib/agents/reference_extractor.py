@@ -4,14 +4,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from lib.models.agent import Agent
 
 
-class Reference(BaseModel):
-    text: str = Field(description="The text of the reference")
-
-
 class ReferenceExtractorResponse(BaseModel):
-    citations: list[Reference] = Field(
-        description="A list of references found in the text"
-    )
+    references: list[str] = Field(description="A list of references found in the text")
 
 
 reference_extractor_agent = Agent(
