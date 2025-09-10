@@ -8,52 +8,21 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    container: ghcr.io/railwayapp/cli:latest
     if: github.ref == 'refs/heads/feature/deploy-workflow'
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
     
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install uv
-        run: pip install uv
-
-      - name: Install dependencies
-        run: uv sync --frozen
-
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
       - name: Deploy to Railway
-        run: |
-          # Deploy using project ID directly
-          railway up --detach --project ${{ secrets.RAILWAY_PROJECT_ID }}
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-      - name: Wait for deployment
-        run: sleep 45
+        run: railway up --project=${{ env.PROJECT_ID }}
 
       - name: Run database migrations
-        run: railway run --project ${{ secrets.RAILWAY_PROJECT_ID }} uv run alembic upgrade head
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-      - name: Verify deployment status
-        run: |
-          echo "Deployment completed successfully!"
-          railway status --project ${{ secrets.RAILWAY_PROJECT_ID }}
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway run --project=${{ env.PROJECT_ID }} uv run alembic upgrade head
 
   build-check:
     runs-on: ubuntu-latest
