@@ -22,9 +22,6 @@ jobs:
       - name: Deploy to Railway
         run: railway up --service=${{ env.SERVICE_ID }}
 
-      - name: Run database migrations
-        run: railway run --service=${{ env.SERVICE_ID }} uv run alembic upgrade head
-
   build-check:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
