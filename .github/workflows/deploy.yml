@@ -33,26 +33,7 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: Setup Railway Infrastructure
-        run: |
-          if [ -n "${{ secrets.RAILWAY_PROJECT_ID }}" ]; then
-            railway link -p ${{ secrets.RAILWAY_PROJECT_ID }}
-          else
-            provided
-            railway init --name "rand-ai-reviewer"
-          fi
-          
-          # Create PostgreSQL service if it doesn't exist
-          if ! railway service list | grep -q "Postgres"; then
-            echo "Creating PostgreSQL database service..."
-            railway add --database postgres
-          else
-            echo "PostgreSQL service already exists"
-          fi
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-      - name: Deploy Application
+      - name: Deploy to Railway
         run: railway up --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
