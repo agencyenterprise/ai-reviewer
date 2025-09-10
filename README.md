@@ -129,7 +129,10 @@ This project uses **Infrastructure as Code** through Railway's Config as Code fe
 
 #### Infrastructure as Code Files
 
-- **`railway.toml`**: Defines build and deployment configuration
+- **`railway.toml`**: Defines build, deployment, and storage configuration
+  - PostgreSQL database variables auto-linked
+  - Persistent volume for file uploads (`/app/uploads`)
+  - Pre-deployment migrations
 - **`.github/workflows/deploy.yml`**: Automated CI/CD pipeline
 - **`Dockerfile`**: Container configuration
 

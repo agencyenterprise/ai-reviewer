@@ -3,13 +3,13 @@ name: Deploy to Railway
 on:
   push:
     branches:
-      - feature/deploy-workflow
+      - feature/main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     container: ghcr.io/railwayapp/cli:latest
-    if: github.ref == 'refs/heads/feature/deploy-workflow'
+    if: github.ref == 'refs/heads/main'
     env:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
       PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
