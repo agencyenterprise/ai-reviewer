@@ -9,7 +9,9 @@ from lib.services.file import File
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("action", type=str, choices=["markdown", "chunks", "full"])
+    parser.add_argument(
+        "action", type=str, choices=["markdown", "references", "chunks", "full"]
+    )
     parser.add_argument("file_path", type=str)
     args = parser.parse_args()
 
@@ -18,6 +20,18 @@ if __name__ == "__main__":
 
     if args.action == "markdown":
         print(asyncio.run(file.get_markdown()))
+    elif args.action == "references":
+        from lib.agents.reference_extractor import reference_extractor_agent
+
+        full_document = asyncio.run(file.get_markdown())
+        result = asyncio.run(
+            reference_extractor_agent.apply(
+                prompt_kwargs={
+                    "full_document": full_document,
+                }
+            )
+        )
+        print(result.model_dump_json(indent=2))
     elif args.action == "chunks":
         chunks = asyncio.run(processor.get_chunks())
 
