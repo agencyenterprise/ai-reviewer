@@ -1,3 +1,7 @@
+cache/
+data/
+
+
 # Python-generated files
 __pycache__/
 *.py[oc]
@@ -11,3 +15,6 @@ wheels/
 
 # environment variables
 .env
+
+# Mac files
+.DS_Store
