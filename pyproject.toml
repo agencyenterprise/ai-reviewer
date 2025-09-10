@@ -10,8 +10,11 @@ dependencies = [
     "dotenv>=0.9.9",
     "langchain>=0.3.27",
     "langchain-openai>=0.3.32",
+    "langchain-experimental>=0.3.5rc1",
     "langfuse>=3.3.4",
     "psycopg2-binary>=2.9.9",
     "sqlalchemy>=2.0.25",
     "streamlit>=1.49.1",
+    "sqlmodel>=0.0.24",
+    "markitdown[all]>=0.1.3",
 ]

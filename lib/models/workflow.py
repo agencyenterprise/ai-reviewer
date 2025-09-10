@@ -4,22 +4,26 @@ from sqlalchemy import Column, String, Text, DateTime, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from ..config.database import Base
+from sqlmodel import SQLModel, Field, Relationship
 
 
-class Workflow(Base):
+class Workflow(SQLModel, table=True):
     __tablename__ = "workflows"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(255), nullable=False)
-    description = Column(Text)
-    stages = Column(JSON, nullable=False)  # Array of Arrays of agent_ids
-    created_by = Column(String(255), nullable=False)  # User ID
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id: str = Field(
+        sa_column=Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    )
+    name: str = Field(sa_column=Column(String(255), nullable=False))
+    description: str = Field(sa_column=Column(Text))
+    stages: list[list[str]] = Field(
+        sa_column=Column(JSON, nullable=False)
+    )  # Array of Arrays of agent_ids
+    created_by: str = Field(sa_column=Column(String(255), nullable=False))  # User ID
+    created_at: datetime = Field(sa_column=Column(DateTime, default=datetime.utcnow))
 
     # Relationships
-    workflow_runs = relationship("WorkflowRun", back_populates="workflow")
-    chats = relationship("Chat", back_populates="workflow")
+    # workflow_runs = Relationship(back_populates="workflow")
+    # chats = Relationship(back_populates="workflow")
 
     def __repr__(self):
         return f"<Workflow(id={self.id}, name='{self.name}')>"
