@@ -34,7 +34,9 @@ jobs:
         run: npm install -g @railway/cli
 
       - name: Deploy to Railway
-        run: railway up --detach
+        run: |
+          # Deploy using project ID directly
+          railway up --detach --project ${{ secrets.RAILWAY_PROJECT_ID }}
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
@@ -42,14 +44,14 @@ jobs:
         run: sleep 45
 
       - name: Run database migrations
-        run: railway run uv run alembic upgrade head
+        run: railway run --project ${{ secrets.RAILWAY_PROJECT_ID }} uv run alembic upgrade head
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
       - name: Verify deployment status
         run: |
           echo "Deployment completed successfully!"
-          railway status
+          railway status --project ${{ secrets.RAILWAY_PROJECT_ID }}
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
