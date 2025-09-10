@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from lib.models import Agent
 
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 
 class CitationType(str, Enum):

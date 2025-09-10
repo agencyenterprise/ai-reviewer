@@ -1,6 +1,9 @@
 import argparse
 import asyncio
 import logging
+from langchain.text_splitter import MarkdownTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain_openai.embeddings import OpenAIEmbeddings
 from langchain.embeddings import CacheBackedEmbeddings
@@ -41,7 +44,7 @@ async def run_tasks(tasks, desc="Processing tasks"):
         original_index, result_or_exception = await finished_task
         chunk_results_dict[original_index] = result_or_exception
         if isinstance(result_or_exception, Exception):
-            print(
+            logger.error(
                 f"Error processing task {original_index}: {result_or_exception}",
                 exc_info=True,
             )
@@ -71,35 +74,42 @@ class DocumentProcessor:
             chunker = SemanticChunker(
                 self.embeddings,
                 breakpoint_threshold_type="percentile",
-                breakpoint_threshold_amount=40,
+                breakpoint_threshold_amount=0,
             )
+            # chunker = MarkdownTextSplitter(chunk_size=200, chunk_overlap=0)
+            # chunker = RecursiveCharacterTextSplitter(chunk_size=250, chunk_overlap=0)
+
         self.chunker = chunker
 
         self.file = file
 
         self._chunks = None
 
-    def _split_to_chunks(self):
-        docs = self.chunker.create_documents([self.file.markdown])
+    async def _split_to_chunks(self):
+        markdown = await self.file.get_markdown()
+        docs = self.chunker.create_documents([markdown])
         return docs
 
-    @property
-    def chunks(self):
+    async def get_chunks(self):
         if self._chunks is None:
-            self._chunks = self._split_to_chunks()
+            self._chunks = await self._split_to_chunks()
         return self._chunks
 
     async def apply_agent_to_chunk(self, agent: Agent, chunk: Document):
         return await agent.apply(
             prompt_kwargs={
                 "chunk": chunk.page_content,
-                "full_document": self.file.markdown,
+                "full_document": await self.file.get_markdown(),
             }
         )
 
     async def apply_agent_to_all_chunks(self, agent: Agent):
+        markdown = (
+            await self.file.get_markdown()
+        )  # Just to make sure we have the markdown before running agents in parallel
         tasks = []
-        for chunk in self.chunks:
+        chunks = await self.get_chunks()
+        for chunk in chunks:
             tasks.append(self.apply_agent_to_chunk(agent, chunk))
 
         chunk_results = await run_tasks(
@@ -108,6 +118,9 @@ class DocumentProcessor:
         return chunk_results
 
     async def apply_agents_to_all_chunks(self, agents: list[list[Agent]]):
+        markdown = (
+            await self.file.get_markdown()
+        )  # Just to make sure we have the markdown before running agents in parallel
         tasks = []
         for agent in agents:
             tasks.append(self.apply_agent_to_all_chunks(agent))
@@ -123,7 +136,7 @@ if __name__ == "__main__":
         "file_path",
         nargs="?",
         type=str,
-        default="/Users/omid/codes/rand-ai-reviewer/data/example_public_files/RAND_CFA4214-1-main.pdf",
+        default="/Users/omid/codes/rand-ai-reviewer/data/example_public_files/RAND_CFA4214-1-main.docx",
     )
     args = parser.parse_args()
     file = File(file_path=args.file_path)

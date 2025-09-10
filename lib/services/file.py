@@ -1,7 +1,10 @@
+import asyncio
 import mimetypes
 import os
 import argparse
 from markitdown import MarkItDown
+
+from lib.agents.markdown_cleaner import markdown_cleaner_agent
 
 
 class File:
@@ -18,17 +21,20 @@ class File:
 
         self._markdown = None
 
-    def _generate_markdown(self):
+    async def get_markdown(self):
         if self._markdown is not None:
             return self._markdown
         md = MarkItDown(enable_plugins=False)  # Set to True to enable plugins
         result = md.convert(self.file_path)
         self._markdown = result.markdown
+        # TODO: For PDFs, we may need something like this:
+        # result = await markdown_cleaner_agent.apply(
+        #     prompt_kwargs={
+        #         "full_document": result.markdown,
+        #     }
+        # )
+        # self._markdown = result.text
         return self._markdown
-
-    @property
-    def markdown(self):
-        return self._generate_markdown()
 
 
 if __name__ == "__main__":
@@ -37,8 +43,8 @@ if __name__ == "__main__":
         "file_path",
         nargs="?",
         type=str,
-        default="/Users/omid/codes/rand-ai-reviewer/lib/data/example_public_files/RAND_CFA4214-1.pdf",
+        default="/Users/omid/codes/rand-ai-reviewer/data/example_public_files/RAND_CFA4214-1-main.docx",
     )
     args = parser.parse_args()
     file = File(file_path=args.file_path)
-    print(file.markdown)
+    print(asyncio.run(file.get_markdown()))

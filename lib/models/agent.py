@@ -61,12 +61,10 @@ class Agent(SQLModel, table=True):
         llm_with_structure = llm.with_structured_output(self.output_schema)
 
         # Create prompt
-        prompt = self.prompt.format(**prompt_kwargs)
+        messages = self.prompt.format_messages(**prompt_kwargs)
         # Apply LLM
         chunk_result = await llm_with_structure.ainvoke(
-            [
-                HumanMessage(content=prompt),
-            ],
+            messages,
             config={"callbacks": [langfuse_handler]},
         )
         return chunk_result

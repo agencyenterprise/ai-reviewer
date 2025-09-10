@@ -140,8 +140,9 @@ def main() -> None:
                 st.session_state["claim_detection_results"] = results_all[0]
                 st.session_state["citation_detection_results"] = results_all[1]
                 try:
+                    chunks = asyncio.run(processor.get_chunks())
                     st.session_state["document_chunks"] = [
-                        chunk.page_content for chunk in processor.chunks
+                        chunk.page_content for chunk in chunks
                     ]
                 except Exception:
                     st.session_state["document_chunks"] = None
