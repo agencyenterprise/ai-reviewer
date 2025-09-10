@@ -1,8 +1,5 @@
-import argparse
 import asyncio
 import logging
-from langchain.text_splitter import MarkdownTextSplitter
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain_openai.embeddings import OpenAIEmbeddings
@@ -128,30 +125,3 @@ class DocumentProcessor:
             tasks,
             desc=f"Processing chunks with {' & '.join([agent.name for agent in agents])}",
         )
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "file_path",
-        nargs="?",
-        type=str,
-        default="/Users/omid/codes/rand-ai-reviewer/data/example_public_files/RAND_CFA4214-1-main.docx",
-    )
-    args = parser.parse_args()
-    file = File(file_path=args.file_path)
-    processor = DocumentProcessor(file)
-
-    from lib.agents.claim_detector import claim_detector_agent
-    from lib.agents.citation_detector import citation_detector_agent
-
-    results = asyncio.run(
-        processor.apply_agents_to_all_chunks(
-            [
-                claim_detector_agent,
-                citation_detector_agent,
-            ]
-        )
-    )
-
-    print(results)
