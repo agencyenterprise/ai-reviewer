@@ -37,6 +37,24 @@ def save_uploads_to_session(
     print(st.session_state["uploaded_supporting_documents"])
 
 
+def _persist_uploaded_to_path(uploaded_file) -> str:
+    uploads_dir = Path(os.getcwd()) / "cache" / "uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    target_path = uploads_dir / getattr(uploaded_file, "name", "uploaded_document")
+    with open(target_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+    return str(target_path)
+
+
+def _get_markdown_for_uploaded(uploaded_file) -> Optional[str]:
+    try:
+        file_path = _persist_uploaded_to_path(uploaded_file)
+        file = File(file_path=file_path)
+        return asyncio.run(file.get_markdown())
+    except Exception:
+        return None
+
+
 def render_uploaded_summary() -> None:
     """Show a compact summary of what is currently uploaded."""
     main_doc = st.session_state.get("uploaded_main_document")
@@ -54,6 +72,12 @@ def render_uploaded_summary() -> None:
                     "size": format_bytes(getattr(main_doc, "size", 0)),
                 }
             )
+            with st.expander("View main document markdown", expanded=False):
+                md = _get_markdown_for_uploaded(main_doc)
+                if md:
+                    st.code(md, language="markdown")
+                else:
+                    st.info("Markdown preview unavailable.")
         else:
             st.info("No main document uploaded yet.")
 
@@ -66,6 +90,15 @@ def render_uploaded_summary() -> None:
                     "—",
                     format_bytes(getattr(doc, "size", 0)),
                 )
+                with st.expander(
+                    f"View markdown: {getattr(doc, 'name', '(unnamed)')}",
+                    expanded=False,
+                ):
+                    md = _get_markdown_for_uploaded(doc)
+                    if md:
+                        st.code(md, language="markdown")
+                    else:
+                        st.info("Markdown preview unavailable.")
         else:
             st.info("No supporting documents uploaded.")
 
