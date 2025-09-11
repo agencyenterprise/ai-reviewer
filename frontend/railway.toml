@@ -6,3 +6,7 @@ startCommand = "node server.js"
 healthcheckPath = "/"
 healthcheckTimeout = 300
 restartPolicyType = "always"
+
+[env]
+NODE_ENV = "production"
+NEXT_PUBLIC_API_URL = "${{rand-ai-reviewer-api.RAILWAY_PUBLIC_URL}}"
