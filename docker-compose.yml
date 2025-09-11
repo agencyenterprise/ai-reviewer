@@ -30,7 +30,7 @@ services:
     container_name: rand-ai-reviewer-api
     restart: unless-stopped
     ports:
-      - "8501:8501"
+      - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://rand_user:rand_password@db:5432/rand_ai_reviewer
       - POSTGRES_HOST=db
@@ -48,7 +48,7 @@ services:
     networks:
       - app_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -65,7 +65,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://api:8501
+      - NEXT_PUBLIC_API_URL=http://api:8000
     depends_on:
       - api
     networks:

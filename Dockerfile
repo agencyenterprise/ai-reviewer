@@ -26,6 +26,7 @@ RUN useradd --create-home --shell /bin/bash app \
     && chown -R app:app /app
 USER app
 
-EXPOSE 8501
+EXPOSE 8000
 
-CMD ["uv", "run", "streamlit", "run", "streamlit/main.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# Use PORT environment variable if available (for Railway), otherwise default to 8000
+CMD ["sh", "-c", "uv run uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
