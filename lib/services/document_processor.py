@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import argparse
 
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain_openai.embeddings import OpenAIEmbeddings
@@ -7,11 +8,10 @@ from langchain.embeddings import CacheBackedEmbeddings
 from langchain.storage import LocalFileStore
 from langchain_core.documents import Document
 
-
-from tqdm import tqdm
-
 from lib.services.file import File
 from lib.models import Agent
+
+from lib.run_utils import run_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -21,38 +21,6 @@ store = LocalFileStore("./cache/embeddings")
 cached_embedder = CacheBackedEmbeddings.from_bytes_store(
     underlying_embeddings, store, namespace=underlying_embeddings.model
 )
-
-
-async def run_tasks(tasks, desc="Processing tasks"):
-    async def track_task(index, coro):
-        try:
-            return index, await coro
-        except Exception as e:
-            return index, e
-
-    wrapped_tasks = [track_task(i, coro) for i, coro in enumerate(tasks)]
-
-    chunk_results_dict = {}
-    for finished_task in tqdm(
-        asyncio.as_completed(wrapped_tasks),
-        total=len(tasks),
-        desc=desc,
-    ):
-        original_index, result_or_exception = await finished_task
-        chunk_results_dict[original_index] = result_or_exception
-        if isinstance(result_or_exception, Exception):
-            logger.error(
-                f"Error processing task {original_index}: {result_or_exception}",
-                exc_info=True,
-            )
-
-    chunk_results = []
-    for chunk_index in range(len(tasks)):
-        if chunk_index not in chunk_results_dict:
-            chunk_results.append(None)
-        else:
-            chunk_results.append(chunk_results_dict[chunk_index])
-    return chunk_results
 
 
 class DocumentProcessor:
@@ -92,36 +60,74 @@ class DocumentProcessor:
             self._chunks = await self._split_to_chunks()
         return self._chunks
 
-    async def apply_agent_to_chunk(self, agent: Agent, chunk: Document):
-        return await agent.apply(
-            prompt_kwargs={
-                "chunk": chunk.page_content,
-                "full_document": await self.file.get_markdown(),
-            }
+    async def apply_agent_to_chunk(
+        self, agent: Agent, chunk: Document, prompt_kwargs: dict | None = None
+    ):
+        input_variables = set(
+            getattr(agent.prompt, "input_variables", ["chunk", "full_document"])
         )
+        filtered_kwargs: dict = {}
+        if "chunk" in input_variables:
+            filtered_kwargs["chunk"] = chunk.page_content
+        if "full_document" in input_variables:
+            filtered_kwargs["full_document"] = await self.file.get_markdown()
+        if prompt_kwargs:
+            for key, value in prompt_kwargs.items():
+                if key in input_variables:
+                    filtered_kwargs[key] = value
+        return await agent.apply(filtered_kwargs)
 
-    async def apply_agent_to_all_chunks(self, agent: Agent):
-        markdown = (
-            await self.file.get_markdown()
-        )  # Just to make sure we have the markdown before running agents in parallel
+    async def apply_agent_to_all_chunks(
+        self, agent: Agent, prompt_kwargs: dict | None = None
+    ):
+        await self.file.get_markdown()  # Warm cache before running agents in parallel
         tasks = []
         chunks = await self.get_chunks()
         for chunk in chunks:
-            tasks.append(self.apply_agent_to_chunk(agent, chunk))
+            tasks.append(self.apply_agent_to_chunk(agent, chunk, prompt_kwargs))
 
         chunk_results = await run_tasks(
             tasks, desc=f"Processing chunks with {agent.name}"
         )
         return chunk_results
 
-    async def apply_agents_to_all_chunks(self, agents: list[list[Agent]]):
-        markdown = (
-            await self.file.get_markdown()
-        )  # Just to make sure we have the markdown before running agents in parallel
+    async def apply_agents_to_all_chunks(
+        self, agents: list[list[Agent]], prompt_kwargs: dict | None = None
+    ):
+        await self.file.get_markdown()  # Warm cache before running agents in parallel
         tasks = []
         for agent in agents:
-            tasks.append(self.apply_agent_to_all_chunks(agent))
+            tasks.append(self.apply_agent_to_all_chunks(agent, prompt_kwargs))
         return await run_tasks(
             tasks,
             desc=f"Processing chunks with {' & '.join([agent.name for agent in agents])}",
         )
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "file_path",
+        nargs="?",
+        type=str,
+        default="/Users/omid/codes/rand-ai-reviewer/data/example_public_files/RAND_CFA4214-1-main.docx",
+    )
+    args = parser.parse_args()
+    file = File(file_path=args.file_path)
+    processor = DocumentProcessor(file)
+
+    from lib.agents.claim_detector import claim_detector_agent
+    from lib.agents.citation_detector import citation_detector_agent
+    from lib.agents.reference_extractor import reference_extractor_agent
+    from lib.agents.reference_matcher import reference_matcher_agent
+
+    results = asyncio.run(
+        processor.apply_agents_to_all_chunks(
+            [
+                claim_detector_agent,
+                citation_detector_agent,
+            ]
+        )
+    )
+
+    print(results)
