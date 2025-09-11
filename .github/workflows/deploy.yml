@@ -3,7 +3,7 @@ name: Deploy to Railway
 on:
   push:
     branches:
-      - feature/main
+      - main
 
 jobs:
   deploy:
@@ -21,28 +21,3 @@ jobs:
 
       - name: Deploy to Railway
         run: railway up --service=${{ env.SERVICE_ID }}
-
-  build-check:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install uv
-        run: pip install uv
-
-      - name: Install dependencies
-        run: uv sync --frozen
-
-      - name: Run basic checks
-        run: |
-          echo "Running basic health checks..."
-          uv run python -c "from lib.config.env import config; print('Config loaded successfully')"
-          echo "Build check passed!"
