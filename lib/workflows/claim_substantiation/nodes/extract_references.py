@@ -1,3 +1,4 @@
+import logging
 from lib.agents.tools import format_supporting_documents_prompt_section
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.agents.reference_extractor import (
@@ -5,8 +6,12 @@ from lib.agents.reference_extractor import (
     ReferenceExtractorResponse,
 )
 
+logger = logging.getLogger(__name__)
+
 
 async def extract_references(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
+    logger.info("extract_references: extracting references")
+
     markdown = await state["file"].get_markdown()
     supporting_documents = "\n\n".join(
         [
