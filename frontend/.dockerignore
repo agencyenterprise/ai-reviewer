@@ -1,0 +1,43 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Next.js
+.next/
+out/
+
+# Production
+/dist
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage
+*.lcov
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+*.tgz
+*.tar.gz
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vercel
+.vercel

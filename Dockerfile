@@ -22,6 +22,7 @@ RUN uv sync --frozen
 COPY . .
 
 RUN useradd --create-home --shell /bin/bash app \
+    && mkdir -p /app/uploads \
     && chown -R app:app /app
 USER app
 
