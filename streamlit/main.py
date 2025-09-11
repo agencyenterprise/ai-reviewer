@@ -11,9 +11,7 @@ from lib.services.file import File
 from lib.services.document_processor import DocumentProcessor
 from lib.agents.claim_detector import claim_detector_agent
 from lib.agents.citation_detector import citation_detector_agent
-from lib.workflows.claim_substantiation import (
-    run_claim_substantiator_from_paths,
-)
+from lib.workflows.claim_substantiation.runner import run_claim_substantiator_from_paths
 
 
 def format_bytes(num_bytes: int) -> str:
