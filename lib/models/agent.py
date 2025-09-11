@@ -55,16 +55,32 @@ class Agent(SQLModel, table=True):
     def model_name(self):
         return self.model.split(":")[1]
 
-    # Prepare LLM
-    async def apply(self, prompt_kwargs: dict):
+    def prep_llm_args(self, prompt_kwargs: dict):
         llm = init_chat_model(self.model_name, model_provider=self.model_provider)
         llm_with_structure = llm.with_structured_output(self.output_schema)
 
         # Create prompt
         messages = self.prompt.format_messages(**prompt_kwargs)
+
         # Apply LLM
+        args = {
+            "input": messages,
+            "config": {"callbacks": [langfuse_handler]},
+        }
+        return llm_with_structure, args
+
+    async def apply(self, prompt_kwargs: dict):
+        llm_with_structure, args = self.prep_llm_args(prompt_kwargs)
         chunk_result = await llm_with_structure.ainvoke(
-            messages,
-            config={"callbacks": [langfuse_handler]},
+            args["input"],
+            config=args["config"],
+        )
+        return chunk_result
+
+    def apply_sync(self, prompt_kwargs: dict):
+        llm_with_structure, args = self.prep_llm_args(prompt_kwargs)
+        chunk_result = llm_with_structure.invoke(
+            args["input"],
+            config=args["config"],
         )
         return chunk_result
