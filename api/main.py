@@ -1,11 +1,15 @@
+import logging
 import os
 import tempfile
-from typing import List, Optional
+from typing import Optional
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from api.types import ClaimSubstantiatorOutputModel
 from lib.workflows.claim_substantiation.runner import run_claim_substantiator
 from lib.services.file import File as WorkflowFile
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -67,39 +71,16 @@ async def run_claim_substantiation_workflow(
                         supporting_file = WorkflowFile(file_path=supporting_file_path)
                         supporting_files.append(supporting_file)
 
-            return JSONResponse(
-                content={
-                    "message": "Workflow completed",
-                    "markdown": await main_file.get_markdown(),
-                }
+            # Run the workflow
+            result_state = await run_claim_substantiator(
+                file=main_file,
+                supporting_files=supporting_files if supporting_files else None,
             )
 
-            # # Run the workflow
-            # result_state = await run_claim_substantiator(
-            #     file=main_file,
-            #     supporting_files=supporting_files if supporting_files else None,
-            # )
-
-            # # Convert the state to a JSON-serializable format
-            # serializable_state = {
-            #     # "file_name": main_file.file_name,
-            #     # "file_type": main_file.file_type,
-            #     # "supporting_files": [
-            #     #     {"file_name": f.file_name, "file_type": f.file_type}
-            #     #     for f in supporting_files
-            #     # ],
-            #     "claims_by_chunk": result_state.get("claims_by_chunk", []),
-            #     "citations_by_chunk": result_state.get("citations_by_chunk", []),
-            #     "references": result_state.get("references", []),
-            #     "matches": result_state.get("matches", []),
-            #     "claim_substantiations_by_chunk": result_state.get(
-            #         "claim_substantiations_by_chunk", []
-            #     ),
-            # }
-
-            # return JSONResponse(content=serializable_state)
+            return ClaimSubstantiatorOutputModel(**result_state)
 
     except Exception as e:
+        logger.error(f"Error processing workflow: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"Error processing workflow: {str(e)}"
         )
