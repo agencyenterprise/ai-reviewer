@@ -43,16 +43,13 @@ async def substantiate_claims(
                 claims_str += f"### Claim #{index + 1}\n{claim.text}\n\n"
             cited_references_str = ""
             for bibliography_index in associated_bibliography_indices:
+                associated_reference = references[bibliography_index - 1]
                 cited_references_str += f"""### Cited bibliography entry #{bibliography_index}
-Bibliography entry text: {references[bibliography_index-1].text}
+Bibliography entry text: {associated_reference.text}
 """
-                if references[
-                    bibliography_index - 1
-                ].has_associated_supporting_document:
+                if associated_reference.has_associated_supporting_document:
                     supporting_file = supporting_files[
-                        references[
-                            bibliography_index - 1
-                        ].index_of_associated_supporting_document
+                        associated_reference.index_of_associated_supporting_document
                     ]
                     cited_references_str += (
                         await format_supporting_documents_prompt_section(
