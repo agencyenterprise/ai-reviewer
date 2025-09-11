@@ -1,4 +1,4 @@
-import { AnalysisResults, DetailedResults } from "@/components/wizard/types"
+import { AnalysisResults, Citation, DetailedResults } from "@/components/wizard/types"
 
 interface AnalysisRequest {
     mainDocument: File
@@ -7,8 +7,8 @@ interface AnalysisRequest {
 
 interface ApiResponse {
     claims?: Array<{ is_substantiated: boolean }>
-    citations?: Array<any>
-    [key: string]: any
+    citations?: Array<Citation>
+    [key: string]: unknown
 }
 
 class AnalysisService {
@@ -36,7 +36,7 @@ class AnalysisService {
             unsubstantiatedClaims:
                 apiResponse.claims?.filter((claim) => !claim.is_substantiated)?.length || 0,
             status: "completed",
-            fullResults: apiResponse as DetailedResults
+            fullResults: apiResponse as unknown as DetailedResults
         }
     }
 
