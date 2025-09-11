@@ -11,6 +11,9 @@ from lib.services.file import File
 from lib.services.document_processor import DocumentProcessor
 from lib.agents.claim_detector import claim_detector_agent
 from lib.agents.citation_detector import citation_detector_agent
+from lib.workflows.claim_substantiation import (
+    run_claim_substantiator_from_paths,
+)
 
 
 def format_bytes(num_bytes: int) -> str:
@@ -76,6 +79,25 @@ def main() -> None:
     st.title("📄 Rand AI Reviewer")
     st.caption("Upload a single main document and any number of supporting documents.")
 
+    # Style primary buttons as green (used for substantiation button)
+    st.markdown(
+        """
+        <style>
+        div.stButton > button[kind="primary"] {
+            background-color: #16a34a;
+            border-color: #16a34a;
+            color: white;
+        }
+        div.stButton > button[kind="primary"]:hover {
+            background-color: #15803d;
+            border-color: #15803d;
+            color: white;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     # Accepted document extensions. Adjust as needed.
     allowed_types = [
         "pdf",
@@ -121,9 +143,24 @@ def main() -> None:
             f.write(uploaded_file.getbuffer())
         return str(target_path)
 
+    def _persist_supporting_documents_to_paths(
+        uploaded_files: Optional[List],
+    ) -> List[str]:
+        if not uploaded_files:
+            return []
+        uploads_dir = Path(os.getcwd()) / "cache" / "uploads"
+        uploads_dir.mkdir(parents=True, exist_ok=True)
+        paths: List[str] = []
+        for uf in uploaded_files:
+            target_path = uploads_dir / getattr(uf, "name", "supporting_document")
+            with open(target_path, "wb") as f:
+                f.write(uf.getbuffer())
+            paths.append(str(target_path))
+        return paths
+
     main_doc = st.session_state.get("uploaded_main_document")
     if main_doc is not None:
-        if st.button("Run agents", type="primary"):
+        if st.button("Run agents", type="secondary"):
             with st.spinner("Converting and analyzing document..."):
                 file_path = _persist_uploaded_main_document_to_path(main_doc)
                 file = File(file_path=file_path)
@@ -146,6 +183,34 @@ def main() -> None:
                     ]
                 except Exception:
                     st.session_state["document_chunks"] = None
+
+        if st.button("Run claim substantiation workflow", type="primary"):
+            with st.spinner("Running substantiation workflow..."):
+                file_path = _persist_uploaded_main_document_to_path(main_doc)
+                supporting_uploaded = st.session_state.get(
+                    "uploaded_supporting_documents", []
+                )
+                supporting_paths = _persist_supporting_documents_to_paths(
+                    supporting_uploaded
+                )
+                try:
+                    subst_state = asyncio.run(
+                        run_claim_substantiator_from_paths(file_path, supporting_paths)
+                    )
+                except Exception as e:
+                    st.error(f"Substantiation failed: {e}")
+                    subst_state = {}
+                st.session_state["claim_substantiation_results_state"] = subst_state
+                # Ensure chunks are available for display
+                try:
+                    file = File(file_path=file_path)
+                    processor = DocumentProcessor(file)
+                    chunks = asyncio.run(processor.get_chunks())
+                    st.session_state["document_chunks"] = [
+                        chunk.page_content for chunk in chunks
+                    ]
+                except Exception:
+                    pass
 
     claim_results = st.session_state.get("claim_detection_results")
     citation_results = st.session_state.get("citation_detection_results")
@@ -347,6 +412,99 @@ def main() -> None:
                     ):
                         with st.expander("Raw citation result", expanded=False):
                             st.json(data_cit or {})
+
+    # --- Substantiation results section (only unsubstantiated) ---
+    subst_state = st.session_state.get("claim_substantiation_results_state")
+    if isinstance(subst_state, dict):
+        results_by_chunk = subst_state.get("claim_substantiations_by_chunk")
+        if isinstance(results_by_chunk, list) and results_by_chunk:
+            st.subheader("Unsubstantiated claims by chunk", anchor=False)
+            for idx, items in enumerate(results_by_chunk):
+                # Normalize items to list
+                if items is None:
+                    continue
+                unsubstantiated = []
+                try:
+                    for it in items:
+                        if isinstance(it, Exception):
+                            continue
+                        data_it = None
+                        try:
+                            if hasattr(it, "model_dump"):
+                                data_it = it.model_dump()
+                            elif hasattr(it, "dict"):
+                                data_it = it.dict()
+                            elif isinstance(it, dict):
+                                data_it = it
+                        except Exception:
+                            data_it = None
+                        if (
+                            isinstance(data_it, dict)
+                            and data_it.get("is_substantiated") is False
+                        ):
+                            unsubstantiated.append(data_it)
+                except Exception:
+                    unsubstantiated = []
+
+                if unsubstantiated:
+                    with st.container(border=True):
+                        st.markdown(f"**Chunk {idx + 1} — 🚩 Unsubstantiated**")
+                        try:
+                            if isinstance(chunks, list) and idx < len(chunks):
+                                st.caption("Chunk text:")
+                                st.write(chunks[idx])
+                        except Exception:
+                            pass
+                        for u in unsubstantiated:
+                            st.write(
+                                {
+                                    "rationale": u.get("rationale"),
+                                    "feedback": u.get("feedback"),
+                                }
+                            )
+
+            # Also render chunks that don't have any substantiation issues
+            st.subheader("Chunks without substantiation issues", anchor=False)
+            total_chunks = (
+                len(chunks) if isinstance(chunks, list) else len(results_by_chunk)
+            )
+            for idx in range(total_chunks):
+                items = results_by_chunk[idx] if idx < len(results_by_chunk) else []
+                has_unsubstantiated = False
+                try:
+                    for it in items or []:
+                        if isinstance(it, Exception):
+                            continue
+                        data_it = None
+                        try:
+                            if hasattr(it, "model_dump"):
+                                data_it = it.model_dump()
+                            elif hasattr(it, "dict"):
+                                data_it = it.dict()
+                            elif isinstance(it, dict):
+                                data_it = it
+                        except Exception:
+                            data_it = None
+                        if (
+                            isinstance(data_it, dict)
+                            and data_it.get("is_substantiated") is False
+                        ):
+                            has_unsubstantiated = True
+                            break
+                except Exception:
+                    has_unsubstantiated = False
+
+                if not has_unsubstantiated:
+                    with st.container(border=True):
+                        st.markdown(
+                            f"**Chunk {idx + 1} — ✅ No substantiation issues**"
+                        )
+                        try:
+                            if isinstance(chunks, list) and idx < len(chunks):
+                                st.caption("Chunk text:")
+                                st.write(chunks[idx])
+                        except Exception:
+                            pass
 
 
 if __name__ == "__main__":

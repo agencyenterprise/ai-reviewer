@@ -40,10 +40,10 @@ uv python install 3.13
 
 ### Run
 
-Execute the app using uv (no manual activation needed):
+Execute the tool's cli actions using uv:
 
 ```bash
-uv run python main.py
+uv run -m cli.process_document -h
 ```
 
 Streamlit (temporary UI for PoC)

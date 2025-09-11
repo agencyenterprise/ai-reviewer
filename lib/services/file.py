@@ -35,16 +35,3 @@ class File:
         # )
         # self._markdown = result.text
         return self._markdown
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "file_path",
-        nargs="?",
-        type=str,
-        default="/Users/omid/codes/rand-ai-reviewer/data/example_public_files/RAND_CFA4214-1-main.docx",
-    )
-    args = parser.parse_args()
-    file = File(file_path=args.file_path)
-    print(asyncio.run(file.get_markdown()))
