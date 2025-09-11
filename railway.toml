@@ -1,0 +1,23 @@
+[build]
+builder = "dockerfile"
+
+[deploy]
+preDeployCommand = ["uv run alembic upgrade head"]
+startCommand = "uv run streamlit run streamlit/main.py --server.port=8080 --server.address=0.0.0.0"
+healthcheckPath = "/"
+healthcheckTimeout = 300
+restartPolicyType = "always"
+
+# Persistent storage for file uploads
+[[volumes]]
+name = "file-uploads"
+mount = "/app/uploads"
+
+# Auto-reference PostgreSQL service variables
+[env]
+DATABASE_URL = "${{Postgres.DATABASE_URL}}"
+POSTGRES_HOST = "${{Postgres.PGHOST}}"
+POSTGRES_PORT = "${{Postgres.PGPORT}}"
+POSTGRES_DB = "${{Postgres.PGDATABASE}}"
+POSTGRES_USER = "${{Postgres.PGUSER}}"
+POSTGRES_PASSWORD = "${{Postgres.PGPASSWORD}}"

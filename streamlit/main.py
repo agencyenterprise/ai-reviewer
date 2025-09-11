@@ -136,7 +136,12 @@ def main() -> None:
 
     def _persist_uploaded_main_document_to_path(uploaded_file) -> str:
         """Save the uploaded main document to a writable path and return path."""
-        uploads_dir = Path(os.getcwd()) / "cache" / "uploads"
+        # Use persistent volume in production, fallback to local cache for development
+        if os.path.exists("/app/uploads"):
+            uploads_dir = Path("/app/uploads")
+        else:
+            uploads_dir = Path(os.getcwd()) / "cache" / "uploads"
+        
         uploads_dir.mkdir(parents=True, exist_ok=True)
         target_path = uploads_dir / getattr(uploaded_file, "name", "uploaded_document")
         with open(target_path, "wb") as f:
