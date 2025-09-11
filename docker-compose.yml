@@ -23,11 +23,11 @@ services:
       - app_network
 
   # Backend Application Service
-  app:
+  api:
     build: 
       context: .
       dockerfile: Dockerfile
-    container_name: rand-ai-reviewer-app
+    container_name: rand-ai-reviewer-api
     restart: unless-stopped
     ports:
       - "8501:8501"
@@ -55,19 +55,19 @@ services:
       start_period: 40s
 
   # Frontend Application Service  
-  frontend:
+  app:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: rand-ai-reviewer-frontend
+    container_name: rand-ai-reviewer-app
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://localhost:8501
+      - NEXT_PUBLIC_API_URL=http://api:8501
     depends_on:
-      - app
+      - api
     networks:
       - app_network
     healthcheck:
