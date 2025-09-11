@@ -38,25 +38,25 @@ If Python 3.13 is not present, install it via uv:
 uv python install 3.13
 ```
 
-### Run
-
-Execute the tool's cli actions using uv:
-
-```bash
-uv run -m cli.process_document -h
-```
-
-Streamlit (temporary UI for PoC)
-
-```
-streamlit run streamlit/main.py
-```
-
 ### Optional: activate the virtual environment
 
 ```bash
 source .venv/bin/activate
 python main.py
+```
+
+### Run
+
+**Streamlit (temporary UI for PoC)**
+
+```
+streamlit run streamlit/main.py
+```
+
+**FastAPI**
+
+```
+uv run fastapi dev api/main.py
 ```
 
 ### Managing dependencies
@@ -105,11 +105,13 @@ This project uses **Infrastructure as Code** through Railway's Config as Code fe
 
 2. **GitHub Repository Secrets**:
    Go to **Settings** → **Secrets and variables** → **Actions**, add:
+
    - `RAILWAY_TOKEN`: Get from Railway dashboard → Account → Tokens
    - `RAILWAY_PROJECT_ID`: Your Railway project ID for linking
    - `RAILWAY_SERVICE_ID`: Your application service ID (not the database service)
-     
+
    **How to find your Service ID:**
+
    ```bash
    # Run this in your project directory
    railway service list
@@ -118,13 +120,14 @@ This project uses **Infrastructure as Code** through Railway's Config as Code fe
 
 3. **Environment Variables in Railway**:
    After first deployment, set in your Railway service's **Variables** tab:
+
    ```
    OPENAI_API_KEY=your_openai_api_key
-   LANGFUSE_SECRET_KEY=your_langfuse_secret_key  
+   LANGFUSE_SECRET_KEY=your_langfuse_secret_key
    LANGFUSE_PUBLIC_KEY=your_langfuse_public_key
    LANGFUSE_HOST=https://cloud.langfuse.com
    ```
-   
+
    > **Database variables are automatic**: `railway.toml` references PostgreSQL variables automatically
 
 #### Infrastructure as Code Files
@@ -138,11 +141,11 @@ This project uses **Infrastructure as Code** through Railway's Config as Code fe
 
 #### Deployment Workflow
 
-- **Push to `main`**: 
+- **Push to `main`**:
   1. Creates PostgreSQL service (if doesn't exist)
   2. Deploys application service
   3. Runs database migrations automatically
-- **Pull Requests**: Runs build validation checks only  
+- **Pull Requests**: Runs build validation checks only
 
 **100% Infrastructure as Code** - PostgreSQL database, environment variable linking, and deployments all automated!
 
@@ -156,7 +159,7 @@ OPENAI_API_KEY=your_openai_api_key
 
 # Langfuse (observability)
 LANGFUSE_SECRET_KEY=your_langfuse_secret_key
-LANGFUSE_PUBLIC_KEY=your_langfuse_public_key  
+LANGFUSE_PUBLIC_KEY=your_langfuse_public_key
 LANGFUSE_HOST=https://cloud.langfuse.com
 
 # Database (Railway provides DATABASE_URL automatically)
@@ -164,6 +167,7 @@ DATABASE_URL=postgresql://user:password@host:port/database
 ```
 
 **Local Development**: Create a `.env` file in the project root:
+
 ```bash
 # Copy this template and fill in your values
 cat > .env << EOF
