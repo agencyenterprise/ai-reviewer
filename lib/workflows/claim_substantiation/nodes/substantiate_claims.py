@@ -1,13 +1,18 @@
+import logging
 from lib.agents.tools import format_supporting_documents_prompt_section
 from lib.run_utils import run_tasks
 from lib.services.document_processor import DocumentProcessor
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.agents.claim_substantiator import claim_substantiator_agent
 
+logger = logging.getLogger(__name__)
+
 
 async def substantiate_claims(
     state: ClaimSubstantiatorState,
 ) -> ClaimSubstantiatorState:
+    logger.info("substantiate_claims: substantiating claims")
+
     # Require claims and citations to be present
     if not state.get("claims_by_chunk") or not state.get("citations_by_chunk"):
         return {}

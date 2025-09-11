@@ -1,3 +1,4 @@
+import logging
 from typing import List
 from lib.agents.citation_detector import CitationResponse
 from lib.services.document_processor import DocumentProcessor
@@ -7,8 +8,12 @@ from lib.agents.citation_detector import (
     CitationResponse,
 )
 
+logger = logging.getLogger(__name__)
+
 
 async def detect_citations(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
+    logger.info("detect_citations: detecting citations")
+
     processor = DocumentProcessor(state["file"])
     bibliography = ""
     for index, reference in enumerate(state.get("references", [])):
