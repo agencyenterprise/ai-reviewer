@@ -29,6 +29,9 @@ class Citation(BaseModel):
     associated_bibliography: str = Field(
         description="If the document includes a bibliography entry related to this citation, this will be an exact copy of that bibliography entry, otherwise it will be an empty string."
     )
+    index_of_associated_bibliography: int = Field(
+        description="The index of the bibliography entry that this citation refers to, if any. If the citation does not refer to a bibliography entry, this should be -1."
+    )
     rationale: str = Field(
         description="A very brief rationale for why you think this text is a citation"
     )
@@ -65,6 +68,12 @@ For each citation, you need to return the following information:
 ## The full document that the chunk is a part of
 ```
 {full_document}
+```
+
+## The list of bibliography entries (if any) extracted from the bibliography section of the full document
+The indexes in this list should be used when returning index_of_associated_bibliography.
+```
+{bibliography}
 ```
 
 ## The chunk of text to extract citations from

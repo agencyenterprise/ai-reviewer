@@ -43,8 +43,3 @@ If there's a matching reference, return the reference text and the index of the 
     mandatory_tools=[],
     output_schema=ReferenceMatch,
 )
-
-
-async def format_supporting_documents_prompt_section(supporting_document: File):
-    markdown = await supporting_document.get_markdown()
-    return markdown[:2000]

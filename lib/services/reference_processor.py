@@ -7,9 +7,10 @@ from lib.agents.reference_extractor import (
 )
 from lib.agents.reference_matcher import (
     ReferenceMatch,
-    format_supporting_documents_prompt_section,
     reference_matcher_agent,
 )
+
+from lib.agents.tools import format_supporting_documents_prompt_section
 
 
 class ReferenceProcessorResult(BaseModel):
