@@ -7,7 +7,7 @@ from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 
 async def run_claim_substantiator(
     file: File, supporting_files: Optional[List[File]] = None
-):
+) -> ClaimSubstantiatorState:
     app = build_claim_substantiator_graph()
     state: ClaimSubstantiatorState = {"file": file}
     if supporting_files is not None:
@@ -22,9 +22,7 @@ async def run_claim_substantiator_from_paths(
     supporting_files = (
         [File(file_path=p) for p in supporting_paths] if supporting_paths else None
     )
-    await file.get_markdown()
-    for supporting_file in supporting_files or []:
-        await supporting_file.get_markdown()
+
     return await run_claim_substantiator(file, supporting_files)
 
 

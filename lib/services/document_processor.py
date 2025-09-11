@@ -7,6 +7,9 @@ from langchain_openai.embeddings import OpenAIEmbeddings
 from langchain.embeddings import CacheBackedEmbeddings
 from langchain.storage import LocalFileStore
 from langchain_core.documents import Document
+from langchain_text_splitters import (
+    RecursiveCharacterTextSplitter,
+)
 
 from lib.services.file import File
 from lib.models import Agent
@@ -36,13 +39,18 @@ class DocumentProcessor:
 
         if chunker is None:
             # https://python.langchain.com/docs/how_to/semantic-chunker/
-            chunker = SemanticChunker(
-                self.embeddings,
-                breakpoint_threshold_type="percentile",
-                breakpoint_threshold_amount=0,
+            # chunker = SemanticChunker(
+            #     self.embeddings,
+            #     breakpoint_threshold_type="percentile",
+            #     # breakpoint_threshold_amount=0,
+            # )
+            # chunker = MarkdownTextSplitter()
+            chunker = RecursiveCharacterTextSplitter(
+                chunk_size=1,
+                chunk_overlap=0,
+                separators=["\n\n", "\n"],
+                keep_separator=False,
             )
-            # chunker = MarkdownTextSplitter(chunk_size=200, chunk_overlap=0)
-            # chunker = RecursiveCharacterTextSplitter(chunk_size=250, chunk_overlap=0)
 
         self.chunker = chunker
 
