@@ -49,7 +49,7 @@ Bibliography entry text: {associated_reference.text}
 """
                 if associated_reference.has_associated_supporting_document:
                     supporting_file = supporting_files[
-                        associated_reference.index_of_associated_supporting_document
+                        associated_reference.index_of_associated_supporting_document - 1
                     ]
                     cited_references_str += (
                         await format_supporting_documents_prompt_section(
