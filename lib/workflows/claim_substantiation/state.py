@@ -12,6 +12,7 @@ class ClaimSubstantiatorState(TypedDict, total=False):
     supporting_files: List[File]
 
     # Outputs
+    chunks: List[str]
     references: List[BibliographyItem]
     claims_by_chunk: List[ClaimResponse]
     citations_by_chunk: List[CitationResponse]

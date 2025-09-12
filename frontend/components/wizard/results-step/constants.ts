@@ -1,4 +1,4 @@
-export const TABS = ['summary', 'claims', 'citations', 'references', 'files', 'chunks'] as const
+export const TABS = ['summary', 'files', 'chunks', 'claims', 'citations', 'references'] as const
 
 export type TabType = typeof TABS[number]
 

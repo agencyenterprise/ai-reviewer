@@ -4,6 +4,10 @@ export interface WizardStep {
     description: string
 }
 
+export interface DocumentChunk {
+    page_content: string
+}
+
 export interface Claim {
     text: string
     claim: string
@@ -52,6 +56,7 @@ export interface AnalysisFile {
 
 export interface DetailedResults {
     references: Reference[]
+    chunks: DocumentChunk[]
     claims_by_chunk: ClaimsByChunk[]
     citations_by_chunk: CitationsByChunk[]
     claim_substantiations_by_chunk: ClaimSubstantiation[][]

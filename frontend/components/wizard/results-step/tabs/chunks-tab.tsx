@@ -14,9 +14,11 @@ export function ChunksTab({ results }: ChunksTabProps) {
         <div className="space-y-4">
             <h3 className="text-lg font-semibold">Chunks</h3>
             <div className="space-y-4 max-h-96 overflow-y-auto">
-                {results.claims_by_chunk.map((_, chunkIndex) => {
-                    const claims = results.claims_by_chunk[chunkIndex]?.claims || []
-                    const citations = results.citations_by_chunk[chunkIndex]?.citations || []
+                {results.claims_by_chunk.map((claimsChunk, chunkIndex) => {
+                    const claims = claimsChunk?.claims || []
+                    const citationsChunk = results.citations_by_chunk[chunkIndex]
+                    const citations = citationsChunk?.citations || []
+                    const chunkText = claimsChunk?.rationale || citationsChunk?.rationale || 'No content provided.'
                     const hasUnsubstantiated = (results.claim_substantiations_by_chunk[chunkIndex] || [])
                         .some(s => !s.is_substantiated)
 
@@ -42,12 +44,7 @@ export function ChunksTab({ results }: ChunksTabProps) {
 
                             <div className="p-4 space-y-4">
                                 <ChunkItem>
-                                    <p className="text-sm whitespace-pre-wrap">
-                                        {/* We don't have explicit chunk text returned; show claim/citation context if available */}
-                                        {claims.length === 0 && citations.length === 0
-                                            ? 'No content extracted for this chunk.'
-                                            : 'Chunk details:'}
-                                    </p>
+                                    <p className="text-sm whitespace-pre-wrap">{chunkText}</p>
                                 </ChunkItem>
 
                                 {claims.length > 0 && (
