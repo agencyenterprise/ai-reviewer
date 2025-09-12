@@ -5,8 +5,8 @@ from typing import Optional
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from api.types import ClaimSubstantiatorOutputModel
 from lib.workflows.claim_substantiation.runner import run_claim_substantiator
+from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.services.file import File as WorkflowFile
 
 logger = logging.getLogger(__name__)
@@ -77,7 +77,7 @@ async def run_claim_substantiation_workflow(
                 supporting_files=supporting_files if supporting_files else None,
             )
 
-            return ClaimSubstantiatorOutputModel(**result_state)
+            return ClaimSubstantiatorState(**result_state)
 
     except Exception as e:
         logger.error(f"Error processing workflow: {str(e)}")
