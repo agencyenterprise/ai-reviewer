@@ -1,47 +1,47 @@
-"use client"
+'use client';
 
-import { Stepper } from "@/components/ui/stepper"
-import { ProcessStep } from "@/components/wizard/process-step"
-import { ResultsStep } from "@/components/wizard/results-step"
-import { WizardStep } from "@/components/wizard/types"
-import { UploadStep } from "@/components/wizard/upload-step"
-import { useWizard, WizardProvider } from "@/components/wizard/wizard-context"
-import { WizardNavigation } from "@/components/wizard/wizard-navigation"
-import * as React from "react"
+import { Stepper } from '@/components/ui/stepper';
+import { ProcessStep } from '@/components/wizard/process-step';
+import { ResultsStep } from '@/components/wizard/results-step';
+import { WizardStep } from '@/components/wizard/types';
+import { UploadStep } from '@/components/wizard/upload-step';
+import { useWizard, WizardProvider } from '@/components/wizard/wizard-context';
+import { WizardNavigation } from '@/components/wizard/wizard-navigation';
+import * as React from 'react';
 
 const steps: WizardStep[] = [
   {
-    id: "upload",
-    title: "Upload Documents",
-    description: "Main & supporting files",
+    id: 'upload',
+    title: 'Upload Documents',
+    description: 'Main & supporting files',
   },
   {
-    id: "process",
-    title: "Process",
-    description: "Start AI analysis",
+    id: 'process',
+    title: 'Process',
+    description: 'Start AI analysis',
   },
   {
-    id: "results",
-    title: "Results",
-    description: "View analysis results",
+    id: 'results',
+    title: 'Results',
+    description: 'View analysis results',
   },
-]
+];
 
 function WizardContent() {
-  const { state } = useWizard()
+  const { state } = useWizard();
 
   const renderStepContent = () => {
     switch (state.currentStep) {
       case 1:
-        return <UploadStep />
+        return <UploadStep />;
       case 2:
-        return <ProcessStep />
+        return <ProcessStep />;
       case 3:
-        return <ResultsStep />
+        return <ResultsStep />;
       default:
-        return <UploadStep />
+        return <UploadStep />;
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -52,11 +52,7 @@ function WizardContent() {
           </h1>
 
           <div className="max-w-2xl mx-auto">
-            <Stepper
-              steps={steps}
-              currentStep={state.currentStep}
-              className="mb-8"
-            />
+            <Stepper steps={steps} currentStep={state.currentStep} className="mb-8" />
           </div>
         </div>
 
@@ -67,7 +63,7 @@ function WizardContent() {
         <WizardNavigation />
       </div>
     </div>
-  )
+  );
 }
 
 export default function Home() {
@@ -75,5 +71,5 @@ export default function Home() {
     <WizardProvider>
       <WizardContent />
     </WizardProvider>
-  )
+  );
 }

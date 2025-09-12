@@ -1,98 +1,98 @@
 export interface WizardStep {
-    id: string
-    title: string
-    description: string
+  id: string;
+  title: string;
+  description: string;
 }
 
 export interface DocumentChunk {
-    page_content: string
+  page_content: string;
 }
 
 export interface Claim {
-    text: string
-    claim: string
-    rationale: string
-    needs_substantiation: boolean
+  text: string;
+  claim: string;
+  rationale: string;
+  needs_substantiation: boolean;
 }
 
 export interface ClaimsByChunk {
-    claims: Claim[]
-    rationale: string
+  claims: Claim[];
+  rationale: string;
 }
 
 export interface Citation {
-    text: string
-    type: string
-    format: string
-    needs_bibliography: boolean
-    associated_bibliography?: string
-    index_of_associated_bibliography?: number
-    rationale: string
+  text: string;
+  type: string;
+  format: string;
+  needs_bibliography: boolean;
+  associated_bibliography?: string;
+  index_of_associated_bibliography?: number;
+  rationale: string;
 }
 
 export interface CitationsByChunk {
-    citations: Citation[]
-    rationale: string
+  citations: Citation[];
+  rationale: string;
 }
 
 export interface Reference {
-    text: string
-    has_associated_supporting_document: boolean
-    index_of_associated_supporting_document: number
+  text: string;
+  has_associated_supporting_document: boolean;
+  index_of_associated_supporting_document: number;
 }
 
 export interface ClaimSubstantiation {
-    is_substantiated: boolean
-    rationale: string
-    feedback: string
-    chunk_index: number
-    claim_index: number
+  is_substantiated: boolean;
+  rationale: string;
+  feedback: string;
+  chunk_index: number;
+  claim_index: number;
 }
 
 export interface AnalysisFile {
-    file_name: string
-    file_path: string
-    file_type: string
-    _markdown?: string
+  file_name: string;
+  file_path: string;
+  file_type: string;
+  _markdown?: string;
 }
 
 export interface DetailedResults {
-    references: Reference[]
-    chunks: DocumentChunk[]
-    claims_by_chunk: ClaimsByChunk[]
-    citations_by_chunk: CitationsByChunk[]
-    claim_substantiations_by_chunk: ClaimSubstantiation[][]
-    file: AnalysisFile
-    supporting_files: AnalysisFile[]
+  references: Reference[];
+  chunks: DocumentChunk[];
+  claims_by_chunk: ClaimsByChunk[];
+  citations_by_chunk: CitationsByChunk[];
+  claim_substantiations_by_chunk: ClaimSubstantiation[][];
+  file: AnalysisFile;
+  supporting_files: AnalysisFile[];
 }
 
 export interface AnalysisResults {
-    claimsDetected: number
-    citationsFound: number
-    unsubstantiatedClaims: number
-    status: "processing" | "completed" | "error"
-    error?: string
-    fullResults?: DetailedResults
+  claimsDetected: number;
+  citationsFound: number;
+  unsubstantiatedClaims: number;
+  status: 'processing' | 'completed' | 'error';
+  error?: string;
+  fullResults?: DetailedResults;
 }
 
 export interface WizardState {
-    currentStep: number
-    mainDocument: File | null
-    supportingDocuments: File[]
-    isProcessing: boolean
-    analysisResults: AnalysisResults | null
+  currentStep: number;
+  mainDocument: File | null;
+  supportingDocuments: File[];
+  isProcessing: boolean;
+  analysisResults: AnalysisResults | null;
 }
 
 export interface WizardActions {
-    setCurrentStep: (step: number) => void
-    setMainDocument: (file: File | null) => void
-    setSupportingDocuments: (files: File[]) => void
-    setIsProcessing: (processing: boolean) => void
-    setAnalysisResults: (results: AnalysisResults | null) => void
-    reset: () => void
+  setCurrentStep: (step: number) => void;
+  setMainDocument: (file: File | null) => void;
+  setSupportingDocuments: (files: File[]) => void;
+  setIsProcessing: (processing: boolean) => void;
+  setAnalysisResults: (results: AnalysisResults | null) => void;
+  reset: () => void;
 }
 
 export interface WizardContextType {
-    state: WizardState
-    actions: WizardActions
+  state: WizardState;
+  actions: WizardActions;
 }
