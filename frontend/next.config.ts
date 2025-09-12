@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   output: 'standalone',
@@ -6,7 +6,6 @@ const nextConfig: NextConfig = {
   // Ignored when running with Turbopack.
   webpack: (config, { dev }) => {
     if (dev) {
-      // @ts-ignore - Property is available on webpack configuration at runtime
       config.watchOptions = {
         poll: 1000,
         aggregateTimeout: 300,
