@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { AnalysisResults, DetailedResults } from "../types"
 import { useResultsCalculations } from "./hooks/use-results-calculations"
 import { SummaryCards, TabNavigation } from "./components"
-import { SummaryTab, ClaimsTab, CitationsTab, ReferencesTab, FilesTab } from "./tabs"
+import { SummaryTab, ClaimsTab, CitationsTab, ReferencesTab, FilesTab, ChunksTab } from "./tabs"
 import { TabType } from "./constants"
 
 interface ResultsVisualizationProps {
@@ -37,6 +37,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
                 return (
                     <SummaryTab
                         results={detailedResults}
+                        totalChunks={calculations.totalChunks}
                         chunksWithClaims={calculations.chunksWithClaims}
                         chunksWithCitations={calculations.chunksWithCitations}
                         supportedReferences={calculations.supportedReferences}
@@ -50,6 +51,8 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
                 return <ReferencesTab results={detailedResults} />
             case 'files':
                 return <FilesTab results={detailedResults} />
+            case 'chunks':
+                return <ChunksTab results={detailedResults} />
         }
     }
 

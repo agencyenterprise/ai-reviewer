@@ -43,10 +43,11 @@ export interface ClaimSubstantiation {
     feedback: string
 }
 
-export interface FileInfo {
+export interface AnalysisFile {
     file_name: string
+    file_path: string
     file_type: string
-    _markdown: string
+    _markdown?: string
 }
 
 export interface DetailedResults {
@@ -54,8 +55,8 @@ export interface DetailedResults {
     claims_by_chunk: ClaimsByChunk[]
     citations_by_chunk: CitationsByChunk[]
     claim_substantiations_by_chunk: ClaimSubstantiation[][]
-    file: File
-    supporting_files: File[]
+    file: AnalysisFile
+    supporting_files: AnalysisFile[]
 }
 
 export interface AnalysisResults {
