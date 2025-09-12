@@ -15,7 +15,7 @@ async def extract_references(state: ClaimSubstantiatorState) -> ClaimSubstantiat
     markdown = await state["file"].get_markdown()
     supporting_documents = "\n\n".join(
         [
-            f"""### Supporting document #{index + 1}
+            f"""### Supporting document #{index + 1} (index: {index+1})
 {await format_supporting_documents_prompt_section(doc, truncate_at_character_count=1000)}
 """
             for index, doc in enumerate(state.get("supporting_files", []) or [])
