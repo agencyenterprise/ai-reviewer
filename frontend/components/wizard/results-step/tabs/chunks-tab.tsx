@@ -16,6 +16,7 @@ export function ChunksTab({ results }: ChunksTabProps) {
       <div className="space-y-4">
         {results.claims_by_chunk.map((claimsChunk, chunkIndex) => {
           const chunk = results.chunks[chunkIndex];
+          const claimsRationale = claimsChunk.rationale;
           const claims = claimsChunk?.claims || [];
           const substantiations = results.claim_substantiations_by_chunk[chunkIndex] || [];
           const references = results.references || [];
@@ -61,44 +62,45 @@ export function ChunksTab({ results }: ChunksTabProps) {
                   <p className="text-sm whitespace-pre-wrap">{chunkText}</p>
                 </ChunkItem>
 
-                {claims.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Claims</h4>
-                    <div className="space-y-2">
-                      {claims.map((claim, ci) => {
-                        const subst = substantiations[ci];
-                        const isUnsubstantiated = subst ? !subst.is_substantiated : false;
-                        return (
-                          <ChunkItem key={ci} className={isUnsubstantiated ? 'bg-red-50/40' : ''}>
-                            <p className="text-sm">
-                              <strong>Claim:</strong> {claim.claim}
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Claims</h4>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    <strong>Rationale:</strong> {claimsRationale}
+                  </p>
+                  <div className="space-y-2">
+                    {claims.map((claim, ci) => {
+                      const subst = substantiations[ci];
+                      const isUnsubstantiated = subst ? !subst.is_substantiated : false;
+                      return (
+                        <ChunkItem key={ci} className={isUnsubstantiated ? 'bg-red-50/40' : ''}>
+                          <p className="text-sm">
+                            <strong>Claim:</strong> {claim.claim}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            <strong>Related Text:</strong> &quot;{claim.text}&quot;
+                          </p>
+                          {subst && subst.is_substantiated && (
+                            <p className="text-sm text-green-600 mt-1">
+                              <strong>Substantiated because:</strong> {subst.rationale}
                             </p>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              <strong>Related Text:</strong> "{claim.text}"
-                            </p>
-                            {subst && subst.is_substantiated && (
-                              <p className="text-sm text-green-600 mt-1">
-                                <strong>Substantiated because:</strong> {subst.rationale}
+                          )}
+                          {subst && !subst.is_substantiated && (
+                            <>
+                              <p className="text-sm text-red-600 mt-1">
+                                <strong>Unsubstantiated because:</strong> {subst.rationale}
                               </p>
-                            )}
-                            {subst && !subst.is_substantiated && (
-                              <>
-                                <p className="text-sm text-red-600 mt-1">
-                                  <strong>Unsubstantiated because:</strong> {subst.rationale}
+                              {subst.feedback && (
+                                <p className="text-sm text-blue-600 mt-1">
+                                  <strong>Feedback to resolve:</strong> {subst.feedback}
                                 </p>
-                                {subst.feedback && (
-                                  <p className="text-sm text-blue-600 mt-1">
-                                    <strong>Feedback to resolve:</strong> {subst.feedback}
-                                  </p>
-                                )}
-                              </>
-                            )}
-                          </ChunkItem>
-                        );
-                      })}
-                    </div>
+                              )}
+                            </>
+                          )}
+                        </ChunkItem>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
 
                 {citations.length > 0 && (
                   <div>

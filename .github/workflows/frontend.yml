@@ -1,0 +1,26 @@
+on: [pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: ./frontend/package.json
+
+      - name: Install dependencies
+        run: pnpm install
+        working-directory: ./frontend
+
+      - name: Run lint
+        run: pnpm run lint
+        working-directory: ./frontend
+
+      - name: Run build
+        run: pnpm run build
+        working-directory: ./frontend
