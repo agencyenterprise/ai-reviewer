@@ -24,6 +24,8 @@ export function ChunksTab({ results }: ChunksTabProps) {
                     const chunkText = chunk?.page_content || 'No content provided.'
                     const hasUnsubstantiated = (results.claim_substantiations_by_chunk[chunkIndex] || [])
                         .some(s => !s.is_substantiated)
+                    const unsubstantiatedClaims = results.claim_substantiations_by_chunk[chunkIndex] || []
+                    const unsubstantiatedClaimIndices = unsubstantiatedClaims.map(s => s.claim_index)
 
                     return (
                         <div
@@ -59,9 +61,19 @@ export function ChunksTab({ results }: ChunksTabProps) {
                                         <h4 className="text-sm font-medium mb-2">Claims</h4>
                                         <div className="space-y-2">
                                             {claims.map((claim, ci) => (
-                                                <ChunkItem key={ci}>
+                                                <ChunkItem key={ci} className={unsubstantiatedClaimIndices.includes(ci) ? 'bg-red-50/40' : ''}>
                                                     <p className="text-sm"><strong>Claim:</strong> {claim.claim}</p>
-                                                    <p className="text-xs text-muted-foreground mt-1"><strong>Text:</strong> "{claim.text}"</p>
+                                                    <p className="text-sm text-muted-foreground mt-1"><strong>Related Text:</strong> "{claim.text}"</p>
+                                                    {unsubstantiatedClaimIndices.includes(ci) && (
+                                                        <>  
+                                                            <p className="text-sm text-red-600 mt-1">
+                                                                <strong>Unsubstantiated because:</strong> {unsubstantiatedClaims[unsubstantiatedClaimIndices.find(i => i == ci)!].rationale}
+                                                            </p>
+                                                            <p className="text-sm text-blue-600 mt-1">
+                                                                <strong>Feedback to resolve:</strong> {unsubstantiatedClaims[unsubstantiatedClaimIndices.find(i => i == ci)!].feedback}
+                                                            </p>
+                                                        </>
+                                                    )}
                                                 </ChunkItem>
                                             ))}
                                         </div>
@@ -80,19 +92,21 @@ export function ChunksTab({ results }: ChunksTabProps) {
                                                         <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded">{citation.format}</span>
                                                     </div>
                                                     {citation.associated_bibliography && (
-                                                        <p className="text-xs text-muted-foreground mt-1">
+                                                        <div className="text-xs text-muted-foreground mt-1">
                                                             <strong>Associated bibliography:</strong> {citation.associated_bibliography}
-                                                            {citation.index_of_associated_bibliography && references[citation.index_of_associated_bibliography - 1].has_associated_supporting_document && (
-                                                                <p className="text-xs text-muted-foreground">
-                                                                    <strong>Related supporting document:</strong> <FileIcon className="w-3 h-3" /> {supportingFiles[references[citation.index_of_associated_bibliography - 1].index_of_associated_supporting_document - 1]?.file_name}
-                                                                </p>
+                                                            {citation.index_of_associated_bibliography && references[citation.index_of_associated_bibliography - 1]?.has_associated_supporting_document && (
+                                                                <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                                                    <strong>Related supporting document:</strong>
+                                                                    <FileIcon className="w-3 h-3" />
+                                                                    {supportingFiles[references[citation.index_of_associated_bibliography - 1]?.index_of_associated_supporting_document - 1]?.file_name}
+                                                                </div>
                                                             )}
-                                                            {citation.index_of_associated_bibliography && !references[citation.index_of_associated_bibliography - 1].has_associated_supporting_document && (
-                                                                <p className="text-xs text-muted-foreground">
+                                                            {citation.index_of_associated_bibliography && references[citation.index_of_associated_bibliography - 1] && !references[citation.index_of_associated_bibliography - 1].has_associated_supporting_document && (
+                                                                <div className="text-xs text-muted-foreground mt-1">
                                                                     <strong>No related supporting document:</strong>
-                                                                </p>
+                                                                </div>
                                                             )}
-                                                        </p>
+                                                        </div>
                                                     )}
                                                 </ChunkItem>
                                             ))}

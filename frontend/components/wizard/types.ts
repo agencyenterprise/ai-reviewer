@@ -45,6 +45,8 @@ export interface ClaimSubstantiation {
     is_substantiated: boolean
     rationale: string
     feedback: string
+    chunk_index: number
+    claim_index: number
 }
 
 export interface AnalysisFile {
