@@ -9,8 +9,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from lib.services.file import File
 from lib.services.document_processor import DocumentProcessor
-from lib.agents.claim_detector import claim_detector_agent
-from lib.agents.citation_detector import citation_detector_agent
 from lib.workflows.claim_substantiation.runner import run_claim_substantiator_from_paths
 
 
@@ -172,7 +170,7 @@ def main() -> None:
             uploads_dir = Path("/app/uploads")
         else:
             uploads_dir = Path(os.getcwd()) / "cache" / "uploads"
-        
+
         uploads_dir.mkdir(parents=True, exist_ok=True)
         target_path = uploads_dir / getattr(uploaded_file, "name", "uploaded_document")
         with open(target_path, "wb") as f:
@@ -196,30 +194,6 @@ def main() -> None:
 
     main_doc = st.session_state.get("uploaded_main_document")
     if main_doc is not None:
-        if st.button("Run agents", type="secondary"):
-            with st.spinner("Converting and analyzing document..."):
-                file_path = _persist_uploaded_main_document_to_path(main_doc)
-                file = File(file_path=file_path)
-                processor = DocumentProcessor(file)
-                try:
-                    results_all = asyncio.run(
-                        processor.apply_agents_to_all_chunks(
-                            [claim_detector_agent, citation_detector_agent]
-                        )
-                    )
-                except Exception as e:
-                    st.error(f"Analysis failed: {e}")
-                    results_all = [None, None]
-                st.session_state["claim_detection_results"] = results_all[0]
-                st.session_state["citation_detection_results"] = results_all[1]
-                try:
-                    chunks = asyncio.run(processor.get_chunks())
-                    st.session_state["document_chunks"] = [
-                        chunk.page_content for chunk in chunks
-                    ]
-                except Exception:
-                    st.session_state["document_chunks"] = None
-
         if st.button("Run claim substantiation workflow", type="primary"):
             with st.spinner("Running substantiation workflow..."):
                 file_path = _persist_uploaded_main_document_to_path(main_doc)
@@ -248,152 +222,112 @@ def main() -> None:
                 except Exception:
                     pass
 
-    claim_results = st.session_state.get("claim_detection_results")
-    citation_results = st.session_state.get("citation_detection_results")
     chunks = st.session_state.get("document_chunks")
-    if claim_results is not None or citation_results is not None:
-        st.subheader("Claim detection results", anchor=False)
-        for idx, item in enumerate(claim_results):
-            # Prepare header indicators
-            has_claims = False
-            needs_subst_any = False
-            data_for_header = None
-            if not isinstance(item, Exception):
-                try:
-                    if hasattr(item, "model_dump"):
-                        data_for_header = item.model_dump()
-                    elif hasattr(item, "dict"):
-                        data_for_header = item.dict()
-                    elif isinstance(item, dict):
-                        data_for_header = item
-                except Exception:
-                    data_for_header = None
-            if isinstance(data_for_header, dict):
-                claims_header = data_for_header.get("claims")
-                if isinstance(claims_header, list) and len(claims_header) > 0:
-                    has_claims = True
-                    for _c in claims_header:
-                        try:
-                            if hasattr(_c, "model_dump"):
-                                _c = _c.model_dump()
-                            elif hasattr(_c, "dict"):
-                                _c = _c.dict()
-                        except Exception:
-                            pass
-                        try:
-                            if bool(_c.get("needs_substantiation")):
-                                needs_subst_any = True
-                                break
-                        except Exception:
-                            continue
 
-            claims_emoji = "✅" if has_claims else "❌"
-            subst_emoji = "🚩" if needs_subst_any else "🟢"
-
-            # Citation indicator for header
-            has_citations = False
-            try:
-                if citation_results is not None and idx < len(citation_results):
-                    citation_item_header = citation_results[idx]
-                    if not isinstance(citation_item_header, Exception):
-                        data_cit_header = None
-                        try:
-                            if hasattr(citation_item_header, "model_dump"):
-                                data_cit_header = citation_item_header.model_dump()
-                            elif hasattr(citation_item_header, "dict"):
-                                data_cit_header = citation_item_header.dict()
-                            elif isinstance(citation_item_header, dict):
-                                data_cit_header = citation_item_header
-                        except Exception:
-                            data_cit_header = None
-                        if isinstance(data_cit_header, dict):
-                            c_list = data_cit_header.get("citations")
-                            if isinstance(c_list, list) and len(c_list) > 0:
-                                has_citations = True
-            except Exception:
-                pass
-
-            citation_emoji = "🔗" if has_citations else ""
-            header_title = (
-                f"Chunk {idx + 1} {claims_emoji} {subst_emoji} {citation_emoji}"
-            )
-
-            with st.expander(header_title):
-                # Show chunk text first (if available)
-                if (
-                    isinstance(chunks, list)
-                    and idx < len(chunks)
-                    and chunks[idx] is not None
-                ):
-                    with st.container(border=True):
-                        st.markdown("**Chunk text:**")
-                        st.write(chunks[idx])
-                else:
-                    with st.container(border=True):
-                        st.info("No chunk text available.")
-                if isinstance(item, Exception):
-                    st.error(str(item))
-                else:
-                    # Try to convert Pydantic or dataclass-like objects to dicts
-                    data = None
+    # --- Substantiation results section (only unsubstantiated) ---
+    subst_state = st.session_state.get("claim_substantiation_results_state")
+    if isinstance(subst_state, dict):
+        # --- Extracted references section ---
+        references = subst_state.get("references")
+        if isinstance(references, list):
+            if references:
+                st.subheader("Extracted references", anchor=False)
+                for ref_index, reference in enumerate(references, start=1):
+                    reference_data = None
                     try:
-                        if hasattr(item, "model_dump"):
-                            data = item.model_dump()
-                        elif hasattr(item, "dict"):
-                            data = item.dict()
-                        elif isinstance(item, dict):
-                            data = item
-                        else:
-                            data = {"result": str(item)}
+                        if hasattr(reference, "model_dump"):
+                            reference_data = reference.model_dump()
+                        elif hasattr(reference, "dict"):
+                            reference_data = reference.dict()
+                        elif isinstance(reference, dict):
+                            reference_data = reference
                     except Exception:
-                        data = {"result": str(item)}
+                        reference_data = None
 
-                    claims = data.get("claims") if isinstance(data, dict) else None
-                    if isinstance(claims, list) and claims:
-                        for c_idx, claim in enumerate(claims, start=1):
-                            # Claim may be a dict or pydantic model
+                    if isinstance(reference_data, dict):
+                        with st.container(border=True):
+                            st.markdown(f"**Reference {ref_index}:**")
+                            st.write(reference_data.get("text", ""))
                             try:
-                                if hasattr(claim, "model_dump"):
-                                    claim = claim.model_dump()
-                                elif hasattr(claim, "dict"):
-                                    claim = claim.dict()
-                            except Exception:
-                                pass
-                            with st.container(border=True):
-                                needs_subst = False
-                                try:
-                                    needs_subst = bool(
-                                        claim.get("needs_substantiation")
+                                has_assoc = bool(
+                                    reference_data.get(
+                                        "has_associated_supporting_document"
                                     )
-                                except Exception:
-                                    needs_subst = False
-                                needs_emoji = "🚩" if needs_subst else "🟢"
-                                st.markdown(
-                                    f"**Claim {c_idx} {needs_emoji}:** {claim.get('claim', '')}"
                                 )
-                                st.caption(claim.get("rationale", ""))
-                                st.write(
-                                    {
-                                        "needs_substantiation": claim.get(
-                                            "needs_substantiation"
-                                        )
-                                    }
+                            except Exception:
+                                has_assoc = False
+                            if has_assoc:
+                                name = reference_data.get(
+                                    "name_of_associated_supporting_document", ""
+                                )
+                                index = reference_data.get(
+                                    "index_of_associated_supporting_document", -1
+                                )
+                                st.caption(
+                                    f"Associated supporting document: {name} (index: {index})"
                                 )
                     else:
-                        st.info("No claims detected in this chunk.")
+                        with st.container(border=True):
+                            st.write(reference)
 
-                    # --- Citations section ---
-                    st.markdown("**Citations:**")
-                    citation_item = None
+        results_by_chunk = subst_state.get("claim_substantiations_by_chunk")
+        citations_by_chunk = subst_state.get("citations_by_chunk")
+        if isinstance(results_by_chunk, list):
+            total_chunks = (
+                len(chunks) if isinstance(chunks, list) else len(results_by_chunk)
+            )
+            st.subheader("Chunk results", anchor=False)
+            for idx in range(total_chunks):
+                items = results_by_chunk[idx] if idx < len(results_by_chunk) else []
+                # Build list of unsubstantiated items for this chunk
+                unsubstantiated = []
+                try:
+                    for it in items or []:
+                        if isinstance(it, Exception):
+                            continue
+                        data_it = None
+                        try:
+                            if hasattr(it, "model_dump"):
+                                data_it = it.model_dump()
+                            elif hasattr(it, "dict"):
+                                data_it = it.dict()
+                            elif isinstance(it, dict):
+                                data_it = it
+                        except Exception:
+                            data_it = None
+                        if (
+                            isinstance(data_it, dict)
+                            and data_it.get("is_substantiated") is False
+                        ):
+                            unsubstantiated.append(data_it)
+                except Exception:
+                    unsubstantiated = []
+
+                has_unsubstantiated = len(unsubstantiated) > 0
+                with st.container(border=True):
+                    st.markdown(
+                        f"**Chunk {idx + 1} — {'🚩 Unsubstantiated' if has_unsubstantiated else '✅ No substantiation issues'}**"
+                    )
                     try:
-                        if citation_results is not None and idx < len(citation_results):
-                            citation_item = citation_results[idx]
+                        if isinstance(chunks, list) and idx < len(chunks):
+                            st.caption("Chunk text:")
+                            st.write(chunks[idx])
+                    except Exception:
+                        pass
+                    # --- Citations for this chunk ---
+                    try:
+                        if isinstance(citations_by_chunk, list) and idx < len(
+                            citations_by_chunk
+                        ):
+                            citation_item = citations_by_chunk[idx]
+                        else:
+                            citation_item = None
                     except Exception:
                         citation_item = None
 
-                    if isinstance(citation_item, Exception):
-                        st.error(str(citation_item))
-                    else:
+                    if citation_item is not None and not isinstance(
+                        citation_item, Exception
+                    ):
                         data_cit = None
                         try:
                             if hasattr(citation_item, "model_dump"):
@@ -405,13 +339,14 @@ def main() -> None:
                         except Exception:
                             data_cit = None
 
-                        citations = (
+                        citations_list = (
                             data_cit.get("citations")
                             if isinstance(data_cit, dict)
                             else None
                         )
-                        if isinstance(citations, list) and citations:
-                            for t_idx, cit in enumerate(citations, start=1):
+                        st.markdown("**Citations:**")
+                        if isinstance(citations_list, list) and citations_list:
+                            for t_idx, cit in enumerate(citations_list, start=1):
                                 try:
                                     if hasattr(cit, "model_dump"):
                                         cit = cit.model_dump()
@@ -440,57 +375,7 @@ def main() -> None:
                                         st.caption(cit.get("rationale"))
                         else:
                             st.info("No citations detected in this chunk.")
-                    # Also provide raw JSON for debugging/inspection
-                    with st.expander("Raw claim result", expanded=False):
-                        st.json(data)
-                    if citation_item is not None and not isinstance(
-                        citation_item, Exception
-                    ):
-                        with st.expander("Raw citation result", expanded=False):
-                            st.json(data_cit or {})
-
-    # --- Substantiation results section (only unsubstantiated) ---
-    subst_state = st.session_state.get("claim_substantiation_results_state")
-    if isinstance(subst_state, dict):
-        results_by_chunk = subst_state.get("claim_substantiations_by_chunk")
-        if isinstance(results_by_chunk, list) and results_by_chunk:
-            st.subheader("Unsubstantiated claims by chunk", anchor=False)
-            for idx, items in enumerate(results_by_chunk):
-                # Normalize items to list
-                if items is None:
-                    continue
-                unsubstantiated = []
-                try:
-                    for it in items:
-                        if isinstance(it, Exception):
-                            continue
-                        data_it = None
-                        try:
-                            if hasattr(it, "model_dump"):
-                                data_it = it.model_dump()
-                            elif hasattr(it, "dict"):
-                                data_it = it.dict()
-                            elif isinstance(it, dict):
-                                data_it = it
-                        except Exception:
-                            data_it = None
-                        if (
-                            isinstance(data_it, dict)
-                            and data_it.get("is_substantiated") is False
-                        ):
-                            unsubstantiated.append(data_it)
-                except Exception:
-                    unsubstantiated = []
-
-                if unsubstantiated:
-                    with st.container(border=True):
-                        st.markdown(f"**Chunk {idx + 1} — 🚩 Unsubstantiated**")
-                        try:
-                            if isinstance(chunks, list) and idx < len(chunks):
-                                st.caption("Chunk text:")
-                                st.write(chunks[idx])
-                        except Exception:
-                            pass
+                    if has_unsubstantiated:
                         for u in unsubstantiated:
                             st.write(
                                 {
@@ -498,49 +383,6 @@ def main() -> None:
                                     "feedback": u.get("feedback"),
                                 }
                             )
-
-            # Also render chunks that don't have any substantiation issues
-            st.subheader("Chunks without substantiation issues", anchor=False)
-            total_chunks = (
-                len(chunks) if isinstance(chunks, list) else len(results_by_chunk)
-            )
-            for idx in range(total_chunks):
-                items = results_by_chunk[idx] if idx < len(results_by_chunk) else []
-                has_unsubstantiated = False
-                try:
-                    for it in items or []:
-                        if isinstance(it, Exception):
-                            continue
-                        data_it = None
-                        try:
-                            if hasattr(it, "model_dump"):
-                                data_it = it.model_dump()
-                            elif hasattr(it, "dict"):
-                                data_it = it.dict()
-                            elif isinstance(it, dict):
-                                data_it = it
-                        except Exception:
-                            data_it = None
-                        if (
-                            isinstance(data_it, dict)
-                            and data_it.get("is_substantiated") is False
-                        ):
-                            has_unsubstantiated = True
-                            break
-                except Exception:
-                    has_unsubstantiated = False
-
-                if not has_unsubstantiated:
-                    with st.container(border=True):
-                        st.markdown(
-                            f"**Chunk {idx + 1} — ✅ No substantiation issues**"
-                        )
-                        try:
-                            if isinstance(chunks, list) and idx < len(chunks):
-                                st.caption("Chunk text:")
-                                st.write(chunks[idx])
-                        except Exception:
-                            pass
 
 
 if __name__ == "__main__":
