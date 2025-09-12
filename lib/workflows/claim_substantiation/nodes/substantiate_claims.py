@@ -32,20 +32,21 @@ async def substantiate_claims(
         unsubstantiated_claims = [
             c for c in chunk_claims.claims if c.needs_substantiation
         ]
-        if unsubstantiated_claims:
-            associated_bibliography_indices = [
-                c.index_of_associated_bibliography
-                for c in citations.citations
-                if c.associated_bibliography
+        for unsubstantiated_claim in unsubstantiated_claims:
+            citations_with_associated_bibliography = [
+                c for c in citations.citations if c.associated_bibliography
             ]
-            claims_str = ""
-            for index, claim in enumerate(unsubstantiated_claims):
-                claims_str += f"### Claim #{index + 1}\n{claim.text}\n\n"
+            claim_str = f"""### The claim that we are investigating
+Claim: `{unsubstantiated_claim.text}`
+Rationale for why the text chunk implies this claim: `{unsubstantiated_claim.rationale}`
+"""
             cited_references_str = ""
-            for bibliography_index in associated_bibliography_indices:
+            for citation in citations_with_associated_bibliography:
+                bibliography_index = citation.index_of_associated_bibliography
                 associated_reference = references[bibliography_index - 1]
                 cited_references_str += f"""### Cited bibliography entry #{bibliography_index}
-Bibliography entry text: {associated_reference.text}
+Citation text: `{citation.text}`
+Bibliography entry text: `{associated_reference.text}`
 """
                 if associated_reference.has_associated_supporting_document:
                     supporting_file = supporting_files[
@@ -61,17 +62,24 @@ Bibliography entry text: {associated_reference.text}
 
                 cited_references_str += "\n\n"
 
-                tasks.append(
-                    claim_substantiator_agent.apply(
-                        {
-                            "full_document": full_document,
-                            "chunk": chunk.page_content,
-                            "claim": claims_str,
-                            "cited_references": cited_references_str,
-                        }
-                    )
+            if len(citations_with_associated_bibliography) == 0:
+                cited_references_str = (
+                    "No reference is cited as support for this claim.\n\n"
                 )
-                chunk_indices_with_tasks.append(chunk_index)
+                # TODO: also evaluate claims that provide no reference. This can be done without an agent really, so may not go here.
+                continue
+
+            tasks.append(
+                claim_substantiator_agent.apply(
+                    {
+                        "full_document": full_document,
+                        "chunk": chunk.page_content,
+                        "claim": claim_str,
+                        "cited_references": cited_references_str,
+                    }
+                )
+            )
+            chunk_indices_with_tasks.append(chunk_index)
 
     chunk_results = await run_tasks(
         tasks, desc="Processing chunks with Claim Substantiator"
