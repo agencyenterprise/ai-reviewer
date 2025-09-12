@@ -39,7 +39,7 @@ export function ClaimsTab({ results }: ClaimsTabProps) {
                                             </div>
                                             {chunk.substantiations[claimIndex].feedback && (
                                                 <p className="text-xs text-muted-foreground mt-1">
-                                                    {chunk.substantiations[claimIndex].feedback}
+                                                    <strong>Feedback:</strong> {chunk.substantiations[claimIndex].feedback}
                                                 </p>
                                             )}
                                         </div>

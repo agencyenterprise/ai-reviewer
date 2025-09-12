@@ -20,8 +20,18 @@ export function ReferencesTab({ results }: ReferencesTabProps) {
                                     ? 'bg-green-100 text-green-800'
                                     : 'bg-orange-100 text-orange-800'
                                 }`}>
-                                {reference.has_associated_supporting_document ? 'Supported' : 'No Support'}
+                                {reference.has_associated_supporting_document ? 'Document provided' : 'Document not provided'}
                             </div>
+                            {reference.has_associated_supporting_document && (
+                                <>
+                                <br />
+                                <div className="flex items-center gap-2">
+                                    <p className="text-xs text-muted-foreground">
+                                        <strong>Related document:</strong> {results.supporting_files[reference.index_of_associated_supporting_document-1].name}
+                                        </p> 
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 ))}

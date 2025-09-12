@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:webpack": "next dev",
+    "dev:poll": "WATCHPACK_POLLING=true WATCHPACK_POLL_INTERVAL=1000 next dev",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint"
