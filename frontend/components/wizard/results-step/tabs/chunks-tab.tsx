@@ -24,7 +24,9 @@ export function ChunksTab({ results }: ChunksTabProps) {
                     const chunkText = chunk?.page_content || 'No content provided.'
                     const hasUnsubstantiated = (results.claim_substantiations_by_chunk[chunkIndex] || [])
                         .some(s => !s.is_substantiated)
-                    const unsubstantiatedClaims = results.claim_substantiations_by_chunk[chunkIndex] || []
+                    const substantiatedClaims = results.claim_substantiations_by_chunk[chunkIndex].filter(s => s.is_substantiated) || []
+                    const substantiatedClaimIndices = substantiatedClaims.map(s => s.claim_index)
+                    const unsubstantiatedClaims = results.claim_substantiations_by_chunk[chunkIndex].filter(s => !s.is_substantiated) || []
                     const unsubstantiatedClaimIndices = unsubstantiatedClaims.map(s => s.claim_index)
 
                     return (
@@ -64,6 +66,11 @@ export function ChunksTab({ results }: ChunksTabProps) {
                                                 <ChunkItem key={ci} className={unsubstantiatedClaimIndices.includes(ci) ? 'bg-red-50/40' : ''}>
                                                     <p className="text-sm"><strong>Claim:</strong> {claim.claim}</p>
                                                     <p className="text-sm text-muted-foreground mt-1"><strong>Related Text:</strong> "{claim.text}"</p>
+                                                    {substantiatedClaimIndices.includes(ci) && (
+                                                        <p className="text-sm text-green-600 mt-1">
+                                                            <strong>Substantiated because:</strong> {substantiatedClaims[substantiatedClaimIndices.find(i => i == ci)!].rationale}
+                                                        </p>
+                                                    )}
                                                     {unsubstantiatedClaimIndices.includes(ci) && (
                                                         <>  
                                                             <p className="text-sm text-red-600 mt-1">
