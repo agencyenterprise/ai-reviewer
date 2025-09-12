@@ -17,6 +17,11 @@ class ClaimSubstantiationResult(BaseModel):
     )
 
 
+class ClaimSubstantiationResultWithClaimIndex(ClaimSubstantiationResult):
+    chunk_index: int
+    claim_index: int
+
+
 claim_substantiator_agent = Agent(
     name="Claim Substantiator",
     description="Substantiate a claim based on a supporting document",

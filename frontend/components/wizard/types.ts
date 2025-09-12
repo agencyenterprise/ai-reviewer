@@ -4,6 +4,10 @@ export interface WizardStep {
     description: string
 }
 
+export interface DocumentChunk {
+    page_content: string
+}
+
 export interface Claim {
     text: string
     claim: string
@@ -41,13 +45,25 @@ export interface ClaimSubstantiation {
     is_substantiated: boolean
     rationale: string
     feedback: string
+    chunk_index: number
+    claim_index: number
+}
+
+export interface AnalysisFile {
+    file_name: string
+    file_path: string
+    file_type: string
+    _markdown?: string
 }
 
 export interface DetailedResults {
+    references: Reference[]
+    chunks: DocumentChunk[]
     claims_by_chunk: ClaimsByChunk[]
     citations_by_chunk: CitationsByChunk[]
-    references: Reference[]
     claim_substantiations_by_chunk: ClaimSubstantiation[][]
+    file: AnalysisFile
+    supporting_files: AnalysisFile[]
 }
 
 export interface AnalysisResults {

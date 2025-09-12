@@ -17,7 +17,7 @@ export function ClaimsTab({ results }: ClaimsTabProps) {
     return (
         <div className="space-y-4">
             <h3 className="text-lg font-semibold">Claims Analysis</h3>
-            <div className="space-y-4 max-h-96 overflow-y-auto">
+            <div className="space-y-4">
                 {claimsWithSubstantiation.map((chunk, chunkIndex) =>
                     chunk.claims.length > 0 && (
                         <ChunkDisplay key={chunkIndex} chunkIndex={chunkIndex}>
@@ -39,7 +39,7 @@ export function ClaimsTab({ results }: ClaimsTabProps) {
                                             </div>
                                             {chunk.substantiations[claimIndex].feedback && (
                                                 <p className="text-xs text-muted-foreground mt-1">
-                                                    {chunk.substantiations[claimIndex].feedback}
+                                                    <strong>Feedback:</strong> {chunk.substantiations[claimIndex].feedback}
                                                 </p>
                                             )}
                                         </div>

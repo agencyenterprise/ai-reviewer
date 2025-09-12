@@ -14,4 +14,4 @@ async def detect_claims(state: ClaimSubstantiatorState) -> ClaimSubstantiatorSta
     results: List[ClaimResponse] = await processor.apply_agent_to_all_chunks(
         claim_detector_agent
     )
-    return {"claims_by_chunk": results}
+    return {"claims_by_chunk": results, "chunks": await processor.get_chunks()}

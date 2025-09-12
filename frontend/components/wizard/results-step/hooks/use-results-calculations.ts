@@ -6,6 +6,7 @@ export function useResultsCalculations(detailedResults: DetailedResults | undefi
             totalClaims: 0,
             totalCitations: 0,
             totalUnsubstantiated: 0,
+            totalChunks: 0,
             chunksWithClaims: 0,
             chunksWithCitations: 0,
             supportedReferences: 0
@@ -39,10 +40,16 @@ export function useResultsCalculations(detailedResults: DetailedResults | undefi
         ref => ref.has_associated_supporting_document
     ).length
 
+    const totalChunks = Math.max(
+        detailedResults.claims_by_chunk.length,
+        detailedResults.citations_by_chunk.length
+    )
+
     return {
         totalClaims,
         totalCitations,
         totalUnsubstantiated,
+        totalChunks,
         chunksWithClaims,
         chunksWithCitations,
         supportedReferences

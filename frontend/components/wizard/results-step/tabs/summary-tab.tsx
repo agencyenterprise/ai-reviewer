@@ -5,6 +5,7 @@ import { DetailedResults } from "../../types"
 
 interface SummaryTabProps {
     results: DetailedResults
+    totalChunks: number
     chunksWithClaims: number
     chunksWithCitations: number
     supportedReferences: number
@@ -12,6 +13,7 @@ interface SummaryTabProps {
 
 export function SummaryTab({
     results,
+    totalChunks,
     chunksWithClaims,
     chunksWithCitations,
     supportedReferences
@@ -20,6 +22,10 @@ export function SummaryTab({
         <div className="space-y-4">
             <h3 className="text-lg font-semibold">Analysis Summary</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <span className="text-muted-foreground">Total chunks:</span>
+                    <span className="ml-2 font-medium">{totalChunks}</span>
+                </div>
                 <div>
                     <span className="text-muted-foreground">Chunks with claims:</span>
                     <span className="ml-2 font-medium">{chunksWithClaims}</span>
