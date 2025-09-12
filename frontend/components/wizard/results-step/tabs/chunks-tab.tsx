@@ -17,6 +17,7 @@ export function ChunksTab({ results }: ChunksTabProps) {
                 {results.claims_by_chunk.map((claimsChunk, chunkIndex) => {
                     const chunk = results.chunks[chunkIndex]
                     const claims = claimsChunk?.claims || []
+                    const substantiations = results.claim_substantiations_by_chunk[chunkIndex] || []
                     const references = results.references || []
                     const supportingFiles = results.supporting_files || []
                     const citationsChunk = results.citations_by_chunk[chunkIndex]
@@ -24,10 +25,7 @@ export function ChunksTab({ results }: ChunksTabProps) {
                     const chunkText = chunk?.page_content || 'No content provided.'
                     const hasUnsubstantiated = (results.claim_substantiations_by_chunk[chunkIndex] || [])
                         .some(s => !s.is_substantiated)
-                    const substantiatedClaims = results.claim_substantiations_by_chunk[chunkIndex].filter(s => s.is_substantiated) || []
-                    const substantiatedClaimIndices = substantiatedClaims.map(s => s.claim_index)
-                    const unsubstantiatedClaims = results.claim_substantiations_by_chunk[chunkIndex].filter(s => !s.is_substantiated) || []
-                    const unsubstantiatedClaimIndices = unsubstantiatedClaims.map(s => s.claim_index)
+                    
 
                     return (
                         <div
@@ -62,27 +60,33 @@ export function ChunksTab({ results }: ChunksTabProps) {
                                     <div>
                                         <h4 className="text-sm font-medium mb-2">Claims</h4>
                                         <div className="space-y-2">
-                                            {claims.map((claim, ci) => (
-                                                <ChunkItem key={ci} className={unsubstantiatedClaimIndices.includes(ci) ? 'bg-red-50/40' : ''}>
-                                                    <p className="text-sm"><strong>Claim:</strong> {claim.claim}</p>
-                                                    <p className="text-sm text-muted-foreground mt-1"><strong>Related Text:</strong> "{claim.text}"</p>
-                                                    {substantiatedClaimIndices.includes(ci) && (
-                                                        <p className="text-sm text-green-600 mt-1">
-                                                            <strong>Substantiated because:</strong> {substantiatedClaims[substantiatedClaimIndices.find(i => i == ci)!].rationale}
-                                                        </p>
-                                                    )}
-                                                    {unsubstantiatedClaimIndices.includes(ci) && (
-                                                        <>  
-                                                            <p className="text-sm text-red-600 mt-1">
-                                                                <strong>Unsubstantiated because:</strong> {unsubstantiatedClaims[unsubstantiatedClaimIndices.find(i => i == ci)!].rationale}
+                                            {claims.map((claim, ci) => {
+                                                const subst = substantiations[ci]
+                                                const isUnsubstantiated = subst ? !subst.is_substantiated : false
+                                                return (
+                                                    <ChunkItem key={ci} className={isUnsubstantiated ? 'bg-red-50/40' : ''}>
+                                                        <p className="text-sm"><strong>Claim:</strong> {claim.claim}</p>
+                                                        <p className="text-sm text-muted-foreground mt-1"><strong>Related Text:</strong> "{claim.text}"</p>
+                                                        {subst && subst.is_substantiated && (
+                                                            <p className="text-sm text-green-600 mt-1">
+                                                                <strong>Substantiated because:</strong> {subst.rationale}
                                                             </p>
-                                                            <p className="text-sm text-blue-600 mt-1">
-                                                                <strong>Feedback to resolve:</strong> {unsubstantiatedClaims[unsubstantiatedClaimIndices.find(i => i == ci)!].feedback}
-                                                            </p>
-                                                        </>
-                                                    )}
-                                                </ChunkItem>
-                                            ))}
+                                                        )}
+                                                        {subst && !subst.is_substantiated && (
+                                                            <>
+                                                                <p className="text-sm text-red-600 mt-1">
+                                                                    <strong>Unsubstantiated because:</strong> {subst.rationale}
+                                                                </p>
+                                                                {subst.feedback && (
+                                                                    <p className="text-sm text-blue-600 mt-1">
+                                                                        <strong>Feedback to resolve:</strong> {subst.feedback}
+                                                                    </p>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </ChunkItem>
+                                                )
+                                            })}
                                         </div>
                                     </div>
                                 )}
