@@ -11,7 +11,7 @@ export function ReferencesTab({ results }: ReferencesTabProps) {
     return (
         <div className="space-y-4">
             <h3 className="text-lg font-semibold">References</h3>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
+            <div className="space-y-3">
                 {results.references.map((reference, index) => (
                     <div key={index} className="border rounded-lg p-4">
                         <div className="flex items-start justify-between">

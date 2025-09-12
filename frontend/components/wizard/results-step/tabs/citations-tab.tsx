@@ -12,7 +12,7 @@ export function CitationsTab({ results }: CitationsTabProps) {
     return (
         <div className="space-y-4">
             <h3 className="text-lg font-semibold">Citations Analysis</h3>
-            <div className="space-y-4 max-h-96 overflow-y-auto">
+            <div className="space-y-4">
                 {results.citations_by_chunk.map((chunk, chunkIndex) =>
                     chunk.citations.length > 0 && (
                         <ChunkDisplay key={chunkIndex} chunkIndex={chunkIndex}>
