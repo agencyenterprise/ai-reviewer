@@ -12,6 +12,9 @@ class BibliographyItem(BaseModel):
     index_of_associated_supporting_document: int = Field(
         description="If the bibliographic item has an associated supporting document, this will be the index of the supporting document in the list of supporting documents provided by the user, otherwise it will be -1."
     )
+    name_of_associated_supporting_document: str = Field(
+        description="If the bibliographic item has an associated supporting document, this will be the name of the supporting document, otherwise it will be an empty string."
+    )
 
 
 class ReferenceExtractorResponse(BaseModel):

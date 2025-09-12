@@ -15,6 +15,7 @@ from lib.services.file import File
 from lib.models import Agent
 
 from lib.run_utils import run_tasks
+from lib.services.llm_test_splitter import LLMTextSplitter
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +46,13 @@ class DocumentProcessor:
             #     # breakpoint_threshold_amount=0,
             # )
             # chunker = MarkdownTextSplitter()
-            chunker = RecursiveCharacterTextSplitter(
-                chunk_size=1,
-                chunk_overlap=0,
-                separators=["\n\n", "\n"],
-                keep_separator=False,
-            )
+            # chunker = RecursiveCharacterTextSplitter(
+            #     chunk_size=1,
+            #     chunk_overlap=0,
+            #     separators=["\n\n", "\n"],
+            #     keep_separator=False,
+            # )
+            chunker = LLMTextSplitter()
 
         self.chunker = chunker
 
