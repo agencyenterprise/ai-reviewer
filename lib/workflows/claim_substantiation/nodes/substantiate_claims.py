@@ -22,7 +22,7 @@ async def substantiate_claims(
 
     processor = DocumentProcessor(state["file"])
     chunks = await processor.get_chunks()
-    full_document = await state["file"].get_markdown()
+    full_document = state["file"].markdown
     supporting_files = state.get("supporting_files", [])
 
     references = state.get("references", [])

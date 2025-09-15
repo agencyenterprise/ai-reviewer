@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 async def extract_references(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
     logger.info("extract_references: extracting references")
 
-    markdown = await state["file"].get_markdown()
+    markdown = state["file"].markdown
     supporting_documents = "\n\n".join(
         [
             f"""### Supporting document #{index + 1} (index: {index+1})

@@ -1,12 +1,12 @@
 # Convenience helpers
 from typing import List, Optional
-from lib.services.file import File
+from lib.services.file import FileDocument, create_file_document_from_path
 from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 
 
 async def run_claim_substantiator(
-    file: File, supporting_files: Optional[List[File]] = None
+    file: FileDocument, supporting_files: Optional[List[FileDocument]] = None
 ) -> ClaimSubstantiatorState:
     app = build_claim_substantiator_graph()
     state: ClaimSubstantiatorState = {"file": file}
@@ -18,9 +18,11 @@ async def run_claim_substantiator(
 async def run_claim_substantiator_from_paths(
     file_path: str, supporting_paths: Optional[List[str]] = None
 ):
-    file = File(file_path=file_path)
+    file = await create_file_document_from_path(file_path)
     supporting_files = (
-        [File(file_path=p) for p in supporting_paths] if supporting_paths else None
+        [await create_file_document_from_path(p) for p in supporting_paths]
+        if supporting_paths
+        else None
     )
 
     return await run_claim_substantiator(file, supporting_files)

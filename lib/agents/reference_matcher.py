@@ -2,7 +2,6 @@ from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 
 from lib.models.agent import Agent
-from lib.services.file import File
 
 
 class ReferenceMatch(BaseModel):
