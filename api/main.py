@@ -25,7 +25,7 @@ def read_health():
     return {"status": "healthy"}
 
 
-@app.post("/api/run-claim-substantiation")
+@app.post("/api/run-claim-substantiation", response_model=ClaimSubstantiatorState)
 async def run_claim_substantiation_workflow(
     main_document: UploadFile = File(...),
     supporting_documents: Optional[list[UploadFile]] = File(default=None),

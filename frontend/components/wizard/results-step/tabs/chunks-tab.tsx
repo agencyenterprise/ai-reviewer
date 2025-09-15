@@ -1,12 +1,12 @@
 'use client';
 
 import * as React from 'react';
-import { DetailedResults } from '../../types';
 import { ChunkItem } from '../components/chunk-display';
 import { AlertTriangle, FileIcon, Link as LinkIcon } from 'lucide-react';
+import { ClaimSubstantiatorState } from '@/lib/generated-api';
 
 interface ChunksTabProps {
-  results: DetailedResults;
+  results: ClaimSubstantiatorState;
 }
 
 export function ChunksTab({ results }: ChunksTabProps) {
@@ -14,18 +14,18 @@ export function ChunksTab({ results }: ChunksTabProps) {
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Chunks</h3>
       <div className="space-y-4">
-        {results.claims_by_chunk.map((claimsChunk, chunkIndex) => {
-          const chunk = results.chunks[chunkIndex];
+        {results.claimsByChunk?.map((claimsChunk, chunkIndex) => {
+          const chunk = results.chunks?.[chunkIndex];
           const claimsRationale = claimsChunk.rationale;
           const claims = claimsChunk?.claims || [];
-          const substantiations = results.claim_substantiations_by_chunk[chunkIndex] || [];
+          const substantiations = results.claimSubstantiationsByChunk?.[chunkIndex] || [];
           const references = results.references || [];
-          const supportingFiles = results.supporting_files || [];
-          const citationsChunk = results.citations_by_chunk[chunkIndex];
+          const supportingFiles = results.supportingFiles || [];
+          const citationsChunk = results.citationsByChunk?.[chunkIndex];
           const citations = citationsChunk?.citations || [];
-          const chunkText = chunk?.page_content || 'No content provided.';
-          const hasUnsubstantiated = (results.claim_substantiations_by_chunk[chunkIndex] || []).some(
-            (s) => !s.is_substantiated,
+          const chunkText = chunk || 'No content provided.';
+          const hasUnsubstantiated = (results.claimSubstantiationsByChunk?.[chunkIndex] || []).some(
+            (s) => !s.isSubstantiated,
           );
 
           return (
@@ -70,7 +70,7 @@ export function ChunksTab({ results }: ChunksTabProps) {
                   <div className="space-y-2">
                     {claims.map((claim, ci) => {
                       const subst = substantiations[ci];
-                      const isUnsubstantiated = subst ? !subst.is_substantiated : false;
+                      const isUnsubstantiated = subst ? !subst.isSubstantiated : false;
                       return (
                         <ChunkItem key={ci} className={isUnsubstantiated ? 'bg-red-50/40' : ''}>
                           <p className="text-sm">
@@ -79,12 +79,12 @@ export function ChunksTab({ results }: ChunksTabProps) {
                           <p className="text-sm text-muted-foreground mt-1">
                             <strong>Related Text:</strong> &quot;{claim.text}&quot;
                           </p>
-                          {subst && subst.is_substantiated && (
+                          {subst && subst.isSubstantiated && (
                             <p className="text-sm text-green-600 mt-1">
                               <strong>Substantiated because:</strong> {subst.rationale}
                             </p>
                           )}
-                          {subst && !subst.is_substantiated && (
+                          {subst && !subst.isSubstantiated && (
                             <>
                               <p className="text-sm text-red-600 mt-1">
                                 <strong>Unsubstantiated because:</strong> {subst.rationale}
@@ -115,27 +115,27 @@ export function ChunksTab({ results }: ChunksTabProps) {
                             <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">{citation.type}</span>
                             <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded">{citation.format}</span>
                           </div>
-                          {citation.associated_bibliography && (
+                          {citation.associatedBibliography && (
                             <div className="text-xs text-muted-foreground mt-1">
-                              <strong>Associated bibliography:</strong> {citation.associated_bibliography}
-                              {citation.index_of_associated_bibliography &&
-                                references[citation.index_of_associated_bibliography - 1]
-                                  ?.has_associated_supporting_document && (
+                              <strong>Associated bibliography:</strong> {citation.associatedBibliography}
+                              {citation.format &&
+                                references[citation.indexOfAssociatedBibliography - 1]
+                                  ?.hasAssociatedSupportingDocument && (
                                   <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                                     <strong>Related supporting document:</strong>
                                     <FileIcon className="w-3 h-3" />
                                     {
                                       supportingFiles[
-                                        references[citation.index_of_associated_bibliography - 1]
-                                          ?.index_of_associated_supporting_document - 1
-                                      ]?.file_name
+                                        references[citation.indexOfAssociatedBibliography - 1]
+                                          ?.indexOfAssociatedSupportingDocument - 1
+                                      ]?.fileName
                                     }
                                   </div>
                                 )}
-                              {citation.index_of_associated_bibliography &&
-                                references[citation.index_of_associated_bibliography - 1] &&
-                                !references[citation.index_of_associated_bibliography - 1]
-                                  .has_associated_supporting_document && (
+                              {citation.indexOfAssociatedBibliography &&
+                                references[citation.indexOfAssociatedBibliography - 1] &&
+                                !references[citation.indexOfAssociatedBibliography - 1]
+                                  .hasAssociatedSupportingDocument && (
                                   <div className="text-xs text-muted-foreground mt-1">
                                     <strong>No related supporting document:</strong>
                                   </div>

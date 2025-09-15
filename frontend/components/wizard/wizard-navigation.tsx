@@ -27,9 +27,6 @@ export function WizardNavigation() {
         } catch (error) {
           console.error('Unexpected error during analysis:', error);
           actions.setAnalysisResults({
-            claimsDetected: 0,
-            citationsFound: 0,
-            unsubstantiatedClaims: 0,
             status: 'error',
             error: 'An unexpected error occurred during analysis',
           });

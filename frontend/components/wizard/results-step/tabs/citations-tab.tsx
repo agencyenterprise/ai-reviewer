@@ -1,11 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { DetailedResults } from '../../types';
 import { ChunkDisplay, ChunkItem } from '../components/chunk-display';
+import { ClaimSubstantiatorState } from '@/lib/generated-api';
 
 interface CitationsTabProps {
-  results: DetailedResults;
+  results: ClaimSubstantiatorState;
 }
 
 export function CitationsTab({ results }: CitationsTabProps) {
@@ -13,7 +13,7 @@ export function CitationsTab({ results }: CitationsTabProps) {
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Citations Analysis</h3>
       <div className="space-y-4">
-        {results.citations_by_chunk.map(
+        {results.citationsByChunk?.map(
           (chunk, chunkIndex) =>
             chunk.citations.length > 0 && (
               <ChunkDisplay key={chunkIndex} chunkIndex={chunkIndex}>
@@ -26,9 +26,9 @@ export function CitationsTab({ results }: CitationsTabProps) {
                       <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">{citation.type}</span>
                       <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded">{citation.format}</span>
                     </div>
-                    {citation.associated_bibliography && (
+                    {citation.associatedBibliography && (
                       <p className="text-xs text-muted-foreground mt-2">
-                        <strong>Bibliography:</strong> {citation.associated_bibliography}
+                        <strong>Bibliography:</strong> {citation.associatedBibliography}
                       </p>
                     )}
                   </ChunkItem>

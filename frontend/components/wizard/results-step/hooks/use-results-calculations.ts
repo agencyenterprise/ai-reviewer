@@ -1,6 +1,6 @@
-import { DetailedResults } from '../../types';
+import { ClaimSubstantiatorState } from '@/lib/generated-api';
 
-export function useResultsCalculations(detailedResults: DetailedResults | undefined) {
+export function useResultsCalculations(detailedResults: ClaimSubstantiatorState | undefined) {
   if (!detailedResults) {
     return {
       totalClaims: 0,
@@ -13,22 +13,28 @@ export function useResultsCalculations(detailedResults: DetailedResults | undefi
     };
   }
 
-  const totalClaims = detailedResults.claims_by_chunk.reduce((sum, chunk) => sum + chunk.claims.length, 0);
+  const totalClaims = detailedResults.claimsByChunk?.reduce((sum, chunk) => sum + chunk.claims.length, 0) || 0;
 
-  const totalCitations = detailedResults.citations_by_chunk.reduce((sum, chunk) => sum + chunk.citations.length, 0);
+  const totalCitations = detailedResults.citationsByChunk?.reduce((sum, chunk) => sum + chunk.citations.length, 0) || 0;
 
-  const totalUnsubstantiated = detailedResults.claim_substantiations_by_chunk.reduce(
-    (sum, chunk) => sum + chunk.filter((sub) => !sub.is_substantiated).length,
-    0,
+  const totalUnsubstantiated =
+    detailedResults.claimSubstantiationsByChunk?.reduce(
+      (sum, chunk) => sum + chunk.filter((sub) => !sub.isSubstantiated).length,
+      0,
+    ) || 0;
+
+  const chunksWithClaims = detailedResults.claimsByChunk?.filter((chunk) => chunk.claims.length > 0).length || 0;
+
+  const chunksWithCitations =
+    detailedResults.citationsByChunk?.filter((chunk) => chunk.citations.length > 0).length || 0;
+
+  const supportedReferences =
+    detailedResults.references?.filter((ref) => ref.hasAssociatedSupportingDocument).length || 0;
+
+  const totalChunks = Math.max(
+    detailedResults.claimsByChunk?.length || 0,
+    detailedResults.citationsByChunk?.length || 0,
   );
-
-  const chunksWithClaims = detailedResults.claims_by_chunk.filter((chunk) => chunk.claims.length > 0).length;
-
-  const chunksWithCitations = detailedResults.citations_by_chunk.filter((chunk) => chunk.citations.length > 0).length;
-
-  const supportedReferences = detailedResults.references.filter((ref) => ref.has_associated_supporting_document).length;
-
-  const totalChunks = Math.max(detailedResults.claims_by_chunk.length, detailedResults.citations_by_chunk.length);
 
   return {
     totalClaims,

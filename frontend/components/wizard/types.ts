@@ -1,78 +1,15 @@
+import { ClaimSubstantiatorState } from '@/lib/generated-api';
+
 export interface WizardStep {
   id: string;
   title: string;
   description: string;
 }
 
-export interface DocumentChunk {
-  page_content: string;
-}
-
-export interface Claim {
-  text: string;
-  claim: string;
-  rationale: string;
-  needs_substantiation: boolean;
-}
-
-export interface ClaimsByChunk {
-  claims: Claim[];
-  rationale: string;
-}
-
-export interface Citation {
-  text: string;
-  type: string;
-  format: string;
-  needs_bibliography: boolean;
-  associated_bibliography?: string;
-  index_of_associated_bibliography?: number;
-  rationale: string;
-}
-
-export interface CitationsByChunk {
-  citations: Citation[];
-  rationale: string;
-}
-
-export interface Reference {
-  text: string;
-  has_associated_supporting_document: boolean;
-  index_of_associated_supporting_document: number;
-}
-
-export interface ClaimSubstantiation {
-  is_substantiated: boolean;
-  rationale: string;
-  feedback: string;
-  chunk_index: number;
-  claim_index: number;
-}
-
-export interface AnalysisFile {
-  file_name: string;
-  file_path: string;
-  file_type: string;
-  _markdown?: string;
-}
-
-export interface DetailedResults {
-  references: Reference[];
-  chunks: DocumentChunk[];
-  claims_by_chunk: ClaimsByChunk[];
-  citations_by_chunk: CitationsByChunk[];
-  claim_substantiations_by_chunk: ClaimSubstantiation[][];
-  file: AnalysisFile;
-  supporting_files: AnalysisFile[];
-}
-
 export interface AnalysisResults {
-  claimsDetected: number;
-  citationsFound: number;
-  unsubstantiatedClaims: number;
   status: 'processing' | 'completed' | 'error';
   error?: string;
-  fullResults?: DetailedResults;
+  fullResults?: ClaimSubstantiatorState;
 }
 
 export interface WizardState {
