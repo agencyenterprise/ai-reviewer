@@ -47,12 +47,6 @@ python main.py
 
 ### Run
 
-**Streamlit (temporary UI for PoC)**
-
-```
-streamlit run streamlit/main.py
-```
-
 **FastAPI**
 
 ```
