@@ -1,37 +1,37 @@
-import asyncio
 import mimetypes
 import os
-import argparse
+from typing import List
 from markitdown import MarkItDown
+from pydantic import BaseModel
 
-from lib.agents.markdown_cleaner import markdown_cleaner_agent
+
+class FileDocument(BaseModel):
+    file_name: str
+    file_path: str
+    file_type: str
+    markdown: str
 
 
-class File:
-    def __init__(
-        self, file_path: str, file_name: str | None = None, file_type: str | None = None
-    ):
-        if file_name is None:
-            file_name = os.path.basename(file_path)
-        if file_type is None:
-            file_type = mimetypes.guess_type(file_path)[0]
-        self.file_name = file_name
-        self.file_path = file_path
-        self.file_type = file_type  # mime type
+async def create_file_document_from_path(file_path: str) -> FileDocument:
+    # Convert content to markdown
+    md = MarkItDown(enable_plugins=False)  # Set to True to enable plugins
+    result = md.convert(file_path)
+    markdown = result.markdown
 
-        self._markdown = None
+    # TODO: For PDFs, we may need something like this:
+    # result = await markdown_cleaner_agent.apply(
+    #     prompt_kwargs={
+    #         "full_document": result.markdown,
+    #     }
+    # )
+    # self._markdown = result.text
 
-    async def get_markdown(self):
-        if self._markdown is not None:
-            return self._markdown
-        md = MarkItDown(enable_plugins=False)  # Set to True to enable plugins
-        result = md.convert(self.file_path)
-        self._markdown = result.markdown
-        # TODO: For PDFs, we may need something like this:
-        # result = await markdown_cleaner_agent.apply(
-        #     prompt_kwargs={
-        #         "full_document": result.markdown,
-        #     }
-        # )
-        # self._markdown = result.text
-        return self._markdown
+    # Create File object for main document
+    file_document = FileDocument(
+        file_path=file_path,
+        file_name=os.path.basename(file_path),
+        file_type=mimetypes.guess_type(file_path)[0],
+        markdown=markdown,
+    )
+
+    return file_document

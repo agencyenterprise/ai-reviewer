@@ -1,13 +1,10 @@
 import logging
-import os
-import tempfile
 from typing import Optional
 from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from api.upload import convert_uploaded_files_to_file_document
 from lib.workflows.claim_substantiation.runner import run_claim_substantiator
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
-from lib.services.file import File as WorkflowFile
 
 logger = logging.getLogger(__name__)
 
@@ -45,39 +42,17 @@ async def run_claim_substantiation_workflow(
     """
 
     try:
-        # Create temporary directory for uploaded files
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Save main document
-            main_file_path = os.path.join(temp_dir, main_document.filename)
-            with open(main_file_path, "wb") as buffer:
-                content = await main_document.read()
-                buffer.write(content)
+        [main_file, *supporting_files] = await convert_uploaded_files_to_file_document(
+            [main_document] + (supporting_documents or [])
+        )
 
-            # Create File object for main document
-            main_file = WorkflowFile(file_path=main_file_path)
+        # Run the workflow
+        result_state = await run_claim_substantiator(
+            file=main_file,
+            supporting_files=supporting_files if supporting_files else None,
+        )
 
-            # Handle supporting documents if provided
-            supporting_files = []
-            if supporting_documents is not None:
-                for supporting_doc in supporting_documents:
-                    if supporting_doc.filename:  # Skip empty files
-                        supporting_file_path = os.path.join(
-                            temp_dir, supporting_doc.filename
-                        )
-                        with open(supporting_file_path, "wb") as buffer:
-                            content = await supporting_doc.read()
-                            buffer.write(content)
-
-                        supporting_file = WorkflowFile(file_path=supporting_file_path)
-                        supporting_files.append(supporting_file)
-
-            # Run the workflow
-            result_state = await run_claim_substantiator(
-                file=main_file,
-                supporting_files=supporting_files if supporting_files else None,
-            )
-
-            return ClaimSubstantiatorState(**result_state)
+        return ClaimSubstantiatorState(**result_state)
 
     except Exception as e:
         logger.error(f"Error processing workflow: {str(e)}")

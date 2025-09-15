@@ -2,7 +2,6 @@ from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 
 from lib.models.agent import Agent
-from lib.services.file import File
 
 
 class ClaimSubstantiationResult(BaseModel):
@@ -30,7 +29,7 @@ claim_substantiator_agent = Agent(
         """
 # Task
 You will be given a chunk of text from a document, a claim that is inferred from that chunk of text, and one or multiple supporting documents that are cited to support the claim.
-Your task is to carefully read the supporting document(s) and determine wether the claim is supported by the supporting documents or not. 
+Your task is to carefully read the supporting document(s) and determine wether the claim is supported by the supporting documents or not.
 Return a rationale for why you think the claim is supported or not supported by the cited supporting document(s).
 
 ## The original document from which we are substantiating claims within a chunk

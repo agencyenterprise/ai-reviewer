@@ -11,7 +11,7 @@ from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
 )
 
-from lib.services.file import File
+from lib.services.file import FileDocument
 from lib.models import Agent
 
 from lib.run_utils import run_tasks
@@ -30,7 +30,7 @@ cached_embedder = CacheBackedEmbeddings.from_bytes_store(
 class DocumentProcessor:
     def __init__(
         self,
-        file: File,
+        file: FileDocument,
         chunker: SemanticChunker | None = None,
         embeddings: OpenAIEmbeddings | None = None,
     ):
@@ -61,7 +61,7 @@ class DocumentProcessor:
         self._chunks = None
 
     async def _split_to_chunks(self):
-        markdown = await self.file.get_markdown()
+        markdown = self.file.markdown
         docs = self.chunker.create_documents([markdown])
         return docs
 
@@ -80,7 +80,7 @@ class DocumentProcessor:
         if "chunk" in input_variables:
             filtered_kwargs["chunk"] = chunk.page_content
         if "full_document" in input_variables:
-            filtered_kwargs["full_document"] = await self.file.get_markdown()
+            filtered_kwargs["full_document"] = self.file.markdown
         if prompt_kwargs:
             for key, value in prompt_kwargs.items():
                 if key in input_variables:
@@ -90,7 +90,6 @@ class DocumentProcessor:
     async def apply_agent_to_all_chunks(
         self, agent: Agent, prompt_kwargs: dict | None = None
     ):
-        await self.file.get_markdown()  # Warm cache before running agents in parallel
         tasks = []
         chunks = await self.get_chunks()
         for chunk in chunks:
@@ -104,7 +103,6 @@ class DocumentProcessor:
     async def apply_agents_to_all_chunks(
         self, agents: list[list[Agent]], prompt_kwargs: dict | None = None
     ):
-        await self.file.get_markdown()  # Warm cache before running agents in parallel
         tasks = []
         for agent in agents:
             tasks.append(self.apply_agent_to_all_chunks(agent, prompt_kwargs))
