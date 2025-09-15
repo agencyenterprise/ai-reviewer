@@ -2,18 +2,19 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
-import { AnalysisResults, DetailedResults } from '../types';
+import { AnalysisResults } from '../types';
 import { useResultsCalculations } from './hooks/use-results-calculations';
 import { SummaryCards, TabNavigation } from './components';
 import { SummaryTab, ClaimsTab, CitationsTab, ReferencesTab, FilesTab, ChunksTab } from './tabs';
 import { TabType } from './constants';
+import { ClaimSubstantiatorState } from '@/lib/generated-api';
 
 interface ResultsVisualizationProps {
   results: AnalysisResults | null;
 }
 
 export function ResultsVisualization({ results }: ResultsVisualizationProps) {
-  const detailedResults = results?.fullResults as DetailedResults | undefined;
+  const detailedResults = results?.fullResults as ClaimSubstantiatorState | undefined;
   const [activeTab, setActiveTab] = React.useState<TabType>('summary');
 
   const calculations = useResultsCalculations(detailedResults);

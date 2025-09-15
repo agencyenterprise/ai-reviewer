@@ -1,10 +1,10 @@
 'use client';
 
+import { ClaimSubstantiatorState } from '@/lib/generated-api';
 import * as React from 'react';
-import { DetailedResults } from '../../types';
 
 interface SummaryTabProps {
-  results: DetailedResults;
+  results: ClaimSubstantiatorState;
   totalChunks: number;
   chunksWithClaims: number;
   chunksWithCitations: number;
@@ -36,7 +36,7 @@ export function SummaryTab({
         </div>
         <div>
           <span className="text-muted-foreground">Total references:</span>
-          <span className="ml-2 font-medium">{results.references.length}</span>
+          <span className="ml-2 font-medium">{results.references?.length}</span>
         </div>
         <div>
           <span className="text-muted-foreground">Supported references:</span>

@@ -1,24 +1,24 @@
 'use client';
 
 import * as React from 'react';
-import { DetailedResults } from '../../types';
 import { ChunkDisplay, ChunkItem } from '../components/chunk-display';
+import { ClaimSubstantiatorState } from '@/lib/generated-api';
 
 interface ClaimsTabProps {
-  results: DetailedResults;
+  results: ClaimSubstantiatorState;
 }
 
 export function ClaimsTab({ results }: ClaimsTabProps) {
-  const claimsWithSubstantiation = results.claims_by_chunk.map((chunk, chunkIndex) => ({
+  const claimsWithSubstantiation = results.claimsByChunk?.map((chunk, chunkIndex) => ({
     ...chunk,
-    substantiations: results.claim_substantiations_by_chunk[chunkIndex] || [],
+    substantiations: results.claimSubstantiationsByChunk?.[chunkIndex] || [],
   }));
 
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Claims Analysis</h3>
       <div className="space-y-4">
-        {claimsWithSubstantiation.map(
+        {claimsWithSubstantiation?.map(
           (chunk, chunkIndex) =>
             chunk.claims.length > 0 && (
               <ChunkDisplay key={chunkIndex} chunkIndex={chunkIndex}>
@@ -34,12 +34,12 @@ export function ClaimsTab({ results }: ClaimsTabProps) {
                       <div className="mt-2">
                         <div
                           className={`inline-flex items-center px-2 py-1 rounded text-xs ${
-                            chunk.substantiations[claimIndex].is_substantiated
+                            chunk.substantiations[claimIndex].isSubstantiated
                               ? 'bg-green-100 text-green-800'
                               : 'bg-red-100 text-red-800'
                           }`}
                         >
-                          {chunk.substantiations[claimIndex].is_substantiated ? 'Substantiated' : 'Unsubstantiated'}
+                          {chunk.substantiations[claimIndex].isSubstantiated ? 'Substantiated' : 'Unsubstantiated'}
                         </div>
                         {chunk.substantiations[claimIndex].feedback && (
                           <p className="text-xs text-muted-foreground mt-1">
