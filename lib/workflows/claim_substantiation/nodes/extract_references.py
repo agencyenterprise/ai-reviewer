@@ -1,5 +1,5 @@
 import logging
-from lib.agents.tools import format_supporting_documents_prompt_section
+from lib.agents.tools import format_supporting_documents_prompt_section_multiple
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.agents.reference_extractor import (
     reference_extractor_agent,
@@ -13,13 +13,8 @@ async def extract_references(state: ClaimSubstantiatorState) -> ClaimSubstantiat
     logger.info("extract_references: extracting references")
 
     markdown = state["file"].markdown
-    supporting_documents = "\n\n".join(
-        [
-            f"""### Supporting document #{index + 1} (index: {index+1})
-{await format_supporting_documents_prompt_section(doc, truncate_at_character_count=1000)}
-"""
-            for index, doc in enumerate(state.get("supporting_files", []) or [])
-        ]
+    supporting_documents = await format_supporting_documents_prompt_section_multiple(
+        state.get("supporting_files", []) or [], truncate_at_character_count=1000
     )
     res: ReferenceExtractorResponse = await reference_extractor_agent.apply(
         {"full_document": markdown, "supporting_documents": supporting_documents}
