@@ -8,6 +8,7 @@ import { SummaryCards, TabNavigation } from './components';
 import { SummaryTab, ClaimsTab, CitationsTab, ReferencesTab, FilesTab, ChunksTab } from './tabs';
 import { TabType } from './constants';
 import { ClaimSubstantiatorState } from '@/lib/generated-api';
+import { DocumentExplorerTab } from './tabs/document-explorer-tab';
 
 interface ResultsVisualizationProps {
   results: AnalysisResults | null;
@@ -52,6 +53,8 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
         return <FilesTab results={detailedResults} />;
       case 'chunks':
         return <ChunksTab results={detailedResults} />;
+      case 'document-explorer':
+        return <DocumentExplorerTab results={detailedResults} />;
     }
   };
 
