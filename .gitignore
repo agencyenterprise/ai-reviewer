@@ -18,3 +18,6 @@ wheels/
 
 # Mac files
 .DS_Store
+
+# LangGraph cache
+.langgraph_api/

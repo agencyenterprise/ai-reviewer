@@ -7,7 +7,6 @@ import { WizardStep } from '@/components/wizard/types';
 import { UploadStep } from '@/components/wizard/upload-step';
 import { useWizard, WizardProvider } from '@/components/wizard/wizard-context';
 import { WizardNavigation } from '@/components/wizard/wizard-navigation';
-import * as React from 'react';
 
 const steps: WizardStep[] = [
   {

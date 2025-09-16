@@ -7,6 +7,8 @@ import { ChunkItem } from '../components/chunk-display';
 import { Markdown } from '@/components/markdown';
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { cn } from '@/lib/utils';
+import { claimCategoryBaseColors, classifyChunk, classifyClaim } from '@/lib/claim-classification';
+import { ClaimCategoryLabel } from '../components/claim-category-label';
 
 interface DocumentExplorerTabProps {
   results: ClaimSubstantiatorState;
@@ -39,12 +41,11 @@ export function DocumentExplorerChunk({ results, chunkIndex }: DocumentExplorerC
   const references = results.references || [];
   const supportingFiles = results.supportingFiles || [];
   const substantiations = results.claimSubstantiationsByChunk?.[chunkIndex] || [];
-  const unsubstantiatedClaims = substantiations.filter((s) => !s.isSubstantiated) || [];
-  const hasUnsubstantiatedClaim = unsubstantiatedClaims.length > 0;
+  const chunkCategory = classifyChunk(results, chunkIndex, references);
 
   return (
     <div key={chunkIndex}>
-      <Markdown>{chunk}</Markdown>
+      <Markdown highlight={claimCategoryBaseColors[chunkCategory]}>{chunk}</Markdown>
 
       <div
         className="flex items-center space-x-1 cursor-pointer hover:bg-muted/50 rounded-lg px-2"
@@ -76,15 +77,8 @@ export function DocumentExplorerChunk({ results, chunkIndex }: DocumentExplorerC
             </React.Fragment>
           )}
 
-          {hasUnsubstantiatedClaim && (
-            <React.Fragment>
-              <HorizontalSeparator />
-              <p className="inline-flex items-center gap-1 text-red-600 text-xs">
-                <AlertTriangle className="w-3 h-3" />
-                {unsubstantiatedClaims.length} unsubstantiated claim{unsubstantiatedClaims.length > 1 ? 's' : ''}
-              </p>
-            </React.Fragment>
-          )}
+          <HorizontalSeparator />
+          <ClaimCategoryLabel category={chunkCategory} badge={false} className="cursor-pointer" />
         </div>
       </div>
 
@@ -103,8 +97,11 @@ export function DocumentExplorerChunk({ results, chunkIndex }: DocumentExplorerC
             {claims.map((claim, ci) => {
               const subst = substantiations[ci];
               const isUnsubstantiated = subst ? !subst.isSubstantiated : false;
+              const claimCategory = classifyClaim(claim, subst, citations, references);
+
               return (
                 <ChunkItem key={ci} className={cn(isUnsubstantiated ? 'bg-red-50/40' : '', 'space-y-2')}>
+                  <ClaimCategoryLabel category={claimCategory} />
                   <p>
                     <strong>Claim:</strong> {claim.claim}
                   </p>
@@ -115,18 +112,19 @@ export function DocumentExplorerChunk({ results, chunkIndex }: DocumentExplorerC
                     <strong>Needs substantiation:</strong> {claim.needsSubstantiation ? 'Yes' : 'No'} -{' '}
                     {claim.rationale}
                   </p>
+                  {JSON.stringify(subst)}
                   {subst && subst.isSubstantiated && (
-                    <p className="text-green-600 mt-1">
+                    <p className="text-green-600">
                       <strong>Substantiated because:</strong> {subst.rationale}
                     </p>
                   )}
                   {subst && !subst.isSubstantiated && (
                     <>
-                      <p className="text-red-600 mt-1">
+                      <p className="text-red-600">
                         <strong>Unsubstantiated because:</strong> {subst.rationale}
                       </p>
                       {subst.feedback && (
-                        <p className="text-blue-600 mt-1">
+                        <p className="text-blue-600">
                           <strong>Feedback to resolve:</strong> {subst.feedback}
                         </p>
                       )}
