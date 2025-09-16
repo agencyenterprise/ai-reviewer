@@ -30,7 +30,7 @@ class Citation(BaseModel):
         description="If the document includes a bibliography entry related to this citation, this will be an exact copy of that bibliography entry, otherwise it will be an empty string."
     )
     index_of_associated_bibliography: int = Field(
-        description="The index of the bibliography entry that this citation refers to, if any. If the citation does not refer to a bibliography entry, this should be -1."
+        description="The index of the bibliography entry that this citation refers to, if any. Indices start at 1. If the citation does not refer to a bibliography entry, this should be -1."
     )
     rationale: str = Field(
         description="A very brief rationale for why you think this text is a citation"

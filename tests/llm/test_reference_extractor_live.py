@@ -86,8 +86,7 @@ def test_reference_extractor_live(case: dict):
             got_idx = got.index_of_associated_supporting_document
             got_name = got.name_of_associated_supporting_document
 
-            # Accept 0- or 1-based indices to reduce prompt-format ambiguity
-            index_match = got_idx == exp_idx or got_idx == exp_idx + 1
+            index_match = got_idx == exp_idx
             name_match = _endswith_or_equal(got_name, exp_name)
             has_match = got_has == exp_has
 
