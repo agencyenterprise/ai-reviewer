@@ -77,7 +77,6 @@ def test_reference_extractor_live(case: dict):
             got_associated_bibliography = got.associated_bibliography
             got_idx = got.index_of_associated_bibliography
 
-            # Accept 0- or 1-based indices to reduce prompt-format ambiguity
             text_match = got_text == exp_text
             needs_bibliography_match = got_needs_bibliography == exp_needs_bibliography
             associated_bibliography_match = (
