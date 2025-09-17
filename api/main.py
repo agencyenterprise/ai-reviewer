@@ -29,6 +29,7 @@ def read_health():
 async def run_claim_substantiation_workflow(
     main_document: UploadFile = File(...),
     supporting_documents: Optional[list[UploadFile]] = File(default=None),
+    use_toulmin: bool = True,
 ):
     """
     Run the claim substantiation workflow on uploaded documents.
@@ -50,6 +51,7 @@ async def run_claim_substantiation_workflow(
         result_state = await run_claim_substantiator(
             file=main_file,
             supporting_files=supporting_files if supporting_files else None,
+            use_toulmin=use_toulmin,
         )
 
         return ClaimSubstantiatorState(**result_state)

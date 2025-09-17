@@ -6,9 +6,11 @@ from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 
 
 async def run_claim_substantiator(
-    file: FileDocument, supporting_files: Optional[List[FileDocument]] = None
+    file: FileDocument,
+    supporting_files: Optional[List[FileDocument]] = None,
+    use_toulmin: bool = False,
 ) -> ClaimSubstantiatorState:
-    app = build_claim_substantiator_graph()
+    app = build_claim_substantiator_graph(use_toulmin=use_toulmin)
     state: ClaimSubstantiatorState = {"file": file}
     if supporting_files is not None:
         state["supporting_files"] = supporting_files
@@ -16,7 +18,9 @@ async def run_claim_substantiator(
 
 
 async def run_claim_substantiator_from_paths(
-    file_path: str, supporting_paths: Optional[List[str]] = None
+    file_path: str,
+    supporting_paths: Optional[List[str]] = None,
+    use_toulmin: bool = False,
 ):
     file = await create_file_document_from_path(file_path)
     supporting_files = (
@@ -25,7 +29,7 @@ async def run_claim_substantiator_from_paths(
         else None
     )
 
-    return await run_claim_substantiator(file, supporting_files)
+    return await run_claim_substantiator(file, supporting_files, use_toulmin)
 
 
 if __name__ == "__main__":
@@ -33,7 +37,7 @@ if __name__ == "__main__":
     import asyncio
     from pathlib import Path
 
-    data_dir = Path(__file__).parent.parent.parent.parent / "tests" / "data"
+    data_dir = Path(__file__).parent.parent.parent.parent / "tests" / "data" / "case_1"
     print(data_dir)
     parser = argparse.ArgumentParser(description="Run Claim Substantiator workflow")
     parser.add_argument(
@@ -55,11 +59,18 @@ if __name__ == "__main__":
         ],
         help="Path to a supporting document (repeatable)",
     )
+    parser.add_argument(
+        "-t",
+        "--use-toulmin",
+        action="store_true",
+        default=True,
+        help="Use Toulmin claim detector",
+    )
     args = parser.parse_args()
 
     result_state = asyncio.run(
         run_claim_substantiator_from_paths(
-            args.main_document_path, args.supporting_documents
+            args.main_document_path, args.supporting_documents, args.use_toulmin
         )
     )
     print("Result state:")
