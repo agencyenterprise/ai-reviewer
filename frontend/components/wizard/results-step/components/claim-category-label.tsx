@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ClaimCategory, claimCategoryTitles, claimCategoryDescriptions } from '@/lib/claim-classification';
 import { cn } from '@/lib/utils';
@@ -26,28 +27,27 @@ const claimCategoryTextColors: Record<ClaimCategory, string> = {
 };
 
 const claimCategoryIcons: Record<ClaimCategory, React.ReactNode> = {
-  [ClaimCategory.NO_CITATION_NEEDED]: <CheckCircle className="w-3 h-3" />,
-  [ClaimCategory.MISSING_CITATION]: <AlertTriangle className="w-3 h-3" />,
-  [ClaimCategory.UNVERIFIABLE_CITATION]: <AlertTriangle className="w-3 h-3" />,
-  [ClaimCategory.CONTRADICTORY]: <AlertTriangle className="w-3 h-3" />,
-  [ClaimCategory.VERIFIED]: <CheckCircle className="w-3 h-3" />,
+  [ClaimCategory.NO_CITATION_NEEDED]: <CheckCircle />,
+  [ClaimCategory.MISSING_CITATION]: <AlertTriangle />,
+  [ClaimCategory.UNVERIFIABLE_CITATION]: <AlertTriangle />,
+  [ClaimCategory.CONTRADICTORY]: <AlertTriangle />,
+  [ClaimCategory.VERIFIED]: <CheckCircle />,
 };
 
 export function ClaimCategoryLabel({ category, className, badge = true }: ClaimCategoryLabelProps) {
   return (
     <Tooltip>
       <TooltipTrigger>
-        <span
+        <Badge
           className={cn(
-            'text-xs flex items-center gap-1',
             badge ? claimCategoryBadgeColors[category] : claimCategoryTextColors[category],
-            badge ? 'px-2 py-1 rounded' : '',
+            !badge && 'bg-transparent p-0',
+            'font-normal',
             className,
           )}
         >
-          {claimCategoryIcons[category]}
-          {claimCategoryTitles[category]}
-        </span>
+          {claimCategoryIcons[category]} {claimCategoryTitles[category]}
+        </Badge>
       </TooltipTrigger>
       <TooltipContent>{claimCategoryDescriptions[category]}</TooltipContent>
     </Tooltip>

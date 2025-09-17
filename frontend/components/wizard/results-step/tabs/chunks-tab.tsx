@@ -4,7 +4,8 @@ import * as React from 'react';
 import { ChunkItem } from '../components/chunk-display';
 import { AlertTriangle, FileIcon, Link as LinkIcon } from 'lucide-react';
 import { ClaimSubstantiatorState } from '@/lib/generated-api';
-import { getSeverityClasses, getSeverityLabel } from '@/lib/severity';
+import { SeverityBadge } from '../components/severity-badge';
+import { Badge } from '@/components/ui/badge';
 
 interface ChunksTabProps {
   results: ClaimSubstantiatorState;
@@ -87,7 +88,7 @@ export function ChunksTab({ results }: ChunksTabProps) {
                             </p>
                           )}
                           <div className="flex items-center gap-2 mt-1">
-                            <span
+                            <Badge
                               className={`inline-flex items-center px-2 py-1 rounded text-xs ${
                                 claim.needsSubstantiation
                                   ? 'bg-yellow-100 text-yellow-800'
@@ -100,21 +101,10 @@ export function ChunksTab({ results }: ChunksTabProps) {
                               }
                             >
                               {claim.needsSubstantiation ? 'Needs Substantiation' : "Doesn't Need Substantiation"}
-                            </span>
-                            {typeof severity === 'number' && severity > 0 && (
-                              <span
-                                className={`inline-flex items-center px-2 py-1 rounded text-xs ${getSeverityClasses(
-                                  severity,
-                                )}`}
-                                title={`Severity ${severity}: ${getSeverityLabel(severity)}`}
-                              >
-                                Severity: {getSeverityLabel(severity)}
-                              </span>
-                            )}
+                            </Badge>
+                            {typeof severity === 'number' && severity > 0 && <SeverityBadge severity={severity} />}
                             {claim.warrantExpression && (
-                              <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
-                                Warrant: {claim.warrantExpression}
-                              </span>
+                              <Badge variant="outline">Warrant: {claim.warrantExpression}</Badge>
                             )}
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
