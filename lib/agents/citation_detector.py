@@ -27,7 +27,7 @@ class Citation(BaseModel):
         description="A boolean value indicating whether the citation refers to a bibliography entry or footnote in the document so it expected to have an associated bibliography entry or footnote"
     )
     associated_bibliography: str = Field(
-        description="If the document includes a bibliography entry related to this citation, this will be an exact copy of that bibliography entry, otherwise it will be an empty string."
+        description="If the document includes a bibliography entry related to this citation, this will be an exact copy of that bibliography entry (do not include the entry number if there is one, just the full context of the bibliography entry), otherwise it will be an empty string."
     )
     index_of_associated_bibliography: int = Field(
         description="The index of the bibliography entry that this citation refers to, if any. Indices start at 1. If the citation does not refer to a bibliography entry, this should be -1."
