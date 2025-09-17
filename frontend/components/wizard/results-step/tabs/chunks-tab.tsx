@@ -10,6 +10,36 @@ interface ChunksTabProps {
 }
 
 export function ChunksTab({ results }: ChunksTabProps) {
+  const getSeverityLabel = (severity?: number) => {
+    switch (severity) {
+      case 1:
+        return 'not enough data to know for sure';
+      case 2:
+        return 'may be ok';
+      case 3:
+        return 'should be fixed';
+      case 4:
+        return 'must be fixed';
+      default:
+        return 'no issue';
+    }
+  };
+
+  const getSeverityClasses = (severity?: number) => {
+    switch (severity) {
+      case 4:
+        return 'bg-red-100 text-red-800';
+      case 3:
+        return 'bg-orange-100 text-orange-800';
+      case 2:
+        return 'bg-yellow-100 text-yellow-800';
+      case 1:
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-green-100 text-green-800';
+    }
+  };
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Chunks</h3>
@@ -71,6 +101,7 @@ export function ChunksTab({ results }: ChunksTabProps) {
                     {claims.map((claim, ci) => {
                       const subst = substantiations[ci];
                       const isUnsubstantiated = subst ? !subst.isSubstantiated : false;
+                      const severity = subst?.severity as unknown as number | undefined;
                       return (
                         <ChunkItem key={ci} className={isUnsubstantiated ? 'bg-red-50/40' : ''}>
                           <p className="text-sm">
@@ -99,6 +130,16 @@ export function ChunksTab({ results }: ChunksTabProps) {
                             >
                               {claim.needsSubstantiation ? 'Needs Substantiation' : "Doesn't Need Substantiation"}
                             </span>
+                            {typeof severity === 'number' && severity > 0 && (
+                              <span
+                                className={`inline-flex items-center px-2 py-1 rounded text-xs ${getSeverityClasses(
+                                  severity,
+                                )}`}
+                                title={`Severity ${severity}: ${getSeverityLabel(severity)}`}
+                              >
+                                Severity: {getSeverityLabel(severity)}
+                              </span>
+                            )}
                             {claim.warrantExpression && (
                               <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
                                 Warrant: {claim.warrantExpression}
