@@ -26,6 +26,7 @@ export interface WizardActions {
   setSupportingDocuments: (files: File[]) => void;
   setIsProcessing: (processing: boolean) => void;
   setAnalysisResults: (results: AnalysisResults | null) => void;
+  updateChunkResults: (chunkIndex: number, updatedResults: Record<string, unknown>) => void;
   reset: () => void;
 }
 
