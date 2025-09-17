@@ -19,7 +19,7 @@ export function useResultsCalculations(detailedResults: ClaimSubstantiatorState 
 
   const totalUnsubstantiated =
     detailedResults.claimSubstantiationsByChunk?.reduce(
-      (sum, chunk) => sum + chunk.filter((sub) => !sub.isSubstantiated).length,
+      (sum, chunk) => sum + chunk.substantiations.filter((sub) => !sub.isSubstantiated).length,
       0,
     ) || 0;
 

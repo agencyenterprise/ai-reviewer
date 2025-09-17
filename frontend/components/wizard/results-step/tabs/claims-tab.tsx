@@ -11,7 +11,7 @@ interface ClaimsTabProps {
 export function ClaimsTab({ results }: ClaimsTabProps) {
   const claimsWithSubstantiation = results.claimsByChunk?.map((chunk, chunkIndex) => ({
     ...chunk,
-    substantiations: results.claimSubstantiationsByChunk?.[chunkIndex] || [],
+    substantiations: results.claimSubstantiationsByChunk?.[chunkIndex]?.substantiations || [],
   }));
 
   return (

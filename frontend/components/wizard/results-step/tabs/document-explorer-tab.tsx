@@ -42,7 +42,7 @@ export function DocumentExplorerChunk({ results, chunkIndex }: DocumentExplorerC
   const citations = results.citationsByChunk?.[chunkIndex]?.citations || [];
   const references = results.references || [];
   const supportingFiles = results.supportingFiles || [];
-  const substantiations = results.claimSubstantiationsByChunk?.[chunkIndex] || [];
+  const substantiations = results.claimSubstantiationsByChunk?.[chunkIndex]?.substantiations || [];
   const chunkCategory = classifyChunk(results, chunkIndex, references);
   const maxSeverity = getMaxSeverity(substantiations);
 
