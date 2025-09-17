@@ -1,39 +1,91 @@
-import ReactMarkdown from 'react-markdown';
+import { cn } from '@/lib/utils';
+import { ComponentType, JSX } from 'react';
+import ReactMarkdown, { ExtraProps } from 'react-markdown';
 
-const components = {
-  p: (props: React.ComponentProps<'p'>) => <p {...props} />,
-  h1: (props: React.ComponentProps<'h1'>) => <h1 className="text-2xl font-bold" {...props} />,
-  h2: (props: React.ComponentProps<'h2'>) => <h2 className="text-xl font-bold" {...props} />,
-  h3: (props: React.ComponentProps<'h3'>) => <h3 className="text-lg font-bold" {...props} />,
-  h4: (props: React.ComponentProps<'h4'>) => <h4 className="text-base font-bold" {...props} />,
-  h5: (props: React.ComponentProps<'h5'>) => <h5 className="text-sm font-bold" {...props} />,
-  h6: (props: React.ComponentProps<'h6'>) => <h6 className="text-xs font-bold" {...props} />,
-  ul: (props: React.ComponentProps<'ul'>) => <ul className="list-disc" {...props} />,
-  ol: (props: React.ComponentProps<'ol'>) => <ol className="list-decimal" {...props} />,
-  li: (props: React.ComponentProps<'li'>) => <li className="ml-4" {...props} />,
-  a: (props: React.ComponentProps<'a'>) => <a className="text-blue-600" {...props} />,
-  img: (props: React.ComponentProps<'img'>) => <img className="w-full" {...props} />,
-  blockquote: (props: React.ComponentProps<'blockquote'>) => (
-    <blockquote className="border-l-4 border-gray-300 pl-4" {...props} />
-  ),
-  code: (props: React.ComponentProps<'code'>) => <code className="bg-gray-100 px-1 py-0.5 rounded" {...props} />,
-  pre: (props: React.ComponentProps<'pre'>) => <pre className="bg-gray-100 px-1 py-0.5 rounded" {...props} />,
-  table: (props: React.ComponentProps<'table'>) => <table className="w-full" {...props} />,
-  thead: (props: React.ComponentProps<'thead'>) => <thead className="bg-gray-100" {...props} />,
-  tbody: (props: React.ComponentProps<'tbody'>) => <tbody className="bg-gray-100" {...props} />,
-  tr: (props: React.ComponentProps<'tr'>) => <tr className="bg-gray-100" {...props} />,
-  th: (props: React.ComponentProps<'th'>) => <th className="bg-gray-100" {...props} />,
-  td: (props: React.ComponentProps<'td'>) => <td className="bg-gray-100" {...props} />,
-  hr: (props: React.ComponentProps<'hr'>) => <hr className="my-4" {...props} />,
-  br: (props: React.ComponentProps<'br'>) => <br {...props} />,
-  em: (props: React.ComponentProps<'em'>) => <em className="italic" {...props} />,
-  strong: (props: React.ComponentProps<'strong'>) => <strong className="font-bold" {...props} />,
-  del: (props: React.ComponentProps<'del'>) => <del className="line-through" {...props} />,
-  ins: (props: React.ComponentProps<'ins'>) => <ins className="underline" {...props} />,
-  sup: (props: React.ComponentProps<'sup'>) => <sup className="text-sm" {...props} />,
-  sub: (props: React.ComponentProps<'sub'>) => <sub className="text-sm" {...props} />,
+type MarkdownComponentProps<Key extends keyof JSX.IntrinsicElements> = JSX.IntrinsicElements[Key] & ExtraProps;
+
+const componentFactory = (
+  tag: keyof JSX.IntrinsicElements,
+  className: string,
+  highlight?: 'red' | 'yellow' | 'green' | 'none',
+) => {
+  const highlightClass = highlight
+    ? {
+        none: '',
+        red: 'bg-red-100',
+        yellow: 'bg-yellow-100',
+        green: 'bg-green-100',
+      }[highlight]
+    : '';
+
+  const Component = ({ node, children, ...rest }: MarkdownComponentProps<typeof tag>) => {
+    const Component = tag as unknown as ComponentType<MarkdownComponentProps<typeof tag>>;
+
+    if (highlight && highlight !== 'none') {
+      return (
+        <Component {...rest} className={cn(className, rest.className)}>
+          <mark className={highlightClass}>{children}</mark>
+        </Component>
+      );
+    }
+
+    return (
+      <Component {...rest} className={cn(className, rest.className)}>
+        {children}
+      </Component>
+    );
+  };
+
+  Component.displayName = `Markdown-${tag}`;
+  return Component;
 };
 
-export function Markdown(props: React.ComponentProps<typeof ReactMarkdown>) {
-  return <ReactMarkdown components={components} {...props} />;
+const createComponents = (highlight: 'red' | 'yellow' | 'green' | 'none') => {
+  return {
+    p: componentFactory('p', '', highlight),
+    h1: componentFactory('h1', 'text-2xl font-bold', highlight),
+    h2: componentFactory('h2', 'text-xl font-bold', highlight),
+    h3: componentFactory('h3', 'text-lg font-bold', highlight),
+    h4: componentFactory('h4', 'text-base font-bold', highlight),
+    h5: componentFactory('h5', 'text-sm font-bold', highlight),
+    h6: componentFactory('h6', 'text-xs font-bold', highlight),
+    ul: componentFactory('ul', 'list-disc'),
+    ol: componentFactory('ol', 'list-decimal'),
+    li: componentFactory('li', 'ml-4'),
+    a: componentFactory('a', 'text-blue-600'),
+    img: componentFactory('img', 'w-full'),
+    blockquote: componentFactory('blockquote', 'border-l-4 border-gray-300 pl-4'),
+    code: componentFactory('code', 'bg-gray-100 px-1 py-0.5 rounded'),
+    pre: componentFactory('pre', 'bg-gray-100 px-1 py-0.5 rounded'),
+    table: componentFactory('table', 'w-full'),
+    thead: componentFactory('thead', 'bg-gray-100'),
+    tbody: componentFactory('tbody', 'bg-gray-100'),
+    tr: componentFactory('tr', 'bg-gray-100'),
+    th: componentFactory('th', 'bg-gray-100'),
+    td: componentFactory('td', 'bg-gray-100'),
+    hr: componentFactory('hr', 'my-4'),
+    br: componentFactory('br', ''),
+    em: componentFactory('em', 'italic'),
+    strong: componentFactory('strong', 'font-bold'),
+    del: componentFactory('del', 'line-through'),
+    ins: componentFactory('ins', 'underline'),
+    sup: componentFactory('sup', 'text-sm'),
+    sub: componentFactory('sub', 'text-sm'),
+  };
+};
+
+export interface MarkdownProps extends React.ComponentProps<typeof ReactMarkdown> {
+  highlight?: 'red' | 'yellow' | 'green' | 'none';
+}
+
+const componentsByHighlight = {
+  none: createComponents('none'),
+  red: createComponents('red'),
+  yellow: createComponents('yellow'),
+  green: createComponents('green'),
+};
+
+export function Markdown(props: MarkdownProps) {
+  const { highlight = 'none', ...rest } = props;
+  return <ReactMarkdown components={componentsByHighlight[highlight]} {...rest} />;
 }
