@@ -2,6 +2,9 @@ from langgraph.graph import StateGraph
 
 from lib.workflows.claim_substantiation.nodes.detect_citations import detect_citations
 from lib.workflows.claim_substantiation.nodes.detect_claims import detect_claims
+from lib.workflows.claim_substantiation.nodes.detect_claims_toulmin import (
+    detect_claims_toulmin,
+)
 from lib.workflows.claim_substantiation.nodes.extract_references import (
     extract_references,
 )
@@ -12,11 +15,13 @@ from lib.workflows.claim_substantiation.nodes.substantiate_claims import (
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 
 
-def build_claim_substantiator_graph():
+def build_claim_substantiator_graph(use_toulmin: bool = False):
     graph = StateGraph(ClaimSubstantiatorState)
 
     graph.add_node("prepare_documents", prepare_documents)
-    graph.add_node("detect_claims", detect_claims)
+    graph.add_node(
+        "detect_claims", detect_claims if not use_toulmin else detect_claims_toulmin
+    )
     graph.add_node("detect_citations", detect_citations)
     graph.add_node("extract_references", extract_references)
     graph.add_node("substantiate_claims", substantiate_claims)

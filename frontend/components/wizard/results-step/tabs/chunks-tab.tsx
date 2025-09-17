@@ -79,6 +79,94 @@ export function ChunksTab({ results }: ChunksTabProps) {
                           <p className="text-sm text-muted-foreground mt-1">
                             <strong>Related Text:</strong> &quot;{claim.text}&quot;
                           </p>
+                          {claim.rationale && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              <strong>Rationale:</strong> {claim.rationale}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 mt-1">
+                            <span
+                              className={`inline-flex items-center px-2 py-1 rounded text-xs ${
+                                claim.needsSubstantiation
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}
+                              title={
+                                claim.needsSubstantiation
+                                  ? 'This claim likely requires citation/backing in academic writing'
+                                  : 'This claim may be considered common knowledge'
+                              }
+                            >
+                              {claim.needsSubstantiation ? 'Needs Substantiation' : "Doesn't Need Substantiation"}
+                            </span>
+                            {claim.warrantExpression && (
+                              <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
+                                Warrant: {claim.warrantExpression}
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                            <div>
+                              <p className="text-xs font-semibold mb-1">Data / Grounds</p>
+                              {claim.data && claim.data.length > 0 ? (
+                                <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
+                                  {claim.data.map((d, i) => (
+                                    <li key={i}>{d}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">None</p>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold mb-1">Warrants</p>
+                              {claim.warrants && claim.warrants.length > 0 ? (
+                                <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
+                                  {claim.warrants.map((w, i) => (
+                                    <li key={i}>{w}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">None</p>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold mb-1">Qualifiers</p>
+                              {claim.qualifiers && claim.qualifiers.length > 0 ? (
+                                <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
+                                  {claim.qualifiers.map((q, i) => (
+                                    <li key={i}>{q}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">None</p>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold mb-1">Rebuttals</p>
+                              {claim.rebuttals && claim.rebuttals.length > 0 ? (
+                                <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
+                                  {claim.rebuttals.map((r, i) => (
+                                    <li key={i}>{r}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">None</p>
+                              )}
+                            </div>
+                            <div className="md:col-span-2">
+                              <p className="text-xs font-semibold mb-1">Backing</p>
+                              {claim.backing && claim.backing.length > 0 ? (
+                                <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
+                                  {claim.backing.map((b, i) => (
+                                    <li key={i}>{b}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">None</p>
+                              )}
+                            </div>
+                          </div>
                           {subst && subst.isSubstantiated && (
                             <p className="text-sm text-green-600 mt-1">
                               <strong>Substantiated because:</strong> {subst.rationale}

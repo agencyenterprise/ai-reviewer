@@ -112,7 +112,73 @@ export function DocumentExplorerChunk({ results, chunkIndex }: DocumentExplorerC
                     <strong>Needs substantiation:</strong> {claim.needsSubstantiation ? 'Yes' : 'No'} -{' '}
                     {claim.rationale}
                   </p>
-                  {JSON.stringify(subst)}
+                  {claim.warrantExpression && (
+                    <div className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
+                      Warrant: {claim.warrantExpression}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs font-semibold mb-1">Data / Grounds</p>
+                      {claim.data && claim.data.length > 0 ? (
+                        <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
+                          {claim.data.map((d, i) => (
+                            <li key={i}>{d}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">None</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold mb-1">Warrants</p>
+                      {claim.warrants && claim.warrants.length > 0 ? (
+                        <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
+                          {claim.warrants.map((w, i) => (
+                            <li key={i}>{w}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">None</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold mb-1">Qualifiers</p>
+                      {claim.qualifiers && claim.qualifiers.length > 0 ? (
+                        <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
+                          {claim.qualifiers.map((q, i) => (
+                            <li key={i}>{q}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">None</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold mb-1">Rebuttals</p>
+                      {claim.rebuttals && claim.rebuttals.length > 0 ? (
+                        <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
+                          {claim.rebuttals.map((r, i) => (
+                            <li key={i}>{r}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">None</p>
+                      )}
+                    </div>
+                    <div className="md:col-span-2">
+                      <p className="text-xs font-semibold mb-1">Backing</p>
+                      {claim.backing && claim.backing.length > 0 ? (
+                        <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
+                          {claim.backing.map((b, i) => (
+                            <li key={i}>{b}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">None</p>
+                      )}
+                    </div>
+                  </div>
                   {subst && subst.isSubstantiated && (
                     <p className="text-green-600">
                       <strong>Substantiated because:</strong> {subst.rationale}

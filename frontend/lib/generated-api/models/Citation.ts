@@ -52,13 +52,13 @@ export interface Citation {
    */
   needsBibliography: boolean;
   /**
-   * If the document includes a bibliography entry related to this citation, this will be an exact copy of that bibliography entry, otherwise it will be an empty string.
+   * If the document includes a bibliography entry related to this citation, this will be an exact copy of that bibliography entry (do not include the entry number if there is one, just the full context of the bibliography entry), otherwise it will be an empty string.
    * @type {string}
    * @memberof Citation
    */
   associatedBibliography: string;
   /**
-   * The index of the bibliography entry that this citation refers to, if any. If the citation does not refer to a bibliography entry, this should be -1.
+   * The index of the bibliography entry that this citation refers to, if any. Indices start at 1. If the citation does not refer to a bibliography entry, this should be -1.
    * @type {number}
    * @memberof Citation
    */

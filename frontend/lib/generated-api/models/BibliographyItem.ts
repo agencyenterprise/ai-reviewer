@@ -32,7 +32,7 @@ export interface BibliographyItem {
    */
   hasAssociatedSupportingDocument: boolean;
   /**
-   * If the bibliographic item has an associated supporting document, this will be the index of the supporting document in the list of supporting documents provided by the user, otherwise it will be -1.
+   * If the bibliographic item has an associated supporting document, this will be the index of the supporting document in the list of supporting documents provided by the user (index starts at 1), otherwise it will be -1.
    * @type {number}
    * @memberof BibliographyItem
    */
