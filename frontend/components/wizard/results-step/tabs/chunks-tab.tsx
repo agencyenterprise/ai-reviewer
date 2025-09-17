@@ -20,13 +20,13 @@ export function ChunksTab({ results }: ChunksTabProps) {
           const chunk = results.chunks?.[chunkIndex];
           const claimsRationale = claimsChunk.rationale;
           const claims = claimsChunk?.claims || [];
-          const substantiations = results.claimSubstantiationsByChunk?.[chunkIndex] || [];
+          const substantiations = results.claimSubstantiationsByChunk?.[chunkIndex]?.substantiations || [];
           const references = results.references || [];
           const supportingFiles = results.supportingFiles || [];
           const citationsChunk = results.citationsByChunk?.[chunkIndex];
           const citations = citationsChunk?.citations || [];
           const chunkText = chunk || 'No content provided.';
-          const hasUnsubstantiated = (results.claimSubstantiationsByChunk?.[chunkIndex] || []).some(
+          const hasUnsubstantiated = (results.claimSubstantiationsByChunk?.[chunkIndex]?.substantiations || []).some(
             (s) => !s.isSubstantiated,
           );
 

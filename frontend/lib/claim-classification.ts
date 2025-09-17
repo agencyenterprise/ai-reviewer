@@ -86,7 +86,7 @@ export function classifyChunk(
 ): ClaimCategory {
   const claims = results.claimsByChunk?.[chunkIndex]?.claims || [];
   const citations = results.citationsByChunk?.[chunkIndex]?.citations || [];
-  const substantiations = results.claimSubstantiationsByChunk?.[chunkIndex] || [];
+  const substantiations = results.claimSubstantiationsByChunk?.[chunkIndex]?.substantiations || [];
 
   if (claims.length === 0) {
     return ClaimCategory.NO_CITATION_NEEDED;
