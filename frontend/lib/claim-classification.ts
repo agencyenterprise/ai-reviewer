@@ -53,7 +53,7 @@ export function classifyClaim(
     return ClaimCategory.MISSING_CITATION;
   }
 
-  if (claimSubstantiation.isSubstantiated) {
+  if (claimSubstantiation?.isSubstantiated) {
     return ClaimCategory.VERIFIED;
   }
 

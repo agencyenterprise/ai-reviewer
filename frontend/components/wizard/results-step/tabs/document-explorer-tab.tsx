@@ -4,12 +4,13 @@ import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Markdown } from '@/components/markdown';
 import { claimCategoryBaseColors, classifyChunk, classifyClaim } from '@/lib/claim-classification';
 import { ClaimSubstantiatorState } from '@/lib/generated-api';
+import { getMaxSeverity } from '@/lib/severity';
 import { cn } from '@/lib/utils';
 import { ChevronRight, FileIcon, Link as LinkIcon, MessageCirclePlus } from 'lucide-react';
 import * as React from 'react';
 import { ChunkItem } from '../components/chunk-display';
 import { ClaimCategoryLabel } from '../components/claim-category-label';
-import { getMaxSeverity, getSeverityClasses, getSeverityLabel } from '@/lib/severity';
+import { SeverityBadge } from '../components/severity-badge';
 
 interface DocumentExplorerTabProps {
   results: ClaimSubstantiatorState;
@@ -85,12 +86,7 @@ export function DocumentExplorerChunk({ results, chunkIndex }: DocumentExplorerC
           {maxSeverity > 0 && (
             <React.Fragment>
               <HorizontalSeparator />
-              <span
-                className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${getSeverityClasses(maxSeverity)}`}
-                title={`Max severity ${maxSeverity}: ${getSeverityLabel(maxSeverity)}`}
-              >
-                Severity: {getSeverityLabel(maxSeverity)}
-              </span>
+              <SeverityBadge severity={maxSeverity} />
             </React.Fragment>
           )}
         </div>
@@ -116,15 +112,10 @@ export function DocumentExplorerChunk({ results, chunkIndex }: DocumentExplorerC
 
               return (
                 <ChunkItem key={ci} className={cn(isUnsubstantiated ? 'bg-red-50/40' : '', 'space-y-2')}>
-                  <ClaimCategoryLabel category={claimCategory} />
-                  {isUnsubstantiated && typeof severity === 'number' && severity > 0 && (
-                    <div
-                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${getSeverityClasses(severity)}`}
-                      title={`Severity ${severity}: ${getSeverityLabel(severity)}`}
-                    >
-                      Severity: {getSeverityLabel(severity)}
-                    </div>
-                  )}
+                  <p className="flex items-center gap-1">
+                    <ClaimCategoryLabel category={claimCategory} />
+                    <SeverityBadge severity={severity} />
+                  </p>
                   <p>
                     <strong>Claim:</strong> {claim.claim}
                   </p>
