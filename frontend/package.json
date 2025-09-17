@@ -11,7 +11,7 @@
     "start": "next start",
     "lint": "eslint",
     "prepare": "cd .. && husky frontend/.husky",
-    "openapi-generate": "openapi-generator-cli generate -g typescript-fetch -i http://127.0.0.1:8000/openapi.json -o ./lib/generated-api"
+    "openapi-generate": "openapi-generator-cli generate -g typescript-fetch -i http://127.0.0.1:8000/openapi.json -o ./lib/generated-api && prettier --write ./lib/generated-api/**"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [

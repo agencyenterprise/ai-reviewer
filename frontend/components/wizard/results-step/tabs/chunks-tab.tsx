@@ -5,8 +5,9 @@ import { ChunkItem } from '../components/chunk-display';
 import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
 import { AlertTriangle, FileIcon, Link as LinkIcon } from 'lucide-react';
 import { ClaimSubstantiatorState } from '@/lib/generated-api';
-import { getSeverityClasses, getSeverityLabel } from '@/lib/severity';
 import { useWizard } from '../../wizard-context';
+import { SeverityBadge } from '../components/severity-badge';
+import { Badge } from '@/components/ui/badge';
 
 interface ChunksTabProps {
   results: ClaimSubstantiatorState;
@@ -26,13 +27,13 @@ export function ChunksTab({ results }: ChunksTabProps) {
           const chunk = results.chunks?.[chunkIndex];
           const claimsRationale = claimsChunk.rationale;
           const claims = claimsChunk?.claims || [];
-          const substantiations = results.claimSubstantiationsByChunk?.[chunkIndex] || [];
+          const substantiations = results.claimSubstantiationsByChunk?.[chunkIndex]?.substantiations || [];
           const references = results.references || [];
           const supportingFiles = results.supportingFiles || [];
           const citationsChunk = results.citationsByChunk?.[chunkIndex];
           const citations = citationsChunk?.citations || [];
           const chunkText = chunk || 'No content provided.';
-          const hasUnsubstantiated = (results.claimSubstantiationsByChunk?.[chunkIndex] || []).some(
+          const hasUnsubstantiated = (results.claimSubstantiationsByChunk?.[chunkIndex]?.substantiations || []).some(
             (s) => !s.isSubstantiated,
           );
 
@@ -94,7 +95,7 @@ export function ChunksTab({ results }: ChunksTabProps) {
                             </p>
                           )}
                           <div className="flex items-center gap-2 mt-1">
-                            <span
+                            <Badge
                               className={`inline-flex items-center px-2 py-1 rounded text-xs ${
                                 claim.needsSubstantiation
                                   ? 'bg-yellow-100 text-yellow-800'
@@ -107,21 +108,10 @@ export function ChunksTab({ results }: ChunksTabProps) {
                               }
                             >
                               {claim.needsSubstantiation ? 'Needs Substantiation' : "Doesn't Need Substantiation"}
-                            </span>
-                            {typeof severity === 'number' && severity > 0 && (
-                              <span
-                                className={`inline-flex items-center px-2 py-1 rounded text-xs ${getSeverityClasses(
-                                  severity,
-                                )}`}
-                                title={`Severity ${severity}: ${getSeverityLabel(severity)}`}
-                              >
-                                Severity: {getSeverityLabel(severity)}
-                              </span>
-                            )}
+                            </Badge>
+                            {typeof severity === 'number' && severity > 0 && <SeverityBadge severity={severity} />}
                             {claim.warrantExpression && (
-                              <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
-                                Warrant: {claim.warrantExpression}
-                              </span>
+                              <Badge variant="outline">Warrant: {claim.warrantExpression}</Badge>
                             )}
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">

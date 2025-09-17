@@ -34,13 +34,13 @@ import {
   BibliographyItemToJSON,
   BibliographyItemToJSONTyped,
 } from './BibliographyItem';
-import type { ClaimSubstantiationResultWithClaimIndex } from './ClaimSubstantiationResultWithClaimIndex';
+import type { ClaimSubstantiationChunk } from './ClaimSubstantiationChunk';
 import {
-  ClaimSubstantiationResultWithClaimIndexFromJSON,
-  ClaimSubstantiationResultWithClaimIndexFromJSONTyped,
-  ClaimSubstantiationResultWithClaimIndexToJSON,
-  ClaimSubstantiationResultWithClaimIndexToJSONTyped,
-} from './ClaimSubstantiationResultWithClaimIndex';
+  ClaimSubstantiationChunkFromJSON,
+  ClaimSubstantiationChunkFromJSONTyped,
+  ClaimSubstantiationChunkToJSON,
+  ClaimSubstantiationChunkToJSONTyped,
+} from './ClaimSubstantiationChunk';
 import type { ClaimSubstantiatorStateClaimsByChunkInner } from './ClaimSubstantiatorStateClaimsByChunkInner';
 import {
   ClaimSubstantiatorStateClaimsByChunkInnerFromJSON,
@@ -93,10 +93,10 @@ export interface ClaimSubstantiatorState {
   citationsByChunk?: Array<CitationResponse>;
   /**
    *
-   * @type {Array<Array<ClaimSubstantiationResultWithClaimIndex>>}
+   * @type {Array<ClaimSubstantiationChunk>}
    * @memberof ClaimSubstantiatorState
    */
-  claimSubstantiationsByChunk?: Array<Array<ClaimSubstantiationResultWithClaimIndex>>;
+  claimSubstantiationsByChunk?: Array<ClaimSubstantiationChunk>;
 }
 
 /**
@@ -130,7 +130,9 @@ export function ClaimSubstantiatorStateFromJSONTyped(json: any, ignoreDiscrimina
         ? undefined
         : (json['citations_by_chunk'] as Array<any>).map(CitationResponseFromJSON),
     claimSubstantiationsByChunk:
-      json['claim_substantiations_by_chunk'] == null ? undefined : json['claim_substantiations_by_chunk'],
+      json['claim_substantiations_by_chunk'] == null
+        ? undefined
+        : (json['claim_substantiations_by_chunk'] as Array<any>).map(ClaimSubstantiationChunkFromJSON),
   };
 }
 
@@ -161,6 +163,9 @@ export function ClaimSubstantiatorStateToJSONTyped(
       value['citationsByChunk'] == null
         ? undefined
         : (value['citationsByChunk'] as Array<any>).map(CitationResponseToJSON),
-    claim_substantiations_by_chunk: value['claimSubstantiationsByChunk'],
+    claim_substantiations_by_chunk:
+      value['claimSubstantiationsByChunk'] == null
+        ? undefined
+        : (value['claimSubstantiationsByChunk'] as Array<any>).map(ClaimSubstantiationChunkToJSON),
   };
 }

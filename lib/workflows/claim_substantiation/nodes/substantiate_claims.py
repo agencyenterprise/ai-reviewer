@@ -2,7 +2,10 @@ import logging
 from lib.agents.tools import format_supporting_documents_prompt_section
 from lib.run_utils import run_tasks
 from lib.services.document_processor import DocumentProcessor
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
+from lib.workflows.claim_substantiation.state import (
+    ClaimSubstantiatorState,
+    ClaimSubstantiationChunk,
+)
 from lib.agents.claim_substantiator import (
     ClaimSubstantiationResultWithClaimIndex,
     claim_substantiator_agent,
@@ -87,13 +90,20 @@ Bibliography entry text: `{associated_reference.text}`
     chunk_results = await run_tasks(
         tasks, desc="Processing chunks with Claim Substantiator"
     )
-    claim_substantiations_by_chunk = [[] for _ in range(len(chunks))]
+    claim_substantiations_by_chunk = []
+    for chunk_index in range(len(chunks)):
+        claim_substantiations_by_chunk.append(
+            ClaimSubstantiationChunk(substantiations=[])
+        )
+
     for (chunk_index, claim_index), result in zip(
         chunk_claim_indices_of_tasks, chunk_results
     ):
         result_with_claim_index = ClaimSubstantiationResultWithClaimIndex(
             chunk_index=chunk_index, claim_index=claim_index, **result.model_dump()
         )
-        claim_substantiations_by_chunk[chunk_index].append(result_with_claim_index)
+        claim_substantiations_by_chunk[chunk_index].substantiations.append(
+            result_with_claim_index
+        )
 
     return {"claim_substantiations_by_chunk": claim_substantiations_by_chunk}
