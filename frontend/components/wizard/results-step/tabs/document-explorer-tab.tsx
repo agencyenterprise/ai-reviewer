@@ -9,6 +9,7 @@ import { ChevronRight, FileIcon, Link as LinkIcon, MessageCirclePlus } from 'luc
 import * as React from 'react';
 import { ChunkItem } from '../components/chunk-display';
 import { ClaimCategoryLabel } from '../components/claim-category-label';
+import { getMaxSeverity, getSeverityClasses, getSeverityLabel } from '@/lib/severity';
 
 interface DocumentExplorerTabProps {
   results: ClaimSubstantiatorState;
@@ -32,36 +33,6 @@ export interface DocumentExplorerChunkProps {
 export function DocumentExplorerChunk({ results, chunkIndex }: DocumentExplorerChunkProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
-  const getSeverityLabel = (severity?: number) => {
-    switch (severity) {
-      case 1:
-        return 'not enough data to know for sure';
-      case 2:
-        return 'may be ok';
-      case 3:
-        return 'should be fixed';
-      case 4:
-        return 'must be fixed';
-      default:
-        return 'no issue';
-    }
-  };
-
-  const getSeverityClasses = (severity?: number) => {
-    switch (severity) {
-      case 4:
-        return 'bg-red-100 text-red-800';
-      case 3:
-        return 'bg-orange-100 text-orange-800';
-      case 2:
-        return 'bg-yellow-100 text-yellow-800';
-      case 1:
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-green-100 text-green-800';
-    }
-  };
-
   const chunk = results.chunks?.[chunkIndex];
   const claims = results.claimsByChunk?.[chunkIndex]?.claims || [];
   const claimsLength = claims.length || 0;
@@ -72,12 +43,7 @@ export function DocumentExplorerChunk({ results, chunkIndex }: DocumentExplorerC
   const supportingFiles = results.supportingFiles || [];
   const substantiations = results.claimSubstantiationsByChunk?.[chunkIndex] || [];
   const chunkCategory = classifyChunk(results, chunkIndex, references);
-  const maxSeverity = substantiations.reduce((max, s) => {
-    if (!s.isSubstantiated && typeof s.severity === 'number') {
-      return Math.max(max, s.severity);
-    }
-    return max;
-  }, 0);
+  const maxSeverity = getMaxSeverity(substantiations);
 
   return (
     <div key={chunkIndex}>
@@ -146,7 +112,7 @@ export function DocumentExplorerChunk({ results, chunkIndex }: DocumentExplorerC
               const subst = substantiations[ci];
               const isUnsubstantiated = subst ? !subst.isSubstantiated : false;
               const claimCategory = classifyClaim(claim, subst, citations, references);
-              const severity = subst.severity;
+              const severity = subst?.severity;
 
               return (
                 <ChunkItem key={ci} className={cn(isUnsubstantiated ? 'bg-red-50/40' : '', 'space-y-2')}>
