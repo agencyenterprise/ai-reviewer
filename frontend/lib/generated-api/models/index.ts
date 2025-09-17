@@ -11,6 +11,7 @@ export * from './ClaimSubstantiatorState';
 export * from './ClaimSubstantiatorStateClaimsByChunkInner';
 export * from './FileDocument';
 export * from './HTTPValidationError';
+export * from './Severity';
 export * from './ToulminClaim';
 export * from './ToulminClaimResponse';
 export * from './ValidationError';
