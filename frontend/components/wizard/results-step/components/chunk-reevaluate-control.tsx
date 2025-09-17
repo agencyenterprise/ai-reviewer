@@ -2,8 +2,8 @@
 
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
-import { extendedAnalysisService, ChunkReevaluationRequest, SupportedAgentsResponse } from '@/lib/analysis-service';
-import { ClaimSubstantiatorState } from '@/lib/generated-api';
+import { chunkAnalysisService, SupportedAgentsResponse } from '@/lib/analysis-service';
+import { ClaimSubstantiatorState, ChunkReevaluationRequest } from '@/lib/generated-api';
 
 interface ChunkReevaluateControlProps {
   chunkIndex: number;
@@ -44,13 +44,11 @@ export function ChunkReevaluateControl({ chunkIndex, originalState, onReevaluati
   const [isReevaluating, setIsReevaluating] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  // Load supported agents on mount
   React.useEffect(() => {
     const loadSupportedAgents = async () => {
       try {
-        const agents = await extendedAnalysisService.getSupportedAgents();
+        const agents = await chunkAnalysisService.getSupportedAgents();
         setSupportedAgents(agents);
-        // Pre-select all agents by default
         setSelectedAgents(new Set(agents.supported_agents));
       } catch (error) {
         console.error('Failed to load supported agents:', error);
@@ -82,13 +80,13 @@ export function ChunkReevaluateControl({ chunkIndex, originalState, onReevaluati
 
     try {
       const request: ChunkReevaluationRequest = {
-        chunk_index: chunkIndex,
-        agents_to_run: Array.from(selectedAgents),
-        original_state: originalState,
+        chunkIndex: chunkIndex,
+        agentsToRun: Array.from(selectedAgents),
+        originalState: originalState,
       };
 
-      const result = await extendedAnalysisService.reevaluateChunk(request);
-      onReevaluation(chunkIndex, result.updated_results);
+      const result = await chunkAnalysisService.reevaluateChunk(request);
+      onReevaluation(chunkIndex, result.updatedResults);
       setIsExpanded(false);
     } catch (error) {
       console.error('Re-evaluation failed:', error);

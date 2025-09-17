@@ -4,6 +4,8 @@ import {
   Configuration,
   DefaultApi,
   RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest,
+  ChunkReevaluationRequest,
+  ChunkReevaluationResponse,
 } from '@/lib/generated-api';
 
 interface AnalysisRequest {
@@ -59,41 +61,26 @@ class AnalysisService {
 
 export const analysisService = new AnalysisService();
 
-// Chunk re-evaluation types and interfaces
-export interface ChunkReevaluationRequest {
-  chunk_index: number;
-  agents_to_run: string[];
-  original_state: ClaimSubstantiatorState;
-}
-
-export interface ChunkReevaluationResponse {
-  chunk_index: number;
-  chunk_content: string;
-  updated_results: Record<string, unknown>;
-  agents_run: string[];
-  processing_time_ms?: number;
-}
-
 export interface SupportedAgentsResponse {
   supported_agents: string[];
   agent_descriptions: Record<string, string>;
 }
 
-export class ExtendedAnalysisService extends AnalysisService {
-  private readonly baseUrl: string;
+export class ChunkAnalysisService {
+  private readonly api: DefaultApi;
 
   constructor() {
-    super();
-    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    this.api = new DefaultApi(
+      new Configuration({
+        basePath: baseUrl,
+      }),
+    );
   }
 
   async getSupportedAgents(): Promise<SupportedAgentsResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/supported-agents`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch supported agents: ${response.statusText}`);
-      }
-      return await response.json();
+      return await this.api.getSupportedAgentsApiSupportedAgentsGet();
     } catch (error) {
       console.error('Error fetching supported agents:', error);
       throw error;
@@ -102,20 +89,9 @@ export class ExtendedAnalysisService extends AnalysisService {
 
   async reevaluateChunk(request: ChunkReevaluationRequest): Promise<ChunkReevaluationResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/reevaluate-chunk`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
+      return await this.api.reevaluateChunkApiReevaluateChunkPost({
+        chunkReevaluationRequest: request,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-        throw new Error(errorData.detail || `Request failed with status ${response.status}`);
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('Error re-evaluating chunk:', error);
       throw error;
@@ -123,7 +99,7 @@ export class ExtendedAnalysisService extends AnalysisService {
   }
 }
 
-export const extendedAnalysisService = new ExtendedAnalysisService();
+export const chunkAnalysisService = new ChunkAnalysisService();
 
 export { AnalysisService };
 export type { AnalysisRequest };

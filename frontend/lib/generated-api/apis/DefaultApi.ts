@@ -13,13 +13,26 @@
  */
 
 import * as runtime from '../runtime';
-import type { ClaimSubstantiatorState, HTTPValidationError } from '../models/index';
+import type {
+  ChunkReevaluationRequest,
+  ChunkReevaluationResponse,
+  ClaimSubstantiatorState,
+  HTTPValidationError,
+} from '../models/index';
 import {
+  ChunkReevaluationRequestFromJSON,
+  ChunkReevaluationRequestToJSON,
+  ChunkReevaluationResponseFromJSON,
+  ChunkReevaluationResponseToJSON,
   ClaimSubstantiatorStateFromJSON,
   ClaimSubstantiatorStateToJSON,
   HTTPValidationErrorFromJSON,
   HTTPValidationErrorToJSON,
 } from '../models/index';
+
+export interface ReevaluateChunkApiReevaluateChunkPostRequest {
+  chunkReevaluationRequest: ChunkReevaluationRequest;
+}
 
 export interface RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest {
   mainDocument: Blob;
@@ -31,6 +44,47 @@ export interface RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequ
  *
  */
 export class DefaultApi extends runtime.BaseAPI {
+  /**
+   * Get list of supported agent types for chunk re-evaluation.  Returns:     List of supported agent type strings
+   * Get Supported Agents
+   */
+  async getSupportedAgentsApiSupportedAgentsGetRaw(
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<any>> {
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    let urlPath = `/api/supported-agents`;
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'GET',
+        headers: headerParameters,
+        query: queryParameters,
+      },
+      initOverrides,
+    );
+
+    if (this.isJsonMime(response.headers.get('content-type'))) {
+      return new runtime.JSONApiResponse<any>(response);
+    } else {
+      return new runtime.TextApiResponse(response) as any;
+    }
+  }
+
+  /**
+   * Get list of supported agent types for chunk re-evaluation.  Returns:     List of supported agent type strings
+   * Get Supported Agents
+   */
+  async getSupportedAgentsApiSupportedAgentsGet(
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<any> {
+    const response = await this.getSupportedAgentsApiSupportedAgentsGetRaw(initOverrides);
+    return await response.value();
+  }
+
   /**
    * Read Health
    */
@@ -65,6 +119,55 @@ export class DefaultApi extends runtime.BaseAPI {
    */
   async readHealthApiHealthGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
     const response = await this.readHealthApiHealthGetRaw(initOverrides);
+    return await response.value();
+  }
+
+  /**
+   * Re-evaluate a specific chunk with selected agents.  Args:     request: Contains chunk index, agents to run, and original state  Returns:     Updated results for the specified chunk
+   * Reevaluate Chunk
+   */
+  async reevaluateChunkApiReevaluateChunkPostRaw(
+    requestParameters: ReevaluateChunkApiReevaluateChunkPostRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<ChunkReevaluationResponse>> {
+    if (requestParameters['chunkReevaluationRequest'] == null) {
+      throw new runtime.RequiredError(
+        'chunkReevaluationRequest',
+        'Required parameter "chunkReevaluationRequest" was null or undefined when calling reevaluateChunkApiReevaluateChunkPost().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    headerParameters['Content-Type'] = 'application/json';
+
+    let urlPath = `/api/reevaluate-chunk`;
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'POST',
+        headers: headerParameters,
+        query: queryParameters,
+        body: ChunkReevaluationRequestToJSON(requestParameters['chunkReevaluationRequest']),
+      },
+      initOverrides,
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) => ChunkReevaluationResponseFromJSON(jsonValue));
+  }
+
+  /**
+   * Re-evaluate a specific chunk with selected agents.  Args:     request: Contains chunk index, agents to run, and original state  Returns:     Updated results for the specified chunk
+   * Reevaluate Chunk
+   */
+  async reevaluateChunkApiReevaluateChunkPost(
+    requestParameters: ReevaluateChunkApiReevaluateChunkPostRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<ChunkReevaluationResponse> {
+    const response = await this.reevaluateChunkApiReevaluateChunkPostRaw(requestParameters, initOverrides);
     return await response.value();
   }
 

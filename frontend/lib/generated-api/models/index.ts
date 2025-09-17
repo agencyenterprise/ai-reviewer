@@ -1,6 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export * from './BibliographyItem';
+export * from './ChunkReevaluationRequest';
+export * from './ChunkReevaluationResponse';
 export * from './Citation';
 export * from './CitationResponse';
 export * from './CitationType';

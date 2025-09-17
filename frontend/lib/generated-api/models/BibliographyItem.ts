@@ -69,9 +69,9 @@ export function BibliographyItemFromJSONTyped(json: any, ignoreDiscriminator: bo
   }
   return {
     text: json['text'],
-    hasAssociatedSupportingDocument: json['has_associated_supporting_document'],
-    indexOfAssociatedSupportingDocument: json['index_of_associated_supporting_document'],
-    nameOfAssociatedSupportingDocument: json['name_of_associated_supporting_document'],
+    hasAssociatedSupportingDocument: json['hasAssociatedSupportingDocument'],
+    indexOfAssociatedSupportingDocument: json['indexOfAssociatedSupportingDocument'],
+    nameOfAssociatedSupportingDocument: json['nameOfAssociatedSupportingDocument'],
   };
 }
 
@@ -89,8 +89,8 @@ export function BibliographyItemToJSONTyped(
 
   return {
     text: value['text'],
-    has_associated_supporting_document: value['hasAssociatedSupportingDocument'],
-    index_of_associated_supporting_document: value['indexOfAssociatedSupportingDocument'],
-    name_of_associated_supporting_document: value['nameOfAssociatedSupportingDocument'],
+    hasAssociatedSupportingDocument: value['hasAssociatedSupportingDocument'],
+    indexOfAssociatedSupportingDocument: value['indexOfAssociatedSupportingDocument'],
+    nameOfAssociatedSupportingDocument: value['nameOfAssociatedSupportingDocument'],
   };
 }
