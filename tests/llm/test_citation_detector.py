@@ -1,10 +1,9 @@
 import os
 from pathlib import Path
-from typing import List
 
 import pytest
 
-from lib.models.AgentTestCase import AgentTestCase
+from lib.models.agent_test_case import AgentTestCase
 from lib.services.file import create_file_document_from_path
 from lib.agents.citation_detector import (
     CitationResponse,
@@ -20,7 +19,7 @@ def _data(path: str) -> str:
     return str(TESTS_DIR / path)
 
 
-def _build_cases() -> List[AgentTestCase]:
+async def _build_cases() -> list[AgentTestCase]:
     bibliography = (
         "1. Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry.\n\n"
         "2. Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf.\n\n"
@@ -39,6 +38,10 @@ def _build_cases() -> List[AgentTestCase]:
 
     cases: list[AgentTestCase] = []
 
+    # Load full document once and inject into all cases' prompt kwargs
+    main_path = _data(os.path.join("data", "case_1", "main_document.md"))
+    main_doc = await create_file_document_from_path(main_path)
+
     # case_1-example-1
     cases.append(
         AgentTestCase(
@@ -46,12 +49,11 @@ def _build_cases() -> List[AgentTestCase]:
             agent=citation_detector_agent,
             response_model=CitationResponse,
             prompt_kwargs={
-                # full_document injected later after file load
-                "full_document": "",
+                "full_document": main_doc.markdown,
                 "bibliography": bibliography,
                 "chunk": "Prior work such as Smith (2020) and Doe and Roe (2019) provide useful background/insights.",
             },
-            expected_json={
+            expected_dict={
                 "citations": [
                     {
                         "text": "Smith (2020)",
@@ -86,11 +88,11 @@ def _build_cases() -> List[AgentTestCase]:
             agent=citation_detector_agent,
             response_model=CitationResponse,
             prompt_kwargs={
-                "full_document": "",
+                "full_document": main_doc.markdown,
                 "bibliography": bibliography,
                 "chunk": "In this article, we will review what some of the other works in the field, including (Smith, 2017) have found in this domain.",
             },
-            expected_json={
+            expected_dict={
                 "citations": [
                     {
                         "text": "(Smith, 2017)",
@@ -115,11 +117,11 @@ def _build_cases() -> List[AgentTestCase]:
             agent=citation_detector_agent,
             response_model=CitationResponse,
             prompt_kwargs={
-                "full_document": "",
+                "full_document": main_doc.markdown,
                 "bibliography": bibliography,
                 "chunk": "We conducted experiments using standard gizmo benchmarks.",
             },
-            expected_json={
+            expected_dict={
                 "citations": [],
                 "rationale": "",
             },
@@ -133,17 +135,10 @@ def _build_cases() -> List[AgentTestCase]:
 @pytest.mark.live
 @pytest.mark.asyncio
 async def test_citation_detector_agent_cases():
-    cases = _build_cases()
-
-    # Load full document once
-    main_path = _data(os.path.join("data", "case_1", "main_document.md"))
-    main_doc = await create_file_document_from_path(main_path)
+    cases = await _build_cases()
 
     failures: list[str] = []
     for case in cases:
-        # inject full document into prompt
-        case.prompt_kwargs["full_document"] = main_doc.markdown
-
         await case.run()
         eval_result = await case.compare_results()
         if not eval_result.passed:

@@ -25,7 +25,7 @@ class EvaluationResult(BaseModel):
 class AgentTestCase(BaseModel):
     """Generic container for agent test cases with mixed strict/LLM grading.
 
-    - expected_json stores the golden output as a dict matching the agent's response model
+    - expected stores the golden output as a dict matching the agent's response model
     - expected/result are parsed instances of response_model for type-safe access
     - strict_fields are dotted selectors compared exactly (e.g., "reference_index")
     - llm_fields are field names to be graded by an LLM (e.g., "claims")
@@ -38,7 +38,7 @@ class AgentTestCase(BaseModel):
     prompt_kwargs: Dict[str, Any]
 
     # Goldens and results
-    expected_json: Dict[str, Any]
+    expected_dict: Dict[str, Any]
     expected: Optional[TResponse] = None
     result: Optional[TResponse] = None
 
@@ -51,9 +51,9 @@ class AgentTestCase(BaseModel):
     evaluator_model: str = Field(default="openai:gpt-5")
 
     def model_post_init(self, __context: Any) -> None:  # type: ignore[override]
-        # Parse expected_json into the typed model instance
+        # Parse expected into the typed model instance
         if self.expected is None:
-            self.expected = self.response_model.model_validate(self.expected_json)  # type: ignore[arg-type]
+            self.expected = self.response_model.model_validate(self.expected_dict)  # type: ignore[arg-type]
 
     async def run(self) -> TResponse:
         """Run the agent and store the typed result."""
@@ -67,6 +67,11 @@ class AgentTestCase(BaseModel):
         assert (
             self.expected is not None and self.result is not None
         ), "Run the test first"
+
+        if len(self.llm_fields) == 0:
+            return EvaluationResult(
+                passed=True, rationale="No fields require llm comparison"
+            )
 
         expected_llm_json = self.expected.model_dump_json(
             include=self.llm_fields, exclude=self.ignore_fields, indent=2
@@ -111,7 +116,7 @@ RECEIVED JSON (selected fields):
 
         messages = prompt.format_messages(
             expected_llm_json=expected_llm_json,
-            received_llm_json=result_llm_json,
+            result_llm_json=result_llm_json,
         )
 
         return grader.invoke(messages)
@@ -120,6 +125,10 @@ RECEIVED JSON (selected fields):
         expected_strict = self.expected.model_dump(
             include=self.strict_fields, exclude=self.ignore_fields
         )
+        if len(self.strict_fields) == 0:
+            return EvaluationResult(
+                passed=True, rationale="No strict fields to compare"
+            )
         result_strict = self.result.model_dump(
             include=self.strict_fields, exclude=self.ignore_fields
         )
