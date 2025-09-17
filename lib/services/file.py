@@ -28,7 +28,7 @@ async def create_file_document_from_path(file_path: str) -> FileDocument:
 
     # Create File object for main document
     file_document = FileDocument(
-        file_path=file_path,
+        file_path=str(file_path),
         file_name=os.path.basename(file_path),
         file_type=mimetypes.guess_type(file_path)[0],
         markdown=markdown,
