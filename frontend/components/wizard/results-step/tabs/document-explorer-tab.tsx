@@ -1,13 +1,13 @@
 'use client';
 
+import { AiGeneratedLabel } from '@/components/ai-generated-label';
+import { Markdown } from '@/components/markdown';
+import { claimCategoryBaseColors, classifyChunk, classifyClaim } from '@/lib/claim-classification';
 import { ClaimSubstantiatorState } from '@/lib/generated-api';
-import { AlertTriangle, ChevronRight, FileIcon, Link as LinkIcon, MessageCirclePlus } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { ChevronRight, FileIcon, Link as LinkIcon, MessageCirclePlus } from 'lucide-react';
 import * as React from 'react';
 import { ChunkItem } from '../components/chunk-display';
-import { Markdown } from '@/components/markdown';
-import { AiGeneratedLabel } from '@/components/ai-generated-label';
-import { cn } from '@/lib/utils';
-import { claimCategoryBaseColors, classifyChunk, classifyClaim } from '@/lib/claim-classification';
 import { ClaimCategoryLabel } from '../components/claim-category-label';
 
 interface DocumentExplorerTabProps {
@@ -73,9 +73,8 @@ export function DocumentExplorerChunk({ results, chunkIndex }: DocumentExplorerC
   const substantiations = results.claimSubstantiationsByChunk?.[chunkIndex] || [];
   const chunkCategory = classifyChunk(results, chunkIndex, references);
   const maxSeverity = substantiations.reduce((max, s) => {
-    const sev = (s as any)?.severity as number | undefined;
-    if (!s.isSubstantiated && typeof sev === 'number') {
-      return Math.max(max, sev);
+    if (!s.isSubstantiated && typeof s.severity === 'number') {
+      return Math.max(max, s.severity);
     }
     return max;
   }, 0);
@@ -147,7 +146,7 @@ export function DocumentExplorerChunk({ results, chunkIndex }: DocumentExplorerC
               const subst = substantiations[ci];
               const isUnsubstantiated = subst ? !subst.isSubstantiated : false;
               const claimCategory = classifyClaim(claim, subst, citations, references);
-              const severity = (subst as any)?.severity as number | undefined;
+              const severity = subst.severity;
 
               return (
                 <ChunkItem key={ci} className={cn(isUnsubstantiated ? 'bg-red-50/40' : '', 'space-y-2')}>
