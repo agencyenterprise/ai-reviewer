@@ -23,6 +23,7 @@ import {
 
 export interface RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest {
   mainDocument: Blob;
+  useToulmin?: boolean;
   supportingDocuments?: Array<Blob> | null;
 }
 
@@ -83,6 +84,10 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     const queryParameters: any = {};
+
+    if (requestParameters['useToulmin'] != null) {
+      queryParameters['use_toulmin'] = requestParameters['useToulmin'];
+    }
 
     const headerParameters: runtime.HTTPHeaders = {};
 

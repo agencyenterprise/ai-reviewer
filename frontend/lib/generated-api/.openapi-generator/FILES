@@ -1,4 +1,3 @@
-.openapi-generator-ignore
 apis/DefaultApi.ts
 apis/index.ts
 index.ts
@@ -10,8 +9,11 @@ models/Claim.ts
 models/ClaimResponse.ts
 models/ClaimSubstantiationResultWithClaimIndex.ts
 models/ClaimSubstantiatorState.ts
+models/ClaimSubstantiatorStateClaimsByChunkInner.ts
 models/FileDocument.ts
 models/HTTPValidationError.ts
+models/ToulminClaim.ts
+models/ToulminClaimResponse.ts
 models/ValidationError.ts
 models/ValidationErrorLocInner.ts
 models/index.ts

@@ -27,13 +27,6 @@ import {
   CitationResponseToJSON,
   CitationResponseToJSONTyped,
 } from './CitationResponse';
-import type { ClaimResponse } from './ClaimResponse';
-import {
-  ClaimResponseFromJSON,
-  ClaimResponseFromJSONTyped,
-  ClaimResponseToJSON,
-  ClaimResponseToJSONTyped,
-} from './ClaimResponse';
 import type { BibliographyItem } from './BibliographyItem';
 import {
   BibliographyItemFromJSON,
@@ -48,6 +41,13 @@ import {
   ClaimSubstantiationResultWithClaimIndexToJSON,
   ClaimSubstantiationResultWithClaimIndexToJSONTyped,
 } from './ClaimSubstantiationResultWithClaimIndex';
+import type { ClaimSubstantiatorStateClaimsByChunkInner } from './ClaimSubstantiatorStateClaimsByChunkInner';
+import {
+  ClaimSubstantiatorStateClaimsByChunkInnerFromJSON,
+  ClaimSubstantiatorStateClaimsByChunkInnerFromJSONTyped,
+  ClaimSubstantiatorStateClaimsByChunkInnerToJSON,
+  ClaimSubstantiatorStateClaimsByChunkInnerToJSONTyped,
+} from './ClaimSubstantiatorStateClaimsByChunkInner';
 
 /**
  *
@@ -81,10 +81,10 @@ export interface ClaimSubstantiatorState {
   references?: Array<BibliographyItem>;
   /**
    *
-   * @type {Array<ClaimResponse>}
+   * @type {Array<ClaimSubstantiatorStateClaimsByChunkInner>}
    * @memberof ClaimSubstantiatorState
    */
-  claimsByChunk?: Array<ClaimResponse>;
+  claimsByChunk?: Array<ClaimSubstantiatorStateClaimsByChunkInner>;
   /**
    *
    * @type {Array<CitationResponse>}
@@ -122,7 +122,9 @@ export function ClaimSubstantiatorStateFromJSONTyped(json: any, ignoreDiscrimina
     references:
       json['references'] == null ? undefined : (json['references'] as Array<any>).map(BibliographyItemFromJSON),
     claimsByChunk:
-      json['claims_by_chunk'] == null ? undefined : (json['claims_by_chunk'] as Array<any>).map(ClaimResponseFromJSON),
+      json['claims_by_chunk'] == null
+        ? undefined
+        : (json['claims_by_chunk'] as Array<any>).map(ClaimSubstantiatorStateClaimsByChunkInnerFromJSON),
     citationsByChunk:
       json['citations_by_chunk'] == null
         ? undefined
@@ -152,7 +154,9 @@ export function ClaimSubstantiatorStateToJSONTyped(
     references:
       value['references'] == null ? undefined : (value['references'] as Array<any>).map(BibliographyItemToJSON),
     claims_by_chunk:
-      value['claimsByChunk'] == null ? undefined : (value['claimsByChunk'] as Array<any>).map(ClaimResponseToJSON),
+      value['claimsByChunk'] == null
+        ? undefined
+        : (value['claimsByChunk'] as Array<any>).map(ClaimSubstantiatorStateClaimsByChunkInnerToJSON),
     citations_by_chunk:
       value['citationsByChunk'] == null
         ? undefined
