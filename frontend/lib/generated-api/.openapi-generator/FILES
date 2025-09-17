@@ -12,6 +12,7 @@ models/ClaimSubstantiatorState.ts
 models/ClaimSubstantiatorStateClaimsByChunkInner.ts
 models/FileDocument.ts
 models/HTTPValidationError.ts
+models/Severity.ts
 models/ToulminClaim.ts
 models/ToulminClaimResponse.ts
 models/ValidationError.ts

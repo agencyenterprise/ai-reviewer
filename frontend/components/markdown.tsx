@@ -18,6 +18,7 @@ const componentFactory = (
       }[highlight]
     : '';
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const Component = ({ node, children, ...rest }: MarkdownComponentProps<typeof tag>) => {
     const Component = tag as unknown as ComponentType<MarkdownComponentProps<typeof tag>>;
 

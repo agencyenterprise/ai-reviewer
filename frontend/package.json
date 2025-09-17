@@ -2,7 +2,7 @@
   "name": "rand-ai-reviewer",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@10",
+  "packageManager": "pnpm@10.4.1",
   "scripts": {
     "dev": "next dev --turbopack",
     "dev:webpack": "next dev",
@@ -33,6 +33,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@next/eslint-plugin-next": "^15.5.3",
     "@openapitools/openapi-generator-cli": "^2.23.3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

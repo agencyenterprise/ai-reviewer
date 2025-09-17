@@ -3,12 +3,10 @@
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "ms-python.black-formatter"
   },
-  "cSpell.words": [
-    "langfuse"
-  ],
-  "python.testing.pytestArgs": [
-    "tests"
-  ],
+  "cSpell.words": ["langfuse"],
+  "eslint.workingDirectories": ["frontend"],
+  "python.testing.pytestArgs": ["tests"],
   "python.testing.unittestEnabled": false,
-  "python.testing.pytestEnabled": true
+  "python.testing.pytestEnabled": true,
+  "python.languageServer": "None"
 }

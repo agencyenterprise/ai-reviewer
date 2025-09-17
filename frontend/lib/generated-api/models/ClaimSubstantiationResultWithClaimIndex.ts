@@ -13,6 +13,9 @@
  */
 
 import { mapValues } from '../runtime';
+import type { Severity } from './Severity';
+import { SeverityFromJSON, SeverityFromJSONTyped, SeverityToJSON, SeverityToJSONTyped } from './Severity';
+
 /**
  *
  * @export
@@ -38,6 +41,12 @@ export interface ClaimSubstantiationResultWithClaimIndex {
    */
   feedback: string;
   /**
+   * The severity of the substantiation issue with increasing numeric levels: 0 = no issue, 1 = not enough data to know for sure, 2 = may be ok, 3 = should be fixed, 4 = must be fixed
+   * @type {Severity}
+   * @memberof ClaimSubstantiationResultWithClaimIndex
+   */
+  severity: Severity;
+  /**
    *
    * @type {number}
    * @memberof ClaimSubstantiationResultWithClaimIndex
@@ -60,6 +69,7 @@ export function instanceOfClaimSubstantiationResultWithClaimIndex(
   if (!('isSubstantiated' in value) || value['isSubstantiated'] === undefined) return false;
   if (!('rationale' in value) || value['rationale'] === undefined) return false;
   if (!('feedback' in value) || value['feedback'] === undefined) return false;
+  if (!('severity' in value) || value['severity'] === undefined) return false;
   if (!('chunkIndex' in value) || value['chunkIndex'] === undefined) return false;
   if (!('claimIndex' in value) || value['claimIndex'] === undefined) return false;
   return true;
@@ -80,6 +90,7 @@ export function ClaimSubstantiationResultWithClaimIndexFromJSONTyped(
     isSubstantiated: json['is_substantiated'],
     rationale: json['rationale'],
     feedback: json['feedback'],
+    severity: SeverityFromJSON(json['severity']),
     chunkIndex: json['chunk_index'],
     claimIndex: json['claim_index'],
   };
@@ -101,6 +112,7 @@ export function ClaimSubstantiationResultWithClaimIndexToJSONTyped(
     is_substantiated: value['isSubstantiated'],
     rationale: value['rationale'],
     feedback: value['feedback'],
+    severity: SeverityToJSON(value['severity']),
     chunk_index: value['chunkIndex'],
     claim_index: value['claimIndex'],
   };

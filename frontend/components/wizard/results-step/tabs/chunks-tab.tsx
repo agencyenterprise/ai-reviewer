@@ -4,6 +4,7 @@ import * as React from 'react';
 import { ChunkItem } from '../components/chunk-display';
 import { AlertTriangle, FileIcon, Link as LinkIcon } from 'lucide-react';
 import { ClaimSubstantiatorState } from '@/lib/generated-api';
+import { getSeverityClasses, getSeverityLabel } from '@/lib/severity';
 
 interface ChunksTabProps {
   results: ClaimSubstantiatorState;
@@ -71,6 +72,7 @@ export function ChunksTab({ results }: ChunksTabProps) {
                     {claims.map((claim, ci) => {
                       const subst = substantiations[ci];
                       const isUnsubstantiated = subst ? !subst.isSubstantiated : false;
+                      const severity = subst?.severity;
                       return (
                         <ChunkItem key={ci} className={isUnsubstantiated ? 'bg-red-50/40' : ''}>
                           <p className="text-sm">
@@ -99,6 +101,16 @@ export function ChunksTab({ results }: ChunksTabProps) {
                             >
                               {claim.needsSubstantiation ? 'Needs Substantiation' : "Doesn't Need Substantiation"}
                             </span>
+                            {typeof severity === 'number' && severity > 0 && (
+                              <span
+                                className={`inline-flex items-center px-2 py-1 rounded text-xs ${getSeverityClasses(
+                                  severity,
+                                )}`}
+                                title={`Severity ${severity}: ${getSeverityLabel(severity)}`}
+                              >
+                                Severity: {getSeverityLabel(severity)}
+                              </span>
+                            )}
                             {claim.warrantExpression && (
                               <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
                                 Warrant: {claim.warrantExpression}

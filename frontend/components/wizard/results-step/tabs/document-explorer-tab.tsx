@@ -1,14 +1,15 @@
 'use client';
 
+import { AiGeneratedLabel } from '@/components/ai-generated-label';
+import { Markdown } from '@/components/markdown';
+import { claimCategoryBaseColors, classifyChunk, classifyClaim } from '@/lib/claim-classification';
 import { ClaimSubstantiatorState } from '@/lib/generated-api';
-import { AlertTriangle, ChevronRight, FileIcon, Link as LinkIcon, MessageCirclePlus } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { ChevronRight, FileIcon, Link as LinkIcon, MessageCirclePlus } from 'lucide-react';
 import * as React from 'react';
 import { ChunkItem } from '../components/chunk-display';
-import { Markdown } from '@/components/markdown';
-import { AiGeneratedLabel } from '@/components/ai-generated-label';
-import { cn } from '@/lib/utils';
-import { claimCategoryBaseColors, classifyChunk, classifyClaim } from '@/lib/claim-classification';
 import { ClaimCategoryLabel } from '../components/claim-category-label';
+import { getMaxSeverity, getSeverityClasses, getSeverityLabel } from '@/lib/severity';
 
 interface DocumentExplorerTabProps {
   results: ClaimSubstantiatorState;
@@ -42,6 +43,7 @@ export function DocumentExplorerChunk({ results, chunkIndex }: DocumentExplorerC
   const supportingFiles = results.supportingFiles || [];
   const substantiations = results.claimSubstantiationsByChunk?.[chunkIndex] || [];
   const chunkCategory = classifyChunk(results, chunkIndex, references);
+  const maxSeverity = getMaxSeverity(substantiations);
 
   return (
     <div key={chunkIndex}>
@@ -79,6 +81,18 @@ export function DocumentExplorerChunk({ results, chunkIndex }: DocumentExplorerC
 
           <HorizontalSeparator />
           <ClaimCategoryLabel category={chunkCategory} badge={false} className="cursor-pointer" />
+
+          {maxSeverity > 0 && (
+            <React.Fragment>
+              <HorizontalSeparator />
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${getSeverityClasses(maxSeverity)}`}
+                title={`Max severity ${maxSeverity}: ${getSeverityLabel(maxSeverity)}`}
+              >
+                Severity: {getSeverityLabel(maxSeverity)}
+              </span>
+            </React.Fragment>
+          )}
         </div>
       </div>
 
@@ -98,10 +112,19 @@ export function DocumentExplorerChunk({ results, chunkIndex }: DocumentExplorerC
               const subst = substantiations[ci];
               const isUnsubstantiated = subst ? !subst.isSubstantiated : false;
               const claimCategory = classifyClaim(claim, subst, citations, references);
+              const severity = subst?.severity;
 
               return (
                 <ChunkItem key={ci} className={cn(isUnsubstantiated ? 'bg-red-50/40' : '', 'space-y-2')}>
                   <ClaimCategoryLabel category={claimCategory} />
+                  {isUnsubstantiated && typeof severity === 'number' && severity > 0 && (
+                    <div
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${getSeverityClasses(severity)}`}
+                      title={`Severity ${severity}: ${getSeverityLabel(severity)}`}
+                    >
+                      Severity: {getSeverityLabel(severity)}
+                    </div>
+                  )}
                   <p>
                     <strong>Claim:</strong> {claim.claim}
                   </p>
