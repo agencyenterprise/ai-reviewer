@@ -9,7 +9,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langfuse.langchain import CallbackHandler
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 
-from lib.models.react_agent.tool_registry import build_default_tools
+from lib.models.react_agent.tool_registry import prepare_tools
 from lib.models.react_agent.agent_runner import (
     run_agent,
     run_agent_sync,
@@ -40,10 +40,10 @@ class Agent(SQLModel, table=True):
         sa_column=Column(String(255), nullable=False)
     )  # Format: "{provider}:{model}"
     prompt: Any = Field(sa_column=Column(Text, nullable=False))
-    mandatory_tools: list[str] = Field(
+    tools: list[str] = Field(
         sa_column=Column(ARRAY(String), default=list)
     )  # Array of tool identifiers
-    disallowed_tools: list[str] = Field(
+    mandatory_tools: list[str] = Field(
         sa_column=Column(ARRAY(String), default=list)
     )  # Array of tool identifiers
     dependencies: list[str] = Field(
@@ -96,12 +96,6 @@ class Agent(SQLModel, table=True):
         }
         return llm_with_structure, args
 
-    def _available_tools(self):
-        """Return tools_filtered) after applying disallowed."""
-        default_tools = build_default_tools()
-        tools_filtered = _filter_tools(default_tools, self.disallowed_tools or [])
-        return tools_filtered
-
     def prep_runner_args(self, prompt_kwargs: dict) -> dict:
         """Prepare common arguments for the tool-using agent runner."""
         prompt_template = (
@@ -112,10 +106,10 @@ class Agent(SQLModel, table=True):
         base_messages = prompt_template.format_messages(**prompt_kwargs)
 
         # Build tools
-        tools_filtered = self._available_tools()
+        available_tools = prepare_tools(self.tools)
 
         # Build messages preamble and executor
-        available_tool_names = [t.name for t in tools_filtered]
+        available_tool_names = [t.name for t in available_tools]
         messages = _build_prompt_with_tools_preamble(
             base_messages, self.mandatory_tools or [], available_tool_names
         )
@@ -124,7 +118,7 @@ class Agent(SQLModel, table=True):
 
         agent_executor = create_react_agent(
             llm,
-            list(tools_filtered),
+            list(available_tools),
             # system_prompt,
             # checkpointer=memory or MemorySaver(), # For when we want to save chats
             # store=vector_store, # For when we want to add RAG
@@ -189,16 +183,14 @@ class Agent(SQLModel, table=True):
 
     async def apply(self, prompt_kwargs: dict):
         """Apply the agent to the prompt kwargs"""
-        tools_filtered = self._available_tools()
-        if len(tools_filtered) == 0:
+        if len(self.tools) == 0:
             return await self._apply_without_tools(prompt_kwargs)
 
         return await self._apply_with_tools(prompt_kwargs)
 
     def apply_sync(self, prompt_kwargs: dict):
         """Apply the agent to the prompt kwargs synchronously"""
-        tools_filtered = self._available_tools()
-        if len(tools_filtered) == 0:
+        if len(self.tools) == 0:
             return self._apply_sync_without_tools(prompt_kwargs)
 
         return self._apply_sync_with_tools(prompt_kwargs)

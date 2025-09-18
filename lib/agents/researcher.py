@@ -50,6 +50,7 @@ Return as many pieces of information as you think are worth paying attention to.
 ```
 """
     ),
+    tools=["web_search"],
     mandatory_tools=["web_search"],
     output_schema=ResearcherResponse,
 )

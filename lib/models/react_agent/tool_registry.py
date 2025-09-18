@@ -32,8 +32,8 @@ def _web_search(query: str, max_results: int) -> Dict[str, Any]:
     return {"results": items, "provider": "duckduckgo"}
 
 
-def build_default_tools() -> List[StructuredTool]:
-    """Build default tools available to all agents."""
+def build_all_tools():
+    tools = {}
 
     def _web_search_tool(query: str, max_results: int = 5) -> Dict[str, Any]:
         return _web_search(query=query, max_results=max_results)
@@ -47,4 +47,11 @@ Use this to check on current facts, latest news, etc., whenever it is helpful fo
         return_direct=False,
     )
 
-    return [search_tool]
+    tools["web_search"] = search_tool
+    return tools
+
+
+def prepare_tools(tool_names: list[str]) -> List[StructuredTool]:
+    """Build default tools available to all agents."""
+    all_tools = build_all_tools()
+    return [all_tools[tool_name] for tool_name in tool_names]
