@@ -1,7 +1,10 @@
 'use client';
 
 import * as React from 'react';
+import { Download } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
+import { Button } from '../../ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../ui/tooltip';
 import { AnalysisResults } from '../types';
 import { useResultsCalculations } from './hooks/use-results-calculations';
 import { SummaryCards, TabNavigation } from './components';
@@ -9,6 +12,7 @@ import { SummaryTab, ClaimsTab, CitationsTab, ReferencesTab, FilesTab, ChunksTab
 import { TabType } from './constants';
 import { ClaimSubstantiatorState } from '@/lib/generated-api';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
+import { downloadAsJson } from '@/lib/utils';
 
 interface ResultsVisualizationProps {
   results: AnalysisResults | null;
@@ -19,6 +23,14 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
   const [activeTab, setActiveTab] = React.useState<TabType>('summary');
 
   const calculations = useResultsCalculations(detailedResults);
+
+  const handleSaveResults = () => {
+    if (results) {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `analysis-results-${timestamp}`;
+      downloadAsJson(results, filename);
+    }
+  };
 
   if (!results || !detailedResults) {
     return (
@@ -65,6 +77,20 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
         totalCitations={calculations.totalCitations}
         totalUnsubstantiated={calculations.totalUnsubstantiated}
       />
+
+      <div className="flex justify-center">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button onClick={handleSaveResults} variant="outline" size="sm" className="gap-2">
+              <Download className="h-4 w-4" />
+              Save Raw Analysis Results
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Download results as JSON to view them again without re-analyzing documents</p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
 
       <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 

@@ -6,6 +6,7 @@ import { useWizard } from './wizard-context';
 import { cn } from '@/lib/utils';
 import { Play } from 'lucide-react';
 import { analysisService } from '@/lib/analysis-service';
+import Link from 'next/link';
 
 export function WizardNavigation() {
   const { state, actions } = useWizard();
@@ -69,19 +70,29 @@ export function WizardNavigation() {
 
   return (
     <div className="flex items-center justify-between max-w-4xl mx-auto pt-8">
-      <Button
-        variant="outline"
-        onClick={handleBack}
-        disabled={state.currentStep === 1 || state.isProcessing}
-        className={cn(
-          'px-6 py-2.5 font-medium transition-all duration-200',
-          'hover:bg-muted hover:border-muted-foreground/20',
-          'disabled:opacity-50 disabled:cursor-not-allowed',
-          state.currentStep === 1 || state.isProcessing ? 'invisible' : 'visible',
-        )}
-      >
-        Back
-      </Button>
+      {state.currentStep === 1 && (
+        <Link href="/upload-results">
+          <Button variant="outline" className="px-6">
+            Upload saved analysis results
+          </Button>
+        </Link>
+      )}
+
+      {state.currentStep !== 1 && !state.isProcessing && (
+        <Button
+          variant="outline"
+          onClick={handleBack}
+          disabled={state.currentStep === 1 || state.isProcessing}
+          className={cn(
+            'px-6 py-2.5 font-medium transition-all duration-200',
+            'hover:bg-muted hover:border-muted-foreground/20',
+            'disabled:opacity-50 disabled:cursor-not-allowed',
+            state.currentStep === 1 || state.isProcessing ? 'invisible' : 'visible',
+          )}
+        >
+          Back
+        </Button>
+      )}
 
       <div className="flex items-center gap-4">
         {state.currentStep === 1 && !state.mainDocument && (

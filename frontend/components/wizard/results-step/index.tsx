@@ -6,10 +6,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Progress } from '../../ui/progress';
 import { useWizard } from '../wizard-context';
 import { ResultsVisualization } from './results-visualization';
+import { AnalysisResults } from '../types';
 
-export function ResultsStep() {
+interface ResultsStepProps {
+  uploadedResults?: AnalysisResults | null;
+}
+
+export function ResultsStep({ uploadedResults }: ResultsStepProps) {
   const { state } = useWizard();
-  const hasError = state.analysisResults?.status === 'error';
+
+  // Use uploaded results if provided, otherwise use wizard state
+  const analysisResults = uploadedResults || state.analysisResults;
+  const isProcessing = uploadedResults ? false : state.isProcessing;
+  const hasError = analysisResults?.status === 'error';
 
   return (
     <div className="space-y-6">
@@ -20,10 +29,10 @@ export function ResultsStep() {
           <CheckCircle className="w-12 h-12 mx-auto text-green-500" />
         )}
         <h2 className="text-2xl font-bold">
-          {state.isProcessing ? 'Processing...' : hasError ? 'Analysis Failed' : 'Analysis Complete'}
+          {isProcessing ? 'Processing...' : hasError ? 'Analysis Failed' : 'Analysis Complete'}
         </h2>
         <p className="text-muted-foreground max-w-md mx-auto">
-          {state.isProcessing
+          {isProcessing
             ? 'AI is analyzing your documents for claims, citations, and accuracy...'
             : hasError
               ? 'There was an error processing your documents. Please try again.'
@@ -31,7 +40,7 @@ export function ResultsStep() {
         </p>
       </div>
 
-      {state.isProcessing ? (
+      {isProcessing ? (
         <Card className="max-w-xl mx-auto">
           <CardContent className="py-8">
             <div className="space-y-4">
@@ -49,13 +58,13 @@ export function ResultsStep() {
           <CardContent>
             <div className="space-y-3 text-sm">
               <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700">
-                {state.analysisResults?.error || 'An unknown error occurred during processing.'}
+                {analysisResults?.error || 'An unknown error occurred during processing.'}
               </div>
             </div>
           </CardContent>
         </Card>
       ) : (
-        <ResultsVisualization results={state.analysisResults} />
+        <ResultsVisualization results={analysisResults} />
       )}
     </div>
   );
