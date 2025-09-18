@@ -1,8 +1,17 @@
-## rand-ai-reviewer
+# RAND AI Analyst
 
-Minimal Python project managed with uv.
+An AI-powered document review system that analyzes documents for claims, citations, and references using agent-based workflows. The system consists of a Python backend (FastAPI + LangChain) and a Next.js frontend.
 
-### Prerequisites
+## Features
+
+- **Document Analysis**: Upload and analyze documents for claims and citations
+- **AI-Powered Workflows**: Uses LangGraph for orchestrated AI agent workflows
+- **Claim Substantiation**: Automatically substantiate claims using supporting documents
+- **Modern Stack**: FastAPI backend with Next.js 15 frontend
+- **Docker Support**: Full containerization with PostgreSQL database
+- **Infrastructure as Code**: Railway deployment with automated CI/CD
+
+## Prerequisites
 
 - **uv**: Fast Python package/dependency manager. Official installer:
 
@@ -10,47 +19,118 @@ Minimal Python project managed with uv.
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-- Verify:
+- **Node.js 20+**: For the frontend development
+- **pnpm**: Fast, disk space efficient package manager for Node.js. Install via npm:
+
+```bash
+npm install -g pnpm
+```
+
+- **Docker & Docker Compose**: For containerized development
+
+Verify installations:
 
 ```bash
 uv --version
+node --version
+pnpm --version
+docker --version
+docker compose version
 ```
 
-Python 3.13 is required and will be handled by uv (it can auto-install it if missing).
+## Python Version
 
-### Setup
+This project requires **Python 3.13**. The version is pinned in:
+
+- `.python-version` file
+- `pyproject.toml` (`requires-python = ">=3.13"`)
+
+uv will automatically install Python 3.13 if it's not present on your system.
+
+## Setup
+
+### Backend Setup
 
 From the project root:
 
 ```bash
-# Sync env from lockfile (reproducible)
+# Install Python 3.13 if not present
+uv python install 3.13
+
+# Create virtual environment and install dependencies from lockfile (reproducible)
 uv sync --frozen
 
-# If you don't want to enforce the lockfile, use:
+# Alternative: Install without enforcing lockfile
 # uv sync
 ```
 
-This creates a local virtual environment at `.venv/` and installs dependencies from `pyproject.toml` / `uv.lock`.
+This creates a local virtual environment at `.venv/` and installs all dependencies from `pyproject.toml` and `uv.lock`.
 
-If Python 3.13 is not present, install it via uv:
-
-```bash
-uv python install 3.13
-```
-
-### Optional: activate the virtual environment
+### Virtual Environment Activation
 
 ```bash
+# Activate the virtual environment
 source .venv/bin/activate
-python main.py
+
+# Verify installation
+python --version  # Should show Python 3.13.x
+uv run python -c "import fastapi; print('FastAPI installed successfully')"
 ```
 
-### Run
+### Frontend Setup
 
-**FastAPI**
+```bash
+# Navigate to frontend directory
+cd frontend
 
+# Install dependencies using pnpm (recommended)
+pnpm install
+
+# Alternative: using npm
+npm install
 ```
+
+## Running the Application
+
+### Backend (FastAPI)
+
+#### Development Mode
+
+```bash
+# From project root with virtual environment activated
 uv run fastapi dev api/main.py
+
+# Alternative: using uvicorn directly
+uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+#### Production Mode
+
+```bash
+uv run uvicorn api.main:app --host 0.0.0.0 --port 8000
+```
+
+### Frontend (Next.js)
+
+#### Development Mode
+
+```bash
+# From frontend directory
+cd frontend
+pnpm dev
+
+# Alternative: using npm
+npm run dev
+```
+
+#### Production Mode
+
+```bash
+# Build the application
+pnpm build
+
+# Start production server
+pnpm start
 ```
 
 ### Managing dependencies
@@ -73,19 +153,46 @@ uv remove <package>
 uv lock --upgrade && uv sync --frozen
 ```
 
-### Docker Setup (Recommended)
+## Docker Setup (Recommended)
 
-The simplest way to get started:
+The project includes comprehensive Docker support with three services:
+
+### Services Overview
+
+- **PostgreSQL Database** (`db`): Port 5432
+- **FastAPI Backend** (`api`): Port 8000
+- **Next.js Frontend** (`app`): Port 3000
+
+### Docker Files
+
+- **`Dockerfile`**: Backend container (Python 3.13 + FastAPI)
+- **`frontend/Dockerfile`**: Frontend container (Node.js 20 + Next.js)
+- **`docker-compose.yml`**: Orchestrates all services
+
+### Quick Start
 
 ```bash
-# Start the database and app services
+# Start all services in detached mode
 docker compose up -d
 
-# Run database migrations
-uv run alembic upgrade head
+# View logs
+docker compose logs -f
+
+# Stop all services
+docker compose down
 ```
 
-That's it! The PostgreSQL database will be running on port 5432 and your app will be available.
+### Database Migrations
+
+After starting the services, run database migrations:
+
+```bash
+# With local Python environment
+uv run alembic upgrade head
+
+# Or using the containerized backend
+docker compose exec api uv run alembic upgrade head
+```
 
 ## Deployment
 
@@ -143,38 +250,81 @@ This project uses **Infrastructure as Code** through Railway's Config as Code fe
 
 **100% Infrastructure as Code** - PostgreSQL database, environment variable linking, and deployments all automated!
 
-### Environment Variables
+## Environment Variables
 
-Required environment variables (set in Railway for production, `.env` for local):
-
-```bash
-# AI/ML Services
-OPENAI_API_KEY=your_openai_api_key
-
-# Langfuse (observability)
-LANGFUSE_SECRET_KEY=your_langfuse_secret_key
-LANGFUSE_PUBLIC_KEY=your_langfuse_public_key
-LANGFUSE_HOST=https://cloud.langfuse.com
-
-# Database (Railway provides DATABASE_URL automatically)
-DATABASE_URL=postgresql://user:password@host:port/database
-```
-
-**Local Development**: Create a `.env` file in the project root:
+Copy the environment template file and fill in the required variables:
 
 ```bash
-# Copy this template and fill in your values
-cat > .env << EOF
-OPENAI_API_KEY=your_openai_api_key_here
-LANGFUSE_SECRET_KEY=your_langfuse_secret_key
-LANGFUSE_PUBLIC_KEY=your_langfuse_public_key
-LANGFUSE_HOST=https://cloud.langfuse.com
-DATABASE_URL=postgresql://rand_user:rand_password@localhost:5432/rand_ai_reviewer
-EOF
+# Copy the template
+cp .env.template .env
+
+# Edit the file with your actual values
+nano .env  # or use your preferred editor
 ```
 
-### Notes
+## Development Workflow
 
-- Python version is pinned to 3.13 via `.python-version` and `pyproject.toml`.
-- Use `uv sync --reinstall` if your environment becomes inconsistent.
-- Database runs on port `5432`
+### Dependency Management
+
+- **Add a dependency**:
+
+```bash
+uv add <package>
+```
+
+- **Remove a dependency**:
+
+```bash
+uv remove <package>
+```
+
+- **Upgrade dependencies**:
+
+```bash
+uv lock --upgrade && uv sync --frozen
+```
+
+- **Reinstall if environment becomes inconsistent**:
+
+```bash
+uv sync --reinstall
+```
+
+### Database Management
+
+```bash
+# Create a new migration
+uv run alembic revision --autogenerate -m "description"
+
+# Apply migrations
+uv run alembic upgrade head
+
+# Rollback migration
+uv run alembic downgrade -1
+```
+
+### Testing
+
+```bash
+# Run Python tests
+uv run pytest
+
+# Run with coverage
+uv run pytest --cov=lib
+
+# Run frontend tests (when implemented)
+cd frontend && pnpm test
+```
+
+### Code Quality
+
+```bash
+# Format Python code
+uv run black .
+
+# Lint frontend code
+cd frontend && pnpm lint
+
+# Type check frontend
+cd frontend && pnpm type-check
+```
