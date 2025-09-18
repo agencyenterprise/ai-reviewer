@@ -1,5 +1,6 @@
 from langgraph.graph import StateGraph
 
+from lib.config.langfuse import langfuse_handler
 from lib.workflows.claim_substantiation.nodes.detect_citations import detect_citations
 from lib.workflows.claim_substantiation.nodes.detect_claims import detect_claims
 from lib.workflows.claim_substantiation.nodes.detect_claims_toulmin import (
@@ -35,7 +36,7 @@ def build_claim_substantiator_graph(use_toulmin: bool = False):
     graph.add_edge("detect_citations", "substantiate_claims")
     graph.add_edge("detect_claims", "substantiate_claims")
 
-    return graph.compile()
+    return graph.compile().with_config({"callbacks": [langfuse_handler]})
 
 
 if __name__ == "__main__":

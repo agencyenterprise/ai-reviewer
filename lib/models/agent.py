@@ -6,11 +6,8 @@ from sqlalchemy.orm import relationship
 from sqlmodel import JSON, Field, Relationship, SQLModel
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage, SystemMessage
-from langfuse.langchain import CallbackHandler
 
 from pydantic import BaseModel
-
-langfuse_handler = CallbackHandler()
 
 
 class Agent(SQLModel, table=True):
@@ -63,24 +60,15 @@ class Agent(SQLModel, table=True):
         messages = self.prompt.format_messages(**prompt_kwargs)
 
         # Apply LLM
-        args = {
-            "input": messages,
-            "config": {"callbacks": [langfuse_handler]},
-        }
+        args = {"input": messages}
         return llm_with_structure, args
 
     async def apply(self, prompt_kwargs: dict):
         llm_with_structure, args = self.prep_llm_args(prompt_kwargs)
-        chunk_result = await llm_with_structure.ainvoke(
-            args["input"],
-            config=args["config"],
-        )
+        chunk_result = await llm_with_structure.ainvoke(args["input"])
         return chunk_result
 
     def apply_sync(self, prompt_kwargs: dict):
         llm_with_structure, args = self.prep_llm_args(prompt_kwargs)
-        chunk_result = llm_with_structure.invoke(
-            args["input"],
-            config=args["config"],
-        )
+        chunk_result = llm_with_structure.invoke(args["input"])
         return chunk_result
