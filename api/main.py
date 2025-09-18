@@ -61,7 +61,7 @@ async def run_claim_substantiation_workflow(
         return ClaimSubstantiatorState(**result_state)
 
     except Exception as e:
-        logger.error(f"Error processing workflow: {str(e)}")
+        logger.error(f"Error processing workflow: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"Error processing workflow: {str(e)}"
         )
