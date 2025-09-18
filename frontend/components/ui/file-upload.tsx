@@ -7,6 +7,7 @@ import { Card, CardContent } from './card';
 
 export interface FileUploadProps {
   accept?: string;
+  acceptLabel?: string;
   multiple?: boolean;
   maxSize?: number; // in MB
   onFilesChange: (files: File[]) => void;
@@ -17,6 +18,7 @@ export interface FileUploadProps {
 
 export function FileUpload({
   accept = '.pdf,.doc,.docx,.txt,.md',
+  acceptLabel = 'PDF, DOC, DOCX, TXT, MD',
   multiple = true,
   maxSize = 10,
   onFilesChange,
@@ -122,10 +124,14 @@ export function FileUpload({
               >
                 {isDragOver && !disabled ? 'Release to upload' : 'Drop or click to upload'}
               </p>
-              {compact && <p className="text-xs text-muted-foreground">PDF, DOC, TXT, MD • Max {maxSize}MB</p>}
+              {compact && (
+                <p className="text-xs text-muted-foreground">
+                  {acceptLabel} • Max {maxSize}MB
+                </p>
+              )}
               {!compact && (
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Supports: PDF, DOC, DOCX, TXT, MD, RTF, HTML</p>
+                  <p className="text-xs text-muted-foreground">Supports: {acceptLabel}</p>
                   <p className="text-xs text-muted-foreground font-medium">Maximum {maxSize}MB per file</p>
                 </div>
               )}
