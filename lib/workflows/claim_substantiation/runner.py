@@ -30,11 +30,9 @@ async def run_claim_substantiator(
     This is the single, authoritative entry point for claim substantiation.
     """
     app = build_claim_substantiator_graph(use_toulmin=use_toulmin)
-    
-    # Start with existing state if provided (for re-evaluation), otherwise create new state
+
     if existing_state is not None:
         state: ClaimSubstantiatorState = existing_state.copy()
-        # Update file and supporting_files in case they changed
         state["file"] = file
         if supporting_files is not None:
             state["supporting_files"] = supporting_files
@@ -43,7 +41,6 @@ async def run_claim_substantiator(
         if supporting_files is not None:
             state["supporting_files"] = supporting_files
     
-    # Add selective processing parameters
     if target_chunk_indices is not None:
         state["target_chunk_indices"] = target_chunk_indices
     if agents_to_run is not None:
@@ -130,15 +127,12 @@ async def reevaluate_single_chunk(
     """
     logger.info(f"Re-evaluating chunk {chunk_index} with agents {agents_to_run}")
     
-    # Validate chunk index
     chunks = original_result.get("chunks", [])
     if chunk_index >= len(chunks):
         raise ValueError(f"Chunk index {chunk_index} out of range (max: {len(chunks)-1})")
-    
-    # Reconstruct state from the original result dictionary
+
     existing_state = _reconstruct_state_from_result_dict(original_result)
-    
-    # Use the unified LangGraph workflow for selective processing
+
     updated_state = await run_claim_substantiator(
         file=existing_state["file"],
         supporting_files=existing_state.get("supporting_files"),
@@ -147,11 +141,9 @@ async def reevaluate_single_chunk(
         agents_to_run=agents_to_run,
         existing_state=existing_state
     )
-    
-    # Extract results for the specific chunk and convert to DocumentChunk format
+
     chunk_content = chunks[chunk_index]
-    
-    # Get results for this specific chunk
+
     claims = (updated_state.get("claims_by_chunk", [])[chunk_index] 
              if chunk_index < len(updated_state.get("claims_by_chunk", [])) else None)
     citations = (updated_state.get("citations_by_chunk", [])[chunk_index]

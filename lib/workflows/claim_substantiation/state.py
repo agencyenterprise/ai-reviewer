@@ -33,11 +33,9 @@ class ClaimSubstantiatorState(TypedDict, total=False):
     file: FileDocument
     supporting_files: List[FileDocument]
 
-    # Selective processing controls (new)
-    target_chunk_indices: Optional[List[int]]  # If None, process all chunks
-    agents_to_run: Optional[List[str]]         # If None, run all agents
+    target_chunk_indices: Optional[List[int]]
+    agents_to_run: Optional[List[str]]
 
-    # Outputs
     chunks: List[str]
     references: List[BibliographyItem]
     claims_by_chunk: List[ClaimResponse | ToulminClaimResponse]

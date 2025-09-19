@@ -46,7 +46,6 @@ class CitationResponse(BaseModel):
     )
 
 
-# Create the prompt template and explicitly set input_variables  
 _citation_detector_prompt = ChatPromptTemplate.from_template(
     """
 ## Task
@@ -79,7 +78,7 @@ The indexes in this list should be used when returning index_of_associated_bibli
 ```
 """
 )
-# Explicitly set the input variables to ensure they're recognized
+
 _citation_detector_prompt.input_variables = ["full_document", "bibliography", "chunk"]
 
 citation_detector_agent = Agent(

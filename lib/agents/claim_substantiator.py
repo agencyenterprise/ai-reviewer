@@ -39,8 +39,6 @@ class ClaimSubstantiationResultWithClaimIndex(ClaimSubstantiationResult):
     chunk_index: int
     claim_index: int
 
-
-# Create the prompt template and explicitly set input_variables
 _claim_substantiator_prompt = ChatPromptTemplate.from_template(
     """
 # Task
@@ -74,7 +72,7 @@ You MUST include the "severity" field in your output using one of the numeric va
 {cited_references}
 """
 )
-# Explicitly set the input variables to ensure they're recognized
+
 _claim_substantiator_prompt.input_variables = ["full_document", "chunk", "claim", "cited_references"]
 
 claim_substantiator_agent = Agent(
