@@ -9,6 +9,8 @@ interface ChunkReevaluateControlProps {
   chunkIndex: number;
   originalState: ClaimSubstantiatorState;
   onReevaluation: (response: ChunkReevaluationResponse) => void;
+  supportedAgents: SupportedAgentsResponse | null;
+  supportedAgentsError: string | null;
 }
 
 interface AgentCheckboxProps {
@@ -37,27 +39,29 @@ function AgentCheckbox({ agentId, agentDescription, checked, onChange, disabled 
   );
 }
 
-export function ChunkReevaluateControl({ chunkIndex, originalState, onReevaluation }: ChunkReevaluateControlProps) {
-  const [supportedAgents, setSupportedAgents] = React.useState<SupportedAgentsResponse | null>(null);
+export function ChunkReevaluateControl({
+  chunkIndex,
+  originalState,
+  onReevaluation,
+  supportedAgents,
+  supportedAgentsError,
+}: ChunkReevaluateControlProps) {
   const [selectedAgents, setSelectedAgents] = React.useState<Set<string>>(new Set());
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [isReevaluating, setIsReevaluating] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    const loadSupportedAgents = async () => {
-      try {
-        const agents = await chunkAnalysisService.getSupportedAgents();
-        setSupportedAgents(agents);
-        setSelectedAgents(new Set(agents.supported_agents));
-      } catch (error) {
-        console.error('Failed to load supported agents:', error);
-        setError('Failed to load available agents');
-      }
-    };
+    if (supportedAgents && selectedAgents.size === 0) {
+      setSelectedAgents(new Set(supportedAgents.supported_agents));
+    }
+  }, [supportedAgents, selectedAgents.size]);
 
-    loadSupportedAgents();
-  }, []);
+  React.useEffect(() => {
+    if (supportedAgentsError) {
+      setError(supportedAgentsError);
+    }
+  }, [supportedAgentsError]);
 
   const handleAgentToggle = (agentId: string, checked: boolean) => {
     const newSelected = new Set(selectedAgents);
@@ -105,6 +109,10 @@ export function ChunkReevaluateControl({ chunkIndex, originalState, onReevaluati
   const handleDeselectAll = () => {
     setSelectedAgents(new Set());
   };
+
+  if (supportedAgentsError) {
+    return <div className="text-sm text-red-500">Error: {supportedAgentsError}</div>;
+  }
 
   if (!supportedAgents) {
     return <div className="text-sm text-gray-500">Loading re-evaluation options...</div>;

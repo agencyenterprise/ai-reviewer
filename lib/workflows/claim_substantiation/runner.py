@@ -93,6 +93,22 @@ def _reconstruct_supporting_files(supporting_files_data: List) -> List[FileDocum
     return supporting_files
 
 
+def _reconstruct_bibliography_item(ref_data):
+    """Helper to safely reconstruct BibliographyItem with defaults for missing fields."""
+    from lib.agents.reference_extractor import BibliographyItem
+    
+    if isinstance(ref_data, BibliographyItem):
+        return ref_data
+    
+    ref_dict = ref_data if isinstance(ref_data, dict) else {}
+    return BibliographyItem(
+        text=ref_dict.get("text", ""),
+        has_associated_supporting_document=ref_dict.get("has_associated_supporting_document", False),
+        index_of_associated_supporting_document=ref_dict.get("index_of_associated_supporting_document", -1),
+        name_of_associated_supporting_document=ref_dict.get("name_of_associated_supporting_document", "")
+    )
+
+
 def _reconstruct_state_from_result_dict(original_result: dict) -> ClaimSubstantiatorState:
     """Helper to convert API result dictionary back to ClaimSubstantiatorState."""
     from lib.agents.claim_detector import ClaimResponse
@@ -104,7 +120,7 @@ def _reconstruct_state_from_result_dict(original_result: dict) -> ClaimSubstanti
         "file": _reconstruct_file_document(original_result.get("file", {})),
         "supporting_files": _reconstruct_supporting_files(original_result.get("supportingFiles", [])),
         "chunks": original_result.get("chunks", []),
-        "references": [BibliographyItem(**ref) if isinstance(ref, dict) else ref 
+        "references": [_reconstruct_bibliography_item(ref) 
                       for ref in original_result.get("references", [])],
         "claims_by_chunk": original_result.get("claimsByChunk", []),
         "citations_by_chunk": original_result.get("citationsByChunk", []),

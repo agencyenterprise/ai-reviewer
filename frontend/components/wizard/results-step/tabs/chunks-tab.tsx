@@ -8,6 +8,7 @@ import { ClaimSubstantiatorState, ChunkReevaluationResponse } from '@/lib/genera
 import { useWizard } from '../../wizard-context';
 import { SeverityBadge } from '../components/severity-badge';
 import { Badge } from '@/components/ui/badge';
+import { chunkAnalysisService, SupportedAgentsResponse } from '@/lib/analysis-service';
 
 interface ChunksTabProps {
   results: ClaimSubstantiatorState;
@@ -15,6 +16,22 @@ interface ChunksTabProps {
 
 export function ChunksTab({ results }: ChunksTabProps) {
   const { actions } = useWizard();
+  const [supportedAgents, setSupportedAgents] = React.useState<SupportedAgentsResponse | null>(null);
+  const [supportedAgentsError, setSupportedAgentsError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const loadSupportedAgents = async () => {
+      try {
+        const agents = await chunkAnalysisService.getSupportedAgents();
+        setSupportedAgents(agents);
+      } catch (error) {
+        console.error('Failed to load supported agents:', error);
+        setSupportedAgentsError('Failed to load available agents');
+      }
+    };
+
+    loadSupportedAgents();
+  }, []);
 
   const handleChunkReevaluation = (response: ChunkReevaluationResponse) => {
     actions.updateChunkResults(response);
@@ -249,6 +266,8 @@ export function ChunksTab({ results }: ChunksTabProps) {
                   chunkIndex={chunkIndex}
                   originalState={results}
                   onReevaluation={handleChunkReevaluation}
+                  supportedAgents={supportedAgents}
+                  supportedAgentsError={supportedAgentsError}
                 />
               </div>
             </div>
