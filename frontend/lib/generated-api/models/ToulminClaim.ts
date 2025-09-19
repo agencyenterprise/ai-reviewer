@@ -38,7 +38,7 @@ export interface ToulminClaim {
    */
   rationale: string;
   /**
-   * Whether this claim should be substantiated with citations in academic writing
+   * Whether this claim should be substantiated with citations in academic writing. The claim doesn't need to be substantiated if it is common knowledge (facts any reasonably educated reader in the field already knows. Example: “The Earth orbits the Sun.”), or widely agreed background (well-established definitions or terms that don’t belong to a single author. Example: “photosynthesis is the process by which plants convert light energy into chemical energy.”), or the author's own reasoning (logical steps the author drew from cited material, so long as he's not smuggling in someone else’s argument without attribution.) then this can be False.
    * @type {boolean}
    * @memberof ToulminClaim
    */

@@ -13,27 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
-import type { CitationResponse } from './CitationResponse';
+import type { DocumentChunk } from './DocumentChunk';
 import {
-  CitationResponseFromJSON,
-  CitationResponseFromJSONTyped,
-  CitationResponseToJSON,
-  CitationResponseToJSONTyped,
-} from './CitationResponse';
-import type { ClaimSubstantiationChunk } from './ClaimSubstantiationChunk';
-import {
-  ClaimSubstantiationChunkFromJSON,
-  ClaimSubstantiationChunkFromJSONTyped,
-  ClaimSubstantiationChunkToJSON,
-  ClaimSubstantiationChunkToJSONTyped,
-} from './ClaimSubstantiationChunk';
-import type { ClaimsByChunk } from './ClaimsByChunk';
-import {
-  ClaimsByChunkFromJSON,
-  ClaimsByChunkFromJSONTyped,
-  ClaimsByChunkToJSON,
-  ClaimsByChunkToJSONTyped,
-} from './ClaimsByChunk';
+  DocumentChunkFromJSON,
+  DocumentChunkFromJSONTyped,
+  DocumentChunkToJSON,
+  DocumentChunkToJSONTyped,
+} from './DocumentChunk';
 
 /**
  * Response model for chunk re-evaluation results
@@ -42,35 +28,11 @@ import {
  */
 export interface ChunkReevaluationResponse {
   /**
-   * The index of the re-evaluated chunk
-   * @type {number}
+   * The re-evaluated chunk
+   * @type {DocumentChunk}
    * @memberof ChunkReevaluationResponse
    */
-  chunkIndex: number;
-  /**
-   * The content of the re-evaluated chunk
-   * @type {string}
-   * @memberof ChunkReevaluationResponse
-   */
-  chunkContent: string;
-  /**
-   *
-   * @type {ClaimsByChunk}
-   * @memberof ChunkReevaluationResponse
-   */
-  claimsByChunk?: ClaimsByChunk | null;
-  /**
-   *
-   * @type {CitationResponse}
-   * @memberof ChunkReevaluationResponse
-   */
-  citationsByChunk?: CitationResponse | null;
-  /**
-   *
-   * @type {ClaimSubstantiationChunk}
-   * @memberof ChunkReevaluationResponse
-   */
-  claimSubstantiationsByChunk?: ClaimSubstantiationChunk | null;
+  chunk: DocumentChunk;
   /**
    * List of agents that were successfully run on the chunk
    * @type {Array<string>}
@@ -89,8 +51,7 @@ export interface ChunkReevaluationResponse {
  * Check if a given object implements the ChunkReevaluationResponse interface.
  */
 export function instanceOfChunkReevaluationResponse(value: object): value is ChunkReevaluationResponse {
-  if (!('chunkIndex' in value) || value['chunkIndex'] === undefined) return false;
-  if (!('chunkContent' in value) || value['chunkContent'] === undefined) return false;
+  if (!('chunk' in value) || value['chunk'] === undefined) return false;
   if (!('agentsRun' in value) || value['agentsRun'] === undefined) return false;
   return true;
 }
@@ -107,15 +68,7 @@ export function ChunkReevaluationResponseFromJSONTyped(
     return json;
   }
   return {
-    chunkIndex: json['chunk_index'],
-    chunkContent: json['chunk_content'],
-    claimsByChunk: json['claims_by_chunk'] == null ? undefined : ClaimsByChunkFromJSON(json['claims_by_chunk']),
-    citationsByChunk:
-      json['citations_by_chunk'] == null ? undefined : CitationResponseFromJSON(json['citations_by_chunk']),
-    claimSubstantiationsByChunk:
-      json['claim_substantiations_by_chunk'] == null
-        ? undefined
-        : ClaimSubstantiationChunkFromJSON(json['claim_substantiations_by_chunk']),
+    chunk: DocumentChunkFromJSON(json['chunk']),
     agentsRun: json['agents_run'],
     processingTimeMs: json['processing_time_ms'] == null ? undefined : json['processing_time_ms'],
   };
@@ -134,11 +87,7 @@ export function ChunkReevaluationResponseToJSONTyped(
   }
 
   return {
-    chunk_index: value['chunkIndex'],
-    chunk_content: value['chunkContent'],
-    claims_by_chunk: ClaimsByChunkToJSON(value['claimsByChunk']),
-    citations_by_chunk: CitationResponseToJSON(value['citationsByChunk']),
-    claim_substantiations_by_chunk: ClaimSubstantiationChunkToJSON(value['claimSubstantiationsByChunk']),
+    chunk: DocumentChunkToJSON(value['chunk']),
     agents_run: value['agentsRun'],
     processing_time_ms: value['processingTimeMs'],
   };

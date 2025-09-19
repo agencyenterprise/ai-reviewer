@@ -9,11 +9,10 @@ models/CitationResponse.ts
 models/CitationType.ts
 models/Claim.ts
 models/ClaimResponse.ts
-models/ClaimSubstantiationChunk.ts
 models/ClaimSubstantiationResultWithClaimIndex.ts
 models/ClaimSubstantiatorState.ts
-models/ClaimSubstantiatorStateClaimsByChunkInner.ts
-models/ClaimsByChunk.ts
+models/Claims.ts
+models/DocumentChunk.ts
 models/FileDocument.ts
 models/HTTPValidationError.ts
 models/Severity.ts

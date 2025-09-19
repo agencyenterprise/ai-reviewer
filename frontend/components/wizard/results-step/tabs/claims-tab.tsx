@@ -9,9 +9,9 @@ interface ClaimsTabProps {
 }
 
 export function ClaimsTab({ results }: ClaimsTabProps) {
-  const claimsWithSubstantiation = results.claimsByChunk?.map((chunk, chunkIndex) => ({
+  const claimsWithSubstantiation = results.chunks?.map((chunk) => ({
     ...chunk,
-    substantiations: results.claimSubstantiationsByChunk?.[chunkIndex]?.substantiations || [],
+    substantiations: chunk.substantiations || [],
   }));
 
   return (
@@ -20,9 +20,9 @@ export function ClaimsTab({ results }: ClaimsTabProps) {
       <div className="space-y-4">
         {claimsWithSubstantiation?.map(
           (chunk, chunkIndex) =>
-            chunk.claims.length > 0 && (
+            (chunk.claims?.claims?.length || 0) > 0 && (
               <ChunkDisplay key={chunkIndex} chunkIndex={chunkIndex}>
-                {chunk.claims.map((claim, claimIndex) => (
+                {chunk.claims?.claims?.map((claim, claimIndex) => (
                   <ChunkItem key={claimIndex}>
                     <p className="text-sm mb-2">
                       <strong>Claim:</strong> {claim.claim}

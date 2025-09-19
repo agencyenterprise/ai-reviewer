@@ -2,8 +2,8 @@ import {
   Citation,
   Claim,
   ClaimSubstantiationResultWithClaimIndex,
-  ClaimSubstantiatorState,
   BibliographyItem,
+  DocumentChunk,
 } from '@/lib/generated-api';
 
 export enum ClaimCategory {
@@ -79,14 +79,10 @@ const chunkClassificationPriorityOrder: ClaimCategory[] = [
   ClaimCategory.NO_CITATION_NEEDED,
 ];
 
-export function classifyChunk(
-  results: ClaimSubstantiatorState,
-  chunkIndex: number,
-  references: BibliographyItem[],
-): ClaimCategory {
-  const claims = results.claimsByChunk?.[chunkIndex]?.claims || [];
-  const citations = results.citationsByChunk?.[chunkIndex]?.citations || [];
-  const substantiations = results.claimSubstantiationsByChunk?.[chunkIndex]?.substantiations || [];
+export function classifyChunk(chunk: DocumentChunk, references: BibliographyItem[]): ClaimCategory {
+  const claims = chunk.claims?.claims || [];
+  const citations = chunk.citations?.citations || [];
+  const substantiations = chunk.substantiations || [];
 
   if (claims.length === 0) {
     return ClaimCategory.NO_CITATION_NEEDED;

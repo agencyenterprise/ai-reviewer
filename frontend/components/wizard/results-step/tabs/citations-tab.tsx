@@ -13,11 +13,11 @@ export function CitationsTab({ results }: CitationsTabProps) {
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Citations Analysis</h3>
       <div className="space-y-4">
-        {results.citationsByChunk?.map(
-          (chunk, chunkIndex) =>
-            chunk.citations.length > 0 && (
-              <ChunkDisplay key={chunkIndex} chunkIndex={chunkIndex}>
-                {chunk.citations.map((citation, citationIndex) => (
+        {results.chunks?.map(
+          (chunk) =>
+            (chunk.citations?.citations?.length || 0) > 0 && (
+              <ChunkDisplay key={chunk.chunkIndex} chunkIndex={chunk.chunkIndex}>
+                {chunk.citations?.citations?.map((citation, citationIndex) => (
                   <ChunkItem key={citationIndex}>
                     <p className="text-sm mb-2">
                       <strong>Citation:</strong> {citation.text}

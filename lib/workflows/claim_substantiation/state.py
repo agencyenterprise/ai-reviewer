@@ -11,9 +11,10 @@ from lib.services.file import FileDocument
 
 class DocumentChunk(BaseModel):
     """Independent chunk response object with all processing results"""
+
     content: str
     chunk_index: int
-    
+
     claims: Optional[ClaimResponse | ToulminClaimResponse] = None
     citations: Optional[CitationResponse] = None
     substantiations: List[ClaimSubstantiationResultWithClaimIndex] = []
@@ -30,27 +31,26 @@ class ClaimSubstantiationChunk(BaseModel):
 
 
 class ClaimSubstantiatorState(TypedDict, total=False):
+    # Inputs
     file: FileDocument
     supporting_files: List[FileDocument]
-
     target_chunk_indices: Optional[List[int]]
     agents_to_run: Optional[List[str]]
 
-    chunks: List[str]
+    # Outputs
     references: List[BibliographyItem]
-    claims_by_chunk: List[ClaimResponse | ToulminClaimResponse]
-    citations_by_chunk: List[CitationResponse]
-    claim_substantiations_by_chunk: List[ClaimSubstantiationChunk]
+    chunks: List[DocumentChunk]
 
 
 class ChunkReevaluationRequest(BaseModel):
     """Request model for re-evaluating a specific chunk"""
+
     chunk_index: int = Field(
         ge=0, description="Zero-based index of the chunk to re-evaluate"
     )
     agents_to_run: List[str] = Field(
         description="List of agent types to run on the chunk",
-        example=["claims", "citations"]
+        example=["claims", "citations"],
     )
     original_state: Dict[str, Any] = Field(
         description="The original workflow state containing the document and chunks"
@@ -59,18 +59,9 @@ class ChunkReevaluationRequest(BaseModel):
 
 class ChunkReevaluationResponse(BaseModel):
     """Response model for chunk re-evaluation results"""
-    chunk_index: int = Field(description="The index of the re-evaluated chunk")
-    chunk_content: str = Field(description="The content of the re-evaluated chunk")
-    claims_by_chunk: Optional[ClaimResponse | ToulminClaimResponse] = Field(
-        description="Updated claims for this chunk", default=None
-    )
-    citations_by_chunk: Optional[CitationResponse] = Field(
-        description="Updated citations for this chunk", default=None
-    )
-    claim_substantiations_by_chunk: Optional[ClaimSubstantiationChunk] = Field(
-        description="Updated claim substantiations for this chunk", default=None
-    )
-    
+
+    chunk: DocumentChunk = Field(description="The re-evaluated chunk")
+
     agents_run: List[str] = Field(
         description="List of agents that were successfully run on the chunk"
     )

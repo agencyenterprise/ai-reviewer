@@ -148,5 +148,7 @@ RECEIVED JSON (selected fields):
         llm_eval = await self._compare_llm()
         return EvaluationResult(
             passed=strict_eval.passed and llm_eval.passed,
-            rationale="\n".join([strict_eval.rationale, llm_eval.rationale]),
+            rationale="\n".join(
+                [eval.rationale for eval in [strict_eval, llm_eval] if eval.passed]
+            ),
         )
