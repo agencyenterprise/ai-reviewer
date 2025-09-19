@@ -79,8 +79,6 @@ The indexes in this list should be used when returning index_of_associated_bibli
 """
 )
 
-_citation_detector_prompt.input_variables = ["full_document", "bibliography", "chunk"]
-
 citation_detector_agent = Agent(
     name="Citation Detector",
     description="Detect citations in a chunk of text",

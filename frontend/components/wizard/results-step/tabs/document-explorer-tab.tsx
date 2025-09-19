@@ -13,7 +13,7 @@ import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
 import { ClaimCategoryLabel } from '../components/claim-category-label';
 import { SeverityBadge } from '../components/severity-badge';
 import { useWizard } from '../../wizard-context';
-import { chunkAnalysisService, SupportedAgentsResponse } from '@/lib/analysis-service';
+import { useSupportedAgents } from '../hooks/use-supported-agents';
 
 interface DocumentExplorerTabProps {
   results: ClaimSubstantiatorState;
@@ -21,22 +21,7 @@ interface DocumentExplorerTabProps {
 
 export function DocumentExplorerTab({ results }: DocumentExplorerTabProps) {
   const { actions } = useWizard();
-  const [supportedAgents, setSupportedAgents] = React.useState<SupportedAgentsResponse | null>(null);
-  const [supportedAgentsError, setSupportedAgentsError] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    const loadSupportedAgents = async () => {
-      try {
-        const agents = await chunkAnalysisService.getSupportedAgents();
-        setSupportedAgents(agents);
-      } catch (error) {
-        console.error('Failed to load supported agents:', error);
-        setSupportedAgentsError('Failed to load available agents');
-      }
-    };
-
-    loadSupportedAgents();
-  }, []);
+  const { supportedAgents, supportedAgentsError } = useSupportedAgents();
 
   const handleChunkReevaluation = (response: ChunkReevaluationResponse) => {
     actions.updateChunkResults(response);
@@ -62,8 +47,8 @@ export interface DocumentExplorerChunkProps {
   results: ClaimSubstantiatorState;
   chunkIndex: number;
   onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
-  supportedAgents: SupportedAgentsResponse | null;
-  supportedAgentsError: string | null;
+  supportedAgents: ReturnType<typeof useSupportedAgents>['supportedAgents'];
+  supportedAgentsError: ReturnType<typeof useSupportedAgents>['supportedAgentsError'];
 }
 
 export function DocumentExplorerChunk({

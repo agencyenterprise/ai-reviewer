@@ -13,6 +13,11 @@ interface AnalysisRequest {
   supportingDocuments?: File[];
 }
 
+export interface SupportedAgentsResponse {
+  supported_agents: string[];
+  agent_descriptions: Record<string, string>;
+}
+
 class AnalysisService {
   private readonly apiUrl: string;
   private readonly api: DefaultApi;
@@ -57,26 +62,6 @@ class AnalysisService {
       return this.createErrorResult(error);
     }
   }
-}
-
-export const analysisService = new AnalysisService();
-
-export interface SupportedAgentsResponse {
-  supported_agents: string[];
-  agent_descriptions: Record<string, string>;
-}
-
-export class ChunkAnalysisService {
-  private readonly api: DefaultApi;
-
-  constructor() {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    this.api = new DefaultApi(
-      new Configuration({
-        basePath: baseUrl,
-      }),
-    );
-  }
 
   async getSupportedAgents(): Promise<SupportedAgentsResponse> {
     try {
@@ -99,7 +84,7 @@ export class ChunkAnalysisService {
   }
 }
 
-export const chunkAnalysisService = new ChunkAnalysisService();
+export const analysisService = new AnalysisService();
 
 export { AnalysisService };
 export type { AnalysisRequest };

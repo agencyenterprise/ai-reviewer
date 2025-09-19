@@ -73,8 +73,6 @@ You MUST include the "severity" field in your output using one of the numeric va
 """
 )
 
-_claim_substantiator_prompt.input_variables = ["full_document", "chunk", "claim", "cited_references"]
-
 claim_substantiator_agent = Agent(
     name="Claim Substantiator",
     description="Substantiate a claim based on a supporting document",

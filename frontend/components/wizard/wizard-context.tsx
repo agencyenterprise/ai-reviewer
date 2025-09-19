@@ -39,6 +39,7 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
         const newResults = { ...prev.analysisResults.fullResults };
         const { chunkIndex, claimsByChunk, citationsByChunk, claimSubstantiationsByChunk } = response;
 
+        // TODO: When refactoring the @_by_chunk fields in the ClaimSubstantiatorState from the backend, we need to update this code.
         if (claimsByChunk) newResults.claimsByChunk![chunkIndex] = claimsByChunk;
         if (citationsByChunk) newResults.citationsByChunk![chunkIndex] = citationsByChunk;
         if (claimSubstantiationsByChunk)

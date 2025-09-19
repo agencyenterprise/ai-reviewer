@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
-import { chunkAnalysisService, SupportedAgentsResponse } from '@/lib/analysis-service';
+import { analysisService, SupportedAgentsResponse } from '@/lib/analysis-service';
 import { ClaimSubstantiatorState, ChunkReevaluationRequest, ChunkReevaluationResponse } from '@/lib/generated-api';
 
 interface ChunkReevaluateControlProps {
@@ -89,7 +89,7 @@ export function ChunkReevaluateControl({
         originalState: originalState,
       };
 
-      const result = await chunkAnalysisService.reevaluateChunk(request);
+      const result = await analysisService.reevaluateChunk(request);
       onReevaluation(result);
       setIsExpanded(false);
     } catch (error) {
