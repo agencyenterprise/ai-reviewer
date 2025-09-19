@@ -123,7 +123,7 @@ export class DefaultApi extends runtime.BaseAPI {
   }
 
   /**
-   * Re-evaluate a specific chunk with selected agents.  Args:     request: Contains chunk index, agents to run, and original state  Returns:     Updated results for the specified chunk
+   * Re-evaluate a specific chunk with selected agents using unified LangGraph workflow.  Args:     request: Contains chunk index, agents to run, and original state  Returns:     Updated results for the specified chunk
    * Reevaluate Chunk
    */
   async reevaluateChunkApiReevaluateChunkPostRaw(
@@ -160,7 +160,7 @@ export class DefaultApi extends runtime.BaseAPI {
   }
 
   /**
-   * Re-evaluate a specific chunk with selected agents.  Args:     request: Contains chunk index, agents to run, and original state  Returns:     Updated results for the specified chunk
+   * Re-evaluate a specific chunk with selected agents using unified LangGraph workflow.  Args:     request: Contains chunk index, agents to run, and original state  Returns:     Updated results for the specified chunk
    * Reevaluate Chunk
    */
   async reevaluateChunkApiReevaluateChunkPost(

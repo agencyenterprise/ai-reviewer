@@ -69,6 +69,18 @@ export interface ClaimSubstantiatorState {
   supportingFiles?: Array<FileDocument>;
   /**
    *
+   * @type {Array<number>}
+   * @memberof ClaimSubstantiatorState
+   */
+  targetChunkIndices?: Array<number> | null;
+  /**
+   *
+   * @type {Array<string>}
+   * @memberof ClaimSubstantiatorState
+   */
+  agentsToRun?: Array<string> | null;
+  /**
+   *
    * @type {Array<string>}
    * @memberof ClaimSubstantiatorState
    */
@@ -118,6 +130,8 @@ export function ClaimSubstantiatorStateFromJSONTyped(json: any, ignoreDiscrimina
     file: json['file'] == null ? undefined : FileDocumentFromJSON(json['file']),
     supportingFiles:
       json['supporting_files'] == null ? undefined : (json['supporting_files'] as Array<any>).map(FileDocumentFromJSON),
+    targetChunkIndices: json['target_chunk_indices'] == null ? undefined : json['target_chunk_indices'],
+    agentsToRun: json['agents_to_run'] == null ? undefined : json['agents_to_run'],
     chunks: json['chunks'] == null ? undefined : json['chunks'],
     references:
       json['references'] == null ? undefined : (json['references'] as Array<any>).map(BibliographyItemFromJSON),
@@ -152,6 +166,8 @@ export function ClaimSubstantiatorStateToJSONTyped(
     file: FileDocumentToJSON(value['file']),
     supporting_files:
       value['supportingFiles'] == null ? undefined : (value['supportingFiles'] as Array<any>).map(FileDocumentToJSON),
+    target_chunk_indices: value['targetChunkIndices'],
+    agents_to_run: value['agentsToRun'],
     chunks: value['chunks'],
     references:
       value['references'] == null ? undefined : (value['references'] as Array<any>).map(BibliographyItemToJSON),

@@ -32,34 +32,21 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
     setAnalysisResults: (results) => {
       setState((prev) => ({ ...prev, analysisResults: results }));
     },
-    updateChunkResults: (chunkIndex: number, updatedResults: Record<string, unknown>) => {
+    updateChunkResults: (response) => {
       setState((prev) => {
         if (!prev.analysisResults?.fullResults) return prev;
 
         const newResults = { ...prev.analysisResults.fullResults };
+        const { chunkIndex, claimsByChunk, citationsByChunk, claimSubstantiationsByChunk } = response;
 
-        // Update claims if provided
-        if (updatedResults.claims && newResults.claimsByChunk) {
-          newResults.claimsByChunk[chunkIndex] = updatedResults.claims as (typeof newResults.claimsByChunk)[0];
-        }
-
-        // Update citations if provided
-        if (updatedResults.citations && newResults.citationsByChunk) {
-          newResults.citationsByChunk[chunkIndex] = updatedResults.citations as (typeof newResults.citationsByChunk)[0];
-        }
-
-        // Update substantiations if provided
-        if (updatedResults.substantiation && newResults.claimSubstantiationsByChunk) {
-          newResults.claimSubstantiationsByChunk[chunkIndex] =
-            updatedResults.substantiation as (typeof newResults.claimSubstantiationsByChunk)[0];
-        }
+        if (claimsByChunk) newResults.claimsByChunk![chunkIndex] = claimsByChunk;
+        if (citationsByChunk) newResults.citationsByChunk![chunkIndex] = citationsByChunk;
+        if (claimSubstantiationsByChunk)
+          newResults.claimSubstantiationsByChunk![chunkIndex] = claimSubstantiationsByChunk;
 
         return {
           ...prev,
-          analysisResults: {
-            ...prev.analysisResults,
-            fullResults: newResults,
-          },
+          analysisResults: { ...prev.analysisResults, fullResults: newResults },
         };
       });
     },

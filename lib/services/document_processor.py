@@ -87,32 +87,10 @@ class DocumentProcessor:
                     filtered_kwargs[key] = value
         return await agent.apply(filtered_kwargs)
 
-    async def apply_agent_to_all_chunks(
-        self, agent: Agent, prompt_kwargs: dict | None = None
-    ):
-        tasks = []
-        chunks = await self.get_chunks()
-        for chunk in chunks:
-            tasks.append(self.apply_agent_to_chunk(agent, chunk, prompt_kwargs))
-
-        chunk_results = await run_tasks(
-            tasks, desc=f"Processing chunks with {agent.name}"
-        )
-        return chunk_results
-
-    async def apply_agents_to_all_chunks(
-        self, agents: list[list[Agent]], prompt_kwargs: dict | None = None
-    ):
-        tasks = []
-        for agent in agents:
-            tasks.append(self.apply_agent_to_all_chunks(agent, prompt_kwargs))
-        return await run_tasks(
-            tasks,
-            desc=f"Processing chunks with {' & '.join([agent.name for agent in agents])}",
-        )
 
 
 if __name__ == "__main__":
+    # For testing basic DocumentProcessor functionality
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "file_path",
@@ -121,21 +99,17 @@ if __name__ == "__main__":
         default="/Users/omid/codes/rand-ai-reviewer/data/example_public_files/RAND_CFA4214-1-main.docx",
     )
     args = parser.parse_args()
-    file = File(file_path=args.file_path)
-    processor = DocumentProcessor(file)
+    from lib.services.file import create_file_document_from_path
+    import asyncio
+    
+    async def main():
+        file = await create_file_document_from_path(args.file_path)
+        processor = DocumentProcessor(file)
+        
+        # Test basic chunking functionality
+        chunks = await processor.get_chunks()
+        print(f"Document split into {len(chunks)} chunks")
+        for i, chunk in enumerate(chunks[:3]):  # Show first 3 chunks
+            print(f"\nChunk {i}: {chunk.page_content[:100]}...")
 
-    from lib.agents.claim_detector import claim_detector_agent
-    from lib.agents.citation_detector import citation_detector_agent
-    from lib.agents.reference_extractor import reference_extractor_agent
-    from lib.agents.reference_matcher import reference_matcher_agent
-
-    results = asyncio.run(
-        processor.apply_agents_to_all_chunks(
-            [
-                claim_detector_agent,
-                citation_detector_agent,
-            ]
-        )
-    )
-
-    print(results)
+    asyncio.run(main())

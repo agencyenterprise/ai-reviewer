@@ -12,6 +12,7 @@ export * from './ClaimSubstantiationChunk';
 export * from './ClaimSubstantiationResultWithClaimIndex';
 export * from './ClaimSubstantiatorState';
 export * from './ClaimSubstantiatorStateClaimsByChunkInner';
+export * from './ClaimsByChunk';
 export * from './FileDocument';
 export * from './HTTPValidationError';
 export * from './Severity';

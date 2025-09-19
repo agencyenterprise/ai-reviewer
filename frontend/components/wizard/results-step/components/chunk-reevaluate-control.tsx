@@ -3,12 +3,12 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { chunkAnalysisService, SupportedAgentsResponse } from '@/lib/analysis-service';
-import { ClaimSubstantiatorState, ChunkReevaluationRequest } from '@/lib/generated-api';
+import { ClaimSubstantiatorState, ChunkReevaluationRequest, ChunkReevaluationResponse } from '@/lib/generated-api';
 
 interface ChunkReevaluateControlProps {
   chunkIndex: number;
   originalState: ClaimSubstantiatorState;
-  onReevaluation: (chunkIndex: number, updatedResults: Record<string, unknown>) => void;
+  onReevaluation: (response: ChunkReevaluationResponse) => void;
 }
 
 interface AgentCheckboxProps {
@@ -86,7 +86,7 @@ export function ChunkReevaluateControl({ chunkIndex, originalState, onReevaluati
       };
 
       const result = await chunkAnalysisService.reevaluateChunk(request);
-      onReevaluation(chunkIndex, result.updatedResults);
+      onReevaluation(result);
       setIsExpanded(false);
     } catch (error) {
       console.error('Re-evaluation failed:', error);

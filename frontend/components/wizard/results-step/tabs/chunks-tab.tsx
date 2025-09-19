@@ -4,7 +4,7 @@ import * as React from 'react';
 import { ChunkItem } from '../components/chunk-display';
 import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
 import { AlertTriangle, FileIcon, Link as LinkIcon } from 'lucide-react';
-import { ClaimSubstantiatorState } from '@/lib/generated-api';
+import { ClaimSubstantiatorState, ChunkReevaluationResponse } from '@/lib/generated-api';
 import { useWizard } from '../../wizard-context';
 import { SeverityBadge } from '../components/severity-badge';
 import { Badge } from '@/components/ui/badge';
@@ -16,8 +16,8 @@ interface ChunksTabProps {
 export function ChunksTab({ results }: ChunksTabProps) {
   const { actions } = useWizard();
 
-  const handleChunkReevaluation = (chunkIndex: number, updatedResults: Record<string, unknown>) => {
-    actions.updateChunkResults(chunkIndex, updatedResults);
+  const handleChunkReevaluation = (response: ChunkReevaluationResponse) => {
+    actions.updateChunkResults(response);
   };
   return (
     <div className="space-y-4">
@@ -245,7 +245,6 @@ export function ChunksTab({ results }: ChunksTabProps) {
                   </div>
                 )}
 
-                {/* Chunk Re-evaluation Control */}
                 <ChunkReevaluateControl
                   chunkIndex={chunkIndex}
                   originalState={results}

@@ -12,6 +12,12 @@ logger = logging.getLogger(__name__)
 async def extract_references(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
     logger.info("extract_references: extracting references")
 
+    # Skip this node if not in agents_to_run
+    agents_to_run = state.get("agents_to_run")
+    if agents_to_run and "references" not in agents_to_run:
+        logger.info("extract_references: Skipping reference extraction (not in agents_to_run)")
+        return {}
+
     markdown = state["file"].markdown
     supporting_documents = await format_supporting_documents_prompt_section_multiple(
         state.get("supporting_files", []) or [], truncate_at_character_count=1000

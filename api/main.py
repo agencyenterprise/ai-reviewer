@@ -4,11 +4,11 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from api.upload import convert_uploaded_files_to_file_document
-from lib.workflows.claim_substantiation.runner import run_claim_substantiator
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
+from lib.workflows.claim_substantiation.runner import run_claim_substantiator, reevaluate_single_chunk
+from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState, ChunkReevaluationRequest, ChunkReevaluationResponse, ClaimSubstantiationChunk
 from lib.services.file import FileDocument
 from lib.agents.reference_extractor import BibliographyItem
-from api.services.chunk_reevaluation import ChunkReevaluationService
+from lib.agents.registry import agent_registry
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,6 @@ async def run_claim_substantiation_workflow(
             [main_document] + (supporting_documents or [])
         )
 
-        # Run the workflow
         result_state = await run_claim_substantiator(
             file=main_file,
             supporting_files=supporting_files if supporting_files else None,
@@ -66,48 +65,10 @@ async def run_claim_substantiation_workflow(
             status_code=500, detail=f"Error processing workflow: {str(e)}"
         )
 
-
-# Request/Response models for chunk re-evaluation
-class AgentType(BaseModel):
-    """Enum-like model for supported agent types"""
-    CLAIMS: str = "claims"
-    CITATIONS: str = "citations"
-    SUBSTANTIATION: str = "substantiation"
-
-
-class ChunkReevaluationRequest(BaseModel):
-    """Request model for re-evaluating a specific chunk"""
-    chunk_index: int = Field(
-        ge=0, description="Zero-based index of the chunk to re-evaluate"
-    )
-    agents_to_run: List[str] = Field(
-        description="List of agent types to run on the chunk",
-        example=["claims", "citations"]
-    )
-    original_state: Dict[str, Any] = Field(
-        description="The original workflow state containing the document and chunks"
-    )
-
-
-class ChunkReevaluationResponse(BaseModel):
-    """Response model for chunk re-evaluation results"""
-    chunk_index: int = Field(description="The index of the re-evaluated chunk")
-    chunk_content: str = Field(description="The content of the re-evaluated chunk")
-    updated_results: Dict[str, Any] = Field(
-        description="Updated results for the chunk, keyed by agent type"
-    )
-    agents_run: List[str] = Field(
-        description="List of agents that were successfully run on the chunk"
-    )
-    processing_time_ms: Optional[float] = Field(
-        description="Time taken to process the chunk in milliseconds", default=None
-    )
-
-
 @app.post("/api/reevaluate-chunk", response_model=ChunkReevaluationResponse)
 async def reevaluate_chunk(request: ChunkReevaluationRequest):
     """
-    Re-evaluate a specific chunk with selected agents.
+    Re-evaluate a specific chunk with selected agents using unified LangGraph workflow.
 
     Args:
         request: Contains chunk index, agents to run, and original state
@@ -116,13 +77,28 @@ async def reevaluate_chunk(request: ChunkReevaluationRequest):
         Updated results for the specified chunk
     """
     try:
-        service = ChunkReevaluationService()
-        result = await service.reevaluate_chunk(
+        agent_registry.validate_agents(request.agents_to_run)
+        
+        import time
+        start_time = time.time()
+        
+        updated_chunk = await reevaluate_single_chunk(
+            original_result=request.original_state,
             chunk_index=request.chunk_index,
-            agents_to_run=request.agents_to_run,
-            original_state=request.original_state
+            agents_to_run=request.agents_to_run
         )
-        return result
+        
+        processing_time_ms = (time.time() - start_time) * 1000
+        
+        return ChunkReevaluationResponse(
+            chunk_index=request.chunk_index,
+            chunk_content=updated_chunk.content,
+            claims_by_chunk=updated_chunk.claims if "claims" in request.agents_to_run else None,
+            citations_by_chunk=updated_chunk.citations if "citations" in request.agents_to_run else None,
+            claim_substantiations_by_chunk=ClaimSubstantiationChunk(substantiations=updated_chunk.substantiations) if "substantiation" in request.agents_to_run and updated_chunk.substantiations else None,
+            agents_run=request.agents_to_run,
+            processing_time_ms=processing_time_ms
+        )
     
     except ValueError as e:
         logger.error(f"Invalid request for chunk re-evaluation: {str(e)}")
@@ -142,11 +118,7 @@ async def get_supported_agents():
     Returns:
         List of supported agent type strings
     """
-    service = ChunkReevaluationService()
     return {
-        "supported_agents": service.get_supported_agents(),
-        "agent_descriptions": {
-            "claims": "Detect and extract claims from text chunks",
-            "citations": "Detect and extract citations from text chunks"
-        }
+        "supported_agents": agent_registry.get_supported_types(),
+        "agent_descriptions": agent_registry.get_agent_descriptions()
     }

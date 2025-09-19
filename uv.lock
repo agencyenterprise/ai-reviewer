@@ -2150,7 +2150,7 @@ dependencies = [
 requires-dist = [
     { name = "alembic", specifier = ">=1.14.0" },
     { name = "black", specifier = ">=25.1.0" },
-    { name = "deepdiff", extras = ["optimize"], specifier = ">=5.5.0" },
+    { name = "deepdiff", extras = ["optimize"], specifier = ">=8.6.1" },
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.116.1" },
     { name = "langchain", specifier = ">=0.3.27" },

@@ -40,12 +40,9 @@ class ClaimSubstantiationResultWithClaimIndex(ClaimSubstantiationResult):
     claim_index: int
 
 
-claim_substantiator_agent = Agent(
-    name="Claim Substantiator",
-    description="Substantiate a claim based on a supporting document",
-    model="openai:gpt-5",
-    prompt=ChatPromptTemplate.from_template(
-        """
+# Create the prompt template and explicitly set input_variables
+_claim_substantiator_prompt = ChatPromptTemplate.from_template(
+    """
 # Task
 You will be given a chunk of text from a document, a claim that is inferred from that chunk of text, and one or multiple supporting documents that are cited to support the claim.
 Your task is to carefully read the supporting document(s) and determine wether the claim is supported by the supporting documents or not.
@@ -76,7 +73,15 @@ You MUST include the "severity" field in your output using one of the numeric va
 ## The list of references cited to support the claim and their associated supporting document (if any)
 {cited_references}
 """
-    ),
+)
+# Explicitly set the input variables to ensure they're recognized
+_claim_substantiator_prompt.input_variables = ["full_document", "chunk", "claim", "cited_references"]
+
+claim_substantiator_agent = Agent(
+    name="Claim Substantiator",
+    description="Substantiate a claim based on a supporting document",
+    model="openai:gpt-5",
+    prompt=_claim_substantiator_prompt,
     mandatory_tools=[],
     output_schema=ClaimSubstantiationResult,
 )

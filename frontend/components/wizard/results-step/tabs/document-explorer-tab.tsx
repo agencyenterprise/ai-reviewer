@@ -3,24 +3,37 @@
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Markdown } from '@/components/markdown';
 import { claimCategoryBaseColors, classifyChunk, classifyClaim } from '@/lib/claim-classification';
-import { ClaimSubstantiatorState } from '@/lib/generated-api';
+import { ClaimSubstantiatorState, ChunkReevaluationResponse } from '@/lib/generated-api';
 import { getMaxSeverity } from '@/lib/severity';
 import { cn } from '@/lib/utils';
 import { ChevronRight, FileIcon, Link as LinkIcon, MessageCirclePlus } from 'lucide-react';
 import * as React from 'react';
 import { ChunkItem } from '../components/chunk-display';
+import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
 import { ClaimCategoryLabel } from '../components/claim-category-label';
 import { SeverityBadge } from '../components/severity-badge';
+import { useWizard } from '../../wizard-context';
 
 interface DocumentExplorerTabProps {
   results: ClaimSubstantiatorState;
 }
 
 export function DocumentExplorerTab({ results }: DocumentExplorerTabProps) {
+  const { actions } = useWizard();
+
+  const handleChunkReevaluation = (response: ChunkReevaluationResponse) => {
+    actions.updateChunkResults(response);
+  };
+
   return (
     <div className="space-y-2">
       {results.chunks?.map((_, chunkIndex) => (
-        <DocumentExplorerChunk key={chunkIndex} results={results} chunkIndex={chunkIndex} />
+        <DocumentExplorerChunk
+          key={chunkIndex}
+          results={results}
+          chunkIndex={chunkIndex}
+          onChunkReevaluation={handleChunkReevaluation}
+        />
       ))}
     </div>
   );
@@ -29,9 +42,10 @@ export function DocumentExplorerTab({ results }: DocumentExplorerTabProps) {
 export interface DocumentExplorerChunkProps {
   results: ClaimSubstantiatorState;
   chunkIndex: number;
+  onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
 }
 
-export function DocumentExplorerChunk({ results, chunkIndex }: DocumentExplorerChunkProps) {
+export function DocumentExplorerChunk({ results, chunkIndex, onChunkReevaluation }: DocumentExplorerChunkProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   const chunk = results.chunks?.[chunkIndex];
@@ -261,6 +275,12 @@ export function DocumentExplorerChunk({ results, chunkIndex }: DocumentExplorerC
               </div>
             </div>
           )}
+
+          <ChunkReevaluateControl
+            chunkIndex={chunkIndex}
+            originalState={results}
+            onReevaluation={onChunkReevaluation}
+          />
         </div>
       )}
     </div>
