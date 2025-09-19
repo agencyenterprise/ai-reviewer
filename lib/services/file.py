@@ -2,14 +2,16 @@ import mimetypes
 import os
 from typing import List
 from markitdown import MarkItDown
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class FileDocument(BaseModel):
-    file_name: str
-    file_path: str
-    file_type: str
+    file_name: str = Field(default="untitled", alias="fileName")
+    file_path: str = Field(default="/tmp/temp", alias="filePath") 
+    file_type: str = Field(default="text/markdown", alias="fileType")
     markdown: str
+    
+    model_config = {"populate_by_name": True}
 
 
 async def create_file_document_from_path(file_path: str) -> FileDocument:

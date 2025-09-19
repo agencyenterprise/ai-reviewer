@@ -2,16 +2,25 @@
 
 import * as React from 'react';
 import { ChunkItem } from '../components/chunk-display';
+import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
 import { AlertTriangle, FileIcon, Link as LinkIcon } from 'lucide-react';
-import { ClaimSubstantiatorState } from '@/lib/generated-api';
+import { ClaimSubstantiatorState, ChunkReevaluationResponse } from '@/lib/generated-api';
+import { useWizard } from '../../wizard-context';
 import { SeverityBadge } from '../components/severity-badge';
 import { Badge } from '@/components/ui/badge';
+import { useSupportedAgents } from '../hooks/use-supported-agents';
 
 interface ChunksTabProps {
   results: ClaimSubstantiatorState;
 }
 
 export function ChunksTab({ results }: ChunksTabProps) {
+  const { actions } = useWizard();
+  const { supportedAgents, supportedAgentsError } = useSupportedAgents();
+
+  const handleChunkReevaluation = (response: ChunkReevaluationResponse) => {
+    actions.updateChunkResults(response);
+  };
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Chunks</h3>
@@ -237,6 +246,14 @@ export function ChunksTab({ results }: ChunksTabProps) {
                     </div>
                   </div>
                 )}
+
+                <ChunkReevaluateControl
+                  chunkIndex={chunkIndex}
+                  originalState={results}
+                  onReevaluation={handleChunkReevaluation}
+                  supportedAgents={supportedAgents}
+                  supportedAgentsError={supportedAgentsError}
+                />
               </div>
             </div>
           );

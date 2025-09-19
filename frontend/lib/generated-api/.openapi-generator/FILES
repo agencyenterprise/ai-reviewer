@@ -2,6 +2,8 @@ apis/DefaultApi.ts
 apis/index.ts
 index.ts
 models/BibliographyItem.ts
+models/ChunkReevaluationRequest.ts
+models/ChunkReevaluationResponse.ts
 models/Citation.ts
 models/CitationResponse.ts
 models/CitationType.ts
@@ -11,6 +13,7 @@ models/ClaimSubstantiationChunk.ts
 models/ClaimSubstantiationResultWithClaimIndex.ts
 models/ClaimSubstantiatorState.ts
 models/ClaimSubstantiatorStateClaimsByChunkInner.ts
+models/ClaimsByChunk.ts
 models/FileDocument.ts
 models/HTTPValidationError.ts
 models/Severity.ts

@@ -1,6 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export * from './BibliographyItem';
+export * from './ChunkReevaluationRequest';
+export * from './ChunkReevaluationResponse';
 export * from './Citation';
 export * from './CitationResponse';
 export * from './CitationType';
@@ -10,6 +12,7 @@ export * from './ClaimSubstantiationChunk';
 export * from './ClaimSubstantiationResultWithClaimIndex';
 export * from './ClaimSubstantiatorState';
 export * from './ClaimSubstantiatorStateClaimsByChunkInner';
+export * from './ClaimsByChunk';
 export * from './FileDocument';
 export * from './HTTPValidationError';
 export * from './Severity';

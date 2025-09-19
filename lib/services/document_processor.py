@@ -88,28 +88,103 @@ class DocumentProcessor:
         return await agent.apply(filtered_kwargs)
 
     async def apply_agent_to_all_chunks(
-        self, agent: Agent, prompt_kwargs: dict | None = None
+        self,
+        agent: Agent,
+        prompt_kwargs: dict | None = None,
+        target_chunk_indices: list[int] | None = None,
+        existing_results: list | None = None,
+        default_response_factory=None,
+        concurrency_limit: int = 3
     ):
-        tasks = []
+        """
+        Apply an agent to all chunks with support for selective processing and chunk reevaluation.
+        
+        Args:
+            agent: The agent to apply
+            prompt_kwargs: Additional prompt arguments
+            target_chunk_indices: If provided, only process these chunk indices (for reevaluation)
+            existing_results: Existing results to preserve when doing selective processing
+            default_response_factory: Factory function to create empty/default responses
+            concurrency_limit: Maximum number of concurrent chunk processing tasks
+            
+        Returns:
+            List of results for all chunks
+        """
         chunks = await self.get_chunks()
-        for chunk in chunks:
-            tasks.append(self.apply_agent_to_chunk(agent, chunk, prompt_kwargs))
+        
+        if target_chunk_indices is not None:
+            if existing_results is None:
+                existing_results = []
 
-        chunk_results = await run_tasks(
-            tasks, desc=f"Processing chunks with {agent.name}"
-        )
-        return chunk_results
+            while len(existing_results) < len(chunks):
+                if default_response_factory:
+                    existing_results.append(default_response_factory())
+                else:
+                    existing_results.append(None)
+            chunks_to_process = [(i, chunks[i]) for i in target_chunk_indices if i < len(chunks)]
+            logger.info(f"Selective chunk processing: {target_chunk_indices}")
+        else:
+            if default_response_factory:
+                existing_results = [default_response_factory() for _ in range(len(chunks))]
+            else:
+                existing_results = [None] * len(chunks)
+            chunks_to_process = list(enumerate(chunks))
+            logger.info(f"Full processing of {len(chunks)} chunks")
+
+        semaphore = asyncio.Semaphore(concurrency_limit)
+        
+        async def process_chunk(chunk_idx, chunk):
+            async with semaphore:
+                try:
+                    result_data = await self.apply_agent_to_chunk(
+                        agent=agent,
+                        chunk=chunk,
+                        prompt_kwargs=prompt_kwargs
+                    )
+                    return result_data
+                except Exception as e:
+                    logger.error(f"Error processing chunk {chunk_idx} with agent {agent.name}: {e}")
+                    if default_response_factory:
+                        return default_response_factory()
+                    else:
+                        raise
+
+        tasks = [process_chunk(chunk_idx, chunk) for chunk_idx, chunk in chunks_to_process]
+        chunk_results = await run_tasks(tasks, desc=f"Processing chunks with {agent.name}")
+        
+        final_results = existing_results.copy()
+        
+        for (chunk_idx, _), result in zip(chunks_to_process, chunk_results):
+            if isinstance(result, Exception):
+                logger.error(f"Exception in chunk {chunk_idx}: {result}")
+                if default_response_factory:
+                    final_results[chunk_idx] = default_response_factory()
+                else:
+                    raise result
+            else:
+                final_results[chunk_idx] = result
+        
+        return final_results
 
     async def apply_agents_to_all_chunks(
-        self, agents: list[list[Agent]], prompt_kwargs: dict | None = None
+        self,
+        agents: list[Agent],
+        prompt_kwargs: dict | None = None,
+        target_chunk_indices: list[int] | None = None
     ):
+        """Apply multiple agents to all chunks in parallel."""
         tasks = []
         for agent in agents:
-            tasks.append(self.apply_agent_to_all_chunks(agent, prompt_kwargs))
+            tasks.append(
+                self.apply_agent_to_all_chunks(
+                    agent, prompt_kwargs, target_chunk_indices
+                )
+            )
         return await run_tasks(
             tasks,
-            desc=f"Processing chunks with {' & '.join([agent.name for agent in agents])}",
+            desc=f"Processing chunks with {' & '.join([agent.name for agent in agents])}"
         )
+
 
 
 if __name__ == "__main__":
@@ -121,21 +196,16 @@ if __name__ == "__main__":
         default="/Users/omid/codes/rand-ai-reviewer/data/example_public_files/RAND_CFA4214-1-main.docx",
     )
     args = parser.parse_args()
-    file = File(file_path=args.file_path)
-    processor = DocumentProcessor(file)
+    from lib.services.file import create_file_document_from_path
+    import asyncio
+    
+    async def main():
+        file = await create_file_document_from_path(args.file_path)
+        processor = DocumentProcessor(file)
+        
+        chunks = await processor.get_chunks()
+        print(f"Document split into {len(chunks)} chunks")
+        for i, chunk in enumerate(chunks[:3]):  # Show first 3 chunks
+            print(f"\nChunk {i}: {chunk.page_content[:100]}...")
 
-    from lib.agents.claim_detector import claim_detector_agent
-    from lib.agents.citation_detector import citation_detector_agent
-    from lib.agents.reference_extractor import reference_extractor_agent
-    from lib.agents.reference_matcher import reference_matcher_agent
-
-    results = asyncio.run(
-        processor.apply_agents_to_all_chunks(
-            [
-                claim_detector_agent,
-                citation_detector_agent,
-            ]
-        )
-    )
-
-    print(results)
+    asyncio.run(main())
