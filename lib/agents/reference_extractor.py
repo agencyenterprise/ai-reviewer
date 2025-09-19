@@ -7,19 +7,14 @@ from lib.models.agent import Agent
 class BibliographyItem(BaseModel):
     text: str = Field(description="The text of the bibliographic item")
     has_associated_supporting_document: bool = Field(
-        alias="hasAssociatedSupportingDocument",
         description="A boolean value indicating whether the bibliographic item has an associated supporting document provided by the user"
     )
     index_of_associated_supporting_document: int = Field(
-        alias="indexOfAssociatedSupportingDocument",
         description="If the bibliographic item has an associated supporting document, this will be the index of the supporting document in the list of supporting documents provided by the user (index starts at 1), otherwise it will be -1."
     )
     name_of_associated_supporting_document: str = Field(
-        alias="nameOfAssociatedSupportingDocument",
         description="If the bibliographic item has an associated supporting document, this will be the name of the supporting document, otherwise it will be an empty string."
     )
-    
-    model_config = {"populate_by_name": True}
 
 
 class ReferenceExtractorResponse(BaseModel):
