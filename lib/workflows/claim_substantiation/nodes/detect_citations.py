@@ -1,5 +1,7 @@
 import logging
 from lib.agents.citation_detector import CitationResponse, citation_detector_agent
+from typing import List
+from lib.agents.reference_extractor import BibliographyItem
 from lib.services.document_processor import DocumentProcessor
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 
@@ -15,9 +17,11 @@ async def detect_citations(state: ClaimSubstantiatorState) -> ClaimSubstantiator
         return {}
 
     processor = DocumentProcessor(state["file"])
-    
+
+    bibliography = _format_bibliography_prompt_section(state.get("references", []))
+
     prompt_kwargs = {
-        "bibliography": state.get("references", [])
+        "bibliography": bibliography
     }
     
     def default_response():
@@ -32,3 +36,16 @@ async def detect_citations(state: ClaimSubstantiatorState) -> ClaimSubstantiator
     )
     
     return {"citations_by_chunk": final_citations}
+
+def _format_bibliography_item_prompt_section(index: int, item: BibliographyItem) -> str:
+    return f"""### Bibliography entry #{index + 1}
+{item.text}"""
+
+
+def _format_bibliography_prompt_section(references: List[BibliographyItem]) -> str:
+    return "\n\n".join(
+        [
+            _format_bibliography_item_prompt_section(index, item)
+            for index, item in enumerate(references)
+        ]
+    )
