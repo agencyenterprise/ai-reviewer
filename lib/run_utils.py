@@ -12,6 +12,10 @@ async def run_tasks(tasks, desc="Processing tasks"):
         try:
             return index, await coro
         except Exception as e:
+            logger.error(
+                f"Error processing task {index}: {e}",
+                exc_info=True,
+            )
             return index, e
 
     wrapped_tasks = [track_task(i, coro) for i, coro in enumerate(tasks)]
@@ -24,11 +28,6 @@ async def run_tasks(tasks, desc="Processing tasks"):
     ):
         original_index, result_or_exception = await finished_task
         chunk_results_dict[original_index] = result_or_exception
-        if isinstance(result_or_exception, Exception):
-            logger.error(
-                f"Error processing task {original_index}: {result_or_exception}",
-                exc_info=True,
-            )
 
     chunk_results = []
     for chunk_index in range(len(tasks)):

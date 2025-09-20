@@ -22,7 +22,7 @@ def _data(path: str) -> str:
 
 async def _build_supporting_block(paths: list[str]) -> str:
     docs = [await create_file_document_from_path(_data(p)) for p in paths]
-    return await format_supporting_documents_prompt_section_multiple(
+    return format_supporting_documents_prompt_section_multiple(
         docs, truncate_at_character_count=1000
     )
 

@@ -13,13 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
-import type { DocumentChunk } from './DocumentChunk';
+import type { DocumentChunkOutput } from './DocumentChunkOutput';
 import {
-  DocumentChunkFromJSON,
-  DocumentChunkFromJSONTyped,
-  DocumentChunkToJSON,
-  DocumentChunkToJSONTyped,
-} from './DocumentChunk';
+  DocumentChunkOutputFromJSON,
+  DocumentChunkOutputFromJSONTyped,
+  DocumentChunkOutputToJSON,
+  DocumentChunkOutputToJSONTyped,
+} from './DocumentChunkOutput';
 
 /**
  * Response model for chunk re-evaluation results
@@ -29,10 +29,10 @@ import {
 export interface ChunkReevaluationResponse {
   /**
    * The re-evaluated chunk
-   * @type {DocumentChunk}
+   * @type {DocumentChunkOutput}
    * @memberof ChunkReevaluationResponse
    */
-  chunk: DocumentChunk;
+  chunk: DocumentChunkOutput;
   /**
    * List of agents that were successfully run on the chunk
    * @type {Array<string>}
@@ -68,7 +68,7 @@ export function ChunkReevaluationResponseFromJSONTyped(
     return json;
   }
   return {
-    chunk: DocumentChunkFromJSON(json['chunk']),
+    chunk: DocumentChunkOutputFromJSON(json['chunk']),
     agentsRun: json['agents_run'],
     processingTimeMs: json['processing_time_ms'] == null ? undefined : json['processing_time_ms'],
   };
@@ -87,7 +87,7 @@ export function ChunkReevaluationResponseToJSONTyped(
   }
 
   return {
-    chunk: DocumentChunkToJSON(value['chunk']),
+    chunk: DocumentChunkOutputToJSON(value['chunk']),
     agents_run: value['agentsRun'],
     processing_time_ms: value['processingTimeMs'],
   };

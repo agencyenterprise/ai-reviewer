@@ -2,10 +2,10 @@
 
 import * as React from 'react';
 import { ChunkDisplay, ChunkItem } from '../components/chunk-display';
-import { ClaimSubstantiatorState } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
 
 interface CitationsTabProps {
-  results: ClaimSubstantiatorState;
+  results: ClaimSubstantiatorStateOutput;
 }
 
 export function CitationsTab({ results }: CitationsTabProps) {

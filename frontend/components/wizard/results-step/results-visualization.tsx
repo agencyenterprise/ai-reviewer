@@ -10,7 +10,7 @@ import { useResultsCalculations } from './hooks/use-results-calculations';
 import { SummaryCards, TabNavigation } from './components';
 import { SummaryTab, ClaimsTab, CitationsTab, ReferencesTab, FilesTab, ChunksTab } from './tabs';
 import { TabType } from './constants';
-import { ClaimSubstantiatorState } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
 import { downloadAsJson } from '@/lib/utils';
 
@@ -19,7 +19,7 @@ interface ResultsVisualizationProps {
 }
 
 export function ResultsVisualization({ results }: ResultsVisualizationProps) {
-  const detailedResults = results?.fullResults as ClaimSubstantiatorState | undefined;
+  const detailedResults = results?.fullResults as ClaimSubstantiatorStateOutput | undefined;
   const [activeTab, setActiveTab] = React.useState<TabType>('summary');
 
   const calculations = useResultsCalculations(detailedResults);

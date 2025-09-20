@@ -3,7 +3,7 @@ from lib.agents.toulmin_claim_detector import (
     ToulminClaimResponse,
     toulmin_claim_detector_agent,
 )
-from lib.services.document_processor import DocumentProcessor
+from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
@@ -17,31 +17,22 @@ async def detect_claims_toulmin(
 ) -> ClaimSubstantiatorState:
     logger.info("detect_claims: detecting toulmin claims")
 
-    agents_to_run = state.get("agents_to_run")
+    agents_to_run = state.agents_to_run
     if agents_to_run and "claims" not in agents_to_run:
         logger.info(
             "detect_claims_toulmin: Skipping claims detection (not in agents_to_run)"
         )
         return {}
 
-    processor = DocumentProcessor(state["file"])
-
-    prompt_kwargs = {}
-
-    def default_response():
-        return ToulminClaimResponse(claims=[], rationale="Not processed")
-
-    final_claims = await processor.apply_agent_to_all_chunks(
-        agent=toulmin_claim_detector_agent,
-        prompt_kwargs=prompt_kwargs,
-        target_chunk_indices=state.get("target_chunk_indices"),
-        existing_results=state.get("claims_by_chunk"),
-        default_response_factory=default_response,
+    return await iterate_chunks(
+        state, _detect_chunk_claims_toulmin, "Detecting chunk claims (Toulmin)"
     )
 
-    return {
-        "chunks": [
-            state["chunks"][index].model_copy(update={"claims": claims})
-            for index, claims in enumerate(final_claims)
-        ],
-    }
+
+async def _detect_chunk_claims_toulmin(
+    state: ClaimSubstantiatorState, chunk: DocumentChunk
+) -> DocumentChunk:
+    claims: ToulminClaimResponse = await toulmin_claim_detector_agent.apply(
+        {"chunk": chunk.content, "full_document": state.file.markdown}
+    )
+    return chunk.model_copy(update={"claims": claims})

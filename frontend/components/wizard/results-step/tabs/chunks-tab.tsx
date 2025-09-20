@@ -4,14 +4,14 @@ import * as React from 'react';
 import { ChunkItem } from '../components/chunk-display';
 import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
 import { AlertTriangle, FileIcon, Link as LinkIcon } from 'lucide-react';
-import { ClaimSubstantiatorState, ChunkReevaluationResponse } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateOutput, ChunkReevaluationResponse } from '@/lib/generated-api';
 import { useWizard } from '../../wizard-context';
 import { SeverityBadge } from '../components/severity-badge';
 import { Badge } from '@/components/ui/badge';
 import { useSupportedAgents } from '../hooks/use-supported-agents';
 
 interface ChunksTabProps {
-  results: ClaimSubstantiatorState;
+  results: ClaimSubstantiatorStateOutput;
 }
 
 export function ChunksTab({ results }: ChunksTabProps) {

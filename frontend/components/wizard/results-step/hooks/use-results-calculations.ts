@@ -1,6 +1,6 @@
-import { ClaimSubstantiatorState } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
 
-export function useResultsCalculations(detailedResults: ClaimSubstantiatorState | undefined) {
+export function useResultsCalculations(detailedResults: ClaimSubstantiatorStateOutput | undefined) {
   if (!detailedResults) {
     return {
       totalClaims: 0,

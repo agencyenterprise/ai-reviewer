@@ -3,7 +3,7 @@
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Markdown } from '@/components/markdown';
 import { claimCategoryBaseColors, classifyChunk, classifyClaim } from '@/lib/claim-classification';
-import { ClaimSubstantiatorState, ChunkReevaluationResponse, DocumentChunk } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateOutput, ChunkReevaluationResponse, DocumentChunkOutput } from '@/lib/generated-api';
 import { getMaxSeverity } from '@/lib/severity';
 import { cn } from '@/lib/utils';
 import { ChevronRight, FileIcon, Link as LinkIcon, MessageCirclePlus } from 'lucide-react';
@@ -16,7 +16,7 @@ import { useWizard } from '../../wizard-context';
 import { useSupportedAgents } from '../hooks/use-supported-agents';
 
 interface DocumentExplorerTabProps {
-  results: ClaimSubstantiatorState;
+  results: ClaimSubstantiatorStateOutput;
 }
 
 export function DocumentExplorerTab({ results }: DocumentExplorerTabProps) {
@@ -44,8 +44,8 @@ export function DocumentExplorerTab({ results }: DocumentExplorerTabProps) {
 }
 
 export interface DocumentExplorerChunkProps {
-  chunk: DocumentChunk;
-  results: ClaimSubstantiatorState;
+  chunk: DocumentChunkOutput;
+  results: ClaimSubstantiatorStateOutput;
   onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
   supportedAgents: ReturnType<typeof useSupportedAgents>['supportedAgents'];
   supportedAgentsError: ReturnType<typeof useSupportedAgents>['supportedAgentsError'];

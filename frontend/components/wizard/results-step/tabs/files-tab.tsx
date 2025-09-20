@@ -1,10 +1,10 @@
 'use client';
 
-import { ClaimSubstantiatorState } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
 import * as React from 'react';
 
 interface FilesTabProps {
-  results: ClaimSubstantiatorState;
+  results: ClaimSubstantiatorStateOutput;
 }
 
 export function FilesTab({ results }: FilesTabProps) {
