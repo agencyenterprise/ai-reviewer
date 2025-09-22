@@ -117,6 +117,7 @@ Reference: Purdue OWL - Toulmin Argument (for definitions and orientation): http
 """
         )
     ),
+    tools=[],
     mandatory_tools=[],
     output_schema=ToulminClaimResponse,
 )

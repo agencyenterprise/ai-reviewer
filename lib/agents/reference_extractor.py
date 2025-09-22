@@ -48,6 +48,7 @@ For each bibliographic item, you need to return the following information:
 {supporting_documents}
 """
     ),
+    tools=[],
     mandatory_tools=[],
     output_schema=ReferenceExtractorResponse,
 )

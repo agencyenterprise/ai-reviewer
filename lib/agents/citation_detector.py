@@ -84,6 +84,7 @@ citation_detector_agent = Agent(
     description="Detect citations in a chunk of text",
     model="openai:gpt-5",
     prompt=_citation_detector_prompt,
+    tools=[],
     mandatory_tools=[],
     output_schema=CitationResponse,
 )

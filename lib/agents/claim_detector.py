@@ -53,6 +53,7 @@ For each claim, you need to return the following information:
 ```
 """
     ),
+    tools=[],
     mandatory_tools=[],
     output_schema=ClaimResponse,
 )

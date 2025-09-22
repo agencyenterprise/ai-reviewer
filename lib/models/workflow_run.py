@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import Column, DateTime, JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+from typing import Optional
 
 from sqlmodel import SQLModel, Field, Relationship
 
@@ -19,6 +20,9 @@ class WorkflowRun(SQLModel, table=True):
     stages: list[list[str]] = Field(
         sa_column=Column(JSON, nullable=False)
     )  # Array of Arrays of agent_ids (copied from workflow)
+    chat_ids: Optional[list[str]] = Field(
+        sa_column=Column(JSON, nullable=True)
+    )  # Array of chat_ids
     chat_results: dict = Field(
         sa_column=Column(JSON)
     )  # Serialized representation of chat results

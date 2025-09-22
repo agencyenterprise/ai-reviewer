@@ -39,6 +39,7 @@ class ClaimSubstantiationResultWithClaimIndex(ClaimSubstantiationResult):
     chunk_index: int
     claim_index: int
 
+
 _claim_substantiator_prompt = ChatPromptTemplate.from_template(
     """
 # Task
@@ -78,6 +79,7 @@ claim_substantiator_agent = Agent(
     description="Substantiate a claim based on a supporting document",
     model="openai:gpt-5",
     prompt=_claim_substantiator_prompt,
+    tools=[],
     mandatory_tools=[],
     output_schema=ClaimSubstantiationResult,
 )

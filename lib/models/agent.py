@@ -1,13 +1,29 @@
 import uuid
 from datetime import datetime
+from typing import Any
 from sqlalchemy import Column, String, Text, Integer, DateTime, JSON
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
-from sqlalchemy.orm import relationship
-from sqlmodel import JSON, Field, Relationship, SQLModel
+from sqlmodel import Field, SQLModel
 from langchain.chat_models import init_chat_model
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.prompts import ChatPromptTemplate
+from langfuse.langchain import CallbackHandler
+from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 
-from pydantic import BaseModel
+from lib.models.react_agent.tool_registry import prepare_tools
+from lib.models.react_agent.agent_runner import (
+    run_agent,
+    run_agent_sync,
+    _filter_tools,
+    _build_prompt_with_tools_preamble,
+)
+from langgraph.prebuilt import (
+    InjectedStore,
+    ToolNode,
+    create_react_agent,
+    tools_condition,
+)
+
+# No direct BaseModel usage here
 
 
 class Agent(SQLModel, table=True):
@@ -21,17 +37,17 @@ class Agent(SQLModel, table=True):
     model: str = Field(
         sa_column=Column(String(255), nullable=False)
     )  # Format: "{provider}:{model}"
-    prompt: str = Field(sa_column=Column(Text, nullable=False))
-    mandatory_tools: list[str] = Field(
+    prompt: Any = Field(sa_column=Column(Text, nullable=False))
+    tools: list[str] = Field(
         sa_column=Column(ARRAY(String), default=list)
     )  # Array of tool identifiers
-    disallowed_tools: list[str] = Field(
+    mandatory_tools: list[str] = Field(
         sa_column=Column(ARRAY(String), default=list)
     )  # Array of tool identifiers
     dependencies: list[str] = Field(
         sa_column=Column(ARRAY(UUID), default=list)
     )  # Array of agent IDs
-    output_schema: dict = Field(
+    output_schema: Any = Field(
         sa_column=Column(JSON)
     )  # JSON Schema for expected output
     version: int = Field(sa_column=Column(Integer, default=1))
@@ -46,29 +62,124 @@ class Agent(SQLModel, table=True):
 
     @property
     def model_provider(self):
-        return self.model.split(":")[0]
+        return str(self.model).split(":")[0]
 
     @property
     def model_name(self):
-        return self.model.split(":")[1]
+        return str(self.model).split(":")[1]
+
+    def _prep_llm(self):
+        return init_chat_model(self.model_name, model_provider=self.model_provider)
+
+    def _prep_llm_with_structured_output(self):
+        llm = self._prep_llm()
+        return llm.with_structured_output(self.output_schema)
 
     def prep_llm_args(self, prompt_kwargs: dict):
-        llm = init_chat_model(self.model_name, model_provider=self.model_provider)
-        llm_with_structure = llm.with_structured_output(self.output_schema)
+        """Prepare arguments for normal non-react-agent llm calls"""
+        llm_with_structure = self._prep_llm_with_structured_output()
 
         # Create prompt
-        messages = self.prompt.format_messages(**prompt_kwargs)
+        prompt_template = (
+            self.prompt
+            if hasattr(self.prompt, "format_messages")
+            else ChatPromptTemplate.from_template(str(self.prompt))
+        )
+        messages = prompt_template.format_messages(**prompt_kwargs)
 
         # Apply LLM
         args = {"input": messages}
         return llm_with_structure, args
 
-    async def apply(self, prompt_kwargs: dict):
+    def prep_runner_args(self, prompt_kwargs: dict) -> dict:
+        """Prepare common arguments for the tool-using agent runner."""
+        prompt_template = (
+            self.prompt
+            if hasattr(self.prompt, "format_messages")
+            else ChatPromptTemplate.from_template(str(self.prompt))
+        )
+        base_messages = prompt_template.format_messages(**prompt_kwargs)
+
+        # Build tools
+        available_tools = prepare_tools(self.tools)
+
+        # Build messages preamble and executor
+        available_tool_names = [t.name for t in available_tools]
+        messages = _build_prompt_with_tools_preamble(
+            base_messages, self.mandatory_tools or [], available_tool_names
+        )
+
+        llm = self._prep_llm()
+
+        agent_executor = create_react_agent(
+            llm,
+            list(available_tools),
+            # system_prompt,
+            # checkpointer=memory or MemorySaver(), # For when we want to save chats
+            # store=vector_store, # For when we want to add RAG
+        )
+        return {
+            "executor": agent_executor,
+            "messages": messages,
+            "mandatory_tools": self.mandatory_tools or [],
+        }
+
+    async def _apply_without_tools(self, prompt_kwargs: dict):
+        """Apply the agent to the prompt kwargs without tools"""
         llm_with_structure, args = self.prep_llm_args(prompt_kwargs)
         chunk_result = await llm_with_structure.ainvoke(args["input"])
         return chunk_result
 
-    def apply_sync(self, prompt_kwargs: dict):
+    def _apply_sync_without_tools(self, prompt_kwargs: dict):
+        """Apply the agent to the prompt kwargs without tools synchronously"""
         llm_with_structure, args = self.prep_llm_args(prompt_kwargs)
         chunk_result = llm_with_structure.invoke(args["input"])
         return chunk_result
+
+    async def _apply_with_tools(self, prompt_kwargs: dict):
+        """Apply the agent to the prompt kwargs with tools"""
+        runner_args = self.prep_runner_args(prompt_kwargs)
+        try:
+            messages = await run_agent(**runner_args)
+            llm_with_structure = self._prep_llm_with_structured_output()
+            return llm_with_structure.invoke(
+                messages
+                + [
+                    HumanMessage(
+                        content="Now return your results in the specified structured format"
+                    )
+                ]
+            )
+        except (TypeError, ValueError, AttributeError):
+            return await self._apply_without_tools(prompt_kwargs)
+
+    def _apply_sync_with_tools(self, prompt_kwargs: dict):
+        """Apply the agent to the prompt kwargs with tools synchronously"""
+        runner_args = self.prep_runner_args(prompt_kwargs)
+        try:
+            messages = run_agent_sync(**runner_args)
+            llm_with_structure = self._prep_llm_with_structured_output()
+            return llm_with_structure.invoke(
+                messages
+                + [
+                    HumanMessage(
+                        content="Now return your results in the specified structured format"
+                    )
+                ]
+            )
+        except (TypeError, ValueError, AttributeError):
+            return self._apply_sync_without_tools(prompt_kwargs)
+
+    async def apply(self, prompt_kwargs: dict):
+        """Apply the agent to the prompt kwargs"""
+        if len(self.tools) == 0:
+            return await self._apply_without_tools(prompt_kwargs)
+
+        return await self._apply_with_tools(prompt_kwargs)
+
+    def apply_sync(self, prompt_kwargs: dict):
+        """Apply the agent to the prompt kwargs synchronously"""
+        if len(self.tools) == 0:
+            return self._apply_sync_without_tools(prompt_kwargs)
+
+        return self._apply_sync_with_tools(prompt_kwargs)
