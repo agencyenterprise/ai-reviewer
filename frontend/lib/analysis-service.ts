@@ -6,6 +6,7 @@ import {
   RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest,
   ChunkReevaluationRequest,
   ChunkReevaluationResponse,
+  EvalPackageRequest,
 } from '@/lib/generated-api';
 
 interface AnalysisRequest {
@@ -79,6 +80,30 @@ class AnalysisService {
       });
     } catch (error) {
       console.error('Error re-evaluating chunk:', error);
+      throw error;
+    }
+  }
+
+  async generateEvalPackage(
+    results: ClaimSubstantiatorStateOutput,
+    testName?: string,
+    description?: string,
+  ): Promise<Blob> {
+    try {
+      const evalRequest: EvalPackageRequest = {
+        results: results as any,
+        testName: testName || `eval_${Date.now()}`,
+        description: description || 'Generated from frontend analysis',
+      };
+
+      const apiResponse = await this.api.generateEvalPackageApiGenerateEvalPackagePostRaw({
+        evalPackageRequest: evalRequest,
+      });
+
+      const response = apiResponse.raw;
+      return await response.blob();
+    } catch (error) {
+      console.error('Error generating eval package:', error);
       throw error;
     }
   }

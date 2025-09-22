@@ -17,6 +17,7 @@ from lib.workflows.claim_substantiation.state import (
 from lib.services.file import FileDocument
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.registry import agent_registry
+from lib.services.eval_generator import eval_test_generator
 
 logger = logging.getLogger(__name__)
 
@@ -128,3 +129,34 @@ async def get_supported_agents():
         "supported_agents": agent_registry.get_supported_types(),
         "agent_descriptions": agent_registry.get_agent_descriptions(),
     }
+
+
+class EvalPackageRequest(BaseModel):
+    results: dict
+    test_name: str = Field(default="generated_test")
+    description: str = Field(default="Generated from frontend analysis")
+
+
+@app.post("/api/generate-eval-package")
+async def generate_eval_package(request: EvalPackageRequest):
+    """
+    Generate complete eval test package as downloadable zip.
+    
+    Args:
+        request: Contains analysis results and metadata for test generation
+        
+    Returns:
+        Zip file containing YAML test files and data files
+    """
+    try:
+        return eval_test_generator.generate_package(
+            results=request.results,
+            test_name=request.test_name,
+            description=request.description
+        )
+        
+    except Exception as e:
+        logger.error(f"Error generating eval package: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Error generating eval package: {str(e)}"
+        )

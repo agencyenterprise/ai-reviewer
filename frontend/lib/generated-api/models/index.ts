@@ -15,6 +15,7 @@ export * from './ClaimSubstantiatorStateOutput';
 export * from './Claims';
 export * from './DocumentChunkInput';
 export * from './DocumentChunkOutput';
+export * from './EvalPackageRequest';
 export * from './FileDocument';
 export * from './HTTPValidationError';
 export * from './Severity';

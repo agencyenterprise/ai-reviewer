@@ -16,6 +16,7 @@ models/ClaimSubstantiatorStateOutput.ts
 models/Claims.ts
 models/DocumentChunkInput.ts
 models/DocumentChunkOutput.ts
+models/EvalPackageRequest.ts
 models/FileDocument.ts
 models/HTTPValidationError.ts
 models/Severity.ts

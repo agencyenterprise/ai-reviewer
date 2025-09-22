@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Download } from 'lucide-react';
+import { Download, FileText } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../ui/tooltip';
@@ -13,6 +13,7 @@ import { TabType } from './constants';
 import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
 import { downloadAsJson } from '@/lib/utils';
+import { analysisService } from '@/lib/analysis-service';
 
 interface ResultsVisualizationProps {
   results: AnalysisResults | null;
@@ -29,6 +30,28 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const filename = `analysis-results-${timestamp}`;
       downloadAsJson(results, filename);
+    }
+  };
+
+  const handleSaveAsEvalTest = async () => {
+    if (!detailedResults) return;
+
+    try {
+      const testName = `eval_${Date.now()}`;
+      const description = `Generated from analysis results on ${new Date().toLocaleDateString()}`;
+
+      const blob = await analysisService.generateEvalPackage(detailedResults, testName, description);
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${testName}_eval_package.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to generate eval test package:', error);
     }
   };
 
@@ -78,7 +101,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
         totalUnsubstantiated={calculations.totalUnsubstantiated}
       />
 
-      <div className="flex justify-center">
+      <div className="flex justify-center gap-4">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button onClick={handleSaveResults} variant="outline" size="sm" className="gap-2">
@@ -88,6 +111,18 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
           </TooltipTrigger>
           <TooltipContent>
             <p>Download results as JSON to view them again without re-analyzing documents</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button onClick={handleSaveAsEvalTest} variant="outline" size="sm" className="gap-2">
+              <FileText className="h-4 w-4" />
+              Save all as Eval Test
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Generate evaluation test cases from these results for testing agents</p>
           </TooltipContent>
         </Tooltip>
       </div>
