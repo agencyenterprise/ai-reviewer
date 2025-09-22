@@ -3,7 +3,7 @@
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Markdown } from '@/components/markdown';
 import { claimCategoryBaseColors, classifyChunk, classifyClaim } from '@/lib/claim-classification';
-import { ClaimSubstantiatorState, ChunkReevaluationResponse } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateOutput, ChunkReevaluationResponse, DocumentChunkOutput } from '@/lib/generated-api';
 import { getMaxSeverity } from '@/lib/severity';
 import { cn } from '@/lib/utils';
 import { ChevronRight, FileIcon, Link as LinkIcon, MessageCirclePlus } from 'lucide-react';
@@ -16,7 +16,7 @@ import { useWizard } from '../../wizard-context';
 import { useSupportedAgents } from '../hooks/use-supported-agents';
 
 interface DocumentExplorerTabProps {
-  results: ClaimSubstantiatorState;
+  results: ClaimSubstantiatorStateOutput;
 }
 
 export function DocumentExplorerTab({ results }: DocumentExplorerTabProps) {
@@ -29,11 +29,11 @@ export function DocumentExplorerTab({ results }: DocumentExplorerTabProps) {
 
   return (
     <div className="space-y-2">
-      {results.chunks?.map((_, chunkIndex) => (
+      {results.chunks?.map((chunk) => (
         <DocumentExplorerChunk
-          key={chunkIndex}
+          key={chunk.chunkIndex}
+          chunk={chunk}
           results={results}
-          chunkIndex={chunkIndex}
           onChunkReevaluation={handleChunkReevaluation}
           supportedAgents={supportedAgents}
           supportedAgentsError={supportedAgentsError}
@@ -44,37 +44,36 @@ export function DocumentExplorerTab({ results }: DocumentExplorerTabProps) {
 }
 
 export interface DocumentExplorerChunkProps {
-  results: ClaimSubstantiatorState;
-  chunkIndex: number;
+  chunk: DocumentChunkOutput;
+  results: ClaimSubstantiatorStateOutput;
   onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
   supportedAgents: ReturnType<typeof useSupportedAgents>['supportedAgents'];
   supportedAgentsError: ReturnType<typeof useSupportedAgents>['supportedAgentsError'];
 }
 
 export function DocumentExplorerChunk({
+  chunk,
   results,
-  chunkIndex,
   onChunkReevaluation,
   supportedAgents,
   supportedAgentsError,
 }: DocumentExplorerChunkProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
-  const chunk = results.chunks?.[chunkIndex];
-  const claims = results.claimsByChunk?.[chunkIndex]?.claims || [];
+  const claims = chunk.claims?.claims || [];
   const claimsLength = claims.length || 0;
   const noClaims = claimsLength === 0;
-  const claimsRationale = results.claimsByChunk?.[chunkIndex]?.rationale;
-  const citations = results.citationsByChunk?.[chunkIndex]?.citations || [];
+  const claimsRationale = chunk.claims?.rationale;
+  const citations = chunk.citations?.citations || [];
   const references = results.references || [];
   const supportingFiles = results.supportingFiles || [];
-  const substantiations = results.claimSubstantiationsByChunk?.[chunkIndex]?.substantiations || [];
-  const chunkCategory = classifyChunk(results, chunkIndex, references);
+  const substantiations = chunk.substantiations || [];
+  const chunkCategory = classifyChunk(chunk, references);
   const maxSeverity = getMaxSeverity(substantiations);
 
   return (
-    <div key={chunkIndex}>
-      <Markdown highlight={claimCategoryBaseColors[chunkCategory]}>{chunk}</Markdown>
+    <div>
+      <Markdown highlight={claimCategoryBaseColors[chunkCategory]}>{chunk.content}</Markdown>
 
       <div
         className="flex items-center space-x-1 cursor-pointer hover:bg-muted/50 rounded-lg px-2"
@@ -83,7 +82,7 @@ export function DocumentExplorerChunk({
         <ChevronRight className={`w-3 h-3 ${isExpanded ? 'rotate-90' : ''}`} />
 
         <div className="flex flex-wrap items-center">
-          <p className="text-xs text-muted-foreground">Chunk {chunkIndex + 1}</p>
+          <p className="text-xs text-muted-foreground">Chunk {chunk.chunkIndex + 1}</p>
 
           <HorizontalSeparator />
 
@@ -289,7 +288,7 @@ export function DocumentExplorerChunk({
           )}
 
           <ChunkReevaluateControl
-            chunkIndex={chunkIndex}
+            chunkIndex={chunk.chunkIndex}
             originalState={results}
             onReevaluation={onChunkReevaluation}
             supportedAgents={supportedAgents}

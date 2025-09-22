@@ -1,4 +1,4 @@
-import { ClaimSubstantiatorState, ChunkReevaluationResponse } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateOutput, ChunkReevaluationResponse } from '@/lib/generated-api';
 
 export interface WizardStep {
   id: string;
@@ -9,7 +9,7 @@ export interface WizardStep {
 export interface AnalysisResults {
   status: 'processing' | 'completed' | 'error';
   error?: string;
-  fullResults?: ClaimSubstantiatorState;
+  fullResults?: ClaimSubstantiatorStateOutput;
 }
 
 export interface WizardState {

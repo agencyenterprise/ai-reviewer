@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { ClaimSubstantiatorStateInput } from './ClaimSubstantiatorStateInput';
+import {
+  ClaimSubstantiatorStateInputFromJSON,
+  ClaimSubstantiatorStateInputFromJSONTyped,
+  ClaimSubstantiatorStateInputToJSON,
+  ClaimSubstantiatorStateInputToJSONTyped,
+} from './ClaimSubstantiatorStateInput';
+
 /**
  * Request model for re-evaluating a specific chunk
  * @export
@@ -33,10 +41,10 @@ export interface ChunkReevaluationRequest {
   agentsToRun: Array<string>;
   /**
    * The original workflow state containing the document and chunks
-   * @type {{ [key: string]: any; }}
+   * @type {ClaimSubstantiatorStateInput}
    * @memberof ChunkReevaluationRequest
    */
-  originalState: { [key: string]: any };
+  originalState: ClaimSubstantiatorStateInput;
 }
 
 /**
@@ -63,7 +71,7 @@ export function ChunkReevaluationRequestFromJSONTyped(
   return {
     chunkIndex: json['chunk_index'],
     agentsToRun: json['agents_to_run'],
-    originalState: json['original_state'],
+    originalState: ClaimSubstantiatorStateInputFromJSON(json['original_state']),
   };
 }
 
@@ -82,6 +90,6 @@ export function ChunkReevaluationRequestToJSONTyped(
   return {
     chunk_index: value['chunkIndex'],
     agents_to_run: value['agentsToRun'],
-    original_state: value['originalState'],
+    original_state: ClaimSubstantiatorStateInputToJSON(value['originalState']),
   };
 }

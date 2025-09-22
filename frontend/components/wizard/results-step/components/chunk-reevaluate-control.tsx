@@ -3,11 +3,15 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { analysisService, SupportedAgentsResponse } from '@/lib/analysis-service';
-import { ClaimSubstantiatorState, ChunkReevaluationRequest, ChunkReevaluationResponse } from '@/lib/generated-api';
+import {
+  ClaimSubstantiatorStateOutput,
+  ChunkReevaluationRequest,
+  ChunkReevaluationResponse,
+} from '@/lib/generated-api';
 
 interface ChunkReevaluateControlProps {
   chunkIndex: number;
-  originalState: ClaimSubstantiatorState;
+  originalState: ClaimSubstantiatorStateOutput;
   onReevaluation: (response: ChunkReevaluationResponse) => void;
   supportedAgents: SupportedAgentsResponse | null;
   supportedAgentsError: string | null;

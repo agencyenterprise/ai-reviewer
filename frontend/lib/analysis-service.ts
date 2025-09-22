@@ -1,6 +1,6 @@
 import { AnalysisResults } from '@/components/wizard/types';
 import {
-  ClaimSubstantiatorState,
+  ClaimSubstantiatorStateOutput,
   Configuration,
   DefaultApi,
   RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest,
@@ -31,10 +31,10 @@ class AnalysisService {
     );
   }
 
-  private transformResponse(apiResponse: ClaimSubstantiatorState): AnalysisResults {
+  private transformResponse(apiResponse: ClaimSubstantiatorStateOutput): AnalysisResults {
     return {
       status: 'completed',
-      fullResults: apiResponse as unknown as ClaimSubstantiatorState,
+      fullResults: apiResponse as unknown as ClaimSubstantiatorStateOutput,
     };
   }
 

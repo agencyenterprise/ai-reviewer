@@ -4,8 +4,16 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from api.upload import convert_uploaded_files_to_file_document
-from lib.workflows.claim_substantiation.runner import run_claim_substantiator, reevaluate_single_chunk
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState, ChunkReevaluationRequest, ChunkReevaluationResponse, ClaimSubstantiationChunk
+from lib.workflows.claim_substantiation.runner import (
+    run_claim_substantiator,
+    reevaluate_single_chunk,
+)
+from lib.workflows.claim_substantiation.state import (
+    ClaimSubstantiatorState,
+    ChunkReevaluationRequest,
+    ChunkReevaluationResponse,
+    ClaimSubstantiationChunk,
+)
 from lib.services.file import FileDocument
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.registry import agent_registry
@@ -65,6 +73,7 @@ async def run_claim_substantiation_workflow(
             status_code=500, detail=f"Error processing workflow: {str(e)}"
         )
 
+
 @app.post("/api/reevaluate-chunk", response_model=ChunkReevaluationResponse)
 async def reevaluate_chunk(request: ChunkReevaluationRequest):
     """
@@ -78,33 +87,30 @@ async def reevaluate_chunk(request: ChunkReevaluationRequest):
     """
     try:
         agent_registry.validate_agents(request.agents_to_run)
-        
+
         import time
+
         start_time = time.time()
-        
+
         updated_chunk = await reevaluate_single_chunk(
             original_result=request.original_state,
             chunk_index=request.chunk_index,
-            agents_to_run=request.agents_to_run
+            agents_to_run=request.agents_to_run,
         )
-        
+
         processing_time_ms = (time.time() - start_time) * 1000
-        
+
         return ChunkReevaluationResponse(
-            chunk_index=request.chunk_index,
-            chunk_content=updated_chunk.content,
-            claims_by_chunk=updated_chunk.claims if "claims" in request.agents_to_run else None,
-            citations_by_chunk=updated_chunk.citations if "citations" in request.agents_to_run else None,
-            claim_substantiations_by_chunk=ClaimSubstantiationChunk(substantiations=updated_chunk.substantiations) if "substantiation" in request.agents_to_run and updated_chunk.substantiations else None,
+            chunk=updated_chunk,
             agents_run=request.agents_to_run,
-            processing_time_ms=processing_time_ms
+            processing_time_ms=processing_time_ms,
         )
-    
+
     except ValueError as e:
         logger.error(f"Invalid request for chunk re-evaluation: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Error re-evaluating chunk: {str(e)}")
+        logger.error(f"Error re-evaluating chunk: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"Error re-evaluating chunk: {str(e)}"
         )
@@ -120,5 +126,5 @@ async def get_supported_agents():
     """
     return {
         "supported_agents": agent_registry.get_supported_types(),
-        "agent_descriptions": agent_registry.get_agent_descriptions()
+        "agent_descriptions": agent_registry.get_agent_descriptions(),
     }

@@ -4,14 +4,14 @@ import * as React from 'react';
 import { ChunkItem } from '../components/chunk-display';
 import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
 import { AlertTriangle, FileIcon, Link as LinkIcon } from 'lucide-react';
-import { ClaimSubstantiatorState, ChunkReevaluationResponse } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateOutput, ChunkReevaluationResponse } from '@/lib/generated-api';
 import { useWizard } from '../../wizard-context';
 import { SeverityBadge } from '../components/severity-badge';
 import { Badge } from '@/components/ui/badge';
 import { useSupportedAgents } from '../hooks/use-supported-agents';
 
 interface ChunksTabProps {
-  results: ClaimSubstantiatorState;
+  results: ClaimSubstantiatorStateOutput;
 }
 
 export function ChunksTab({ results }: ChunksTabProps) {
@@ -25,30 +25,26 @@ export function ChunksTab({ results }: ChunksTabProps) {
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Chunks</h3>
       <div className="space-y-4">
-        {results.claimsByChunk?.map((claimsChunk, chunkIndex) => {
-          const chunk = results.chunks?.[chunkIndex];
-          const claimsRationale = claimsChunk.rationale;
-          const claims = claimsChunk?.claims || [];
-          const substantiations = results.claimSubstantiationsByChunk?.[chunkIndex]?.substantiations || [];
+        {results.chunks?.map((chunk) => {
+          const claimsRationale = chunk.claims?.rationale;
+          const claims = chunk?.claims?.claims || [];
+          const substantiations = chunk?.substantiations || [];
           const references = results.references || [];
           const supportingFiles = results.supportingFiles || [];
-          const citationsChunk = results.citationsByChunk?.[chunkIndex];
-          const citations = citationsChunk?.citations || [];
-          const chunkText = chunk || 'No content provided.';
-          const hasUnsubstantiated = (results.claimSubstantiationsByChunk?.[chunkIndex]?.substantiations || []).some(
-            (s) => !s.isSubstantiated,
-          );
+          const citations = chunk.citations?.citations || [];
+          const chunkText = chunk.content || 'No content provided.';
+          const hasUnsubstantiated = (chunk.substantiations || []).some((s) => !s.isSubstantiated);
 
           return (
             <div
-              key={chunkIndex}
+              key={chunk.chunkIndex}
               className={`border rounded-lg ${hasUnsubstantiated ? 'border-red-200 bg-red-50/40' : ''}`}
             >
               <div
                 className={`flex items-center justify-between px-4 py-2 border-b ${hasUnsubstantiated ? 'bg-red-50' : 'bg-muted/50'}`}
               >
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">Chunk {chunkIndex + 1}</span>
+                  <span className="font-medium">Chunk {chunk.chunkIndex + 1}</span>
                   {hasUnsubstantiated && (
                     <span
                       title="Unsubstantiated claims present"
@@ -248,7 +244,7 @@ export function ChunksTab({ results }: ChunksTabProps) {
                 )}
 
                 <ChunkReevaluateControl
-                  chunkIndex={chunkIndex}
+                  chunkIndex={chunk.chunkIndex}
                   originalState={results}
                   onReevaluation={handleChunkReevaluation}
                   supportedAgents={supportedAgents}

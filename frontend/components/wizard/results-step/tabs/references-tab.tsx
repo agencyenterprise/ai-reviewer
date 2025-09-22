@@ -1,10 +1,10 @@
 'use client';
 
-import { ClaimSubstantiatorState } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
 import * as React from 'react';
 
 interface ReferencesTabProps {
-  results: ClaimSubstantiatorState;
+  results: ClaimSubstantiatorStateOutput;
 }
 
 export function ReferencesTab({ results }: ReferencesTabProps) {

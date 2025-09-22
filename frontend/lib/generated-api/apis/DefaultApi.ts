@@ -16,7 +16,7 @@ import * as runtime from '../runtime';
 import type {
   ChunkReevaluationRequest,
   ChunkReevaluationResponse,
-  ClaimSubstantiatorState,
+  ClaimSubstantiatorStateOutput,
   HTTPValidationError,
 } from '../models/index';
 import {
@@ -24,8 +24,8 @@ import {
   ChunkReevaluationRequestToJSON,
   ChunkReevaluationResponseFromJSON,
   ChunkReevaluationResponseToJSON,
-  ClaimSubstantiatorStateFromJSON,
-  ClaimSubstantiatorStateToJSON,
+  ClaimSubstantiatorStateOutputFromJSON,
+  ClaimSubstantiatorStateOutputToJSON,
   HTTPValidationErrorFromJSON,
   HTTPValidationErrorToJSON,
 } from '../models/index';
@@ -178,7 +178,7 @@ export class DefaultApi extends runtime.BaseAPI {
   async runClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRaw(
     requestParameters: RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<runtime.ApiResponse<ClaimSubstantiatorState>> {
+  ): Promise<runtime.ApiResponse<ClaimSubstantiatorStateOutput>> {
     if (requestParameters['mainDocument'] == null) {
       throw new runtime.RequiredError(
         'mainDocument',
@@ -233,7 +233,7 @@ export class DefaultApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, (jsonValue) => ClaimSubstantiatorStateFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => ClaimSubstantiatorStateOutputFromJSON(jsonValue));
   }
 
   /**
@@ -243,7 +243,7 @@ export class DefaultApi extends runtime.BaseAPI {
   async runClaimSubstantiationWorkflowApiRunClaimSubstantiationPost(
     requestParameters: RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<ClaimSubstantiatorState> {
+  ): Promise<ClaimSubstantiatorStateOutput> {
     const response = await this.runClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRaw(
       requestParameters,
       initOverrides,
