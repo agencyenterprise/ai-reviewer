@@ -1,5 +1,6 @@
 from langgraph.graph import StateGraph
 
+from lib.config.langfuse import langfuse_handler
 from lib.workflows.claim_substantiation.nodes.detect_citations import detect_citations
 from lib.workflows.claim_substantiation.nodes.detect_claims import detect_claims
 from lib.workflows.claim_substantiation.nodes.detect_claims_toulmin import (
@@ -8,7 +9,7 @@ from lib.workflows.claim_substantiation.nodes.detect_claims_toulmin import (
 from lib.workflows.claim_substantiation.nodes.extract_references import (
     extract_references,
 )
-from lib.workflows.claim_substantiation.nodes.prepare_documents import prepare_documents
+from lib.workflows.claim_substantiation.nodes.split_into_chunks import split_into_chunks
 from lib.workflows.claim_substantiation.nodes.substantiate_claims import (
     substantiate_claims,
 )
@@ -18,7 +19,7 @@ from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 def build_claim_substantiator_graph(use_toulmin: bool = False):
     graph = StateGraph(ClaimSubstantiatorState)
 
-    graph.add_node("prepare_documents", prepare_documents)
+    graph.add_node("split_into_chunks", split_into_chunks)
     graph.add_node(
         "detect_claims", detect_claims if not use_toulmin else detect_claims_toulmin
     )
@@ -26,16 +27,18 @@ def build_claim_substantiator_graph(use_toulmin: bool = False):
     graph.add_node("extract_references", extract_references)
     graph.add_node("substantiate_claims", substantiate_claims)
 
-    graph.set_entry_point("prepare_documents")
-    graph.add_edge("prepare_documents", "extract_references")
-    graph.add_edge("prepare_documents", "detect_claims")
+    graph.set_entry_point("split_into_chunks")
+    graph.add_edge("split_into_chunks", "extract_references")
+    graph.add_edge("split_into_chunks", "detect_claims")
+
+    # detect citations when both claims and references are present
+    graph.add_edge("detect_claims", "detect_citations")
     graph.add_edge("extract_references", "detect_citations")
 
-    # Trigger substantiation once claims and citations are likely present
     graph.add_edge("detect_citations", "substantiate_claims")
-    graph.add_edge("detect_claims", "substantiate_claims")
+    graph.set_finish_point("substantiate_claims")
 
-    return graph.compile()
+    return graph.compile().with_config({"callbacks": [langfuse_handler]})
 
 
 if __name__ == "__main__":

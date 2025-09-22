@@ -1,0 +1,66 @@
+# Citation Detector Test Dataset
+# This file contains test cases for the citation detector agent
+
+dataset:
+  name: "Citation Detector Dataset"
+  description: "Test cases for validating citation detection and bibliography matching"
+  items:
+    - name: "citation_case_1"
+      description: "Test case with multiple citations in author (year) format"
+      input:
+        main_document: "data/case_1/main_document.md"
+        bibliography:
+          - "Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry."
+          - "Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf."
+          - "Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech."
+        chunk: "Prior work such as Smith (2020) and Doe and Roe (2019) provide useful background/insights."
+      expected_output:
+        citations:
+          - text: "Smith (2020)"
+            type: "bibliography"
+            format: "author (year)"
+            needs_bibliography: true
+            associated_bibliography: "Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry."
+            index_of_associated_bibliography: 1
+            rationale: ""
+          - text: "Doe and Roe (2019)"
+            type: "bibliography"
+            format: "author (year)"
+            needs_bibliography: true
+            associated_bibliography: "Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf."
+            index_of_associated_bibliography: 2
+            rationale: ""
+        rationale: ""
+
+    - name: "citation_case_2"
+      description: "Test case with citation in (author, year) format"
+      input:
+        main_document: "data/case_1/main_document.md"
+        bibliography:
+          - "Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry."
+          - "Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf."
+          - "Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech."
+        chunk: "In this article, we will review what some of the other works in the field, including (Smith, 2017) have found in this domain."
+      expected_output:
+        citations:
+          - text: "(Smith, 2017)"
+            type: "bibliography"
+            format: "(author, year)"
+            needs_bibliography: true
+            associated_bibliography: "Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech."
+            index_of_associated_bibliography: 3
+            rationale: ""
+        rationale: ""
+
+    - name: "citation_case_3"
+      description: "Test case with no citations in the chunk"
+      input:
+        main_document: "data/case_1/main_document.md"
+        bibliography:
+          - "Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry."
+          - "Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf."
+          - "Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech."
+        chunk: "We conducted experiments using standard gizmo benchmarks."
+      expected_output:
+        citations: []
+        rationale: ""

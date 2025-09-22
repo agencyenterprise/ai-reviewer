@@ -1,4 +1,4 @@
-import { ClaimSubstantiatorState } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateOutput, ChunkReevaluationResponse } from '@/lib/generated-api';
 
 export interface WizardStep {
   id: string;
@@ -9,7 +9,7 @@ export interface WizardStep {
 export interface AnalysisResults {
   status: 'processing' | 'completed' | 'error';
   error?: string;
-  fullResults?: ClaimSubstantiatorState;
+  fullResults?: ClaimSubstantiatorStateOutput;
 }
 
 export interface WizardState {
@@ -26,6 +26,7 @@ export interface WizardActions {
   setSupportingDocuments: (files: File[]) => void;
   setIsProcessing: (processing: boolean) => void;
   setAnalysisResults: (results: AnalysisResults | null) => void;
+  updateChunkResults: (response: ChunkReevaluationResponse) => void;
   reset: () => void;
 }
 

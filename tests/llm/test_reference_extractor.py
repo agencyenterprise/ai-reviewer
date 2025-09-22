@@ -1,4 +1,4 @@
-import os
+import asyncio
 from pathlib import Path
 
 import pytest
@@ -10,6 +10,7 @@ from lib.agents.reference_extractor import (
     reference_extractor_agent,
 )
 from lib.agents.tools import format_supporting_documents_prompt_section_multiple
+from tests.datasets.loader import load_dataset
 
 
 TESTS_DIR = Path(__file__).parent.parent
@@ -21,161 +22,60 @@ def _data(path: str) -> str:
 
 async def _build_supporting_block(paths: list[str]) -> str:
     docs = [await create_file_document_from_path(_data(p)) for p in paths]
-    return await format_supporting_documents_prompt_section_multiple(
+    return format_supporting_documents_prompt_section_multiple(
         docs, truncate_at_character_count=1000
     )
 
 
-async def _build_cases() -> list[AgentTestCase]:
+def _build_cases() -> list[AgentTestCase]:
+    # Load dataset from YAML
+    dataset_path = str(TESTS_DIR / "datasets" / "reference_extractor.yaml")
+    dataset = load_dataset(dataset_path)
+
+    # Test configuration - hardcoded for this specific test
     strict_fields = {
-        # Validate per-reference fields for all items
         "references": {
             "__all__": {
-                # Keep checks robust and deterministic
                 "text",
                 "has_associated_supporting_document",
                 "index_of_associated_supporting_document",
                 "name_of_associated_supporting_document",
-            },
+            }
         }
     }
 
     cases: list[AgentTestCase] = []
 
-    # Load full document once
-    main_path = _data(os.path.join("data", "case_1", "main_document.md"))
-    main_doc = await create_file_document_from_path(main_path)
+    for test_case in dataset.items:
+        # Load main document from input
+        main_path = _data(test_case.input["main_document"])
+        main_doc = asyncio.run(create_file_document_from_path(main_path))
 
-    # case_1-basic
-    support_paths_basic = [
-        os.path.join("data", "case_1", "supporting_1.md"),
-        os.path.join("data", "case_1", "supporting_2.md"),
-        os.path.join("data", "case_1", "supporting_3.md"),
-    ]
-    supporting_block_basic = await _build_supporting_block(support_paths_basic)
-    cases.append(
-        AgentTestCase(
-            name="reference_case_basic",
-            agent=reference_extractor_agent,
-            response_model=ReferenceExtractorResponse,
-            prompt_kwargs={
-                "full_document": main_doc.markdown,
-                "supporting_documents": supporting_block_basic,
-            },
-            expected_dict={
-                "references": [
-                    {
-                        "text": "Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry.",
-                        "has_associated_supporting_document": True,
-                        "index_of_associated_supporting_document": 1,
-                        "name_of_associated_supporting_document": "supporting_1.md",
-                    },
-                    {
-                        "text": "Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf.",
-                        "has_associated_supporting_document": True,
-                        "index_of_associated_supporting_document": 2,
-                        "name_of_associated_supporting_document": "supporting_2.md",
-                    },
-                    {
-                        "text": "Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech.",
-                        "has_associated_supporting_document": True,
-                        "index_of_associated_supporting_document": 3,
-                        "name_of_associated_supporting_document": "supporting_3.md",
-                    },
-                ]
-            },
-            strict_fields=strict_fields,
+        # Build supporting documents block from input
+        supporting_block = asyncio.run(
+            _build_supporting_block(test_case.input["supporting_documents"])
         )
-    )
 
-    # case_1-basic-missing-supporting-document
-    support_paths_missing = [
-        os.path.join("data", "case_1", "supporting_1.md"),
-        os.path.join("data", "case_1", "supporting_3.md"),
-    ]
-    supporting_block_missing = await _build_supporting_block(support_paths_missing)
-    cases.append(
-        AgentTestCase(
-            name="reference_case_missing_support",
-            agent=reference_extractor_agent,
-            response_model=ReferenceExtractorResponse,
-            prompt_kwargs={
-                "full_document": main_doc.markdown,
-                "supporting_documents": supporting_block_missing,
-            },
-            expected_dict={
-                "references": [
-                    {
-                        "text": "Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry.",
-                        "has_associated_supporting_document": True,
-                        "index_of_associated_supporting_document": 1,
-                        "name_of_associated_supporting_document": "supporting_1.md",
-                    },
-                    {
-                        "text": "Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf.",
-                        "has_associated_supporting_document": False,
-                        "index_of_associated_supporting_document": -1,
-                        "name_of_associated_supporting_document": "",
-                    },
-                    {
-                        "text": "Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech.",
-                        "has_associated_supporting_document": True,
-                        "index_of_associated_supporting_document": 2,
-                        "name_of_associated_supporting_document": "supporting_3.md",
-                    },
-                ]
-            },
-            strict_fields=strict_fields,
+        cases.append(
+            AgentTestCase(
+                name=test_case.name,
+                agent=reference_extractor_agent,
+                response_model=ReferenceExtractorResponse,
+                prompt_kwargs={
+                    "full_document": main_doc.markdown,
+                    "supporting_documents": supporting_block,
+                },
+                expected_dict=test_case.expected_output,
+                strict_fields=strict_fields,
+            )
         )
-    )
-
-    # case_1-basic-no-supporting-documents
-    support_paths_none: list[str] = []
-    supporting_block_none = await _build_supporting_block(support_paths_none)
-    cases.append(
-        AgentTestCase(
-            name="reference_case_no_support",
-            agent=reference_extractor_agent,
-            response_model=ReferenceExtractorResponse,
-            prompt_kwargs={
-                "full_document": main_doc.markdown,
-                "supporting_documents": supporting_block_none,
-            },
-            expected_dict={
-                "references": [
-                    {
-                        "text": "Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry.",
-                        "has_associated_supporting_document": False,
-                        "index_of_associated_supporting_document": -1,
-                        "name_of_associated_supporting_document": "",
-                    },
-                    {
-                        "text": "Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf.",
-                        "has_associated_supporting_document": False,
-                        "index_of_associated_supporting_document": -1,
-                        "name_of_associated_supporting_document": "",
-                    },
-                    {
-                        "text": "Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech.",
-                        "has_associated_supporting_document": False,
-                        "index_of_associated_supporting_document": -1,
-                        "name_of_associated_supporting_document": "",
-                    },
-                ]
-            },
-            strict_fields=strict_fields,
-        )
-    )
 
     return cases
 
 
-@pytest.mark.live
 @pytest.mark.asyncio
-async def test_reference_extractor_agent_cases():
-    cases = await _build_cases()
-
-    for case in cases:
-        await case.run()
-        eval_result = await case.compare_results()
-        assert eval_result.passed, eval_result.rationale
+@pytest.mark.parametrize("case", _build_cases(), ids=lambda case: case.name)
+async def test_reference_extractor_agent_cases(case: AgentTestCase):
+    await case.run()
+    eval_result = await case.compare_results()
+    assert eval_result.passed, f"{case.name}: {eval_result.rationale}"

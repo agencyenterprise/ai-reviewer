@@ -25,8 +25,6 @@ from langgraph.prebuilt import (
 
 # No direct BaseModel usage here
 
-langfuse_handler = CallbackHandler()
-
 
 class Agent(SQLModel, table=True):
     __tablename__ = "agents"
@@ -90,10 +88,7 @@ class Agent(SQLModel, table=True):
         messages = prompt_template.format_messages(**prompt_kwargs)
 
         # Apply LLM
-        args = {
-            "input": messages,
-            "config": {"callbacks": [langfuse_handler]},
-        }
+        args = {"input": messages}
         return llm_with_structure, args
 
     def prep_runner_args(self, prompt_kwargs: dict) -> dict:
@@ -132,19 +127,13 @@ class Agent(SQLModel, table=True):
     async def _apply_without_tools(self, prompt_kwargs: dict):
         """Apply the agent to the prompt kwargs without tools"""
         llm_with_structure, args = self.prep_llm_args(prompt_kwargs)
-        chunk_result = await llm_with_structure.ainvoke(
-            args["input"],
-            config=args["config"],
-        )
+        chunk_result = await llm_with_structure.ainvoke(args["input"])
         return chunk_result
 
     def _apply_sync_without_tools(self, prompt_kwargs: dict):
         """Apply the agent to the prompt kwargs without tools synchronously"""
         llm_with_structure, args = self.prep_llm_args(prompt_kwargs)
-        chunk_result = llm_with_structure.invoke(
-            args["input"],
-            config=args["config"],
-        )
+        chunk_result = llm_with_structure.invoke(args["input"])
         return chunk_result
 
     async def _apply_with_tools(self, prompt_kwargs: dict):

@@ -32,6 +32,26 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
     setAnalysisResults: (results) => {
       setState((prev) => ({ ...prev, analysisResults: results }));
     },
+    updateChunkResults: (response) => {
+      setState((prev) => {
+        if (!prev.analysisResults?.fullResults) return prev;
+
+        const prevChunks = prev.analysisResults.fullResults.chunks || [];
+        const chunkIndex = response.chunk.chunkIndex;
+        const updatedChunks = prevChunks.map((chunk, idx) => (idx === chunkIndex ? response.chunk : chunk));
+
+        return {
+          ...prev,
+          analysisResults: {
+            ...prev.analysisResults,
+            fullResults: {
+              ...prev.analysisResults.fullResults,
+              chunks: updatedChunks,
+            },
+          },
+        };
+      });
+    },
     reset: () => {
       setState(initialState);
     },

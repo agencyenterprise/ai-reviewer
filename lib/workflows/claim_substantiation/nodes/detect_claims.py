@@ -1,8 +1,10 @@
 import logging
-from typing import List
-from lib.agents.claim_detector import claim_detector_agent, ClaimResponse
-from lib.services.document_processor import DocumentProcessor
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
+from lib.agents.claim_detector import ClaimResponse, claim_detector_agent
+from lib.workflows.chunk_iterator import iterate_chunks
+from lib.workflows.claim_substantiation.state import (
+    ClaimSubstantiatorState,
+    DocumentChunk,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -10,9 +12,18 @@ logger = logging.getLogger(__name__)
 async def detect_claims(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
     logger.info("detect_claims: detecting claims")
 
-    processor = DocumentProcessor(state["file"])
-    results: List[ClaimResponse] = await processor.apply_agent_to_all_chunks(
-        claim_detector_agent
+    agents_to_run = state.agents_to_run
+    if agents_to_run and "claims" not in agents_to_run:
+        logger.info("detect_claims: Skipping claims detection (not in agents_to_run)")
+        return {}
+
+    return await iterate_chunks(state, _detect_chunk_claims, "Detecting chunk claims")
+
+
+async def _detect_chunk_claims(
+    state: ClaimSubstantiatorState, chunk: DocumentChunk
+) -> DocumentChunk:
+    claims: ClaimResponse = await claim_detector_agent.apply(
+        {"chunk": chunk.content, "full_document": state.file.markdown}
     )
-    chunks = [chunk.page_content for chunk in await processor.get_chunks()]
-    return {"claims_by_chunk": results, "chunks": chunks}
+    return chunk.model_copy(update={"claims": claims})

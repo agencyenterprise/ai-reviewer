@@ -46,12 +46,8 @@ class CitationResponse(BaseModel):
     )
 
 
-citation_detector_agent = Agent(
-    name="Citation Detector",
-    description="Detect citations in a chunk of text",
-    model="openai:gpt-5",
-    prompt=ChatPromptTemplate.from_template(
-        """
+_citation_detector_prompt = ChatPromptTemplate.from_template(
+    """
 ## Task
 You are a citation detector. You are given a chunk of text and you need to extract any citations made in that chunk of text.
 You will be given a full document and a chunk of text from that document.
@@ -81,7 +77,13 @@ The indexes in this list should be used when returning index_of_associated_bibli
 {chunk}
 ```
 """
-    ),
+)
+
+citation_detector_agent = Agent(
+    name="Citation Detector",
+    description="Detect citations in a chunk of text",
+    model="openai:gpt-5",
+    prompt=_citation_detector_prompt,
     mandatory_tools=[],
     output_schema=CitationResponse,
 )

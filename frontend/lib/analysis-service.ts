@@ -1,14 +1,21 @@
 import { AnalysisResults } from '@/components/wizard/types';
 import {
-  ClaimSubstantiatorState,
+  ClaimSubstantiatorStateOutput,
   Configuration,
   DefaultApi,
   RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest,
+  ChunkReevaluationRequest,
+  ChunkReevaluationResponse,
 } from '@/lib/generated-api';
 
 interface AnalysisRequest {
   mainDocument: File;
   supportingDocuments?: File[];
+}
+
+export interface SupportedAgentsResponse {
+  supported_agents: string[];
+  agent_descriptions: Record<string, string>;
 }
 
 class AnalysisService {
@@ -24,10 +31,10 @@ class AnalysisService {
     );
   }
 
-  private transformResponse(apiResponse: ClaimSubstantiatorState): AnalysisResults {
+  private transformResponse(apiResponse: ClaimSubstantiatorStateOutput): AnalysisResults {
     return {
       status: 'completed',
-      fullResults: apiResponse as unknown as ClaimSubstantiatorState,
+      fullResults: apiResponse as unknown as ClaimSubstantiatorStateOutput,
     };
   }
 
@@ -53,6 +60,26 @@ class AnalysisService {
     } catch (error) {
       console.error('Error calling claim substantiation API:', error);
       return this.createErrorResult(error);
+    }
+  }
+
+  async getSupportedAgents(): Promise<SupportedAgentsResponse> {
+    try {
+      return await this.api.getSupportedAgentsApiSupportedAgentsGet();
+    } catch (error) {
+      console.error('Error fetching supported agents:', error);
+      throw error;
+    }
+  }
+
+  async reevaluateChunk(request: ChunkReevaluationRequest): Promise<ChunkReevaluationResponse> {
+    try {
+      return await this.api.reevaluateChunkApiReevaluateChunkPost({
+        chunkReevaluationRequest: request,
+      });
+    } catch (error) {
+      console.error('Error re-evaluating chunk:', error);
+      throw error;
     }
   }
 }

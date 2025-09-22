@@ -1,6 +1,6 @@
-import { ClaimSubstantiatorState } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
 
-export function useResultsCalculations(detailedResults: ClaimSubstantiatorState | undefined) {
+export function useResultsCalculations(detailedResults: ClaimSubstantiatorStateOutput | undefined) {
   if (!detailedResults) {
     return {
       totalClaims: 0,
@@ -13,28 +13,27 @@ export function useResultsCalculations(detailedResults: ClaimSubstantiatorState 
     };
   }
 
-  const totalClaims = detailedResults.claimsByChunk?.reduce((sum, chunk) => sum + chunk.claims.length, 0) || 0;
+  const totalClaims = detailedResults.chunks?.reduce((sum, chunk) => sum + (chunk.claims?.claims?.length || 0), 0) || 0;
 
-  const totalCitations = detailedResults.citationsByChunk?.reduce((sum, chunk) => sum + chunk.citations.length, 0) || 0;
+  const totalCitations =
+    detailedResults.chunks?.reduce((sum, chunk) => sum + (chunk.citations?.citations?.length || 0), 0) || 0;
 
   const totalUnsubstantiated =
-    detailedResults.claimSubstantiationsByChunk?.reduce(
-      (sum, chunk) => sum + chunk.substantiations.filter((sub) => !sub.isSubstantiated).length,
+    detailedResults.chunks?.reduce(
+      (sum, chunk) => sum + (chunk.substantiations?.filter((sub) => !sub.isSubstantiated)?.length || 0),
       0,
     ) || 0;
 
-  const chunksWithClaims = detailedResults.claimsByChunk?.filter((chunk) => chunk.claims.length > 0).length || 0;
+  const chunksWithClaims =
+    detailedResults.chunks?.filter((chunk) => (chunk.claims?.claims?.length || 0) > 0).length || 0;
 
   const chunksWithCitations =
-    detailedResults.citationsByChunk?.filter((chunk) => chunk.citations.length > 0).length || 0;
+    detailedResults.chunks?.filter((chunk) => (chunk.citations?.citations?.length || 0) > 0).length || 0;
 
   const supportedReferences =
     detailedResults.references?.filter((ref) => ref.hasAssociatedSupportingDocument).length || 0;
 
-  const totalChunks = Math.max(
-    detailedResults.claimsByChunk?.length || 0,
-    detailedResults.citationsByChunk?.length || 0,
-  );
+  const totalChunks = Math.max(detailedResults.chunks?.length || 0, detailedResults.chunks?.length || 0);
 
   return {
     totalClaims,

@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { DocumentChunk } from './DocumentChunk';
+import {
+  DocumentChunkFromJSON,
+  DocumentChunkFromJSONTyped,
+  DocumentChunkToJSON,
+  DocumentChunkToJSONTyped,
+} from './DocumentChunk';
 import type { FileDocument } from './FileDocument';
 import {
   FileDocumentFromJSON,
@@ -20,13 +27,6 @@ import {
   FileDocumentToJSON,
   FileDocumentToJSONTyped,
 } from './FileDocument';
-import type { CitationResponse } from './CitationResponse';
-import {
-  CitationResponseFromJSON,
-  CitationResponseFromJSONTyped,
-  CitationResponseToJSON,
-  CitationResponseToJSONTyped,
-} from './CitationResponse';
 import type { BibliographyItem } from './BibliographyItem';
 import {
   BibliographyItemFromJSON,
@@ -34,20 +34,6 @@ import {
   BibliographyItemToJSON,
   BibliographyItemToJSONTyped,
 } from './BibliographyItem';
-import type { ClaimSubstantiationChunk } from './ClaimSubstantiationChunk';
-import {
-  ClaimSubstantiationChunkFromJSON,
-  ClaimSubstantiationChunkFromJSONTyped,
-  ClaimSubstantiationChunkToJSON,
-  ClaimSubstantiationChunkToJSONTyped,
-} from './ClaimSubstantiationChunk';
-import type { ClaimSubstantiatorStateClaimsByChunkInner } from './ClaimSubstantiatorStateClaimsByChunkInner';
-import {
-  ClaimSubstantiatorStateClaimsByChunkInnerFromJSON,
-  ClaimSubstantiatorStateClaimsByChunkInnerFromJSONTyped,
-  ClaimSubstantiatorStateClaimsByChunkInnerToJSON,
-  ClaimSubstantiatorStateClaimsByChunkInnerToJSONTyped,
-} from './ClaimSubstantiatorStateClaimsByChunkInner';
 
 /**
  *
@@ -69,10 +55,16 @@ export interface ClaimSubstantiatorState {
   supportingFiles?: Array<FileDocument>;
   /**
    *
+   * @type {Array<number>}
+   * @memberof ClaimSubstantiatorState
+   */
+  targetChunkIndices?: Array<number> | null;
+  /**
+   *
    * @type {Array<string>}
    * @memberof ClaimSubstantiatorState
    */
-  chunks?: Array<string>;
+  agentsToRun?: Array<string> | null;
   /**
    *
    * @type {Array<BibliographyItem>}
@@ -81,22 +73,10 @@ export interface ClaimSubstantiatorState {
   references?: Array<BibliographyItem>;
   /**
    *
-   * @type {Array<ClaimSubstantiatorStateClaimsByChunkInner>}
+   * @type {Array<DocumentChunk>}
    * @memberof ClaimSubstantiatorState
    */
-  claimsByChunk?: Array<ClaimSubstantiatorStateClaimsByChunkInner>;
-  /**
-   *
-   * @type {Array<CitationResponse>}
-   * @memberof ClaimSubstantiatorState
-   */
-  citationsByChunk?: Array<CitationResponse>;
-  /**
-   *
-   * @type {Array<ClaimSubstantiationChunk>}
-   * @memberof ClaimSubstantiatorState
-   */
-  claimSubstantiationsByChunk?: Array<ClaimSubstantiationChunk>;
+  chunks?: Array<DocumentChunk>;
 }
 
 /**
@@ -118,21 +98,11 @@ export function ClaimSubstantiatorStateFromJSONTyped(json: any, ignoreDiscrimina
     file: json['file'] == null ? undefined : FileDocumentFromJSON(json['file']),
     supportingFiles:
       json['supporting_files'] == null ? undefined : (json['supporting_files'] as Array<any>).map(FileDocumentFromJSON),
-    chunks: json['chunks'] == null ? undefined : json['chunks'],
+    targetChunkIndices: json['target_chunk_indices'] == null ? undefined : json['target_chunk_indices'],
+    agentsToRun: json['agents_to_run'] == null ? undefined : json['agents_to_run'],
     references:
       json['references'] == null ? undefined : (json['references'] as Array<any>).map(BibliographyItemFromJSON),
-    claimsByChunk:
-      json['claims_by_chunk'] == null
-        ? undefined
-        : (json['claims_by_chunk'] as Array<any>).map(ClaimSubstantiatorStateClaimsByChunkInnerFromJSON),
-    citationsByChunk:
-      json['citations_by_chunk'] == null
-        ? undefined
-        : (json['citations_by_chunk'] as Array<any>).map(CitationResponseFromJSON),
-    claimSubstantiationsByChunk:
-      json['claim_substantiations_by_chunk'] == null
-        ? undefined
-        : (json['claim_substantiations_by_chunk'] as Array<any>).map(ClaimSubstantiationChunkFromJSON),
+    chunks: json['chunks'] == null ? undefined : (json['chunks'] as Array<any>).map(DocumentChunkFromJSON),
   };
 }
 
@@ -152,20 +122,10 @@ export function ClaimSubstantiatorStateToJSONTyped(
     file: FileDocumentToJSON(value['file']),
     supporting_files:
       value['supportingFiles'] == null ? undefined : (value['supportingFiles'] as Array<any>).map(FileDocumentToJSON),
-    chunks: value['chunks'],
+    target_chunk_indices: value['targetChunkIndices'],
+    agents_to_run: value['agentsToRun'],
     references:
       value['references'] == null ? undefined : (value['references'] as Array<any>).map(BibliographyItemToJSON),
-    claims_by_chunk:
-      value['claimsByChunk'] == null
-        ? undefined
-        : (value['claimsByChunk'] as Array<any>).map(ClaimSubstantiatorStateClaimsByChunkInnerToJSON),
-    citations_by_chunk:
-      value['citationsByChunk'] == null
-        ? undefined
-        : (value['citationsByChunk'] as Array<any>).map(CitationResponseToJSON),
-    claim_substantiations_by_chunk:
-      value['claimSubstantiationsByChunk'] == null
-        ? undefined
-        : (value['claimSubstantiationsByChunk'] as Array<any>).map(ClaimSubstantiationChunkToJSON),
+    chunks: value['chunks'] == null ? undefined : (value['chunks'] as Array<any>).map(DocumentChunkToJSON),
   };
 }

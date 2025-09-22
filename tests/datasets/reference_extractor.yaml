@@ -1,0 +1,71 @@
+# Reference Extractor Test Dataset
+# This file contains test cases for the reference extractor agent
+
+dataset:
+  name: "Reference Extractor Dataset"
+  description: "Test cases for validating reference extraction and supporting document matching"
+  items:
+    - name: "reference_case_basic"
+      description: "Basic test case with all supporting documents present"
+      input:
+        main_document: "data/case_1/main_document.md"
+        supporting_documents:
+          - "data/case_1/supporting_1.md"
+          - "data/case_1/supporting_2.md"
+          - "data/case_1/supporting_3.md"
+      expected_output:
+        references:
+          - text: "Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 1
+            name_of_associated_supporting_document: "supporting_1.md"
+          - text: "Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 2
+            name_of_associated_supporting_document: "supporting_2.md"
+          - text: "Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 3
+            name_of_associated_supporting_document: "supporting_3.md"
+
+    - name: "reference_case_missing_support"
+      description: "Test case with one supporting document missing (supporting_2.md)"
+      input:
+        main_document: "data/case_1/main_document.md"
+        supporting_documents:
+          - "data/case_1/supporting_1.md"
+          - "data/case_1/supporting_3.md"
+      expected_output:
+        references:
+          - text: "Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 1
+            name_of_associated_supporting_document: "supporting_1.md"
+          - text: "Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf."
+            has_associated_supporting_document: false
+            index_of_associated_supporting_document: -1
+            name_of_associated_supporting_document: ""
+          - text: "Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 2
+            name_of_associated_supporting_document: "supporting_3.md"
+
+    - name: "reference_case_no_support"
+      description: "Test case with no supporting documents provided"
+      input:
+        main_document: "data/case_1/main_document.md"
+        supporting_documents: []
+      expected_output:
+        references:
+          - text: "Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry."
+            has_associated_supporting_document: false
+            index_of_associated_supporting_document: -1
+            name_of_associated_supporting_document: ""
+          - text: "Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf."
+            has_associated_supporting_document: false
+            index_of_associated_supporting_document: -1
+            name_of_associated_supporting_document: ""
+          - text: "Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech."
+            has_associated_supporting_document: false
+            index_of_associated_supporting_document: -1
+            name_of_associated_supporting_document: ""

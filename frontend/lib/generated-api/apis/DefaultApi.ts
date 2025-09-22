@@ -13,13 +13,26 @@
  */
 
 import * as runtime from '../runtime';
-import type { ClaimSubstantiatorState, HTTPValidationError } from '../models/index';
+import type {
+  ChunkReevaluationRequest,
+  ChunkReevaluationResponse,
+  ClaimSubstantiatorStateOutput,
+  HTTPValidationError,
+} from '../models/index';
 import {
-  ClaimSubstantiatorStateFromJSON,
-  ClaimSubstantiatorStateToJSON,
+  ChunkReevaluationRequestFromJSON,
+  ChunkReevaluationRequestToJSON,
+  ChunkReevaluationResponseFromJSON,
+  ChunkReevaluationResponseToJSON,
+  ClaimSubstantiatorStateOutputFromJSON,
+  ClaimSubstantiatorStateOutputToJSON,
   HTTPValidationErrorFromJSON,
   HTTPValidationErrorToJSON,
 } from '../models/index';
+
+export interface ReevaluateChunkApiReevaluateChunkPostRequest {
+  chunkReevaluationRequest: ChunkReevaluationRequest;
+}
 
 export interface RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest {
   mainDocument: Blob;
@@ -31,6 +44,47 @@ export interface RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequ
  *
  */
 export class DefaultApi extends runtime.BaseAPI {
+  /**
+   * Get list of supported agent types for chunk re-evaluation.  Returns:     List of supported agent type strings
+   * Get Supported Agents
+   */
+  async getSupportedAgentsApiSupportedAgentsGetRaw(
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<any>> {
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    let urlPath = `/api/supported-agents`;
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'GET',
+        headers: headerParameters,
+        query: queryParameters,
+      },
+      initOverrides,
+    );
+
+    if (this.isJsonMime(response.headers.get('content-type'))) {
+      return new runtime.JSONApiResponse<any>(response);
+    } else {
+      return new runtime.TextApiResponse(response) as any;
+    }
+  }
+
+  /**
+   * Get list of supported agent types for chunk re-evaluation.  Returns:     List of supported agent type strings
+   * Get Supported Agents
+   */
+  async getSupportedAgentsApiSupportedAgentsGet(
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<any> {
+    const response = await this.getSupportedAgentsApiSupportedAgentsGetRaw(initOverrides);
+    return await response.value();
+  }
+
   /**
    * Read Health
    */
@@ -69,13 +123,62 @@ export class DefaultApi extends runtime.BaseAPI {
   }
 
   /**
+   * Re-evaluate a specific chunk with selected agents using unified LangGraph workflow.  Args:     request: Contains chunk index, agents to run, and original state  Returns:     Updated results for the specified chunk
+   * Reevaluate Chunk
+   */
+  async reevaluateChunkApiReevaluateChunkPostRaw(
+    requestParameters: ReevaluateChunkApiReevaluateChunkPostRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<ChunkReevaluationResponse>> {
+    if (requestParameters['chunkReevaluationRequest'] == null) {
+      throw new runtime.RequiredError(
+        'chunkReevaluationRequest',
+        'Required parameter "chunkReevaluationRequest" was null or undefined when calling reevaluateChunkApiReevaluateChunkPost().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    headerParameters['Content-Type'] = 'application/json';
+
+    let urlPath = `/api/reevaluate-chunk`;
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'POST',
+        headers: headerParameters,
+        query: queryParameters,
+        body: ChunkReevaluationRequestToJSON(requestParameters['chunkReevaluationRequest']),
+      },
+      initOverrides,
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) => ChunkReevaluationResponseFromJSON(jsonValue));
+  }
+
+  /**
+   * Re-evaluate a specific chunk with selected agents using unified LangGraph workflow.  Args:     request: Contains chunk index, agents to run, and original state  Returns:     Updated results for the specified chunk
+   * Reevaluate Chunk
+   */
+  async reevaluateChunkApiReevaluateChunkPost(
+    requestParameters: ReevaluateChunkApiReevaluateChunkPostRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<ChunkReevaluationResponse> {
+    const response = await this.reevaluateChunkApiReevaluateChunkPostRaw(requestParameters, initOverrides);
+    return await response.value();
+  }
+
+  /**
    * Run the claim substantiation workflow on uploaded documents.  Args:     main_document: The main document to analyze for claims     supporting_documents: Optional supporting documents for substantiation  Returns:     The workflow state containing claims, citations, references, and substantiations
    * Run Claim Substantiation Workflow
    */
   async runClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRaw(
     requestParameters: RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<runtime.ApiResponse<ClaimSubstantiatorState>> {
+  ): Promise<runtime.ApiResponse<ClaimSubstantiatorStateOutput>> {
     if (requestParameters['mainDocument'] == null) {
       throw new runtime.RequiredError(
         'mainDocument',
@@ -130,7 +233,7 @@ export class DefaultApi extends runtime.BaseAPI {
       initOverrides,
     );
 
-    return new runtime.JSONApiResponse(response, (jsonValue) => ClaimSubstantiatorStateFromJSON(jsonValue));
+    return new runtime.JSONApiResponse(response, (jsonValue) => ClaimSubstantiatorStateOutputFromJSON(jsonValue));
   }
 
   /**
@@ -140,7 +243,7 @@ export class DefaultApi extends runtime.BaseAPI {
   async runClaimSubstantiationWorkflowApiRunClaimSubstantiationPost(
     requestParameters: RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
-  ): Promise<ClaimSubstantiatorState> {
+  ): Promise<ClaimSubstantiatorStateOutput> {
     const response = await this.runClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRaw(
       requestParameters,
       initOverrides,

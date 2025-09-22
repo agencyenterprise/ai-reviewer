@@ -24,19 +24,19 @@ export interface FileDocument {
    * @type {string}
    * @memberof FileDocument
    */
-  fileName: string;
+  fileName?: string;
   /**
    *
    * @type {string}
    * @memberof FileDocument
    */
-  filePath: string;
+  filePath?: string;
   /**
    *
    * @type {string}
    * @memberof FileDocument
    */
-  fileType: string;
+  fileType?: string;
   /**
    *
    * @type {string}
@@ -49,9 +49,6 @@ export interface FileDocument {
  * Check if a given object implements the FileDocument interface.
  */
 export function instanceOfFileDocument(value: object): value is FileDocument {
-  if (!('fileName' in value) || value['fileName'] === undefined) return false;
-  if (!('filePath' in value) || value['filePath'] === undefined) return false;
-  if (!('fileType' in value) || value['fileType'] === undefined) return false;
   if (!('markdown' in value) || value['markdown'] === undefined) return false;
   return true;
 }
@@ -65,9 +62,9 @@ export function FileDocumentFromJSONTyped(json: any, ignoreDiscriminator: boolea
     return json;
   }
   return {
-    fileName: json['file_name'],
-    filePath: json['file_path'],
-    fileType: json['file_type'],
+    fileName: json['fileName'] == null ? undefined : json['fileName'],
+    filePath: json['filePath'] == null ? undefined : json['filePath'],
+    fileType: json['fileType'] == null ? undefined : json['fileType'],
     markdown: json['markdown'],
   };
 }
@@ -82,9 +79,9 @@ export function FileDocumentToJSONTyped(value?: FileDocument | null, ignoreDiscr
   }
 
   return {
-    file_name: value['fileName'],
-    file_path: value['filePath'],
-    file_type: value['fileType'],
+    fileName: value['fileName'],
+    filePath: value['filePath'],
+    fileType: value['fileType'],
     markdown: value['markdown'],
   };
 }
