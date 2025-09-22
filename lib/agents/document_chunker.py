@@ -22,6 +22,7 @@ document_chunker_agent = Agent(
 I will send the markdown document as my next message."""
     )
     + "{full_document}",
+    tools=[],
     mandatory_tools=[],
     output_schema=DocumentChunkerResponse,
 )

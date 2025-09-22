@@ -39,6 +39,7 @@ If there's a matching reference, return the reference text and the index of the 
 ```
         """
     ),
+    tools=[],
     mandatory_tools=[],
     output_schema=ReferenceMatch,
 )

@@ -20,6 +20,7 @@ markdown_cleaner_agent = Agent(
 I will send the markdown document to clean as my next message."""
     )
     + "{full_document}",
+    tools=[],
     mandatory_tools=[],
     output_schema=MarkdownCleanerResponse,
 )
