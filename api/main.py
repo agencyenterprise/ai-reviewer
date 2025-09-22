@@ -55,17 +55,9 @@ async def run_claim_substantiation_workflow(
     """
 
     try:
-        logger.info(f"Starting claim substantiation workflow")
-        logger.info(f"Main document: filename={main_document.filename}, content_type={main_document.content_type}")
-        logger.info(f"Supporting documents count: {len(supporting_documents) if supporting_documents else 0}")
-        
         [main_file, *supporting_files] = await convert_uploaded_files_to_file_document(
             [main_document] + (supporting_documents or [])
         )
-        
-        logger.info(f"File conversion completed successfully")
-        logger.info(f"Main file: {main_file.file_name} ({main_file.file_type})")
-        logger.info(f"Supporting files: {len(supporting_files)}")
 
         result_state = await run_claim_substantiator(
             file=main_file,
