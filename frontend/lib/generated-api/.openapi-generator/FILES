@@ -2,6 +2,7 @@ apis/DefaultApi.ts
 apis/index.ts
 index.ts
 models/BibliographyItem.ts
+models/ChunkEvalPackageRequest.ts
 models/ChunkReevaluationRequest.ts
 models/ChunkReevaluationResponse.ts
 models/Citation.ts

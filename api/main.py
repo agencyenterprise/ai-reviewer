@@ -14,10 +14,23 @@ from lib.workflows.claim_substantiation.state import (
     ChunkReevaluationResponse,
     ClaimSubstantiationChunk,
 )
+
+# Import request models
+class EvalPackageRequest(BaseModel):
+    results: dict
+    test_name: str = Field(default="generated_test")
+    description: str = Field(default="Generated from frontend analysis")
+
+class ChunkEvalPackageRequest(BaseModel):
+    results: dict
+    chunk_index: int
+    selected_agents: List[str]
+    test_name: str = Field(default="generated_chunk_test")
+    description: str = Field(default="Generated from chunk analysis")
 from lib.services.file import FileDocument
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.registry import agent_registry
-from lib.services.eval_generator import eval_test_generator
+from lib.services.eval_generator.generator import eval_test_generator
 
 logger = logging.getLogger(__name__)
 
@@ -131,12 +144,6 @@ async def get_supported_agents():
     }
 
 
-class EvalPackageRequest(BaseModel):
-    results: dict
-    test_name: str = Field(default="generated_test")
-    description: str = Field(default="Generated from frontend analysis")
-
-
 @app.post("/api/generate-eval-package")
 async def generate_eval_package(request: EvalPackageRequest):
     """
@@ -159,4 +166,35 @@ async def generate_eval_package(request: EvalPackageRequest):
         logger.error(f"Error generating eval package: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"Error generating eval package: {str(e)}"
+        )
+
+
+@app.post("/api/generate-chunk-eval-package")
+async def generate_chunk_eval_package(request: ChunkEvalPackageRequest):
+    """
+    Generate eval test package for a specific chunk with selected agents.
+    Only includes files required by the selected agents.
+    
+    Args:
+        request: Contains analysis results, chunk index, selected agents, and metadata
+        
+    Returns:
+        Optimized zip file containing only necessary YAML test files and data files
+    """
+    try:
+        return eval_test_generator.generate_chunk_package(
+            results=request.results,
+            chunk_index=request.chunk_index,
+            selected_agents=request.selected_agents,
+            test_name=request.test_name,
+            description=request.description
+        )
+        
+    except ValueError as e:
+        logger.error(f"Invalid request for chunk eval generation: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error generating chunk eval package: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Error generating chunk eval package: {str(e)}"
         )

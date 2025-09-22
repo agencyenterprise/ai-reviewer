@@ -7,6 +7,7 @@ import {
   ChunkReevaluationRequest,
   ChunkReevaluationResponse,
   EvalPackageRequest,
+  ChunkEvalPackageRequest,
 } from '@/lib/generated-api';
 
 interface AnalysisRequest {
@@ -104,6 +105,34 @@ class AnalysisService {
       return await response.blob();
     } catch (error) {
       console.error('Error generating eval package:', error);
+      throw error;
+    }
+  }
+
+  async generateChunkEvalPackage(
+    results: ClaimSubstantiatorStateOutput,
+    chunkIndex: number,
+    selectedAgents: string[],
+    testName?: string,
+    description?: string,
+  ): Promise<Blob> {
+    try {
+      const evalRequest: ChunkEvalPackageRequest = {
+        results: results as any,
+        chunkIndex: chunkIndex,
+        selectedAgents: selectedAgents,
+        testName: testName || `chunk_eval_${chunkIndex}_${Date.now()}`,
+        description: description || `Generated from chunk ${chunkIndex} analysis`,
+      };
+
+      const apiResponse = await this.api.generateChunkEvalPackageApiGenerateChunkEvalPackagePostRaw({
+        chunkEvalPackageRequest: evalRequest,
+      });
+
+      const response = apiResponse.raw;
+      return await response.blob();
+    } catch (error) {
+      console.error('Error generating chunk eval package:', error);
       throw error;
     }
   }

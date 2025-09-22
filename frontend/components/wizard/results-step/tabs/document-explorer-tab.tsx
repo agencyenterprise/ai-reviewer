@@ -10,6 +10,7 @@ import { ChevronRight, FileIcon, Link as LinkIcon, MessageCirclePlus } from 'luc
 import * as React from 'react';
 import { ChunkItem } from '../components/chunk-display';
 import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
+import { ChunkEvalGenerator } from '../components/chunk-eval-generator';
 import { ClaimCategoryLabel } from '../components/claim-category-label';
 import { SeverityBadge } from '../components/severity-badge';
 import { useWizard } from '../../wizard-context';
@@ -291,6 +292,13 @@ export function DocumentExplorerChunk({
             chunkIndex={chunk.chunkIndex}
             originalState={results}
             onReevaluation={onChunkReevaluation}
+            supportedAgents={supportedAgents}
+            supportedAgentsError={supportedAgentsError}
+          />
+
+          <ChunkEvalGenerator
+            chunkIndex={chunk.chunkIndex}
+            originalState={results}
             supportedAgents={supportedAgents}
             supportedAgentsError={supportedAgentsError}
           />
