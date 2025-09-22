@@ -8,12 +8,7 @@ from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import StructuredTool
 from langchain_core.messages import BaseMessage, SystemMessage
-from langfuse.langchain import CallbackHandler
 from pydantic import BaseModel
-
-
-# We keep a single Langfuse handler consistent with the rest of the codebase
-langfuse_handler = CallbackHandler()
 
 
 def _format_default_tools_preamble(
