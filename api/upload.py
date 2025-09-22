@@ -16,9 +16,7 @@ async def convert_uploaded_files_to_file_document(
     # Create temporary directory for uploaded files
     with tempfile.TemporaryDirectory() as temp_dir:
         for i, uploaded_file in enumerate(uploaded_files):
-            # Handle case where filename is None or empty
             filename = uploaded_file.filename or f"upload_{i}"
-            # Ensure filename is safe for filesystem
             filename = os.path.basename(filename) or f"upload_{i}"
             
             # Save uploaded file to temporary location
@@ -33,11 +31,9 @@ async def convert_uploaded_files_to_file_document(
                     
                     buffer.write(content)
                 
-                # Verify file was written properly
                 if not os.path.exists(file_path):
                     raise Exception(f"File was not created at {file_path}")
                 
-                # Use the existing function to create FileDocument
                 file_document = await create_file_document_from_path(file_path)
                 file_documents.append(file_document)
                 
