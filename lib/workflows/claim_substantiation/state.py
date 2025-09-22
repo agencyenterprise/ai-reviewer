@@ -75,7 +75,7 @@ class ClaimSubstantiationChunk(BaseModel):
 class ClaimSubstantiatorState(BaseModel):
     # Inputs
     file: FileDocument
-    supporting_files: List[FileDocument]
+    supporting_files: Optional[List[FileDocument]] = None
     target_chunk_indices: Optional[List[int]] = None
     agents_to_run: Optional[List[str]] = None
 
