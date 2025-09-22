@@ -110,3 +110,15 @@ class ChunkReevaluationResponse(BaseModel):
     processing_time_ms: Optional[float] = Field(
         description="Time taken to process the chunk in milliseconds", default=None
     )
+
+class EvalPackageRequest(BaseModel):
+    results: dict
+    test_name: str = Field(default="generated_test")
+    description: str = Field(default="Generated from frontend analysis")
+
+class ChunkEvalPackageRequest(BaseModel):
+    results: dict
+    chunk_index: int
+    selected_agents: List[str]
+    test_name: str = Field(default="generated_chunk_test")
+    description: str = Field(default="Generated from chunk analysis")

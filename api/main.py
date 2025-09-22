@@ -13,20 +13,10 @@ from lib.workflows.claim_substantiation.state import (
     ChunkReevaluationRequest,
     ChunkReevaluationResponse,
     ClaimSubstantiationChunk,
+    EvalPackageRequest,
+    ChunkEvalPackageRequest
 )
 
-# Import request models
-class EvalPackageRequest(BaseModel):
-    results: dict
-    test_name: str = Field(default="generated_test")
-    description: str = Field(default="Generated from frontend analysis")
-
-class ChunkEvalPackageRequest(BaseModel):
-    results: dict
-    chunk_index: int
-    selected_agents: List[str]
-    test_name: str = Field(default="generated_chunk_test")
-    description: str = Field(default="Generated from chunk analysis")
 from lib.services.file import FileDocument
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.registry import agent_registry
