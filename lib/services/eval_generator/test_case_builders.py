@@ -9,6 +9,23 @@ from lib.agents.toulmin_claim_detector import ToulminClaimResponse
 from lib.agents.reference_extractor import BibliographyItem
 
 
+class TestDataPaths:
+    """Utility class for generating test data file paths."""
+    
+    @staticmethod
+    def main_document(test_name: str) -> str:
+        return f"data/{test_name}/main_document.md"
+    
+    @staticmethod
+    def supporting_documents(test_name: str, supporting_files: List) -> List[str]:
+        return [f"data/{test_name}/supporting_{i+1}.md" for i, _ in enumerate(supporting_files)]
+
+
+def normalize_model_data(data: Union[BaseModel, Dict[str, Any]]) -> Dict[str, Any]:
+    """Convert BaseModel to dict if needed, otherwise return as-is."""
+    return data.model_dump() if isinstance(data, BaseModel) else data
+
+
 class CitationTestCaseBuilder:
     """Builds test cases for citation detection."""
     
@@ -32,13 +49,13 @@ class CitationTestCaseBuilder:
                 if ref.get("text"):
                     bibliography.append(ref["text"])
         
-        expected_output = citations.model_dump() if isinstance(citations, BaseModel) else citations
+        expected_output = normalize_model_data(citations)
         
         return {
             "name": f"{test_name}_citation_chunk_{chunk_index}",
             "description": f"Citation detection test for chunk {chunk_index}",
             "input": {
-                "main_document": f"data/{test_name}/main_document.md",
+                "main_document": TestDataPaths.main_document(test_name),
                 "bibliography": bibliography,  # Supporting documents as bibliography
                 "chunk": chunk_content
             },
@@ -59,13 +76,13 @@ class ClaimTestCaseBuilder:
     ) -> Dict[str, Any]:
         """Build claim test case (no supporting documents needed)."""
 
-        expected_output = claims.model_dump() if isinstance(claims, BaseModel) else claims
+        expected_output = normalize_model_data(claims)
         
         return {
             "name": f"{test_name}_claim_chunk_{chunk_index}",
             "description": f"Claim detection test for chunk {chunk_index}",
             "input": {
-                "main_document": f"data/{test_name}/main_document.md",
+                "main_document": TestDataPaths.main_document(test_name),
                 "chunk": chunk_content
             },
             "expected_output": expected_output
@@ -84,22 +101,15 @@ class ReferenceTestCaseBuilder:
     ) -> Dict[str, Any]:
         """Build reference extraction test case with supporting documents."""
         # Include supporting documents as they contain the references to extract
-        supporting_file_paths = []
-        for i, _ in enumerate(supporting_files):
-            supporting_file_paths.append(f"data/{test_name}/supporting_{i+1}.md")
+        supporting_file_paths = TestDataPaths.supporting_documents(test_name, supporting_files)
 
-        references_output = []
-        for ref in references:
-            if isinstance(ref, BaseModel):
-                references_output.append(ref.model_dump())
-            else:
-                references_output.append(ref)
+        references_output = [normalize_model_data(ref) for ref in references]
         
         return {
             "name": f"{test_name}_references",
             "description": "Reference extraction test",
             "input": {
-                "main_document": f"data/{test_name}/main_document.md",
+                "main_document": TestDataPaths.main_document(test_name),
                 "supporting_documents": supporting_file_paths  # Supporting documents are crucial
             },
             "expected_output": {
@@ -125,19 +135,17 @@ class SubstantiationTestCaseBuilder:
         cases = []
         
         # Include supporting documents as they're needed to substantiate claims
-        supporting_file_paths = []
-        for i, _ in enumerate(supporting_files):
-            supporting_file_paths.append(f"data/{test_name}/supporting_{i+1}.md")
+        supporting_file_paths = TestDataPaths.supporting_documents(test_name, supporting_files)
         
         # Create a test case for each substantiation result
         for i, substantiation in enumerate(substantiations):
-            expected_output = substantiation.model_dump() if isinstance(substantiation, BaseModel) else substantiation
+            expected_output = normalize_model_data(substantiation)
             
             cases.append({
                 "name": f"{test_name}_substantiation_chunk_{chunk_index}_claim_{i}",
                 "description": f"Claim substantiation test for chunk {chunk_index}, claim {i}",
                 "input": {
-                    "main_document": f"data/{test_name}/main_document.md",
+                    "main_document": TestDataPaths.main_document(test_name),
                     "supporting_documents": supporting_file_paths,  # Supporting docs are essential
                     "chunk": chunk_content,
                     "claim_index": i
