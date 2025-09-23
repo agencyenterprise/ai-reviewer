@@ -12,7 +12,7 @@ import { SummaryTab, ClaimsTab, CitationsTab, ReferencesTab, FilesTab, ChunksTab
 import { TabType } from './constants';
 import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
-import { downloadAsJson } from '@/lib/utils';
+import { downloadAsJson, downloadFile, generateEvalFilename } from '@/lib/file-download';
 import { analysisService } from '@/lib/analysis-service';
 
 interface ResultsVisualizationProps {
@@ -42,14 +42,8 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
 
       const blob = await analysisService.generateEvalPackage(detailedResults, testName, description);
 
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${testName}_eval_package.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      const filename = generateEvalFilename(testName);
+      downloadFile({ filename, blob });
     } catch (error) {
       console.error('Failed to generate eval test package:', error);
     }

@@ -27,6 +27,15 @@ export function downloadFile({ filename, blob }: DownloadOptions): void {
 }
 
 /**
+ * Downloads data as a JSON file.
+ */
+export function downloadAsJson(data: unknown, filename: string = 'results'): void {
+  const jsonString = JSON.stringify(data, null, 2);
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  downloadFile({ filename: `${filename}.json`, blob });
+}
+
+/**
  * Generates a filename with timestamp for eval packages.
  */
 export function generateEvalFilename(testName: string, chunkIndex?: number): string {
