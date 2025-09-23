@@ -110,15 +110,12 @@ class EvalTestGenerator:
         
         target_chunk = chunks[chunk_index]
         
-        # Determine required files based on selected agents
-        required_files = RequirementsAnalyzer.determine_required_files(selected_agents)
-        
         # Create in-memory zip file
         zip_buffer = io.BytesIO()
         
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             # 1. Save only required data files
-            DataFileManager.save_required_data_files(zip_file, results, test_name, required_files)
+            DataFileManager.save_required_data_files(zip_file, results, test_name, selected_agents)
             
             # 2. Generate test cases for selected agents only
             citation_cases, claim_cases, ref_cases, substantiation_cases = self._extract_chunk_test_cases(
@@ -126,14 +123,19 @@ class EvalTestGenerator:
             )
             
             # 3. Write YAML files for selected agents only
+            agent_test_cases = {
+                "citations": citation_cases,
+                "claims": claim_cases,
+                "references": ref_cases,
+                "substantiation": substantiation_cases
+            }
             YamlFileWriter.write_selective_yaml_files(
-                zip_file, citation_cases, claim_cases, ref_cases, substantiation_cases, 
-                test_name, description, selected_agents
+                zip_file, agent_test_cases, test_name, description, selected_agents
             )
             
             # 4. Add README with optimization info
             ReadmeGenerator.add_chunk_readme(
-                zip_file, test_name, description, chunk_index, selected_agents, required_files
+                zip_file, test_name, description, chunk_index, selected_agents
             )
         
         zip_buffer.seek(0)
