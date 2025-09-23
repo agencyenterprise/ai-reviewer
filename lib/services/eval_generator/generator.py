@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field
 
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState, DocumentChunk
 
-from .data_mappers import FieldMapper
 from .test_case_builders import (
     CitationTestCaseBuilder,
     ClaimTestCaseBuilder, 

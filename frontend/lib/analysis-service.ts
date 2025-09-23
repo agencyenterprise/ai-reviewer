@@ -9,6 +9,7 @@ import {
   EvalPackageRequest,
   ChunkEvalPackageRequest,
 } from '@/lib/generated-api';
+import { generateDefaultTestName, downloadBlobResponse } from '@/lib/utils';
 
 interface AnalysisRequest {
   mainDocument: File;
@@ -36,7 +37,7 @@ class AnalysisService {
   private transformResponse(apiResponse: ClaimSubstantiatorStateOutput): AnalysisResults {
     return {
       status: 'completed',
-      fullResults: apiResponse as unknown as ClaimSubstantiatorStateOutput,
+      fullResults: apiResponse,
     };
   }
 
@@ -93,16 +94,15 @@ class AnalysisService {
     try {
       const evalRequest: EvalPackageRequest = {
         results,
-        testName: testName || `eval_${Date.now()}`,
+        testName: testName || generateDefaultTestName('eval'),
         description: description || 'Generated from frontend analysis',
       };
 
-      const apiResponse = await this.api.generateEvalPackageApiGenerateEvalPackagePostRaw({
-        evalPackageRequest: evalRequest,
-      });
-
-      const response = apiResponse.raw;
-      return await response.blob();
+      return downloadBlobResponse(() =>
+        this.api.generateEvalPackageApiGenerateEvalPackagePostRaw({
+          evalPackageRequest: evalRequest,
+        }),
+      );
     } catch (error) {
       console.error('Error generating eval package:', error);
       throw error;
@@ -119,18 +119,17 @@ class AnalysisService {
     try {
       const evalRequest: ChunkEvalPackageRequest = {
         results,
-        chunkIndex: chunkIndex,
-        selectedAgents: selectedAgents,
-        testName: testName || `chunk_eval_${chunkIndex}_${Date.now()}`,
+        chunkIndex,
+        selectedAgents,
+        testName: testName || generateDefaultTestName('chunk_eval', chunkIndex.toString()),
         description: description || `Generated from chunk ${chunkIndex} analysis`,
       };
 
-      const apiResponse = await this.api.generateChunkEvalPackageApiGenerateChunkEvalPackagePostRaw({
-        chunkEvalPackageRequest: evalRequest,
-      });
-
-      const response = apiResponse.raw;
-      return await response.blob();
+      return downloadBlobResponse(() =>
+        this.api.generateChunkEvalPackageApiGenerateChunkEvalPackagePostRaw({
+          chunkEvalPackageRequest: evalRequest,
+        }),
+      );
     } catch (error) {
       console.error('Error generating chunk eval package:', error);
       throw error;

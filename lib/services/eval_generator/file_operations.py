@@ -4,7 +4,6 @@ import zipfile
 import yaml
 from datetime import datetime
 from typing import List, Set, Dict
-from .data_mappers import FieldMapper
 
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 

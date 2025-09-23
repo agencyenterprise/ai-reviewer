@@ -61,7 +61,6 @@ export function ChunkEvalGenerator({
         description,
       );
 
-      // Download the zip file
       downloadFile({
         filename: generateEvalFilename(testName, chunkIndex),
         blob,

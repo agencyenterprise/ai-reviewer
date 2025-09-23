@@ -147,17 +147,10 @@ RECEIVED JSON (selected fields):
         strict_eval = await self._compare_strict()
         llm_eval = await self._compare_llm()
         
-        # Build comprehensive rationale showing both evaluation results
-        rationale_parts = []
-        if strict_eval.passed:
-            rationale_parts.append(f"✓ Strict fields: {strict_eval.rationale}")
-        else:
-            rationale_parts.append(f"✗ Strict fields: {strict_eval.rationale}")
-            
-        if llm_eval.passed:
-            rationale_parts.append(f"✓ LLM fields: {llm_eval.rationale}")
-        else:
-            rationale_parts.append(f"✗ LLM fields: {llm_eval.rationale}")
+        rationale_parts = [
+            f"{'✓' if strict_eval.passed else '✗'} Strict fields: {strict_eval.rationale}",
+            f"{'✓' if llm_eval.passed else '✗'} LLM fields: {llm_eval.rationale}"
+        ]
         
         return EvaluationResult(
             passed=strict_eval.passed and llm_eval.passed,
