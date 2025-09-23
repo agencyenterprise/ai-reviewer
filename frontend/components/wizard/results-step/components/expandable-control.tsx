@@ -26,7 +26,6 @@ interface ExpandableControlProps {
 export function ExpandableControl({
   title,
   buttonText,
-  expandedButtonText,
   isProcessing,
   processingText,
   chunkIndex,

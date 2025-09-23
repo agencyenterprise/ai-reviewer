@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { FileText } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { analysisService, SupportedAgentsResponse } from '@/lib/analysis-service';
 import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
 import { ExpandableControl } from './expandable-control';

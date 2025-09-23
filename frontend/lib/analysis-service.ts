@@ -92,7 +92,7 @@ class AnalysisService {
   ): Promise<Blob> {
     try {
       const evalRequest: EvalPackageRequest = {
-        results: results as any,
+        results,
         testName: testName || `eval_${Date.now()}`,
         description: description || 'Generated from frontend analysis',
       };
@@ -118,7 +118,7 @@ class AnalysisService {
   ): Promise<Blob> {
     try {
       const evalRequest: ChunkEvalPackageRequest = {
-        results: results as any,
+        results,
         chunkIndex: chunkIndex,
         selectedAgents: selectedAgents,
         testName: testName || `chunk_eval_${chunkIndex}_${Date.now()}`,
