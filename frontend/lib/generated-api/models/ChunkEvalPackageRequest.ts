@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { ClaimSubstantiatorStateInput } from './ClaimSubstantiatorStateInput';
+import {
+  ClaimSubstantiatorStateInputFromJSON,
+  ClaimSubstantiatorStateInputFromJSONTyped,
+  ClaimSubstantiatorStateInputToJSON,
+  ClaimSubstantiatorStateInputToJSONTyped,
+} from './ClaimSubstantiatorStateInput';
+
 /**
  *
  * @export
@@ -21,10 +29,10 @@ import { mapValues } from '../runtime';
 export interface ChunkEvalPackageRequest {
   /**
    *
-   * @type {{ [key: string]: any; }}
+   * @type {ClaimSubstantiatorStateInput}
    * @memberof ChunkEvalPackageRequest
    */
-  results: { [key: string]: any };
+  results: ClaimSubstantiatorStateInput;
   /**
    *
    * @type {number}
@@ -70,7 +78,7 @@ export function ChunkEvalPackageRequestFromJSONTyped(json: any, ignoreDiscrimina
     return json;
   }
   return {
-    results: json['results'],
+    results: ClaimSubstantiatorStateInputFromJSON(json['results']),
     chunkIndex: json['chunk_index'],
     selectedAgents: json['selected_agents'],
     testName: json['test_name'] == null ? undefined : json['test_name'],
@@ -91,7 +99,7 @@ export function ChunkEvalPackageRequestToJSONTyped(
   }
 
   return {
-    results: value['results'],
+    results: ClaimSubstantiatorStateInputToJSON(value['results']),
     chunk_index: value['chunkIndex'],
     selected_agents: value['selectedAgents'],
     test_name: value['testName'],

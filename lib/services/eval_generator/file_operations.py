@@ -3,54 +3,56 @@
 import zipfile
 import yaml
 from datetime import datetime
-from typing import Dict, Any, List, Set
+from typing import List, Set, Dict
 from .data_mappers import FieldMapper
+
+from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 
 
 class DataFileManager:
     """Manages data files within the eval package."""
     
     @classmethod
-    def save_data_files(cls, zip_file: zipfile.ZipFile, results: Dict[str, Any], test_name: str):
+    def save_data_files(cls, zip_file: zipfile.ZipFile, results: ClaimSubstantiatorState, test_name: str):
         """Save main document and supporting files to the zip."""
         # Save main document
-        main_file = results.get("file", {})
+        main_file = results.file
         zip_file.writestr(
             f"data/{test_name}/main_document.md", 
-            FieldMapper.safe_get(main_file, "markdown")
+            main_file.markdown if main_file else ""
         )
         
         # Save supporting documents
-        supporting_files = results.get("supportingFiles", [])
+        supporting_files = results.supporting_files
         for i, support_doc in enumerate(supporting_files):
             zip_file.writestr(
                 f"data/{test_name}/supporting_{i+1}.md", 
-                FieldMapper.safe_get(support_doc, "markdown")
+                support_doc.markdown
             )
     
     @classmethod
     def save_required_data_files(
         cls,
         zip_file: zipfile.ZipFile,
-        results: Dict[str, Any],
+        results: ClaimSubstantiatorState,
         test_name: str,
         required_files: Set[str]
     ):
         """Save only the required data files based on agent needs."""
         # Always save main document
-        main_file = results.get("file", {})
+        main_file = results.file
         zip_file.writestr(
             f"data/{test_name}/main_document.md", 
-            main_file.get("markdown", "")
+            main_file.markdown if main_file else ""
         )
         
         # Only save supporting documents if needed
         if "supporting_documents" in required_files:
-            supporting_files = results.get("supportingFiles", [])
+            supporting_files = results.supporting_files
             for i, support_doc in enumerate(supporting_files):
                 zip_file.writestr(
                     f"data/{test_name}/supporting_{i+1}.md", 
-                    support_doc.get("markdown", "")
+                    support_doc.markdown
                 )
 
 
@@ -147,7 +149,8 @@ class ReadmeGenerator:
 
 ## Generated Files
 - `citation_detector.yaml` - Citation detection test cases
-- `claim_detector.yaml` - Claim detection test cases  
+- `claim_detector.yaml` - Claim detection test cases
+- `claim_substantiator.yaml` - Claim substantiation test cases
 - `reference_extractor.yaml` - Reference extraction test cases
 - `data/{test_name}/` - Test data files
 

@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { ClaimSubstantiatorStateInput } from './ClaimSubstantiatorStateInput';
+import {
+  ClaimSubstantiatorStateInputFromJSON,
+  ClaimSubstantiatorStateInputFromJSONTyped,
+  ClaimSubstantiatorStateInputToJSON,
+  ClaimSubstantiatorStateInputToJSONTyped,
+} from './ClaimSubstantiatorStateInput';
+
 /**
  *
  * @export
@@ -21,10 +29,10 @@ import { mapValues } from '../runtime';
 export interface EvalPackageRequest {
   /**
    *
-   * @type {{ [key: string]: any; }}
+   * @type {ClaimSubstantiatorStateInput}
    * @memberof EvalPackageRequest
    */
-  results: { [key: string]: any };
+  results: ClaimSubstantiatorStateInput;
   /**
    *
    * @type {string}
@@ -56,7 +64,7 @@ export function EvalPackageRequestFromJSONTyped(json: any, ignoreDiscriminator: 
     return json;
   }
   return {
-    results: json['results'],
+    results: ClaimSubstantiatorStateInputFromJSON(json['results']),
     testName: json['test_name'] == null ? undefined : json['test_name'],
     description: json['description'] == null ? undefined : json['description'],
   };
@@ -75,7 +83,7 @@ export function EvalPackageRequestToJSONTyped(
   }
 
   return {
-    results: value['results'],
+    results: ClaimSubstantiatorStateInputToJSON(value['results']),
     test_name: value['testName'],
     description: value['description'],
   };

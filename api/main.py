@@ -13,6 +13,9 @@ from lib.workflows.claim_substantiation.state import (
     ChunkReevaluationRequest,
     ChunkReevaluationResponse,
     ClaimSubstantiationChunk,
+)
+
+from lib.services.eval_generator.generator import (
     EvalPackageRequest,
     ChunkEvalPackageRequest
 )
