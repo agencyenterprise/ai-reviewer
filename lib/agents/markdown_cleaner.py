@@ -13,7 +13,7 @@ class MarkdownCleanerResponse(BaseModel):
 markdown_cleaner_agent = Agent(
     name="Markdown Cleaner",
     description="Clean a markdown text",
-    model="google_genai:gemini-2.5-flash-lite",
+    model="openai:gpt-4.1",
     prompt=SystemMessage(
         content="""You will be given a markdown document extracted from another document. There may be artifacts, for example extra new lines in the middle of sentences (because the original document may be a PDF). Remove any artifacts and return a clean markdown document with the exact same context. So in your response, there should not be any extra new line characters in the middle of sentences.
 

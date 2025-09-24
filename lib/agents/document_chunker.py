@@ -69,7 +69,7 @@ I will send the markdown document that you need to chunk as my next message.
 document_chunker_agent = Agent(
     name="Document Chunker",
     description="Chunk a document into paragraphs and each paragraph into reasonable sentence-level chunks",
-    model="google_genai:gemini-2.5-flash-lite",
+    model="openai:gpt-4.1",
     prompt=SystemMessage(
         content=_document_chunker_agent_system_prompt,
     )
