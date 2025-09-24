@@ -42,6 +42,8 @@ async def run_claim_substantiation_workflow(
     main_document: UploadFile = File(...),
     supporting_documents: Optional[list[UploadFile]] = File(default=None),
     use_toulmin: bool = True,
+    domain: Optional[str] = None,
+    target_audience: Optional[str] = None,
 ):
     """
     Run the claim substantiation workflow on uploaded documents.
@@ -49,6 +51,9 @@ async def run_claim_substantiation_workflow(
     Args:
         main_document: The main document to analyze for claims
         supporting_documents: Optional supporting documents for substantiation
+        use_toulmin: Whether to use Toulmin claim detection (default: True)
+        domain: Optional domain context for more accurate analysis
+        target_audience: Optional target audience context for analysis
 
     Returns:
         The workflow state containing claims, citations, references, and substantiations
@@ -63,6 +68,8 @@ async def run_claim_substantiation_workflow(
             file=main_file,
             supporting_files=supporting_files if supporting_files else None,
             use_toulmin=use_toulmin,
+            domain=domain,
+            target_audience=target_audience,
         )
 
         return ClaimSubstantiatorState(**result_state)

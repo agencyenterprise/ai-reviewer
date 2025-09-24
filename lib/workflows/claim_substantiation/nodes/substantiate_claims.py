@@ -1,6 +1,10 @@
 import logging
 from lib.agents.citation_detector import CitationResponse
-from lib.agents.tools import format_supporting_documents_prompt_section
+from lib.agents.tools import (
+    format_supporting_documents_prompt_section,
+    format_domain_context,
+    format_audience_context,
+)
 from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
@@ -48,6 +52,8 @@ async def _substantiate_chunk_claims(
                 "full_document": state.file.markdown,
                 "claim": claim.claim,
                 "cited_references": cited_references,
+                "domain_context": format_domain_context(state.domain),
+                "audience_context": format_audience_context(state.target_audience),
             }
         )
         substantiations.append(

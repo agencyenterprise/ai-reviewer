@@ -5,9 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Progress } from '../ui/progress';
 import { useWizard } from './wizard-context';
 import { Loader2 } from 'lucide-react';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 
 export function ProcessStep() {
-  const { state } = useWizard();
+  const { state, actions } = useWizard();
 
   if (state.isProcessing) {
     return (
@@ -55,6 +57,34 @@ export function ProcessStep() {
           </div>
         </CardContent>
       </Card>
+
+      <Card className="max-w-xl mx-auto">
+        <CardHeader>
+          <CardTitle>Analysis Configuration</CardTitle>
+          <CardDescription>Provide context for more accurate analysis</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="domain">Domain</Label>
+            <Input
+              id="domain"
+              placeholder="e.g., Healthcare, Technology, Finance..."
+              value={state.domain}
+              onChange={(e) => actions.setDomain(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="target-audience">Target Audience</Label>
+            <Input
+              id="target-audience"
+              placeholder="e.g., General public, Experts, Students..."
+              value={state.targetAudience}
+              onChange={(e) => actions.setTargetAudience(e.target.value)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <p className="text-muted-foreground max-w-md mx-auto text-center">
         Ready to analyze your documents for claims, citations, and accuracy
       </p>

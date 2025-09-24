@@ -42,6 +42,10 @@ For each claim, you need to return the following information:
 - Your rationale for why you think the chunk of text implies this claim
 - A boolean value indicating whether the claims needs to be substantiated
 
+{domain_context}
+
+{audience_context}
+
 ## The full document that the chunk is a part of
 ```
 {full_document}

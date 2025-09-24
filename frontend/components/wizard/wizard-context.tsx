@@ -7,6 +7,8 @@ const initialState: WizardState = {
   currentStep: 1,
   mainDocument: null,
   supportingDocuments: [],
+  domain: '',
+  targetAudience: '',
   isProcessing: false,
   analysisResults: null,
 };
@@ -25,6 +27,12 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
     },
     setSupportingDocuments: (files: File[]) => {
       setState((prev) => ({ ...prev, supportingDocuments: files }));
+    },
+    setDomain: (domain: string) => {
+      setState((prev) => ({ ...prev, domain }));
+    },
+    setTargetAudience: (targetAudience: string) => {
+      setState((prev) => ({ ...prev, targetAudience }));
     },
     setIsProcessing: (processing: boolean) => {
       setState((prev) => ({ ...prev, isProcessing: processing }));

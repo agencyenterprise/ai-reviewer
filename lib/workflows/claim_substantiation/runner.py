@@ -20,6 +20,8 @@ async def run_claim_substantiator(
     use_toulmin: bool = False,
     target_chunk_indices: Optional[List[int]] = None,
     agents_to_run: Optional[List[str]] = None,
+    domain: Optional[str] = None,
+    target_audience: Optional[str] = None,
 ) -> ClaimSubstantiatorState:
     """
     Claim substantiation runner using LangGraph approach.
@@ -38,6 +40,8 @@ async def run_claim_substantiator(
         supporting_files=supporting_files,
         target_chunk_indices=target_chunk_indices,
         agents_to_run=agents_to_run,
+        domain=domain,
+        target_audience=target_audience,
     )
 
     return await app.ainvoke(state)

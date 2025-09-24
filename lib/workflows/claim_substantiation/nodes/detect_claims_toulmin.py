@@ -3,6 +3,7 @@ from lib.agents.toulmin_claim_detector import (
     ToulminClaimResponse,
     toulmin_claim_detector_agent,
 )
+from lib.agents.tools import format_domain_context, format_audience_context
 from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
@@ -33,6 +34,11 @@ async def _detect_chunk_claims_toulmin(
     state: ClaimSubstantiatorState, chunk: DocumentChunk
 ) -> DocumentChunk:
     claims: ToulminClaimResponse = await toulmin_claim_detector_agent.apply(
-        {"chunk": chunk.content, "full_document": state.file.markdown}
+        {
+            "chunk": chunk.content,
+            "full_document": state.file.markdown,
+            "domain_context": format_domain_context(state.domain),
+            "audience_context": format_audience_context(state.target_audience),
+        }
     )
     return chunk.model_copy(update={"claims": claims})

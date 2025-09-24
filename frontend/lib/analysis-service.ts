@@ -11,6 +11,8 @@ import {
 interface AnalysisRequest {
   mainDocument: File;
   supportingDocuments?: File[];
+  domain?: string;
+  targetAudience?: string;
 }
 
 export interface SupportedAgentsResponse {
@@ -54,6 +56,9 @@ class AnalysisService {
       const result = await this.api.runClaimSubstantiationWorkflowApiRunClaimSubstantiationPost({
         mainDocument: request.mainDocument,
         supportingDocuments: request.supportingDocuments,
+        useToulmin: request.useToulmin,
+        domain: request.domain,
+        targetAudience: request.targetAudience,
       });
 
       return this.transformResponse(result);

@@ -91,6 +91,10 @@ Return strictly according to the structured schema. If a Toulmin element is not 
 
 Reference: Purdue OWL - Toulmin Argument (for definitions and orientation): https://owl.purdue.edu/owl/general_writing/academic_writing/historical_perspectives_on_argumentation/toulmin_argument.html
 
+{domain_context}
+
+{audience_context}
+
 ## Important Instructions
 - Focus only on content in the provided chunk when extracting claims and text evidence; use the full document only for context/clarification.
 - Extract zero or more claims. If none are present, return an empty list.

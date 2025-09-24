@@ -78,6 +78,8 @@ class ClaimSubstantiatorState(BaseModel):
     supporting_files: Optional[List[FileDocument]] = None
     target_chunk_indices: Optional[List[int]] = None
     agents_to_run: Optional[List[str]] = None
+    domain: Optional[str] = None
+    target_audience: Optional[str] = None
 
     # Outputs
     references: List[BibliographyItem] = []
