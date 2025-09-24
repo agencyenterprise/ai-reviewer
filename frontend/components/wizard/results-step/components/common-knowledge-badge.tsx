@@ -25,14 +25,14 @@ export function CommonKnowledgeBadge({ isCommonKnowledge, className }: CommonKno
         <TooltipContent className="max-w-xs">
           <div className="space-y-1.5">
             <p className="font-medium text-sm">Common Knowledge</p>
-            <p className="text-xs text-gray-200">Facts that don't need citation:</p>
+            <p className="text-xs text-gray-200">Facts that don&apos;t need citation:</p>
             <ul className="text-xs space-y-0.5 ml-2">
               <li>• Well-established facts in the domain</li>
               <li>• Basic definitions and terminology</li>
               <li>• Logical deductions from stated premises</li>
               <li>• General principles universally accepted</li>
             </ul>
-            <p className="text-xs text-gray-300 mt-1.5">Domain experts wouldn't question these claims.</p>
+            <p className="text-xs text-gray-300 mt-1.5">Domain experts wouldn&apos;t question these claims.</p>
           </div>
         </TooltipContent>
       </Tooltip>

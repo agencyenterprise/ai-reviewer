@@ -14,6 +14,7 @@ from lib.workflows.claim_substantiation.state import (
     ChunkReevaluationRequest,
     ChunkReevaluationResponse,
     ClaimSubstantiationChunk,
+    SubstantiationWorkflowConfig,
 )
 
 from lib.services.eval_generator.generator import (
@@ -73,13 +74,17 @@ async def run_claim_substantiation_workflow(
             [main_document] + (supporting_documents or [])
         )
 
-        result_state = await run_claim_substantiator(
-            file=main_file,
-            supporting_files=supporting_files if supporting_files else None,
+        config = SubstantiationWorkflowConfig(
             use_toulmin=use_toulmin,
             domain=domain,
             target_audience=target_audience,
             session_id=session_id or str(uuid.uuid4()),
+        )
+        
+        result_state = await run_claim_substantiator(
+            file=main_file,
+            supporting_files=supporting_files if supporting_files else None,
+            config=config,
         )
 
         return ClaimSubstantiatorState(**result_state)
@@ -109,11 +114,15 @@ async def reevaluate_chunk(request: ChunkReevaluationRequest):
 
         start_time = time.time()
 
+        config_overrides = SubstantiationWorkflowConfig(
+            session_id=request.session_id or str(uuid.uuid4())
+        ) if request.session_id else None
+        
         updated_chunk = await reevaluate_single_chunk(
             original_result=request.original_state,
             chunk_index=request.chunk_index,
             agents_to_run=request.agents_to_run,
-            session_id=request.session_id or str(uuid.uuid4()),
+            config_overrides=config_overrides,
         )
 
         processing_time_ms = (time.time() - start_time) * 1000
