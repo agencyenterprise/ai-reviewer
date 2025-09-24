@@ -52,7 +52,7 @@ export interface ClaimSubstantiatorStateOutput {
    * @type {Array<FileDocument>}
    * @memberof ClaimSubstantiatorStateOutput
    */
-  supportingFiles: Array<FileDocument>;
+  supportingFiles?: Array<FileDocument> | null;
   /**
    *
    * @type {Array<number>}
@@ -65,6 +65,12 @@ export interface ClaimSubstantiatorStateOutput {
    * @memberof ClaimSubstantiatorStateOutput
    */
   agentsToRun?: Array<string> | null;
+  /**
+   *
+   * @type {string}
+   * @memberof ClaimSubstantiatorStateOutput
+   */
+  sessionId?: string;
   /**
    *
    * @type {Array<BibliographyItem>}
@@ -84,7 +90,6 @@ export interface ClaimSubstantiatorStateOutput {
  */
 export function instanceOfClaimSubstantiatorStateOutput(value: object): value is ClaimSubstantiatorStateOutput {
   if (!('file' in value) || value['file'] === undefined) return false;
-  if (!('supportingFiles' in value) || value['supportingFiles'] === undefined) return false;
   return true;
 }
 
@@ -101,9 +106,11 @@ export function ClaimSubstantiatorStateOutputFromJSONTyped(
   }
   return {
     file: FileDocumentFromJSON(json['file']),
-    supportingFiles: (json['supporting_files'] as Array<any>).map(FileDocumentFromJSON),
+    supportingFiles:
+      json['supporting_files'] == null ? undefined : (json['supporting_files'] as Array<any>).map(FileDocumentFromJSON),
     targetChunkIndices: json['target_chunk_indices'] == null ? undefined : json['target_chunk_indices'],
     agentsToRun: json['agents_to_run'] == null ? undefined : json['agents_to_run'],
+    sessionId: json['session_id'] == null ? undefined : json['session_id'],
     references:
       json['references'] == null ? undefined : (json['references'] as Array<any>).map(BibliographyItemFromJSON),
     chunks: json['chunks'] == null ? undefined : (json['chunks'] as Array<any>).map(DocumentChunkOutputFromJSON),
@@ -124,9 +131,11 @@ export function ClaimSubstantiatorStateOutputToJSONTyped(
 
   return {
     file: FileDocumentToJSON(value['file']),
-    supporting_files: (value['supportingFiles'] as Array<any>).map(FileDocumentToJSON),
+    supporting_files:
+      value['supportingFiles'] == null ? undefined : (value['supportingFiles'] as Array<any>).map(FileDocumentToJSON),
     target_chunk_indices: value['targetChunkIndices'],
     agents_to_run: value['agentsToRun'],
+    session_id: value['sessionId'],
     references:
       value['references'] == null ? undefined : (value['references'] as Array<any>).map(BibliographyItemToJSON),
     chunks: value['chunks'] == null ? undefined : (value['chunks'] as Array<any>).map(DocumentChunkOutputToJSON),

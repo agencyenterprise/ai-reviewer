@@ -16,7 +16,7 @@ from lib.workflows.claim_substantiation.nodes.substantiate_claims import (
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 
 
-def build_claim_substantiator_graph(use_toulmin: bool = False):
+def build_claim_substantiator_graph(use_toulmin: bool = False, session_id: str = None):
     graph = StateGraph(ClaimSubstantiatorState)
 
     graph.add_node("split_into_chunks", split_into_chunks)
@@ -25,20 +25,21 @@ def build_claim_substantiator_graph(use_toulmin: bool = False):
     )
     graph.add_node("detect_citations", detect_citations)
     graph.add_node("extract_references", extract_references)
-    graph.add_node("substantiate_claims", substantiate_claims)
+    graph.add_node("substantiate_claims", substantiate_claims, defer=True)
 
     graph.set_entry_point("split_into_chunks")
     graph.add_edge("split_into_chunks", "extract_references")
     graph.add_edge("split_into_chunks", "detect_claims")
 
-    # detect citations when both claims and references are present
-    graph.add_edge("detect_claims", "detect_citations")
     graph.add_edge("extract_references", "detect_citations")
 
+    # substantiate claims when both claims and citations are present
     graph.add_edge("detect_citations", "substantiate_claims")
+    graph.add_edge("detect_claims", "substantiate_claims")
+
     graph.set_finish_point("substantiate_claims")
 
-    return graph.compile().with_config({"callbacks": [langfuse_handler]})
+    return graph.compile().with_config({"callbacks": [langfuse_handler], "metadata": {"langfuse_session_id": session_id}})
 
 
 if __name__ == "__main__":

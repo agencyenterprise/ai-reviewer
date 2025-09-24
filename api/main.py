@@ -1,4 +1,5 @@
 import logging
+import uuid
 from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,9 +15,16 @@ from lib.workflows.claim_substantiation.state import (
     ChunkReevaluationResponse,
     ClaimSubstantiationChunk,
 )
+
+from lib.services.eval_generator.generator import (
+    EvalPackageRequest,
+    ChunkEvalPackageRequest
+)
+
 from lib.services.file import FileDocument
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.registry import agent_registry
+from lib.services.eval_generator.generator import eval_test_generator
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +50,7 @@ async def run_claim_substantiation_workflow(
     main_document: UploadFile = File(...),
     supporting_documents: Optional[list[UploadFile]] = File(default=None),
     use_toulmin: bool = True,
+    session_id: Optional[str] = None,
 ):
     """
     Run the claim substantiation workflow on uploaded documents.
@@ -63,6 +72,7 @@ async def run_claim_substantiation_workflow(
             file=main_file,
             supporting_files=supporting_files if supporting_files else None,
             use_toulmin=use_toulmin,
+            session_id=session_id or str(uuid.uuid4()),
         )
 
         return ClaimSubstantiatorState(**result_state)
@@ -96,6 +106,7 @@ async def reevaluate_chunk(request: ChunkReevaluationRequest):
             original_result=request.original_state,
             chunk_index=request.chunk_index,
             agents_to_run=request.agents_to_run,
+            session_id=request.session_id or str(uuid.uuid4()),
         )
 
         processing_time_ms = (time.time() - start_time) * 1000
@@ -128,3 +139,59 @@ async def get_supported_agents():
         "supported_agents": agent_registry.get_supported_types(),
         "agent_descriptions": agent_registry.get_agent_descriptions(),
     }
+
+
+@app.post("/api/generate-eval-package")
+async def generate_eval_package(request: EvalPackageRequest):
+    """
+    Generate complete eval test package as downloadable zip.
+    
+    Args:
+        request: Contains analysis results and metadata for test generation
+        
+    Returns:
+        Zip file containing YAML test files and data files
+    """
+    try:
+        return eval_test_generator.generate_package(
+            results=request.results,
+            test_name=request.test_name,
+            description=request.description
+        )
+        
+    except Exception as e:
+        logger.error(f"Error generating eval package: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Error generating eval package: {str(e)}"
+        )
+
+
+@app.post("/api/generate-chunk-eval-package")
+async def generate_chunk_eval_package(request: ChunkEvalPackageRequest):
+    """
+    Generate eval test package for a specific chunk with selected agents.
+    Only includes files required by the selected agents.
+    
+    Args:
+        request: Contains analysis results, chunk index, selected agents, and metadata
+        
+    Returns:
+        Optimized zip file containing only necessary YAML test files and data files
+    """
+    try:
+        return eval_test_generator.generate_chunk_package(
+            results=request.results,
+            chunk_index=request.chunk_index,
+            selected_agents=request.selected_agents,
+            test_name=request.test_name,
+            description=request.description
+        )
+        
+    except ValueError as e:
+        logger.error(f"Invalid request for chunk eval generation: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error generating chunk eval package: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Error generating chunk eval package: {str(e)}"
+        )

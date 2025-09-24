@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { ChunkItem } from '../components/chunk-display';
 import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
+import { ChunkEvalGenerator } from '../components/chunk-eval-generator';
 import { AlertTriangle, FileIcon, Link as LinkIcon } from 'lucide-react';
 import { ClaimSubstantiatorStateOutput, ChunkReevaluationResponse } from '@/lib/generated-api';
 import { useWizard } from '../../wizard-context';
@@ -15,7 +16,7 @@ interface ChunksTabProps {
 }
 
 export function ChunksTab({ results }: ChunksTabProps) {
-  const { actions } = useWizard();
+  const { state, actions } = useWizard();
   const { supportedAgents, supportedAgentsError } = useSupportedAgents();
 
   const handleChunkReevaluation = (response: ChunkReevaluationResponse) => {
@@ -247,6 +248,14 @@ export function ChunksTab({ results }: ChunksTabProps) {
                   chunkIndex={chunk.chunkIndex}
                   originalState={results}
                   onReevaluation={handleChunkReevaluation}
+                  supportedAgents={supportedAgents}
+                  supportedAgentsError={supportedAgentsError}
+                  sessionId={state.sessionId}
+                />
+
+                <ChunkEvalGenerator
+                  chunkIndex={chunk.chunkIndex}
+                  originalState={results}
                   supportedAgents={supportedAgents}
                   supportedAgentsError={supportedAgentsError}
                 />

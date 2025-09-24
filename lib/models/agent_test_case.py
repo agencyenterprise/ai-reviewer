@@ -203,9 +203,13 @@ RECEIVED JSON (selected fields):
     async def compare_results(self) -> EvaluationResult:
         strict_eval = await self._compare_strict()
         llm_eval = await self._compare_llm()
+        
+        rationale_parts = [
+            f"{'✓' if strict_eval.passed else '✗'} Strict fields: {strict_eval.rationale}",
+            f"{'✓' if llm_eval.passed else '✗'} LLM fields: {llm_eval.rationale}"
+        ]
+        
         return EvaluationResult(
             passed=strict_eval.passed and llm_eval.passed,
-            rationale="\n".join(
-                [eval.rationale for eval in [strict_eval, llm_eval] if eval.passed]
-            ),
+            rationale="\n".join(rationale_parts),
         )

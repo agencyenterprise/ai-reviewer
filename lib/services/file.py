@@ -15,6 +15,10 @@ class FileDocument(BaseModel):
 
 
 async def create_file_document_from_path(file_path: str) -> FileDocument:
+    # Verify file exists
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File does not exist: {file_path}")
+    
     # Convert content to markdown
     md = MarkItDown(enable_plugins=False)  # Set to True to enable plugins
     result = md.convert(file_path)
@@ -29,11 +33,14 @@ async def create_file_document_from_path(file_path: str) -> FileDocument:
     # self._markdown = result.text
 
     # Create File object for main document
+    # Handle case where mimetypes.guess_type returns None
+    file_type = mimetypes.guess_type(file_path)[0] or "text/plain"
+    
     file_document = FileDocument(
         file_path=str(file_path),
         file_name=os.path.basename(file_path),
-        file_type=mimetypes.guess_type(file_path)[0],
+        file_type=file_type,
         markdown=markdown,
     )
-
+    
     return file_document

@@ -73,9 +73,10 @@ class ClaimSubstantiationChunk(BaseModel):
 class ClaimSubstantiatorState(BaseModel):
     # Inputs
     file: FileDocument
-    supporting_files: List[FileDocument]
+    supporting_files: Optional[List[FileDocument]] = None
     target_chunk_indices: Optional[List[int]] = None
     agents_to_run: Optional[List[str]] = None
+    session_id: str = None
 
     # Outputs
     references: List[BibliographyItem] = []
@@ -94,6 +95,9 @@ class ChunkReevaluationRequest(BaseModel):
     )
     original_state: ClaimSubstantiatorState = Field(
         description="The original workflow state containing the document and chunks"
+    )
+    session_id: Optional[str] = Field(
+        description="The session ID for Langfuse tracing"
     )
 
 
