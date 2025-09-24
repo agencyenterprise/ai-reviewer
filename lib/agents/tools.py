@@ -9,7 +9,9 @@ def format_domain_context(domain: Optional[str]) -> str:
     
     return f"""
 ## Domain Context
-The document is from the {domain} domain. Consider domain-specific standards, terminology, and expectations when analyzing claims. For example:
+Consider this user provided domain: ```{domain}```
+
+When analyzing claims, consider domain-specific standards, terminology, and expectations. For example:
 - What constitutes a significant claim may vary by domain
 - Evidence requirements and citation standards may differ
 - Technical terminology and concepts should be evaluated within domain context
@@ -23,7 +25,9 @@ def format_audience_context(target_audience: Optional[str]) -> str:
     
     return f"""
 ## Target Audience Context
-The document is intended for: {target_audience}. Consider audience-appropriate standards when evaluating claims and evidence:
+Consider this user provided target audience: ```{target_audience}```
+
+When evaluating claims and evidence, consider audience-appropriate standards:
 - Adjust the rigor of substantiation requirements based on audience expertise level
 - Consider what level of evidence and explanation is appropriate for this audience
 - Factor in audience expectations for claims, citations, and supporting evidence
