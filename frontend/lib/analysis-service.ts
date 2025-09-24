@@ -6,7 +6,10 @@ import {
   RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest,
   ChunkReevaluationRequest,
   ChunkReevaluationResponse,
+  EvalPackageRequest,
+  ChunkEvalPackageRequest,
 } from '@/lib/generated-api';
+import { generateDefaultTestName, downloadBlobResponse } from '@/lib/utils';
 
 interface AnalysisRequest {
   mainDocument: File;
@@ -34,7 +37,7 @@ class AnalysisService {
   private transformResponse(apiResponse: ClaimSubstantiatorStateOutput): AnalysisResults {
     return {
       status: 'completed',
-      fullResults: apiResponse as unknown as ClaimSubstantiatorStateOutput,
+      fullResults: apiResponse,
     };
   }
 
@@ -79,6 +82,56 @@ class AnalysisService {
       });
     } catch (error) {
       console.error('Error re-evaluating chunk:', error);
+      throw error;
+    }
+  }
+
+  async generateEvalPackage(
+    results: ClaimSubstantiatorStateOutput,
+    testName?: string,
+    description?: string,
+  ): Promise<Blob> {
+    try {
+      const evalRequest: EvalPackageRequest = {
+        results,
+        testName: testName || generateDefaultTestName('eval'),
+        description: description || 'Generated from frontend analysis',
+      };
+
+      return downloadBlobResponse(() =>
+        this.api.generateEvalPackageApiGenerateEvalPackagePostRaw({
+          evalPackageRequest: evalRequest,
+        }),
+      );
+    } catch (error) {
+      console.error('Error generating eval package:', error);
+      throw error;
+    }
+  }
+
+  async generateChunkEvalPackage(
+    results: ClaimSubstantiatorStateOutput,
+    chunkIndex: number,
+    selectedAgents: string[],
+    testName?: string,
+    description?: string,
+  ): Promise<Blob> {
+    try {
+      const evalRequest: ChunkEvalPackageRequest = {
+        results,
+        chunkIndex,
+        selectedAgents,
+        testName: testName || generateDefaultTestName('chunk_eval', chunkIndex.toString()),
+        description: description || `Generated from chunk ${chunkIndex} analysis`,
+      };
+
+      return downloadBlobResponse(() =>
+        this.api.generateChunkEvalPackageApiGenerateChunkEvalPackagePostRaw({
+          chunkEvalPackageRequest: evalRequest,
+        }),
+      );
+    } catch (error) {
+      console.error('Error generating chunk eval package:', error);
       throw error;
     }
   }

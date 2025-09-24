@@ -1,0 +1,33 @@
+dataset:
+  name: "Claim Substantiator Dataset"
+  description: "Test cases for validating claim substantiation"
+  items:
+    - name: "substantiation_case_1"
+      description: "Test case for substantiating a claim with partial supporting evidence"
+      input:
+        main_document: "data/case_1/main_document.md"
+        supporting_documents:
+          - "data/case_1/supporting_1.md"
+        chunk: "Prior work such as Smith (2020) and Doe and Roe (2019) provide useful background/insights."
+        claim: "Prior work such as Smith (2020) and Doe and Roe (2019) provide useful background/insights"
+        claim_index: 0
+      expected_output:
+        is_substantiated: false
+        rationale: "Only one supporting document (Smith, 2020) is provided which shows it investigates widget effects and presents experimental results—evidence of insights, but not that these are 'useful background.' The second cited work (Doe & Roe, 2019) has no supporting document. Thus, the claim that prior work provides useful background/insights is not adequately substantiated."
+        feedback: "Provide the Doe & Roe (2019) document or quotes/details from Smith (2020) indicating its work provides useful background. Alternatively, soften the claim to 'prior work provides insights' or 'prior work has investigated this area.'"
+        severity: 2
+
+    - name: "substantiation_case_2"
+      description: "Test case for claim contradicted by supporting document"
+      input:
+        main_document: "data/case_1/main_document.md"
+        supporting_documents:
+          - "data/case_1/supporting_3.md"
+        chunk: "cellphones have a positive impact on the user's writing proficiency in most countries (Smith, 2017)"
+        claim: "Cellphones have a positive impact on the user's writing proficiency in most countries"
+        claim_index: 0
+      expected_output:
+        is_substantiated: false
+        rationale: "The claim is directly contradicted by the cited supporting document. Smith & Anderson (2017) found 'conclusive evidence that smartphone use has no effect on writing ability of users,' which contradicts the claim of a positive impact."
+        feedback: "The claim should be corrected to align with the cited research findings, or the citation should be removed and replaced with supporting evidence that actually demonstrates a positive impact."
+        severity: 4

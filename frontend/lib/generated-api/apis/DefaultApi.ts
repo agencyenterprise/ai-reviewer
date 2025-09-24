@@ -14,21 +14,35 @@
 
 import * as runtime from '../runtime';
 import type {
+  ChunkEvalPackageRequest,
   ChunkReevaluationRequest,
   ChunkReevaluationResponse,
   ClaimSubstantiatorStateOutput,
+  EvalPackageRequest,
   HTTPValidationError,
 } from '../models/index';
 import {
+  ChunkEvalPackageRequestFromJSON,
+  ChunkEvalPackageRequestToJSON,
   ChunkReevaluationRequestFromJSON,
   ChunkReevaluationRequestToJSON,
   ChunkReevaluationResponseFromJSON,
   ChunkReevaluationResponseToJSON,
   ClaimSubstantiatorStateOutputFromJSON,
   ClaimSubstantiatorStateOutputToJSON,
+  EvalPackageRequestFromJSON,
+  EvalPackageRequestToJSON,
   HTTPValidationErrorFromJSON,
   HTTPValidationErrorToJSON,
 } from '../models/index';
+
+export interface GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostRequest {
+  chunkEvalPackageRequest: ChunkEvalPackageRequest;
+}
+
+export interface GenerateEvalPackageApiGenerateEvalPackagePostRequest {
+  evalPackageRequest: EvalPackageRequest;
+}
 
 export interface ReevaluateChunkApiReevaluateChunkPostRequest {
   chunkReevaluationRequest: ChunkReevaluationRequest;
@@ -44,6 +58,115 @@ export interface RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequ
  *
  */
 export class DefaultApi extends runtime.BaseAPI {
+  /**
+   * Generate eval test package for a specific chunk with selected agents. Only includes files required by the selected agents.  Args:     request: Contains analysis results, chunk index, selected agents, and metadata      Returns:     Optimized zip file containing only necessary YAML test files and data files
+   * Generate Chunk Eval Package
+   */
+  async generateChunkEvalPackageApiGenerateChunkEvalPackagePostRaw(
+    requestParameters: GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<any>> {
+    if (requestParameters['chunkEvalPackageRequest'] == null) {
+      throw new runtime.RequiredError(
+        'chunkEvalPackageRequest',
+        'Required parameter "chunkEvalPackageRequest" was null or undefined when calling generateChunkEvalPackageApiGenerateChunkEvalPackagePost().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    headerParameters['Content-Type'] = 'application/json';
+
+    let urlPath = `/api/generate-chunk-eval-package`;
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'POST',
+        headers: headerParameters,
+        query: queryParameters,
+        body: ChunkEvalPackageRequestToJSON(requestParameters['chunkEvalPackageRequest']),
+      },
+      initOverrides,
+    );
+
+    if (this.isJsonMime(response.headers.get('content-type'))) {
+      return new runtime.JSONApiResponse<any>(response);
+    } else {
+      return new runtime.TextApiResponse(response) as any;
+    }
+  }
+
+  /**
+   * Generate eval test package for a specific chunk with selected agents. Only includes files required by the selected agents.  Args:     request: Contains analysis results, chunk index, selected agents, and metadata      Returns:     Optimized zip file containing only necessary YAML test files and data files
+   * Generate Chunk Eval Package
+   */
+  async generateChunkEvalPackageApiGenerateChunkEvalPackagePost(
+    requestParameters: GenerateChunkEvalPackageApiGenerateChunkEvalPackagePostRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<any> {
+    const response = await this.generateChunkEvalPackageApiGenerateChunkEvalPackagePostRaw(
+      requestParameters,
+      initOverrides,
+    );
+    return await response.value();
+  }
+
+  /**
+   * Generate complete eval test package as downloadable zip.  Args:     request: Contains analysis results and metadata for test generation      Returns:     Zip file containing YAML test files and data files
+   * Generate Eval Package
+   */
+  async generateEvalPackageApiGenerateEvalPackagePostRaw(
+    requestParameters: GenerateEvalPackageApiGenerateEvalPackagePostRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<any>> {
+    if (requestParameters['evalPackageRequest'] == null) {
+      throw new runtime.RequiredError(
+        'evalPackageRequest',
+        'Required parameter "evalPackageRequest" was null or undefined when calling generateEvalPackageApiGenerateEvalPackagePost().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    headerParameters['Content-Type'] = 'application/json';
+
+    let urlPath = `/api/generate-eval-package`;
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'POST',
+        headers: headerParameters,
+        query: queryParameters,
+        body: EvalPackageRequestToJSON(requestParameters['evalPackageRequest']),
+      },
+      initOverrides,
+    );
+
+    if (this.isJsonMime(response.headers.get('content-type'))) {
+      return new runtime.JSONApiResponse<any>(response);
+    } else {
+      return new runtime.TextApiResponse(response) as any;
+    }
+  }
+
+  /**
+   * Generate complete eval test package as downloadable zip.  Args:     request: Contains analysis results and metadata for test generation      Returns:     Zip file containing YAML test files and data files
+   * Generate Eval Package
+   */
+  async generateEvalPackageApiGenerateEvalPackagePost(
+    requestParameters: GenerateEvalPackageApiGenerateEvalPackagePostRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<any> {
+    const response = await this.generateEvalPackageApiGenerateEvalPackagePostRaw(requestParameters, initOverrides);
+    return await response.value();
+  }
+
   /**
    * Get list of supported agent types for chunk re-evaluation.  Returns:     List of supported agent type strings
    * Get Supported Agents

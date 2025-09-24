@@ -1,6 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export * from './BibliographyItem';
+export * from './ChunkEvalPackageRequest';
 export * from './ChunkReevaluationRequest';
 export * from './ChunkReevaluationResponse';
 export * from './Citation';
@@ -15,6 +16,7 @@ export * from './ClaimSubstantiatorStateOutput';
 export * from './Claims';
 export * from './DocumentChunkInput';
 export * from './DocumentChunkOutput';
+export * from './EvalPackageRequest';
 export * from './FileDocument';
 export * from './HTTPValidationError';
 export * from './Severity';
