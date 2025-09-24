@@ -1,5 +1,4 @@
 from langchain_core.messages import SystemMessage
-from langchain_core.documents import Document
 from pydantic import BaseModel, Field
 
 from lib.models import Agent

@@ -1,29 +1,23 @@
 import uuid
 from datetime import datetime
 from typing import Any
-from sqlalchemy import Column, String, Text, Integer, DateTime, JSON
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
-from sqlmodel import Field, SQLModel
-from langchain.chat_models import init_chat_model
-from langchain_core.prompts import ChatPromptTemplate
-from langfuse.langchain import CallbackHandler
-from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 
-from lib.models.react_agent.tool_registry import prepare_tools
+from langchain.chat_models import init_chat_model
+from langchain_core.messages import HumanMessage
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables.config import RunnableConfig
+from langgraph.prebuilt import create_react_agent
+from sqlalchemy import JSON, Column, DateTime, Integer, String, Text
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlmodel import JSON, Field, Float, SQLModel
+
+from lib.config.langfuse import langfuse_handler
 from lib.models.react_agent.agent_runner import (
+    _build_prompt_with_tools_preamble,
     run_agent,
     run_agent_sync,
-    _filter_tools,
-    _build_prompt_with_tools_preamble,
 )
-from langgraph.prebuilt import (
-    InjectedStore,
-    ToolNode,
-    create_react_agent,
-    tools_condition,
-)
-
-# No direct BaseModel usage here
+from lib.models.react_agent.tool_registry import prepare_tools
 
 
 class Agent(SQLModel, table=True):
@@ -37,6 +31,7 @@ class Agent(SQLModel, table=True):
     model: str = Field(
         sa_column=Column(String(255), nullable=False)
     )  # Format: "{provider}:{model}"
+    temperature: float = Field(sa_column=Column(Float, default=0.5))
     prompt: Any = Field(sa_column=Column(Text, nullable=False))
     tools: list[str] = Field(
         sa_column=Column(ARRAY(String), default=list)
@@ -69,7 +64,11 @@ class Agent(SQLModel, table=True):
         return str(self.model).split(":")[1]
 
     def _prep_llm(self):
-        return init_chat_model(self.model_name, model_provider=self.model_provider)
+        return init_chat_model(
+            self.model_name,
+            model_provider=self.model_provider,
+            temperature=self.temperature,
+        )
 
     def _prep_llm_with_structured_output(self):
         llm = self._prep_llm()
@@ -124,19 +123,31 @@ class Agent(SQLModel, table=True):
             "mandatory_tools": self.mandatory_tools or [],
         }
 
-    async def _apply_without_tools(self, prompt_kwargs: dict):
+    async def _apply_without_tools(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ):
         """Apply the agent to the prompt kwargs without tools"""
         llm_with_structure, args = self.prep_llm_args(prompt_kwargs)
-        chunk_result = await llm_with_structure.ainvoke(**args)
+        chunk_result = await llm_with_structure.ainvoke(args["input"], config=config)
         return chunk_result
 
-    def _apply_sync_without_tools(self, prompt_kwargs: dict):
+    def _apply_sync_without_tools(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ):
         """Apply the agent to the prompt kwargs without tools synchronously"""
         llm_with_structure, args = self.prep_llm_args(prompt_kwargs)
-        chunk_result = llm_with_structure.invoke(**args)
+        chunk_result = llm_with_structure.invoke(args["input"], config=config)
         return chunk_result
 
-    async def _apply_with_tools(self, prompt_kwargs: dict):
+    async def _apply_with_tools(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ):
         """Apply the agent to the prompt kwargs with tools"""
         runner_args = self.prep_runner_args(prompt_kwargs)
         try:
@@ -151,9 +162,13 @@ class Agent(SQLModel, table=True):
                 ]
             )
         except (TypeError, ValueError, AttributeError):
-            return await self._apply_without_tools(prompt_kwargs)
+            return await self._apply_without_tools(prompt_kwargs, config)
 
-    def _apply_sync_with_tools(self, prompt_kwargs: dict):
+    def _apply_sync_with_tools(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ):
         """Apply the agent to the prompt kwargs with tools synchronously"""
         runner_args = self.prep_runner_args(prompt_kwargs)
         try:
@@ -168,18 +183,26 @@ class Agent(SQLModel, table=True):
                 ]
             )
         except (TypeError, ValueError, AttributeError):
-            return self._apply_sync_without_tools(prompt_kwargs)
+            return self._apply_sync_without_tools(prompt_kwargs, config)
 
-    async def apply(self, prompt_kwargs: dict):
+    async def apply(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ):
         """Apply the agent to the prompt kwargs"""
         if len(self.tools) == 0:
-            return await self._apply_without_tools(prompt_kwargs)
+            return await self._apply_without_tools(prompt_kwargs, config)
 
-        return await self._apply_with_tools(prompt_kwargs)
+        return await self._apply_with_tools(prompt_kwargs, config)
 
-    def apply_sync(self, prompt_kwargs: dict):
+    def apply_sync(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ):
         """Apply the agent to the prompt kwargs synchronously"""
         if len(self.tools) == 0:
-            return self._apply_sync_without_tools(prompt_kwargs)
+            return self._apply_sync_without_tools(prompt_kwargs, config)
 
-        return self._apply_sync_with_tools(prompt_kwargs)
+        return self._apply_sync_with_tools(prompt_kwargs, config)

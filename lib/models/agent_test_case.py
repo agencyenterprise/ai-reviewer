@@ -10,6 +10,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from deepdiff import DeepDiff
 
 
+from lib.config.langfuse import langfuse_handler
 from lib.models.agent import Agent
 
 

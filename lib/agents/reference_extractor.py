@@ -26,13 +26,15 @@ class ReferenceExtractorResponse(BaseModel):
 reference_extractor_agent = Agent(
     name="Reference Extractor",
     description="Extract bibliographic items from a document",
-    model="google_genai:gemini-2.5-flash",
+    model="openai:gpt-5-mini",
+    temperature=0.0,
     prompt=ChatPromptTemplate.from_template(
         """
 # Task
 You are a reference extractor. You are given an academic paper text and you need to extract any bibliographic items used in that text.
-References are usually found in the bibliography section at the end of the paper.
-If there are no references used in the text, return an empty list.
+- References are usually found in the bibliography section at the end of the paper.
+- If there are no references used in the text, return an empty list.
+- Preserve the original bibliographic item textual and markdown content as much as possible, including formatting tags; do not include the entry number if there is one; remove unneeded escape characters; remove new lines in the middle of a bibliographic item.
 
 For each bibliographic item, you need to return the following information:
 - The text of the bibliographic item
