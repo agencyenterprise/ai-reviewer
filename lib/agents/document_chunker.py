@@ -52,12 +52,13 @@ Your task:
 - Prefer breaking prose into sentence-level chunks while keeping short related sentences together when it improves readability.
 - Never drop content, merge unrelated sections, or reorder chunks. If unsure, keep more text together rather than omitting anything.
 - The concatenation of every chunk in order must recreate the original document text character-for-character (aside from insignificant trailing whitespace and new line differences).
-- Do NOT create any empty string chunks. If the source has extra blank lines between paragraphs, remove them.
+- Do NOT create any empty string chunks or chunks that only have white space or new line characters. If the source has extra blank lines between paragraphs, remove them.
 
 Follow this procedure exactly:
 1. Work with a copy of the original markdown text.
-2. For each paragraph, emit chunks by slicing contiguous substrings directly from the paragraph text. Prefer sentence-level boundaries (`.` `?` `!`) but keep markdown tokens (headings, list markers) attached to the content they modify. 
-3. If blank lines separate portions of the paragraph, attach the newline characters to the preceding or following chunk so that no chunk is empty or whitespace-only.
+2. For each paragraph, emit chunks by slicing contiguous substrings directly from the paragraph text. Prefer sentence-level boundaries (`.` `?` `!`).
+3. Keep all markdown tokens (headings, list markers) attached to the content they modify, but do not add any markdown tokens (e.g., ##) yourself. 
+3. If blank lines separate portions of the paragraph, attach the newline characters to the preceding or following chunk so that no chunk is empty or only has white space or new line characters.
 4. After building all chunks, mentally concatenate them and confirm the reconstructed string matches the original markdown exactly (minus any new line or space differences). If you detect any mismatch (missing characters, extra symbols like additional `#`, stray blank chunks, or reordered text), repair your chunks before responding.
 
 Return data that matches this JSON schema:

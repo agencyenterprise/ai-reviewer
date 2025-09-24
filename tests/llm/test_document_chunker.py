@@ -26,7 +26,7 @@ def _build_cases() -> list[AgentTestCase]:
 
     # Test configuration - hardcoded for this specific test
     strict_fields = {"paragraphs": {"__all__": {"chunks"}}}
-    llm_fields = {"paragraphs": {"__all__": {"chunks"}}}
+    llm_fields = {}
 
     cases: list[AgentTestCase] = []
 
