@@ -36,3 +36,23 @@ async def run_tasks(tasks, desc="Processing tasks"):
         else:
             chunk_results.append(chunk_results_dict[chunk_index])
     return chunk_results
+
+
+def maybe_async(func):
+    """Decorator that makes any function callable with await, regardless of sync/async."""
+
+    async def wrapper(*args, **kwargs):
+        if asyncio.iscoroutinefunction(func):
+            return await func(*args, **kwargs)
+        else:
+            return func(*args, **kwargs)
+
+    return wrapper
+
+
+async def call_maybe_async(func, *args, **kwargs):
+    """Call a function, handling both sync and async cases automatically."""
+    if asyncio.iscoroutinefunction(func):
+        return await func(*args, **kwargs)
+    else:
+        return func(*args, **kwargs)

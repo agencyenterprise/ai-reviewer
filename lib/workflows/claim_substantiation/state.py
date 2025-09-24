@@ -7,13 +7,11 @@ from lib.agents.toulmin_claim_detector import ToulminClaimResponse
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.claim_substantiator import ClaimSubstantiationResultWithClaimIndex
 from lib.services.file import FileDocument
+from lib.agents.models import ChunkWithIndex
 
 
-class DocumentChunk(BaseModel):
+class DocumentChunk(ChunkWithIndex):
     """Independent chunk response object with all processing results"""
-
-    content: str
-    chunk_index: int
 
     claims: Optional[ClaimResponse | ToulminClaimResponse] = None
     citations: Optional[CitationResponse] = None
