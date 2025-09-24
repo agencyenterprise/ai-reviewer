@@ -127,13 +127,13 @@ class Agent(SQLModel, table=True):
     async def _apply_without_tools(self, prompt_kwargs: dict):
         """Apply the agent to the prompt kwargs without tools"""
         llm_with_structure, args = self.prep_llm_args(prompt_kwargs)
-        chunk_result = await llm_with_structure.ainvoke(args["input"])
+        chunk_result = await llm_with_structure.ainvoke(**args)
         return chunk_result
 
     def _apply_sync_without_tools(self, prompt_kwargs: dict):
         """Apply the agent to the prompt kwargs without tools synchronously"""
         llm_with_structure, args = self.prep_llm_args(prompt_kwargs)
-        chunk_result = llm_with_structure.invoke(args["input"])
+        chunk_result = llm_with_structure.invoke(**args)
         return chunk_result
 
     async def _apply_with_tools(self, prompt_kwargs: dict):

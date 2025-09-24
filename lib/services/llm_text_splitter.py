@@ -4,7 +4,11 @@ import logging
 from langchain_core.documents import Document
 from langchain_text_splitters.base import TextSplitter
 
-from lib.agents.document_chunker import DocumentChunkerResponse, document_chunker_agent
+from lib.agents.document_chunker import (
+    DocumentChunkerResponse,
+    document_chunker_agent,
+    get_chunker_result_as_langchain_documents,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +20,7 @@ class LLMTextSplitter(TextSplitter):
                 "full_document": text,
             }
         )
-        return result.get_as_langchain_documents()
+        return get_chunker_result_as_langchain_documents(result)
 
     async def create_documents(
         self, texts: list[str], metadatas: list[dict] = None
