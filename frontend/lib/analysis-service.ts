@@ -11,6 +11,7 @@ import {
 interface AnalysisRequest {
   mainDocument: File;
   supportingDocuments?: File[];
+  sessionId?: string;
 }
 
 export interface SupportedAgentsResponse {
@@ -48,12 +49,14 @@ class AnalysisService {
   }
 
   async runClaimSubstantiation(
-    request: RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest,
+    request: RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest & { sessionId?: string | null },
   ): Promise<AnalysisResults> {
     try {
       const result = await this.api.runClaimSubstantiationWorkflowApiRunClaimSubstantiationPost({
         mainDocument: request.mainDocument,
         supportingDocuments: request.supportingDocuments,
+        sessionId: request.sessionId,
+        useToulmin: request.useToulmin,
       });
 
       return this.transformResponse(result);
@@ -72,10 +75,17 @@ class AnalysisService {
     }
   }
 
-  async reevaluateChunk(request: ChunkReevaluationRequest): Promise<ChunkReevaluationResponse> {
+  async reevaluateChunk(
+    request: ChunkReevaluationRequest & { sessionId?: string | null },
+  ): Promise<ChunkReevaluationResponse> {
     try {
+      const requestWithSession: ChunkReevaluationRequest = {
+        ...request,
+        sessionId: request.sessionId,
+      };
+
       return await this.api.reevaluateChunkApiReevaluateChunkPost({
-        chunkReevaluationRequest: request,
+        chunkReevaluationRequest: requestWithSession,
       });
     } catch (error) {
       console.error('Error re-evaluating chunk:', error);

@@ -45,6 +45,12 @@ export interface ChunkReevaluationRequest {
    * @memberof ChunkReevaluationRequest
    */
   originalState: ClaimSubstantiatorStateInput;
+  /**
+   *
+   * @type {string}
+   * @memberof ChunkReevaluationRequest
+   */
+  sessionId: string | null;
 }
 
 /**
@@ -54,6 +60,7 @@ export function instanceOfChunkReevaluationRequest(value: object): value is Chun
   if (!('chunkIndex' in value) || value['chunkIndex'] === undefined) return false;
   if (!('agentsToRun' in value) || value['agentsToRun'] === undefined) return false;
   if (!('originalState' in value) || value['originalState'] === undefined) return false;
+  if (!('sessionId' in value) || value['sessionId'] === undefined) return false;
   return true;
 }
 
@@ -72,6 +79,7 @@ export function ChunkReevaluationRequestFromJSONTyped(
     chunkIndex: json['chunk_index'],
     agentsToRun: json['agents_to_run'],
     originalState: ClaimSubstantiatorStateInputFromJSON(json['original_state']),
+    sessionId: json['session_id'],
   };
 }
 
@@ -91,5 +99,6 @@ export function ChunkReevaluationRequestToJSONTyped(
     chunk_index: value['chunkIndex'],
     agents_to_run: value['agentsToRun'],
     original_state: ClaimSubstantiatorStateInputToJSON(value['originalState']),
+    session_id: value['sessionId'],
   };
 }

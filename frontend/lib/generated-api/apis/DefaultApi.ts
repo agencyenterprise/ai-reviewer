@@ -37,6 +37,7 @@ export interface ReevaluateChunkApiReevaluateChunkPostRequest {
 export interface RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest {
   mainDocument: Blob;
   useToulmin?: boolean;
+  sessionId?: string | null;
   supportingDocuments?: Array<Blob> | null;
 }
 
@@ -190,6 +191,10 @@ export class DefaultApi extends runtime.BaseAPI {
 
     if (requestParameters['useToulmin'] != null) {
       queryParameters['use_toulmin'] = requestParameters['useToulmin'];
+    }
+
+    if (requestParameters['sessionId'] != null) {
+      queryParameters['session_id'] = requestParameters['sessionId'];
     }
 
     const headerParameters: runtime.HTTPHeaders = {};

@@ -20,7 +20,7 @@ interface DocumentExplorerTabProps {
 }
 
 export function DocumentExplorerTab({ results }: DocumentExplorerTabProps) {
-  const { actions } = useWizard();
+  const { state, actions } = useWizard();
   const { supportedAgents, supportedAgentsError } = useSupportedAgents();
 
   const handleChunkReevaluation = (response: ChunkReevaluationResponse) => {
@@ -37,6 +37,7 @@ export function DocumentExplorerTab({ results }: DocumentExplorerTabProps) {
           onChunkReevaluation={handleChunkReevaluation}
           supportedAgents={supportedAgents}
           supportedAgentsError={supportedAgentsError}
+          sessionId={state.sessionId}
         />
       ))}
     </div>
@@ -49,6 +50,7 @@ export interface DocumentExplorerChunkProps {
   onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
   supportedAgents: ReturnType<typeof useSupportedAgents>['supportedAgents'];
   supportedAgentsError: ReturnType<typeof useSupportedAgents>['supportedAgentsError'];
+  sessionId?: string | null;
 }
 
 export function DocumentExplorerChunk({
@@ -57,6 +59,7 @@ export function DocumentExplorerChunk({
   onChunkReevaluation,
   supportedAgents,
   supportedAgentsError,
+  sessionId,
 }: DocumentExplorerChunkProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
@@ -293,6 +296,7 @@ export function DocumentExplorerChunk({
             onReevaluation={onChunkReevaluation}
             supportedAgents={supportedAgents}
             supportedAgentsError={supportedAgentsError}
+            sessionId={sessionId}
           />
         </div>
       )}

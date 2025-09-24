@@ -22,6 +22,7 @@ export function WizardNavigation() {
           const analysisResults = await analysisService.runClaimSubstantiation({
             mainDocument: state.mainDocument!,
             supportingDocuments: state.supportingDocuments,
+            sessionId: state.sessionId,
           });
 
           actions.setAnalysisResults(analysisResults);
