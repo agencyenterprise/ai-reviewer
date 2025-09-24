@@ -24,6 +24,10 @@ async def _detect_chunk_claims(
     state: ClaimSubstantiatorState, chunk: DocumentChunk
 ) -> DocumentChunk:
     claims: ClaimResponse = await claim_detector_agent.apply(
-        {"chunk": chunk.content, "full_document": state.file.markdown}
+        {
+            "full_document": state.file.markdown,
+            "paragraph": await state.get_paragraph(chunk.paragraph_index),
+            "chunk": chunk.content,
+        }
     )
     return chunk.model_copy(update={"claims": claims})

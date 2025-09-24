@@ -76,11 +76,20 @@ class ClaimSubstantiatorState(BaseModel):
     supporting_files: Optional[List[FileDocument]] = None
     target_chunk_indices: Optional[List[int]] = None
     agents_to_run: Optional[List[str]] = None
-    session_id: str = None
+    session_id: Optional[str] = None
 
     # Outputs
     references: List[BibliographyItem] = []
     chunks: Annotated[List[DocumentChunk], conciliate_chunks] = []
+
+    async def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:
+        return [
+            chunk for chunk in self.chunks if chunk.paragraph_index == paragraph_index
+        ]
+
+    async def get_paragraph(self, paragraph_index: int) -> str:
+        paragraph_chunks = await self.get_paragraph_chunks(paragraph_index)
+        return "\n".join([chunk.content for chunk in paragraph_chunks])
 
 
 class ChunkReevaluationRequest(BaseModel):
@@ -96,9 +105,7 @@ class ChunkReevaluationRequest(BaseModel):
     original_state: ClaimSubstantiatorState = Field(
         description="The original workflow state containing the document and chunks"
     )
-    session_id: Optional[str] = Field(
-        description="The session ID for Langfuse tracing"
-    )
+    session_id: Optional[str] = Field(description="The session ID for Langfuse tracing")
 
 
 class ChunkReevaluationResponse(BaseModel):
