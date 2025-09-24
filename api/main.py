@@ -1,4 +1,5 @@
 import logging
+import uuid
 from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -49,6 +50,7 @@ async def run_claim_substantiation_workflow(
     main_document: UploadFile = File(...),
     supporting_documents: Optional[list[UploadFile]] = File(default=None),
     use_toulmin: bool = True,
+    session_id: Optional[str] = None,
 ):
     """
     Run the claim substantiation workflow on uploaded documents.
@@ -70,6 +72,7 @@ async def run_claim_substantiation_workflow(
             file=main_file,
             supporting_files=supporting_files if supporting_files else None,
             use_toulmin=use_toulmin,
+            session_id=session_id or str(uuid.uuid4()),
         )
 
         return ClaimSubstantiatorState(**result_state)
@@ -103,6 +106,7 @@ async def reevaluate_chunk(request: ChunkReevaluationRequest):
             original_result=request.original_state,
             chunk_index=request.chunk_index,
             agents_to_run=request.agents_to_run,
+            session_id=request.session_id or str(uuid.uuid4()),
         )
 
         processing_time_ms = (time.time() - start_time) * 1000

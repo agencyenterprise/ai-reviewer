@@ -16,7 +16,7 @@ interface ChunksTabProps {
 }
 
 export function ChunksTab({ results }: ChunksTabProps) {
-  const { actions } = useWizard();
+  const { state, actions } = useWizard();
   const { supportedAgents, supportedAgentsError } = useSupportedAgents();
 
   const handleChunkReevaluation = (response: ChunkReevaluationResponse) => {
@@ -250,6 +250,7 @@ export function ChunksTab({ results }: ChunksTabProps) {
                   onReevaluation={handleChunkReevaluation}
                   supportedAgents={supportedAgents}
                   supportedAgentsError={supportedAgentsError}
+                  sessionId={state.sessionId}
                 />
 
                 <ChunkEvalGenerator

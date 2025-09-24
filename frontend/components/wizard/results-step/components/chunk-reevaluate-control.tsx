@@ -15,6 +15,7 @@ interface ChunkReevaluateControlProps {
   onReevaluation: (response: ChunkReevaluationResponse) => void;
   supportedAgents: SupportedAgentsResponse | null;
   supportedAgentsError: string | null;
+  sessionId?: string | null;
 }
 
 export function ChunkReevaluateControl({
@@ -23,6 +24,7 @@ export function ChunkReevaluateControl({
   onReevaluation,
   supportedAgents,
   supportedAgentsError,
+  sessionId,
 }: ChunkReevaluateControlProps) {
   const [isReevaluating, setIsReevaluating] = React.useState(false);
 
@@ -34,6 +36,7 @@ export function ChunkReevaluateControl({
         chunkIndex: chunkIndex,
         agentsToRun: Array.from(selectedAgents),
         originalState: originalState,
+        sessionId: sessionId ?? null,
       };
 
       const result = await analysisService.reevaluateChunk(request);
