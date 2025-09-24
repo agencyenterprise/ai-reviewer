@@ -17,6 +17,10 @@ class ClaimSubstantiationResult(BaseModel):
     is_substantiated: bool = Field(
         description="A boolean value indicating whether the claim is substantiated by the supporting document(s) or not"
     )
+    is_common_knowledge: bool = Field(
+        default=False,
+        description="Whether this claim represents common knowledge in the domain that typically doesn't require substantiation"
+    )
     rationale: str = Field(
         description="A brief rationale for why you think the claim is substantiated or not substantiated by the cited supporting document(s)"
     )
@@ -54,7 +58,9 @@ For each claim that has a substantiation issue, also output a numeric severity l
 - 3 (should be fixed): Clear issues that should probably be addressed before publication.
 - 4 (must be fixed): Critical problems; claim is unsupported or contradicted and must be corrected.
 
-You MUST include the "severity" field in your output using one of the numeric values 1, 2, 3, or 4 as defined above.
+**Important**: Also determine if this claim represents common knowledge in the domain. Set `is_common_knowledge` to true if the claim falls under the common knowledge categories defined below, even if it lacks direct citation. Claims marked as common knowledge should typically have severity 0 or 1.
+
+You MUST include both the "severity" and "is_common_knowledge" fields in your output.
 
 ## Document-Specific Context
 ### Domain: 

@@ -8,6 +8,7 @@ import { AlertTriangle, FileIcon, Link as LinkIcon } from 'lucide-react';
 import { ClaimSubstantiatorStateOutput, ChunkReevaluationResponse } from '@/lib/generated-api';
 import { useWizard } from '../../wizard-context';
 import { SeverityBadge } from '../components/severity-badge';
+import { CommonKnowledgeBadge } from '../components/common-knowledge-badge';
 import { Badge } from '@/components/ui/badge';
 import { useSupportedAgents } from '../hooks/use-supported-agents';
 
@@ -175,6 +176,11 @@ export function ChunksTab({ results }: ChunksTabProps) {
                               )}
                             </div>
                           </div>
+                          {subst && (
+                            <div className="flex items-center gap-2 mt-2 flex-wrap">
+                              <CommonKnowledgeBadge isCommonKnowledge={subst.isCommonKnowledge || false} />
+                            </div>
+                          )}
                           {subst && subst.isSubstantiated && (
                             <p className="text-sm text-green-600 mt-1">
                               <strong>Substantiated because:</strong> {subst.rationale}

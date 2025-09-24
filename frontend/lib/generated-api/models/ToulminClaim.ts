@@ -38,7 +38,7 @@ export interface ToulminClaim {
    */
   rationale: string;
   /**
-   * Whether this claim should be substantiated with citations in academic writing
+   * Whether this claim should be substantiated with citations in academic writing. Set to False for common knowledge, basic definitions, logical deductions, or well-established facts in the domain.
    * @type {boolean}
    * @memberof ToulminClaim
    */

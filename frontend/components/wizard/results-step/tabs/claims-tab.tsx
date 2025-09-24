@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { ChunkDisplay, ChunkItem } from '../components/chunk-display';
+import { CommonKnowledgeBadge } from '../components/common-knowledge-badge';
 import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
 
 interface ClaimsTabProps {
@@ -119,14 +120,19 @@ export function ClaimsTab({ results }: ClaimsTabProps) {
                     </div>
                     {chunk.substantiations[claimIndex] && (
                       <div className="mt-2">
-                        <div
-                          className={`inline-flex items-center px-2 py-1 rounded text-xs ${
-                            chunk.substantiations[claimIndex].isSubstantiated
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}
-                        >
-                          {chunk.substantiations[claimIndex].isSubstantiated ? 'Substantiated' : 'Unsubstantiated'}
+                        <div className="flex items-center gap-2 flex-wrap mb-2">
+                          <div
+                            className={`inline-flex items-center px-2 py-1 rounded text-xs ${
+                              chunk.substantiations[claimIndex].isSubstantiated
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}
+                          >
+                            {chunk.substantiations[claimIndex].isSubstantiated ? 'Substantiated' : 'Unsubstantiated'}
+                          </div>
+                          <CommonKnowledgeBadge
+                            isCommonKnowledge={chunk.substantiations[claimIndex].isCommonKnowledge || false}
+                          />
                         </div>
                         {chunk.substantiations[claimIndex].feedback && (
                           <p className="text-xs text-muted-foreground mt-1">
