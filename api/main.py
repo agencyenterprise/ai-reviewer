@@ -5,6 +5,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from api.upload import convert_uploaded_files_to_file_document
+from api.dependencies import build_config_from_form
 from lib.workflows.claim_substantiation.runner import (
     run_claim_substantiator,
     reevaluate_single_chunk,
@@ -30,12 +31,7 @@ from lib.services.eval_generator.generator import eval_test_generator
 logger = logging.getLogger(__name__)
 
 
-class ClaimSubstantiationRequest(BaseModel):
-    """Request model for claim substantiation workflow"""
-    config: SubstantiationWorkflowConfig = Field(
-        default_factory=SubstantiationWorkflowConfig,
-        description="Configuration for the claim substantiation workflow"
-    )
+
 
 app = FastAPI()
 
@@ -56,17 +52,17 @@ def read_health():
 
 @app.post("/api/run-claim-substantiation", response_model=ClaimSubstantiatorState)
 async def run_claim_substantiation_workflow(
-    request: ClaimSubstantiationRequest,
     main_document: UploadFile = File(...),
     supporting_documents: Optional[list[UploadFile]] = File(default=None),
+    config: SubstantiationWorkflowConfig = Depends(build_config_from_form),
 ):
     """
     Run the claim substantiation workflow on uploaded documents.
 
     Args:
-        request: Configuration for the claim substantiation workflow
         main_document: The main document to analyze for claims
         supporting_documents: Optional supporting documents for substantiation
+        config: Workflow configuration built from form fields
 
     Returns:
         The workflow state containing claims, citations, references, and substantiations
@@ -76,10 +72,6 @@ async def run_claim_substantiation_workflow(
         [main_file, *supporting_files] = await convert_uploaded_files_to_file_document(
             [main_document] + (supporting_documents or [])
         )
-
-        config = request.config
-        if config.session_id is None:
-            config = config.model_copy(update={"session_id": str(uuid.uuid4())})
         
         result_state = await run_claim_substantiator(
             file=main_file,
@@ -87,7 +79,7 @@ async def run_claim_substantiation_workflow(
             config=config,
         )
 
-        return ClaimSubstantiatorState(**result_state)
+        return result_state
 
     except Exception as e:
         logger.error(f"Error processing workflow: {str(e)}", exc_info=True)

@@ -65,7 +65,7 @@ export interface ClaimSubstantiatorStateOutput {
    * @type {SubstantiationWorkflowConfig}
    * @memberof ClaimSubstantiatorStateOutput
    */
-  config?: SubstantiationWorkflowConfig;
+  config: SubstantiationWorkflowConfig;
   /**
    *
    * @type {Array<BibliographyItem>}
@@ -85,6 +85,7 @@ export interface ClaimSubstantiatorStateOutput {
  */
 export function instanceOfClaimSubstantiatorStateOutput(value: object): value is ClaimSubstantiatorStateOutput {
   if (!('file' in value) || value['file'] === undefined) return false;
+  if (!('config' in value) || value['config'] === undefined) return false;
   return true;
 }
 
@@ -103,7 +104,7 @@ export function ClaimSubstantiatorStateOutputFromJSONTyped(
     file: FileDocumentFromJSON(json['file']),
     supportingFiles:
       json['supporting_files'] == null ? undefined : (json['supporting_files'] as Array<any>).map(FileDocumentFromJSON),
-    config: json['config'] == null ? undefined : SubstantiationWorkflowConfigFromJSON(json['config']),
+    config: SubstantiationWorkflowConfigFromJSON(json['config']),
     references:
       json['references'] == null ? undefined : (json['references'] as Array<any>).map(BibliographyItemFromJSON),
     chunks: json['chunks'] == null ? undefined : (json['chunks'] as Array<any>).map(DocumentChunkOutputFromJSON),

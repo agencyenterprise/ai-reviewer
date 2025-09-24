@@ -105,7 +105,7 @@ class ClaimSubstantiatorState(BaseModel):
     # Inputs
     file: FileDocument
     supporting_files: Optional[List[FileDocument]] = None
-    config: SubstantiationWorkflowConfig = Field(default_factory=SubstantiationWorkflowConfig)
+    config: SubstantiationWorkflowConfig
 
     # Outputs
     references: List[BibliographyItem] = []

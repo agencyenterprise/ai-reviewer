@@ -32,13 +32,14 @@ export interface ClaimSubstantiationRequest {
    * @type {SubstantiationWorkflowConfig}
    * @memberof ClaimSubstantiationRequest
    */
-  config?: SubstantiationWorkflowConfig;
+  config: SubstantiationWorkflowConfig;
 }
 
 /**
  * Check if a given object implements the ClaimSubstantiationRequest interface.
  */
 export function instanceOfClaimSubstantiationRequest(value: object): value is ClaimSubstantiationRequest {
+  if (!('config' in value) || value['config'] === undefined) return false;
   return true;
 }
 
@@ -54,7 +55,7 @@ export function ClaimSubstantiationRequestFromJSONTyped(
     return json;
   }
   return {
-    config: json['config'] == null ? undefined : SubstantiationWorkflowConfigFromJSON(json['config']),
+    config: SubstantiationWorkflowConfigFromJSON(json['config']),
   };
 }
 

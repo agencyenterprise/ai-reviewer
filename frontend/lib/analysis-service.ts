@@ -53,12 +53,18 @@ class AnalysisService {
 
   async runClaimSubstantiation(request: AnalysisRequest): Promise<AnalysisResults> {
     try {
+      const config = request.config || {};
+
+      // Use OpenAPI client for claim substantiation
       const result = await this.api.runClaimSubstantiationWorkflowApiRunClaimSubstantiationPost({
-        request: {
-          config: request.config || {},
-        },
         mainDocument: request.mainDocument,
-        supportingDocuments: request.supportingDocuments,
+        supportingDocuments: request.supportingDocuments || null,
+        useToulmin: config.useToulmin,
+        domain: config.domain || null,
+        targetAudience: config.targetAudience || null,
+        targetChunkIndices: config.targetChunkIndices?.join(',') || null,
+        agentsToRun: config.agentsToRun?.join(',') || null,
+        sessionId: config.sessionId || null,
       });
 
       return this.transformResponse(result);

@@ -17,7 +17,6 @@ import type {
   ChunkEvalPackageRequest,
   ChunkReevaluationRequest,
   ChunkReevaluationResponse,
-  ClaimSubstantiationRequest,
   ClaimSubstantiatorStateOutput,
   EvalPackageRequest,
   HTTPValidationError,
@@ -29,8 +28,6 @@ import {
   ChunkReevaluationRequestToJSON,
   ChunkReevaluationResponseFromJSON,
   ChunkReevaluationResponseToJSON,
-  ClaimSubstantiationRequestFromJSON,
-  ClaimSubstantiationRequestToJSON,
   ClaimSubstantiatorStateOutputFromJSON,
   ClaimSubstantiatorStateOutputToJSON,
   EvalPackageRequestFromJSON,
@@ -52,9 +49,14 @@ export interface ReevaluateChunkApiReevaluateChunkPostRequest {
 }
 
 export interface RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest {
-  request: ClaimSubstantiationRequest;
   mainDocument: Blob;
   supportingDocuments?: Array<Blob> | null;
+  useToulmin?: boolean;
+  domain?: string | null;
+  targetAudience?: string | null;
+  targetChunkIndices?: string | null;
+  agentsToRun?: string | null;
+  sessionId?: string | null;
 }
 
 /**
@@ -298,20 +300,13 @@ export class DefaultApi extends runtime.BaseAPI {
   }
 
   /**
-   * Run the claim substantiation workflow on uploaded documents.  Args:     request: Configuration for the claim substantiation workflow     main_document: The main document to analyze for claims     supporting_documents: Optional supporting documents for substantiation  Returns:     The workflow state containing claims, citations, references, and substantiations
+   * Run the claim substantiation workflow on uploaded documents.  Args:     main_document: The main document to analyze for claims     supporting_documents: Optional supporting documents for substantiation     config: Workflow configuration built from form fields  Returns:     The workflow state containing claims, citations, references, and substantiations
    * Run Claim Substantiation Workflow
    */
   async runClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRaw(
     requestParameters: RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<runtime.ApiResponse<ClaimSubstantiatorStateOutput>> {
-    if (requestParameters['request'] == null) {
-      throw new runtime.RequiredError(
-        'request',
-        'Required parameter "request" was null or undefined when calling runClaimSubstantiationWorkflowApiRunClaimSubstantiationPost().',
-      );
-    }
-
     if (requestParameters['mainDocument'] == null) {
       throw new runtime.RequiredError(
         'mainDocument',
@@ -339,15 +334,6 @@ export class DefaultApi extends runtime.BaseAPI {
       formParams = new URLSearchParams();
     }
 
-    if (requestParameters['request'] != null) {
-      formParams.append(
-        'request',
-        new Blob([JSON.stringify(ClaimSubstantiatorStateOutputToJSON(requestParameters['request']))], {
-          type: 'application/json',
-        }),
-      );
-    }
-
     if (requestParameters['mainDocument'] != null) {
       formParams.append('main_document', requestParameters['mainDocument'] as any);
     }
@@ -356,6 +342,30 @@ export class DefaultApi extends runtime.BaseAPI {
       requestParameters['supportingDocuments'].forEach((element) => {
         formParams.append('supporting_documents', element as any);
       });
+    }
+
+    if (requestParameters['useToulmin'] != null) {
+      formParams.append('use_toulmin', requestParameters['useToulmin'] as any);
+    }
+
+    if (requestParameters['domain'] != null) {
+      formParams.append('domain', requestParameters['domain'] as any);
+    }
+
+    if (requestParameters['targetAudience'] != null) {
+      formParams.append('target_audience', requestParameters['targetAudience'] as any);
+    }
+
+    if (requestParameters['targetChunkIndices'] != null) {
+      formParams.append('target_chunk_indices', requestParameters['targetChunkIndices'] as any);
+    }
+
+    if (requestParameters['agentsToRun'] != null) {
+      formParams.append('agents_to_run', requestParameters['agentsToRun'] as any);
+    }
+
+    if (requestParameters['sessionId'] != null) {
+      formParams.append('session_id', requestParameters['sessionId'] as any);
     }
 
     let urlPath = `/api/run-claim-substantiation`;
@@ -375,7 +385,7 @@ export class DefaultApi extends runtime.BaseAPI {
   }
 
   /**
-   * Run the claim substantiation workflow on uploaded documents.  Args:     request: Configuration for the claim substantiation workflow     main_document: The main document to analyze for claims     supporting_documents: Optional supporting documents for substantiation  Returns:     The workflow state containing claims, citations, references, and substantiations
+   * Run the claim substantiation workflow on uploaded documents.  Args:     main_document: The main document to analyze for claims     supporting_documents: Optional supporting documents for substantiation     config: Workflow configuration built from form fields  Returns:     The workflow state containing claims, citations, references, and substantiations
    * Run Claim Substantiation Workflow
    */
   async runClaimSubstantiationWorkflowApiRunClaimSubstantiationPost(

@@ -11,7 +11,6 @@ models/CitationResponseOutput.ts
 models/CitationType.ts
 models/Claim.ts
 models/ClaimResponse.ts
-models/ClaimSubstantiationRequest.ts
 models/ClaimSubstantiationResultWithClaimIndex.ts
 models/ClaimSubstantiatorStateInput.ts
 models/ClaimSubstantiatorStateOutput.ts
