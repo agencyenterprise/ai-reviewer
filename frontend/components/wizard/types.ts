@@ -20,6 +20,7 @@ export interface WizardState {
   targetAudience: string;
   isProcessing: boolean;
   analysisResults: AnalysisResults | null;
+  sessionId: string | null;
 }
 
 export interface WizardActions {
@@ -31,6 +32,7 @@ export interface WizardActions {
   setIsProcessing: (processing: boolean) => void;
   setAnalysisResults: (results: AnalysisResults | null) => void;
   updateChunkResults: (response: ChunkReevaluationResponse) => void;
+  setSessionId: (sessionId: string) => void;
   reset: () => void;
 }
 

@@ -80,6 +80,7 @@ class ClaimSubstantiatorState(BaseModel):
     agents_to_run: Optional[List[str]] = None
     domain: Optional[str] = None
     target_audience: Optional[str] = None
+    session_id: str = None
 
     # Outputs
     references: List[BibliographyItem] = []
@@ -98,6 +99,9 @@ class ChunkReevaluationRequest(BaseModel):
     )
     original_state: ClaimSubstantiatorState = Field(
         description="The original workflow state containing the document and chunks"
+    )
+    session_id: Optional[str] = Field(
+        description="The session ID for Langfuse tracing"
     )
 
 

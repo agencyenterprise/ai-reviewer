@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { v4 as uuid } from 'uuid';
 import { WizardContextType, WizardState, WizardActions } from './types';
 
 const initialState: WizardState = {
@@ -11,6 +12,7 @@ const initialState: WizardState = {
   targetAudience: '',
   isProcessing: false,
   analysisResults: null,
+  sessionId: null,
 };
 
 const WizardContext = React.createContext<WizardContextType | undefined>(undefined);
@@ -23,7 +25,10 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
       setState((prev) => ({ ...prev, currentStep: step }));
     },
     setMainDocument: (file: File | null) => {
-      setState((prev) => ({ ...prev, mainDocument: file }));
+      setState((prev) => {
+        const newSessionId = file && !prev.sessionId ? uuid() : prev.sessionId;
+        return { ...prev, mainDocument: file, sessionId: newSessionId };
+      });
     },
     setSupportingDocuments: (files: File[]) => {
       setState((prev) => ({ ...prev, supportingDocuments: files }));
@@ -59,6 +64,9 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
           },
         };
       });
+    },
+    setSessionId: (sessionId: string) => {
+      setState((prev) => ({ ...prev, sessionId }));
     },
     reset: () => {
       setState(initialState);

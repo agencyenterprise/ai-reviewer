@@ -79,6 +79,12 @@ export interface ClaimSubstantiatorStateOutput {
   targetAudience?: string | null;
   /**
    *
+   * @type {string}
+   * @memberof ClaimSubstantiatorStateOutput
+   */
+  sessionId?: string;
+  /**
+   *
    * @type {Array<BibliographyItem>}
    * @memberof ClaimSubstantiatorStateOutput
    */
@@ -118,6 +124,7 @@ export function ClaimSubstantiatorStateOutputFromJSONTyped(
     agentsToRun: json['agents_to_run'] == null ? undefined : json['agents_to_run'],
     domain: json['domain'] == null ? undefined : json['domain'],
     targetAudience: json['target_audience'] == null ? undefined : json['target_audience'],
+    sessionId: json['session_id'] == null ? undefined : json['session_id'],
     references:
       json['references'] == null ? undefined : (json['references'] as Array<any>).map(BibliographyItemFromJSON),
     chunks: json['chunks'] == null ? undefined : (json['chunks'] as Array<any>).map(DocumentChunkOutputFromJSON),
@@ -144,6 +151,7 @@ export function ClaimSubstantiatorStateOutputToJSONTyped(
     agents_to_run: value['agentsToRun'],
     domain: value['domain'],
     target_audience: value['targetAudience'],
+    session_id: value['sessionId'],
     references:
       value['references'] == null ? undefined : (value['references'] as Array<any>).map(BibliographyItemToJSON),
     chunks: value['chunks'] == null ? undefined : (value['chunks'] as Array<any>).map(DocumentChunkOutputToJSON),

@@ -6,13 +6,17 @@ import {
   RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest,
   ChunkReevaluationRequest,
   ChunkReevaluationResponse,
+  EvalPackageRequest,
+  ChunkEvalPackageRequest,
 } from '@/lib/generated-api';
+import { generateDefaultTestName, downloadBlobResponse } from '@/lib/utils';
 
 interface AnalysisRequest {
   mainDocument: File;
   supportingDocuments?: File[];
   domain?: string;
   targetAudience?: string;
+  sessionId?: string;
 }
 
 export interface SupportedAgentsResponse {
@@ -36,7 +40,7 @@ class AnalysisService {
   private transformResponse(apiResponse: ClaimSubstantiatorStateOutput): AnalysisResults {
     return {
       status: 'completed',
-      fullResults: apiResponse as unknown as ClaimSubstantiatorStateOutput,
+      fullResults: apiResponse,
     };
   }
 
@@ -50,15 +54,16 @@ class AnalysisService {
   }
 
   async runClaimSubstantiation(
-    request: RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest,
+    request: RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest & { sessionId?: string | null },
   ): Promise<AnalysisResults> {
     try {
       const result = await this.api.runClaimSubstantiationWorkflowApiRunClaimSubstantiationPost({
         mainDocument: request.mainDocument,
         supportingDocuments: request.supportingDocuments,
-        useToulmin: request.useToulmin,
         domain: request.domain,
         targetAudience: request.targetAudience,
+        sessionId: request.sessionId,
+        useToulmin: request.useToulmin,
       });
 
       return this.transformResponse(result);
@@ -77,13 +82,70 @@ class AnalysisService {
     }
   }
 
-  async reevaluateChunk(request: ChunkReevaluationRequest): Promise<ChunkReevaluationResponse> {
+  async reevaluateChunk(
+    request: ChunkReevaluationRequest & { sessionId?: string | null },
+  ): Promise<ChunkReevaluationResponse> {
     try {
+      const requestWithSession: ChunkReevaluationRequest = {
+        ...request,
+        sessionId: request.sessionId,
+      };
+
       return await this.api.reevaluateChunkApiReevaluateChunkPost({
-        chunkReevaluationRequest: request,
+        chunkReevaluationRequest: requestWithSession,
       });
     } catch (error) {
       console.error('Error re-evaluating chunk:', error);
+      throw error;
+    }
+  }
+
+  async generateEvalPackage(
+    results: ClaimSubstantiatorStateOutput,
+    testName?: string,
+    description?: string,
+  ): Promise<Blob> {
+    try {
+      const evalRequest: EvalPackageRequest = {
+        results,
+        testName: testName || generateDefaultTestName('eval'),
+        description: description || 'Generated from frontend analysis',
+      };
+
+      return downloadBlobResponse(() =>
+        this.api.generateEvalPackageApiGenerateEvalPackagePostRaw({
+          evalPackageRequest: evalRequest,
+        }),
+      );
+    } catch (error) {
+      console.error('Error generating eval package:', error);
+      throw error;
+    }
+  }
+
+  async generateChunkEvalPackage(
+    results: ClaimSubstantiatorStateOutput,
+    chunkIndex: number,
+    selectedAgents: string[],
+    testName?: string,
+    description?: string,
+  ): Promise<Blob> {
+    try {
+      const evalRequest: ChunkEvalPackageRequest = {
+        results,
+        chunkIndex,
+        selectedAgents,
+        testName: testName || generateDefaultTestName('chunk_eval', chunkIndex.toString()),
+        description: description || `Generated from chunk ${chunkIndex} analysis`,
+      };
+
+      return downloadBlobResponse(() =>
+        this.api.generateChunkEvalPackageApiGenerateChunkEvalPackagePostRaw({
+          chunkEvalPackageRequest: evalRequest,
+        }),
+      );
+    } catch (error) {
+      console.error('Error generating chunk eval package:', error);
       throw error;
     }
   }

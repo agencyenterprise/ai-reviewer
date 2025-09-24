@@ -22,6 +22,7 @@ async def run_claim_substantiator(
     agents_to_run: Optional[List[str]] = None,
     domain: Optional[str] = None,
     target_audience: Optional[str] = None,
+    session_id: str = None,
 ) -> ClaimSubstantiatorState:
     """
     Claim substantiation runner using LangGraph approach.
@@ -33,7 +34,7 @@ async def run_claim_substantiator(
 
     This is the single, authoritative entry point for claim substantiation.
     """
-    app = build_claim_substantiator_graph(use_toulmin=use_toulmin)
+    app = build_claim_substantiator_graph(use_toulmin=use_toulmin, session_id=session_id)
 
     state = ClaimSubstantiatorState(
         file=file,
@@ -42,6 +43,7 @@ async def run_claim_substantiator(
         agents_to_run=agents_to_run,
         domain=domain,
         target_audience=target_audience,
+        session_id=session_id,
     )
 
     return await app.ainvoke(state)
@@ -68,6 +70,7 @@ async def reevaluate_single_chunk(
     chunk_index: int,
     agents_to_run: List[str],
     use_toulmin: bool = False,
+    session_id: str = None,
 ) -> DocumentChunk:
     """
     Re-evaluate a single chunk using unified LangGraph approach.
@@ -83,7 +86,10 @@ async def reevaluate_single_chunk(
             f"Chunk index {chunk_index} out of range (max: {len(chunks)-1})"
         )
 
-    app = build_claim_substantiator_graph(use_toulmin=use_toulmin)
+    app = build_claim_substantiator_graph(
+        use_toulmin=use_toulmin, 
+        session_id=session_id or original_result.session_id
+    )
 
     state = original_result.model_copy(
         update={

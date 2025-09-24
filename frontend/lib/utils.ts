@@ -5,23 +5,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-/**
- * Downloads data as a JSON file
- * @param data - The data to download
- * @param filename - The filename for the downloaded file (without extension)
- */
-export function downloadAsJson(data: unknown, filename: string = 'results') {
-  const jsonString = JSON.stringify(data, null, 2);
-  const blob = new Blob([jsonString], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
+export function generateDefaultTestName(prefix: string, suffix?: string): string {
+  const timestamp = Date.now();
+  return suffix ? `${prefix}_${suffix}_${timestamp}` : `${prefix}_${timestamp}`;
+}
 
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${filename}.json`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  // Clean up the URL object
-  URL.revokeObjectURL(url);
+export async function downloadBlobResponse(apiCall: () => Promise<{ raw: Response }>): Promise<Blob> {
+  const apiResponse = await apiCall();
+  return await apiResponse.raw.blob();
 }
