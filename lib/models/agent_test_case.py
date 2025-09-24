@@ -9,6 +9,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from deepdiff import DeepDiff
 
 
+from lib.config.langfuse import langfuse_handler
 from lib.models.agent import Agent
 
 
@@ -57,7 +58,10 @@ class AgentTestCase(BaseModel):
 
     async def run(self) -> TResponse:
         """Run the agent and store the typed result."""
-        result = await self.agent.apply(self.prompt_kwargs)
+        result = await self.agent.apply(
+            self.prompt_kwargs,
+            config={"run_name": self.name, "callbacks": [langfuse_handler]},
+        )
         # Ensure result is the expected pydantic type
         self.result = self.response_model.model_validate(result)  # type: ignore[arg-type]
         return self.result  # type: ignore[return-value]
@@ -146,12 +150,12 @@ RECEIVED JSON (selected fields):
     async def compare_results(self) -> EvaluationResult:
         strict_eval = await self._compare_strict()
         llm_eval = await self._compare_llm()
-        
+
         rationale_parts = [
             f"{'✓' if strict_eval.passed else '✗'} Strict fields: {strict_eval.rationale}",
-            f"{'✓' if llm_eval.passed else '✗'} LLM fields: {llm_eval.rationale}"
+            f"{'✓' if llm_eval.passed else '✗'} LLM fields: {llm_eval.rationale}",
         ]
-        
+
         return EvaluationResult(
             passed=strict_eval.passed and llm_eval.passed,
             rationale="\n".join(rationale_parts),

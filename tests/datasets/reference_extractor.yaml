@@ -69,3 +69,147 @@ dataset:
             has_associated_supporting_document: false
             index_of_associated_supporting_document: -1
             name_of_associated_supporting_document: ""
+
+    - name: "reference_case_criminal_justice_all_support"
+      description: "Criminal justice document with all supporting documents present"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        supporting_documents:
+          - "data/cryptocurrency-and-blockchain-minimal/ref1.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref2.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref3.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref4.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref5.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref6.pdf"
+      expected_output:
+        references:
+          - text: "Caldwell, Leslie R., “Assistant Attorney General Leslie R. Caldwell Delivers Remarks at the Securities Enforcement Forum West Conference,” U.S. Department of Justice, May 12, 2016."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 1
+            name_of_associated_supporting_document: "ref1.pdf"
+          - text: "Hill, Jonah Force, “Problematic Alternatives: MLAT Reform for the Digital Age,” *Harvard Law School National Security Journal*, January 28, 2015."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 2
+            name_of_associated_supporting_document: "ref2.pdf"
+          - text: "Goodison, Sean E., Robert C. Davis, and Brian A. Jackson, *Digital Evidence and the U.S. Criminal Justice System: Identifying Technology and Other Needs to More Effectively Acquire and Utilize Digital Evidence*, Santa Monica, Calif.: RAND Corporation, RR-890-NIJ, 2015. As of November 15, 2022: https://www.rand.org/pubs/research_reports/RR890.html"
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 3
+            name_of_associated_supporting_document: "ref3.pdf"
+          - text: "Goodison, Sean E., Dulani Woods, Jeremy D. Barnum, Adam R. Kemerer, and Brian A. Jackson, *Identifying Law Enforcement Needs for Conducting Criminal Investigations Involving Evidence on the Dark Web*, Santa Monica, Calif.: RAND Corporation, RR-2704-NIJ, 2019. As of November 15, 2022: https://www.rand.org/pubs/research_reports/RR2704.html"
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 4
+            name_of_associated_supporting_document: "ref4.pdf"
+          - text: "Tanneeru, Manav, “Can the Law Keep Up with Technology?” CNN, November 17, 2009."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 5
+            name_of_associated_supporting_document: "ref5.pdf"
+          - text: "Vermeer, Michael J. D., Dulani Woods, and Brian A. Jackson, *Identifying Law Enforcement Needs for Access to Digital Evidence in Remote Data Centers*, Santa Monica, Calif.: RAND Corporation, RR-2240-NIJ, 2018. As of November 16, 2022: https://www.rand.org/pubs/research_reports/RR2240.html"
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 6
+            name_of_associated_supporting_document: "ref6.pdf"
+
+    - name: "reference_case_criminal_justice_all_support_docx"
+      description: "Criminal justice document with all supporting documents present in a docx file"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.docx"
+        supporting_documents:
+          - "data/cryptocurrency-and-blockchain-minimal/ref1.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref2.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref3.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref4.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref5.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref6.pdf"
+      expected_output:
+        references:
+          - text: "Caldwell, Leslie R., “Assistant Attorney General Leslie R. Caldwell Delivers Remarks at the Securities Enforcement Forum West Conference,” U.S. Department of Justice, May 12, 2016."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 1
+            name_of_associated_supporting_document: "ref1.pdf"
+          - text: "Hill, Jonah Force, “Problematic Alternatives: MLAT Reform for the Digital Age,” *Harvard Law School National Security Journal*, January 28, 2015."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 2
+            name_of_associated_supporting_document: "ref2.pdf"
+          - text: "Goodison, Sean E., Robert C. Davis, and Brian A. Jackson, *Digital Evidence and the U.S. Criminal Justice System: Identifying Technology and Other Needs to More Effectively Acquire and Utilize Digital Evidence*, Santa Monica, Calif.: RAND Corporation, RR-890-NIJ, 2015. As of November 15, 2022: https://www.rand.org/pubs/research_reports/RR890.html"
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 3
+            name_of_associated_supporting_document: "ref3.pdf"
+          - text: "Goodison, Sean E., Dulani Woods, Jeremy D. Barnum, Adam R. Kemerer, and Brian A. Jackson, *Identifying Law Enforcement Needs for Conducting Criminal Investigations Involving Evidence on the Dark Web*, Santa Monica, Calif.: RAND Corporation, RR-2704-NIJ, 2019. As of November 15, 2022: https://www.rand.org/pubs/research_reports/RR2704.html"
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 4
+            name_of_associated_supporting_document: "ref4.pdf"
+          - text: "Tanneeru, Manav, “Can the Law Keep Up with Technology?” CNN, November 17, 2009."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 5
+            name_of_associated_supporting_document: "ref5.pdf"
+          - text: "Vermeer, Michael J. D., Dulani Woods, and Brian A. Jackson, *Identifying Law Enforcement Needs for Access to Digital Evidence in Remote Data Centers*, Santa Monica, Calif.: RAND Corporation, RR-2240-NIJ, 2018. As of November 16, 2022: https://www.rand.org/pubs/research_reports/RR2240.html"
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 6
+            name_of_associated_supporting_document: "ref6.pdf"
+
+    - name: "reference_case_criminal_justice_partial_support"
+      description: "Criminal justice document with some supporting documents missing (ref2.pdf and ref5.pdf)"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        supporting_documents:
+          - "data/cryptocurrency-and-blockchain-minimal/ref1.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref3.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref4.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref6.pdf"
+      expected_output:
+        references:
+          - text: "Caldwell, Leslie R., “Assistant Attorney General Leslie R. Caldwell Delivers Remarks at the Securities Enforcement Forum West Conference,” U.S. Department of Justice, May 12, 2016."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 1
+            name_of_associated_supporting_document: "ref1.pdf"
+          - text: "Hill, Jonah Force, “Problematic Alternatives: MLAT Reform for the Digital Age,” *Harvard Law School National Security Journal*, January 28, 2015."
+            has_associated_supporting_document: false
+            index_of_associated_supporting_document: -1
+            name_of_associated_supporting_document: ""
+          - text: "Goodison, Sean E., Robert C. Davis, and Brian A. Jackson, *Digital Evidence and the U.S. Criminal Justice System: Identifying Technology and Other Needs to More Effectively Acquire and Utilize Digital Evidence*, Santa Monica, Calif.: RAND Corporation, RR-890-NIJ, 2015. As of November 15, 2022: https://www.rand.org/pubs/research_reports/RR890.html"
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 2
+            name_of_associated_supporting_document: "ref3.pdf"
+          - text: "Goodison, Sean E., Dulani Woods, Jeremy D. Barnum, Adam R. Kemerer, and Brian A. Jackson, *Identifying Law Enforcement Needs for Conducting Criminal Investigations Involving Evidence on the Dark Web*, Santa Monica, Calif.: RAND Corporation, RR-2704-NIJ, 2019. As of November 15, 2022: https://www.rand.org/pubs/research_reports/RR2704.html"
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 3
+            name_of_associated_supporting_document: "ref4.pdf"
+          - text: "Tanneeru, Manav, “Can the Law Keep Up with Technology?” CNN, November 17, 2009."
+            has_associated_supporting_document: false
+            index_of_associated_supporting_document: -1
+            name_of_associated_supporting_document: ""
+          - text: "Vermeer, Michael J. D., Dulani Woods, and Brian A. Jackson, *Identifying Law Enforcement Needs for Access to Digital Evidence in Remote Data Centers*, Santa Monica, Calif.: RAND Corporation, RR-2240-NIJ, 2018. As of November 16, 2022: https://www.rand.org/pubs/research_reports/RR2240.html"
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 4
+            name_of_associated_supporting_document: "ref6.pdf"
+
+    - name: "reference_case_criminal_justice_no_support"
+      description: "Criminal justice document with no supporting documents provided"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        supporting_documents: []
+      expected_output:
+        references:
+          - text: "Caldwell, Leslie R., “Assistant Attorney General Leslie R. Caldwell Delivers Remarks at the Securities Enforcement Forum West Conference,” U.S. Department of Justice, May 12, 2016."
+            has_associated_supporting_document: false
+            index_of_associated_supporting_document: -1
+            name_of_associated_supporting_document: ""
+          - text: "Hill, Jonah Force, “Problematic Alternatives: MLAT Reform for the Digital Age,” *Harvard Law School National Security Journal*, January 28, 2015."
+            has_associated_supporting_document: false
+            index_of_associated_supporting_document: -1
+            name_of_associated_supporting_document: ""
+          - text: "Goodison, Sean E., Robert C. Davis, and Brian A. Jackson, *Digital Evidence and the U.S. Criminal Justice System: Identifying Technology and Other Needs to More Effectively Acquire and Utilize Digital Evidence*, Santa Monica, Calif.: RAND Corporation, RR-890-NIJ, 2015. As of November 15, 2022: https://www.rand.org/pubs/research_reports/RR890.html"
+            has_associated_supporting_document: false
+            index_of_associated_supporting_document: -1
+            name_of_associated_supporting_document: ""
+          - text: "Goodison, Sean E., Dulani Woods, Jeremy D. Barnum, Adam R. Kemerer, and Brian A. Jackson, *Identifying Law Enforcement Needs for Conducting Criminal Investigations Involving Evidence on the Dark Web*, Santa Monica, Calif.: RAND Corporation, RR-2704-NIJ, 2019. As of November 15, 2022: https://www.rand.org/pubs/research_reports/RR2704.html"
+            has_associated_supporting_document: false
+            index_of_associated_supporting_document: -1
+            name_of_associated_supporting_document: ""
+          - text: "Tanneeru, Manav, “Can the Law Keep Up with Technology?” CNN, November 17, 2009."
+            has_associated_supporting_document: false
+            index_of_associated_supporting_document: -1
+            name_of_associated_supporting_document: ""
+          - text: "Vermeer, Michael J. D., Dulani Woods, and Brian A. Jackson, *Identifying Law Enforcement Needs for Access to Digital Evidence in Remote Data Centers*, Santa Monica, Calif.: RAND Corporation, RR-2240-NIJ, 2018. As of November 16, 2022: https://www.rand.org/pubs/research_reports/RR2240.html"
+            has_associated_supporting_document: false
+            index_of_associated_supporting_document: -1
+            name_of_associated_supporting_document: ""

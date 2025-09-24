@@ -29,11 +29,11 @@ class ResearcherResponse(BaseModel):
 research_agent = Agent(
     name="Researcher",
     description="Research the topics discussed in the document and find any relevant more up to date information about them online",
-    model="google_genai:gemini-2.5-flash",
+    model="openai:gpt-5",
     prompt=ChatPromptTemplate.from_template(
         """
 # Task
-You are a researcher. You are given an article and you want to help make sure none of the information in the article is stale, or out of date. 
+You are a researcher. You are given an article and you want to help make sure none of the information in the article is stale, or out of date.
 You should search the web about various concepts/statements in the document that seem time dependent and see if there is anything new about them that should be revised/incorporated in the article.
 
 For each new piece of information hat find about a concept/statement in the article, you need to return the following information:
