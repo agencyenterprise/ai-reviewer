@@ -82,13 +82,13 @@ class ClaimSubstantiatorState(BaseModel):
     references: List[BibliographyItem] = []
     chunks: Annotated[List[DocumentChunk], conciliate_chunks] = []
 
-    async def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:
+    def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:
         return [
             chunk for chunk in self.chunks if chunk.paragraph_index == paragraph_index
         ]
 
-    async def get_paragraph(self, paragraph_index: int) -> str:
-        paragraph_chunks = await self.get_paragraph_chunks(paragraph_index)
+    def get_paragraph(self, paragraph_index: int) -> str:
+        paragraph_chunks = self.get_paragraph_chunks(paragraph_index)
         return "\n".join([chunk.content for chunk in paragraph_chunks])
 
 

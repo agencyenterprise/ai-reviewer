@@ -35,7 +35,7 @@ async def _detect_chunk_claims_toulmin(
     claims: ToulminClaimResponse = await toulmin_claim_detector_agent.apply(
         {
             "full_document": state.file.markdown,
-            "paragraph": await state.get_paragraph(chunk.paragraph_index),
+            "paragraph": state.get_paragraph(chunk.paragraph_index),
             "chunk": chunk.content,
         }
     )
