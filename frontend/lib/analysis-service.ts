@@ -3,20 +3,18 @@ import {
   ClaimSubstantiatorStateOutput,
   Configuration,
   DefaultApi,
-  RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest,
   ChunkReevaluationRequest,
   ChunkReevaluationResponse,
   EvalPackageRequest,
   ChunkEvalPackageRequest,
+  SubstantiationWorkflowConfig,
 } from '@/lib/generated-api';
 import { generateDefaultTestName, downloadBlobResponse } from '@/lib/utils';
 
 interface AnalysisRequest {
   mainDocument: File;
   supportingDocuments?: File[];
-  domain?: string;
-  targetAudience?: string;
-  sessionId?: string;
+  config?: SubstantiationWorkflowConfig;
 }
 
 export interface SupportedAgentsResponse {
@@ -53,17 +51,14 @@ class AnalysisService {
     };
   }
 
-  async runClaimSubstantiation(
-    request: RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest & { sessionId?: string | null },
-  ): Promise<AnalysisResults> {
+  async runClaimSubstantiation(request: AnalysisRequest): Promise<AnalysisResults> {
     try {
       const result = await this.api.runClaimSubstantiationWorkflowApiRunClaimSubstantiationPost({
+        request: {
+          config: request.config || {},
+        },
         mainDocument: request.mainDocument,
         supportingDocuments: request.supportingDocuments,
-        domain: request.domain,
-        targetAudience: request.targetAudience,
-        sessionId: request.sessionId,
-        useToulmin: request.useToulmin,
       });
 
       return this.transformResponse(result);

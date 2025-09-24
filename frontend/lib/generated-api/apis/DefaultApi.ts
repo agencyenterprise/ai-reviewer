@@ -17,6 +17,7 @@ import type {
   ChunkEvalPackageRequest,
   ChunkReevaluationRequest,
   ChunkReevaluationResponse,
+  ClaimSubstantiationRequest,
   ClaimSubstantiatorStateOutput,
   EvalPackageRequest,
   HTTPValidationError,
@@ -28,6 +29,8 @@ import {
   ChunkReevaluationRequestToJSON,
   ChunkReevaluationResponseFromJSON,
   ChunkReevaluationResponseToJSON,
+  ClaimSubstantiationRequestFromJSON,
+  ClaimSubstantiationRequestToJSON,
   ClaimSubstantiatorStateOutputFromJSON,
   ClaimSubstantiatorStateOutputToJSON,
   EvalPackageRequestFromJSON,
@@ -49,11 +52,8 @@ export interface ReevaluateChunkApiReevaluateChunkPostRequest {
 }
 
 export interface RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest {
+  request: ClaimSubstantiationRequest;
   mainDocument: Blob;
-  useToulmin?: boolean;
-  domain?: string | null;
-  targetAudience?: string | null;
-  sessionId?: string | null;
   supportingDocuments?: Array<Blob> | null;
 }
 
@@ -298,13 +298,20 @@ export class DefaultApi extends runtime.BaseAPI {
   }
 
   /**
-   * Run the claim substantiation workflow on uploaded documents.  Args:     main_document: The main document to analyze for claims     supporting_documents: Optional supporting documents for substantiation     use_toulmin: Whether to use Toulmin claim detection (default: True)     domain: Optional domain context for more accurate analysis     target_audience: Optional target audience context for analysis  Returns:     The workflow state containing claims, citations, references, and substantiations
+   * Run the claim substantiation workflow on uploaded documents.  Args:     request: Configuration for the claim substantiation workflow     main_document: The main document to analyze for claims     supporting_documents: Optional supporting documents for substantiation  Returns:     The workflow state containing claims, citations, references, and substantiations
    * Run Claim Substantiation Workflow
    */
   async runClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRaw(
     requestParameters: RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<runtime.ApiResponse<ClaimSubstantiatorStateOutput>> {
+    if (requestParameters['request'] == null) {
+      throw new runtime.RequiredError(
+        'request',
+        'Required parameter "request" was null or undefined when calling runClaimSubstantiationWorkflowApiRunClaimSubstantiationPost().',
+      );
+    }
+
     if (requestParameters['mainDocument'] == null) {
       throw new runtime.RequiredError(
         'mainDocument',
@@ -313,22 +320,6 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     const queryParameters: any = {};
-
-    if (requestParameters['useToulmin'] != null) {
-      queryParameters['use_toulmin'] = requestParameters['useToulmin'];
-    }
-
-    if (requestParameters['domain'] != null) {
-      queryParameters['domain'] = requestParameters['domain'];
-    }
-
-    if (requestParameters['targetAudience'] != null) {
-      queryParameters['target_audience'] = requestParameters['targetAudience'];
-    }
-
-    if (requestParameters['sessionId'] != null) {
-      queryParameters['session_id'] = requestParameters['sessionId'];
-    }
 
     const headerParameters: runtime.HTTPHeaders = {};
 
@@ -346,6 +337,15 @@ export class DefaultApi extends runtime.BaseAPI {
       formParams = new FormData();
     } else {
       formParams = new URLSearchParams();
+    }
+
+    if (requestParameters['request'] != null) {
+      formParams.append(
+        'request',
+        new Blob([JSON.stringify(ClaimSubstantiatorStateOutputToJSON(requestParameters['request']))], {
+          type: 'application/json',
+        }),
+      );
     }
 
     if (requestParameters['mainDocument'] != null) {
@@ -375,7 +375,7 @@ export class DefaultApi extends runtime.BaseAPI {
   }
 
   /**
-   * Run the claim substantiation workflow on uploaded documents.  Args:     main_document: The main document to analyze for claims     supporting_documents: Optional supporting documents for substantiation     use_toulmin: Whether to use Toulmin claim detection (default: True)     domain: Optional domain context for more accurate analysis     target_audience: Optional target audience context for analysis  Returns:     The workflow state containing claims, citations, references, and substantiations
+   * Run the claim substantiation workflow on uploaded documents.  Args:     request: Configuration for the claim substantiation workflow     main_document: The main document to analyze for claims     supporting_documents: Optional supporting documents for substantiation  Returns:     The workflow state containing claims, citations, references, and substantiations
    * Run Claim Substantiation Workflow
    */
   async runClaimSubstantiationWorkflowApiRunClaimSubstantiationPost(

@@ -22,9 +22,12 @@ export function WizardNavigation() {
           const analysisResults = await analysisService.runClaimSubstantiation({
             mainDocument: state.mainDocument!,
             supportingDocuments: state.supportingDocuments,
-            domain: state.domain || undefined,
-            targetAudience: state.targetAudience || undefined,
-            sessionId: state.sessionId,
+            config: {
+              useToulmin: true,
+              domain: state.domain || undefined,
+              targetAudience: state.targetAudience || undefined,
+              sessionId: state.sessionId,
+            },
           });
 
           actions.setAnalysisResults(analysisResults);

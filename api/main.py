@@ -1,7 +1,7 @@
 import logging
 import uuid
 from typing import Optional, List, Dict, Any
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from api.upload import convert_uploaded_files_to_file_document
@@ -29,6 +29,14 @@ from lib.services.eval_generator.generator import eval_test_generator
 
 logger = logging.getLogger(__name__)
 
+
+class ClaimSubstantiationRequest(BaseModel):
+    """Request model for claim substantiation workflow"""
+    config: SubstantiationWorkflowConfig = Field(
+        default_factory=SubstantiationWorkflowConfig,
+        description="Configuration for the claim substantiation workflow"
+    )
+
 app = FastAPI()
 
 
@@ -48,22 +56,17 @@ def read_health():
 
 @app.post("/api/run-claim-substantiation", response_model=ClaimSubstantiatorState)
 async def run_claim_substantiation_workflow(
+    request: ClaimSubstantiationRequest,
     main_document: UploadFile = File(...),
     supporting_documents: Optional[list[UploadFile]] = File(default=None),
-    use_toulmin: bool = True,
-    domain: Optional[str] = None,
-    target_audience: Optional[str] = None,
-    session_id: Optional[str] = None,
 ):
     """
     Run the claim substantiation workflow on uploaded documents.
 
     Args:
+        request: Configuration for the claim substantiation workflow
         main_document: The main document to analyze for claims
         supporting_documents: Optional supporting documents for substantiation
-        use_toulmin: Whether to use Toulmin claim detection (default: True)
-        domain: Optional domain context for more accurate analysis
-        target_audience: Optional target audience context for analysis
 
     Returns:
         The workflow state containing claims, citations, references, and substantiations
@@ -74,12 +77,9 @@ async def run_claim_substantiation_workflow(
             [main_document] + (supporting_documents or [])
         )
 
-        config = SubstantiationWorkflowConfig(
-            use_toulmin=use_toulmin,
-            domain=domain,
-            target_audience=target_audience,
-            session_id=session_id or str(uuid.uuid4()),
-        )
+        config = request.config
+        if config.session_id is None:
+            config = config.model_copy(update={"session_id": str(uuid.uuid4())})
         
         result_state = await run_claim_substantiator(
             file=main_file,
