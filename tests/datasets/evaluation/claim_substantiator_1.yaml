@@ -1,0 +1,123 @@
+dataset:
+  name: "Claim Substantiator Dataset"
+  description: "Test cases for validating claim substantiation"
+  items:
+    - name: "substantiation_case_1a_altered"
+      description: "Test case for partially substantiated chunk (first portion of chunk is substantiated)"
+      input:
+        main_document: "data/case_2/intro-and-refs_first_section_altered.md"
+        supporting_documents:
+          - "data/case_2/ref6.md"
+        chunk: "For a public blockchain, these ledgers are available to anyone with access to the internet; are very easy to alter and corrupt; and can't obscure the identities of parties to a transaction "
+        claim: "Public blockchain ledgers are accessible to anyone with internet access."
+        claim_index: 0
+      expected_output:
+        is_substantiated: true
+        rationale: "The sentence directly asserts universal accessibility of public blockchain ledgers."
+        feedback: ""
+        severity: 0
+
+    - name: "substantiation_case_1b_altered"
+      description: "Test case for flipped claim (second portion of chunk is altered to be opposite of the original)"
+      input:
+        main_document: "data/case_2/intro-and-refs_first_section_altered.md"
+        supporting_documents:
+          - "data/case_2/ref6.md"
+        chunk: "For a public blockchain, these ledgers are available to anyone with access to the internet; are very easy to alter and corrupt; and can't obscure the identities of parties to a transaction "
+        claim: "Public blockchain ledgers are easy to alter or corrupt."
+        claim_index: 1
+      expected_output:
+        is_substantiated: false
+        rationale: "The supporting document directly contradicts the claim."
+        feedback: "The claim should be corrected to align with the cited research findings: The public ledger makes it difficult to alter and corrupt."
+        severity: 4
+
+    - name: "substantiation_case_1c_altered"
+      description: "Test case for flipped claim (third portion of chunk is altered to be opposite of the original)"
+      input:
+        main_document: "data/case_2/intro-and-refs_first_section_altered.md"
+        supporting_documents:
+          - "data/case_2/ref6.md"
+        chunk: "For a public blockchain, these ledgers are available to anyone with access to the internet; are very easy to alter and corrupt; and can't obscure the identities of parties to a transaction "
+        claim: "Public blockchains can't obscure the identities of parties to a transaction"
+        claim_index: 1
+      expected_output:
+        is_substantiated: false
+        rationale: "The supporting document directly contradicts the claim."
+        feedback: "The claim should be corrected to align with the cited research findings: The public ledger makes it possible to obscure the identities of parties to a transaction."
+        severity: 4
+
+    - name: "substantiation_case_1a_original"
+      description: "Test case for multiple substantiated claims (first portion of chunk is substantiated)"
+      input:
+        main_document: "data/case_2/intro-and-refs_first_section.md"
+        supporting_documents:
+          - "data/case_2/ref6.md"
+        chunk: "For a public blockchain, these ledgers are available to anyone with access to the internet; are very hard to alter and corrupt; and can obscure the identities of parties to a transaction"
+        claim: "Public blockchain ledgers are accessible to anyone with internet access."
+        claim_index: 0
+      expected_output:
+        is_substantiated: true
+        rationale: "The sentence directly asserts universal accessibility of public blockchain ledgers."
+        feedback: ""
+        severity: 0
+
+    - name: "substantiation_case_1b_original"
+      description: "Test case for multiple substantiated claims (second portion of chunk is substantiated)"
+      input:
+        main_document: "data/case_2/intro-and-refs_first_section.md"
+        supporting_documents:
+          - "data/case_2/ref6.md"
+        chunk: "For a public blockchain, these ledgers are available to anyone with access to the internet; are very hard to alter and corrupt; and can obscure the identities of parties to a transaction"
+        claim: "Public blockchain ledgers are very hard to alter or corrupt (i.e., they have strong immutability)."
+        claim_index: 1
+      expected_output:
+        is_substantiated: true
+        rationale: "The sentence asserts difficulty of tampering with the ledger."
+        feedback: ""
+        severity: 0
+
+    - name: "substantiation_case_1c_original"
+      description: "Test case for multiple substantiated claims (third portion of chunk is substantiated)"
+      input:
+        main_document: "data/case_2/intro-and-refs_first_section.md"
+        supporting_documents:
+          - "data/case_2/ref6.md"
+        chunk: "For a public blockchain, these ledgers are available to anyone with access to the internet; are very hard to alter and corrupt; and can obscure the identities of parties to a transaction"
+        claim: "Public blockchain transactions can obscure the real-world identities of the transacting parties (pseudonymity)."
+        claim_index: 2
+      expected_output:
+        is_substantiated: true
+        rationale: "The sentence claims that identities can be obscured on public blockchains."
+        feedback: ""
+        severity: 0
+
+    - name: "substantiation_case_2_altered"
+      description: "Test case for wrong citation"
+      input:
+        main_document: "data/case_2/intro-and-refs_first_section_altered.md"
+        supporting_documents:
+          - "data/case_2/ref1.md"
+        chunk: "Individuals looking to conduct transactions need access to compatible software called a *wallet* and a password-like set of numbers and letters called a *private key* (Goodison, Davis, and Jackson, 2015)."
+        claim: "To conduct cryptocurrency transactions, individuals need a compatible wallet and a private key."
+        claim_index: 2
+      expected_output:
+        is_substantiated: false
+        rationale: "The supporting document does not describe the details or requirements for cryptocurrency transactions."
+        feedback: "The citation should be replaced with a citation that describes the details or requirements for cryptocurrency transactions."
+        severity: 4
+    
+    - name: "substantiation_case_2_original"
+      description: "Test case for wrong citation"
+      input:
+        main_document: "data/case_2/intro-and-refs_first_section.md"
+        supporting_documents:
+          - "data/case_2/ref7.md"
+        chunk: "Individuals looking to conduct transactions need access to compatible software called a *wallet* and a password-like set of numbers and letters called a *private key* (Nakamoto, undated)"
+        claim: "To conduct cryptocurrency transactions, individuals need a compatible wallet and a private key."
+        claim_index: 2
+      expected_output:
+        is_substantiated: true
+        rationale: "The sentence explicitly states a necessity (“need access”) for conducting transactions: possession of a wallet and private key."
+        feedback: ""
+        severity: 0

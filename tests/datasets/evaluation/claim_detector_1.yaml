@@ -1,0 +1,59 @@
+dataset:
+  name: "Claim Detector Dataset"
+  description: "Test cases for validating claim detection"
+  items:
+    - name: "claim_case_1"
+      description: "Test common knowledge claim"
+      input:
+        main_document: "data/case_2/intro-and-refs_first_section.md"
+        chunk: "The criminal justice system in the United States is intended to deter, punish, and reform individuals who violate the norms of good order and mutual respect that are enshrined in law."
+      expected_output:
+        claims:
+          - text: "The criminal justice system in the United States is intended to deter, punish, and reform individuals who violate the norms of good order and mutual respect that are enshrined in law."
+            claim: "The U.S. criminal justice system is intended to deter, punish, and reform individuals who violate legally enshrined norms."
+            needs_substantiation: false
+            rationale: "The sentence directly asserts the intended purposes of the U.S. criminal justice system."
+        rationale: ""
+
+    - name: "claim_case_2"
+      description: "Test claim substantiated within paper (implied)."
+      input:
+        main_document: "data/case_2/intro-and-refs_first_section.md"
+        chunk: "Emerging digital technologies that are rendering jurisdictional boundaries less meaningful include blockchain technologies and associated cryptocurrencies. (Details of blockchain, cryptocurrency, digital wallets, and other related technologies are provided in Appendix A.)"
+      expected_output:
+        claims:
+          - text: "Emerging digital technologies that are rendering jurisdictional boundaries less meaningful include blockchain technologies and associated cryptocurrencies. (Details of blockchain, cryptocurrency, digital wallets, and other related technologies are provided in Appendix A.)"
+            claim: "Emerging digital technologies that are rendering jurisdictional boundaries less meaningful include blockchain technologies and associated cryptocurrencies."
+            needs_substantiation: false
+            rationale: "The sentence explicitly states that these details are provided in Appendix A."
+        rationale: ""
+
+    - name: "claim_case_3_no_claims"
+      description: "Test case with no claims (explaining details of the paper)"
+      input:
+        main_document: "data/case_2/intro-and-refs_first_section.md"
+        chunk: "(We explore the various permutations of wallets and keys in more detail below.)"
+      expected_output:
+        claims: []
+        rationale: ""
+
+    - name: "claim_case_4"
+      description: "Multiple claims in a single chunk"
+      input:
+        main_document: "data/case_2/intro-and-refs_first_section.md"
+        chunk: "For a public blockchain, these ledgers are available to anyone with access to the internet; are very hard to alter and corrupt; and can obscure the identities of parties to a transaction"
+      expected_output:
+        claims:
+          - text: "For a public blockchain, these ledgers are available to anyone with access to the internet;"
+            claim: "Public blockchain ledgers are accessible to anyone with internet access."
+            needs_substantiation: true
+            rationale: "The sentence directly asserts universal accessibility of public blockchain ledgers."
+          - text: "are very hard to alter and corrupt;"
+            claim: "Public blockchain ledgers are very hard to alter or corrupt (i.e., they have strong immutability)."
+            needs_substantiation: true
+            rationale: "The sentence asserts difficulty of tampering with the ledger."
+          - text: "and can obscure the identities of parties to a transaction"
+            claim: "Public blockchain transactions can obscure the real-world identities of the transacting parties (pseudonymity)."
+            needs_substantiation: true
+            rationale: "The sentence claims that identities can be obscured on public blockchains."
+        rationale: ""
