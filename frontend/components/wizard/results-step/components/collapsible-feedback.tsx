@@ -8,9 +8,9 @@ interface CollapsibleFeedbackProps {
   isExpanded: boolean;
   onToggle: () => void;
   buttonText: string;
-  children: React.ReactNode;
   expandedContent: React.ReactNode;
   className?: string;
+  children: React.ReactNode;
 }
 
 export function CollapsibleFeedback({

@@ -46,24 +46,23 @@ export function UnsubstantiatedFeedback({
       onToggle={() => setIsExpanded(!isExpanded)}
       buttonText="Show substantiation details"
       className={className}
-      children={
-        <>
-          {showCommonKnowledgeRationale && (
-            <div
-              className={`mb-2 p-2 ${shouldMinimize ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-200'} border rounded text-xs`}
-            >
-              <p className={`font-medium ${shouldMinimize ? 'text-amber-800' : 'text-blue-800'} mb-1`}>
-                Common Knowledge Assessment:
-              </p>
-              <p className={shouldMinimize ? 'text-amber-700' : 'text-blue-700'}>
-                {substantiation.commonKnowledgeRationale}
-              </p>
-            </div>
-          )}
-          {!shouldMinimize && substantiationContent}
-        </>
-      }
       expandedContent={substantiationContent}
-    />
+    >
+      <>
+        {showCommonKnowledgeRationale && (
+          <div
+            className={`mb-2 p-2 ${shouldMinimize ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-200'} border rounded text-xs`}
+          >
+            <p className={`font-medium ${shouldMinimize ? 'text-amber-800' : 'text-blue-800'} mb-1`}>
+              Common Knowledge Assessment:
+            </p>
+            <p className={shouldMinimize ? 'text-amber-700' : 'text-blue-700'}>
+              {substantiation.commonKnowledgeRationale}
+            </p>
+          </div>
+        )}
+        {!shouldMinimize && substantiationContent}
+      </>
+    </CollapsibleFeedback>
   );
 }

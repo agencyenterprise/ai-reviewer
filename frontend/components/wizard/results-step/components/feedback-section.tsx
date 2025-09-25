@@ -41,8 +41,9 @@ export function FeedbackSection({
       onToggle={() => setIsExpanded(!isExpanded)}
       buttonText="Show feedback details"
       className={`mt-1 ${className}`}
-      children={feedbackContent}
       expandedContent={feedbackContent}
-    />
+    >
+      {feedbackContent}
+    </CollapsibleFeedback>
   );
 }
