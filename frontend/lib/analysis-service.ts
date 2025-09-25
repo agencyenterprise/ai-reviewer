@@ -3,18 +3,18 @@ import {
   ClaimSubstantiatorStateOutput,
   Configuration,
   DefaultApi,
-  RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest,
   ChunkReevaluationRequest,
   ChunkReevaluationResponse,
   EvalPackageRequest,
   ChunkEvalPackageRequest,
+  SubstantiationWorkflowConfig,
 } from '@/lib/generated-api';
 import { generateDefaultTestName, downloadBlobResponse } from '@/lib/utils';
 
 interface AnalysisRequest {
   mainDocument: File;
   supportingDocuments?: File[];
-  sessionId?: string;
+  config?: SubstantiationWorkflowConfig;
 }
 
 export interface SupportedAgentsResponse {
@@ -51,15 +51,20 @@ class AnalysisService {
     };
   }
 
-  async runClaimSubstantiation(
-    request: RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequest & { sessionId?: string | null },
-  ): Promise<AnalysisResults> {
+  async runClaimSubstantiation(request: AnalysisRequest): Promise<AnalysisResults> {
     try {
+      const config = request.config || {};
+
+      // Use OpenAPI client for claim substantiation
       const result = await this.api.runClaimSubstantiationWorkflowApiRunClaimSubstantiationPost({
         mainDocument: request.mainDocument,
-        supportingDocuments: request.supportingDocuments,
-        sessionId: request.sessionId,
-        useToulmin: request.useToulmin,
+        supportingDocuments: request.supportingDocuments || null,
+        useToulmin: config.useToulmin,
+        domain: config.domain || null,
+        targetAudience: config.targetAudience || null,
+        targetChunkIndices: config.targetChunkIndices?.join(',') || null,
+        agentsToRun: config.agentsToRun?.join(',') || null,
+        sessionId: config.sessionId || null,
       });
 
       return this.transformResponse(result);

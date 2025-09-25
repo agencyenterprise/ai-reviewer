@@ -1,17 +1,21 @@
 import logging
 import uuid
-from typing import Optional
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from typing import Optional, List, Dict, Any
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
+
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.upload import convert_uploaded_files_to_file_document
+from api.dependencies import build_config_from_form
+
 from lib.agents.registry import agent_registry
 from lib.services.eval_generator.generator import (
     ChunkEvalPackageRequest,
     EvalPackageRequest,
     eval_test_generator,
 )
+
 from lib.workflows.claim_substantiation.runner import (
     reevaluate_single_chunk,
     run_claim_substantiator,
@@ -19,10 +23,18 @@ from lib.workflows.claim_substantiation.runner import (
 from lib.workflows.claim_substantiation.state import (
     ChunkReevaluationRequest,
     ChunkReevaluationResponse,
+    ClaimSubstantiationChunk,
+    SubstantiationWorkflowConfig,
+)
+
+from lib.services.eval_generator.generator import (
+    EvalPackageRequest,
+    ChunkEvalPackageRequest,
     ClaimSubstantiatorState,
 )
 
 logger = logging.getLogger(__name__)
+
 
 app = FastAPI()
 
@@ -45,8 +57,7 @@ def read_health():
 async def run_claim_substantiation_workflow(
     main_document: UploadFile = File(...),
     supporting_documents: Optional[list[UploadFile]] = File(default=None),
-    use_toulmin: bool = True,
-    session_id: Optional[str] = None,
+    config: SubstantiationWorkflowConfig = Depends(build_config_from_form),
 ):
     """
     Run the claim substantiation workflow on uploaded documents.
@@ -54,6 +65,7 @@ async def run_claim_substantiation_workflow(
     Args:
         main_document: The main document to analyze for claims
         supporting_documents: Optional supporting documents for substantiation
+        config: Workflow configuration built from form fields
 
     Returns:
         The workflow state containing claims, citations, references, and substantiations
@@ -67,11 +79,10 @@ async def run_claim_substantiation_workflow(
         result_state = await run_claim_substantiator(
             file=main_file,
             supporting_files=supporting_files if supporting_files else None,
-            use_toulmin=use_toulmin,
-            session_id=session_id or str(uuid.uuid4()),
+            config=config,
         )
 
-        return ClaimSubstantiatorState(**result_state)
+        return result_state
 
     except Exception as e:
         logger.error(f"Error processing workflow: {str(e)}", exc_info=True)
@@ -98,11 +109,19 @@ async def reevaluate_chunk(request: ChunkReevaluationRequest):
 
         start_time = time.time()
 
+        config_overrides = (
+            SubstantiationWorkflowConfig(
+                session_id=request.session_id or str(uuid.uuid4())
+            )
+            if request.session_id
+            else None
+        )
+
         updated_state = await reevaluate_single_chunk(
             original_result=request.original_state,
             chunk_index=request.chunk_index,
             agents_to_run=request.agents_to_run,
-            session_id=request.session_id or str(uuid.uuid4()),
+            config_overrides=config_overrides,
         )
 
         processing_time_ms = (time.time() - start_time) * 1000

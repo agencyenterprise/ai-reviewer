@@ -20,6 +20,7 @@ export * from './EvalPackageRequest';
 export * from './FileDocument';
 export * from './HTTPValidationError';
 export * from './Severity';
+export * from './SubstantiationWorkflowConfig';
 export * from './ToulminClaim';
 export * from './ToulminClaimResponse';
 export * from './ValidationError';

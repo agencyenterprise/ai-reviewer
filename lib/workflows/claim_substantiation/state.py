@@ -21,6 +21,30 @@ class WorkflowError(BaseModel):
     error: str = Field(description="The error message.")
 
 
+class SubstantiationWorkflowConfig(BaseModel):
+    """Configuration model for claim substantiation workflow"""
+
+    use_toulmin: bool = Field(
+        default=False, description="Whether to use Toulmin claim detection approach"
+    )
+    target_chunk_indices: Optional[List[int]] = Field(
+        default=None,
+        description="Specific chunk indices to process (None = process all chunks)",
+    )
+    agents_to_run: Optional[List[str]] = Field(
+        default=None, description="Specific agents to run (None = run all agents)"
+    )
+    domain: Optional[str] = Field(
+        default=None, description="Domain context for more accurate analysis"
+    )
+    target_audience: Optional[str] = Field(
+        default=None, description="Target audience context for analysis"
+    )
+    session_id: Optional[str] = Field(
+        default=None, description="Session ID for Langfuse tracing"
+    )
+
+
 class DocumentChunk(ChunkWithIndex):
     """Independent chunk response object with all processing results"""
 
@@ -89,9 +113,7 @@ class ClaimSubstantiatorState(BaseModel):
     # Inputs
     file: FileDocument
     supporting_files: Optional[List[FileDocument]] = None
-    target_chunk_indices: Optional[List[int]] = None
-    agents_to_run: Optional[List[str]] = None
-    session_id: Optional[str] = None
+    config: SubstantiationWorkflowConfig
 
     # Outputs
     references: List[BibliographyItem] = []

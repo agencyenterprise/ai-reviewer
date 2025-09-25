@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 async def extract_references(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
     logger.info("extract_references: extracting references")
 
-    agents_to_run = state.agents_to_run
+    agents_to_run = state.config.agents_to_run
     if agents_to_run and "references" not in agents_to_run:
         logger.info(
             "extract_references: Skipping reference extraction (not in agents_to_run)"

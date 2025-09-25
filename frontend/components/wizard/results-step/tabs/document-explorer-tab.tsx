@@ -16,6 +16,7 @@ import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
 import { ClaimCategoryLabel } from '../components/claim-category-label';
 import { ErrorsCard } from '../components/errors-card';
 import { SeverityBadge } from '../components/severity-badge';
+import { CommonKnowledgeBadge } from '../components/common-knowledge-badge';
 import { useSupportedAgents } from '../hooks/use-supported-agents';
 
 interface DocumentExplorerTabProps {
@@ -165,6 +166,7 @@ export function DocumentExplorerChunk({
                   <p className="flex items-center gap-1">
                     <ClaimCategoryLabel category={claimCategory} />
                     <SeverityBadge severity={severity} />
+                    <CommonKnowledgeBadge isCommonKnowledge={subst?.isCommonKnowledge || false} />
                   </p>
                   <p>
                     <strong>Claim:</strong> {claim.claim}

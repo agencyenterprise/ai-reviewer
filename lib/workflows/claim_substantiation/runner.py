@@ -6,7 +6,12 @@ from typing import List, Optional
 
 from lib.services.file import FileDocument, create_file_document_from_path
 from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
-from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
+
+from lib.workflows.claim_substantiation.state import (
+    ClaimSubstantiatorState,
+    DocumentChunk,
+    SubstantiationWorkflowConfig,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -14,31 +19,30 @@ logger = logging.getLogger(__name__)
 async def run_claim_substantiator(
     file: FileDocument,
     supporting_files: Optional[List[FileDocument]] = None,
-    use_toulmin: bool = False,
-    target_chunk_indices: Optional[List[int]] = None,
-    agents_to_run: Optional[List[str]] = None,
-    session_id: str = None,
+    config: SubstantiationWorkflowConfig = None,
 ) -> ClaimSubstantiatorState:
     """
     Claim substantiation runner using LangGraph approach.
 
     Supports both full document processing and selective chunk re-evaluation:
-    - For full processing: leave target_chunk_indices and agents_to_run as None
-    - For selective re-evaluation: provide target_chunk_indices and/or agents_to_run
+    - For full processing: leave config.target_chunk_indices and config.agents_to_run as None
+    - For selective re-evaluation: provide config.target_chunk_indices and/or config.agents_to_run
     - For re-evaluation with existing results: provide existing_state to preserve previous results
 
     This is the single, authoritative entry point for claim substantiation.
     """
+    
+    if config is None:
+        config = SubstantiationWorkflowConfig()
+
     app = build_claim_substantiator_graph(
-        use_toulmin=use_toulmin, session_id=session_id
+        use_toulmin=config.use_toulmin, session_id=config.session_id
     )
 
     state = ClaimSubstantiatorState(
         file=file,
         supporting_files=supporting_files,
-        target_chunk_indices=target_chunk_indices,
-        agents_to_run=agents_to_run,
-        session_id=session_id,
+        config=config,
     )
 
     return await app.ainvoke(state)
@@ -47,7 +51,7 @@ async def run_claim_substantiator(
 async def run_claim_substantiator_from_paths(
     file_path: str,
     supporting_paths: Optional[List[str]] = None,
-    use_toulmin: bool = False,
+    config: SubstantiationWorkflowConfig = None,
 ):
     """Convenience function to run claim substantiator from file paths."""
     file = await create_file_document_from_path(file_path)
@@ -57,15 +61,14 @@ async def run_claim_substantiator_from_paths(
         else None
     )
 
-    return await run_claim_substantiator(file, supporting_files, use_toulmin)
+    return await run_claim_substantiator(file, supporting_files, config)
 
 
 async def reevaluate_single_chunk(
     original_result: ClaimSubstantiatorState,
     chunk_index: int,
     agents_to_run: List[str],
-    use_toulmin: bool = False,
-    session_id: str = None,
+    config_overrides: SubstantiationWorkflowConfig = None,
 ) -> ClaimSubstantiatorState:
     """
     Re-evaluate a single chunk using unified LangGraph approach.
@@ -78,8 +81,20 @@ async def reevaluate_single_chunk(
             f"Chunk index {chunk_index} out of range (max: {len(chunks)-1})"
         )
 
+    # Create updated config with overrides
+    config = original_result.config.model_copy()
+    if config_overrides:
+        # Update config with any provided overrides
+        config = config.model_copy(
+            update=config_overrides.model_dump(exclude_none=True)
+        )
+
+    # Always override target_chunk_indices and agents_to_run for this specific operation
+    config.target_chunk_indices = [chunk_index]
+    config.agents_to_run = agents_to_run
+
     app = build_claim_substantiator_graph(
-        use_toulmin=use_toulmin, session_id=session_id or original_result.session_id
+        use_toulmin=config.use_toulmin, session_id=config.session_id or original_result.session_id
     )
 
     state = original_result.model_copy(
@@ -91,6 +106,7 @@ async def reevaluate_single_chunk(
                 for error in original_result.errors
                 if error.chunk_index != chunk_index
             ],
+            "config": config,
         }
     )
 
@@ -117,9 +133,10 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    config = SubstantiationWorkflowConfig(use_toulmin=args.use_toulmin)
     result_state = asyncio.run(
         run_claim_substantiator_from_paths(
-            args.main_document_path, args.supporting_documents, args.use_toulmin
+            args.main_document_path, args.supporting_documents, config
         )
     )
     print("Result state:")

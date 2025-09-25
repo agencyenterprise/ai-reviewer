@@ -1,4 +1,37 @@
 from lib.services.file import FileDocument
+from typing import Optional
+
+
+def format_domain_context(domain: Optional[str]) -> str:
+    """Format domain context for agent prompts."""
+    if not domain:
+        return ""
+
+    return f"""
+## Domain Context
+Consider this user provided domain: ```{domain}```
+
+When analyzing claims, consider domain-specific standards, terminology, and expectations. For example:
+- What constitutes a significant claim may vary by domain
+- Evidence requirements and citation standards may differ
+- Technical terminology and concepts should be evaluated within domain context
+"""
+
+
+def format_audience_context(target_audience: Optional[str]) -> str:
+    """Format target audience context for agent prompts."""
+    if not target_audience:
+        return ""
+
+    return f"""
+## Target Audience Context
+Consider this user provided target audience: ```{target_audience}```
+
+When evaluating claims and evidence, consider audience-appropriate standards:
+- Adjust the rigor of substantiation requirements based on audience expertise level
+- Consider what level of evidence and explanation is appropriate for this audience
+- Factor in audience expectations for claims, citations, and supporting evidence
+"""
 
 
 def format_supporting_documents_prompt_section(

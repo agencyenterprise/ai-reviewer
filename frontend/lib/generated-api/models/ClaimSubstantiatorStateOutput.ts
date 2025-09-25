@@ -34,6 +34,15 @@ import {
   BibliographyItemToJSON,
   BibliographyItemToJSONTyped,
 } from './BibliographyItem';
+
+import type { SubstantiationWorkflowConfig } from './SubstantiationWorkflowConfig';
+import {
+  SubstantiationWorkflowConfigFromJSON,
+  SubstantiationWorkflowConfigFromJSONTyped,
+  SubstantiationWorkflowConfigToJSON,
+  SubstantiationWorkflowConfigToJSONTyped,
+} from './SubstantiationWorkflowConfig';
+
 import type { WorkflowError } from './WorkflowError';
 import {
   WorkflowErrorFromJSON,
@@ -41,6 +50,7 @@ import {
   WorkflowErrorToJSON,
   WorkflowErrorToJSONTyped,
 } from './WorkflowError';
+
 
 /**
  *
@@ -62,22 +72,10 @@ export interface ClaimSubstantiatorStateOutput {
   supportingFiles?: Array<FileDocument> | null;
   /**
    *
-   * @type {Array<number>}
+   * @type {SubstantiationWorkflowConfig}
    * @memberof ClaimSubstantiatorStateOutput
    */
-  targetChunkIndices?: Array<number> | null;
-  /**
-   *
-   * @type {Array<string>}
-   * @memberof ClaimSubstantiatorStateOutput
-   */
-  agentsToRun?: Array<string> | null;
-  /**
-   *
-   * @type {string}
-   * @memberof ClaimSubstantiatorStateOutput
-   */
-  sessionId?: string;
+  config: SubstantiationWorkflowConfig;
   /**
    *
    * @type {Array<BibliographyItem>}
@@ -103,6 +101,7 @@ export interface ClaimSubstantiatorStateOutput {
  */
 export function instanceOfClaimSubstantiatorStateOutput(value: object): value is ClaimSubstantiatorStateOutput {
   if (!('file' in value) || value['file'] === undefined) return false;
+  if (!('config' in value) || value['config'] === undefined) return false;
   return true;
 }
 
@@ -121,9 +120,7 @@ export function ClaimSubstantiatorStateOutputFromJSONTyped(
     file: FileDocumentFromJSON(json['file']),
     supportingFiles:
       json['supporting_files'] == null ? undefined : (json['supporting_files'] as Array<any>).map(FileDocumentFromJSON),
-    targetChunkIndices: json['target_chunk_indices'] == null ? undefined : json['target_chunk_indices'],
-    agentsToRun: json['agents_to_run'] == null ? undefined : json['agents_to_run'],
-    sessionId: json['session_id'] == null ? undefined : json['session_id'],
+    config: SubstantiationWorkflowConfigFromJSON(json['config']),
     references:
       json['references'] == null ? undefined : (json['references'] as Array<any>).map(BibliographyItemFromJSON),
     chunks: json['chunks'] == null ? undefined : (json['chunks'] as Array<any>).map(DocumentChunkOutputFromJSON),
@@ -147,9 +144,7 @@ export function ClaimSubstantiatorStateOutputToJSONTyped(
     file: FileDocumentToJSON(value['file']),
     supporting_files:
       value['supportingFiles'] == null ? undefined : (value['supportingFiles'] as Array<any>).map(FileDocumentToJSON),
-    target_chunk_indices: value['targetChunkIndices'],
-    agents_to_run: value['agentsToRun'],
-    session_id: value['sessionId'],
+    config: SubstantiationWorkflowConfigToJSON(value['config']),
     references:
       value['references'] == null ? undefined : (value['references'] as Array<any>).map(BibliographyItemToJSON),
     chunks: value['chunks'] == null ? undefined : (value['chunks'] as Array<any>).map(DocumentChunkOutputToJSON),

@@ -15,7 +15,7 @@ class ToulminClaim(BaseModel):
     )
     needs_substantiation: bool = Field(
         description=(
-            "Whether this claim should be substantiated with citations in academic writing"
+            "Whether this claim should be substantiated with citations in academic writing. Set to False for common knowledge, basic definitions, logical deductions, or well-established facts in the domain."
         )
     )
 
@@ -91,9 +91,30 @@ Return strictly according to the structured schema. If a Toulmin element is not 
 
 Reference: Purdue OWL - Toulmin Argument (for definitions and orientation): https://owl.purdue.edu/owl/general_writing/academic_writing/historical_perspectives_on_argumentation/toulmin_argument.html
 
+{domain_context}
+
+{audience_context}
+
 ## Important Instructions
 - Focus only on content in the provided chunk when extracting claims and text evidence; use the full document only for context/clarification.
 - Extract zero or more claims. If none are present, return an empty list.
+
+**Substantiation Assessment:**
+Set `needs_substantiation` to **False** for:
+- Common knowledge widely accepted in the domain
+- Basic definitions and established terminology
+- Logical deductions from clearly stated premises
+- General principles universally accepted in the field
+- Simple factual statements available in reference sources
+
+Set `needs_substantiation` to **True** for:
+- Specific research findings or data claims
+- Expert interpretations or opinions
+- Recent developments or emerging concepts
+- Comparative or evaluative assertions
+- Complex causal explanations
+- Contested or debatable statements
+
 - For each identified claim:
   - "data": list specific evidence from the chunk that supports the claim (quoted or paraphrased).
   - "warrants": list the assumptions that link the data to the claim. If you infer a warrant from context, include it.

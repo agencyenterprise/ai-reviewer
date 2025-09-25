@@ -29,6 +29,12 @@ export interface ClaimSubstantiationResultWithClaimIndex {
    */
   isSubstantiated: boolean;
   /**
+   * Whether this claim represents common knowledge in the domain that typically doesn't require substantiation
+   * @type {boolean}
+   * @memberof ClaimSubstantiationResultWithClaimIndex
+   */
+  isCommonKnowledge?: boolean;
+  /**
    * A brief rationale for why you think the claim is substantiated or not substantiated by the cited supporting document(s)
    * @type {string}
    * @memberof ClaimSubstantiationResultWithClaimIndex
@@ -88,6 +94,7 @@ export function ClaimSubstantiationResultWithClaimIndexFromJSONTyped(
   }
   return {
     isSubstantiated: json['is_substantiated'],
+    isCommonKnowledge: json['is_common_knowledge'] == null ? undefined : json['is_common_knowledge'],
     rationale: json['rationale'],
     feedback: json['feedback'],
     severity: SeverityFromJSON(json['severity']),
@@ -110,6 +117,7 @@ export function ClaimSubstantiationResultWithClaimIndexToJSONTyped(
 
   return {
     is_substantiated: value['isSubstantiated'],
+    is_common_knowledge: value['isCommonKnowledge'],
     rationale: value['rationale'],
     feedback: value['feedback'],
     severity: SeverityToJSON(value['severity']),

@@ -38,7 +38,7 @@ export interface Claim {
    */
   rationale: string;
   /**
-   * A boolean value indicating whether the claims needs to be substantiated. If the claim is so obvious that an academic writing would not need to provide a reference for it, then this can be False.
+   * A boolean value indicating whether the claim needs to be substantiated. Set to False if the claim represents common knowledge in the domain, basic definitions, logical deductions, or facts so well-established that academic writing would not typically require citations.
    * @type {boolean}
    * @memberof Claim
    */

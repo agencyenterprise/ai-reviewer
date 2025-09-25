@@ -38,7 +38,7 @@ chunker = LLMTextSplitter()
 async def split_into_chunks(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
     logger.info("split_into_chunks: splitting into chunks")
 
-    agents_to_run = state.agents_to_run
+    agents_to_run = state.config.agents_to_run
     if agents_to_run and "citations" not in agents_to_run:
         logger.info(
             "split_into_chunks: Skipping split_into_chunks (not in agents_to_run)"

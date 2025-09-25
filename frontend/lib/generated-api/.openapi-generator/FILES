@@ -21,6 +21,7 @@ models/EvalPackageRequest.ts
 models/FileDocument.ts
 models/HTTPValidationError.ts
 models/Severity.ts
+models/SubstantiationWorkflowConfig.ts
 models/ToulminClaim.ts
 models/ToulminClaimResponse.ts
 models/ValidationError.ts

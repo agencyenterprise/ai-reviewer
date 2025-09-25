@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 async def detect_citations(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
     logger.info("detect_citations: detecting citations")
 
-    agents_to_run = state.agents_to_run
+    agents_to_run = state.config.agents_to_run
     if agents_to_run and "citations" not in agents_to_run:
         logger.info(
             "detect_citations: Skipping citations detection (not in agents_to_run)"
