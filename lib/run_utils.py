@@ -39,7 +39,7 @@ async def run_tasks(tasks, desc="Processing tasks"):
             task_results.append(None)
         else:
             task_results.append(task_results_dict[chunk_index])
-    return task_results
+    return task_results, task_errors
 
 
 def maybe_async(func):
