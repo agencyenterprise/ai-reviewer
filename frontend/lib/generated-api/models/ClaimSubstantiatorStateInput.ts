@@ -34,6 +34,13 @@ import {
   BibliographyItemToJSON,
   BibliographyItemToJSONTyped,
 } from './BibliographyItem';
+import type { WorkflowError } from './WorkflowError';
+import {
+  WorkflowErrorFromJSON,
+  WorkflowErrorFromJSONTyped,
+  WorkflowErrorToJSON,
+  WorkflowErrorToJSONTyped,
+} from './WorkflowError';
 
 /**
  *
@@ -83,6 +90,12 @@ export interface ClaimSubstantiatorStateInput {
    * @memberof ClaimSubstantiatorStateInput
    */
   chunks?: Array<DocumentChunkInput>;
+  /**
+   * Errors that occurred during the processing of the document.
+   * @type {Array<WorkflowError>}
+   * @memberof ClaimSubstantiatorStateInput
+   */
+  errors?: Array<WorkflowError>;
 }
 
 /**
@@ -114,6 +127,7 @@ export function ClaimSubstantiatorStateInputFromJSONTyped(
     references:
       json['references'] == null ? undefined : (json['references'] as Array<any>).map(BibliographyItemFromJSON),
     chunks: json['chunks'] == null ? undefined : (json['chunks'] as Array<any>).map(DocumentChunkInputFromJSON),
+    errors: json['errors'] == null ? undefined : (json['errors'] as Array<any>).map(WorkflowErrorFromJSON),
   };
 }
 
@@ -139,5 +153,6 @@ export function ClaimSubstantiatorStateInputToJSONTyped(
     references:
       value['references'] == null ? undefined : (value['references'] as Array<any>).map(BibliographyItemToJSON),
     chunks: value['chunks'] == null ? undefined : (value['chunks'] as Array<any>).map(DocumentChunkInputToJSON),
+    errors: value['errors'] == null ? undefined : (value['errors'] as Array<any>).map(WorkflowErrorToJSON),
   };
 }

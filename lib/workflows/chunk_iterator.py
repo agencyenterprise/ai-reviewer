@@ -1,6 +1,7 @@
-from typing import Callable, List
+from typing import Callable, List, Tuple
 from lib.run_utils import run_tasks
 from lib.workflows.claim_substantiation.state import (
+    WorkflowError,
     ClaimSubstantiatorState,
     DocumentChunk,
 )
@@ -23,6 +24,18 @@ async def iterate_chunks(
     target_chunks = get_target_chunks(state)
 
     tasks = [func(state, chunk) for chunk in target_chunks]
-    updated_chunks: List[DocumentChunk] = await run_tasks(tasks, desc=desc)
+    results: Tuple[List[DocumentChunk], List[Exception]] = await run_tasks(
+        tasks, desc=desc
+    )
+    updated_chunks, exceptions = results
 
-    return {"chunks": updated_chunks}
+    errors = []
+    for index, exception in enumerate(exceptions):
+        if exception is not None:
+            errors.append(
+                WorkflowError(
+                    task_name=func.__name__, error=str(exception), chunk_index=index
+                )
+            )
+
+    return {"chunks": updated_chunks, "errors": errors}

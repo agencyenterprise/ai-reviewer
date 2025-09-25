@@ -25,5 +25,6 @@ models/ToulminClaim.ts
 models/ToulminClaimResponse.ts
 models/ValidationError.ts
 models/ValidationErrorLocInner.ts
+models/WorkflowError.ts
 models/index.ts
 runtime.ts

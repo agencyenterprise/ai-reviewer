@@ -32,7 +32,9 @@ async def run_claim_substantiator(
 
     This is the single, authoritative entry point for claim substantiation.
     """
-    app = build_claim_substantiator_graph(use_toulmin=use_toulmin, session_id=session_id)
+    app = build_claim_substantiator_graph(
+        use_toulmin=use_toulmin, session_id=session_id
+    )
 
     state = ClaimSubstantiatorState(
         file=file,
@@ -83,8 +85,7 @@ async def reevaluate_single_chunk(
         )
 
     app = build_claim_substantiator_graph(
-        use_toulmin=use_toulmin, 
-        session_id=session_id or original_result.session_id
+        use_toulmin=use_toulmin, session_id=session_id or original_result.session_id
     )
 
     state = original_result.model_copy(
