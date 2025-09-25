@@ -2,17 +2,21 @@
 
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Markdown } from '@/components/markdown';
+import { Badge } from '@/components/ui/badge';
 import { claimCategoryBaseColors, classifyChunk, classifyClaim } from '@/lib/claim-classification';
-import { ClaimSubstantiatorStateOutput, ChunkReevaluationResponse, DocumentChunkOutput } from '@/lib/generated-api';
+import { ChunkReevaluationResponse, ClaimSubstantiatorStateOutput, DocumentChunkOutput } from '@/lib/generated-api';
 import { getMaxSeverity } from '@/lib/severity';
 import { cn } from '@/lib/utils';
-import { ChevronRight, FileIcon, Link as LinkIcon, MessageCirclePlus } from 'lucide-react';
+import { AlertTriangleIcon, ChevronRight, FileIcon, Link as LinkIcon, MessageCirclePlus } from 'lucide-react';
 import * as React from 'react';
+import { useWizard } from '../../wizard-context';
 import { ChunkItem } from '../components/chunk-display';
-import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
 import { ChunkEvalGenerator } from '../components/chunk-eval-generator';
+import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
 import { ClaimCategoryLabel } from '../components/claim-category-label';
+import { ErrorsCard } from '../components/errors-card';
 import { SeverityBadge } from '../components/severity-badge';
+
 import { CommonKnowledgeBadge } from '../components/common-knowledge-badge';
 import { useWizard } from '../../wizard-context';
 import { useSupportedAgents } from '../hooks/use-supported-agents';
@@ -25,12 +29,17 @@ export function DocumentExplorerTab({ results }: DocumentExplorerTabProps) {
   const { state, actions } = useWizard();
   const { supportedAgents, supportedAgentsError } = useSupportedAgents();
 
+  const errors = results.errors || [];
+  const workflowErrors = errors.filter((error) => error.chunkIndex === null);
+
   const handleChunkReevaluation = (response: ChunkReevaluationResponse) => {
     actions.updateChunkResults(response);
   };
 
   return (
     <div className="space-y-2">
+      {workflowErrors.length > 0 && <ErrorsCard errors={workflowErrors} />}
+
       {results.chunks?.map((chunk) => (
         <DocumentExplorerChunk
           key={chunk.chunkIndex}
@@ -75,6 +84,8 @@ export function DocumentExplorerChunk({
   const substantiations = chunk.substantiations || [];
   const chunkCategory = classifyChunk(chunk, references);
   const maxSeverity = getMaxSeverity(substantiations);
+  const errors = results.errors || [];
+  const chunkErrors = errors.filter((error) => error.chunkIndex === chunk.chunkIndex);
 
   return (
     <div>
@@ -119,11 +130,23 @@ export function DocumentExplorerChunk({
               <SeverityBadge severity={maxSeverity} />
             </React.Fragment>
           )}
+
+          {chunkErrors.length > 0 && (
+            <React.Fragment>
+              <HorizontalSeparator />
+              <Badge variant="destructive" className="font-medium">
+                <AlertTriangleIcon />
+                {chunkErrors.length} processing error{chunkErrors.length > 1 ? 's' : ''}
+              </Badge>
+            </React.Fragment>
+          )}
         </div>
       </div>
 
       {isExpanded && (
         <div className="space-y-4 bg-muted/50 p-4 rounded-lg mt-2 ml-8 text-sm">
+          {chunkErrors.length > 0 && <ErrorsCard errors={chunkErrors} />}
+
           <AiGeneratedLabel className="float-right" />
 
           <h4 className="font-bold mb-2 flex items-center gap-2">

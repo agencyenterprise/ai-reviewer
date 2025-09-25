@@ -1,17 +1,26 @@
 import logging
 import uuid
+
 from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
+
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+
 from api.upload import convert_uploaded_files_to_file_document
 from api.dependencies import build_config_from_form
+
+from lib.agents.registry import agent_registry
+from lib.services.eval_generator.generator import (
+    ChunkEvalPackageRequest,
+    EvalPackageRequest,
+    eval_test_generator,
+)
+
 from lib.workflows.claim_substantiation.runner import (
-    run_claim_substantiator,
     reevaluate_single_chunk,
+    run_claim_substantiator,
 )
 from lib.workflows.claim_substantiation.state import (
-    ClaimSubstantiatorState,
     ChunkReevaluationRequest,
     ChunkReevaluationResponse,
     ClaimSubstantiationChunk,
@@ -21,12 +30,8 @@ from lib.workflows.claim_substantiation.state import (
 from lib.services.eval_generator.generator import (
     EvalPackageRequest,
     ChunkEvalPackageRequest,
+    ClaimSubstantiatorState,
 )
-
-from lib.services.file import FileDocument
-from lib.agents.reference_extractor import BibliographyItem
-from lib.agents.registry import agent_registry
-from lib.services.eval_generator.generator import eval_test_generator
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +127,7 @@ async def reevaluate_chunk(request: ChunkReevaluationRequest):
         processing_time_ms = (time.time() - start_time) * 1000
 
         return ChunkReevaluationResponse(
-            chunk=updated_chunk,
+            state=updated_state,
             agents_run=request.agents_to_run,
             processing_time_ms=processing_time_ms,
         )

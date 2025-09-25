@@ -1,11 +1,12 @@
 # Convenience helpers
-import asyncio
 import argparse
+import asyncio
 import logging
 from typing import List, Optional
 
 from lib.services.file import FileDocument, create_file_document_from_path
 from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
+
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
@@ -30,6 +31,7 @@ async def run_claim_substantiator(
 
     This is the single, authoritative entry point for claim substantiation.
     """
+    
     if config is None:
         config = SubstantiationWorkflowConfig()
 
@@ -67,12 +69,9 @@ async def reevaluate_single_chunk(
     chunk_index: int,
     agents_to_run: List[str],
     config_overrides: SubstantiationWorkflowConfig = None,
-) -> DocumentChunk:
+) -> ClaimSubstantiatorState:
     """
     Re-evaluate a single chunk using unified LangGraph approach.
-
-    This function now leverages the enhanced LangGraph workflow with selective processing
-    instead of manually calling agent registry functions.
     """
     logger.info(f"Re-evaluating chunk {chunk_index} with agents {agents_to_run}")
 
@@ -95,13 +94,24 @@ async def reevaluate_single_chunk(
     config.agents_to_run = agents_to_run
 
     app = build_claim_substantiator_graph(
-        use_toulmin=config.use_toulmin, session_id=config.session_id
+        use_toulmin=config.use_toulmin, session_id=config.session_id or original_result.session_id
     )
 
-    state = original_result.model_copy(update={"config": config})
+    state = original_result.model_copy(
+        update={
+            "target_chunk_indices": [chunk_index],
+            "agents_to_run": agents_to_run,
+            "errors": [
+                error
+                for error in original_result.errors
+                if error.chunk_index != chunk_index
+            ],
+            "config": config,
+        }
+    )
 
-    result = await app.ainvoke(state)
-    return result.chunks[chunk_index]
+    updated_state = await app.ainvoke(state)
+    return updated_state
 
 
 if __name__ == "__main__":

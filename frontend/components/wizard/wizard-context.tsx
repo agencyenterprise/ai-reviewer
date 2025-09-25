@@ -49,9 +49,7 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
       setState((prev) => {
         if (!prev.analysisResults?.fullResults) return prev;
 
-        const prevChunks = prev.analysisResults.fullResults.chunks || [];
-        const chunkIndex = response.chunk.chunkIndex;
-        const updatedChunks = prevChunks.map((chunk, idx) => (idx === chunkIndex ? response.chunk : chunk));
+        const updatedState = response.state;
 
         return {
           ...prev,
@@ -59,7 +57,7 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
             ...prev.analysisResults,
             fullResults: {
               ...prev.analysisResults.fullResults,
-              chunks: updatedChunks,
+              ...updatedState,
             },
           },
         };
