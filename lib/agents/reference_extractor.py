@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel, Field
 
+from lib.config.llm import models
 from lib.models.agent import Agent
 
 
@@ -26,7 +27,7 @@ class ReferenceExtractorResponse(BaseModel):
 reference_extractor_agent = Agent(
     name="Reference Extractor",
     description="Extract bibliographic items from a document",
-    model="openai:gpt-5-mini",
+    model=models["gpt-5-mini"],
     temperature=0.0,
     prompt=ChatPromptTemplate.from_template(
         """

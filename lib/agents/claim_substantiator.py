@@ -1,7 +1,9 @@
-from pydantic import BaseModel, Field
 from enum import IntEnum
-from langchain_core.prompts import ChatPromptTemplate
 
+from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel, Field
+
+from lib.config.llm import models
 from lib.models.agent import Agent
 
 
@@ -82,7 +84,7 @@ You MUST include the "severity" field in your output using one of the numeric va
 claim_substantiator_agent = Agent(
     name="Claim Substantiator",
     description="Substantiate a claim based on a supporting document",
-    model="openai:gpt-5",
+    model=models["gpt-5"],
     prompt=_claim_substantiator_prompt,
     tools=[],
     mandatory_tools=[],
