@@ -6,7 +6,7 @@ def format_domain_context(domain: Optional[str]) -> str:
     """Format domain context for agent prompts."""
     if not domain:
         return ""
-    
+
     return f"""
 ## Domain Context
 Consider this user provided domain: ```{domain}```
@@ -22,7 +22,7 @@ def format_audience_context(target_audience: Optional[str]) -> str:
     """Format target audience context for agent prompts."""
     if not target_audience:
         return ""
-    
+
     return f"""
 ## Target Audience Context
 Consider this user provided target audience: ```{target_audience}```

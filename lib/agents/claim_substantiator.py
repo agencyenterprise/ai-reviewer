@@ -19,7 +19,7 @@ class ClaimSubstantiationResult(BaseModel):
     )
     is_common_knowledge: bool = Field(
         default=False,
-        description="Whether this claim represents common knowledge in the domain that typically doesn't require substantiation"
+        description="Whether this claim represents common knowledge in the domain that typically doesn't require substantiation",
     )
     rationale: str = Field(
         description="A brief rationale for why you think the claim is substantiated or not substantiated by the cited supporting document(s)"

@@ -32,10 +32,9 @@ async def run_claim_substantiator(
     """
     if config is None:
         config = SubstantiationWorkflowConfig()
-    
+
     app = build_claim_substantiator_graph(
-        use_toulmin=config.use_toulmin, 
-        session_id=config.session_id
+        use_toulmin=config.use_toulmin, session_id=config.session_id
     )
 
     state = ClaimSubstantiatorState(
@@ -87,15 +86,16 @@ async def reevaluate_single_chunk(
     config = original_result.config.model_copy()
     if config_overrides:
         # Update config with any provided overrides
-        config = config.model_copy(update=config_overrides.model_dump(exclude_none=True))
-    
+        config = config.model_copy(
+            update=config_overrides.model_dump(exclude_none=True)
+        )
+
     # Always override target_chunk_indices and agents_to_run for this specific operation
     config.target_chunk_indices = [chunk_index]
     config.agents_to_run = agents_to_run
 
     app = build_claim_substantiator_graph(
-        use_toulmin=config.use_toulmin, 
-        session_id=config.session_id
+        use_toulmin=config.use_toulmin, session_id=config.session_id
     )
 
     state = original_result.model_copy(update={"config": config})

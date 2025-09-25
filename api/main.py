@@ -20,7 +20,7 @@ from lib.workflows.claim_substantiation.state import (
 
 from lib.services.eval_generator.generator import (
     EvalPackageRequest,
-    ChunkEvalPackageRequest
+    ChunkEvalPackageRequest,
 )
 
 from lib.services.file import FileDocument
@@ -29,8 +29,6 @@ from lib.agents.registry import agent_registry
 from lib.services.eval_generator.generator import eval_test_generator
 
 logger = logging.getLogger(__name__)
-
-
 
 
 app = FastAPI()
@@ -72,7 +70,7 @@ async def run_claim_substantiation_workflow(
         [main_file, *supporting_files] = await convert_uploaded_files_to_file_document(
             [main_document] + (supporting_documents or [])
         )
-        
+
         result_state = await run_claim_substantiator(
             file=main_file,
             supporting_files=supporting_files if supporting_files else None,
@@ -106,10 +104,14 @@ async def reevaluate_chunk(request: ChunkReevaluationRequest):
 
         start_time = time.time()
 
-        config_overrides = SubstantiationWorkflowConfig(
-            session_id=request.session_id or str(uuid.uuid4())
-        ) if request.session_id else None
-        
+        config_overrides = (
+            SubstantiationWorkflowConfig(
+                session_id=request.session_id or str(uuid.uuid4())
+            )
+            if request.session_id
+            else None
+        )
+
         updated_chunk = await reevaluate_single_chunk(
             original_result=request.original_state,
             chunk_index=request.chunk_index,
@@ -153,10 +155,10 @@ async def get_supported_agents():
 async def generate_eval_package(request: EvalPackageRequest):
     """
     Generate complete eval test package as downloadable zip.
-    
+
     Args:
         request: Contains analysis results and metadata for test generation
-        
+
     Returns:
         Zip file containing YAML test files and data files
     """
@@ -164,9 +166,9 @@ async def generate_eval_package(request: EvalPackageRequest):
         return eval_test_generator.generate_package(
             results=request.results,
             test_name=request.test_name,
-            description=request.description
+            description=request.description,
         )
-        
+
     except Exception as e:
         logger.error(f"Error generating eval package: {str(e)}", exc_info=True)
         raise HTTPException(
@@ -179,10 +181,10 @@ async def generate_chunk_eval_package(request: ChunkEvalPackageRequest):
     """
     Generate eval test package for a specific chunk with selected agents.
     Only includes files required by the selected agents.
-    
+
     Args:
         request: Contains analysis results, chunk index, selected agents, and metadata
-        
+
     Returns:
         Optimized zip file containing only necessary YAML test files and data files
     """
@@ -192,9 +194,9 @@ async def generate_chunk_eval_package(request: ChunkEvalPackageRequest):
             chunk_index=request.chunk_index,
             selected_agents=request.selected_agents,
             test_name=request.test_name,
-            description=request.description
+            description=request.description,
         )
-        
+
     except ValueError as e:
         logger.error(f"Invalid request for chunk eval generation: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))

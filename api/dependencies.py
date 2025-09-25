@@ -19,18 +19,18 @@ async def build_config_from_form(
 ) -> SubstantiationWorkflowConfig:
     """
     Build SubstantiationWorkflowConfig from individual form fields.
-    
+
     Args:
         use_toulmin: Whether to use Toulmin claim detection approach
         domain: Domain context for more accurate analysis
-        target_audience: Target audience context for analysis  
+        target_audience: Target audience context for analysis
         target_chunk_indices: Comma-separated chunk indices to process (optional)
         agents_to_run: Comma-separated agent names to run (optional)
         session_id: Session ID for Langfuse tracing (optional)
-        
+
     Returns:
         Configured SubstantiationWorkflowConfig instance
-        
+
     Raises:
         HTTPException: If target_chunk_indices contains invalid integers
     """
@@ -38,20 +38,22 @@ async def build_config_from_form(
     parsed_target_chunk_indices = None
     if target_chunk_indices:
         try:
-            parsed_target_chunk_indices = [int(x.strip()) for x in target_chunk_indices.split(',')]
+            parsed_target_chunk_indices = [
+                int(x.strip()) for x in target_chunk_indices.split(",")
+            ]
         except ValueError:
             raise HTTPException(
-                status_code=422, 
-                detail="target_chunk_indices must be comma-separated integers"
+                status_code=422,
+                detail="target_chunk_indices must be comma-separated integers",
             )
-    
+
     parsed_agents_to_run = None
     if agents_to_run:
-        parsed_agents_to_run = [x.strip() for x in agents_to_run.split(',')]
-    
+        parsed_agents_to_run = [x.strip() for x in agents_to_run.split(",")]
+
     if not session_id:
         session_id = str(uuid.uuid4())
-        
+
     return SubstantiationWorkflowConfig(
         use_toulmin=use_toulmin,
         domain=domain,

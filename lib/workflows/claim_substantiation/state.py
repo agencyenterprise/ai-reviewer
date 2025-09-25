@@ -11,30 +11,25 @@ from lib.services.file import FileDocument
 
 class SubstantiationWorkflowConfig(BaseModel):
     """Configuration model for claim substantiation workflow"""
-    
+
     use_toulmin: bool = Field(
-        default=False, 
-        description="Whether to use Toulmin claim detection approach"
+        default=False, description="Whether to use Toulmin claim detection approach"
     )
     target_chunk_indices: Optional[List[int]] = Field(
         default=None,
-        description="Specific chunk indices to process (None = process all chunks)"
+        description="Specific chunk indices to process (None = process all chunks)",
     )
     agents_to_run: Optional[List[str]] = Field(
-        default=None,
-        description="Specific agents to run (None = run all agents)"
+        default=None, description="Specific agents to run (None = run all agents)"
     )
     domain: Optional[str] = Field(
-        default=None,
-        description="Domain context for more accurate analysis"
+        default=None, description="Domain context for more accurate analysis"
     )
     target_audience: Optional[str] = Field(
-        default=None,
-        description="Target audience context for analysis"
+        default=None, description="Target audience context for analysis"
     )
     session_id: Optional[str] = Field(
-        default=None,
-        description="Session ID for Langfuse tracing"
+        default=None, description="Session ID for Langfuse tracing"
     )
 
 
@@ -125,9 +120,7 @@ class ChunkReevaluationRequest(BaseModel):
     original_state: ClaimSubstantiatorState = Field(
         description="The original workflow state containing the document and chunks"
     )
-    session_id: Optional[str] = Field(
-        description="The session ID for Langfuse tracing"
-    )
+    session_id: Optional[str] = Field(description="The session ID for Langfuse tracing")
 
 
 class ChunkReevaluationResponse(BaseModel):

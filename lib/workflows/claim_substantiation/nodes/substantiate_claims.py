@@ -53,7 +53,9 @@ async def _substantiate_chunk_claims(
                 "claim": claim.claim,
                 "cited_references": cited_references,
                 "domain_context": format_domain_context(state.config.domain),
-                "audience_context": format_audience_context(state.config.target_audience),
+                "audience_context": format_audience_context(
+                    state.config.target_audience
+                ),
             }
         )
         substantiations.append(
