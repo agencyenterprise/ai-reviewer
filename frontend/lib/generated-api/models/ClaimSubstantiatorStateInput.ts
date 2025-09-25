@@ -34,15 +34,6 @@ import {
   BibliographyItemToJSON,
   BibliographyItemToJSONTyped,
 } from './BibliographyItem';
-
-import type { SubstantiationWorkflowConfig } from './SubstantiationWorkflowConfig';
-import {
-  SubstantiationWorkflowConfigFromJSON,
-  SubstantiationWorkflowConfigFromJSONTyped,
-  SubstantiationWorkflowConfigToJSON,
-  SubstantiationWorkflowConfigToJSONTyped,
-} from './SubstantiationWorkflowConfig';
-
 import type { WorkflowError } from './WorkflowError';
 import {
   WorkflowErrorFromJSON,
@@ -50,6 +41,13 @@ import {
   WorkflowErrorToJSON,
   WorkflowErrorToJSONTyped,
 } from './WorkflowError';
+import type { SubstantiationWorkflowConfig } from './SubstantiationWorkflowConfig';
+import {
+  SubstantiationWorkflowConfigFromJSON,
+  SubstantiationWorkflowConfigFromJSONTyped,
+  SubstantiationWorkflowConfigToJSON,
+  SubstantiationWorkflowConfigToJSONTyped,
+} from './SubstantiationWorkflowConfig';
 
 /**
  *

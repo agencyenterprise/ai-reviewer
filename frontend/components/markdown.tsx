@@ -7,13 +7,14 @@ type MarkdownComponentProps<Key extends keyof JSX.IntrinsicElements> = JSX.Intri
 const componentFactory = (
   tag: keyof JSX.IntrinsicElements,
   className: string,
-  highlight?: 'red' | 'yellow' | 'green' | 'none',
+  highlight?: 'red' | 'yellow' | 'blue' | 'green' | 'none',
 ) => {
   const highlightClass = highlight
     ? {
         none: '',
         red: 'bg-red-100',
         yellow: 'bg-yellow-100',
+        blue: 'bg-blue-50',
         green: 'bg-green-100',
       }[highlight]
     : '';
@@ -41,7 +42,7 @@ const componentFactory = (
   return Component;
 };
 
-const createComponents = (highlight: 'red' | 'yellow' | 'green' | 'none') => {
+const createComponents = (highlight: 'red' | 'yellow' | 'blue' | 'green' | 'none') => {
   return {
     p: componentFactory('p', '', highlight),
     h1: componentFactory('h1', 'text-2xl font-bold', highlight),
@@ -76,13 +77,14 @@ const createComponents = (highlight: 'red' | 'yellow' | 'green' | 'none') => {
 };
 
 export interface MarkdownProps extends React.ComponentProps<typeof ReactMarkdown> {
-  highlight?: 'red' | 'yellow' | 'green' | 'none';
+  highlight?: 'red' | 'yellow' | 'blue' | 'green' | 'none';
 }
 
 const componentsByHighlight = {
   none: createComponents('none'),
   red: createComponents('red'),
   yellow: createComponents('yellow'),
+  blue: createComponents('blue'),
   green: createComponents('green'),
 };
 

@@ -21,6 +21,10 @@ class ClaimSubstantiationResult(BaseModel):
         default=False,
         description="Whether this claim represents common knowledge in the domain that typically doesn't require substantiation",
     )
+    common_knowledge_rationale: str = Field(
+        default="",
+        description="A brief explanation for why this claim is or is not considered common knowledge in the specified domain and context",
+    )
     rationale: str = Field(
         description="A brief rationale for why you think the claim is substantiated or not substantiated by the cited supporting document(s)"
     )
@@ -58,9 +62,16 @@ For each claim that has a substantiation issue, also output a numeric severity l
 - 3 (should be fixed): Clear issues that should probably be addressed before publication.
 - 4 (must be fixed): Critical problems; claim is unsupported or contradicted and must be corrected.
 
-**Important**: Also determine if this claim represents common knowledge in the domain. Set `is_common_knowledge` to true if the claim falls under the common knowledge categories defined below, even if it lacks direct citation. Claims marked as common knowledge should typically have severity 0 or 1.
+**Important**: Also determine if this claim represents common knowledge in the domain. Set `is_common_knowledge` to true if the claim falls under the common knowledge categories defined below, even if it lacks direct citation. However, even common knowledge claims should receive higher severity levels (2-3) if they:
+- Make specific quantitative assertions ("most", "majority", "significant portion") without supporting data
+- Use vague qualifiers that need clarification ("for the most part", "largely", "typically")  
+- Could benefit from more precise language or supporting evidence for the intended audience
 
-You MUST include both the "severity" and "is_common_knowledge" fields in your output.
+Claims marked as common knowledge should typically have severity 0-1 only when they are basic, well-established facts without quantitative assertions.
+
+For the `common_knowledge_rationale` field, provide a brief explanation for your common knowledge determination - explain why this claim is or is not considered common knowledge given the specified domain and target audience context.
+
+You MUST include the "severity", "is_common_knowledge", and "common_knowledge_rationale" fields in your output.
 
 ## Document-Specific Context
 ### Domain: 
