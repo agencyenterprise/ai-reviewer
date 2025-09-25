@@ -14,11 +14,11 @@ from lib.workflows.claim_substantiation.state import (
 logger = logging.getLogger(__name__)
 
 
-underlying_embeddings = OpenAIEmbeddings()
-store = LocalFileStore("./cache/embeddings")
-cached_embedder = CacheBackedEmbeddings.from_bytes_store(
-    underlying_embeddings, store, namespace=underlying_embeddings.model
-)
+# underlying_embeddings = OpenAIEmbeddings()
+# store = LocalFileStore("./cache/embeddings")
+# cached_embedder = CacheBackedEmbeddings.from_bytes_store(
+#     underlying_embeddings, store, namespace=underlying_embeddings.model
+# )
 
 # chunker = SemanticChunker(
 #     cached_embedder,

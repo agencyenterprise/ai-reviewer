@@ -1,6 +1,7 @@
 from langchain_core.messages import SystemMessage
 from pydantic import BaseModel, Field
 
+from lib.config.llm import models
 from lib.models import Agent
 from lib.agents.models import ValidatedDocument
 
@@ -49,17 +50,17 @@ Your task:
 - Prefer breaking prose into sentence-level chunks while keeping short related sentences together when it improves readability.
 - Never drop content, merge unrelated sections, or reorder chunks. If unsure, keep more text together rather than omitting anything.
 - The concatenation of every chunk in order must recreate the original document text character-for-character (aside from insignificant trailing whitespace and new line differences).
-- Chunks should be stripped of new line or space characters at the beginning and end. 
+- Chunks should be stripped of new line or space characters at the beginning and end.
 - Do NOT create any empty string chunks or chunks that only have white space or new line characters. If the source has extra blank lines between paragraphs, remove them.
 
 Follow this procedure exactly:
 1. Work with a copy of the original markdown text.
 2. For each paragraph, emit sentence-level chunks by slicing contiguous substrings directly from the paragraph text. Prefer sentence-level boundaries (`.` `?` `!`).
-3. Keep all markdown tokens (headings, list markers) attached to the content they modify, but do not add any markdown tokens (e.g., ##) yourself. 
+3. Keep all markdown tokens (headings, list markers) attached to the content they modify, but do not add any markdown tokens (e.g., ##) yourself.
 3. If blank lines separate portions of the paragraph, attach the newline characters to the preceding or following chunk so that no chunk is empty or only has white space or new line characters.
 4. Make sure that if all chunks are concatenated in order, the reconstructed string matches the original markdown exactly (minus any insignificant white space or new line differences).
 
-Return structured data with the requested schema: 
+Return structured data with the requested schema:
 {DocumentChunkerResponse.model_json_schema()}
 
 I will send the markdown document that you need to chunk as my next message.
@@ -68,7 +69,7 @@ I will send the markdown document that you need to chunk as my next message.
 document_chunker_agent = Agent(
     name="Document Chunker",
     description="Chunk a document into paragraphs and each paragraph into reasonable sentence-level chunks",
-    model="openai:gpt-4.1",
+    model=models["gpt-4.1"],
     prompt=SystemMessage(
         content=_document_chunker_agent_system_prompt,
     )

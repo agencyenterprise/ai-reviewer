@@ -1,8 +1,10 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
-from lib.models import Agent
 from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel, Field
+
+from lib.config.llm import models
+from lib.models import Agent
 
 
 class ToulminClaim(BaseModel):
@@ -72,7 +74,7 @@ toulmin_claim_detector_agent = Agent(
         "Detect claims in a chunk of text and extract Toulmin elements: data/grounds,"
         " warrants (stated or implied), qualifiers, rebuttals, and backing."
     ),
-    model="openai:gpt-5",
+    model=models["gpt-5"],
     prompt=ChatPromptTemplate.from_template(
         (
             """

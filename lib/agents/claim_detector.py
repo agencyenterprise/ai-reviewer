@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field
-from lib.models import Agent
-
 from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel, Field
+
+from lib.config.llm import models
+from lib.models import Agent
 
 
 class Claim(BaseModel):
@@ -29,7 +30,7 @@ class ClaimResponse(BaseModel):
 claim_detector_agent = Agent(
     name="Claim Detector",
     description="Detect claims in a chunk of text",
-    model="openai:gpt-5",
+    model=models["gpt-5"],
     prompt=ChatPromptTemplate.from_template(
         """
 ## Task

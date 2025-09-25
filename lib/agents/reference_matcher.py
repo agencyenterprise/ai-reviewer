@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel, Field
 
+from lib.config.llm import models
 from lib.models.agent import Agent
 
 
@@ -19,7 +20,7 @@ class ReferenceMatch(BaseModel):
 reference_matcher_agent = Agent(
     name="Reference Matcher",
     description="Match references to supporting documents",
-    model="openai:gpt-5",
+    model=models["gpt-5"],
     prompt=ChatPromptTemplate.from_template(
         """
 # Task

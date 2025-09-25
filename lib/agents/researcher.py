@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel, Field
 
+from lib.config.llm import models
 from lib.models.agent import Agent
 
 
@@ -29,7 +30,7 @@ class ResearcherResponse(BaseModel):
 research_agent = Agent(
     name="Researcher",
     description="Research the topics discussed in the document and find any relevant more up to date information about them online",
-    model="openai:gpt-5",
+    model=models["gpt-5"],
     prompt=ChatPromptTemplate.from_template(
         """
 # Task

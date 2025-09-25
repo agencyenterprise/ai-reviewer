@@ -1,9 +1,11 @@
 from enum import Enum
-from pydantic import BaseModel, Field
-from lib.models import Agent
 
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel, Field
+
+from lib.config.llm import models
+from lib.models import Agent
 
 
 class CitationType(str, Enum):
@@ -82,7 +84,7 @@ The indexes in this list should be used when returning index_of_associated_bibli
 citation_detector_agent = Agent(
     name="Citation Detector",
     description="Detect citations in a chunk of text",
-    model="openai:gpt-5",
+    model=models["gpt-5"],
     prompt=_citation_detector_prompt,
     tools=[],
     mandatory_tools=[],
