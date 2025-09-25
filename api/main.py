@@ -117,7 +117,7 @@ async def reevaluate_chunk(request: ChunkReevaluationRequest):
             else None
         )
 
-        updated_chunk = await reevaluate_single_chunk(
+        updated_state = await reevaluate_single_chunk(
             original_result=request.original_state,
             chunk_index=request.chunk_index,
             agents_to_run=request.agents_to_run,

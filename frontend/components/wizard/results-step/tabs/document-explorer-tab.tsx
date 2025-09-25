@@ -16,9 +16,7 @@ import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
 import { ClaimCategoryLabel } from '../components/claim-category-label';
 import { ErrorsCard } from '../components/errors-card';
 import { SeverityBadge } from '../components/severity-badge';
-
 import { CommonKnowledgeBadge } from '../components/common-knowledge-badge';
-import { useWizard } from '../../wizard-context';
 import { useSupportedAgents } from '../hooks/use-supported-agents';
 
 interface DocumentExplorerTabProps {
