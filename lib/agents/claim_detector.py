@@ -47,6 +47,11 @@ For each claim, you need to return the following information:
 {full_document}
 ```
 
+## The paragraph of the original document that contains the chunk of text that we want to analyze
+```
+{paragraph}
+```
+
 ## The chunk of text to extract claims from
 ```
 {chunk}

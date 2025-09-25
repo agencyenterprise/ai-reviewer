@@ -61,6 +61,11 @@ You MUST include the "severity" field in your output using one of the numeric va
 {full_document}
 ```
 
+## The paragraph of the original document that contains the chunk of text that we want to substantiate
+```
+{paragraph}
+```
+
 ## The chunk of text from the original document that contains the claim to be substantiated
 ```
 {chunk}

@@ -110,6 +110,11 @@ Reference: Purdue OWL - Toulmin Argument (for definitions and orientation): http
 {full_document}
 ```
 
+## The paragraph of the original document that contains the chunk of text that we want to analyze
+```
+{paragraph}
+```
+
 ## The chunk of text to analyze
 ```
 {chunk}

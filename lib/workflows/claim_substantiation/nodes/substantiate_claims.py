@@ -44,8 +44,9 @@ async def _substantiate_chunk_claims(
 
         result: ClaimSubstantiationResult = await claim_substantiator_agent.apply(
             {
-                "chunk": chunk.content,
                 "full_document": state.file.markdown,
+                "paragraph": state.get_paragraph(chunk.paragraph_index),
+                "chunk": chunk.content,
                 "claim": claim.claim,
                 "cited_references": cited_references,
             }

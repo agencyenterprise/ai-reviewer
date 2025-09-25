@@ -2,13 +2,9 @@ import logging
 
 from langchain.embeddings import CacheBackedEmbeddings, OpenAIEmbeddings
 from langchain.storage import LocalFileStore
-from langchain_experimental.text_splitter import SemanticChunker
-from langchain_text_splitters import (
-    MarkdownTextSplitter,
-    RecursiveCharacterTextSplitter,
-)
 
-from lib.services.llm_test_splitter import LLMTextSplitter
+from lib.run_utils import call_maybe_async
+from lib.services.llm_text_splitter import LLMTextSplitter
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
@@ -50,11 +46,17 @@ async def split_into_chunks(state: ClaimSubstantiatorState) -> ClaimSubstantiato
         return {}
 
     markdown = state.file.markdown
-    docs = chunker.create_documents([markdown])
+
+    # Automatically handle both sync and async chunkers
+    docs = await call_maybe_async(chunker.create_documents, [markdown])
 
     return {
         "chunks": [
-            DocumentChunk(content=doc.page_content, chunk_index=index)
-            for index, doc in enumerate(docs)
+            DocumentChunk(
+                content=doc.page_content,
+                chunk_index=doc.metadata.chunk_index,
+                paragraph_index=doc.metadata.paragraph_index,
+            )
+            for doc in docs
         ]
     }
