@@ -1,4 +1,4 @@
-from typing import Annotated, List, Optional, Dict, Any
+from typing import Annotated, List, Optional
 from pydantic import BaseModel, Field
 
 from lib.agents.citation_detector import CitationResponse
@@ -8,6 +8,17 @@ from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.claim_substantiator import ClaimSubstantiationResultWithClaimIndex
 from lib.services.file import FileDocument
 from lib.agents.models import ChunkWithIndex
+from operator import add
+
+
+class WorkflowError(BaseModel):
+    """Error object for the overall workflow or specific chunks."""
+
+    chunk_index: Optional[int] = Field(
+        description="The index of the chunk that caused the error. This is None if the error occurred before the chunk was processed or in the overall workflow (not chunk-related)."
+    )
+    task_name: str = Field(description="The name of the task that caused the error.")
+    error: str = Field(description="The error message.")
 
 
 class DocumentChunk(ChunkWithIndex):
@@ -40,6 +51,10 @@ def conciliate_chunks(
 
     # Merge updates from b into the existing chunks
     for updated_chunk in b:
+        if updated_chunk is None:
+            # in case chunk processing errored, a None is returned here so we skip the result
+            continue
+
         existing_chunk = chunks_by_index.get(updated_chunk.chunk_index)
         if existing_chunk is None:
             # If chunk doesn't exist in a, add it
@@ -81,6 +96,10 @@ class ClaimSubstantiatorState(BaseModel):
     # Outputs
     references: List[BibliographyItem] = []
     chunks: Annotated[List[DocumentChunk], conciliate_chunks] = []
+    errors: Annotated[List[WorkflowError], add] = Field(
+        default_factory=list,
+        description="Errors that occurred during the processing of the document.",
+    )
 
     def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:
         return [
@@ -111,8 +130,9 @@ class ChunkReevaluationRequest(BaseModel):
 class ChunkReevaluationResponse(BaseModel):
     """Response model for chunk re-evaluation results"""
 
-    chunk: DocumentChunk = Field(description="The re-evaluated chunk")
-
+    state: ClaimSubstantiatorState = Field(
+        description="The updated workflow state, with the re-evaluated chunk included"
+    )
     agents_run: List[str] = Field(
         description="List of agents that were successfully run on the chunk"
     )

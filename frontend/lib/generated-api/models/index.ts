@@ -24,3 +24,4 @@ export * from './ToulminClaim';
 export * from './ToulminClaimResponse';
 export * from './ValidationError';
 export * from './ValidationErrorLocInner';
+export * from './WorkflowError';

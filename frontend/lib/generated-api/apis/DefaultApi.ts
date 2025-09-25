@@ -60,7 +60,7 @@ export interface RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequ
  */
 export class DefaultApi extends runtime.BaseAPI {
   /**
-   * Generate eval test package for a specific chunk with selected agents. Only includes files required by the selected agents.  Args:     request: Contains analysis results, chunk index, selected agents, and metadata      Returns:     Optimized zip file containing only necessary YAML test files and data files
+   * Generate eval test package for a specific chunk with selected agents. Only includes files required by the selected agents.  Args:     request: Contains analysis results, chunk index, selected agents, and metadata  Returns:     Optimized zip file containing only necessary YAML test files and data files
    * Generate Chunk Eval Package
    */
   async generateChunkEvalPackageApiGenerateChunkEvalPackagePostRaw(
@@ -101,7 +101,7 @@ export class DefaultApi extends runtime.BaseAPI {
   }
 
   /**
-   * Generate eval test package for a specific chunk with selected agents. Only includes files required by the selected agents.  Args:     request: Contains analysis results, chunk index, selected agents, and metadata      Returns:     Optimized zip file containing only necessary YAML test files and data files
+   * Generate eval test package for a specific chunk with selected agents. Only includes files required by the selected agents.  Args:     request: Contains analysis results, chunk index, selected agents, and metadata  Returns:     Optimized zip file containing only necessary YAML test files and data files
    * Generate Chunk Eval Package
    */
   async generateChunkEvalPackageApiGenerateChunkEvalPackagePost(
@@ -116,7 +116,7 @@ export class DefaultApi extends runtime.BaseAPI {
   }
 
   /**
-   * Generate complete eval test package as downloadable zip.  Args:     request: Contains analysis results and metadata for test generation      Returns:     Zip file containing YAML test files and data files
+   * Generate complete eval test package as downloadable zip.  Args:     request: Contains analysis results and metadata for test generation  Returns:     Zip file containing YAML test files and data files
    * Generate Eval Package
    */
   async generateEvalPackageApiGenerateEvalPackagePostRaw(
@@ -157,7 +157,7 @@ export class DefaultApi extends runtime.BaseAPI {
   }
 
   /**
-   * Generate complete eval test package as downloadable zip.  Args:     request: Contains analysis results and metadata for test generation      Returns:     Zip file containing YAML test files and data files
+   * Generate complete eval test package as downloadable zip.  Args:     request: Contains analysis results and metadata for test generation  Returns:     Zip file containing YAML test files and data files
    * Generate Eval Package
    */
   async generateEvalPackageApiGenerateEvalPackagePost(
