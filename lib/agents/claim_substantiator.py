@@ -123,6 +123,11 @@ You MUST include both the "severity" and "is_common_knowledge" fields in your ou
 {full_document}
 ```
 
+## The paragraph of the original document that contains the chunk of text that we want to substantiate
+```
+{paragraph}
+```
+
 ## The chunk of text from the original document that contains the claim to be substantiated
 ```
 {chunk}

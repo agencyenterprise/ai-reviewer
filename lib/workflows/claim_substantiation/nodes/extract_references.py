@@ -24,6 +24,9 @@ async def extract_references(state: ClaimSubstantiatorState) -> ClaimSubstantiat
         state.supporting_files, truncate_at_character_count=1000
     )
     res: ReferenceExtractorResponse = await reference_extractor_agent.apply(
-        {"full_document": markdown, "supporting_documents": supporting_documents}
+        {
+            "full_document": markdown,
+            "supporting_documents": supporting_documents,
+        }
     )
     return {"references": res.references}

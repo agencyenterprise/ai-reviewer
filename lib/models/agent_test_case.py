@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any, Dict, Optional, Set, Type, TypeVar
 
@@ -41,7 +42,8 @@ class AgentTestCase(BaseModel):
     # Goldens and results
     expected_dict: Dict[str, Any]
     expected: Optional[TResponse] = None
-    result: Optional[TResponse] = None
+    run_count: int = 1
+    results: Optional[list[TResponse]] = None  # For multiple runs
 
     # Field selectors (same format as pydantic model_dump's include and exclude inputs)
     strict_fields: set | dict = Field(default_factory=set)
@@ -58,19 +60,15 @@ class AgentTestCase(BaseModel):
 
     async def run(self) -> TResponse:
         """Run the agent and store the typed result."""
-        result = await self.agent.apply(
-            self.prompt_kwargs,
-            config={"run_name": self.name, "callbacks": [langfuse_handler]},
-        )
+        tasks = [self.agent.apply(self.prompt_kwargs) for _ in range(self.run_count)]
+        results = await asyncio.gather(*tasks)
         # Ensure result is the expected pydantic type
-        self.result = self.response_model.model_validate(result)  # type: ignore[arg-type]
-        return self.result  # type: ignore[return-value]
+        self.results = [self.response_model.model_validate(result) for result in results]  # type: ignore[arg-type]
+        return self.results  # type: ignore[return-value]
 
-    async def _compare_llm(self) -> EvaluationResult:
+    async def _compare_llm_given_result(self, result: TResponse) -> EvaluationResult:
         """Use an LLM to semantically compare selected fields."""
-        assert (
-            self.expected is not None and self.result is not None
-        ), "Run the test first"
+        assert self.expected is not None and result is not None, "Run the test first"
 
         if len(self.llm_fields) == 0:
             return EvaluationResult(
@@ -80,7 +78,7 @@ class AgentTestCase(BaseModel):
         expected_llm_json = self.expected.model_dump_json(
             include=self.llm_fields, exclude=self.ignore_fields, indent=2
         )
-        result_llm_json = self.result.model_dump_json(
+        result_llm_json = result.model_dump_json(
             include=self.llm_fields, exclude=self.ignore_fields, indent=2
         )
 
@@ -125,7 +123,9 @@ RECEIVED JSON (selected fields):
 
         return grader.invoke(messages)
 
-    async def _compare_strict(self) -> EvaluationResult:
+    async def _compare_strict_given_result(self, result: TResponse) -> EvaluationResult:
+        assert self.expected is not None and result is not None, "Run the test first"
+
         expected_strict = self.expected.model_dump(
             include=self.strict_fields, exclude=self.ignore_fields
         )
@@ -133,7 +133,7 @@ RECEIVED JSON (selected fields):
             return EvaluationResult(
                 passed=True, rationale="No strict fields to compare"
             )
-        result_strict = self.result.model_dump(
+        result_strict = result.model_dump(
             include=self.strict_fields, exclude=self.ignore_fields
         )
         different_fields = DeepDiff(expected_strict, result_strict, ignore_order=True)
@@ -147,16 +147,65 @@ RECEIVED JSON (selected fields):
                 rationale=f"Fields with differences with expected: {different_fields_str}",
             )
 
+    async def prepare_aggregate_run_evaluation_result(
+        self, eval_results: list[EvaluationResult], test_label: str | None = None
+    ) -> EvaluationResult:
+        num_passed = sum(1 for result in eval_results if result.passed)
+        passed = num_passed == len(eval_results)
+        rationale = f"{"✅" if passed else "❌"} {num_passed/len(eval_results)*100:0.0f}% ({num_passed}/{len(eval_results)}) of runs passed {f"{test_label}" if test_label else ""}"
+        if not passed:
+            rationale += "\n" + "\n".join(
+                [
+                    f"""{"✅" if result.passed else "❌"} Run {i+1}/{self.run_count} {"- " + test_label if test_label else ""}
+    ```
+    {result.rationale}
+    ```
+    """
+                    for i, result in enumerate(eval_results)
+                ]
+            )
+        return EvaluationResult(passed=passed, rationale=rationale)
+
+    async def _compare_llm(self) -> EvaluationResult:
+        """Use an LLM to semantically compare selected fields."""
+        assert (
+            self.expected is not None and self.results is not None
+        ), "Run the test first"
+
+        if len(self.llm_fields) == 0:
+            return EvaluationResult(
+                passed=True, rationale="No fields require llm comparison"
+            )
+
+        tasks = [self._compare_llm_given_result(result) for result in self.results]
+        eval_results = await asyncio.gather(*tasks)
+        return await self.prepare_aggregate_run_evaluation_result(
+            eval_results,
+            "LLM Comparisons",
+        )
+
+    async def _compare_strict(self) -> EvaluationResult:
+        assert (
+            self.expected is not None and self.results is not None
+        ), "Run the test first"
+
+        if len(self.strict_fields) == 0:
+            return EvaluationResult(
+                passed=True, rationale="No strict fields to compare"
+            )
+
+        tasks = [self._compare_strict_given_result(result) for result in self.results]
+        eval_results = await asyncio.gather(*tasks)
+        return await self.prepare_aggregate_run_evaluation_result(
+            eval_results,
+            "Strict Comparisons",
+        )
+
     async def compare_results(self) -> EvaluationResult:
         strict_eval = await self._compare_strict()
         llm_eval = await self._compare_llm()
 
-        rationale_parts = [
-            f"{'✓' if strict_eval.passed else '✗'} Strict fields: {strict_eval.rationale}",
-            f"{'✓' if llm_eval.passed else '✗'} LLM fields: {llm_eval.rationale}",
-        ]
-
         return EvaluationResult(
             passed=strict_eval.passed and llm_eval.passed,
-            rationale="\n".join(rationale_parts),
+            rationale="\n".join([strict_eval.rationale, llm_eval.rationale]),
         )

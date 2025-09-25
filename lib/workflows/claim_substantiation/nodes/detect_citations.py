@@ -31,9 +31,9 @@ async def _detect_chunk_citations(
 ) -> DocumentChunk:
     citations: CitationResponse = await citation_detector_agent.apply(
         {
-            "chunk": chunk.content,
             "full_document": state.file.markdown,
             "bibliography": _format_bibliography_prompt_section(state.references),
+            "chunk": chunk.content,
         }
     )
     return chunk.model_copy(update={"citations": citations})

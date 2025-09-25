@@ -7,6 +7,7 @@ from lib.agents.toulmin_claim_detector import ToulminClaimResponse
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.claim_substantiator import ClaimSubstantiationResultWithClaimIndex
 from lib.services.file import FileDocument
+from lib.agents.models import ChunkWithIndex
 from operator import add
 
 
@@ -44,11 +45,8 @@ class SubstantiationWorkflowConfig(BaseModel):
     )
 
 
-class DocumentChunk(BaseModel):
+class DocumentChunk(ChunkWithIndex):
     """Independent chunk response object with all processing results"""
-
-    content: str
-    chunk_index: int
 
     claims: Optional[ClaimResponse | ToulminClaimResponse] = None
     citations: Optional[CitationResponse] = None
@@ -124,6 +122,15 @@ class ClaimSubstantiatorState(BaseModel):
         default_factory=list,
         description="Errors that occurred during the processing of the document.",
     )
+
+    def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:
+        return [
+            chunk for chunk in self.chunks if chunk.paragraph_index == paragraph_index
+        ]
+
+    def get_paragraph(self, paragraph_index: int) -> str:
+        paragraph_chunks = self.get_paragraph_chunks(paragraph_index)
+        return "\n".join([chunk.content for chunk in paragraph_chunks])
 
 
 class ChunkReevaluationRequest(BaseModel):
