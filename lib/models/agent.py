@@ -9,7 +9,7 @@ from langchain_core.runnables.config import RunnableConfig
 from langgraph.prebuilt import create_react_agent
 from sqlalchemy import JSON, Column, DateTime, Integer, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
-from sqlmodel import JSON, Field, Float, SQLModel
+from sqlmodel import Boolean, JSON, Field, Float, SQLModel
 
 from lib.config.langfuse import langfuse_handler
 from lib.models.react_agent.agent_runner import (
@@ -31,6 +31,7 @@ class Agent(SQLModel, table=True):
     model: str = Field(
         sa_column=Column(String(255), nullable=False)
     )  # Format: "{provider}:{model}"
+    use_responses_api: bool = Field(sa_column=Column(Boolean, default=False))
     temperature: float = Field(sa_column=Column(Float, default=0.5))
     prompt: Any = Field(sa_column=Column(Text, nullable=False))
     tools: list[str] = Field(
@@ -68,11 +69,15 @@ class Agent(SQLModel, table=True):
             self.model_name,
             model_provider=self.model_provider,
             temperature=self.temperature,
+            use_responses_api=self.use_responses_api,
         )
 
     def _prep_llm_with_structured_output(self):
         llm = self._prep_llm()
-        return llm.with_structured_output(self.output_schema)
+        if self.output_schema is str:
+            return llm
+        else:
+            return llm.with_structured_output(self.output_schema)
 
     def prep_llm_args(self, prompt_kwargs: dict):
         """Prepare arguments for normal non-react-agent llm calls"""

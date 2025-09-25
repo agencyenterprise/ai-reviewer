@@ -1,4 +1,4 @@
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
 from lib.config.llm import models
@@ -73,7 +73,7 @@ document_chunker_agent = Agent(
     prompt=SystemMessage(
         content=_document_chunker_agent_system_prompt,
     )
-    + "{full_document}",
+    + HumanMessage(content="{full_document}"),
     tools=[],
     mandatory_tools=[],
     output_schema=DocumentChunkerResponse,
