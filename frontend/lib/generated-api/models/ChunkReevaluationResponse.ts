@@ -13,13 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
-import type { DocumentChunkOutput } from './DocumentChunkOutput';
+import type { ClaimSubstantiatorStateOutput } from './ClaimSubstantiatorStateOutput';
 import {
-  DocumentChunkOutputFromJSON,
-  DocumentChunkOutputFromJSONTyped,
-  DocumentChunkOutputToJSON,
-  DocumentChunkOutputToJSONTyped,
-} from './DocumentChunkOutput';
+  ClaimSubstantiatorStateOutputFromJSON,
+  ClaimSubstantiatorStateOutputFromJSONTyped,
+  ClaimSubstantiatorStateOutputToJSON,
+  ClaimSubstantiatorStateOutputToJSONTyped,
+} from './ClaimSubstantiatorStateOutput';
 
 /**
  * Response model for chunk re-evaluation results
@@ -28,11 +28,11 @@ import {
  */
 export interface ChunkReevaluationResponse {
   /**
-   * The re-evaluated chunk
-   * @type {DocumentChunkOutput}
+   * The updated workflow state, with the re-evaluated chunk included
+   * @type {ClaimSubstantiatorStateOutput}
    * @memberof ChunkReevaluationResponse
    */
-  chunk: DocumentChunkOutput;
+  state: ClaimSubstantiatorStateOutput;
   /**
    * List of agents that were successfully run on the chunk
    * @type {Array<string>}
@@ -51,7 +51,7 @@ export interface ChunkReevaluationResponse {
  * Check if a given object implements the ChunkReevaluationResponse interface.
  */
 export function instanceOfChunkReevaluationResponse(value: object): value is ChunkReevaluationResponse {
-  if (!('chunk' in value) || value['chunk'] === undefined) return false;
+  if (!('state' in value) || value['state'] === undefined) return false;
   if (!('agentsRun' in value) || value['agentsRun'] === undefined) return false;
   return true;
 }
@@ -68,7 +68,7 @@ export function ChunkReevaluationResponseFromJSONTyped(
     return json;
   }
   return {
-    chunk: DocumentChunkOutputFromJSON(json['chunk']),
+    state: ClaimSubstantiatorStateOutputFromJSON(json['state']),
     agentsRun: json['agents_run'],
     processingTimeMs: json['processing_time_ms'] == null ? undefined : json['processing_time_ms'],
   };
@@ -87,7 +87,7 @@ export function ChunkReevaluationResponseToJSONTyped(
   }
 
   return {
-    chunk: DocumentChunkOutputToJSON(value['chunk']),
+    state: ClaimSubstantiatorStateOutputToJSON(value['state']),
     agents_run: value['agentsRun'],
     processing_time_ms: value['processingTimeMs'],
   };

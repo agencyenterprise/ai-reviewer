@@ -123,8 +123,9 @@ class ChunkReevaluationRequest(BaseModel):
 class ChunkReevaluationResponse(BaseModel):
     """Response model for chunk re-evaluation results"""
 
-    chunk: DocumentChunk = Field(description="The re-evaluated chunk")
-
+    state: ClaimSubstantiatorState = Field(
+        description="The updated workflow state, with the re-evaluated chunk included"
+    )
     agents_run: List[str] = Field(
         description="List of agents that were successfully run on the chunk"
     )

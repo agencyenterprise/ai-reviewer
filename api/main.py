@@ -1,30 +1,26 @@
 import logging
 import uuid
-from typing import Optional, List, Dict, Any
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from typing import Optional
+
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+
 from api.upload import convert_uploaded_files_to_file_document
+from lib.agents.registry import agent_registry
+from lib.services.eval_generator.generator import (
+    ChunkEvalPackageRequest,
+    EvalPackageRequest,
+    eval_test_generator,
+)
 from lib.workflows.claim_substantiation.runner import (
-    run_claim_substantiator,
     reevaluate_single_chunk,
+    run_claim_substantiator,
 )
 from lib.workflows.claim_substantiation.state import (
-    ClaimSubstantiatorState,
     ChunkReevaluationRequest,
     ChunkReevaluationResponse,
-    ClaimSubstantiationChunk,
+    ClaimSubstantiatorState,
 )
-
-from lib.services.eval_generator.generator import (
-    EvalPackageRequest,
-    ChunkEvalPackageRequest
-)
-
-from lib.services.file import FileDocument
-from lib.agents.reference_extractor import BibliographyItem
-from lib.agents.registry import agent_registry
-from lib.services.eval_generator.generator import eval_test_generator
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +98,7 @@ async def reevaluate_chunk(request: ChunkReevaluationRequest):
 
         start_time = time.time()
 
-        updated_chunk = await reevaluate_single_chunk(
+        updated_state = await reevaluate_single_chunk(
             original_result=request.original_state,
             chunk_index=request.chunk_index,
             agents_to_run=request.agents_to_run,
@@ -112,7 +108,7 @@ async def reevaluate_chunk(request: ChunkReevaluationRequest):
         processing_time_ms = (time.time() - start_time) * 1000
 
         return ChunkReevaluationResponse(
-            chunk=updated_chunk,
+            state=updated_state,
             agents_run=request.agents_to_run,
             processing_time_ms=processing_time_ms,
         )
@@ -145,10 +141,10 @@ async def get_supported_agents():
 async def generate_eval_package(request: EvalPackageRequest):
     """
     Generate complete eval test package as downloadable zip.
-    
+
     Args:
         request: Contains analysis results and metadata for test generation
-        
+
     Returns:
         Zip file containing YAML test files and data files
     """
@@ -156,9 +152,9 @@ async def generate_eval_package(request: EvalPackageRequest):
         return eval_test_generator.generate_package(
             results=request.results,
             test_name=request.test_name,
-            description=request.description
+            description=request.description,
         )
-        
+
     except Exception as e:
         logger.error(f"Error generating eval package: {str(e)}", exc_info=True)
         raise HTTPException(
@@ -171,10 +167,10 @@ async def generate_chunk_eval_package(request: ChunkEvalPackageRequest):
     """
     Generate eval test package for a specific chunk with selected agents.
     Only includes files required by the selected agents.
-    
+
     Args:
         request: Contains analysis results, chunk index, selected agents, and metadata
-        
+
     Returns:
         Optimized zip file containing only necessary YAML test files and data files
     """
@@ -184,9 +180,9 @@ async def generate_chunk_eval_package(request: ChunkEvalPackageRequest):
             chunk_index=request.chunk_index,
             selected_agents=request.selected_agents,
             test_name=request.test_name,
-            description=request.description
+            description=request.description,
         )
-        
+
     except ValueError as e:
         logger.error(f"Invalid request for chunk eval generation: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
