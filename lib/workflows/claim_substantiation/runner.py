@@ -4,12 +4,14 @@ import asyncio
 import logging
 from typing import List, Optional
 
+from lib.config.database import get_db
+from lib.config.langfuse import langfuse_handler
+from lib.models.workflow_run import WorkflowRun
 from lib.services.file import FileDocument, create_file_document_from_path
+from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
 from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
-
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
-    DocumentChunk,
     SubstantiationWorkflowConfig,
 )
 
@@ -31,13 +33,16 @@ async def run_claim_substantiator(
 
     This is the single, authoritative entry point for claim substantiation.
     """
-    
+
     if config is None:
         config = SubstantiationWorkflowConfig()
 
-    app = build_claim_substantiator_graph(
-        use_toulmin=config.use_toulmin, session_id=config.session_id
-    )
+    run = WorkflowRun(langgraph_thread_id=config.session_id, title=file.file_name)
+    with get_db() as db:
+        db.add(run)
+        db.commit()
+
+    graph = build_claim_substantiator_graph(use_toulmin=config.use_toulmin)
 
     state = ClaimSubstantiatorState(
         file=file,
@@ -45,7 +50,21 @@ async def run_claim_substantiator(
         config=config,
     )
 
-    return await app.ainvoke(state)
+    async with get_checkpointer() as checkpointer:
+        app = graph.compile(checkpointer=checkpointer).with_config(
+            {
+                "callbacks": [langfuse_handler],
+                "metadata": {"langfuse_session_id": config.session_id},
+            }
+        )
+
+        state = ClaimSubstantiatorState(
+            file=file, supporting_files=supporting_files, config=config
+        )
+
+        return await app.ainvoke(
+            state, {"configurable": {"thread_id": config.session_id}}
+        )
 
 
 async def run_claim_substantiator_from_paths(
@@ -93,24 +112,32 @@ async def reevaluate_single_chunk(
     config.target_chunk_indices = [chunk_index]
     config.agents_to_run = agents_to_run
 
-    app = build_claim_substantiator_graph(
-        use_toulmin=config.use_toulmin, session_id=config.session_id or original_result.session_id
-    )
+    graph = build_claim_substantiator_graph(use_toulmin=config.use_toulmin)
 
-    state = original_result.model_copy(
-        update={
-            "target_chunk_indices": [chunk_index],
-            "agents_to_run": agents_to_run,
-            "errors": [
-                error
-                for error in original_result.errors
-                if error.chunk_index != chunk_index
-            ],
-            "config": config,
-        }
-    )
+    async with get_checkpointer() as checkpointer:
+        app = graph.compile(checkpointer=checkpointer).with_config(
+            {
+                "callbacks": [langfuse_handler],
+                "metadata": {
+                    "langfuse_session_id": config.session_id
+                    or original_result.session_id
+                },
+            }
+        )
+        state = original_result.model_copy(
+            update={
+                "config": config,
+                "errors": [
+                    error
+                    for error in original_result.errors
+                    if error.chunk_index != chunk_index
+                ],
+            }
+        )
 
-    updated_state = await app.ainvoke(state)
+        updated_state = await app.ainvoke(
+            state, {"configurable": {"thread_id": config.session_id}}
+        )
     return updated_state
 
 

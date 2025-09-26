@@ -1,5 +1,8 @@
+from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.graph import StateGraph
+from langgraph.graph.state import Checkpointer
 
+from lib.config.env import config
 from lib.config.langfuse import langfuse_handler
 from lib.workflows.claim_substantiation.nodes.detect_citations import detect_citations
 from lib.workflows.claim_substantiation.nodes.detect_claims import detect_claims
@@ -16,7 +19,7 @@ from lib.workflows.claim_substantiation.nodes.substantiate_claims import (
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 
 
-def build_claim_substantiator_graph(use_toulmin: bool = False, session_id: str = None):
+def build_claim_substantiator_graph(use_toulmin: bool = False):
     graph = StateGraph(ClaimSubstantiatorState)
 
     graph.add_node("split_into_chunks", split_into_chunks)
@@ -39,12 +42,13 @@ def build_claim_substantiator_graph(use_toulmin: bool = False, session_id: str =
 
     graph.set_finish_point("substantiate_claims")
 
-    return graph.compile().with_config({"callbacks": [langfuse_handler], "metadata": {"langfuse_session_id": session_id}})
+    return graph
 
 
 if __name__ == "__main__":
     # Print the graph in mermaid format
     # Paste it into https://mermaid.live/ to see the graph
 
-    app = build_claim_substantiator_graph()
+    graph = build_claim_substantiator_graph()
+    app = graph.compile()
     print(app.get_graph().draw_mermaid())

@@ -7,6 +7,7 @@ import { WizardStep } from '@/components/wizard/types';
 import { UploadStep } from '@/components/wizard/upload-step';
 import { useWizard, WizardProvider } from '@/components/wizard/wizard-context';
 import { WizardNavigation } from '@/components/wizard/wizard-navigation';
+import { WorkflowRunsList } from '@/components/workflow-runs-list';
 
 const steps: WizardStep[] = [
   {
@@ -43,32 +44,38 @@ function WizardContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="container mx-auto px-4 py-12 max-w-6xl">
-        <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold text-center mb-8 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-            Rand AI Reviewer
-          </h1>
+    <>
+      <div className="text-center mb-16">
+        <h1 className="text-4xl font-bold text-center mb-8 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+          Rand AI Reviewer
+        </h1>
 
-          <div className="max-w-2xl mx-auto">
-            <Stepper steps={steps} currentStep={state.currentStep} className="mb-8" />
-          </div>
+        <div className="max-w-2xl mx-auto">
+          <Stepper steps={steps} currentStep={state.currentStep} className="mb-8" />
         </div>
-
-        <div className="bg-background/60 backdrop-blur-sm border border-border/50 rounded-2xl p-8 mb-8 shadow-sm">
-          {renderStepContent()}
-        </div>
-
-        <WizardNavigation />
       </div>
-    </div>
+
+      <div className="bg-background/60 backdrop-blur-sm border border-border/50 rounded-2xl p-8 mb-8 shadow-sm">
+        {renderStepContent()}
+      </div>
+
+      <WizardNavigation />
+    </>
   );
 }
 
 export default function Home() {
   return (
-    <WizardProvider>
-      <WizardContent />
-    </WizardProvider>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+      <div className="container mx-auto px-4 py-12 max-w-6xl">
+        <WizardProvider>
+          <WizardContent />
+        </WizardProvider>
+
+        <div className="border-t py-10 my-10">
+          <WorkflowRunsList />
+        </div>
+      </div>
+    </div>
   );
 }
