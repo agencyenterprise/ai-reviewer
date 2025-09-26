@@ -1,80 +1,41 @@
-'use client';
-
-import { Stepper } from '@/components/ui/stepper';
-import { ProcessStep } from '@/components/wizard/process-step';
-import { ResultsStep } from '@/components/wizard/results-step';
-import { WizardStep } from '@/components/wizard/types';
-import { UploadStep } from '@/components/wizard/upload-step';
-import { useWizard, WizardProvider } from '@/components/wizard/wizard-context';
-import { WizardNavigation } from '@/components/wizard/wizard-navigation';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { WorkflowRunsList } from '@/components/workflow-runs-list';
-
-const steps: WizardStep[] = [
-  {
-    id: 'upload',
-    title: 'Upload Documents',
-    description: 'Main & supporting files',
-  },
-  {
-    id: 'process',
-    title: 'Process',
-    description: 'Start AI analysis',
-  },
-  {
-    id: 'results',
-    title: 'Results',
-    description: 'View analysis results',
-  },
-];
-
-function WizardContent() {
-  const { state } = useWizard();
-
-  const renderStepContent = () => {
-    switch (state.currentStep) {
-      case 1:
-        return <UploadStep />;
-      case 2:
-        return <ProcessStep />;
-      case 3:
-        return <ResultsStep />;
-      default:
-        return <UploadStep />;
-    }
-  };
-
-  return (
-    <>
-      <div className="text-center mb-16">
-        <h1 className="text-4xl font-bold text-center mb-8 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-          Rand AI Reviewer
-        </h1>
-
-        <div className="max-w-2xl mx-auto">
-          <Stepper steps={steps} currentStep={state.currentStep} className="mb-8" />
-        </div>
-      </div>
-
-      <div className="bg-background/60 backdrop-blur-sm border border-border/50 rounded-2xl p-8 mb-8 shadow-sm">
-        {renderStepContent()}
-      </div>
-
-      <WizardNavigation />
-    </>
-  );
-}
+import { ArrowRight, Brain, FlaskConical } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <div className="container mx-auto px-4 py-12 max-w-6xl">
-        <WizardProvider>
-          <WizardContent />
-        </WizardProvider>
+      <div className="container mx-auto px-4 py-12 max-w-6xl space-y-16">
+        <div className="text-center space-y-6">
+          <div className="space-y-4">
+            <Badge variant="secondary" className="text-sm">
+              <Brain className="w-3 h-3 mr-1" />
+              AI-Powered Peer Review
+            </Badge>
+            <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-foreground via-foreground/90 to-foreground/70 bg-clip-text text-transparent">
+              RAND AI Reviewer
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+              Transform your document review process with AI-powered claim detection, citation analysis, and evidence
+              substantiation. Built for researchers, analysts, and content reviewers who demand accuracy and
+              thoroughness.
+            </p>
+          </div>
 
-        <div className="border-t py-10 my-10">
-          <WorkflowRunsList />
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link href="/new">
+              <Button size="lg">
+                <FlaskConical className="w-5 h-5" />
+                Start Analysis
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
         </div>
+
+        <WorkflowRunsList />
       </div>
     </div>
   );

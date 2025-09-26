@@ -80,7 +80,7 @@ export function ResultsVisualization({ results, onChunkReevaluation }: ResultsVi
       case 'files':
         return <FilesTab results={results} />;
       case 'chunks':
-        return <ChunksTab results={results} />;
+        return <ChunksTab results={results} onChunkReevaluation={onChunkReevaluation} />;
       case 'document-explorer':
         return <DocumentExplorerTab results={results} onChunkReevaluation={onChunkReevaluation} />;
     }

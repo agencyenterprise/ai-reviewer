@@ -28,4 +28,5 @@ dependencies = [
     "pyyaml>=6.0.0",
     "langgraph-checkpoint-postgres>=2.0.23",
     "psycopg[binary,pool]>=3.2.10",
+    "alembic-postgresql-enum>=1.8.0",
 ]

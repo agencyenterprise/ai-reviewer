@@ -1,9 +1,16 @@
+from enum import Enum
 import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import Column, DateTime
 from sqlalchemy.dialects.postgresql import UUID
-from sqlmodel import Field, SQLModel, String
+from sqlmodel import Field, SQLModel, String, Enum as SQLModelEnum
+
+
+class WorkflowRunStatus(str, Enum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
 
 
 class WorkflowRun(SQLModel, table=True):
@@ -25,6 +32,13 @@ class WorkflowRun(SQLModel, table=True):
             default=datetime.utcnow,
             onupdate=datetime.utcnow,
             nullable=False,
+        )
+    )
+    status: WorkflowRunStatus = Field(
+        sa_column=Column(
+            SQLModelEnum(WorkflowRunStatus),
+            nullable=False,
+            default=WorkflowRunStatus.PENDING,
         )
     )
 

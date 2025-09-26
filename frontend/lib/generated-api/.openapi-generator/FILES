@@ -29,5 +29,6 @@ models/ValidationErrorLocInner.ts
 models/WorkflowError.ts
 models/WorkflowRun.ts
 models/WorkflowRunDetailed.ts
+models/WorkflowRunStatus.ts
 models/index.ts
 runtime.ts

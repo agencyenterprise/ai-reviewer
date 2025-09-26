@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { WorkflowRunStatus } from './WorkflowRunStatus';
+import {
+  WorkflowRunStatusFromJSON,
+  WorkflowRunStatusFromJSONTyped,
+  WorkflowRunStatusToJSON,
+  WorkflowRunStatusToJSONTyped,
+} from './WorkflowRunStatus';
+
 /**
  *
  * @export
@@ -49,6 +57,12 @@ export interface WorkflowRun {
    * @memberof WorkflowRun
    */
   lastUpdatedAt: Date;
+  /**
+   *
+   * @type {WorkflowRunStatus}
+   * @memberof WorkflowRun
+   */
+  status: WorkflowRunStatus;
 }
 
 /**
@@ -60,6 +74,7 @@ export function instanceOfWorkflowRun(value: object): value is WorkflowRun {
   if (!('title' in value) || value['title'] === undefined) return false;
   if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
   if (!('lastUpdatedAt' in value) || value['lastUpdatedAt'] === undefined) return false;
+  if (!('status' in value) || value['status'] === undefined) return false;
   return true;
 }
 
@@ -77,6 +92,7 @@ export function WorkflowRunFromJSONTyped(json: any, ignoreDiscriminator: boolean
     title: json['title'],
     createdAt: new Date(json['created_at']),
     lastUpdatedAt: new Date(json['last_updated_at']),
+    status: WorkflowRunStatusFromJSON(json['status']),
   };
 }
 
@@ -95,5 +111,6 @@ export function WorkflowRunToJSONTyped(value?: WorkflowRun | null, ignoreDiscrim
     title: value['title'],
     created_at: value['createdAt'].toISOString(),
     last_updated_at: value['lastUpdatedAt'].toISOString(),
+    status: WorkflowRunStatusToJSON(value['status']),
   };
 }

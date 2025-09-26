@@ -1,15 +1,12 @@
 import os
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+import alembic_postgresql_enum
+from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
 from alembic import context
 
-# Import our models and base
-from lib.config.database import Base
-from lib.models import Agent, Workflow, WorkflowRun, Chat
 from lib.config.env import config as app_config
 
 # this is the Alembic Config object, which provides

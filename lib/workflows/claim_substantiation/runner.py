@@ -6,7 +6,7 @@ from typing import List, Optional
 
 from lib.config.database import get_db
 from lib.config.langfuse import langfuse_handler
-from lib.models.workflow_run import WorkflowRun
+from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.file import FileDocument, create_file_document_from_path
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
 from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
@@ -37,34 +37,13 @@ async def run_claim_substantiator(
     if config is None:
         config = SubstantiationWorkflowConfig()
 
-    run = WorkflowRun(langgraph_thread_id=config.session_id, title=file.file_name)
-    with get_db() as db:
-        db.add(run)
-        db.commit()
-
-    graph = build_claim_substantiator_graph(use_toulmin=config.use_toulmin)
-
     state = ClaimSubstantiatorState(
         file=file,
         supporting_files=supporting_files,
         config=config,
     )
 
-    async with get_checkpointer() as checkpointer:
-        app = graph.compile(checkpointer=checkpointer).with_config(
-            {
-                "callbacks": [langfuse_handler],
-                "metadata": {"langfuse_session_id": config.session_id},
-            }
-        )
-
-        state = ClaimSubstantiatorState(
-            file=file, supporting_files=supporting_files, config=config
-        )
-
-        return await app.ainvoke(
-            state, {"configurable": {"thread_id": config.session_id}}
-        )
+    return await _execute(state)
 
 
 async def run_claim_substantiator_from_paths(
@@ -111,33 +90,71 @@ async def reevaluate_single_chunk(
     # Always override target_chunk_indices and agents_to_run for this specific operation
     config.target_chunk_indices = [chunk_index]
     config.agents_to_run = agents_to_run
+    config.session_id = config.session_id or original_result.session_id
 
-    graph = build_claim_substantiator_graph(use_toulmin=config.use_toulmin)
+    state = original_result.model_copy(
+        update={
+            "config": config,
+            "errors": [
+                error
+                for error in original_result.errors
+                if error.chunk_index != chunk_index
+            ],
+        }
+    )
+
+    return await _execute(state)
+
+
+async def _execute(state: ClaimSubstantiatorState):
+    graph = build_claim_substantiator_graph(use_toulmin=state.config.use_toulmin)
 
     async with get_checkpointer() as checkpointer:
         app = graph.compile(checkpointer=checkpointer).with_config(
             {
                 "callbacks": [langfuse_handler],
-                "metadata": {
-                    "langfuse_session_id": config.session_id
-                    or original_result.session_id
-                },
-            }
-        )
-        state = original_result.model_copy(
-            update={
-                "config": config,
-                "errors": [
-                    error
-                    for error in original_result.errors
-                    if error.chunk_index != chunk_index
-                ],
+                "metadata": {"langfuse_session_id": state.config.session_id},
             }
         )
 
-        updated_state = await app.ainvoke(
-            state, {"configurable": {"thread_id": config.session_id}}
-        )
+        with get_db() as db:
+            run = (
+                db.query(WorkflowRun)
+                .filter(WorkflowRun.langgraph_thread_id == state.config.session_id)
+                .first()
+            )
+
+            if run is None:
+                run = WorkflowRun(
+                    langgraph_thread_id=state.config.session_id,
+                    title=state.file.file_name,
+                    status=WorkflowRunStatus.RUNNING,
+                )
+            else:
+                run.status = WorkflowRunStatus.RUNNING
+
+            db.add(run)
+            db.commit()
+
+        updated_state = state
+
+        async for values in app.astream(
+            state,
+            {"configurable": {"thread_id": state.config.session_id}},
+            stream_mode="values",
+        ):
+            updated_state: ClaimSubstantiatorState = values
+
+        with get_db() as db:
+            run = (
+                db.query(WorkflowRun)
+                .filter(WorkflowRun.langgraph_thread_id == state.config.session_id)
+                .first()
+            )
+            run.status = WorkflowRunStatus.COMPLETED
+            db.add(run)
+            db.commit()
+
     return updated_state
 
 

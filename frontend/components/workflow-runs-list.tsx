@@ -1,40 +1,29 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { WorkflowRun } from '@/lib/generated-api';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusIndicator } from '@/components/ui/status-indicator';
 import { api } from '@/lib/api';
-import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
+import Link from 'next/link';
 
 interface WorkflowRunsListProps {
   className?: string;
 }
 
 export function WorkflowRunsList({ className }: WorkflowRunsListProps) {
-  const [runs, setRuns] = useState<WorkflowRun[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: runs,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['workflowRuns'],
+    refetchInterval: 3000,
+    queryFn: () => api.listWorkflowRunsApiWorkflowRunsGet(),
+  });
 
-  useEffect(() => {
-    const fetchRuns = async () => {
-      try {
-        setLoading(true);
-        const workflowRuns = await api.listWorkflowRunsApiWorkflowRunsGet();
-        setRuns(workflowRuns);
-      } catch (err) {
-        console.error('Failed to fetch workflow runs:', err);
-        setError('Failed to load previous runs');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRuns();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Card className={className}>
         <CardHeader>
@@ -58,7 +47,7 @@ export function WorkflowRunsList({ className }: WorkflowRunsListProps) {
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p className="text-destructive">{error}</p>
+            <p className="text-destructive">{error.message}</p>
             <Button variant="outline" onClick={() => window.location.reload()} className="mt-2">
               Retry
             </Button>
@@ -68,7 +57,7 @@ export function WorkflowRunsList({ className }: WorkflowRunsListProps) {
     );
   }
 
-  if (runs.length === 0) {
+  if (runs?.length === 0) {
     return (
       <Card className={className}>
         <CardHeader>
@@ -92,13 +81,16 @@ export function WorkflowRunsList({ className }: WorkflowRunsListProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {runs.map((run) => (
+          {runs?.map((run) => (
             <div
               key={run.id}
               className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
             >
-              <div>
-                <h3 className="font-medium truncate">{run.title}</h3>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-medium truncate">{run.title}</h3>
+                  <StatusIndicator status={run.status} />
+                </div>
 
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <p>{formatDistanceToNow(run.createdAt, { addSuffix: true })}</p>

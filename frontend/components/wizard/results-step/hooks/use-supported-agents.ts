@@ -1,5 +1,6 @@
-import * as React from 'react';
-import { analysisService, SupportedAgentsResponse } from '@/lib/analysis-service';
+import { SupportedAgentsResponse } from '@/lib/analysis-service';
+import { api } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
 
 interface UseSupportedAgentsReturn {
   supportedAgents: SupportedAgentsResponse | null;
@@ -8,31 +9,19 @@ interface UseSupportedAgentsReturn {
 }
 
 export function useSupportedAgents(): UseSupportedAgentsReturn {
-  const [supportedAgents, setSupportedAgents] = React.useState<SupportedAgentsResponse | null>(null);
-  const [supportedAgentsError, setSupportedAgentsError] = React.useState<string | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    const loadSupportedAgents = async () => {
-      try {
-        setIsLoading(true);
-        setSupportedAgentsError(null);
-        const agents = await analysisService.getSupportedAgents();
-        setSupportedAgents(agents);
-      } catch (error) {
-        console.error('Failed to load supported agents:', error);
-        setSupportedAgentsError('Failed to load available agents');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadSupportedAgents();
-  }, []);
+  const {
+    data: supportedAgents,
+    isLoading,
+    error: supportedAgentsError,
+  } = useQuery({
+    queryKey: ['supportedAgents'],
+    staleTime: Infinity,
+    queryFn: () => api.getSupportedAgentsApiSupportedAgentsGet(),
+  });
 
   return {
     supportedAgents,
-    supportedAgentsError,
+    supportedAgentsError: supportedAgentsError?.message || null,
     isLoading,
   };
 }

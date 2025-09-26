@@ -4,42 +4,27 @@ import { Button } from '@/components/ui/button';
 import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
 import { api } from '@/lib/api';
 import { ChunkReevaluationResponse, WorkflowRunDetailed } from '@/lib/generated-api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
 export default function ResultsPage() {
   const params = useParams();
   const workflowRunId = params.workflowRunId as string;
 
-  const [workflowRun, setWorkflowRun] = useState<WorkflowRunDetailed | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    async function fetchWorkflowRun() {
-      if (!workflowRunId) return;
-
-      try {
-        setLoading(true);
-        setError(null);
-        const run = await api.getWorkflowRunApiWorkflowRunWorkflowRunIdGet({ workflowRunId });
-        setWorkflowRun(run);
-      } catch (err) {
-        console.error('Failed to load workflow run:', err);
-        setError('Failed to load workflow run');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchWorkflowRun();
-  }, [workflowRunId]);
+  const {
+    data: workflowRun,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['workflowRun', workflowRunId],
+    queryFn: () => api.getWorkflowRunApiWorkflowRunWorkflowRunIdGet({ workflowRunId }),
+  });
 
   const handleChunkReevaluation = (response: ChunkReevaluationResponse) => {
-    setWorkflowRun((curr) => {
-      if (!curr) return curr;
-
+    queryClient.setQueryData(['workflowRun', workflowRunId], (curr: WorkflowRunDetailed) => {
       return {
         ...curr,
         state: { ...curr.state, ...response.state },
@@ -59,7 +44,7 @@ export default function ResultsPage() {
           </Link>
         </div>
 
-        {loading && (
+        {isLoading && (
           <div className="flex items-center justify-center">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
@@ -71,7 +56,7 @@ export default function ResultsPage() {
         {error && (
           <div className="flex items-center justify-center">
             <div className="text-center">
-              <p className="text-destructive mb-4">{error}</p>
+              <p className="text-destructive mb-4">{error.message}</p>
             </div>
           </div>
         )}
