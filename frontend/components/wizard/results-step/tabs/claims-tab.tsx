@@ -4,6 +4,8 @@ import * as React from 'react';
 import { ChunkDisplay, ChunkItem } from '../components/chunk-display';
 import { CommonKnowledgeBadge } from '../components/common-knowledge-badge';
 import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
+import { classifyClaim } from '@/lib/claim-classification';
+import { FeedbackSection } from '../components/feedback-section';
 
 interface ClaimsTabProps {
   results: ClaimSubstantiatorStateOutput;
@@ -132,12 +134,23 @@ export function ClaimsTab({ results }: ClaimsTabProps) {
                           </div>
                           <CommonKnowledgeBadge
                             isCommonKnowledge={chunk.substantiations[claimIndex].isCommonKnowledge || false}
+                            commonKnowledgeRationale={chunk.substantiations[claimIndex].commonKnowledgeRationale}
+                            claimCategory={classifyClaim(
+                              claim,
+                              chunk.substantiations[claimIndex],
+                              chunk.citations?.citations || [],
+                              results.references || [],
+                            )}
                           />
                         </div>
                         {chunk.substantiations[claimIndex].feedback && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            <strong>Feedback:</strong> {chunk.substantiations[claimIndex].feedback}
-                          </p>
+                          <FeedbackSection
+                            claim={claim}
+                            substantiation={chunk.substantiations[claimIndex]}
+                            citations={chunk.citations?.citations || []}
+                            references={results.references || []}
+                            feedback={chunk.substantiations[claimIndex].feedback}
+                          />
                         )}
                       </div>
                     )}

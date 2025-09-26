@@ -17,6 +17,7 @@ import { ClaimCategoryLabel } from '../components/claim-category-label';
 import { ErrorsCard } from '../components/errors-card';
 import { SeverityBadge } from '../components/severity-badge';
 import { CommonKnowledgeBadge } from '../components/common-knowledge-badge';
+import { UnsubstantiatedFeedback } from '../components/unsubstantiated-feedback';
 import { useSupportedAgents } from '../hooks/use-supported-agents';
 
 interface DocumentExplorerTabProps {
@@ -166,7 +167,11 @@ export function DocumentExplorerChunk({
                   <p className="flex items-center gap-1">
                     <ClaimCategoryLabel category={claimCategory} />
                     <SeverityBadge severity={severity} />
-                    <CommonKnowledgeBadge isCommonKnowledge={subst?.isCommonKnowledge || false} />
+                    <CommonKnowledgeBadge
+                      isCommonKnowledge={subst?.isCommonKnowledge || false}
+                      commonKnowledgeRationale={subst?.commonKnowledgeRationale}
+                      claimCategory={claimCategory}
+                    />
                   </p>
                   <p>
                     <strong>Claim:</strong> {claim.claim}
@@ -251,16 +256,12 @@ export function DocumentExplorerChunk({
                     </p>
                   )}
                   {subst && !subst.isSubstantiated && (
-                    <>
-                      <p className="text-red-600">
-                        <strong>Unsubstantiated because:</strong> {subst.rationale}
-                      </p>
-                      {subst.feedback && (
-                        <p className="text-blue-600">
-                          <strong>Feedback to resolve:</strong> {subst.feedback}
-                        </p>
-                      )}
-                    </>
+                    <UnsubstantiatedFeedback
+                      claim={claim}
+                      substantiation={subst}
+                      citations={citations}
+                      references={references}
+                    />
                   )}
                 </ChunkItem>
               );

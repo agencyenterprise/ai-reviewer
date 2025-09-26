@@ -50,6 +50,12 @@ export interface DocumentChunkInput {
   chunkIndex: number;
   /**
    *
+   * @type {number}
+   * @memberof DocumentChunkInput
+   */
+  paragraphIndex: number;
+  /**
+   *
    * @type {Claims}
    * @memberof DocumentChunkInput
    */
@@ -74,6 +80,7 @@ export interface DocumentChunkInput {
 export function instanceOfDocumentChunkInput(value: object): value is DocumentChunkInput {
   if (!('content' in value) || value['content'] === undefined) return false;
   if (!('chunkIndex' in value) || value['chunkIndex'] === undefined) return false;
+  if (!('paragraphIndex' in value) || value['paragraphIndex'] === undefined) return false;
   return true;
 }
 
@@ -88,6 +95,7 @@ export function DocumentChunkInputFromJSONTyped(json: any, ignoreDiscriminator: 
   return {
     content: json['content'],
     chunkIndex: json['chunk_index'],
+    paragraphIndex: json['paragraph_index'],
     claims: json['claims'] == null ? undefined : ClaimsFromJSON(json['claims']),
     citations: json['citations'] == null ? undefined : CitationResponseInputFromJSON(json['citations']),
     substantiations:
@@ -112,6 +120,7 @@ export function DocumentChunkInputToJSONTyped(
   return {
     content: value['content'],
     chunk_index: value['chunkIndex'],
+    paragraph_index: value['paragraphIndex'],
     claims: ClaimsToJSON(value['claims']),
     citations: CitationResponseInputToJSON(value['citations']),
     substantiations:
