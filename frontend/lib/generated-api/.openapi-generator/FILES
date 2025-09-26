@@ -20,6 +20,7 @@ models/DocumentChunkOutput.ts
 models/EvalPackageRequest.ts
 models/FileDocument.ts
 models/HTTPValidationError.ts
+models/HighlightWord.ts
 models/Severity.ts
 models/SubstantiationWorkflowConfig.ts
 models/ToulminClaim.ts

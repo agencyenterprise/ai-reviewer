@@ -2,9 +2,15 @@
 
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Markdown } from '@/components/markdown';
+import { MarkdownWithHighlights } from '@/components/markdown-with-highlights';
 import { Badge } from '@/components/ui/badge';
 import { claimCategoryBaseColors, classifyChunk, classifyClaim } from '@/lib/claim-classification';
-import { ChunkReevaluationResponse, ClaimSubstantiatorStateOutput, DocumentChunkOutput } from '@/lib/generated-api';
+import {
+  ChunkReevaluationResponse,
+  ClaimSubstantiatorStateOutput,
+  DocumentChunkOutput,
+  HighlightWord,
+} from '@/lib/generated-api';
 import { getMaxSeverity } from '@/lib/severity';
 import { cn } from '@/lib/utils';
 import { AlertTriangleIcon, ChevronRight, FileIcon, Link as LinkIcon, MessageCirclePlus } from 'lucide-react';
@@ -86,9 +92,33 @@ export function DocumentExplorerChunk({
   const errors = results.errors || [];
   const chunkErrors = errors.filter((error) => error.chunkIndex === chunk.chunkIndex);
 
+  // Collect all highlight words from substantiations
+  const allHighlightWords: HighlightWord[] = React.useMemo(() => {
+    const words: HighlightWord[] = [];
+    substantiations.forEach((subst) => {
+      if (subst.highlightWords && Array.isArray(subst.highlightWords)) {
+        words.push(...subst.highlightWords);
+      }
+    });
+    // Debug: Log highlight words if any exist
+    if (words.length > 0) {
+      console.log('Chunk highlight words:', words, 'for chunk:', chunk.chunkIndex);
+    }
+    return words;
+  }, [substantiations, chunk.chunkIndex]);
+
   return (
     <div>
-      <Markdown highlight={claimCategoryBaseColors[chunkCategory]}>{chunk.content}</Markdown>
+      {allHighlightWords.length > 0 ? (
+        <MarkdownWithHighlights
+          baseHighlight={claimCategoryBaseColors[chunkCategory]}
+          highlightWords={allHighlightWords}
+        >
+          {chunk.content}
+        </MarkdownWithHighlights>
+      ) : (
+        <Markdown highlight={claimCategoryBaseColors[chunkCategory]}>{chunk.content}</Markdown>
+      )}
 
       <div
         className="flex items-center space-x-1 cursor-pointer hover:bg-muted/50 rounded-lg px-2"

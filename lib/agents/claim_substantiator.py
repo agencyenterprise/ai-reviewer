@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from enum import IntEnum
+from typing import Optional, List
 from langchain_core.prompts import ChatPromptTemplate
 
 from lib.models.agent import Agent
@@ -11,6 +12,13 @@ class Severity(IntEnum):
     MAY_BE_OK = 2
     SHOULD_BE_FIXED = 3
     MUST_BE_FIXED = 4
+
+
+class HighlightWord(BaseModel):
+    word: str = Field(description="The specific word or phrase to highlight")
+    rationale: str = Field(
+        description="Brief explanation of why this word is important for the claim"
+    )
 
 
 class ClaimSubstantiationResult(BaseModel):
@@ -40,6 +48,10 @@ class ClaimSubstantiationResult(BaseModel):
             "3 = should be fixed, "
             "4 = must be fixed"
         )
+    )
+    highlight_words: Optional[List[HighlightWord]] = Field(
+        default=None,
+        description="Optional list of specific words or phrases in the chunk that are particularly important for understanding why this claim needs substantiation. Only provide when specific trigger words make the claim require evidence (e.g., 'postal service' being the key historical reference that makes a claim about legal structures need backing).",
     )
 
 
@@ -72,6 +84,24 @@ Claims marked as common knowledge should typically have severity 0-1 only when t
 For the `common_knowledge_rationale` field, provide a brief explanation for your common knowledge determination - explain why this claim is or is not considered common knowledge given the specified domain and target audience context.
 
 You MUST include the "severity", "is_common_knowledge", and "common_knowledge_rationale" fields in your output.
+
+**Optional Word Highlighting**: Only in rare, specific cases where particular words or phrases in the chunk text are the key triggers that make a claim require substantiation, you may provide a `highlight_words` list. For each highlighted word, provide a contextual rationale that explains:
+1. Why this specific word/phrase makes THIS claim need substantiation
+2. How it creates a substantiation requirement in the context of the surrounding text
+3. What type of evidence this word implies is needed
+
+**Examples of good contextual rationales:**
+- word: "postal service", rationale: "This historical reference creates a temporal comparison claim about when legal structures developed relative to postal services, requiring specific historical documentation to verify the chronological sequence"
+- word: "most", rationale: "This quantitative qualifier makes a statistical claim about the majority of cases, requiring data or studies to substantiate the proportional assertion"
+- word: "significantly", rationale: "This evaluative term implies a measurable impact that needs empirical evidence or expert analysis to support the degree of effect claimed"
+
+**Important Guidelines for highlight_words:**
+- Only provide 1-3 specific trigger words/phrases that are the main reason the claim needs substantiation
+- Do NOT highlight common words or provide highlights for most claims
+- Each highlighted word MUST actually appear in the chunk text exactly as specified
+- The rationale should be specific to how that word contributes to the substantiation requirement in this particular context
+- Focus on words that create temporal claims, quantitative assertions, causal relationships, or technical specifications that require evidence
+- Avoid highlighting unless the word is genuinely the key reason why the claim cannot be accepted as common knowledge
 
 ## Document-Specific Context
 ### Domain: 

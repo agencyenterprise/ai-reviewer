@@ -19,6 +19,7 @@ export * from './DocumentChunkOutput';
 export * from './EvalPackageRequest';
 export * from './FileDocument';
 export * from './HTTPValidationError';
+export * from './HighlightWord';
 export * from './Severity';
 export * from './SubstantiationWorkflowConfig';
 export * from './ToulminClaim';

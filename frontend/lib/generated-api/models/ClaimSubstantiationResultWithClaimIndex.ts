@@ -15,6 +15,13 @@
 import { mapValues } from '../runtime';
 import type { Severity } from './Severity';
 import { SeverityFromJSON, SeverityFromJSONTyped, SeverityToJSON, SeverityToJSONTyped } from './Severity';
+import type { HighlightWord } from './HighlightWord';
+import {
+  HighlightWordFromJSON,
+  HighlightWordFromJSONTyped,
+  HighlightWordToJSON,
+  HighlightWordToJSONTyped,
+} from './HighlightWord';
 
 /**
  *
@@ -58,6 +65,12 @@ export interface ClaimSubstantiationResultWithClaimIndex {
    * @memberof ClaimSubstantiationResultWithClaimIndex
    */
   severity: Severity;
+  /**
+   *
+   * @type {Array<HighlightWord>}
+   * @memberof ClaimSubstantiationResultWithClaimIndex
+   */
+  highlightWords?: Array<HighlightWord> | null;
   /**
    *
    * @type {number}
@@ -106,6 +119,8 @@ export function ClaimSubstantiationResultWithClaimIndexFromJSONTyped(
     rationale: json['rationale'],
     feedback: json['feedback'],
     severity: SeverityFromJSON(json['severity']),
+    highlightWords:
+      json['highlight_words'] == null ? undefined : (json['highlight_words'] as Array<any>).map(HighlightWordFromJSON),
     chunkIndex: json['chunk_index'],
     claimIndex: json['claim_index'],
   };
@@ -130,6 +145,8 @@ export function ClaimSubstantiationResultWithClaimIndexToJSONTyped(
     rationale: value['rationale'],
     feedback: value['feedback'],
     severity: SeverityToJSON(value['severity']),
+    highlight_words:
+      value['highlightWords'] == null ? undefined : (value['highlightWords'] as Array<any>).map(HighlightWordToJSON),
     chunk_index: value['chunkIndex'],
     claim_index: value['claimIndex'],
   };
