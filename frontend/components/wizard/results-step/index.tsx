@@ -7,18 +7,23 @@ import { Progress } from '../../ui/progress';
 import { useWizard } from '../wizard-context';
 import { ResultsVisualization } from './results-visualization';
 import { AnalysisResults } from '../types';
+import { ChunkReevaluationResponse } from '@/lib/generated-api';
 
 interface ResultsStepProps {
   uploadedResults?: AnalysisResults | null;
 }
 
 export function ResultsStep({ uploadedResults }: ResultsStepProps) {
-  const { state } = useWizard();
+  const { state, actions } = useWizard();
 
   // Use uploaded results if provided, otherwise use wizard state
   const analysisResults = uploadedResults || state.analysisResults;
   const isProcessing = uploadedResults ? false : state.isProcessing;
   const hasError = analysisResults?.status === 'error';
+
+  const handleChunkReevaluation = (response: ChunkReevaluationResponse) => {
+    actions.updateChunkResults(response);
+  };
 
   return (
     <div className="space-y-6">
@@ -64,7 +69,7 @@ export function ResultsStep({ uploadedResults }: ResultsStepProps) {
           </CardContent>
         </Card>
       ) : (
-        <ResultsVisualization results={analysisResults} />
+        <ResultsVisualization results={analysisResults?.fullResults} onChunkReevaluation={handleChunkReevaluation} />
       )}
     </div>
   );

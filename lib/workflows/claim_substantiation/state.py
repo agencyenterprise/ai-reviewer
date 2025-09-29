@@ -1,5 +1,6 @@
 from typing import Annotated, List, Optional
 from pydantic import BaseModel, Field
+from operator import add
 
 from lib.agents.citation_detector import CitationResponse
 from lib.agents.claim_detector import ClaimResponse
@@ -9,8 +10,6 @@ from lib.agents.claim_substantiator import ClaimSubstantiationResultWithClaimInd
 from lib.services.file import FileDocument
 from lib.agents.models import ChunkWithIndex
 from lib.workflows.chunk_conciliator import create_conciliator
-from operator import add
-
 from lib.workflows.models import WorkflowError
 
 

@@ -37,8 +37,10 @@ async def run_tasks(tasks, desc="Processing tasks"):
     for chunk_index in range(len(tasks)):
         if chunk_index not in task_results_dict:
             task_results.append(None)
+            task_errors.append(None)
         else:
             task_results.append(task_results_dict[chunk_index])
+            task_errors.append(task_errors_dict[chunk_index])
     return task_results, task_errors
 
 

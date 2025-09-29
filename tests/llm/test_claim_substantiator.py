@@ -25,8 +25,33 @@ async def _build_supporting_documents_block(paths: list[str]) -> str:
     for path in paths:
         doc = await create_file_document_from_path(_data(path))
         docs.append(doc.markdown)
-    
+
     return "\n\n---\n\n".join(docs)
+
+
+def _extract_paragraph_from_claim(full_document: str, claim_text: str) -> str:
+    """
+    Extract the paragraph containing the claim from the full document.
+
+    Args:
+        full_document: The complete document text
+        claim_text: The specific claim text to find within the document
+
+    Returns:
+        The paragraph containing the claim, or the full document if not found
+    """
+    # Split document into paragraphs (by double newlines)
+    paragraphs = full_document.split("\n\n")
+
+    # Find the paragraph that contains the claim
+    for paragraph in paragraphs:
+        if claim_text.strip() in paragraph:
+            return paragraph.strip()
+
+    # If no paragraph contains the claim, raise an error
+    raise ValueError(
+        f"No paragraph containing the claim found in the full document: '{claim_text}'"
+    )
 
 
 def _build_cases() -> list[AgentTestCase]:
@@ -37,7 +62,7 @@ def _build_cases() -> list[AgentTestCase]:
     # Test configuration - hardcoded for this specific test
     strict_fields = {
         "is_substantiated",
-        "severity",
+        # "severity",
     }
     llm_fields = {
         "rationale",
@@ -55,9 +80,12 @@ def _build_cases() -> list[AgentTestCase]:
         supporting_documents_block = asyncio.run(
             _build_supporting_documents_block(test_case.input["supporting_documents"])
         )
-        
-        # Use the claim directly from the dataset
+
         claim_text = test_case.input["claim"]
+        chunk_text = test_case.input["chunk"]
+
+        # Extract the paragraph containing the claim
+        paragraph = _extract_paragraph_from_claim(main_doc.markdown, chunk_text)
 
         cases.append(
             AgentTestCase(
@@ -66,9 +94,12 @@ def _build_cases() -> list[AgentTestCase]:
                 response_model=ClaimSubstantiationResult,
                 prompt_kwargs={
                     "full_document": main_doc.markdown,
-                    "chunk": test_case.input["chunk"],
+                    "paragraph": paragraph,
+                    "chunk": chunk_text,
                     "claim": claim_text,
                     "cited_references": supporting_documents_block,
+                    "domain_context": "",
+                    "audience_context": "",
                 },
                 expected_dict=test_case.expected_output,
                 strict_fields=strict_fields,

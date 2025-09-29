@@ -9,7 +9,6 @@ import { getMaxSeverity } from '@/lib/severity';
 import { cn } from '@/lib/utils';
 import { AlertTriangleIcon, ChevronRight, FileIcon, Link as LinkIcon, MessageCirclePlus } from 'lucide-react';
 import * as React from 'react';
-import { useWizard } from '../../wizard-context';
 import { ChunkItem } from '../components/chunk-display';
 import { ChunkEvalGenerator } from '../components/chunk-eval-generator';
 import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
@@ -17,22 +16,19 @@ import { ClaimCategoryLabel } from '../components/claim-category-label';
 import { ErrorsCard } from '../components/errors-card';
 import { SeverityBadge } from '../components/severity-badge';
 import { CommonKnowledgeBadge } from '../components/common-knowledge-badge';
+import { UnsubstantiatedFeedback } from '../components/unsubstantiated-feedback';
 import { useSupportedAgents } from '../hooks/use-supported-agents';
 
 interface DocumentExplorerTabProps {
   results: ClaimSubstantiatorStateOutput;
+  onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
 }
 
-export function DocumentExplorerTab({ results }: DocumentExplorerTabProps) {
-  const { state, actions } = useWizard();
+export function DocumentExplorerTab({ results, onChunkReevaluation }: DocumentExplorerTabProps) {
   const { supportedAgents, supportedAgentsError } = useSupportedAgents();
 
   const errors = results.errors || [];
   const workflowErrors = errors.filter((error) => error.chunkIndex === null);
-
-  const handleChunkReevaluation = (response: ChunkReevaluationResponse) => {
-    actions.updateChunkResults(response);
-  };
 
   return (
     <div className="space-y-2">
@@ -43,10 +39,10 @@ export function DocumentExplorerTab({ results }: DocumentExplorerTabProps) {
           key={chunk.chunkIndex}
           chunk={chunk}
           results={results}
-          onChunkReevaluation={handleChunkReevaluation}
           supportedAgents={supportedAgents}
           supportedAgentsError={supportedAgentsError}
-          sessionId={state.sessionId}
+          sessionId={results.config.sessionId}
+          onChunkReevaluation={onChunkReevaluation}
         />
       ))}
     </div>
@@ -166,7 +162,11 @@ export function DocumentExplorerChunk({
                   <p className="flex items-center gap-1">
                     <ClaimCategoryLabel category={claimCategory} />
                     <SeverityBadge severity={severity} />
-                    <CommonKnowledgeBadge isCommonKnowledge={subst?.isCommonKnowledge || false} />
+                    <CommonKnowledgeBadge
+                      isCommonKnowledge={subst?.isCommonKnowledge || false}
+                      commonKnowledgeRationale={subst?.commonKnowledgeRationale}
+                      claimCategory={claimCategory}
+                    />
                   </p>
                   <p>
                     <strong>Claim:</strong> {claim.claim}
@@ -251,16 +251,12 @@ export function DocumentExplorerChunk({
                     </p>
                   )}
                   {subst && !subst.isSubstantiated && (
-                    <>
-                      <p className="text-red-600">
-                        <strong>Unsubstantiated because:</strong> {subst.rationale}
-                      </p>
-                      {subst.feedback && (
-                        <p className="text-blue-600">
-                          <strong>Feedback to resolve:</strong> {subst.feedback}
-                        </p>
-                      )}
-                    </>
+                    <UnsubstantiatedFeedback
+                      claim={claim}
+                      substantiation={subst}
+                      citations={citations}
+                      references={references}
+                    />
                   )}
                 </ChunkItem>
               );

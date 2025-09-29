@@ -1,28 +1,25 @@
 'use client';
 
-import * as React from 'react';
-import { ChunkItem } from '../components/chunk-display';
-import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
-import { ChunkEvalGenerator } from '../components/chunk-eval-generator';
-import { AlertTriangle, FileIcon, Link as LinkIcon } from 'lucide-react';
-import { ClaimSubstantiatorStateOutput, ChunkReevaluationResponse } from '@/lib/generated-api';
-import { useWizard } from '../../wizard-context';
-import { SeverityBadge } from '../components/severity-badge';
-import { CommonKnowledgeBadge } from '../components/common-knowledge-badge';
 import { Badge } from '@/components/ui/badge';
+import { classifyClaim } from '@/lib/claim-classification';
+import { ChunkReevaluationResponse, ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
+import { AlertTriangle, FileIcon, Link as LinkIcon } from 'lucide-react';
+import { ChunkItem } from '../components/chunk-display';
+import { ChunkEvalGenerator } from '../components/chunk-eval-generator';
+import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
+import { CommonKnowledgeBadge } from '../components/common-knowledge-badge';
+import { SeverityBadge } from '../components/severity-badge';
+import { UnsubstantiatedFeedback } from '../components/unsubstantiated-feedback';
 import { useSupportedAgents } from '../hooks/use-supported-agents';
 
 interface ChunksTabProps {
   results: ClaimSubstantiatorStateOutput;
+  onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
 }
 
-export function ChunksTab({ results }: ChunksTabProps) {
-  const { state, actions } = useWizard();
+export function ChunksTab({ results, onChunkReevaluation }: ChunksTabProps) {
   const { supportedAgents, supportedAgentsError } = useSupportedAgents();
 
-  const handleChunkReevaluation = (response: ChunkReevaluationResponse) => {
-    actions.updateChunkResults(response);
-  };
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Chunks</h3>
@@ -178,7 +175,11 @@ export function ChunksTab({ results }: ChunksTabProps) {
                           </div>
                           {subst && (
                             <div className="flex items-center gap-2 mt-2 flex-wrap">
-                              <CommonKnowledgeBadge isCommonKnowledge={subst.isCommonKnowledge || false} />
+                              <CommonKnowledgeBadge
+                                isCommonKnowledge={subst.isCommonKnowledge || false}
+                                commonKnowledgeRationale={subst.commonKnowledgeRationale}
+                                claimCategory={classifyClaim(claim, subst, citations, references)}
+                              />
                             </div>
                           )}
                           {subst && subst.isSubstantiated && (
@@ -187,16 +188,12 @@ export function ChunksTab({ results }: ChunksTabProps) {
                             </p>
                           )}
                           {subst && !subst.isSubstantiated && (
-                            <>
-                              <p className="text-sm text-red-600 mt-1">
-                                <strong>Unsubstantiated because:</strong> {subst.rationale}
-                              </p>
-                              {subst.feedback && (
-                                <p className="text-sm text-blue-600 mt-1">
-                                  <strong>Feedback to resolve:</strong> {subst.feedback}
-                                </p>
-                              )}
-                            </>
+                            <UnsubstantiatedFeedback
+                              claim={claim}
+                              substantiation={subst}
+                              citations={citations}
+                              references={references}
+                            />
                           )}
                         </ChunkItem>
                       );
@@ -253,10 +250,10 @@ export function ChunksTab({ results }: ChunksTabProps) {
                 <ChunkReevaluateControl
                   chunkIndex={chunk.chunkIndex}
                   originalState={results}
-                  onReevaluation={handleChunkReevaluation}
+                  onReevaluation={onChunkReevaluation}
                   supportedAgents={supportedAgents}
                   supportedAgentsError={supportedAgentsError}
-                  sessionId={state.sessionId}
+                  sessionId={results.config.sessionId}
                 />
 
                 <ChunkEvalGenerator

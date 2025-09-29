@@ -1,15 +1,15 @@
 import { AnalysisResults } from '@/components/wizard/types';
 import {
-  ClaimSubstantiatorStateOutput,
-  Configuration,
-  DefaultApi,
+  ChunkEvalPackageRequest,
   ChunkReevaluationRequest,
   ChunkReevaluationResponse,
+  ClaimSubstantiatorStateOutput,
+  DefaultApi,
   EvalPackageRequest,
-  ChunkEvalPackageRequest,
   SubstantiationWorkflowConfig,
 } from '@/lib/generated-api';
-import { generateDefaultTestName, downloadBlobResponse } from '@/lib/utils';
+import { downloadBlobResponse, generateDefaultTestName } from '@/lib/utils';
+import { api } from './api';
 
 interface AnalysisRequest {
   mainDocument: File;
@@ -23,16 +23,10 @@ export interface SupportedAgentsResponse {
 }
 
 class AnalysisService {
-  private readonly apiUrl: string;
   private readonly api: DefaultApi;
 
   constructor() {
-    this.apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    this.api = new DefaultApi(
-      new Configuration({
-        basePath: this.apiUrl,
-      }),
-    );
+    this.api = api;
   }
 
   private transformResponse(apiResponse: ClaimSubstantiatorStateOutput): AnalysisResults {

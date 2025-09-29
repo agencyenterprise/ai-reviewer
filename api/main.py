@@ -1,21 +1,26 @@
 import logging
 import uuid
+from typing import List, Optional
 
-from typing import Optional, List, Dict, Any
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
-
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.upload import convert_uploaded_files_to_file_document
 from api.dependencies import build_config_from_form
-
+from api.upload import convert_uploaded_files_to_file_document
 from lib.agents.registry import agent_registry
+from lib.config.logger import setup_logger
+from lib.models.workflow_run import WorkflowRun
 from lib.services.eval_generator.generator import (
     ChunkEvalPackageRequest,
+    ClaimSubstantiatorState,
     EvalPackageRequest,
     eval_test_generator,
 )
-
+from lib.services.workflow_runs import (
+    WorkflowRunDetailed,
+    get_workflow_run_detailed,
+    get_workflow_runs,
+)
 from lib.workflows.claim_substantiation.runner import (
     reevaluate_single_chunk,
     run_claim_substantiator,
@@ -23,20 +28,15 @@ from lib.workflows.claim_substantiation.runner import (
 from lib.workflows.claim_substantiation.state import (
     ChunkReevaluationRequest,
     ChunkReevaluationResponse,
-    ClaimSubstantiationChunk,
     SubstantiationWorkflowConfig,
 )
 
-from lib.services.eval_generator.generator import (
-    EvalPackageRequest,
-    ChunkEvalPackageRequest,
-    ClaimSubstantiatorState,
-)
+setup_logger()
 
 logger = logging.getLogger(__name__)
 
 
-app = FastAPI()
+app = FastAPI(title="AI Analyst API")
 
 
 app.add_middleware(
@@ -210,3 +210,13 @@ async def generate_chunk_eval_package(request: ChunkEvalPackageRequest):
         raise HTTPException(
             status_code=500, detail=f"Error generating chunk eval package: {str(e)}"
         )
+
+
+@app.get("/api/workflow-runs", response_model=List[WorkflowRun])
+async def list_workflow_runs():
+    return await get_workflow_runs()
+
+
+@app.get("/api/workflow-run/{workflow_run_id}", response_model=WorkflowRunDetailed)
+async def get_workflow_run(workflow_run_id: str):
+    return await get_workflow_run_detailed(workflow_run_id)

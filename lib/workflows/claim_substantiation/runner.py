@@ -4,13 +4,16 @@ import asyncio
 import logging
 from typing import List, Optional
 
+from lib.config.database import get_db
+from lib.config.langfuse import langfuse_handler
+from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.file import FileDocument, create_file_document_from_path
+from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
 from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
-
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
-    DocumentChunk,
     SubstantiationWorkflowConfig,
+    WorkflowError,
 )
 
 logger = logging.getLogger(__name__)
@@ -31,13 +34,9 @@ async def run_claim_substantiator(
 
     This is the single, authoritative entry point for claim substantiation.
     """
-    
+
     if config is None:
         config = SubstantiationWorkflowConfig()
-
-    app = build_claim_substantiator_graph(
-        use_toulmin=config.use_toulmin, session_id=config.session_id
-    )
 
     state = ClaimSubstantiatorState(
         file=file,
@@ -45,7 +44,7 @@ async def run_claim_substantiator(
         config=config,
     )
 
-    return await app.ainvoke(state)
+    return await _execute(state)
 
 
 async def run_claim_substantiator_from_paths(
@@ -92,25 +91,75 @@ async def reevaluate_single_chunk(
     # Always override target_chunk_indices and agents_to_run for this specific operation
     config.target_chunk_indices = [chunk_index]
     config.agents_to_run = agents_to_run
-
-    app = build_claim_substantiator_graph(
-        use_toulmin=config.use_toulmin, session_id=config.session_id or original_result.session_id
-    )
+    config.session_id = config.session_id or original_result.session_id
 
     state = original_result.model_copy(
         update={
-            "target_chunk_indices": [chunk_index],
-            "agents_to_run": agents_to_run,
+            "config": config,
             "errors": [
                 error
                 for error in original_result.errors
                 if error.chunk_index != chunk_index
             ],
-            "config": config,
         }
     )
 
-    updated_state = await app.ainvoke(state)
+    return await _execute(state)
+
+
+async def _execute(state: ClaimSubstantiatorState):
+    graph = build_claim_substantiator_graph(use_toulmin=state.config.use_toulmin)
+
+    async with get_checkpointer() as checkpointer:
+        app = graph.compile(checkpointer=checkpointer).with_config(
+            {
+                "callbacks": [langfuse_handler],
+                "metadata": {"langfuse_session_id": state.config.session_id},
+            }
+        )
+
+        with get_db() as db:
+            run = (
+                db.query(WorkflowRun)
+                .filter(WorkflowRun.langgraph_thread_id == state.config.session_id)
+                .first()
+            )
+
+            if run is None:
+                run = WorkflowRun(
+                    langgraph_thread_id=state.config.session_id,
+                    title=state.file.file_name,
+                    status=WorkflowRunStatus.RUNNING,
+                )
+            else:
+                run.status = WorkflowRunStatus.RUNNING
+
+            db.add(run)
+            db.commit()
+
+        updated_state = state
+
+        try:
+            async for values in app.astream(
+                state,
+                {"configurable": {"thread_id": state.config.session_id}},
+                stream_mode="values",
+            ):
+                updated_state = ClaimSubstantiatorState(**values)
+        except Exception as e:
+            logger.error(f"Error streaming state: {e}", exc_info=True)
+            updated_state.errors.append(WorkflowError(task_name="global", error=str(e)))
+        finally:
+            with get_db() as db:
+                run = (
+                    db.query(WorkflowRun)
+                    .filter(WorkflowRun.langgraph_thread_id == state.config.session_id)
+                    .first()
+                )
+                run.status = WorkflowRunStatus.COMPLETED
+                db.add(run)
+                db.commit()
+
     return updated_state
 
 
