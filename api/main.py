@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.dependencies import build_config_from_form
 from api.upload import convert_uploaded_files_to_file_document
 from lib.agents.registry import agent_registry
+from lib.config.logger import setup_logger
 from lib.models.workflow_run import WorkflowRun
 from lib.services.eval_generator.generator import (
     ChunkEvalPackageRequest,
@@ -30,7 +31,10 @@ from lib.workflows.claim_substantiation.state import (
     SubstantiationWorkflowConfig,
 )
 
+setup_logger()
+
 logger = logging.getLogger(__name__)
+
 
 app = FastAPI(title="AI Analyst API")
 

@@ -72,6 +72,7 @@ class Agent(SQLModel, table=True):
             self.model_name,
             model_provider=self.model_provider,
             temperature=self.temperature,
+            timeout=300,
         )
 
     def _prep_llm_with_structured_output(self):

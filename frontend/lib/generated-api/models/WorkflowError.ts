@@ -24,7 +24,7 @@ export interface WorkflowError {
    * @type {number}
    * @memberof WorkflowError
    */
-  chunkIndex: number | null;
+  chunkIndex?: number | null;
   /**
    * The name of the task that caused the error.
    * @type {string}
@@ -43,7 +43,6 @@ export interface WorkflowError {
  * Check if a given object implements the WorkflowError interface.
  */
 export function instanceOfWorkflowError(value: object): value is WorkflowError {
-  if (!('chunkIndex' in value) || value['chunkIndex'] === undefined) return false;
   if (!('taskName' in value) || value['taskName'] === undefined) return false;
   if (!('error' in value) || value['error'] === undefined) return false;
   return true;
@@ -58,7 +57,7 @@ export function WorkflowErrorFromJSONTyped(json: any, ignoreDiscriminator: boole
     return json;
   }
   return {
-    chunkIndex: json['chunk_index'],
+    chunkIndex: json['chunk_index'] == null ? undefined : json['chunk_index'],
     taskName: json['task_name'],
     error: json['error'],
   };

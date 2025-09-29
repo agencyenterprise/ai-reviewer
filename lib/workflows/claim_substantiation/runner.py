@@ -13,6 +13,7 @@ from lib.workflows.claim_substantiation.graph import build_claim_substantiator_g
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     SubstantiationWorkflowConfig,
+    WorkflowError,
 )
 
 logger = logging.getLogger(__name__)
@@ -138,22 +139,26 @@ async def _execute(state: ClaimSubstantiatorState):
 
         updated_state = state
 
-        async for values in app.astream(
-            state,
-            {"configurable": {"thread_id": state.config.session_id}},
-            stream_mode="values",
-        ):
-            updated_state: ClaimSubstantiatorState = values
-
-        with get_db() as db:
-            run = (
-                db.query(WorkflowRun)
-                .filter(WorkflowRun.langgraph_thread_id == state.config.session_id)
-                .first()
-            )
-            run.status = WorkflowRunStatus.COMPLETED
-            db.add(run)
-            db.commit()
+        try:
+            async for values in app.astream(
+                state,
+                {"configurable": {"thread_id": state.config.session_id}},
+                stream_mode="values",
+            ):
+                updated_state = ClaimSubstantiatorState(**values)
+        except Exception as e:
+            logger.error(f"Error streaming state: {e}", exc_info=True)
+            updated_state.errors.append(WorkflowError(task_name="global", error=str(e)))
+        finally:
+            with get_db() as db:
+                run = (
+                    db.query(WorkflowRun)
+                    .filter(WorkflowRun.langgraph_thread_id == state.config.session_id)
+                    .first()
+                )
+                run.status = WorkflowRunStatus.COMPLETED
+                db.add(run)
+                db.commit()
 
     return updated_state
 
