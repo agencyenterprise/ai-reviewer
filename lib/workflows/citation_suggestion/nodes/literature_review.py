@@ -1,35 +1,37 @@
 import logging
-from lib.agents.citation_detector import CitationResponse, citation_detector_agent
+from lib.agents.literature_review import literature_review_agent
 from typing import List
 from lib.agents.reference_extractor import BibliographyItem
-from lib.workflows.chunk_iterator import create_chunk_iterator
-from lib.workflows.claim_substantiation.state import (
-    ClaimSubstantiatorState,
+from lib.workflows.chunk_iterator import create_chunk_iterator, iterate_chunks
+from lib.workflows.citation_suggestion.state import (
+    CitationSuggestionState,
     DocumentChunk,
 )
 
 logger = logging.getLogger(__name__)
 
-iterate_claim_chunks = create_chunk_iterator(ClaimSubstantiatorState, DocumentChunk)
+iterate_claim_chunks = create_chunk_iterator(CitationSuggestionState, DocumentChunk)
 
 
-async def detect_citations(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
-    logger.info("detect_citations: detecting citations")
+async def perform_literature_review(
+    state: CitationSuggestionState,
+) -> CitationSuggestionState:
+    logger.info("perform_literature_review: performing literature review")
 
     agents_to_run = state.config.agents_to_run
-    if agents_to_run and "citations" not in agents_to_run:
+    if agents_to_run and "literature_review" not in agents_to_run:
         logger.info(
-            "detect_citations: Skipping citations detection (not in agents_to_run)"
+            "perform_literature_review: Skipping literature review (not in agents_to_run)"
         )
         return {}
 
-    return await iterate_claim_chunks(
+    return await iterate_chunks(
         state, _detect_chunk_citations, "Detecting chunk citations"
     )
 
 
 async def _detect_chunk_citations(
-    state: ClaimSubstantiatorState, chunk: DocumentChunk
+    state: CitationSuggestionState, chunk: DocumentChunk
 ) -> DocumentChunk:
     citations: CitationResponse = await citation_detector_agent.apply(
         {

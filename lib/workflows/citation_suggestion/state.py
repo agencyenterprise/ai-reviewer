@@ -14,12 +14,12 @@ from operator import add
 from lib.workflows.models import WorkflowError
 
 
-class SubstantiationWorkflowConfig(BaseModel):
+class CitationSuggestionWorkflowConfig(BaseModel):
     """Configuration model for claim substantiation workflow"""
 
-    use_toulmin: bool = Field(
-        default=False, description="Whether to use Toulmin claim detection approach"
-    )
+    # use_toulmin: bool = Field(
+    #     default=False, description="Whether to use Toulmin claim detection approach"
+    # )
     target_chunk_indices: Optional[List[int]] = Field(
         default=None,
         description="Specific chunk indices to process (None = process all chunks)",
@@ -41,26 +41,14 @@ class SubstantiationWorkflowConfig(BaseModel):
 class DocumentChunk(ChunkWithIndex):
     """Independent chunk response object with all processing results"""
 
-    claims: Optional[ClaimResponse | ToulminClaimResponse] = None
-    citations: Optional[CitationResponse] = None
-    substantiations: List[ClaimSubstantiationResultWithClaimIndex] = []
+    pass
 
 
-class ClaimSubstantiationChunk(BaseModel):
-    """
-    Wrapper for a list of claim substantiation results for a single chunk.
-
-    openapi-generator does not support List[List[T]] so we need to wrap the list of substantiations in a single model.
-    """
-
-    substantiations: List[ClaimSubstantiationResultWithClaimIndex]
-
-
-class ClaimSubstantiatorState(BaseModel):
+class CitationSuggestionState(BaseModel):
     # Inputs
     file: FileDocument
     supporting_files: Optional[List[FileDocument]] = None
-    config: SubstantiationWorkflowConfig
+    # config: SubstantiationWorkflowConfig
 
     # Outputs
     references: List[BibliographyItem] = []
@@ -78,33 +66,3 @@ class ClaimSubstantiatorState(BaseModel):
     def get_paragraph(self, paragraph_index: int) -> str:
         paragraph_chunks = self.get_paragraph_chunks(paragraph_index)
         return "\n".join([chunk.content for chunk in paragraph_chunks])
-
-
-class ChunkReevaluationRequest(BaseModel):
-    """Request model for re-evaluating a specific chunk"""
-
-    chunk_index: int = Field(
-        ge=0, description="Zero-based index of the chunk to re-evaluate"
-    )
-    agents_to_run: List[str] = Field(
-        description="List of agent types to run on the chunk",
-        example=["claims", "citations"],
-    )
-    original_state: ClaimSubstantiatorState = Field(
-        description="The original workflow state containing the document and chunks"
-    )
-    session_id: Optional[str] = Field(description="The session ID for Langfuse tracing")
-
-
-class ChunkReevaluationResponse(BaseModel):
-    """Response model for chunk re-evaluation results"""
-
-    state: ClaimSubstantiatorState = Field(
-        description="The updated workflow state, with the re-evaluated chunk included"
-    )
-    agents_run: List[str] = Field(
-        description="List of agents that were successfully run on the chunk"
-    )
-    processing_time_ms: Optional[float] = Field(
-        description="Time taken to process the chunk in milliseconds", default=None
-    )
