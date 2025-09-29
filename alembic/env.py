@@ -1,15 +1,12 @@
 import os
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+import alembic_postgresql_enum
+from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
 from alembic import context
 
-# Import our models and base
-from lib.config.database import Base
-from lib.models import Agent, Workflow, WorkflowRun, Chat
 from lib.config.env import config as app_config
 
 # this is the Alembic Config object, which provides
@@ -34,6 +31,21 @@ target_metadata = SQLModel.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+IGNORE_TABLES = [
+    # Ignore LangGraph auto-generated tables
+    "checkpoint_writes",
+    "checkpoint_blobs",
+    "checkpoint_migrations",
+    "checkpoints",
+]
+
+
+def include_object(object, name, type_, reflected, compare_to):
+    if type_ == "table" and name in IGNORE_TABLES:
+        return False
+
+    return True
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -51,6 +63,7 @@ def run_migrations_offline() -> None:
     context.configure(
         url=url,
         target_metadata=target_metadata,
+        include_object=include_object,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
@@ -73,7 +86,11 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            include_object=include_object,
+        )
 
         with context.begin_transaction():
             context.run_migrations()

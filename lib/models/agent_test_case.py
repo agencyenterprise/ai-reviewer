@@ -60,7 +60,13 @@ class AgentTestCase(BaseModel):
 
     async def run(self) -> TResponse:
         """Run the agent and store the typed result."""
-        tasks = [self.agent.apply(self.prompt_kwargs) for _ in range(self.run_count)]
+        tasks = [
+            self.agent.apply(
+                self.prompt_kwargs,
+                config={"run_name": self.name, "callbacks": [langfuse_handler]},
+            )
+            for _ in range(self.run_count)
+        ]
         results = await asyncio.gather(*tasks)
         # Ensure result is the expected pydantic type
         self.results = [self.response_model.model_validate(result) for result in results]  # type: ignore[arg-type]

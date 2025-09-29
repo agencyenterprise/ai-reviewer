@@ -23,7 +23,7 @@ from lib.models.react_agent.tool_registry import prepare_tools
 class Agent(SQLModel, table=True):
     __tablename__ = "agents"
 
-    id: str = Field(
+    id: uuid.UUID = Field(
         sa_column=Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     )
     name: str = Field(sa_column=Column(String(255), nullable=False))
@@ -47,7 +47,11 @@ class Agent(SQLModel, table=True):
     )  # JSON Schema for expected output
     version: int = Field(sa_column=Column(Integer, default=1))
     created_by: str = Field(sa_column=Column(String(255), nullable=False))  # User ID
-    created_at: datetime = Field(sa_column=Column(DateTime, default=datetime.utcnow))
+    created_at: datetime = Field(
+        sa_column=Column(
+            DateTime(timezone=True), default=datetime.utcnow, nullable=False
+        )
+    )
 
     # Relationships
     # chats = Relationship(back_populates="agent")
@@ -68,6 +72,7 @@ class Agent(SQLModel, table=True):
             self.model_name,
             model_provider=self.model_provider,
             temperature=self.temperature,
+            timeout=300,
         )
 
     def _prep_llm_with_structured_output(self):
