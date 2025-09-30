@@ -8,6 +8,8 @@ models/ChunkReevaluationResponse.ts
 models/Citation.ts
 models/CitationResponseInput.ts
 models/CitationResponseOutput.ts
+models/CitationSuggestionResultWithClaimIndexInput.ts
+models/CitationSuggestionResultWithClaimIndexOutput.ts
 models/CitationType.ts
 models/Claim.ts
 models/ClaimResponse.ts
@@ -20,6 +22,9 @@ models/DocumentChunkOutput.ts
 models/EvalPackageRequest.ts
 models/FileDocument.ts
 models/HTTPValidationError.ts
+models/RecommendedAction.ts
+models/Reference.ts
+models/ReferenceType.ts
 models/Severity.ts
 models/SubstantiationWorkflowConfig.ts
 models/ToulminClaim.ts

@@ -15,6 +15,13 @@
 import { mapValues } from '../runtime';
 import type { Claims } from './Claims';
 import { ClaimsFromJSON, ClaimsFromJSONTyped, ClaimsToJSON, ClaimsToJSONTyped } from './Claims';
+import type { CitationSuggestionResultWithClaimIndexInput } from './CitationSuggestionResultWithClaimIndexInput';
+import {
+  CitationSuggestionResultWithClaimIndexInputFromJSON,
+  CitationSuggestionResultWithClaimIndexInputFromJSONTyped,
+  CitationSuggestionResultWithClaimIndexInputToJSON,
+  CitationSuggestionResultWithClaimIndexInputToJSONTyped,
+} from './CitationSuggestionResultWithClaimIndexInput';
 import type { ClaimSubstantiationResultWithClaimIndex } from './ClaimSubstantiationResultWithClaimIndex';
 import {
   ClaimSubstantiationResultWithClaimIndexFromJSON,
@@ -72,6 +79,12 @@ export interface DocumentChunkInput {
    * @memberof DocumentChunkInput
    */
   substantiations?: Array<ClaimSubstantiationResultWithClaimIndex>;
+  /**
+   *
+   * @type {Array<CitationSuggestionResultWithClaimIndexInput>}
+   * @memberof DocumentChunkInput
+   */
+  citationSuggestions?: Array<CitationSuggestionResultWithClaimIndexInput>;
 }
 
 /**
@@ -102,6 +115,10 @@ export function DocumentChunkInputFromJSONTyped(json: any, ignoreDiscriminator: 
       json['substantiations'] == null
         ? undefined
         : (json['substantiations'] as Array<any>).map(ClaimSubstantiationResultWithClaimIndexFromJSON),
+    citationSuggestions:
+      json['citation_suggestions'] == null
+        ? undefined
+        : (json['citation_suggestions'] as Array<any>).map(CitationSuggestionResultWithClaimIndexInputFromJSON),
   };
 }
 
@@ -127,5 +144,9 @@ export function DocumentChunkInputToJSONTyped(
       value['substantiations'] == null
         ? undefined
         : (value['substantiations'] as Array<any>).map(ClaimSubstantiationResultWithClaimIndexToJSON),
+    citation_suggestions:
+      value['citationSuggestions'] == null
+        ? undefined
+        : (value['citationSuggestions'] as Array<any>).map(CitationSuggestionResultWithClaimIndexInputToJSON),
   };
 }

@@ -159,7 +159,7 @@ export function DocumentExplorerChunk({
 
               return (
                 <ChunkItem key={ci} className={cn(isUnsubstantiated ? 'bg-red-50/40' : '', 'space-y-2')}>
-                  <p className="flex items-center gap-1">
+                  <div className="flex items-center gap-1">
                     <ClaimCategoryLabel category={claimCategory} />
                     <SeverityBadge severity={severity} />
                     <CommonKnowledgeBadge
@@ -167,7 +167,7 @@ export function DocumentExplorerChunk({
                       commonKnowledgeRationale={subst?.commonKnowledgeRationale}
                       claimCategory={claimCategory}
                     />
-                  </p>
+                  </div>
                   <p>
                     <strong>Claim:</strong> {claim.claim}
                   </p>
@@ -305,6 +305,110 @@ export function DocumentExplorerChunk({
                       </div>
                     )}
                   </ChunkItem>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {chunk.citationSuggestions && chunk.citationSuggestions.length > 0 && (
+            <div>
+              <h4 className="font-bold mb-2 flex items-center gap-2">
+                <LinkIcon className="w-4 h-4" />
+                Citation Suggestions
+              </h4>
+              <div className="space-y-4">
+                {chunk.citationSuggestions.map((suggestion, si) => (
+                  <div key={si} className="space-y-3">
+                    <div className="text-sm text-muted-foreground">
+                      <strong>
+                        Claim {suggestion.claimIndex !== undefined ? suggestion.claimIndex + 1 : 'Unknown'}:
+                      </strong>{' '}
+                      {suggestion.rationale}
+                    </div>
+                    <div className="space-y-3">
+                      {suggestion.relevantReferences.map((reference, ri) => (
+                        <ChunkItem key={ri}>
+                          <div className="space-y-2">
+                            <div className="flex items-start justify-between">
+                              <h5 className="font-medium text-sm">{reference.title}</h5>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`px-2 py-1 rounded text-xs ${
+                                    reference.type === 'article'
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : reference.type === 'book'
+                                        ? 'bg-green-100 text-green-800'
+                                        : reference.type === 'webpage'
+                                          ? 'bg-purple-100 text-purple-800'
+                                          : 'bg-gray-100 text-gray-800'
+                                  }`}
+                                >
+                                  {reference.type}
+                                </span>
+                                <span
+                                  className={`px-2 py-1 rounded text-xs ${
+                                    reference.recommendedAction === 'add_citation'
+                                      ? 'bg-green-100 text-green-800'
+                                      : reference.recommendedAction === 'replace_existing_reference'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : reference.recommendedAction === 'discuss_reference'
+                                          ? 'bg-blue-100 text-blue-800'
+                                          : reference.recommendedAction === 'no_action'
+                                            ? 'bg-gray-100 text-gray-800'
+                                            : 'bg-orange-100 text-orange-800'
+                                  }`}
+                                >
+                                  {reference.recommendedAction.replace('_', ' ')}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="text-xs text-muted-foreground">
+                              <p>
+                                <strong>Link:</strong>{' '}
+                                <a
+                                  href={reference.link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline"
+                                >
+                                  {reference.link}
+                                </a>
+                              </p>
+                            </div>
+
+                            <div className="text-xs">
+                              <p>
+                                <strong>Bibliography Entry:</strong>
+                              </p>
+                              <p className="text-muted-foreground italic">{reference.bibliographyInfo}</p>
+                            </div>
+
+                            <div className="text-xs">
+                              <p>
+                                <strong>Related Excerpt:</strong>
+                              </p>
+                              <p className="text-muted-foreground">&quot;{reference.relatedExcerpt}&quot;</p>
+                            </div>
+
+                            <div className="text-xs">
+                              <p>
+                                <strong>Rationale:</strong>
+                              </p>
+                              <p className="text-muted-foreground">{reference.rationale}</p>
+                            </div>
+
+                            <div className="text-xs">
+                              <p>
+                                <strong>Recommended Action:</strong>
+                              </p>
+                              <p className="text-muted-foreground">{reference.explanationForRecommendedAction}</p>
+                            </div>
+                          </div>
+                        </ChunkItem>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

@@ -34,8 +34,6 @@ def build_claim_substantiator_graph(
 ):
     graph = StateGraph(ClaimSubstantiatorState)
 
-    run_literature_review = False
-
     graph.add_node("prepare_documents", prepare_documents)
     if run_literature_review:
         graph.add_node("literature_review", literature_review)
