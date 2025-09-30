@@ -3,10 +3,12 @@
 import { Button } from '@/components/ui/button';
 import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
 import { api } from '@/lib/api';
-import { ChunkReevaluationResponse, WorkflowRunDetailed } from '@/lib/generated-api';
+import { ChunkReevaluationResponse, WorkflowRunDetailed, WorkflowRunStatus } from '@/lib/generated-api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useEffect } from 'react';
+import { toast } from 'sonner';
 
 export default function ResultsPage() {
   const params = useParams();
@@ -20,6 +22,7 @@ export default function ResultsPage() {
     error,
   } = useQuery({
     queryKey: ['workflowRun', workflowRunId],
+    refetchInterval: ({ state }) => (state.data?.run.status === WorkflowRunStatus.Running ? 3000 : false),
     queryFn: () => api.getWorkflowRunApiWorkflowRunWorkflowRunIdGet({ workflowRunId }),
   });
 
@@ -31,6 +34,22 @@ export default function ResultsPage() {
       };
     });
   };
+
+  useEffect(() => {
+    let toastId: string | number | undefined;
+    if (workflowRun?.run.status === WorkflowRunStatus.Running) {
+      toastId = toast.loading('Analysis in progress', {
+        description: 'This may take a few minutes. Some results in this page may be incomplete.',
+      });
+    }
+
+    return () => {
+      if (toastId) {
+        toast.dismiss(toastId);
+        toastId = undefined;
+      }
+    };
+  }, [workflowRun?.run.status]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">

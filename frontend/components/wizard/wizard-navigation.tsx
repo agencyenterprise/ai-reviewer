@@ -1,14 +1,14 @@
 'use client';
 
-import * as React from 'react';
-import { Button } from '../ui/button';
-import { useWizard } from './wizard-context';
+import { analysisService } from '@/lib/analysis-service';
 import { cn } from '@/lib/utils';
 import { Play } from 'lucide-react';
-import { analysisService } from '@/lib/analysis-service';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Button } from '../ui/button';
+import { useWizard } from './wizard-context';
 
 export function WizardNavigation() {
+  const router = useRouter();
   const { state, actions } = useWizard();
 
   const canProceedFromStep1 = state.mainDocument !== null;
@@ -50,6 +50,8 @@ export function WizardNavigation() {
   const handleBack = () => {
     if (state.currentStep > 1) {
       actions.setCurrentStep(state.currentStep - 1);
+    } else {
+      router.push('/');
     }
   };
 
@@ -76,29 +78,18 @@ export function WizardNavigation() {
 
   return (
     <div className="flex items-center justify-between max-w-4xl mx-auto pt-8">
-      {state.currentStep === 1 && (
-        <Link href="/upload-results">
-          <Button variant="outline" className="px-6">
-            Upload saved analysis results
-          </Button>
-        </Link>
-      )}
-
-      {state.currentStep !== 1 && !state.isProcessing && (
-        <Button
-          variant="outline"
-          onClick={handleBack}
-          disabled={state.currentStep === 1 || state.isProcessing}
-          className={cn(
-            'px-6 py-2.5 font-medium transition-all duration-200',
-            'hover:bg-muted hover:border-muted-foreground/20',
-            'disabled:opacity-50 disabled:cursor-not-allowed',
-            state.currentStep === 1 || state.isProcessing ? 'invisible' : 'visible',
-          )}
-        >
-          Back
-        </Button>
-      )}
+      <Button
+        variant="outline"
+        onClick={handleBack}
+        disabled={state.isProcessing}
+        className={cn(
+          'px-6 py-2.5 font-medium transition-all duration-200',
+          'hover:bg-muted hover:border-muted-foreground/20',
+          'disabled:opacity-50 disabled:cursor-not-allowed',
+        )}
+      >
+        Back
+      </Button>
 
       <div className="flex items-center gap-4">
         {state.currentStep === 1 && !state.mainDocument && (
