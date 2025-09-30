@@ -315,9 +315,6 @@ uv run pytest --cov=lib
 # Run specific agent tests (e.g., claim substantiator)
 uv run pytest tests/llm/claim_substantiator/ -v
 
-# Run common knowledge detection tests
-uv run pytest tests/llm/claim_substantiator/test_common_knowledge.py -v
-
 # Run frontend tests (when implemented)
 cd frontend && pnpm test
 ```
