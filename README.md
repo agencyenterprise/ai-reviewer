@@ -306,15 +306,23 @@ uv run alembic downgrade -1
 ### Testing
 
 ```bash
-# Run Python tests
+# Run all Python tests
 uv run pytest
 
 # Run with coverage
 uv run pytest --cov=lib
 
+# Run specific agent tests (e.g., claim substantiator)
+uv run pytest tests/llm/claim_substantiator/ -v
+
+# Run common knowledge detection tests
+uv run pytest tests/llm/claim_substantiator/test_common_knowledge.py -v
+
 # Run frontend tests (when implemented)
 cd frontend && pnpm test
 ```
+
+**Test Organization**: Tests are organized by agent in `tests/llm/[agent_name]/` with datasets in `tests/datasets/[agent_name]/`. Each agent can have multiple test datasets (e.g., `basic.yaml`, `common_knowledge.yaml`) sharing common test infrastructure via `conftest.py`.
 
 ### Code Quality
 
