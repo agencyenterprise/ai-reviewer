@@ -1,0 +1,142 @@
+'use client';
+
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { FileUpload } from '@/components/ui/file-upload';
+import { TestResults } from './types';
+import { TestCaseItem } from './test-case-item';
+
+export default function EvalsPage() {
+  const [uploadedData, setUploadedData] = useState<TestResults | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleFilesChange = (files: File[]) => {
+    setError(null);
+
+    if (files.length === 0) {
+      setUploadedData(null);
+      return;
+    }
+
+    const file = files[0]; // Only process the first file
+
+    if (file.type !== 'application/json') {
+      setError('Please upload a JSON file');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const parsedData = JSON.parse(content) as TestResults;
+        setUploadedData(parsedData);
+      } catch {
+        setError('Invalid JSON format. Please check your file.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const calculateSummaryMetrics = (data: TestResults | null) => {
+    if (!data) {
+      return { total: 0, passed: 0, failed: 0, accuracy: 0, duration: 0 };
+    }
+
+    const total = data.summary.total;
+    const passed = data.summary.passed;
+    const failed = data.summary.failed;
+    const accuracy = total > 0 ? Math.round((passed / total) * 100) : 0;
+    const duration = data.duration;
+
+    return { total, passed, failed, accuracy, duration };
+  };
+
+  const metrics = calculateSummaryMetrics(uploadedData);
+
+  return (
+    <div className="container mx-auto p-6 max-w-5xl">
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Evaluation Results</h1>
+          <p className="text-muted-foreground">Upload a JSON file containing evaluation results to view the data</p>
+        </div>
+
+        {!uploadedData && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Upload Evaluation Results</CardTitle>
+              <CardDescription>
+                Upload a JSON file containing evaluation results in the expected format.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FileUpload
+                accept=".json,application/json"
+                acceptLabel="JSON"
+                multiple={false}
+                maxSize={10}
+                onFilesChange={handleFilesChange}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {error && (
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 text-red-700">
+                <div className="w-2 h-2 bg-red-500 rounded-full" />
+                <p className="text-sm font-medium">{error}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {uploadedData && (
+          <div className="space-y-6">
+            {/* Summary Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Evaluation Summary</CardTitle>
+                <CardDescription>Overview of test results across all evaluation cases</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-5 gap-4">
+                  <div className="text-center p-4 bg-muted/30 rounded-lg">
+                    <div className="text-2xl font-bold text-foreground">{metrics.total}</div>
+                    <div className="text-sm text-muted-foreground">Total Tests</div>
+                  </div>
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">{metrics.passed}</div>
+                    <div className="text-sm text-muted-foreground">Passed</div>
+                  </div>
+                  <div className="text-center p-4 bg-red-50 rounded-lg">
+                    <div className="text-2xl font-bold text-red-600">{metrics.failed}</div>
+                    <div className="text-sm text-muted-foreground">Failed</div>
+                  </div>
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">{metrics.accuracy}%</div>
+                    <div className="text-sm text-muted-foreground">Accuracy</div>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <div className="text-2xl font-bold text-purple-600">{metrics.duration.toFixed(1)}s</div>
+                    <div className="text-sm text-muted-foreground">Duration</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Test Cases List */}
+            <div className="space-y-2">
+              <h2 className="text-xl font-semibold">Test Cases</h2>
+              {uploadedData.tests.map((testCase, index) => (
+                <TestCaseItem key={index} testCase={testCase} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
