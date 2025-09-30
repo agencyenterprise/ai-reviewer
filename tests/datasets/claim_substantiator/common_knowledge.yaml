@@ -8,12 +8,8 @@ dataset:
       input:
         main_document: "data/common_knowledge/main_document_64520.md"
         supporting_documents:
-          - "data/common_knowledge/supporting_1.md"
-          - "data/common_knowledge/supporting_2.md"
-          - "data/common_knowledge/supporting_3.md"
-          - "data/common_knowledge/supporting_4.md"
-          - "data/common_knowledge/supporting_5.md"
-          - "data/common_knowledge/supporting_6.md"
+          - "data/common_knowledge/minimal_ai_power_source.md"
+          - "data/common_knowledge/minimal_doe_report.md"
         chunk: "**The anticipated load growth from AI is unprecedented in both magnitude and speed.** Developing advanced AI models requires enormous amounts of power[[4]](#footnote-3) and existing facilities are already straining the U.S. electricity grids.[[5]](#footnote-4)"
         claim: "Developing advanced AI models requires enormous amounts of power"
         claim_index: 1
@@ -32,12 +28,8 @@ dataset:
       input:
         main_document: "data/common_knowledge/main_document_72038.md"
         supporting_documents:
-          - "data/common_knowledge/supporting_72038_supporting_1.md"
-          - "data/common_knowledge/supporting_72038_supporting_2.md"
-          - "data/common_knowledge/supporting_72038_supporting_3.md"
-          - "data/common_knowledge/supporting_72038_supporting_4.md"
-          - "data/common_knowledge/supporting_72038_supporting_5.md"
-          - "data/common_knowledge/supporting_72038_supporting_6.md"
+          - "data/common_knowledge/minimal_doe_report.md"
+          - "data/common_knowledge/minimal_ai_power_source.md"
         chunk: "**The anticipated load growth from AI is unprecedented in both magnitude and speed.** Developing advanced AI models requires enormous amounts of power[[4]](#footnote-3) and existing facilities are already straining the U.S. electricity grids.[[5]](#footnote-4) As the demand for computational resources continues to rise, electricity consumption by AI data centers is expected to grow at an unprecedented rate in the coming years.[[6]](#footnote-5)Data center power consumption, especially driven by AI, is a significant and increasing concern."
         claim: "Data center power consumption, especially driven by AI, is a significant and increasing concern"
         claim_index: 4
@@ -95,9 +87,8 @@ dataset:
       input:
         main_document: "data/common_knowledge/main_document_64520.md"
         supporting_documents:
-          - "data/common_knowledge/supporting_1.md"
-          - "data/common_knowledge/supporting_2.md"
-          - "data/common_knowledge/supporting_3.md"
+          - "data/common_knowledge/minimal_epoch_ai_report.md"
+          - "data/common_knowledge/minimal_ai_power_source.md"
         chunk: "As the demand for computational resources continues to rise, electricity consumption by AI data centers is expected to grow at an unprecedented rate in the coming years.[[6]](#footnote-5) Based on current trends for data center power consumption, estimates for AI load growth include 63 GW by 2028,[[7]](#footnote-6) and range between 47 GW[[8]](#footnote-7) to 171 GW by 2030.[[9]](#footnote-8)"
         claim: "Estimates for AI load growth include 63 GW by 2028"
         claim_index: 1
@@ -134,12 +125,7 @@ dataset:
       input:
         main_document: "data/common_knowledge/main_document_64520.md"
         supporting_documents:
-          - "data/common_knowledge/supporting_1.md"
-          - "data/common_knowledge/supporting_2.md"
-          - "data/common_knowledge/supporting_3.md"
-          - "data/common_knowledge/supporting_4.md"
-          - "data/common_knowledge/supporting_5.md"
-          - "data/common_knowledge/supporting_6.md"
+          - "data/common_knowledge/minimal_epoch_ai_report.md"
         chunk: "Beyond the challenge of aggregated scale, a single site expected to demand a large amount of power also poses issues related to building necessary infrastructure in a timely manner[[10]](#footnote-9) and maintain grid stability.[[11]](#footnote-10) An individual facility may consume up to 5 GW by 2030,[[12]](#footnote-11) a substantial scale comparable to the 2023 net summer generation capacity[[13]](#footnote-12) of a single state such as Idaho (5.4 GW), Maine (5.3 GW), or New Hampshire (4.5 GW).[[14]](#footnote-13)"
         claim: "A 5 GW facility is comparable to the 2023 net summer generation capacity of Idaho (5.4 GW), Maine (5.3 GW), or New Hampshire (4.5 GW)"
         claim_index: 2
@@ -152,5 +138,4 @@ dataset:
         rationale: "The cited Epoch AI report (Sevilla et al., 2024) does support that single data center campuses of 1–5 GW are plausible by 2030 and characterizes such facilities as unprecedentedly large. However, it does not provide or reference 2023 net summer generation capacity for Idaho, Maine, or New Hampshire, nor does it make the explicit comparison that a 5 GW facility is comparable to those states' capacities. The state capacity comparison relies on EIA data (cited in the draft as [13] and [14]), not on Sevilla et al. [12]."
         feedback: "Add the appropriate EIA citations for 2023 net summer capacity by state (e.g., EIA state electricity profiles) and include the exact values for Idaho, Maine, and New Hampshire. Alternatively, rephrase to: \"A 5 GW facility would be on the order of a small U.S. state's net summer capacity,\" and cite EIA. Keep Sevilla et al. to substantiate the plausibility of 1–5 GW campuses; use EIA to substantiate the state comparison."
         severity: 4
-
 
