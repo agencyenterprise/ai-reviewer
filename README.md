@@ -321,6 +321,62 @@ cd frontend && pnpm test
 
 **Test Organization**: Tests are organized by agent in `tests/llm/[agent_name]/` with datasets in `tests/datasets/[agent_name]/`. Each agent can have multiple test datasets (e.g., `basic.yaml`, `common_knowledge.yaml`) sharing common test infrastructure via `conftest.py`.
 
+#### Enhanced Test Results Export
+
+The test suite includes comprehensive JSON reporting that captures complete test metadata, inputs, outputs, and evaluation results:
+
+```bash
+# Generate detailed JSON test results
+uv run pytest tests/llm/ \
+  --json-report \
+  --json-report-file=test_results.json \
+  --json-report-indent=2 \
+  -v
+```
+
+**Test Results Structure**: Each test in the JSON includes:
+
+- **Test Metadata**: Test name, agent information (name, version)
+- **Complete Inputs**: All `prompt_kwargs` (full_document, chunk, claim, references, etc.)
+- **Expected Output**: Golden reference for comparison
+- **Actual Outputs**: Agent-generated results (supports multiple runs)
+- **Evaluation Config**: Which fields use strict comparison vs LLM evaluation
+- **Evaluation Results**: Pass/fail status with detailed rationale breaking down strict and LLM comparisons
+
+**Analysis Examples**:
+
+```bash
+# View test summary
+cat test_results.json | jq '.summary'
+
+# Get all failed tests with evaluation details
+cat test_results.json | jq '.tests[] | select(.outcome=="failed") | {
+  name: .agent_test_case.name,
+  eval_passed: .agent_test_case.evaluation_result.passed,
+  rationale: .agent_test_case.evaluation_result.rationale
+}'
+
+# Compare expected vs actual severity across all tests
+cat test_results.json | jq '.tests[] | {
+  name: .agent_test_case.name,
+  expected_severity: .agent_test_case.expected_output.severity,
+  actual_severity: .agent_test_case.actual_outputs[0].severity
+}'
+
+# Evaluate pass rate by agent
+cat test_results.json | jq '[.tests[] | {
+  agent: .agent_test_case.agent.name,
+  passed: .agent_test_case.evaluation_result.passed
+}] | group_by(.agent) | map({
+  agent: .[0].agent,
+  total: length,
+  passed: ([.[] | select(.passed)] | length),
+  pass_rate: (([.[] | select(.passed)] | length) / length * 100 | round)
+})'
+```
+
+This structured output enables systematic analysis of agent performance, identification of failure patterns, and tracking of improvements over time.
+
 ### Code Quality
 
 ```bash

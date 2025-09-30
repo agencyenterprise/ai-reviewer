@@ -1,7 +1,8 @@
 """Common knowledge detection and severity tests."""
+
 import pytest
 
-from .conftest import build_test_cases_from_dataset
+from tests.llm.claim_substantiator.conftest import build_test_cases_from_dataset
 
 
 def _build_cases():
@@ -18,7 +19,7 @@ def _build_cases():
 async def test_claim_substantiator_common_knowledge_cases(case):
     """
     Test common knowledge detection and severity assignment.
-    
+
     These tests validate:
     1. Correct identification of common knowledge claims
     2. Appropriate severity levels for common knowledge with quantifiers
@@ -26,4 +27,8 @@ async def test_claim_substantiator_common_knowledge_cases(case):
     """
     await case.run()
     eval_result = await case.compare_results()
+
+    # Store eval_result for reporting
+    case._eval_result = eval_result
+
     assert eval_result.passed, f"{case.name}: {eval_result.rationale}"

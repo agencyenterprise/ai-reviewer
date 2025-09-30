@@ -31,3 +31,4 @@ Large language model training and inference workloads exhibit particularly high 
 The Board identifies AI-driven data center demand as a material concern requiring coordinated planning between federal agencies, utilities, and data center operators to ensure adequate power supply and grid reliability through 2030 and beyond.
 
 Source: U.S. Department of Energy SEAB, https://www.energy.gov/sites/default/files/2024-08/Powering%20AI%20and%20Data%20Center%20Infrastructure%20Recommendations%20July%202024.pdf
+
