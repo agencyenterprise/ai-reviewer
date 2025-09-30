@@ -3,6 +3,10 @@ from typing import Any
 from openai import AsyncOpenAI, OpenAI
 from pydantic import BaseModel
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class LLMClient(BaseModel):
     provider: str
@@ -43,7 +47,10 @@ class OpenAIWrapper(LLMClient):
             if message.get("role") == "human":
                 message["role"] = "user"
 
-        if not self.output_schema or self.output_schema is str:
+        structured_output = (
+            self.output_schema is not None and self.output_schema is not str
+        )
+        if not structured_output:
             self.resp = await client.responses.create(
                 model=self.model,
                 input=input_dict,
@@ -56,20 +63,33 @@ class OpenAIWrapper(LLMClient):
                 input=input_dict,
                 background=self.background,
                 tools=self.tools,
-                # text_format=self.output_schema,
+                text_format=self.output_schema,
             )
 
         if not self.background:
-            return self.resp.output_text
+            return (
+                self.resp.output_text
+                if not structured_output
+                else self.resp.output_parsed
+            )
         else:
+            logger.info(
+                f"Calling {self.model} in background mode and waiting for response"
+            )
             while self.resp.status in {"queued", "in_progress"}:
                 self.status = self.resp.status
-                print(f"Call id: {self.resp.id} => Current status: {self.resp.status}")
+                logger.info(
+                    f"Call id: {self.resp.id} => Current status: {self.resp.status}"
+                )
                 sleep(2)
                 self.resp = await client.responses.retrieve(self.resp.id)
 
-                print(
+                logger.info(
                     f"Final status: {self.resp.status}\nOutput:\n{self.resp.output_text}"
                 )
             self.status = self.resp.status
-            return self.resp.output_text
+            return (
+                self.resp.output_text
+                if not structured_output
+                else self.resp.self.output_parsed
+            )
