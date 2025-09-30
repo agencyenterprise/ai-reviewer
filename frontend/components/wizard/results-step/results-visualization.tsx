@@ -1,29 +1,28 @@
 'use client';
 
-import * as React from 'react';
-import { Download, FileText } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
-import { Button } from '../../ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../../ui/tooltip';
-import { AnalysisResults } from '../types';
-import { useResultsCalculations } from './hooks/use-results-calculations';
-import { SummaryCards, TabNavigation } from './components';
-import { SummaryTab, ClaimsTab, CitationsTab, ReferencesTab, FilesTab, ChunksTab } from './tabs';
-import { TabType } from './constants';
-import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
-import { DocumentExplorerTab } from './tabs/document-explorer-tab';
-import { downloadAsJson, downloadFile, generateEvalFilename } from '@/lib/file-download';
 import { analysisService } from '@/lib/analysis-service';
+import { downloadAsJson, downloadFile, generateEvalFilename } from '@/lib/file-download';
+import { ChunkReevaluationResponse, ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
+import { Download, FileText } from 'lucide-react';
+import * as React from 'react';
+import { Button } from '../../ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../ui/tooltip';
+import { SummaryCards, TabNavigation } from './components';
+import { TabType } from './constants';
+import { useResultsCalculations } from './hooks/use-results-calculations';
+import { ChunksTab, CitationsTab, ClaimsTab, FilesTab, ReferencesTab, SummaryTab } from './tabs';
+import { DocumentExplorerTab } from './tabs/document-explorer-tab';
 
 interface ResultsVisualizationProps {
-  results: AnalysisResults | null;
+  results: ClaimSubstantiatorStateOutput | undefined;
+  onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
 }
 
-export function ResultsVisualization({ results }: ResultsVisualizationProps) {
-  const detailedResults = results?.fullResults as ClaimSubstantiatorStateOutput | undefined;
+export function ResultsVisualization({ results, onChunkReevaluation }: ResultsVisualizationProps) {
   const [activeTab, setActiveTab] = React.useState<TabType>('summary');
 
-  const calculations = useResultsCalculations(detailedResults);
+  const calculations = useResultsCalculations(results);
 
   const handleSaveResults = () => {
     if (results) {
@@ -34,13 +33,13 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
   };
 
   const handleSaveAsEvalTest = async () => {
-    if (!detailedResults) return;
+    if (!results) return;
 
     try {
       const testName = `eval_${Date.now()}`;
       const description = `Generated from analysis results on ${new Date().toLocaleDateString()}`;
 
-      const blob = await analysisService.generateEvalPackage(detailedResults, testName, description);
+      const blob = await analysisService.generateEvalPackage(results, testName, description);
 
       const filename = generateEvalFilename(testName);
       downloadFile({ filename, blob });
@@ -49,7 +48,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
     }
   };
 
-  if (!results || !detailedResults) {
+  if (!results) {
     return (
       <Card className="max-w-4xl mx-auto">
         <CardHeader>
@@ -65,7 +64,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
       case 'summary':
         return (
           <SummaryTab
-            results={detailedResults}
+            results={results}
             totalChunks={calculations.totalChunks}
             chunksWithClaims={calculations.chunksWithClaims}
             chunksWithCitations={calculations.chunksWithCitations}
@@ -73,17 +72,17 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
           />
         );
       case 'claims':
-        return <ClaimsTab results={detailedResults} />;
+        return <ClaimsTab results={results} />;
       case 'citations':
-        return <CitationsTab results={detailedResults} />;
+        return <CitationsTab results={results} />;
       case 'references':
-        return <ReferencesTab results={detailedResults} />;
+        return <ReferencesTab results={results} />;
       case 'files':
-        return <FilesTab results={detailedResults} />;
+        return <FilesTab results={results} />;
       case 'chunks':
-        return <ChunksTab results={detailedResults} />;
+        return <ChunksTab results={results} onChunkReevaluation={onChunkReevaluation} />;
       case 'document-explorer':
-        return <DocumentExplorerTab results={detailedResults} />;
+        return <DocumentExplorerTab results={results} onChunkReevaluation={onChunkReevaluation} />;
     }
   };
 

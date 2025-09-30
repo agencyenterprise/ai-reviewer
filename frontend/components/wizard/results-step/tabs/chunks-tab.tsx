@@ -1,30 +1,25 @@
 'use client';
 
-import * as React from 'react';
-import { ChunkItem } from '../components/chunk-display';
-import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
-import { ChunkEvalGenerator } from '../components/chunk-eval-generator';
-import { AlertTriangle, FileIcon, Link as LinkIcon } from 'lucide-react';
-import { ClaimSubstantiatorStateOutput, ChunkReevaluationResponse } from '@/lib/generated-api';
-import { useWizard } from '../../wizard-context';
-import { SeverityBadge } from '../components/severity-badge';
-import { CommonKnowledgeBadge } from '../components/common-knowledge-badge';
 import { Badge } from '@/components/ui/badge';
-import { useSupportedAgents } from '../hooks/use-supported-agents';
 import { classifyClaim } from '@/lib/claim-classification';
+import { ChunkReevaluationResponse, ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
+import { AlertTriangle, FileIcon, Link as LinkIcon } from 'lucide-react';
+import { ChunkItem } from '../components/chunk-display';
+import { ChunkEvalGenerator } from '../components/chunk-eval-generator';
+import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
+import { CommonKnowledgeBadge } from '../components/common-knowledge-badge';
+import { SeverityBadge } from '../components/severity-badge';
 import { UnsubstantiatedFeedback } from '../components/unsubstantiated-feedback';
+import { useSupportedAgents } from '../hooks/use-supported-agents';
 
 interface ChunksTabProps {
   results: ClaimSubstantiatorStateOutput;
+  onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
 }
 
-export function ChunksTab({ results }: ChunksTabProps) {
-  const { state, actions } = useWizard();
+export function ChunksTab({ results, onChunkReevaluation }: ChunksTabProps) {
   const { supportedAgents, supportedAgentsError } = useSupportedAgents();
 
-  const handleChunkReevaluation = (response: ChunkReevaluationResponse) => {
-    actions.updateChunkResults(response);
-  };
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Chunks</h3>
@@ -255,10 +250,10 @@ export function ChunksTab({ results }: ChunksTabProps) {
                 <ChunkReevaluateControl
                   chunkIndex={chunk.chunkIndex}
                   originalState={results}
-                  onReevaluation={handleChunkReevaluation}
+                  onReevaluation={onChunkReevaluation}
                   supportedAgents={supportedAgents}
                   supportedAgentsError={supportedAgentsError}
-                  sessionId={state.sessionId}
+                  sessionId={results.config.sessionId}
                 />
 
                 <ChunkEvalGenerator

@@ -10,7 +10,7 @@ from sqlmodel import SQLModel, Field, Relationship
 class Workflow(SQLModel, table=True):
     __tablename__ = "workflows"
 
-    id: str = Field(
+    id: uuid.UUID = Field(
         sa_column=Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     )
     name: str = Field(sa_column=Column(String(255), nullable=False))
@@ -19,7 +19,11 @@ class Workflow(SQLModel, table=True):
         sa_column=Column(JSON, nullable=False)
     )  # Array of Arrays of agent_ids
     created_by: str = Field(sa_column=Column(String(255), nullable=False))  # User ID
-    created_at: datetime = Field(sa_column=Column(DateTime, default=datetime.utcnow))
+    created_at: datetime = Field(
+        sa_column=Column(
+            DateTime(timezone=True), default=datetime.utcnow, nullable=False
+        )
+    )
 
     # Relationships
     # workflow_runs = Relationship(back_populates="workflow")

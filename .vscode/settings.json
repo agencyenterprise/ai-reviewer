@@ -3,7 +3,7 @@
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "ms-python.black-formatter"
   },
-  "cSpell.words": ["langfuse"],
+  "cSpell.words": ["checkpointer", "langfuse"],
   "eslint.workingDirectories": ["frontend"],
   "python.testing.pytestArgs": ["tests"],
   "python.testing.unittestEnabled": false,

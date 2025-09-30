@@ -26,3 +26,6 @@ export * from './ToulminClaimResponse';
 export * from './ValidationError';
 export * from './ValidationErrorLocInner';
 export * from './WorkflowError';
+export * from './WorkflowRun';
+export * from './WorkflowRunDetailed';
+export * from './WorkflowRunStatus';

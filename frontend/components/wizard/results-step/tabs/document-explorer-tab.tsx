@@ -9,7 +9,6 @@ import { getMaxSeverity } from '@/lib/severity';
 import { cn } from '@/lib/utils';
 import { AlertTriangleIcon, ChevronRight, FileIcon, Link as LinkIcon, MessageCirclePlus } from 'lucide-react';
 import * as React from 'react';
-import { useWizard } from '../../wizard-context';
 import { ChunkItem } from '../components/chunk-display';
 import { ChunkEvalGenerator } from '../components/chunk-eval-generator';
 import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
@@ -22,18 +21,14 @@ import { useSupportedAgents } from '../hooks/use-supported-agents';
 
 interface DocumentExplorerTabProps {
   results: ClaimSubstantiatorStateOutput;
+  onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
 }
 
-export function DocumentExplorerTab({ results }: DocumentExplorerTabProps) {
-  const { state, actions } = useWizard();
+export function DocumentExplorerTab({ results, onChunkReevaluation }: DocumentExplorerTabProps) {
   const { supportedAgents, supportedAgentsError } = useSupportedAgents();
 
   const errors = results.errors || [];
   const workflowErrors = errors.filter((error) => error.chunkIndex === null);
-
-  const handleChunkReevaluation = (response: ChunkReevaluationResponse) => {
-    actions.updateChunkResults(response);
-  };
 
   return (
     <div className="space-y-2">
@@ -44,10 +39,10 @@ export function DocumentExplorerTab({ results }: DocumentExplorerTabProps) {
           key={chunk.chunkIndex}
           chunk={chunk}
           results={results}
-          onChunkReevaluation={handleChunkReevaluation}
           supportedAgents={supportedAgents}
           supportedAgentsError={supportedAgentsError}
-          sessionId={state.sessionId}
+          sessionId={results.config.sessionId}
+          onChunkReevaluation={onChunkReevaluation}
         />
       ))}
     </div>

@@ -10,7 +10,7 @@ from sqlmodel import SQLModel, Field, Relationship
 class Chat(SQLModel, table=True):
     __tablename__ = "chats"
 
-    id: str = Field(
+    id: uuid.UUID = Field(
         sa_column=Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     )
     agent_id: str = Field(
@@ -23,9 +23,18 @@ class Chat(SQLModel, table=True):
     history: dict = Field(
         sa_column=Column(JSON, nullable=False)
     )  # Serialized session state
-    created_at: datetime = Field(sa_column=Column(DateTime, default=datetime.utcnow))
+    created_at: datetime = Field(
+        sa_column=Column(
+            DateTime(timezone=True), default=datetime.utcnow, nullable=False
+        )
+    )
     last_updated_at: datetime = Field(
-        sa_column=Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+        sa_column=Column(
+            DateTime(timezone=True),
+            default=datetime.utcnow,
+            onupdate=datetime.utcnow,
+            nullable=False,
+        )
     )
 
     # Relationships
