@@ -3,7 +3,12 @@ from pydantic import BaseModel, Field
 from operator import add
 
 from lib.agents.citation_detector import CitationResponse
+from lib.agents.citation_suggester import (
+    CitationSuggestionResponse,
+    CitationSuggestionResultWithClaimIndex,
+)
 from lib.agents.claim_detector import ClaimResponse
+from lib.agents.literature_review import LiteratureReviewResponse
 from lib.agents.toulmin_claim_detector import ToulminClaimResponse
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.claim_substantiator import ClaimSubstantiationResultWithClaimIndex
@@ -18,6 +23,12 @@ class SubstantiationWorkflowConfig(BaseModel):
 
     use_toulmin: bool = Field(
         default=False, description="Whether to use Toulmin claim detection approach"
+    )
+    run_literature_review: bool = Field(
+        default=False, description="Whether to run the literature review"
+    )
+    run_suggest_citations: bool = Field(
+        default=False, description="Whether to run the citation suggestions"
     )
     target_chunk_indices: Optional[List[int]] = Field(
         default=None,
@@ -43,6 +54,7 @@ class DocumentChunk(ChunkWithIndex):
     claims: Optional[ClaimResponse | ToulminClaimResponse] = None
     citations: Optional[CitationResponse] = None
     substantiations: List[ClaimSubstantiationResultWithClaimIndex] = []
+    citation_suggestions: List[CitationSuggestionResultWithClaimIndex] = []
 
 
 class ClaimSubstantiationChunk(BaseModel):
@@ -68,6 +80,7 @@ class ClaimSubstantiatorState(BaseModel):
         default_factory=list,
         description="Errors that occurred during the processing of the document.",
     )
+    literature_review: Optional[str] = None
 
     def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:
         return [

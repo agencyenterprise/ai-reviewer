@@ -5,6 +5,11 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from lib.models.agent import Agent
 
+
+class LiteratureReviewResponse(BaseModel):
+    report: str = Field(description="A report of the literature review")
+
+
 _literature_review_agent_prompt = ChatPromptTemplate.from_template(
     """
 # Role
@@ -22,7 +27,7 @@ Given the full article and its extracted bibliography, identify references that 
 - Relevant high quality references about each topic and how they could fit in the document as citations.
 
 Remember:
-- Do not fabricate references. If confident support cannot be found, omit the recommendation.
+- Do not fabricate any references. If confident support cannot be found, omit the recommendation.
 
 ## Full article
 ```
@@ -39,7 +44,7 @@ Remember:
 literature_review_agent = Agent(
     name="Literature Review Researcher",
     description="Review a document paragraph against the article bibliography and recent literature to propose citation updates",
-    model="openai:o4-mini-deep-research",
+    model="openai:gpt-5-nano",
     use_responses_api=True,
     use_react_agent=False,
     use_direct_llm_client=True,  # To use open ai tools (openai_web_search, openai_code_interpreter)

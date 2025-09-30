@@ -2,6 +2,7 @@
 import argparse
 import asyncio
 import logging
+import uuid
 from typing import List, Optional
 
 from lib.config.database import get_db
@@ -108,7 +109,11 @@ async def reevaluate_single_chunk(
 
 
 async def _execute(state: ClaimSubstantiatorState):
-    graph = build_claim_substantiator_graph(use_toulmin=state.config.use_toulmin)
+    graph = build_claim_substantiator_graph(
+        use_toulmin=state.config.use_toulmin,
+        run_literature_review=state.config.run_literature_review,
+        run_suggest_citations=state.config.run_suggest_citations,
+    )
 
     async with get_checkpointer() as checkpointer:
         app = graph.compile(checkpointer=checkpointer).with_config(
@@ -166,11 +171,22 @@ async def _execute(state: ClaimSubstantiatorState):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "main_document_path", help="Path to the main document to analyze"
+        "main_document_path",
+        help="Path to the main document to analyze",
+        nargs="?",
+        default="./tests/data/cryptocurrency-and-blockchain-minimal/main_document.docx",
     )
     parser.add_argument(
         "supporting_documents",
         nargs="*",
+        default=[
+            "./tests/data/cryptocurrency-and-blockchain-minimal/ref1.pdf",
+            "./tests/data/cryptocurrency-and-blockchain-minimal/ref2.pdf",
+            "./tests/data/cryptocurrency-and-blockchain-minimal/ref3.pdf",
+            "./tests/data/cryptocurrency-and-blockchain-minimal/ref4.pdf",
+            "./tests/data/cryptocurrency-and-blockchain-minimal/ref5.pdf",
+            "./tests/data/cryptocurrency-and-blockchain-minimal/ref6.pdf",
+        ],
         help="Paths to supporting documents (optional)",
     )
     parser.add_argument(
@@ -180,9 +196,33 @@ if __name__ == "__main__":
         default=True,
         help="Use Toulmin claim detector",
     )
+    parser.add_argument(
+        "-s",
+        "--suggest-citations",
+        action="store_true",
+        default=False,
+        help="Suggest citations",
+    )
+    parser.add_argument(
+        "-l",
+        "--literature-review",
+        action="store_true",
+        default=False,
+        help="Run literature review",
+    )
+    parser.add_argument(
+        "--session-id",
+        help="Session ID for Langfuse tracing",
+        default=str(uuid.uuid4()),
+    )
     args = parser.parse_args()
 
-    config = SubstantiationWorkflowConfig(use_toulmin=args.use_toulmin)
+    config = SubstantiationWorkflowConfig(
+        use_toulmin=args.use_toulmin,
+        run_suggest_citations=args.suggest_citations,
+        run_literature_review=args.literature_review,
+        session_id=args.session_id,
+    )
     result_state = asyncio.run(
         run_claim_substantiator_from_paths(
             args.main_document_path, args.supporting_documents, config
