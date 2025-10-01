@@ -141,7 +141,7 @@ export function ClaimsTab({ results }: ClaimsTabProps) {
                             </div>
                             <CommonKnowledgeBadge
                               isCommonKnowledge={commonKnowledgeResult?.isCommonKnowledge || false}
-                              commonKnowledgeRationale={commonKnowledgeResult?.rationale}
+                              commonKnowledgeRationale={commonKnowledgeResult?.commonKnowledgeRationale}
                               claimCategory={classifyClaim(
                                 commonKnowledgeResult,
                                 chunk.substantiations[claimIndex],
@@ -152,7 +152,6 @@ export function ClaimsTab({ results }: ClaimsTabProps) {
                           </div>
                           {chunk.substantiations[claimIndex].feedback && (
                             <FeedbackSection
-                              claim={claim}
                               commonKnowledgeResult={commonKnowledgeResult}
                               substantiation={chunk.substantiations[claimIndex]}
                               citations={chunk.citations?.citations || []}
