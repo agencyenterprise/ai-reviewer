@@ -3,19 +3,14 @@
 import asyncio
 from typing import Optional
 
-from lib.models.agent_test_case import AgentTestCase
 from lib.agents.claim_substantiator import (
     ClaimSubstantiationResult,
     claim_substantiator_agent,
 )
-from lib.agents.tools import format_domain_context, format_audience_context
+from lib.agents.tools import format_audience_context, format_domain_context
+from lib.models.agent_test_case import AgentTestCase
+from tests.conftest import TESTS_DIR, build_supporting_documents_block, load_document
 from tests.datasets.loader import load_dataset
-from tests.conftest import (
-    TESTS_DIR,
-    data_path,
-    load_document,
-    build_supporting_documents_block,
-)
 
 
 def extract_paragraph_from_chunk(chunk: str) -> str:
