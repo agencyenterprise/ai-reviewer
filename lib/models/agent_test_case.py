@@ -56,7 +56,7 @@ class AgentTestCase(BaseModel):
     # Stored intermediate eval results
     strict_eval_results: Optional[list[EvaluationResult]] = None
     llm_eval_results: Optional[list[EvaluationResult]] = None
-    combined_eval_result: Optional[EvaluationResult] = None
+    _eval_result: Optional[EvaluationResult] = None
 
     def model_post_init(self, __context: Any) -> None:  # type: ignore[override]
         # Parse expected into the typed model instance
@@ -216,8 +216,11 @@ RECEIVED JSON (selected fields):
         strict_eval = await self._compare_strict()
         llm_eval = await self._compare_llm()
 
-        self.combined_eval_result = EvaluationResult(
+        eval_result = EvaluationResult(
             passed=strict_eval.passed and llm_eval.passed,
             rationale="\n".join([strict_eval.rationale, llm_eval.rationale]),
         )
-        return self.combined_eval_result
+
+        self._eval_result = eval_result
+
+        return eval_result
