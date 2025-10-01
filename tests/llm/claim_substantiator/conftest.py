@@ -8,7 +8,7 @@ from lib.agents.claim_substantiator import (
     ClaimSubstantiationResult,
     claim_substantiator_agent,
 )
-from lib.agents.tools import format_domain_context, format_audience_context
+from lib.agents.formatting_utils import format_domain_context, format_audience_context
 from tests.datasets.loader import load_dataset
 from tests.conftest import (
     TESTS_DIR,

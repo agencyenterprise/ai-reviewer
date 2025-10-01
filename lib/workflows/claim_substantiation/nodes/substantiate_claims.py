@@ -1,7 +1,7 @@
 import logging
 from lib.agents.citation_detector import CitationResponse
-from lib.agents.tools import (
-    _format_cited_references,
+from lib.agents.formatting_utils import (
+    format_cited_references,
     format_domain_context,
     format_audience_context,
 )
@@ -52,7 +52,7 @@ async def _substantiate_chunk_claims(
         if common_knowledge_result and not common_knowledge_result.needs_substantiation:
             continue
 
-        cited_references = _format_cited_references(
+        cited_references = format_cited_references(
             state.references,
             state.supporting_files,
             chunk.citations,
@@ -72,7 +72,7 @@ async def _substantiate_chunk_claims(
             citations=paragraph_chunks_citations_not_in_the_chunk,
             rationale="The other citations in the paragraph that are not in the chunk",
         )
-        cited_references_paragraph = _format_cited_references(
+        cited_references_paragraph = format_cited_references(
             state.references,
             state.supporting_files,
             paragraph_other_chunk_citations,

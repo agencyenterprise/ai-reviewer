@@ -66,7 +66,7 @@ def format_supporting_documents_prompt_section_multiple(
     return supporting_documents
 
 
-def _format_cited_references(
+def format_cited_references(
     references: list[BibliographyItem],
     supporting_files: list[FileDocument],
     citations: CitationResponse,
