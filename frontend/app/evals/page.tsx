@@ -51,7 +51,7 @@ export default function EvalsPage() {
 
     const total = data.summary.total;
     const passed = data.summary.passed;
-    const failed = data.summary.failed;
+    const failed = data.summary.failed || 0;
     const accuracy = total > 0 ? Math.round((passed / total) * 100) : 0;
     const duration = data.duration;
 
