@@ -227,6 +227,7 @@ This project uses **Infrastructure as Code** through Railway's Config as Code fe
    LANGFUSE_SECRET_KEY=your_langfuse_secret_key
    LANGFUSE_PUBLIC_KEY=your_langfuse_public_key
    LANGFUSE_HOST=https://cloud.langfuse.com
+   LANGFUSE_PROJECT_ID=your_langfuse_project_id
    ```
 
    > **Database variables are automatic**: `railway.toml` references PostgreSQL variables automatically
@@ -327,10 +328,7 @@ The test suite includes comprehensive JSON reporting that captures complete test
 
 ```bash
 # Generate detailed JSON test results
-uv run pytest tests/llm/ \
-  --json-report \
-  --json-report-file=test_results.json \
-  --json-report-indent=2 \
+uv run pytest tests/llm/ -n 10
   -v
 ```
 

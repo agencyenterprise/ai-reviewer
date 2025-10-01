@@ -31,3 +31,13 @@ dependencies = [
     "psycopg[binary,pool]>=3.2.10",
     "alembic-postgresql-enum>=1.8.0",
 ]
+
+[tool.pytest.ini_options]
+addopts = [
+    "--json-report",
+    "--json-report-file=test_results.json",
+    "--json-report-indent=2",
+    "-v",
+    "-n",
+    "10"
+]
