@@ -85,9 +85,16 @@ export type ExpectedOutput = Record<string, string | number | boolean | undefine
 
 export type ActualOutput = Record<string, string | number | boolean | undefined>;
 
+// Pydantic IncEx interface
+export type IncEx = string[] | IncExDict;
+export interface IncExDict {
+  [key: string]: IncEx | boolean;
+  [key: number]: IncEx | boolean;
+}
+
 export interface EvaluationConfig {
-  strict_fields: string[];
-  llm_fields: string[];
+  strict_fields: IncEx;
+  llm_fields: IncEx;
   evaluator_model: string;
   run_count: number;
 }

@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { ChevronDown, ChevronRight, Clock } from 'lucide-react';
+import { useState } from 'react';
 import { TestCase } from './types';
+import { formatIncEx, getFlattenedObjectKeys, getFlattenedObjectValue } from './util';
 
 interface TestCaseItemProps {
   testCase: TestCase;
@@ -79,17 +80,21 @@ export function TestCaseItem({ testCase }: TestCaseItemProps) {
                   <div className="space-y-2">
                     <div>
                       <span className="font-medium text-sm">Strict Fields:</span>
-                      <span className="mt-1 text-sm text-muted-foreground wrap-break-word">
-                        {JSON.stringify(testCase.agent_test_case.evaluation_config.strict_fields)}
-                      </span>
+                      <div className="mt-1 text-sm text-muted-foreground wrap-break-word bg-background p-2 rounded border max-h-32 overflow-y-auto">
+                        <pre className="whitespace-pre-wrap font-mono text-xs">
+                          {formatIncEx(testCase.agent_test_case.evaluation_config.strict_fields)}
+                        </pre>
+                      </div>
                     </div>
                   </div>
                   <div className="space-y-2">
                     <div>
                       <span className="font-medium text-sm">LLM Fields:</span>
-                      <span className="mt-1 text-sm text-muted-foreground wrap-break-word">
-                        {JSON.stringify(testCase.agent_test_case.evaluation_config.llm_fields)}
-                      </span>
+                      <div className="mt-1 text-sm text-muted-foreground wrap-break-word bg-background p-2 rounded border max-h-32 overflow-y-auto">
+                        <pre className="whitespace-pre-wrap font-mono text-xs">
+                          {formatIncEx(testCase.agent_test_case.evaluation_config.llm_fields)}
+                        </pre>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -120,9 +125,9 @@ export function TestCaseItem({ testCase }: TestCaseItemProps) {
 
                   {/* Get all unique keys from both expected and actual outputs */}
                   {(() => {
-                    const expectedKeys = Object.keys(testCase.agent_test_case.expected_output);
-                    const actualKeys = Object.keys(output);
-                    const allKeys = [...new Set([...expectedKeys, ...actualKeys])];
+                    const expectedKeys = getFlattenedObjectKeys(testCase.agent_test_case.expected_output);
+                    const actualKeys = getFlattenedObjectKeys(output);
+                    const allKeys = [...new Set([...expectedKeys, ...actualKeys])].sort((a, b) => a.localeCompare(b));
 
                     return (
                       <div className="rounded-lg overflow-hidden">
@@ -136,46 +141,23 @@ export function TestCaseItem({ testCase }: TestCaseItemProps) {
                           </thead>
                           <tbody>
                             {allKeys.map((key) => {
-                              const expectedValue = testCase.agent_test_case.expected_output[key];
-                              const actualValue = output[key];
-                              const isStrictField =
-                                testCase.agent_test_case.evaluation_config.strict_fields.includes(key);
-                              const isLLMField = testCase.agent_test_case.evaluation_config.llm_fields.includes(key);
-
-                              // Determine if the field passed or failed
-                              let cellStatus = 'neutral';
-                              if (isStrictField && expectedValue !== undefined && actualValue !== undefined) {
-                                // For strict fields, exact match is required
-                                cellStatus = expectedValue === actualValue ? 'passed' : 'failed';
-                              } else if (isLLMField && expectedValue !== undefined && actualValue !== undefined) {
-                                // For LLM fields, we consider them indeterminate if both exist
-                                cellStatus = 'indeterminate';
-                              }
-
-                              const getCellClassName = (status: string) => {
-                                switch (status) {
-                                  case 'passed':
-                                    return 'bg-green-50 border-green-200';
-                                  case 'failed':
-                                    return 'bg-red-50 border-red-200';
-                                  case 'indeterminate':
-                                    return 'bg-blue-50 border-blue-200';
-                                  default:
-                                    return '';
-                                }
-                              };
+                              const expectedValue = getFlattenedObjectValue(
+                                testCase.agent_test_case.expected_output,
+                                key,
+                              );
+                              const actualValue = getFlattenedObjectValue(output, key);
 
                               return (
                                 <tr key={key} className="not-last:border-b">
-                                  <td className="p-3 font-medium text-sm">{key}</td>
-                                  <td className={`p-3 ${getCellClassName(cellStatus)}`}>
+                                  <td className="p-3 font-medium text-sm wrap-anywhere">{key}</td>
+                                  <td className={`p-3 wrap-anywhere`}>
                                     {expectedValue !== undefined ? (
                                       <p className="text-sm text-muted-foreground">{String(expectedValue)}</p>
                                     ) : (
                                       <span className="text-xs text-muted-foreground italic">Not specified</span>
                                     )}
                                   </td>
-                                  <td className={`p-3 ${getCellClassName(cellStatus)}`}>
+                                  <td className={`p-3 wrap-anywhere`}>
                                     {actualValue !== undefined ? (
                                       <p className="text-sm text-muted-foreground">{String(actualValue)}</p>
                                     ) : (
@@ -200,14 +182,14 @@ export function TestCaseItem({ testCase }: TestCaseItemProps) {
               <div className="bg-muted/30 p-3 rounded-lg space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-sm">Overall Result:</span>
-                  <Badge variant={testCase.agent_test_case.evaluation_result.passed ? 'success' : 'destructive'}>
-                    {testCase.agent_test_case.evaluation_result.passed ? 'Passed' : 'Failed'}
+                  <Badge variant={testCase.agent_test_case.evaluation_result?.passed ? 'success' : 'destructive'}>
+                    {testCase.agent_test_case.evaluation_result?.passed ? 'Passed' : 'Failed'}
                   </Badge>
                 </div>
                 <div>
                   <span className="font-medium text-sm">Evaluation Rationale:</span>
                   <div className="text-sm text-muted-foreground mt-1 bg-background p-2 rounded border max-h-64 overflow-y-auto whitespace-pre-wrap font-mono">
-                    {testCase.agent_test_case.evaluation_result.rationale}
+                    {testCase.agent_test_case.evaluation_result?.rationale}
                   </div>
                 </div>
               </div>
