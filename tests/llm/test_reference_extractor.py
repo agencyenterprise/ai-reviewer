@@ -78,4 +78,5 @@ def _build_cases() -> list[AgentTestCase]:
 async def test_reference_extractor_agent_cases(case: AgentTestCase):
     await case.run()
     eval_result = await case.compare_results()
+
     assert eval_result.passed, f"{case.name}: {eval_result.rationale}"

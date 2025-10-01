@@ -32,3 +32,4 @@ Key factors driving power consumption:
 4. Typical compute, storage, and network needs of AI workloads
 
 Source: Srivathsan, Bhargs, et al. "AI power: Expanding data center capacity to meet growing demand." McKinsey & Company, October 2024.
+
