@@ -117,17 +117,6 @@ export function ToulminClaimAnalysis({ claim, className }: ToulminClaimAnalysisP
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <h3 className="font-medium text-gray-900">Main Claim</h3>
-            <Badge
-              variant={claim.needsSubstantiation ? 'destructive' : 'secondary'}
-              className={cn(
-                'font-medium',
-                claim.needsSubstantiation
-                  ? 'bg-red-100 text-red-800 hover:bg-red-200'
-                  : 'bg-green-100 text-green-800 hover:bg-green-200',
-              )}
-            >
-              {claim.needsSubstantiation ? 'Needs Substantiation' : 'No Substantiation Needed'}
-            </Badge>
           </div>
 
           <div className="bg-gray-50 p-4 rounded-md border-l-4 border-gray-400">
