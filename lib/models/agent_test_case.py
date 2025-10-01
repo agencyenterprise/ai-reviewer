@@ -56,7 +56,7 @@ class AgentTestCase(BaseModel):
     # Stored intermediate eval results
     strict_eval_results: Optional[list[EvaluationResult]] = None
     llm_eval_results: Optional[list[EvaluationResult]] = None
-    combined_eval_result: Optional[EvaluationResult] = None
+    _eval_result: Optional[EvaluationResult] = None
 
     def model_post_init(self, __context: Any) -> None:  # type: ignore[override]
         # Parse expected into the typed model instance

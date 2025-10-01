@@ -37,7 +37,7 @@ def pytest_runtest_makereport(item, call):
 
             # Get evaluation result if test was run
             eval_result = None
-            if hasattr(case, "_eval_result"):
+            if hasattr(case, "_eval_result") and case._eval_result is not None:
                 eval_result = case._eval_result.model_dump()
 
             def serialize_field_selector(field_selector):
