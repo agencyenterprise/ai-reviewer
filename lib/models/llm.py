@@ -29,13 +29,11 @@ class OpenAIWrapper(LLMClient):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.client = None
+        self.client = AsyncOpenAI()
 
     async def ainvoke(self, input: str) -> str:
         from openai import AsyncOpenAI
         from time import sleep
-
-        client = AsyncOpenAI()
 
         input_dict = [
             message.model_dump(include={"content", "type", "role"}) for message in input
@@ -51,14 +49,14 @@ class OpenAIWrapper(LLMClient):
             self.output_schema is not None and self.output_schema is not str
         )
         if not structured_output:
-            self.resp = await client.responses.create(
+            self.resp = await self.client.responses.create(
                 model=self.model,
                 input=input_dict,
                 background=self.background,
                 tools=self.tools,
             )
         else:
-            self.resp = await client.responses.parse(
+            self.resp = await self.client.responses.parse(
                 model=self.model,
                 input=input_dict,
                 background=self.background,
@@ -82,7 +80,7 @@ class OpenAIWrapper(LLMClient):
                     f"Call id: {self.resp.id} => Current status: {self.resp.status}"
                 )
                 sleep(2)
-                self.resp = await client.responses.retrieve(self.resp.id)
+                self.resp = await self.client.responses.retrieve(self.resp.id)
 
                 logger.info(
                     f"Final status: {self.resp.status}\nOutput:\n{self.resp.output_text}"
@@ -93,3 +91,14 @@ class OpenAIWrapper(LLMClient):
                 if not structured_output
                 else self.resp.self.output_parsed
             )
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.background and hasattr(self, "resp") and hasattr(self, "client"):
+            try:
+                self.client.responses.cancel(self.resp.id)
+            except Exception:
+                pass
+            self.client.close()
