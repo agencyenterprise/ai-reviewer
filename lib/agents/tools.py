@@ -1,3 +1,5 @@
+from lib.agents.citation_detector import CitationResponse
+from lib.agents.reference_extractor import BibliographyItem
 from lib.services.file import FileDocument
 from typing import Optional
 
@@ -62,3 +64,40 @@ def format_supporting_documents_prompt_section_multiple(
         ]
     )
     return supporting_documents
+
+
+def _format_cited_references(
+    references: list[BibliographyItem],
+    supporting_files: list[FileDocument],
+    citations: CitationResponse,
+    truncate_at_character_count: int | None = None,
+) -> str:
+    citations_with_associated_bibliography = [
+        c for c in citations.citations if c.associated_bibliography
+    ]
+
+    if len(citations_with_associated_bibliography) == 0:
+        return "No reference is cited as support for this claim.\n\n"
+
+    cited_references_str = ""
+
+    for citation in citations_with_associated_bibliography:
+        bibliography_index = citation.index_of_associated_bibliography
+        associated_reference = references[bibliography_index - 1]
+        cited_references_str += f"""### Cited bibliography entry #{bibliography_index}
+Citation text: `{citation.text}`
+Bibliography entry text: `{associated_reference.text}`
+"""
+        if associated_reference.has_associated_supporting_document:
+            supporting_file = supporting_files[
+                associated_reference.index_of_associated_supporting_document - 1
+            ]
+            cited_references_str += format_supporting_documents_prompt_section(
+                supporting_file, truncate_at_character_count=truncate_at_character_count
+            )
+        else:
+            cited_references_str += "No associated supporting document provided by the user, so this bibliography item cannot be used to substantiate the claim\n\n"
+
+    cited_references_str += "\n\n"
+
+    return cited_references_str

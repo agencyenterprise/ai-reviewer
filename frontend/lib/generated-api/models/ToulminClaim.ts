@@ -38,12 +38,6 @@ export interface ToulminClaim {
    */
   rationale: string;
   /**
-   * Whether this claim should be substantiated with citations in academic writing. Set to False for common knowledge, basic definitions, logical deductions, or well-established facts in the domain.
-   * @type {boolean}
-   * @memberof ToulminClaim
-   */
-  needsSubstantiation: boolean;
-  /**
    * Data/Grounds: evidence or facts supporting the claim, quoted or paraphrased
    * @type {Array<string>}
    * @memberof ToulminClaim
@@ -99,7 +93,6 @@ export function instanceOfToulminClaim(value: object): value is ToulminClaim {
   if (!('text' in value) || value['text'] === undefined) return false;
   if (!('claim' in value) || value['claim'] === undefined) return false;
   if (!('rationale' in value) || value['rationale'] === undefined) return false;
-  if (!('needsSubstantiation' in value) || value['needsSubstantiation'] === undefined) return false;
   if (!('warrantExpression' in value) || value['warrantExpression'] === undefined) return false;
   return true;
 }
@@ -116,7 +109,6 @@ export function ToulminClaimFromJSONTyped(json: any, ignoreDiscriminator: boolea
     text: json['text'],
     claim: json['claim'],
     rationale: json['rationale'],
-    needsSubstantiation: json['needs_substantiation'],
     data: json['data'] == null ? undefined : json['data'],
     warrants: json['warrants'] == null ? undefined : json['warrants'],
     warrantExpression: json['warrant_expression'],
@@ -139,7 +131,6 @@ export function ToulminClaimToJSONTyped(value?: ToulminClaim | null, ignoreDiscr
     text: value['text'],
     claim: value['claim'],
     rationale: value['rationale'],
-    needs_substantiation: value['needsSubstantiation'],
     data: value['data'],
     warrants: value['warrants'],
     warrant_expression: value['warrantExpression'],

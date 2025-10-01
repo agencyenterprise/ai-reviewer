@@ -12,11 +12,14 @@ models/CitationSuggestionResultWithClaimIndexInput.ts
 models/CitationSuggestionResultWithClaimIndexOutput.ts
 models/CitationType.ts
 models/Claim.ts
+models/ClaimCommonKnowledgeResultWithClaimIndex.ts
 models/ClaimResponse.ts
 models/ClaimSubstantiationResultWithClaimIndex.ts
 models/ClaimSubstantiatorStateInput.ts
 models/ClaimSubstantiatorStateOutput.ts
+models/ClaimType.ts
 models/Claims.ts
+models/CommonKnowledgeType.ts
 models/DocumentChunkInput.ts
 models/DocumentChunkOutput.ts
 models/EvalPackageRequest.ts

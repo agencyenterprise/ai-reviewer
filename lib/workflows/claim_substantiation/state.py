@@ -4,8 +4,10 @@ from operator import add
 
 from lib.agents.citation_detector import CitationResponse
 from lib.agents.citation_suggester import (
-    CitationSuggestionResponse,
     CitationSuggestionResultWithClaimIndex,
+)
+from lib.agents.claim_common_knowledge_checker import (
+    ClaimCommonKnowledgeResultWithClaimIndex,
 )
 from lib.agents.claim_detector import ClaimResponse
 from lib.agents.literature_review import LiteratureReviewResponse
@@ -53,8 +55,19 @@ class DocumentChunk(ChunkWithIndex):
 
     claims: Optional[ClaimResponse | ToulminClaimResponse] = None
     citations: Optional[CitationResponse] = None
+    claim_common_knowledge_results: List[ClaimCommonKnowledgeResultWithClaimIndex] = []
     substantiations: List[ClaimSubstantiationResultWithClaimIndex] = []
     citation_suggestions: List[CitationSuggestionResultWithClaimIndex] = []
+
+
+class ClaimCommonKnowledgeResultChunk(BaseModel):
+    """
+    Wrapper for a list of claim common knowledge results for a single chunk.
+
+    openapi-generator does not support List[List[T]] so we need to wrap the list of substantiations in a single model.
+    """
+
+    claim_common_knowledge_results: List[ClaimCommonKnowledgeResultWithClaimIndex]
 
 
 class ClaimSubstantiationChunk(BaseModel):

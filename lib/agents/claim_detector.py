@@ -13,9 +13,6 @@ class Claim(BaseModel):
     rationale: str = Field(
         description="The rationale for why you think the chunk of text implies this claim"
     )
-    needs_substantiation: bool = Field(
-        description="A boolean value indicating whether the claim needs to be substantiated. Set to False if the claim represents common knowledge in the domain, basic definitions, logical deductions, or facts so well-established that academic writing would not typically require citations."
-    )
 
 
 class ClaimResponse(BaseModel):
@@ -41,24 +38,6 @@ If there are no claims made in the chunk, return an empty list.
 For each claim, you need to return the following information:
 - The claim
 - Your rationale for why you think the chunk of text implies this claim
-- A boolean value indicating whether the claims needs to be substantiated
-
-**Important guidance on substantiation needs:**
-Set `needs_substantiation` to **False** for:
-- Well-established facts widely known in the domain
-- Basic definitions and terminology 
-- Logical deductions that follow clearly from stated premises
-- General principles universally accepted in the field
-- Simple factual statements readily available in reference sources
-- Common knowledge that domain experts would not question
-
-Set `needs_substantiation` to **True** for:
-- Specific research findings or statistical claims
-- Expert opinions or interpretations
-- Recent developments or emerging trends
-- Comparative analyses or evaluative statements
-- Causal claims or complex explanatory mechanisms
-- Contested or debatable assertions
 
 {domain_context}
 

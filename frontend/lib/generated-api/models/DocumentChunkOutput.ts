@@ -20,6 +20,13 @@ import {
   CitationResponseOutputToJSON,
   CitationResponseOutputToJSONTyped,
 } from './CitationResponseOutput';
+import type { ClaimCommonKnowledgeResultWithClaimIndex } from './ClaimCommonKnowledgeResultWithClaimIndex';
+import {
+  ClaimCommonKnowledgeResultWithClaimIndexFromJSON,
+  ClaimCommonKnowledgeResultWithClaimIndexFromJSONTyped,
+  ClaimCommonKnowledgeResultWithClaimIndexToJSON,
+  ClaimCommonKnowledgeResultWithClaimIndexToJSONTyped,
+} from './ClaimCommonKnowledgeResultWithClaimIndex';
 import type { Claims } from './Claims';
 import { ClaimsFromJSON, ClaimsFromJSONTyped, ClaimsToJSON, ClaimsToJSONTyped } from './Claims';
 import type { CitationSuggestionResultWithClaimIndexOutput } from './CitationSuggestionResultWithClaimIndexOutput';
@@ -75,6 +82,12 @@ export interface DocumentChunkOutput {
   citations?: CitationResponseOutput | null;
   /**
    *
+   * @type {Array<ClaimCommonKnowledgeResultWithClaimIndex>}
+   * @memberof DocumentChunkOutput
+   */
+  claimCommonKnowledgeResults?: Array<ClaimCommonKnowledgeResultWithClaimIndex>;
+  /**
+   *
    * @type {Array<ClaimSubstantiationResultWithClaimIndex>}
    * @memberof DocumentChunkOutput
    */
@@ -111,6 +124,10 @@ export function DocumentChunkOutputFromJSONTyped(json: any, ignoreDiscriminator:
     paragraphIndex: json['paragraph_index'],
     claims: json['claims'] == null ? undefined : ClaimsFromJSON(json['claims']),
     citations: json['citations'] == null ? undefined : CitationResponseOutputFromJSON(json['citations']),
+    claimCommonKnowledgeResults:
+      json['claim_common_knowledge_results'] == null
+        ? undefined
+        : (json['claim_common_knowledge_results'] as Array<any>).map(ClaimCommonKnowledgeResultWithClaimIndexFromJSON),
     substantiations:
       json['substantiations'] == null
         ? undefined
@@ -140,6 +157,10 @@ export function DocumentChunkOutputToJSONTyped(
     paragraph_index: value['paragraphIndex'],
     claims: ClaimsToJSON(value['claims']),
     citations: CitationResponseOutputToJSON(value['citations']),
+    claim_common_knowledge_results:
+      value['claimCommonKnowledgeResults'] == null
+        ? undefined
+        : (value['claimCommonKnowledgeResults'] as Array<any>).map(ClaimCommonKnowledgeResultWithClaimIndexToJSON),
     substantiations:
       value['substantiations'] == null
         ? undefined

@@ -23,9 +23,9 @@ export function CommonKnowledgeBadge({
 
   // Don't show the badge if the claim category is already "Probably Common Knowledge"
   // since the ClaimCategoryLabel will already show that information
-  if (claimCategory === ClaimCategory.PROBABLY_COMMON_KNOWLEDGE) {
-    return null;
-  }
+  // if (claimCategory === ClaimCategory.PROBABLY_COMMON_KNOWLEDGE) {
+  //   return null;
+  // }
 
   // For other cases, show the regular Common Knowledge badge
   return (
