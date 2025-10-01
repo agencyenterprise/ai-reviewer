@@ -211,7 +211,11 @@ RECEIVED JSON (selected fields):
         strict_eval = await self._compare_strict()
         llm_eval = await self._compare_llm()
 
-        return EvaluationResult(
+        eval_result = EvaluationResult(
             passed=strict_eval.passed and llm_eval.passed,
             rationale="\n".join([strict_eval.rationale, llm_eval.rationale]),
         )
+
+        self._eval_result = eval_result
+
+        return eval_result

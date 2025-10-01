@@ -38,10 +38,19 @@ def pytest_runtest_makereport(item, call):
             # Get evaluation result if test was run
             eval_result = None
             if hasattr(case, "_eval_result"):
-                eval_result = {
-                    "passed": case._eval_result.passed,
-                    "rationale": case._eval_result.rationale,
-                }
+                eval_result = case._eval_result.model_dump()
+
+            def serialize_field_selector(field_selector):
+                """Convert sets to lists recursively in field selectors."""
+                if isinstance(field_selector, set):
+                    return list(field_selector)
+                elif isinstance(field_selector, dict):
+                    return {
+                        k: serialize_field_selector(v)
+                        for k, v in field_selector.items()
+                    }
+                else:
+                    return field_selector
 
             # Store in global dict for later retrieval
             _agent_test_case_data[item.nodeid] = {
@@ -60,20 +69,12 @@ def pytest_runtest_makereport(item, call):
                     result.model_dump() for result in (case.results or [])
                 ],
                 "evaluation_config": {
-                    "strict_fields": (
-                        list(case.strict_fields)
-                        if isinstance(case.strict_fields, set)
-                        else case.strict_fields
-                    ),
-                    "llm_fields": (
-                        list(case.llm_fields)
-                        if isinstance(case.llm_fields, set)
-                        else case.llm_fields
-                    ),
+                    "strict_fields": serialize_field_selector(case.strict_fields),
+                    "llm_fields": serialize_field_selector(case.llm_fields),
                     "evaluator_model": case.evaluator_model,
                     "run_count": case.run_count,
                 },
-                "evaluation_result": eval_result,  # Add the actual evaluation result
+                "evaluation_result": eval_result,
             }
 
 

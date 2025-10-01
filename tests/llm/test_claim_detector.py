@@ -72,7 +72,4 @@ async def test_claim_detector_agent_cases(case: AgentTestCase):
     await case.run()
     eval_result = await case.compare_results()
 
-    # Store eval_result for reporting
-    case._eval_result = eval_result
-
     assert eval_result.passed, f"{case.name}: {eval_result.rationale}"
