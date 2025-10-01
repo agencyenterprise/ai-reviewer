@@ -78,6 +78,7 @@ def pytest_runtest_makereport(item, call):
             }
 
 
+@pytest.hookimpl()
 def pytest_json_modifyreport(json_report):
     """Modify the JSON report to include AgentTestCase metadata."""
     # Add agent_test_case data to each test
