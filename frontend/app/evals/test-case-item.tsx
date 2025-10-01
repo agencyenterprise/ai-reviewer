@@ -39,7 +39,7 @@ export function TestCaseItem({ testCase }: TestCaseItemProps) {
                   {formatDuration(testCase.call.duration)}
                 </span>
               </p>
-              <p className="text-xs text-muted-foreground">{testCase.nodeid}</p>
+              <p className="text-xs text-muted-foreground wrap-anywhere">{testCase.nodeid}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -79,16 +79,16 @@ export function TestCaseItem({ testCase }: TestCaseItemProps) {
                   <div className="space-y-2">
                     <div>
                       <span className="font-medium text-sm">Strict Fields:</span>
-                      <span className="flex flex-wrap gap-1 mt-1 text-sm text-muted-foreground">
-                        {testCase.agent_test_case.evaluation_config.strict_fields.join(', ')}
+                      <span className="mt-1 text-sm text-muted-foreground wrap-break-word">
+                        {JSON.stringify(testCase.agent_test_case.evaluation_config.strict_fields)}
                       </span>
                     </div>
                   </div>
                   <div className="space-y-2">
                     <div>
                       <span className="font-medium text-sm">LLM Fields:</span>
-                      <span className="flex flex-wrap gap-1 mt-1 text-sm text-muted-foreground">
-                        {testCase.agent_test_case.evaluation_config.llm_fields.join(', ')}
+                      <span className="mt-1 text-sm text-muted-foreground wrap-break-word">
+                        {JSON.stringify(testCase.agent_test_case.evaluation_config.llm_fields)}
                       </span>
                     </div>
                   </div>

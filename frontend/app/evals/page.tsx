@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileUpload } from '@/components/ui/file-upload';
+import { useState } from 'react';
+import { AgentSummaryCard, groupTestCasesByAgent } from './agent-summary-card';
 import { TestResults } from './types';
-import { TestCaseItem } from './test-case-item';
 
 export default function EvalsPage() {
   const [uploadedData, setUploadedData] = useState<TestResults | null>(null);
@@ -53,6 +53,7 @@ export default function EvalsPage() {
   };
 
   const metrics = calculateSummaryMetrics(uploadedData);
+  const agentSummaries = uploadedData ? groupTestCasesByAgent(uploadedData.tests) : [];
 
   return (
     <div className="container mx-auto p-6 max-w-5xl">
@@ -127,13 +128,17 @@ export default function EvalsPage() {
               </CardContent>
             </Card>
 
-            {/* Test Cases List */}
-            <div className="space-y-2">
-              <h2 className="text-xl font-semibold">Test Cases</h2>
-              {uploadedData.tests.map((testCase, index) => (
-                <TestCaseItem key={index} testCase={testCase} />
-              ))}
-            </div>
+            {/* Agent Summaries */}
+            {agentSummaries.length > 0 && (
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">Results by Agent</h2>
+                <div className="space-y-4">
+                  {agentSummaries.map((summary, index) => (
+                    <AgentSummaryCard key={index} summary={summary} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
