@@ -12,8 +12,8 @@ from lib.workflows.claim_substantiation.state import (
 from lib.workflows.claim_substantiation.nodes.detect_citations import (
     _format_bibliography_prompt_section,
 )
-from lib.workflows.claim_substantiation.nodes.substantiate_claims import (
-    _format_cited_references,
+from lib.agents.formatting_utils import (
+    format_cited_references,
 )
 
 
@@ -46,7 +46,7 @@ async def _suggest_chunk_citations(
     for claim_index, claim in enumerate(chunk.claims.claims):
         if not claim.needs_substantiation:
             continue
-        cited_references = _format_cited_references(
+        cited_references = format_cited_references(
             state.references,
             state.supporting_files,
             chunk.citations,
