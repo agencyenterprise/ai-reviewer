@@ -69,7 +69,6 @@ Return:
 
 You MUST include the "is_common_knowledge", "needs_substantiation", "types", and "common_knowledge_rationale" fields in your output.
 
-
 Set `is_common_knowledge` to true if the claim falls under the common knowledge categories defined below, even if it lacks direct citation. However, even common knowledge claims should receive higher severity levels (2-3) if they:
 - Make specific quantitative assertions ("most", "majority", "significant portion") without supporting data
 - Use vague qualifiers that need clarification ("for the most part", "largely", "typically")  
