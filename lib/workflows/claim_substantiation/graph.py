@@ -46,9 +46,10 @@ def build_claim_substantiator_graph(use_toulmin: bool = False):
 
     # Only after both are complete, proceed to check_claim_common_knowledge and substantiate_claims
     graph.add_edge("wait_for_claims_citations", "🤖 check_claim_common_knowledge")
-    graph.add_edge("wait_for_claims_citations", "🤖 substantiate_claims")
 
-    graph.set_finish_point("🤖 check_claim_common_knowledge")
+    # Only after detect_claims, detect_citations, and check_claim_common_knowledge are complete, proceed to substantiate_claims
+    graph.add_edge("🤖 check_claim_common_knowledge", "🤖 substantiate_claims")
+
     graph.set_finish_point("🤖 substantiate_claims")
 
     return graph

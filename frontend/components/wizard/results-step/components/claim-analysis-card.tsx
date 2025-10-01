@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  Claim,
   ClaimSubstantiationResultWithClaimIndex,
   Citation,
   BibliographyItem,
@@ -38,6 +37,8 @@ export function ClaimAnalysisCard({
 }: ClaimAnalysisCardProps) {
   // Calculate derived values inside the component
   const isUnsubstantiated = substantiation ? !substantiation.isSubstantiated : false;
+  const isCommonKnowledge = commonKnowledgeResult?.isCommonKnowledge || false;
+  const needsSubstantiation = commonKnowledgeResult?.needsSubstantiation || false;
   const claimCategory = classifyClaim(
     commonKnowledgeResult || {
       chunkIndex: 0,
@@ -60,8 +61,20 @@ export function ClaimAnalysisCard({
     references,
   );
   const severity = substantiation ? substantiation.severity : Severity.NUMBER_0;
+
+  // Determine background color based on substantiation and common knowledge status
+  const getBackgroundColor = () => {
+    if (isUnsubstantiated) {
+      if (needsSubstantiation && isCommonKnowledge) {
+        return 'bg-orange-50/40';
+      }
+      return 'bg-red-50/40';
+    }
+    return '';
+  };
+
   return (
-    <ChunkItem className={cn(isUnsubstantiated ? 'bg-red-50/40' : '', 'space-y-2', className)}>
+    <ChunkItem className={cn(getBackgroundColor(), 'space-y-2', className)}>
       {/* Claim Metadata */}
       <div className="flex items-center gap-1">
         <ClaimCategoryLabel category={claimCategory} />
@@ -80,7 +93,7 @@ export function ClaimAnalysisCard({
       {commonKnowledgeResult && <CommonKnowledgeAccordion result={commonKnowledgeResult} />}
 
       {/* Substantiation Results */}
-      <SubstantiationResults substantiation={substantiation} />
+      <SubstantiationResults substantiation={substantiation} commonKnowledgeResult={commonKnowledgeResult} />
     </ChunkItem>
   );
 }

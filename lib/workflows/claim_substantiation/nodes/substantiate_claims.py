@@ -41,7 +41,15 @@ async def _substantiate_chunk_claims(
 ) -> DocumentChunk:
     substantiations = []
     for claim_index, claim in enumerate(chunk.claims.claims):
-        if not claim.needs_substantiation:
+        common_knowledge_result = next(
+            (
+                result
+                for result in chunk.claim_common_knowledge_results
+                if result.claim_index == claim_index
+            ),
+            None,
+        )
+        if common_knowledge_result and not common_knowledge_result.needs_substantiation:
             continue
 
         cited_references = _format_cited_references(

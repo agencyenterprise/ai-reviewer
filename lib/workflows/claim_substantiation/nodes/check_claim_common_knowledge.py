@@ -25,12 +25,12 @@ logger = logging.getLogger(__name__)
 async def check_claim_common_knowledge(
     state: ClaimSubstantiatorState,
 ) -> ClaimSubstantiatorState:
-    logger.info("check_claim_common_knowledge: checking claim common knowledge")
+    logger.info("common_knowledge: checking claim common knowledge")
 
     agents_to_run = state.config.agents_to_run
-    if agents_to_run and "substantiation" not in agents_to_run:
+    if agents_to_run and "common_knowledge" not in agents_to_run:
         logger.info(
-            "check_claim_common_knowledge: Skipping claim common knowledge check (not in agents_to_run)"
+            "common_knowledge: Skipping claim common knowledge check (not in agents_to_run)"
         )
         return {}
 
