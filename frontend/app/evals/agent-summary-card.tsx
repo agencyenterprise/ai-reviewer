@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BotIcon, ChevronDown, ChevronRight, Clock, Users } from 'lucide-react';
+import { BotIcon, ChevronDown, ChevronRight, Clock } from 'lucide-react';
 import { TestCase } from './types';
 import { TestCaseItem } from './test-case-item';
 
@@ -20,9 +20,10 @@ interface AgentSummary {
 
 interface AgentSummaryCardProps {
   summary: AgentSummary;
+  showOnlyFailed?: boolean;
 }
 
-export function AgentSummaryCard({ summary }: AgentSummaryCardProps) {
+export function AgentSummaryCard({ summary, showOnlyFailed = false }: AgentSummaryCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const toggleExpanded = () => {
@@ -92,9 +93,11 @@ export function AgentSummaryCard({ summary }: AgentSummaryCardProps) {
         {isExpanded && (
           <div className="space-y-2 border-t pt-4">
             <h4 className="font-medium text-sm text-muted-foreground">Test Cases</h4>
-            {summary.testCases.map((testCase, index) => (
-              <TestCaseItem key={index} testCase={testCase} />
-            ))}
+            {summary.testCases
+              .filter((testCase) => !showOnlyFailed || testCase.outcome === 'failed')
+              .map((testCase, index) => (
+                <TestCaseItem key={index} testCase={testCase} />
+              ))}
           </div>
         )}
       </CardContent>

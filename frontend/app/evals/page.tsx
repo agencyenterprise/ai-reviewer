@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileUpload } from '@/components/ui/file-upload';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useState } from 'react';
 import { AgentSummaryCard, groupTestCasesByAgent } from './agent-summary-card';
 import { TestResults } from './types';
@@ -9,6 +10,7 @@ import { TestResults } from './types';
 export default function EvalsPage() {
   const [uploadedData, setUploadedData] = useState<TestResults | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showOnlyFailed, setShowOnlyFailed] = useState(false);
 
   const handleFilesChange = (files: File[]) => {
     setError(null);
@@ -131,10 +133,25 @@ export default function EvalsPage() {
             {/* Agent Summaries */}
             {agentSummaries.length > 0 && (
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold">Results by Agent</h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold">Results by Agent</h2>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="show-only-failed"
+                      checked={showOnlyFailed}
+                      onCheckedChange={(checked) => setShowOnlyFailed(checked === true)}
+                    />
+                    <label
+                      htmlFor="show-only-failed"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Show only failed tests
+                    </label>
+                  </div>
+                </div>
                 <div className="space-y-4">
                   {agentSummaries.map((summary, index) => (
-                    <AgentSummaryCard key={index} summary={summary} />
+                    <AgentSummaryCard key={index} summary={summary} showOnlyFailed={showOnlyFailed} />
                   ))}
                 </div>
               </div>
