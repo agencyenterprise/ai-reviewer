@@ -159,7 +159,7 @@ export function DocumentExplorerChunk({
 
               return (
                 <ChunkItem key={ci} className={cn(isUnsubstantiated ? 'bg-red-50/40' : '', 'space-y-2')}>
-                  <p className="flex items-center gap-1">
+                  <div className="flex items-center gap-1">
                     <ClaimCategoryLabel category={claimCategory} />
                     <SeverityBadge severity={severity} />
                     <CommonKnowledgeBadge
@@ -167,7 +167,7 @@ export function DocumentExplorerChunk({
                       commonKnowledgeRationale={subst?.commonKnowledgeRationale}
                       claimCategory={claimCategory}
                     />
-                  </p>
+                  </div>
                   <p>
                     <strong>Claim:</strong> {claim.claim}
                   </p>

@@ -36,6 +36,7 @@ You are a reference extractor. You are given an academic paper text and you need
 - References are usually found in the bibliography section at the end of the paper.
 - If there are no references used in the text, return an empty list.
 - Preserve the original bibliographic item textual and markdown content as much as possible, including formatting tags; do not include the entry number if there is one; remove unneeded escape characters; remove new lines in the middle of a bibliographic item.
+- Ignore footnotes that might exist in the bibliography section.
 
 For each bibliographic item, you need to return the following information:
 - The text of the bibliographic item

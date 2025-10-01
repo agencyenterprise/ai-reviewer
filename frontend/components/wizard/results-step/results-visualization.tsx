@@ -1,9 +1,9 @@
 'use client';
 
 import { analysisService } from '@/lib/analysis-service';
-import { downloadAsJson, downloadFile, generateEvalFilename } from '@/lib/file-download';
+import { downloadFile, generateEvalFilename } from '@/lib/file-download';
 import { ChunkReevaluationResponse, ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
-import { Download, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import * as React from 'react';
 import { Button } from '../../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
@@ -23,14 +23,6 @@ export function ResultsVisualization({ results, onChunkReevaluation }: ResultsVi
   const [activeTab, setActiveTab] = React.useState<TabType>('summary');
 
   const calculations = useResultsCalculations(results);
-
-  const handleSaveResults = () => {
-    if (results) {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const filename = `analysis-results-${timestamp}`;
-      downloadAsJson(results, filename);
-    }
-  };
 
   const handleSaveAsEvalTest = async () => {
     if (!results) return;
@@ -95,18 +87,6 @@ export function ResultsVisualization({ results, onChunkReevaluation }: ResultsVi
       />
 
       <div className="flex justify-center gap-4">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button onClick={handleSaveResults} variant="outline" size="sm" className="gap-2">
-              <Download className="h-4 w-4" />
-              Save Raw Analysis Results
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Download results as JSON to view them again without re-analyzing documents</p>
-          </TooltipContent>
-        </Tooltip>
-
         <Tooltip>
           <TooltipTrigger asChild>
             <Button onClick={handleSaveAsEvalTest} variant="outline" size="sm" className="gap-2">

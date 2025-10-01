@@ -64,6 +64,8 @@ For each claim that has a substantiation issue, also output a numeric severity l
 - 3 (should be fixed): Clear issues that should probably be addressed before publication.
 - 4 (must be fixed): Critical problems; claim is unsupported or contradicted and must be corrected.
 
+Citations may appear in the same chunk of the text that the claim belongs to, or potentially in a later chunk of the paragraph. So you will also be given info for the paragraph and all the citations in the paragraph. Use your judgement to determine whether a reference is cited close enough to the actual claim of the text for readers to understand the author's intent that the citation is supporting that claim or not. For example, if all citations of an introduction paragraph are at the end of the paragraph, then it's likely that the citations are supporting all the claims in the whole paragraph together, rather than just supporting the last sentence/chunk of the paragraph.
+
 **Important**: Also determine if this claim represents common knowledge in the domain. Set `is_common_knowledge` to true if the claim falls under the common knowledge categories defined below, even if it lacks direct citation. However, even common knowledge claims should receive higher severity levels (2-3) if they:
 - Make specific quantitative assertions ("most", "majority", "significant portion") without supporting data
 - Use vague qualifiers that need clarification ("for the most part", "largely", "typically")  
@@ -149,8 +151,12 @@ You MUST include the "severity", "is_common_knowledge", and "common_knowledge_ra
 ## The claim that is inferred from the chunk of text to be substantiated
 {claim}
 
-## The list of references cited to support the claim and their associated supporting document (if any)
+## The list of references cited in this chunk of text to support the claim and their associated supporting document (if any)
 {cited_references}
+
+## The list of references cited in outside of this chunk, but still in the same paragraph of text to support the claim and their associated supporting document (if any)
+{cited_references_paragraph}
+
 """
 )
 

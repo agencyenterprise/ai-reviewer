@@ -53,6 +53,11 @@ class AgentTestCase(BaseModel):
     # Evaluator model (provider:model). Keep temperature 0 for determinism.
     evaluator_model: str = Field(default="openai:gpt-5")
 
+    # Stored intermediate eval results
+    strict_eval_results: Optional[list[EvaluationResult]] = None
+    llm_eval_results: Optional[list[EvaluationResult]] = None
+    combined_eval_result: Optional[EvaluationResult] = None
+
     def model_post_init(self, __context: Any) -> None:  # type: ignore[override]
         # Parse expected into the typed model instance
         if self.expected is None:
@@ -184,9 +189,9 @@ RECEIVED JSON (selected fields):
             )
 
         tasks = [self._compare_llm_given_result(result) for result in self.results]
-        eval_results = await asyncio.gather(*tasks)
+        self.llm_eval_results = await asyncio.gather(*tasks)
         return await self.prepare_aggregate_run_evaluation_result(
-            eval_results,
+            self.llm_eval_results,
             "LLM Comparisons",
         )
 
@@ -201,9 +206,9 @@ RECEIVED JSON (selected fields):
             )
 
         tasks = [self._compare_strict_given_result(result) for result in self.results]
-        eval_results = await asyncio.gather(*tasks)
+        self.strict_eval_results = await asyncio.gather(*tasks)
         return await self.prepare_aggregate_run_evaluation_result(
-            eval_results,
+            self.strict_eval_results,
             "Strict Comparisons",
         )
 

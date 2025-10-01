@@ -45,6 +45,23 @@ async def _substantiate_chunk_claims(
             continue
 
         cited_references = _format_cited_references(state, chunk.citations)
+        paragraph_chunks = state.get_paragraph_chunks(chunk.paragraph_index)
+        paragraph_chunks_citations_not_in_the_chunk = [
+            citation
+            for other_chunk in paragraph_chunks
+            if other_chunk != chunk
+            and other_chunk.citations
+            and other_chunk.citations.citations
+            for citation in other_chunk.citations.citations
+            if citation not in chunk.citations.citations
+        ]
+        paragraph_other_chunk_citations = CitationResponse(
+            citations=paragraph_chunks_citations_not_in_the_chunk,
+            rationale="The other citations in the paragraph that are not in the chunk",
+        )
+        cited_references_paragraph = _format_cited_references(
+            state, paragraph_other_chunk_citations
+        )
 
         result: ClaimSubstantiationResult = await claim_substantiator_agent.apply(
             {
@@ -53,6 +70,7 @@ async def _substantiate_chunk_claims(
                 "chunk": chunk.content,
                 "claim": claim.claim,
                 "cited_references": cited_references,
+                "cited_references_paragraph": cited_references_paragraph,
                 "domain_context": format_domain_context(state.config.domain),
                 "audience_context": format_audience_context(
                     state.config.target_audience
