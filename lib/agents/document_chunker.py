@@ -73,7 +73,7 @@ document_chunker_agent = Agent(
     prompt=SystemMessage(
         content=_document_chunker_agent_system_prompt,
     )
-    + HumanMessage(content="{full_document}"),
+    + "{full_document}",
     tools=[],
     mandatory_tools=[],
     output_schema=DocumentChunkerResponse,
