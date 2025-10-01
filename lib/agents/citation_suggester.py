@@ -68,24 +68,47 @@ class CitationSuggestionResultWithClaimIndex(CitationSuggestionResponse):
 _citation_suggester_agent_prompt = ChatPromptTemplate.from_template(
     """
 # Role
-You are an expert literature review researcher tasked with ensuring a paragraph cites the strongest and most current sources available.
+You are an expert literature review researcher tasked with ensuring a paragraph cites the strongest and most current sources available while adhering to RAND Corporation's strict attribution guidelines.
 
 # Goal
-Given the full article, its extracted bibliography, and a paragraph to revise, identify references that should be cited or discussed to improve that paragraph. These may be:
+Given the full article, its extracted bibliography, and a paragraph to revise, identify references that should be cited or discussed to improve that paragraph's attribution compliance. These may be:
 - Existing references already listed in the bibliography but not cited in this paragraph.
-- New, high-quality sources found via web research.
+- New, high-quality sources found via web research that support claims requiring attribution.
+
+# RAND Attribution Requirements
+You must ensure the paragraph follows RAND's Three Rules of Attribution:
+
+1. **Ideas, Opinions, Theories, Facts, Arguments, Statistics**: If the paragraph uses any idea, opinion, theory, fact, argument, or statistic from a source, it MUST cite that source.
+
+2. **Exact Words**: If the paragraph uses exact words from a source, it MUST cite that source and use quotation marks (or block quotes).
+
+3. **Accurate Connection**: If a source is cited, it must be connected to the work accurately, ensuring the use remains faithful to the original author's intent.
 
 # Instructions
 1. Read the paragraph in the context of the full document and bibliography to understand the existing argument and cited sources.
-2. Reuse relevant bibliography entries whenever they meaningfully support the paragraph but are currently uncited. Quote the entry exactly in `bibliography_info` and include a stable link.
-3. Perform focused web research for key claims, statistics, or notable concepts that lack adequate support. Prefer authoritative sources (peer-reviewed articles, reputable institutions) and capture publication details for `bibliography_info`.
-4. For every recommended reference:
+2. Identify ALL instances where attribution is required but missing:
+   - Unsourced facts, data, or technical details that are not common knowledge
+   - Statistics, percentages, or numerical claims without citations
+   - Specific claims about policies, procedures, or historical events
+   - Technical descriptions or methodologies
+   - Arguments or interpretations that appear to be from other sources
+3. Reuse relevant bibliography entries whenever they meaningfully support the paragraph but are currently uncited. Quote the entry exactly in `bibliography_info` and include a stable link.
+4. Perform focused web research for key claims, statistics, or notable concepts that lack adequate support. Prefer authoritative sources (peer-reviewed articles, reputable institutions) and capture publication details for `bibliography_info`.
+5. For every recommended reference:
    - Use `related_excerpt` to quote the precise sentence(s) that should cite or discuss the source.
    - Select `recommended_action` from {{"add_citation", "replace_existing_reference", "discuss_reference", "no_action", "other"}}.
-   - In `explanation_for_recommended_action`, describe exactly where to place the citation or how to revise the text (e.g., “Add citation after the sentence describing X” or “Replace the existing citation to Y with this systematic review because …”).
-5. Provide only high-impact recommendations (typically 1-5). Avoid duplicates and clearly distinguish whether the source comes from the existing bibliography or is newly discovered.
-6. Summarize your overall reasoning in the response `rationale`.
-7. Do not fabricate references. If confident support cannot be found, omit the recommendation.
+   - In `explanation_for_recommended_action`, describe exactly where to place the citation or how to revise the text (e.g., "Add citation after the sentence describing X" or "Replace the existing citation to Y with this systematic review because …").
+   - Specify what type of attribution is needed (fact, statistic, exact quote, idea, etc.)
+6. Provide only high-impact recommendations (typically 1-5). Avoid duplicates and clearly distinguish whether the source comes from the existing bibliography or is newly discovered.
+7. Summarize your overall reasoning in the response `rationale`, focusing on attribution compliance.
+8. Do not fabricate references. If confident support cannot be found, omit the recommendation.
+
+# Source Quality Standards
+- Prefer peer-reviewed academic sources, government publications, and reputable institutions
+- Avoid Wikipedia and other tertiary sources unless the research specifically focuses on user-generated content
+- Verify that sources are current and authoritative
+- Ensure sources are accessible to readers (provide stable URLs or DOIs when possible)
+- For web sources, include access dates and stable URLs
 
 ## The full document that the chunk is a part of
 ```
@@ -126,7 +149,7 @@ It is ok to double check anything you add by doing web searches.
 
 citation_suggester_agent = Agent(
     name="Citation Suggester",
-    description="Review a chunk of text within a document paragraph against the article bibliography and recent literature to propose additional citations or updates to the existing citations if appropriate",
+    description="Review a chunk of text against RAND attribution guidelines to identify missing citations and recommend high-quality sources for proper attribution compliance",
     model="openai:gpt-5",
     use_responses_api=True,
     use_react_agent=False,

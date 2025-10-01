@@ -28,6 +28,7 @@ Given the full article and its extracted bibliography, identify references that 
 
 Remember:
 - Do not fabricate any references. If confident support cannot be found, omit the recommendation.
+- Format your report in markdown.
 
 ## Full article
 ```
@@ -44,7 +45,7 @@ Remember:
 literature_review_agent = Agent(
     name="Literature Review Researcher",
     description="Review a document paragraph against the article bibliography and recent literature to propose citation updates",
-    model="openai:gpt-5-nano",
+    model="openai:o4-mini-deep-research",
     use_responses_api=True,
     use_react_agent=False,
     use_direct_llm_client=True,  # To use open ai tools (openai_web_search, openai_code_interpreter)

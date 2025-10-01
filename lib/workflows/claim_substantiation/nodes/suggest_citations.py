@@ -46,7 +46,12 @@ async def _suggest_chunk_citations(
     for claim_index, claim in enumerate(chunk.claims.claims):
         if not claim.needs_substantiation:
             continue
-        cited_references = _format_cited_references(state, chunk.citations)
+        cited_references = _format_cited_references(
+            state.references,
+            state.supporting_files,
+            chunk.citations,
+            truncate_at_character_count=1000,  # Include only a little bit of the text of the references
+        )
 
         result: CitationSuggestionResponse = await citation_suggester_agent.apply(
             {
