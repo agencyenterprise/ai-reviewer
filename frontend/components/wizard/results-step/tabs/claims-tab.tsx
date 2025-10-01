@@ -140,8 +140,8 @@ export function ClaimsTab({ results }: ClaimsTabProps) {
                               {chunk.substantiations[claimIndex].isSubstantiated ? 'Substantiated' : 'Unsubstantiated'}
                             </div>
                             <CommonKnowledgeBadge
-                              isCommonKnowledge={chunk.substantiations[claimIndex].isCommonKnowledge || false}
-                              commonKnowledgeRationale={chunk.substantiations[claimIndex].commonKnowledgeRationale}
+                              isCommonKnowledge={commonKnowledgeResult?.isCommonKnowledge || false}
+                              commonKnowledgeRationale={commonKnowledgeResult?.rationale}
                               claimCategory={classifyClaim(
                                 commonKnowledgeResult,
                                 chunk.substantiations[claimIndex],
