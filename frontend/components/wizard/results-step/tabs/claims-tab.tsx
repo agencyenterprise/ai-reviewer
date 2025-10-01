@@ -44,15 +44,19 @@ export function ClaimsTab({ results }: ClaimsTabProps) {
                       <div className="flex items-center gap-2 mb-2">
                         <div
                           className={`inline-flex items-center px-2 py-1 rounded text-xs ${
-                            claim.needsSubstantiation ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'
+                            commonKnowledgeResult?.needsSubstantiation
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-gray-100 text-gray-800'
                           }`}
                           title={
-                            claim.needsSubstantiation
+                            commonKnowledgeResult?.needsSubstantiation
                               ? 'This claim likely requires citation/backing in academic writing'
                               : 'This claim may be considered common knowledge'
                           }
                         >
-                          {claim.needsSubstantiation ? 'Needs Substantiation' : "Doesn't Need Substantiation"}
+                          {commonKnowledgeResult?.needsSubstantiation
+                            ? 'Needs Substantiation'
+                            : "Doesn't Need Substantiation"}
                         </div>
                         {claim.warrantExpression && (
                           <div className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
