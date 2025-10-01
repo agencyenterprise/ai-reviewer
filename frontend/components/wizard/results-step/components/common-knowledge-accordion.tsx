@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { CheckCircle, AlertCircle, XCircle, ChevronDown, ChevronRight, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ClaimCommonKnowledgeResultWithClaimIndex } from '@/lib/generated-api';
@@ -20,9 +21,12 @@ export function CommonKnowledgeAccordion({ result, className }: CommonKnowledgeA
   const needsSubstantiation = result.needsSubstantiation;
   const hasClaimTypes = result.claimTypes && result.claimTypes.length > 0;
   const hasCommonKnowledgeTypes = result.commonKnowledgeTypes && result.commonKnowledgeTypes.length > 0;
-  const hasRationale = result.rationale && result.rationale.trim().length > 0;
+  const hasCommonKnowledgeRationale =
+    result.commonKnowledgeRationale && result.commonKnowledgeRationale.trim().length > 0;
+  const hasSubstantiationRationale = result.substantiationRationale && result.substantiationRationale.trim().length > 0;
 
-  const hasAnyDetails = hasRationale || hasClaimTypes || hasCommonKnowledgeTypes;
+  const hasAnyDetails =
+    hasCommonKnowledgeRationale || hasClaimTypes || hasCommonKnowledgeTypes || hasSubstantiationRationale;
 
   return (
     <Card className={cn('w-full', className)}>
@@ -66,32 +70,74 @@ export function CommonKnowledgeAccordion({ result, className }: CommonKnowledgeA
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-gray-700">Status:</span>
-            <Badge
-              variant={isCommonKnowledge ? 'default' : 'secondary'}
-              className={cn(
-                'font-medium',
-                isCommonKnowledge
-                  ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                  : 'bg-amber-100 text-amber-800 hover:bg-amber-200',
-              )}
-            >
-              {isCommonKnowledge ? 'Common Knowledge' : 'Not Common Knowledge'}
-            </Badge>
+            {hasCommonKnowledgeRationale ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge
+                    variant={isCommonKnowledge ? 'default' : 'secondary'}
+                    className={cn(
+                      'font-medium cursor-help',
+                      isCommonKnowledge
+                        ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                        : 'bg-amber-100 text-amber-800 hover:bg-amber-200',
+                    )}
+                  >
+                    {isCommonKnowledge ? 'Common Knowledge' : 'Not Common Knowledge'}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-sm">
+                  <p className="text-xs leading-relaxed">{result.commonKnowledgeRationale}</p>
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <Badge
+                variant={isCommonKnowledge ? 'default' : 'secondary'}
+                className={cn(
+                  'font-medium',
+                  isCommonKnowledge
+                    ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                    : 'bg-amber-100 text-amber-800 hover:bg-amber-200',
+                )}
+              >
+                {isCommonKnowledge ? 'Common Knowledge' : 'Not Common Knowledge'}
+              </Badge>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-gray-700">Needs Substantiation:</span>
-            <Badge
-              variant={needsSubstantiation ? 'destructive' : 'secondary'}
-              className={cn(
-                'font-medium',
-                needsSubstantiation
-                  ? 'bg-red-100 text-red-800 hover:bg-red-200'
-                  : 'bg-green-100 text-green-800 hover:bg-green-200',
-              )}
-            >
-              {needsSubstantiation ? 'Yes' : 'No'}
-            </Badge>
+            {hasSubstantiationRationale ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge
+                    variant={needsSubstantiation ? 'destructive' : 'secondary'}
+                    className={cn(
+                      'font-medium cursor-help',
+                      needsSubstantiation
+                        ? 'bg-red-100 text-red-800 hover:bg-red-200'
+                        : 'bg-green-100 text-green-800 hover:bg-green-200',
+                    )}
+                  >
+                    {needsSubstantiation ? 'Yes' : 'No'}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-sm">
+                  <p className="text-xs leading-relaxed">{result.substantiationRationale}</p>
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <Badge
+                variant={needsSubstantiation ? 'destructive' : 'secondary'}
+                className={cn(
+                  'font-medium',
+                  needsSubstantiation
+                    ? 'bg-red-100 text-red-800 hover:bg-red-200'
+                    : 'bg-green-100 text-green-800 hover:bg-green-200',
+                )}
+              >
+                {needsSubstantiation ? 'Yes' : 'No'}
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -101,14 +147,16 @@ export function CommonKnowledgeAccordion({ result, className }: CommonKnowledgeA
             <div className="border-t border-gray-200" />
 
             <div className="space-y-4">
-              {/* Rationale */}
-              {hasRationale && (
+              {/* Common Knowledge Rationale */}
+              {hasCommonKnowledgeRationale && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Info className="h-4 w-4 text-gray-500" />
                     <span className="text-sm font-medium text-gray-700">Analysis Rationale:</span>
                   </div>
-                  <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md leading-relaxed">{result.rationale}</p>
+                  <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md leading-relaxed">
+                    {result.commonKnowledgeRationale}
+                  </p>
                 </div>
               )}
 
@@ -137,6 +185,19 @@ export function CommonKnowledgeAccordion({ result, className }: CommonKnowledgeA
                       </Badge>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Substantiation Rationale */}
+              {hasSubstantiationRationale && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Info className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700">Substantiation Rationale:</span>
+                  </div>
+                  <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md leading-relaxed">
+                    {result.substantiationRationale}
+                  </p>
                 </div>
               )}
 

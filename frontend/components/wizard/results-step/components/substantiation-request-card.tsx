@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Settings, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ClaimSubstantiationRequest, SubstantiationWorkflowConfig } from '@/lib/generated-api';
+import { SubstantiationWorkflowConfig } from '@/lib/generated-api';
 
 export interface SubstantiationRequestCardProps {
-  request: ClaimSubstantiationRequest;
+  request: SubstantiationWorkflowConfig;
   className?: string;
 }
 
@@ -102,7 +102,7 @@ function WorkflowConfigDisplay({ config }: { config: SubstantiationWorkflowConfi
 }
 
 export function SubstantiationRequestCard({ request, className }: SubstantiationRequestCardProps) {
-  const config = request.config;
+  const config = request;
   const hasToulmin = config.useToulmin;
   const hasSpecificChunks = !!config.targetChunkIndices;
   const hasSpecificAgents = !!config.agentsToRun;
