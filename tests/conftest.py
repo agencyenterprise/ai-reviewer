@@ -7,12 +7,16 @@ This module provides reusable utilities that work across all agent test suites:
 """
 
 import asyncio
+import uuid
+from enum import Enum
 from pathlib import Path
 from typing import Optional, Any
 
 import pytest
 
+from lib.config.env import config
 from lib.services.file import create_file_document_from_path
+from lib.models.agent_test_case import AgentTestCase
 
 
 # Root tests directory
@@ -21,6 +25,12 @@ TESTS_DIR = Path(__file__).parent
 
 # Store test case data during test execution
 _agent_test_case_data = {}
+
+
+def pytest_configure(config):
+    """Generate and set a single session ID for the entire test run."""
+    session_id = str(uuid.uuid4())
+    AgentTestCase.set_shared_session_id(session_id)
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -40,42 +50,67 @@ def pytest_runtest_makereport(item, call):
             if hasattr(case, "_eval_result") and case._eval_result is not None:
                 eval_result = case._eval_result.model_dump()
 
-            def serialize_field_selector(field_selector):
-                """Convert sets to lists recursively in field selectors."""
-                if isinstance(field_selector, set):
-                    return list(field_selector)
-                elif isinstance(field_selector, dict):
-                    return {
-                        k: serialize_field_selector(v)
-                        for k, v in field_selector.items()
-                    }
-                else:
-                    return field_selector
+            def serialize_for_xdist(obj):
+                """Convert enums and sets to serializable types for pytest-xdist.
 
-            # Store in global dict for later retrieval
-            _agent_test_case_data[item.nodeid] = {
-                "name": case.name,
-                "agent": {
-                    "name": case.agent.name,
-                    "version": case.agent.version,
-                },
-                "prompt_kwargs": {
-                    # Truncate large fields for readability
-                    k: (v[:200] + "..." if isinstance(v, str) and len(v) > 200 else v)
-                    for k, v in case.prompt_kwargs.items()
-                },
-                "expected_output": case.expected_dict,
-                "actual_outputs": [
-                    result.model_dump() for result in (case.results or [])
-                ],
-                "evaluation_config": {
-                    "strict_fields": serialize_field_selector(case.strict_fields),
-                    "llm_fields": serialize_field_selector(case.llm_fields),
-                    "evaluator_model": case.evaluator_model,
-                    "run_count": case.run_count,
-                },
-                "evaluation_result": eval_result,
-            }
+                This recursively processes dictionaries, lists, and other structures
+                to convert enums to their string values and sets to lists.
+                """
+                if isinstance(obj, Enum):
+                    return obj.value
+                elif isinstance(obj, set):
+                    return list(obj)
+                elif isinstance(obj, dict):
+                    return {k: serialize_for_xdist(v) for k, v in obj.items()}
+                elif isinstance(obj, (list, tuple)):
+                    return [serialize_for_xdist(item) for item in obj]
+                else:
+                    return obj
+
+            session_id = getattr(case, "session_id", None)
+
+            # Serialize all data for xdist compatibility
+            report.agent_test_case_data = serialize_for_xdist(
+                {
+                    "name": case.name,
+                    "agent": {
+                        "name": case.agent.name,
+                        "version": case.agent.version,
+                    },
+                    "prompt_kwargs": {
+                        # Truncate large fields for readability
+                        k: (
+                            v[:200] + "..."
+                            if isinstance(v, str) and len(v) > 200
+                            else v
+                        )
+                        for k, v in case.prompt_kwargs.items()
+                    },
+                    "expected_output": case.expected_dict,
+                    "actual_outputs": [
+                        result.model_dump() for result in (case.results or [])
+                    ],
+                    "evaluation_config": {
+                        "strict_fields": serialize_for_xdist(case.strict_fields),
+                        "llm_fields": serialize_for_xdist(case.llm_fields),
+                        "evaluator_model": case.evaluator_model,
+                        "run_count": case.run_count,
+                    },
+                    "evaluation_result": eval_result,
+                    "session_id": session_id,
+                }
+            )
+
+
+@pytest.hookimpl()
+def pytest_runtest_logreport(report):
+    """Collect AgentTestCase data from worker processes into main process dict.
+
+    This hook runs in the main process and receives reports from all workers,
+    making it compatible with pytest-xdist parallel execution.
+    """
+    if hasattr(report, "agent_test_case_data"):
+        _agent_test_case_data[report.nodeid] = report.agent_test_case_data
 
 
 @pytest.hookimpl()

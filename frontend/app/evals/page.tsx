@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FileUpload } from '@/components/ui/file-upload';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { AgentSummaryCard, groupTestCasesByAgent } from './agent-summary-card';
 import { TestResults } from './types';
@@ -50,7 +51,7 @@ export default function EvalsPage() {
 
     const total = data.summary.total;
     const passed = data.summary.passed;
-    const failed = data.summary.failed;
+    const failed = data.summary.failed || 0;
     const accuracy = total > 0 ? Math.round((passed / total) * 100) : 0;
     const duration = data.duration;
 
@@ -59,6 +60,27 @@ export default function EvalsPage() {
 
   const metrics = calculateSummaryMetrics(uploadedData);
   const agentSummaries = uploadedData ? groupTestCasesByAgent(uploadedData.tests) : [];
+
+  const getSessionInfo = () => {
+    if (!uploadedData || !uploadedData.tests || uploadedData.tests.length === 0) {
+      return null;
+    }
+
+    const firstTest = uploadedData.tests[0];
+    if (firstTest.agent_test_case && firstTest.agent_test_case.session_id) {
+      const sessionId = firstTest.agent_test_case.session_id;
+
+      const langfuseHost = process.env.NEXT_PUBLIC_LANGFUSE_HOST || 'https://us.cloud.langfuse.com';
+      const projectId = process.env.NEXT_PUBLIC_LANGFUSE_PROJECT_ID || 'cmfl7l5qr031had07if6qoxc8';
+      return {
+        sessionId,
+        url: `${langfuseHost}/project/${projectId}/sessions/${sessionId}`,
+      };
+    }
+    return null;
+  };
+
+  const sessionInfo = getSessionInfo();
 
   return (
     <div className="container mx-auto p-6 max-w-5xl">
@@ -112,8 +134,23 @@ export default function EvalsPage() {
             {/* Summary Stats */}
             <Card>
               <CardHeader>
-                <CardTitle>Evaluation Summary</CardTitle>
-                <CardDescription>Overview of test results across all evaluation cases</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Evaluation Summary</CardTitle>
+                    <CardDescription>Overview of test results across all evaluation cases</CardDescription>
+                  </div>
+                  {sessionInfo && (
+                    <a href={sessionInfo.url} target="_blank" rel="noopener noreferrer" className="inline-block">
+                      <Badge
+                        variant="outline"
+                        className="cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 transition-colors"
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        View Session in Langfuse
+                      </Badge>
+                    </a>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-5 gap-4">

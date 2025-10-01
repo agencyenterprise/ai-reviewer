@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import uuid
 from typing import Any, Dict, Optional, Set, Type, TypeVar
 
 from pydantic import BaseModel, Field
@@ -34,6 +35,9 @@ class AgentTestCase(BaseModel):
     - ignore_fields are dotted prefixes to omit from both expected and result prior to checks
     """
 
+    # Class-level shared session ID for all test cases in a run
+    _shared_session_id: Optional[str] = None
+
     name: str
     agent: Agent
     response_model: Type[TResponse]
@@ -58,21 +62,57 @@ class AgentTestCase(BaseModel):
     llm_eval_results: Optional[list[EvaluationResult]] = None
     _eval_result: Optional[EvaluationResult] = None
 
+    # Langfuse session information for this test run
+    session_id: Optional[str] = None
+
+    @classmethod
+    def set_shared_session_id(cls, session_id: str):
+        """Set a shared session ID for all test cases in this run."""
+        cls._shared_session_id = session_id
+
+    @classmethod
+    def get_shared_session_id(cls) -> Optional[str]:
+        """Get the shared session ID for all test cases."""
+        return cls._shared_session_id
+
     def model_post_init(self, __context: Any) -> None:  # type: ignore[override]
         # Parse expected into the typed model instance
         if self.expected is None:
             self.expected = self.response_model.model_validate(self.expected_dict)  # type: ignore[arg-type]
 
+        # Use shared session ID if instance session_id is not set
+        if self.session_id is None:
+            self.session_id = self._shared_session_id
+
     async def run(self) -> TResponse:
         """Run the agent and store the typed result."""
+        from langfuse.langchain import CallbackHandler
+
+        # Create a new callback handler for this test case
+        handler = CallbackHandler()
+
         tasks = [
             self.agent.apply(
                 self.prompt_kwargs,
-                config={"run_name": self.name, "callbacks": [langfuse_handler]},
+                config={
+                    "run_name": self.name,
+                    "callbacks": [handler],
+                    "metadata": {
+                        "langfuse_session_id": self.session_id,
+                        "test_name": self.name,
+                    },
+                },
             )
             for _ in range(self.run_count)
         ]
         results = await asyncio.gather(*tasks)
+
+        # Flush the handler to ensure all traces are sent to Langfuse
+        if hasattr(handler, "flush"):
+            handler.flush()
+        elif hasattr(handler, "langfuse") and hasattr(handler.langfuse, "flush"):
+            handler.langfuse.flush()
+
         # Ensure result is the expected pydantic type
         self.results = [self.response_model.model_validate(result) for result in results]  # type: ignore[arg-type]
         return self.results  # type: ignore[return-value]
