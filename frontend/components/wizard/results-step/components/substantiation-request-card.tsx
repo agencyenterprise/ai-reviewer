@@ -48,40 +48,32 @@ function WorkflowConfigDisplay({ config }: { config: SubstantiationWorkflowConfi
 
       <div className="space-y-2">
         <ConfigItem
-          label="Claim Detection"
-          value={config.claimDetectionEnabled}
-          enabled={config.claimDetectionEnabled}
-        />
-
-        <ConfigItem
           label="Toulmin Analysis"
-          value={config.toulminAnalysisEnabled}
-          enabled={config.toulminAnalysisEnabled}
+          value={config.useToulmin ? 'Enabled' : 'Disabled'}
+          enabled={config.useToulmin}
         />
 
         <ConfigItem
-          label="Common Knowledge Check"
-          value={config.commonKnowledgeCheckEnabled}
-          enabled={config.commonKnowledgeCheckEnabled}
+          label="Target Chunks"
+          value={config.targetChunkIndices ? `${config.targetChunkIndices.length} selected` : 'All chunks'}
+          enabled={!!config.targetChunkIndices}
         />
 
         <ConfigItem
-          label="Claim Substantiation"
-          value={config.claimSubstantiationEnabled}
-          enabled={config.claimSubstantiationEnabled}
+          label="Agents to Run"
+          value={config.agentsToRun ? config.agentsToRun.join(', ') : 'All agents'}
+          enabled={!!config.agentsToRun}
         />
 
-        <ConfigItem
-          label="Citation Suggestion"
-          value={config.citationSuggestionEnabled}
-          enabled={config.citationSuggestionEnabled}
-        />
+        <ConfigItem label="Domain" value={config.domain || 'Not specified'} enabled={!!config.domain} />
 
         <ConfigItem
-          label="Literature Review"
-          value={config.literatureReviewEnabled}
-          enabled={config.literatureReviewEnabled}
+          label="Target Audience"
+          value={config.targetAudience || 'Not specified'}
+          enabled={!!config.targetAudience}
         />
+
+        <ConfigItem label="Session ID" value={config.sessionId || 'Not specified'} enabled={!!config.sessionId} />
       </div>
 
       {/* Additional configuration details */}
@@ -92,25 +84,14 @@ function WorkflowConfigDisplay({ config }: { config: SubstantiationWorkflowConfi
         </div>
         <div className="text-sm text-gray-600 space-y-1">
           <p>
-            • <strong>Total Agents:</strong>{' '}
-            {
-              [
-                config.claimDetectionEnabled,
-                config.toulminAnalysisEnabled,
-                config.commonKnowledgeCheckEnabled,
-                config.claimSubstantiationEnabled,
-                config.citationSuggestionEnabled,
-                config.literatureReviewEnabled,
-              ].filter(Boolean).length
-            }{' '}
-            of 6 enabled
+            • <strong>Configuration:</strong> {config.useToulmin ? 'Toulmin analysis enabled' : 'Standard analysis'}
           </p>
           <p>
             • <strong>Workflow Type:</strong> Claim Substantiation Analysis
           </p>
           <p>
             • <strong>Analysis Scope:</strong>{' '}
-            {config.claimDetectionEnabled && config.toulminAnalysisEnabled
+            {config.useToulmin
               ? 'Full argument analysis with substantiation'
               : 'Basic claim detection and substantiation'}
           </p>
@@ -122,17 +103,24 @@ function WorkflowConfigDisplay({ config }: { config: SubstantiationWorkflowConfi
 
 export function SubstantiationRequestCard({ request, className }: SubstantiationRequestCardProps) {
   const config = request.config;
-  const enabledAgents = [
-    config.claimDetectionEnabled,
-    config.toulminAnalysisEnabled,
-    config.commonKnowledgeCheckEnabled,
-    config.claimSubstantiationEnabled,
-    config.citationSuggestionEnabled,
-    config.literatureReviewEnabled,
+  const hasToulmin = config.useToulmin;
+  const hasSpecificChunks = !!config.targetChunkIndices;
+  const hasSpecificAgents = !!config.agentsToRun;
+  const hasDomain = !!config.domain;
+  const hasAudience = !!config.targetAudience;
+  const hasSession = !!config.sessionId;
+
+  const configuredOptions = [
+    hasToulmin,
+    hasSpecificChunks,
+    hasSpecificAgents,
+    hasDomain,
+    hasAudience,
+    hasSession,
   ].filter(Boolean).length;
 
-  const isFullyConfigured = enabledAgents === 6;
-  const hasMinimalConfig = enabledAgents >= 2; // At least claim detection and substantiation
+  const isFullyConfigured = configuredOptions >= 4;
+  const hasMinimalConfig = configuredOptions >= 1;
 
   return (
     <Card className={cn('w-full', className)}>
@@ -171,9 +159,9 @@ export function SubstantiationRequestCard({ request, className }: Substantiation
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700">Agents Enabled:</span>
+              <span className="text-sm font-medium text-gray-700">Options Configured:</span>
               <Badge variant="outline" className="text-xs">
-                {enabledAgents}/6
+                {configuredOptions}/6
               </Badge>
             </div>
           </div>
