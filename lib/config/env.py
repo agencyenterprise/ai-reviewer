@@ -16,6 +16,7 @@ class Config(BaseModel):
     LANGFUSE_SECRET_KEY: str
     LANGFUSE_PUBLIC_KEY: str
     LANGFUSE_HOST: str
+    LANGFUSE_PROJECT_ID: str
 
     # Database Configuration
     DATABASE_URL: str
@@ -59,6 +60,7 @@ config = Config(
     LANGFUSE_HOST=os.getenv("LANGFUSE_HOST"),
     LANGFUSE_SECRET_KEY=os.getenv("LANGFUSE_SECRET_KEY"),
     LANGFUSE_PUBLIC_KEY=os.getenv("LANGFUSE_PUBLIC_KEY"),
+    LANGFUSE_PROJECT_ID=os.getenv("LANGFUSE_PROJECT_ID"),
     # Database Configuration
     DATABASE_URL=os.getenv(
         "DATABASE_URL",

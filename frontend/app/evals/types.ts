@@ -79,6 +79,7 @@ export interface AgentTestCase {
   actual_outputs: ActualOutput[];
   evaluation_config: EvaluationConfig;
   evaluation_result: EvaluationResult;
+  session_id?: string | null;
 }
 
 export type ExpectedOutput = Record<string, string | number | boolean | undefined>;
