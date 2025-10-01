@@ -201,9 +201,6 @@ export function ToulminClaimAnalysis({ claim, className }: ToulminClaimAnalysisP
                     • <strong>Support:</strong> {claim.backing!.length} backing element(s) provided
                   </p>
                 )}
-                <p>
-                  • <strong>Substantiation Required:</strong> {claim.needsSubstantiation ? 'Yes' : 'No'}
-                </p>
               </div>
             </div>
           </div>
