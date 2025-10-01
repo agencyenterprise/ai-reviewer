@@ -3,8 +3,8 @@ from lib.agents.toulmin_claim_detector import (
     ToulminClaimResponse,
     toulmin_claim_detector_agent,
 )
-from lib.agents.tools import format_domain_context, format_audience_context
-from lib.workflows.chunk_iterator import create_chunk_iterator, iterate_chunks
+from lib.agents.formatting_utils import format_domain_context, format_audience_context
+from lib.workflows.chunk_iterator import create_chunk_iterator, iterate_claim_chunks
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,

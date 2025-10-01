@@ -9,7 +9,9 @@ from lib.agents.reference_extractor import (
     ReferenceExtractorResponse,
     reference_extractor_agent,
 )
-from lib.agents.tools import format_supporting_documents_prompt_section_multiple
+from lib.agents.formatting_utils import (
+    format_supporting_documents_prompt_section_multiple,
+)
 from tests.datasets.loader import load_dataset
 
 
@@ -78,4 +80,5 @@ def _build_cases() -> list[AgentTestCase]:
 async def test_reference_extractor_agent_cases(case: AgentTestCase):
     await case.run()
     eval_result = await case.compare_results()
+
     assert eval_result.passed, f"{case.name}: {eval_result.rationale}"

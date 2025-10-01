@@ -30,12 +30,6 @@ import { ClaimTypeFromJSON, ClaimTypeFromJSONTyped, ClaimTypeToJSON, ClaimTypeTo
  */
 export interface ClaimCommonKnowledgeResultWithClaimIndex {
   /**
-   * A boolean value indicating whether the claim needs to be substantiated.
-   * @type {boolean}
-   * @memberof ClaimCommonKnowledgeResultWithClaimIndex
-   */
-  needsSubstantiation: boolean;
-  /**
    * A boolean value that is True if the claim represents common knowledge in the domain that typically doesn't require substantiation, and False otherwise
    * @type {boolean}
    * @memberof ClaimCommonKnowledgeResultWithClaimIndex
@@ -58,7 +52,19 @@ export interface ClaimCommonKnowledgeResultWithClaimIndex {
    * @type {string}
    * @memberof ClaimCommonKnowledgeResultWithClaimIndex
    */
-  rationale?: string;
+  commonKnowledgeRationale?: string;
+  /**
+   * A boolean value indicating whether the claim needs to be substantiated.
+   * @type {boolean}
+   * @memberof ClaimCommonKnowledgeResultWithClaimIndex
+   */
+  needsSubstantiation: boolean;
+  /**
+   * A brief explanation for why this claim needs to or does not need to be substantiated by references/evidence
+   * @type {string}
+   * @memberof ClaimCommonKnowledgeResultWithClaimIndex
+   */
+  substantiationRationale?: string;
   /**
    *
    * @type {number}
@@ -97,14 +103,16 @@ export function ClaimCommonKnowledgeResultWithClaimIndexFromJSONTyped(
     return json;
   }
   return {
-    needsSubstantiation: json['needs_substantiation'],
     isCommonKnowledge: json['is_common_knowledge'] == null ? undefined : json['is_common_knowledge'],
     claimTypes: json['claim_types'] == null ? undefined : (json['claim_types'] as Array<any>).map(ClaimTypeFromJSON),
     commonKnowledgeTypes:
       json['common_knowledge_types'] == null
         ? undefined
         : (json['common_knowledge_types'] as Array<any>).map(CommonKnowledgeTypeFromJSON),
-    rationale: json['rationale'] == null ? undefined : json['rationale'],
+    commonKnowledgeRationale:
+      json['common_knowledge_rationale'] == null ? undefined : json['common_knowledge_rationale'],
+    needsSubstantiation: json['needs_substantiation'],
+    substantiationRationale: json['substantiation_rationale'] == null ? undefined : json['substantiation_rationale'],
     chunkIndex: json['chunk_index'],
     claimIndex: json['claim_index'],
   };
@@ -123,14 +131,15 @@ export function ClaimCommonKnowledgeResultWithClaimIndexToJSONTyped(
   }
 
   return {
-    needs_substantiation: value['needsSubstantiation'],
     is_common_knowledge: value['isCommonKnowledge'],
     claim_types: value['claimTypes'] == null ? undefined : (value['claimTypes'] as Array<any>).map(ClaimTypeToJSON),
     common_knowledge_types:
       value['commonKnowledgeTypes'] == null
         ? undefined
         : (value['commonKnowledgeTypes'] as Array<any>).map(CommonKnowledgeTypeToJSON),
-    rationale: value['rationale'],
+    common_knowledge_rationale: value['commonKnowledgeRationale'],
+    needs_substantiation: value['needsSubstantiation'],
+    substantiation_rationale: value['substantiationRationale'],
     chunk_index: value['chunkIndex'],
     claim_index: value['claimIndex'],
   };

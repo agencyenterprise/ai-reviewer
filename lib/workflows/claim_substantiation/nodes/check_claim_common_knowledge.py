@@ -1,7 +1,7 @@
 import logging
 from lib.agents.citation_detector import CitationResponse
-from lib.agents.tools import (
-    _format_cited_references,
+from lib.agents.formatting_utils import (
+    format_cited_references,
     format_domain_context,
     format_audience_context,
 )
@@ -16,7 +16,7 @@ from lib.agents.claim_common_knowledge_checker import (
     ClaimCommonKnowledgeResultWithClaimIndex,
 )
 from lib.workflows.claim_substantiation.nodes.substantiate_claims import (
-    _format_cited_references,
+    format_cited_references,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ async def _check_chunk_claim_common_knowledge(
 ) -> DocumentChunk:
     claim_common_knowledge_results = []
     for claim_index, claim in enumerate(chunk.claims.claims):
-        cited_references = _format_cited_references(
+        cited_references = format_cited_references(
             state.references,
             state.supporting_files,
             chunk.citations,
@@ -66,7 +66,7 @@ async def _check_chunk_claim_common_knowledge(
             citations=paragraph_chunks_citations_not_in_the_chunk,
             rationale="The other citations in the paragraph that are not in the chunk",
         )
-        cited_references_paragraph = _format_cited_references(
+        cited_references_paragraph = format_cited_references(
             state.references,
             state.supporting_files,
             paragraph_other_chunk_citations,

@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { WorkflowRunsList } from '@/components/workflow-runs-list';
-import { ArrowRight, Brain, FlaskConical } from 'lucide-react';
+import { ArrowRight, Brain, FlaskConical, TestTube } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Home() {
@@ -30,6 +30,12 @@ export default function Home() {
                 <FlaskConical className="w-5 h-5" />
                 Start Analysis
                 <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+            <Link href="/evals">
+              <Button size="lg" variant="outline">
+                <TestTube className="w-5 h-5" />
+                View Evaluations
               </Button>
             </Link>
           </div>

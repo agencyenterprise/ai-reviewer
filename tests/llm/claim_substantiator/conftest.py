@@ -8,7 +8,7 @@ from lib.agents.claim_substantiator import (
     ClaimSubstantiationResult,
     claim_substantiator_agent,
 )
-from lib.agents.tools import format_domain_context, format_audience_context
+from lib.agents.formatting_utils import format_domain_context, format_audience_context
 from tests.datasets.loader import load_dataset
 from tests.conftest import (
     TESTS_DIR,
@@ -90,6 +90,7 @@ def build_test_cases_from_dataset(
             "chunk": chunk,
             "claim": claim_text,
             "cited_references": supporting_documents_block,
+            "cited_references_paragraph": "",
             "domain_context": format_domain_context(domain),
             "audience_context": format_audience_context(target_audience),
         }

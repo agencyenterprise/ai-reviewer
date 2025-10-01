@@ -9,6 +9,7 @@ from lib.agents.claim_detector import (
     ClaimResponse,
     claim_detector_agent,
 )
+from lib.agents.tools import format_domain_context, format_audience_context
 from tests.datasets.loader import load_dataset
 
 
@@ -48,6 +49,10 @@ def _build_cases() -> list[AgentTestCase]:
         main_path = _data(test_case.input["main_document"])
         main_doc = asyncio.run(create_file_document_from_path(main_path))
 
+        domain = test_case.input.get("domain")
+        target_audience = test_case.input.get("target_audience")
+        chunk = test_case.input["chunk"]
+
         cases.append(
             AgentTestCase(
                 name=test_case.name,
@@ -55,7 +60,10 @@ def _build_cases() -> list[AgentTestCase]:
                 response_model=ClaimResponse,
                 prompt_kwargs={
                     "full_document": main_doc.markdown,
-                    "chunk": test_case.input["chunk"],
+                    "paragraph": chunk,
+                    "chunk": chunk,
+                    "domain_context": format_domain_context(domain),
+                    "audience_context": format_audience_context(target_audience),
                 },
                 expected_dict=test_case.expected_output,
                 strict_fields=strict_fields,
@@ -71,4 +79,5 @@ def _build_cases() -> list[AgentTestCase]:
 async def test_claim_detector_agent_cases(case: AgentTestCase):
     await case.run()
     eval_result = await case.compare_results()
+
     assert eval_result.passed, f"{case.name}: {eval_result.rationale}"

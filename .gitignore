@@ -21,3 +21,6 @@ wheels/
 
 # LangGraph cache
 .langgraph_api/
+
+# Test results
+test_results.json

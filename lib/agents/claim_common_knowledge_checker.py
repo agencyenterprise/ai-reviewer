@@ -29,9 +29,6 @@ class ClaimType(Enum):
 
 
 class ClaimCommonKnowledgeResult(BaseModel):
-    needs_substantiation: bool = Field(
-        description="A boolean value indicating whether the claim needs to be substantiated. "
-    )
     is_common_knowledge: bool = Field(
         default=False,
         description="A boolean value that is True if the claim represents common knowledge in the domain that typically doesn't require substantiation, and False otherwise",
@@ -44,9 +41,16 @@ class ClaimCommonKnowledgeResult(BaseModel):
         default=[],
         description=("The type(s) of common knowledge that the claim represents"),
     )
-    rationale: str = Field(
+    common_knowledge_rationale: str = Field(
         default="",
         description="A brief explanation for why this claim is or is not considered common knowledge in the specified domain and context",
+    )
+    needs_substantiation: bool = Field(
+        description="A boolean value indicating whether the claim needs to be substantiated. "
+    )
+    substantiation_rationale: str = Field(
+        default="",
+        description="A brief explanation for why this claim needs to or does not need to be substantiated by references/evidence",
     )
 
 
@@ -58,28 +62,19 @@ class ClaimCommonKnowledgeResultWithClaimIndex(ClaimCommonKnowledgeResult):
 _claim_common_knowledge_checker_prompt = ChatPromptTemplate.from_template(
     """
 # Task
-You will be given a chunk of text from a document, a claim that is inferred from that chunk of text.
-Your task is to determine if this claim represents common knowledge in the domain or not, and whether it needs to be substantiated by references/evidence or not. 
+You will be given a chunk of text from a document, a claim that is inferred from that chunk of text, and the list of references cited in this chunk of text to support the claim and their associated supporting document (if any). Your task is to determine if this claim represents common knowledge in the domain or not, and whether the claim can be considered common knowledge, and whether the claim needs to be substantiated by references/evidence or not. 
 
 Return:
-- A boolean value indicating whether the claim represents common knowledge in the domain
-- A boolean value indicating whether the claim needs to be substantiated by references/evidence
-- A list of the type(s) of common knowledge that the claim represents (if any)
-- A brief explanation for why this claim is or is not considered common knowledge in the specified domain and target audience context
+- is_common_knowledge: A boolean value indicating whether the claim represents common knowledge in the domain
+  - Make specific quantitative assertions ("most", "majority", "significant portion") without supporting data
+  - Use vague qualifiers that need clarification ("for the most part", "largely", "typically")  
+  - Could benefit from more precise language or supporting evidence for the intended audience
+- common_knowledge_types: A list of the type(s) of common knowledge that the claim represents (if any)
+- claim_types: A list of the type(s) of the claim
+- common_knowledge_rationale: A brief explanation for your common knowledge determination - explain why this claim is or is not considered common knowledge given the specified domain and target audience context.
+- needs_substantiation: A boolean value indicating whether the claim needs to be substantiated by references/evidence
+- substantiation_rationale: A brief explanation for why this claim needs to or does not need to be substantiated by references/evidence
 
-You MUST include the "is_common_knowledge", "needs_substantiation", "types", and "common_knowledge_rationale" fields in your output.
-
-
-Set `is_common_knowledge` to true if the claim falls under the common knowledge categories defined below, even if it lacks direct citation. However, even common knowledge claims should receive higher severity levels (2-3) if they:
-- Make specific quantitative assertions ("most", "majority", "significant portion") without supporting data
-- Use vague qualifiers that need clarification ("for the most part", "largely", "typically")  
-- Could benefit from more precise language or supporting evidence for the intended audience
-
-Claims marked as common knowledge should typically have severity 0-1 only when they are basic, well-established facts without quantitative assertions.
-
-For the `common_knowledge_rationale` field, provide a brief explanation for your common knowledge determination - explain why this claim is or is not considered common knowledge given the specified domain and target audience context.
-
-- A boolean value indicating whether the claims needs to be substantiated
 
 **Important guidance on substantiation needs:**
 Set `needs_substantiation` to **False** for:
