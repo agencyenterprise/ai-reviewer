@@ -3,7 +3,6 @@
 import * as React from 'react';
 import { classifyClaim, ClaimCategory } from '@/lib/claim-classification';
 import {
-  Claim,
   ClaimSubstantiationResultWithClaimIndex,
   Citation,
   BibliographyItem,
@@ -11,7 +10,6 @@ import {
 } from '@/lib/generated-api';
 
 interface UseClaimFeedbackProps {
-  claim: Claim;
   commonKnowledgeResult: ClaimCommonKnowledgeResultWithClaimIndex;
   substantiation: ClaimSubstantiationResultWithClaimIndex;
   citations: Citation[];
@@ -27,7 +25,6 @@ interface UseClaimFeedbackReturn {
 }
 
 export function useClaimFeedback({
-  claim,
   commonKnowledgeResult,
   substantiation,
   citations,
@@ -41,7 +38,7 @@ export function useClaimFeedback({
   const [isExpanded, setIsExpanded] = React.useState(!shouldMinimize);
 
   const showCommonKnowledgeRationale = Boolean(
-    commonKnowledgeResult.rationale && commonKnowledgeResult.isCommonKnowledge,
+    commonKnowledgeResult.commonKnowledgeRationale && commonKnowledgeResult.isCommonKnowledge,
   );
 
   return {
