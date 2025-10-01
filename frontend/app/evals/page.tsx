@@ -3,7 +3,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileUpload } from '@/components/ui/file-upload';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 import { AgentSummaryCard, groupTestCasesByAgent } from './agent-summary-card';
 import { TestResults } from './types';
 
@@ -60,9 +63,17 @@ export default function EvalsPage() {
   return (
     <div className="container mx-auto p-6 max-w-5xl">
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Evaluation Results</h1>
-          <p className="text-muted-foreground">Upload a JSON file containing evaluation results to view the data</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Evaluation Results</h1>
+            <p className="text-muted-foreground">Upload a JSON file containing evaluation results to view the data</p>
+          </div>
+          <Link href="/">
+            <Button variant="ghost" size="sm" className="mb-2">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Home
+            </Button>
+          </Link>
         </div>
 
         {!uploadedData && (
