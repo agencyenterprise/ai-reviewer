@@ -62,8 +62,7 @@ class ClaimCommonKnowledgeResultWithClaimIndex(ClaimCommonKnowledgeResult):
 _claim_common_knowledge_checker_prompt = ChatPromptTemplate.from_template(
     """
 # Task
-You will be given a chunk of text from a document, a claim that is inferred from that chunk of text.
-Your task is to determine if this claim represents common knowledge in the domain or not, and whether it needs to be substantiated by references/evidence or not. 
+You will be given a chunk of text from a document, a claim that is inferred from that chunk of text, and the list of references cited in this chunk of text to support the claim and their associated supporting document (if any). Your task is to determine if this claim represents common knowledge in the domain or not, and whether the claim can be considered common knowledge, and whether the claim needs to be substantiated by references/evidence or not. 
 
 Return:
 - is_common_knowledge: A boolean value indicating whether the claim represents common knowledge in the domain
