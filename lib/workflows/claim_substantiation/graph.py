@@ -27,7 +27,7 @@ def build_claim_substantiator_graph(use_toulmin: bool = False):
     graph.add_node("🤖 detect_citations", detect_citations)
     graph.add_node("🤖 extract_references", extract_references)
     graph.add_node("🤖 check_claim_common_knowledge", check_claim_common_knowledge)
-    graph.add_node("🤖 substantiate_claims", substantiate_claims, defer=True)
+    graph.add_node("🤖 substantiate_claims", substantiate_claims)
 
     graph.set_entry_point("🤖 split_into_chunks")
     graph.add_edge("🤖 split_into_chunks", "🤖 extract_references")
