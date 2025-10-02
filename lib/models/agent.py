@@ -8,7 +8,7 @@ from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
 from langgraph.prebuilt import create_react_agent
-from sqlalchemy import JSON, Column, DateTime, Integer, String, Text, Boolean
+from sqlalchemy import JSON, Column, DateTime, Integer, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlmodel import JSON, Field, Float, SQLModel
 from pydantic import BaseModel
