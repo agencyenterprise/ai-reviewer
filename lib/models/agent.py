@@ -1,3 +1,4 @@
+from re import S
 import uuid
 from datetime import datetime
 from typing import Any
@@ -7,9 +8,10 @@ from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
 from langgraph.prebuilt import create_react_agent
-from sqlalchemy import JSON, Column, DateTime, Integer, String, Text
+from sqlalchemy import JSON, Column, DateTime, Integer, String, Text, Boolean
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlmodel import JSON, Field, Float, SQLModel
+from pydantic import BaseModel
 
 from lib.config.langfuse import langfuse_handler
 from lib.models.react_agent.agent_runner import (
@@ -18,6 +20,41 @@ from lib.models.react_agent.agent_runner import (
     run_agent_sync,
 )
 from lib.models.react_agent.tool_registry import prepare_tools
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class QCResult(BaseModel):
+    valid: bool
+    feedback: str
+
+
+qc_prompt = """
+You are a quality control assistant that evaluates the output of another agent.
+
+First, read the original instructions and the agent's produced result below.
+Then evaluate whether the result meets the requirements. Return a structured response.
+
+## AGENT PROMPT
+{AGENT_PROMPT}
+
+## AGENT's RESULT
+{AGENT_RESULT}
+
+Return your evaluation as:
+- valid: boolean indicating if the result meets the requirements
+- feedback: specific, actionable feedback on improvements or what was done well
+
+Focus on:
+1. Completeness - does the result address all parts of the original prompt?
+2. Accuracy - is the result factually correct and appropriate?
+3. Quality - is the result well-formatted and professional?
+4. Relevance - does the result directly answer what was asked?
+
+Be specific in your feedback to help the agent improve.
+"""
 
 
 class Agent(SQLModel, table=True):
@@ -28,6 +65,7 @@ class Agent(SQLModel, table=True):
     )
     name: str = Field(sa_column=Column(String(255), nullable=False))
     description: str = Field(sa_column=Column(Text))
+    with_qc: bool = Field(sa_column=Column(Boolean, default=False))
     model: str = Field(
         sa_column=Column(String(255), nullable=False)
     )  # Format: "{provider}:{model}"
@@ -196,10 +234,104 @@ class Agent(SQLModel, table=True):
         config: RunnableConfig = None,
     ):
         """Apply the agent to the prompt kwargs"""
-        if len(self.tools) == 0:
-            return await self._apply_without_tools(prompt_kwargs, config)
 
-        return await self._apply_with_tools(prompt_kwargs, config)
+        # include empty "feedback" field in prompt_kwargs
+        prompt_kwargs["feedback"] = ""
+
+        if self.with_qc:
+            logger.info(f"Applying agent with QC: {self.name}")
+            # Try up to 3 times with QC validation
+            for attempt in range(3):
+                # Execute the agent
+                if len(self.tools) == 0:
+                    result = await self._apply_without_tools(prompt_kwargs, config)
+                else:
+                    result = await self._apply_with_tools(prompt_kwargs, config)
+
+                # Run QC on the result
+                prompt_template = (
+                    self.prompt
+                    if hasattr(self.prompt, "format_messages")
+                    else ChatPromptTemplate.from_template(str(self.prompt))
+                )
+                agent_prompt_messages = prompt_template.format_messages(**prompt_kwargs)
+                qc_result = await self._apply_run_qc(
+                    result=result,
+                    qc_prompt=qc_prompt,  # Use the dedicated QC prompt from the top of the file
+                    agent_prompt=agent_prompt_messages,  # Pass formatted messages for this run
+                    config=config,
+                )
+
+                # If QC passes, return the result
+                if qc_result and qc_result.valid:
+                    logger.info(f"QC passed for agent: {self.name}")
+                    return result
+                else:
+                    logger.info(f"QC failed for agent: {self.name}")
+                    logger.info(f"Providing feedback: {qc_result.feedback}")
+                    prompt_kwargs["feedback"] = qc_result.feedback
+
+                logger.info(
+                    f"Attempt {attempt + 1} of 3 failed QC for agent: {self.name}"
+                )
+
+            # If all attempts failed QC, return the last result
+            return result
+
+        else:
+            # No QC - just execute normally
+            if len(self.tools) == 0:
+                return await self._apply_without_tools(prompt_kwargs, config)
+
+            return await self._apply_with_tools(prompt_kwargs, config)
+
+    async def _apply_run_qc(self, result, qc_prompt, agent_prompt, config):
+        """
+        Execute quality control on another agent's result.
+
+        Args:
+            result: The result from the other agent
+            qc_prompt: The QC prompt template
+            agent_prompt: The original prompt that was sent to the other agent
+            config: RunnableConfig for the LLM call
+
+        Returns:
+            QCResult: Structured QC result with valid flag and feedback
+        """
+        # Create QC prompt template
+        qc_prompt_template = (
+            qc_prompt
+            if hasattr(qc_prompt, "format_messages")
+            else ChatPromptTemplate.from_template(str(qc_prompt))
+        )
+
+        # Normalize agent prompt to string
+        if isinstance(agent_prompt, str):
+            agent_prompt_str = agent_prompt
+        else:
+            try:
+                agent_prompt_str = "\n\n".join(
+                    f"{m.__class__.__name__.replace('Message', '').upper()}: {getattr(m, 'content', str(m))}"
+                    for m in agent_prompt
+                )
+            except Exception:
+                agent_prompt_str = str(agent_prompt)
+
+        # Prepare QC prompt with agent's result and original prompt
+        qc_prompt_kwargs = {
+            "AGENT_RESULT": str(result),
+            "AGENT_PROMPT": agent_prompt_str,
+        }
+
+        # Format the QC messages
+        qc_messages = qc_prompt_template.format_messages(**qc_prompt_kwargs)
+
+        # Execute QC using a direct LLM call with structured output
+        llm = self._prep_llm()
+        structured_llm = llm.with_structured_output(QCResult)
+        qc_result = await structured_llm.ainvoke(qc_messages, config=config)
+
+        return qc_result
 
     def apply_sync(
         self,
