@@ -239,6 +239,7 @@ class Agent(SQLModel, table=True):
                 # If QC passes, return the result
                 if qc_result and qc_result.valid:
                     logger.info(f"QC passed for agent: {self.name}")
+                    result.qc_result = qc_result
                     return result
                 else:
                     logger.info(f"QC failed for agent: {self.name}")
@@ -248,6 +249,9 @@ class Agent(SQLModel, table=True):
                 logger.info(
                     f"Attempt {attempt + 1} of 3 failed QC for agent: {self.name}"
                 )
+
+            # Set the QC result to the last result
+            result.qc_result = qc_result
 
             # If all attempts failed QC, return the last result
             return result
