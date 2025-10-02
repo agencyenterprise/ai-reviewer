@@ -130,7 +130,7 @@ export function groupTestCasesByAgent(testCases: TestCase[]): AgentSummary[] {
 
       return {
         agentName,
-        testCases: cases,
+        testCases: cases.sort((a, b) => a.nodeid.localeCompare(b.nodeid)),
         total,
         passed,
         failed,

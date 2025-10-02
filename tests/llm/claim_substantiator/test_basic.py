@@ -7,11 +7,7 @@ from tests.llm.claim_substantiator.conftest import build_test_cases_from_dataset
 
 def _build_cases():
     """Build test cases from basic dataset."""
-    return build_test_cases_from_dataset(
-        dataset_name="basic",
-        strict_fields={"is_substantiated", "severity"},
-        llm_fields={"rationale", "feedback"},
-    )
+    return build_test_cases_from_dataset(dataset_name="basic")
 
 
 @pytest.mark.asyncio

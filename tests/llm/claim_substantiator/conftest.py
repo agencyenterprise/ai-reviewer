@@ -36,24 +36,27 @@ def build_test_cases_from_dataset(
 
     Args:
         dataset_name: Name of the dataset file (without .yaml extension)
-        strict_fields: Fields that must match exactly
-        llm_fields: Fields that are evaluated by LLM comparison
+        strict_fields: Fields that must match exactly (overrides YAML config if provided)
+        llm_fields: Fields that are evaluated by LLM comparison (overrides YAML config if provided)
 
     Returns:
         List of AgentTestCase objects ready for parametrized testing
     """
-    # Default field configurations
-    if strict_fields is None:
-        strict_fields = {"is_substantiated", "severity"}
-
-    if llm_fields is None:
-        llm_fields = {"rationale", "feedback"}
-
     # Load dataset from YAML
     dataset_path = str(
         TESTS_DIR / "datasets" / "claim_substantiator" / f"{dataset_name}.yaml"
     )
     dataset = load_dataset(dataset_path)
+
+    # Get test configuration from dataset or use provided/default values
+    test_config = dataset.test_config
+    if strict_fields is None:
+        if test_config and test_config.strict_fields:
+            strict_fields = test_config.strict_fields
+
+    if llm_fields is None:
+        if test_config and test_config.llm_fields:
+            llm_fields = test_config.llm_fields
 
     cases: list[AgentTestCase] = []
 

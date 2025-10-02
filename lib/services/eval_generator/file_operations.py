@@ -15,6 +15,7 @@ class AgentConfig(NamedTuple):
     dataset_name_template: str
     description: str
     needs_supporting_files: bool
+    test_config: Dict
 
 
 # Agent configurations - single source of truth
@@ -24,29 +25,61 @@ AGENT_CONFIGS = {
         yaml_filename="citation_detector.yaml",
         dataset_name_template="Citation Detector Dataset ({test_name})",
         description="Citation detection test cases",
-        needs_supporting_files=False
+        needs_supporting_files=False,
+        test_config={
+            "strict_fields": {
+                "citations": {
+                    "__all__": [
+                        "text",
+                        "needs_bibliography",
+                        "associated_bibliography",
+                        "index_of_associated_bibliography",
+                    ]
+                }
+            }
+        },
     ),
     "claims": AgentConfig(
         key="claims", 
         yaml_filename="claim_detector.yaml",
         dataset_name_template="Claim Detector Dataset ({test_name})",
         description="Claim detection test cases",
-        needs_supporting_files=False
+        needs_supporting_files=False,
+        test_config={
+            "strict_fields": {"claims": {"__all__": ["text", "needs_substantiation"]}},
+            "llm_fields": {"claims": {"__all__": ["claim"]}},
+        },
     ),
     "substantiation": AgentConfig(
         key="substantiation",
         yaml_filename="claim_substantiator.yaml", 
         dataset_name_template="Claim Substantiator Dataset ({test_name})",
         description="Claim substantiation test cases",
-        needs_supporting_files=True
+        needs_supporting_files=True,
+        test_config={
+            "strict_fields": ["is_substantiated", "severity"],
+            "llm_fields": ["rationale", "feedback"],
+        },
     ),
     "references": AgentConfig(
         key="references",
         yaml_filename="reference_extractor.yaml",
         dataset_name_template="Reference Extractor Dataset ({test_name})",
-        description="Reference extraction test cases", 
-        needs_supporting_files=True
-    )
+        description="Reference extraction test cases",
+        needs_supporting_files=True,
+        test_config={
+            "strict_fields": {
+                "references": {
+                    "__all__": [
+                        "text",
+                        "has_associated_supporting_document",
+                        "index_of_associated_supporting_document",
+                        "name_of_associated_supporting_document",
+                    ]
+                }
+            }
+        },
+    ),
 }
 
 
@@ -118,20 +151,27 @@ class YamlFileWriter:
         filename: str,
         dataset_name: str,
         items: List[Dict],
-        description: str
+        description: str,
+        test_config: Dict = None,
     ):
         """Generic method to write YAML dataset files."""
         if not items:
             return
-            
-        yaml_content = yaml.dump({
-            "dataset": {
-                "name": dataset_name,
-                "description": f"Generated from analysis: {description}",
-                "items": items
-            }
-        }, default_flow_style=False, sort_keys=False)
-        
+
+        dataset_dict = {
+            "name": dataset_name,
+            "description": f"Generated from analysis: {description}",
+        }
+
+        if test_config:
+            dataset_dict["test_config"] = test_config
+
+        dataset_dict["items"] = items
+
+        yaml_content = yaml.dump(
+            {"dataset": dataset_dict}, default_flow_style=False, sort_keys=False
+        )
+
         zip_file.writestr(filename, yaml_content)
     
     @classmethod
@@ -155,7 +195,8 @@ class YamlFileWriter:
                     filename=config.yaml_filename,
                     dataset_name=dataset_name,
                     items=test_cases,
-                    description=description
+                    description=description,
+                    test_config=config.test_config,
                 )
 
 
