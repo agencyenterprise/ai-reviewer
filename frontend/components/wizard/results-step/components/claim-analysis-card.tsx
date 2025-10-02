@@ -45,7 +45,8 @@ export function ClaimAnalysisCard({
       claimIndex: 0,
       isCommonKnowledge: false,
       needsSubstantiation: false,
-      rationale: '',
+      commonKnowledgeRationale: '',
+      substantiationRationale: '',
       claimTypes: [],
       commonKnowledgeTypes: [],
     },
@@ -81,7 +82,7 @@ export function ClaimAnalysisCard({
         <SeverityBadge severity={severity} />
         <CommonKnowledgeBadge
           isCommonKnowledge={commonKnowledgeResult?.isCommonKnowledge || false}
-          commonKnowledgeRationale={commonKnowledgeResult?.rationale}
+          commonKnowledgeRationale={commonKnowledgeResult?.commonKnowledgeRationale}
           claimCategory={claimCategory}
         />
       </div>

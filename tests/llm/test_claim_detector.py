@@ -10,14 +10,11 @@ from lib.agents.claim_detector import (
     claim_detector_agent,
 )
 from lib.agents.tools import format_domain_context, format_audience_context
+from tests.conftest import data_path
 from tests.datasets.loader import load_dataset
 
 
 TESTS_DIR = Path(__file__).parent.parent
-
-
-def _data(path: str) -> str:
-    return str(TESTS_DIR / path)
 
 
 def _build_cases() -> list[AgentTestCase]:
@@ -46,7 +43,7 @@ def _build_cases() -> list[AgentTestCase]:
 
     for test_case in dataset.items:
         # Load main document from input
-        main_path = _data(test_case.input["main_document"])
+        main_path = data_path(test_case.input["main_document"])
         main_doc = asyncio.run(create_file_document_from_path(main_path))
 
         domain = test_case.input.get("domain")

@@ -181,7 +181,7 @@ export function ChunksTab({ results, onChunkReevaluation }: ChunksTabProps) {
                             <div className="flex items-center gap-2 mt-2 flex-wrap">
                               <CommonKnowledgeBadge
                                 isCommonKnowledge={commonKnowledgeResult?.isCommonKnowledge || false}
-                                commonKnowledgeRationale={commonKnowledgeResult?.rationale}
+                                commonKnowledgeRationale={commonKnowledgeResult?.commonKnowledgeRationale}
                                 claimCategory={classifyClaim(commonKnowledgeResult, subst, citations, references)}
                               />
                             </div>
