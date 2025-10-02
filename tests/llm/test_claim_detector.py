@@ -9,7 +9,7 @@ from lib.agents.claim_detector import (
     ClaimResponse,
     claim_detector_agent,
 )
-from lib.agents.tools import format_domain_context, format_audience_context
+from lib.agents.formatting_utils import format_domain_context, format_audience_context
 from tests.conftest import data_path
 from tests.datasets.loader import load_dataset
 

@@ -13,7 +13,6 @@ dataset:
       paragraphs:
         __all__:
           - chunks
-    run_count: 5
   items:
     - name: "chunker_case_basic"
       description: "Basic test case with a simple document structure"
