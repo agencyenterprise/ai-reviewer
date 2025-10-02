@@ -9,7 +9,7 @@ import { ChunkEvalGenerator } from '../components/chunk-eval-generator';
 import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
 import { CommonKnowledgeBadge } from '../components/common-knowledge-badge';
 import { SeverityBadge } from '../components/severity-badge';
-import { UnsubstantiatedFeedback } from '../components/unsubstantiated-feedback';
+import { SubstantiationResults } from '../components/substantiation-results';
 import { useSupportedAgents } from '../hooks/use-supported-agents';
 
 interface ChunksTabProps {
@@ -27,6 +27,7 @@ export function ChunksTab({ results, onChunkReevaluation }: ChunksTabProps) {
         {results.chunks?.map((chunk) => {
           const claimsRationale = chunk.claims?.rationale;
           const claims = chunk?.claims?.claims || [];
+          const claimCommonKnowledgeResults = chunk.claimCommonKnowledgeResults || [];
           const substantiations = chunk?.substantiations || [];
           const references = results.references || [];
           const supportingFiles = results.supportingFiles || [];
@@ -76,6 +77,7 @@ export function ChunksTab({ results, onChunkReevaluation }: ChunksTabProps) {
                   <div className="space-y-2">
                     {claims.map((claim, ci) => {
                       const subst = substantiations[ci];
+                      const commonKnowledgeResult = claimCommonKnowledgeResults[ci];
                       const isUnsubstantiated = subst ? !subst.isSubstantiated : false;
                       const severity = subst?.severity;
                       return (
@@ -94,17 +96,19 @@ export function ChunksTab({ results, onChunkReevaluation }: ChunksTabProps) {
                           <div className="flex items-center gap-2 mt-1">
                             <Badge
                               className={`inline-flex items-center px-2 py-1 rounded text-xs ${
-                                claim.needsSubstantiation
+                                commonKnowledgeResult?.needsSubstantiation
                                   ? 'bg-yellow-100 text-yellow-800'
                                   : 'bg-gray-100 text-gray-800'
                               }`}
                               title={
-                                claim.needsSubstantiation
+                                commonKnowledgeResult?.needsSubstantiation
                                   ? 'This claim likely requires citation/backing in academic writing'
                                   : 'This claim may be considered common knowledge'
                               }
                             >
-                              {claim.needsSubstantiation ? 'Needs Substantiation' : "Doesn't Need Substantiation"}
+                              {commonKnowledgeResult?.needsSubstantiation
+                                ? 'Needs Substantiation'
+                                : "Doesn't Need Substantiation"}
                             </Badge>
                             {typeof severity === 'number' && severity > 0 && <SeverityBadge severity={severity} />}
                             {claim.warrantExpression && (
@@ -176,25 +180,13 @@ export function ChunksTab({ results, onChunkReevaluation }: ChunksTabProps) {
                           {subst && (
                             <div className="flex items-center gap-2 mt-2 flex-wrap">
                               <CommonKnowledgeBadge
-                                isCommonKnowledge={subst.isCommonKnowledge || false}
-                                commonKnowledgeRationale={subst.commonKnowledgeRationale}
-                                claimCategory={classifyClaim(claim, subst, citations, references)}
+                                isCommonKnowledge={commonKnowledgeResult?.isCommonKnowledge || false}
+                                commonKnowledgeRationale={commonKnowledgeResult?.commonKnowledgeRationale}
+                                claimCategory={classifyClaim(commonKnowledgeResult, subst, citations, references)}
                               />
                             </div>
                           )}
-                          {subst && subst.isSubstantiated && (
-                            <p className="text-sm text-green-600 mt-1">
-                              <strong>Substantiated because:</strong> {subst.rationale}
-                            </p>
-                          )}
-                          {subst && !subst.isSubstantiated && (
-                            <UnsubstantiatedFeedback
-                              claim={claim}
-                              substantiation={subst}
-                              citations={citations}
-                              references={references}
-                            />
-                          )}
+                          <SubstantiationResults substantiation={subst} />
                         </ChunkItem>
                       );
                     })}

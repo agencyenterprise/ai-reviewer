@@ -1,5 +1,7 @@
 import logging
-from lib.agents.tools import format_supporting_documents_prompt_section_multiple
+from lib.agents.formatting_utils import (
+    format_supporting_documents_prompt_section_multiple,
+)
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.agents.reference_extractor import (
     reference_extractor_agent,

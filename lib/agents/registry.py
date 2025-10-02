@@ -101,6 +101,9 @@ def initialize_default_agents():
 
     from lib.agents.claim_detector import claim_detector_agent
     from lib.agents.citation_detector import citation_detector_agent
+    from lib.agents.claim_common_knowledge_checker import (
+        claim_common_knowledge_checker_agent,
+    )
     from lib.agents.claim_substantiator import claim_substantiator_agent
 
     agent_registry.register(
@@ -113,6 +116,12 @@ def initialize_default_agents():
         agent_type="citations",
         agent=citation_detector_agent,
         description="Detect and extract citations from text chunks",
+    )
+
+    agent_registry.register(
+        agent_type="common_knowledge",
+        agent=claim_common_knowledge_checker_agent,
+        description="Determine if claims are common knowledge",
     )
 
     agent_registry.register(

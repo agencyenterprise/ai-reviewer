@@ -2,6 +2,9 @@ from typing import Annotated, List, Optional
 from pydantic import BaseModel, Field
 
 from lib.agents.citation_detector import CitationResponse
+from lib.agents.claim_common_knowledge_checker import (
+    ClaimCommonKnowledgeResultWithClaimIndex,
+)
 from lib.agents.claim_detector import ClaimResponse
 from lib.agents.toulmin_claim_detector import ToulminClaimResponse
 from lib.agents.reference_extractor import BibliographyItem
@@ -51,6 +54,7 @@ class DocumentChunk(ChunkWithIndex):
 
     claims: Optional[ClaimResponse | ToulminClaimResponse] = None
     citations: Optional[CitationResponse] = None
+    claim_common_knowledge_results: List[ClaimCommonKnowledgeResultWithClaimIndex] = []
     substantiations: List[ClaimSubstantiationResultWithClaimIndex] = []
 
 
@@ -98,6 +102,16 @@ def conciliate_chunks(
 
     # Return chunks in order by chunk_index
     return [chunks_by_index[i] for i in sorted(chunks_by_index.keys())]
+
+
+class ClaimCommonKnowledgeResultChunk(BaseModel):
+    """
+    Wrapper for a list of claim common knowledge results for a single chunk.
+
+    openapi-generator does not support List[List[T]] so we need to wrap the list of substantiations in a single model.
+    """
+
+    claim_common_knowledge_results: List[ClaimCommonKnowledgeResultWithClaimIndex]
 
 
 class ClaimSubstantiationChunk(BaseModel):

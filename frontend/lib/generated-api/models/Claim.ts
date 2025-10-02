@@ -37,12 +37,6 @@ export interface Claim {
    * @memberof Claim
    */
   rationale: string;
-  /**
-   * A boolean value indicating whether the claim needs to be substantiated. Set to False if the claim represents common knowledge in the domain, basic definitions, logical deductions, or facts so well-established that academic writing would not typically require citations.
-   * @type {boolean}
-   * @memberof Claim
-   */
-  needsSubstantiation: boolean;
 }
 
 /**
@@ -52,7 +46,6 @@ export function instanceOfClaim(value: object): value is Claim {
   if (!('text' in value) || value['text'] === undefined) return false;
   if (!('claim' in value) || value['claim'] === undefined) return false;
   if (!('rationale' in value) || value['rationale'] === undefined) return false;
-  if (!('needsSubstantiation' in value) || value['needsSubstantiation'] === undefined) return false;
   return true;
 }
 
@@ -68,7 +61,6 @@ export function ClaimFromJSONTyped(json: any, ignoreDiscriminator: boolean): Cla
     text: json['text'],
     claim: json['claim'],
     rationale: json['rationale'],
-    needsSubstantiation: json['needs_substantiation'],
   };
 }
 
@@ -85,6 +77,5 @@ export function ClaimToJSONTyped(value?: Claim | null, ignoreDiscriminator: bool
     text: value['text'],
     claim: value['claim'],
     rationale: value['rationale'],
-    needs_substantiation: value['needsSubstantiation'],
   };
 }

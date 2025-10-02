@@ -10,53 +10,47 @@ from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
 )
-from lib.agents.claim_substantiator import (
-    ClaimSubstantiationResult,
-    claim_substantiator_agent,
-    ClaimSubstantiationResultWithClaimIndex,
+from lib.agents.claim_common_knowledge_checker import (
+    ClaimCommonKnowledgeResult,
+    claim_common_knowledge_checker_agent,
+    ClaimCommonKnowledgeResultWithClaimIndex,
+)
+from lib.workflows.claim_substantiation.nodes.substantiate_claims import (
+    format_cited_references,
 )
 
 logger = logging.getLogger(__name__)
 
 
-async def substantiate_claims(
+async def check_claim_common_knowledge(
     state: ClaimSubstantiatorState,
 ) -> ClaimSubstantiatorState:
-    logger.info("substantiate_claims: substantiating claims")
+    logger.info("common_knowledge: checking claim common knowledge")
 
     agents_to_run = state.config.agents_to_run
-    if agents_to_run and "substantiation" not in agents_to_run:
+    if agents_to_run and "common_knowledge" not in agents_to_run:
         logger.info(
-            "substantiate_claims: Skipping claim substantiation (not in agents_to_run)"
+            "common_knowledge: Skipping claim common knowledge check (not in agents_to_run)"
         )
         return {}
 
     return await iterate_chunks(
-        state, _substantiate_chunk_claims, "Substantiating chunk claims"
+        state,
+        _check_chunk_claim_common_knowledge,
+        "Checking chunk claim common knowledge",
     )
 
 
-async def _substantiate_chunk_claims(
+async def _check_chunk_claim_common_knowledge(
     state: ClaimSubstantiatorState, chunk: DocumentChunk
 ) -> DocumentChunk:
-    substantiations = []
+    claim_common_knowledge_results = []
     for claim_index, claim in enumerate(chunk.claims.claims):
-        common_knowledge_result = next(
-            (
-                result
-                for result in chunk.claim_common_knowledge_results
-                if result.claim_index == claim_index
-            ),
-            None,
-        )
-        if common_knowledge_result and not common_knowledge_result.needs_substantiation:
-            continue
-
         cited_references = format_cited_references(
             state.references,
             state.supporting_files,
             chunk.citations,
-            truncate_at_character_count=100000,  # Basically include the whole text of the references
+            truncate_at_character_count=1000,  # Include only a little bit of the text of the references
         )
         paragraph_chunks = state.get_paragraph_chunks(chunk.paragraph_index)
         paragraph_chunks_citations_not_in_the_chunk = [
@@ -76,29 +70,33 @@ async def _substantiate_chunk_claims(
             state.references,
             state.supporting_files,
             paragraph_other_chunk_citations,
-            truncate_at_character_count=100000,  # Basically include the whole text of the references
+            truncate_at_character_count=1000,  # Include only a little bit of the text of the references
         )
 
-        result: ClaimSubstantiationResult = await claim_substantiator_agent.apply(
-            {
-                "full_document": state.file.markdown,
-                "paragraph": state.get_paragraph(chunk.paragraph_index),
-                "chunk": chunk.content,
-                "claim": claim.claim,
-                "cited_references": cited_references,
-                "cited_references_paragraph": cited_references_paragraph,
-                "domain_context": format_domain_context(state.config.domain),
-                "audience_context": format_audience_context(
-                    state.config.target_audience
-                ),
-            }
+        result: ClaimCommonKnowledgeResult = (
+            await claim_common_knowledge_checker_agent.apply(
+                {
+                    "full_document": state.file.markdown,
+                    "paragraph": state.get_paragraph(chunk.paragraph_index),
+                    "chunk": chunk.content,
+                    "claim": claim.claim,
+                    "cited_references": cited_references,
+                    "cited_references_paragraph": cited_references_paragraph,
+                    "domain_context": format_domain_context(state.config.domain),
+                    "audience_context": format_audience_context(
+                        state.config.target_audience
+                    ),
+                }
+            )
         )
-        substantiations.append(
-            ClaimSubstantiationResultWithClaimIndex(
+        claim_common_knowledge_results.append(
+            ClaimCommonKnowledgeResultWithClaimIndex(
                 chunk_index=chunk.chunk_index,
                 claim_index=claim_index,
                 **result.model_dump(),
             )
         )
 
-    return chunk.model_copy(update={"substantiations": substantiations})
+    return chunk.model_copy(
+        update={"claim_common_knowledge_results": claim_common_knowledge_results}
+    )
