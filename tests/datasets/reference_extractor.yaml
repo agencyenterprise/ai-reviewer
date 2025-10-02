@@ -233,7 +233,19 @@ dataset:
             has_associated_supporting_document: false
             index_of_associated_supporting_document: -1
             name_of_associated_supporting_document: ""
-          - text: "Srivathsan, Bhargs, Marc Sorel, Pankaj Sachdeva, Arjita Bhan, Haripreet Batra, Raman Sharma, Rishi Gupta, and Surbhi Choudhary, “AI Power: Expanding Data Center Capacity to Meet Growing Demand,” McKinsey & Company, October 2024."
+          - text: "Davenport, Carly, Brian Singer, Neil Mehta, Brian Lee, and John Mackay, “Generational Growth: AI, Data Centers and the Coming US Power Demand Surge,” Goldman Sachs Equity Research, April 28, 2024."
+            has_associated_supporting_document: false
+            index_of_associated_supporting_document: -1
+            name_of_associated_supporting_document: ""
+          - text: "North American Electric Reliability Corporation, *2024 Long-Term Reliability Assessment*, December 2024."
+            has_associated_supporting_document: false
+            index_of_associated_supporting_document: -1
+            name_of_associated_supporting_document: ""
+          - text: "Pilz, Konstantin F., Yusuf Mahmood, and Lennart Heim, *AI’s Power Requirements Under Exponential Growth: Extrapolating AI Data Center Power Demand and Assessing Its Potential Impact on U.S. Competitiveness*, RAND Corporation, RR-A3572-1, 2025. As of June 3, 2025: https://www.rand.org/pubs/research_reports/RRA3572-1.html"
+            has_associated_supporting_document: false
+            index_of_associated_supporting_document: -1
+            name_of_associated_supporting_document: ""
+          - text: "Scharre, Paul, *Future-Proofing Frontier AI Regulation: Projecting Future Compute for Frontier AI Models*, Center for a New American Security, March 2024."
             has_associated_supporting_document: false
             index_of_associated_supporting_document: -1
             name_of_associated_supporting_document: ""
@@ -245,15 +257,64 @@ dataset:
             has_associated_supporting_document: false
             index_of_associated_supporting_document: -1
             name_of_associated_supporting_document: ""
-          - text: "Pilz, Konstantin F., Yusuf Mahmood, and Lennart Heim, *AI’s Power Requirements Under Exponential Growth: Extrapolating AI Data Center Power Demand and Assessing Its Potential Impact on U.S. Competitiveness*, RAND Corporation, RR-A3572-1, 2025. As of June 3, 2025: https://www.rand.org/pubs/research_reports/RRA3572-1.html"
-            has_associated_supporting_document: false
-            index_of_associated_supporting_document: -1
-            name_of_associated_supporting_document: ""
           - text: "Shehabi, Arman, Sarah J. Smith, Alex Hubbard, Alex Newkirk, Nuoa Lei, Md Abu Bakar Siddik, Billie Holecek, Jonathan Koomey, Eric Masanet, and Dale Sartor, *2024 United States Data Center Energy Usage Report*, Berkeley Lab, December 2024."
             has_associated_supporting_document: false
             index_of_associated_supporting_document: -1
             name_of_associated_supporting_document: ""
-          - text: "Davenport, Carly, Brian Singer, Neil Mehta, Brian Lee, and John Mackay, “Generational Growth: AI, Data Centers and the Coming US Power Demand Surge,” Goldman Sachs Equity Research, April 28, 2024."
+          - text: "Srivathsan, Bhargs, Marc Sorel, Pankaj Sachdeva, Arjita Bhan, Haripreet Batra, Raman Sharma, Rishi Gupta, and Surbhi Choudhary, “AI Power: Expanding Data Center Capacity to Meet Growing Demand,” McKinsey & Company, October 2024."
             has_associated_supporting_document: false
             index_of_associated_supporting_document: -1
             name_of_associated_supporting_document: ""
+
+    - name: "reference_case_power_capacity_all_support"
+      description: "Power capacity document with no supporting documents provided"
+      input:
+        main_document: "data/power-capacity-by-2030-published-minimal/_main.md"
+        supporting_documents:
+          - "data/power-capacity-by-2030-published-minimal/ref1.pdf"
+          - "data/power-capacity-by-2030-published-minimal/ref2.pdf"
+          - "data/power-capacity-by-2030-published-minimal/ref3.pdf"
+          - "data/power-capacity-by-2030-published-minimal/ref4.pdf"
+          - "data/power-capacity-by-2030-published-minimal/ref5.pdf"
+          - "data/power-capacity-by-2030-published-minimal/ref6.pdf"
+          - "data/power-capacity-by-2030-published-minimal/ref7.pdf"
+          - "data/power-capacity-by-2030-published-minimal/ref8.pdf"
+          - "data/power-capacity-by-2030-published-minimal/ref9.pdf"
+      expected_output:
+        references:
+          - text: "Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw, Maya Domeshek, Jamil Farbes, Allen Fawcett, Anne Hamilton, Jesse Jenkins, Ryan Jones, et al., “Emissions and Energy Impacts of the Inflation Reduction Act,” Science, Vol. 380, No. 6652, June 30, 2023."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 1
+            name_of_associated_supporting_document: "ref1.pdf"
+          - text: "Davenport, Carly, Brian Singer, Neil Mehta, Brian Lee, and John Mackay, “Generational Growth: AI, Data Centers and the Coming US Power Demand Surge,” Goldman Sachs Equity Research, April 28, 2024."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 2
+            name_of_associated_supporting_document: "ref2.pdf"
+          - text: "North American Electric Reliability Corporation, *2024 Long-Term Reliability Assessment*, December 2024."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 3
+            name_of_associated_supporting_document: "ref3.pdf"
+          - text: "Pilz, Konstantin F., Yusuf Mahmood, and Lennart Heim, *AI’s Power Requirements Under Exponential Growth: Extrapolating AI Data Center Power Demand and Assessing Its Potential Impact on U.S. Competitiveness*, RAND Corporation, RR-A3572-1, 2025. As of June 3, 2025: https://www.rand.org/pubs/research_reports/RRA3572-1.html"
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 4
+            name_of_associated_supporting_document: "ref4.pdf"
+          - text: "Scharre, Paul, *Future-Proofing Frontier AI Regulation: Projecting Future Compute for Frontier AI Models*, Center for a New American Security, March 2024."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 5
+            name_of_associated_supporting_document: "ref5.pdf"
+          - text: "Secretary of Energy Advisory Board, “Recommendations on Powering Artificial Intelligence and Data Center Infrastructure,” U.S. Department of Energy, July 30, 2024."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 6
+            name_of_associated_supporting_document: "ref6.pdf"
+          - text: "Sevilla, Jaime, Tamay Besiroglu, Ben Cottier, Josh You, Edu Roldán, Pablo Villalobos, and Ege Erdil, “Can AI Scaling Continue Through 2030?” Epoch AI, August 20, 2024."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 7
+            name_of_associated_supporting_document: "ref7.pdf"
+          - text: "Shehabi, Arman, Sarah J. Smith, Alex Hubbard, Alex Newkirk, Nuoa Lei, Md Abu Bakar Siddik, Billie Holecek, Jonathan Koomey, Eric Masanet, and Dale Sartor, *2024 United States Data Center Energy Usage Report*, Berkeley Lab, December 2024."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 8
+            name_of_associated_supporting_document: "ref8.pdf"
+          - text: "Srivathsan, Bhargs, Marc Sorel, Pankaj Sachdeva, Arjita Bhan, Haripreet Batra, Raman Sharma, Rishi Gupta, and Surbhi Choudhary, “AI Power: Expanding Data Center Capacity to Meet Growing Demand,” McKinsey & Company, October 2024."
+            has_associated_supporting_document: true
+            index_of_associated_supporting_document: 9
+            name_of_associated_supporting_document: "ref9.pdf"

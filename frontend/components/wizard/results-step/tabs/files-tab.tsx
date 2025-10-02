@@ -43,7 +43,7 @@ export function FilesTab({ results }: FilesTabProps) {
         {supportingFiles.length === 0 ? (
           <p className="text-sm text-muted-foreground mt-2">No supporting files uploaded.</p>
         ) : (
-          <div className="mt-3 space-y-3 max-h-96 overflow-y-auto">
+          <div className="mt-3 space-y-3">
             {supportingFiles.map((file, index) => (
               <div key={index} className="border rounded-lg p-4">
                 <div className="flex items-start justify-between w-full">

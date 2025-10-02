@@ -2,10 +2,15 @@
 
 import { useClaimFeedback } from '../hooks/use-claim-feedback';
 import { CollapsibleFeedback } from './collapsible-feedback';
-import { Claim, ClaimSubstantiationResultWithClaimIndex, Citation, BibliographyItem } from '@/lib/generated-api';
+import {
+  ClaimSubstantiationResultWithClaimIndex,
+  Citation,
+  BibliographyItem,
+  ClaimCommonKnowledgeResultWithClaimIndex,
+} from '@/lib/generated-api';
 
 interface FeedbackSectionProps {
-  claim: Claim;
+  commonKnowledgeResult: ClaimCommonKnowledgeResultWithClaimIndex;
   substantiation: ClaimSubstantiationResultWithClaimIndex;
   citations: Citation[];
   references: BibliographyItem[];
@@ -14,7 +19,7 @@ interface FeedbackSectionProps {
 }
 
 export function FeedbackSection({
-  claim,
+  commonKnowledgeResult,
   substantiation,
   citations,
   references,
@@ -22,7 +27,7 @@ export function FeedbackSection({
   className = '',
 }: FeedbackSectionProps) {
   const { shouldMinimize, isExpanded, setIsExpanded } = useClaimFeedback({
-    claim,
+    commonKnowledgeResult,
     substantiation,
     citations,
     references,

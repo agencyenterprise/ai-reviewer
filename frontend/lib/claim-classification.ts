@@ -4,6 +4,7 @@ import {
   ClaimSubstantiationResultWithClaimIndex,
   BibliographyItem,
   DocumentChunkOutput,
+  ClaimCommonKnowledgeResultWithClaimIndex,
 } from '@/lib/generated-api';
 
 export enum ClaimCategory {
@@ -45,18 +46,18 @@ export const claimCategoryBaseColors: Record<ClaimCategory, 'none' | 'yellow' | 
 };
 
 export function classifyClaim(
-  claim: Claim,
+  commonKnowledgeResult: ClaimCommonKnowledgeResultWithClaimIndex,
   claimSubstantiation: ClaimSubstantiationResultWithClaimIndex,
   chunkCitations: Citation[],
   references: BibliographyItem[],
 ): ClaimCategory {
-  if (!claim.needsSubstantiation) {
+  if (!commonKnowledgeResult.needsSubstantiation) {
     return ClaimCategory.NO_CITATION_NEEDED;
   }
 
   if (chunkCitations.length === 0) {
     // If there's no citation but it's marked as common knowledge, prioritize that
-    if (claimSubstantiation?.isCommonKnowledge) {
+    if (commonKnowledgeResult?.isCommonKnowledge) {
       return ClaimCategory.PROBABLY_COMMON_KNOWLEDGE;
     }
     return ClaimCategory.MISSING_CITATION;
@@ -92,6 +93,7 @@ const chunkClassificationPriorityOrder: ClaimCategory[] = [
 export function classifyChunk(chunk: DocumentChunkOutput, references: BibliographyItem[]): ClaimCategory {
   const claims = chunk.claims?.claims || [];
   const citations = chunk.citations?.citations || [];
+  const claimCommonKnowledgeResults = chunk.claimCommonKnowledgeResults || [];
   const substantiations = chunk.substantiations || [];
 
   if (claims.length === 0) {
@@ -99,7 +101,12 @@ export function classifyChunk(chunk: DocumentChunkOutput, references: Bibliograp
   }
 
   const categories = claims.map((claim, claimIndex) =>
-    classifyClaim(claim, substantiations[claimIndex] ?? [], citations, references),
+    classifyClaim(
+      claimCommonKnowledgeResults[claimIndex] ?? [],
+      substantiations[claimIndex] ?? [],
+      citations,
+      references,
+    ),
   );
   return categories.sort(
     (a, b) => chunkClassificationPriorityOrder.indexOf(a) - chunkClassificationPriorityOrder.indexOf(b),

@@ -3,20 +3,18 @@
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Markdown } from '@/components/markdown';
 import { Badge } from '@/components/ui/badge';
-import { claimCategoryBaseColors, classifyChunk, classifyClaim } from '@/lib/claim-classification';
+import { claimCategoryBaseColors, classifyChunk } from '@/lib/claim-classification';
 import { ChunkReevaluationResponse, ClaimSubstantiatorStateOutput, DocumentChunkOutput } from '@/lib/generated-api';
 import { getMaxSeverity } from '@/lib/severity';
-import { cn } from '@/lib/utils';
 import { AlertTriangleIcon, ChevronRight, FileIcon, Link as LinkIcon, MessageCirclePlus } from 'lucide-react';
 import * as React from 'react';
 import { ChunkItem } from '../components/chunk-display';
 import { ChunkEvalGenerator } from '../components/chunk-eval-generator';
 import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
-import { ClaimCategoryLabel } from '../components/claim-category-label';
 import { ErrorsCard } from '../components/errors-card';
+import { ClaimAnalysisCard } from '../components/claim-analysis-card';
+import { ClaimCategoryLabel } from '../components/claim-category-label';
 import { SeverityBadge } from '../components/severity-badge';
-import { CommonKnowledgeBadge } from '../components/common-knowledge-badge';
-import { UnsubstantiatedFeedback } from '../components/unsubstantiated-feedback';
 import { useSupportedAgents } from '../hooks/use-supported-agents';
 
 interface DocumentExplorerTabProps {
@@ -75,6 +73,7 @@ export function DocumentExplorerChunk({
   const citations = chunk.citations?.citations || [];
   const references = results.references || [];
   const supportingFiles = results.supportingFiles || [];
+  const claimCommonKnowledgeResults = chunk.claimCommonKnowledgeResults || [];
   const substantiations = chunk.substantiations || [];
   const chunkCategory = classifyChunk(chunk, references);
   const maxSeverity = getMaxSeverity(substantiations);
@@ -152,113 +151,15 @@ export function DocumentExplorerChunk({
           </p>
           <div className="space-y-2">
             {claims.map((claim, ci) => {
-              const subst = substantiations[ci];
-              const isUnsubstantiated = subst ? !subst.isSubstantiated : false;
-              const claimCategory = classifyClaim(claim, subst, citations, references);
-              const severity = subst?.severity;
-
               return (
-                <ChunkItem key={ci} className={cn(isUnsubstantiated ? 'bg-red-50/40' : '', 'space-y-2')}>
-                  <div className="flex items-center gap-1">
-                    <ClaimCategoryLabel category={claimCategory} />
-                    <SeverityBadge severity={severity} />
-                    <CommonKnowledgeBadge
-                      isCommonKnowledge={subst?.isCommonKnowledge || false}
-                      commonKnowledgeRationale={subst?.commonKnowledgeRationale}
-                      claimCategory={claimCategory}
-                    />
-                  </div>
-                  <p>
-                    <strong>Claim:</strong> {claim.claim}
-                  </p>
-                  <p>
-                    <strong>Related Text:</strong> &quot;{claim.text}&quot;
-                  </p>
-                  <p>
-                    <strong>Needs substantiation:</strong> {claim.needsSubstantiation ? 'Yes' : 'No'} -{' '}
-                    {claim.rationale}
-                  </p>
-                  {claim.warrantExpression && (
-                    <div className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
-                      Warrant: {claim.warrantExpression}
-                    </div>
-                  )}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-xs font-semibold mb-1">Data / Grounds</p>
-                      {claim.data && claim.data.length > 0 ? (
-                        <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
-                          {claim.data.map((d, i) => (
-                            <li key={i}>{d}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">None</p>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold mb-1">Warrants</p>
-                      {claim.warrants && claim.warrants.length > 0 ? (
-                        <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
-                          {claim.warrants.map((w, i) => (
-                            <li key={i}>{w}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">None</p>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold mb-1">Qualifiers</p>
-                      {claim.qualifiers && claim.qualifiers.length > 0 ? (
-                        <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
-                          {claim.qualifiers.map((q, i) => (
-                            <li key={i}>{q}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">None</p>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold mb-1">Rebuttals</p>
-                      {claim.rebuttals && claim.rebuttals.length > 0 ? (
-                        <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
-                          {claim.rebuttals.map((r, i) => (
-                            <li key={i}>{r}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">None</p>
-                      )}
-                    </div>
-                    <div className="md:col-span-2">
-                      <p className="text-xs font-semibold mb-1">Backing</p>
-                      {claim.backing && claim.backing.length > 0 ? (
-                        <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
-                          {claim.backing.map((b, i) => (
-                            <li key={i}>{b}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">None</p>
-                      )}
-                    </div>
-                  </div>
-                  {subst && subst.isSubstantiated && (
-                    <p className="text-green-600">
-                      <strong>Substantiated because:</strong> {subst.rationale}
-                    </p>
-                  )}
-                  {subst && !subst.isSubstantiated && (
-                    <UnsubstantiatedFeedback
-                      claim={claim}
-                      substantiation={subst}
-                      citations={citations}
-                      references={references}
-                    />
-                  )}
-                </ChunkItem>
+                <ClaimAnalysisCard
+                  key={ci}
+                  claim={claim}
+                  commonKnowledgeResult={claimCommonKnowledgeResults[ci]}
+                  substantiation={substantiations[ci]}
+                  citations={citations}
+                  references={references}
+                />
               );
             })}
           </div>

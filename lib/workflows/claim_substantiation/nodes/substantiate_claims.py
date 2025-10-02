@@ -1,7 +1,7 @@
 import logging
 from lib.agents.citation_detector import CitationResponse
-from lib.agents.tools import (
-    format_supporting_documents_prompt_section,
+from lib.agents.formatting_utils import (
+    format_cited_references,
     format_domain_context,
     format_audience_context,
 )
@@ -41,10 +41,23 @@ async def _substantiate_chunk_claims(
 ) -> DocumentChunk:
     substantiations = []
     for claim_index, claim in enumerate(chunk.claims.claims):
-        if not claim.needs_substantiation:
+        common_knowledge_result = next(
+            (
+                result
+                for result in chunk.claim_common_knowledge_results
+                if result.claim_index == claim_index
+            ),
+            None,
+        )
+        if common_knowledge_result and not common_knowledge_result.needs_substantiation:
             continue
 
-        cited_references = _format_cited_references(state, chunk.citations)
+        cited_references = format_cited_references(
+            state.references,
+            state.supporting_files,
+            chunk.citations,
+            truncate_at_character_count=100000,  # Basically include the whole text of the references
+        )
         paragraph_chunks = state.get_paragraph_chunks(chunk.paragraph_index)
         paragraph_chunks_citations_not_in_the_chunk = [
             citation
@@ -59,8 +72,11 @@ async def _substantiate_chunk_claims(
             citations=paragraph_chunks_citations_not_in_the_chunk,
             rationale="The other citations in the paragraph that are not in the chunk",
         )
-        cited_references_paragraph = _format_cited_references(
-            state, paragraph_other_chunk_citations
+        cited_references_paragraph = format_cited_references(
+            state.references,
+            state.supporting_files,
+            paragraph_other_chunk_citations,
+            truncate_at_character_count=100000,  # Basically include the whole text of the references
         )
 
         result: ClaimSubstantiationResult = await claim_substantiator_agent.apply(
@@ -86,40 +102,3 @@ async def _substantiate_chunk_claims(
         )
 
     return chunk.model_copy(update={"substantiations": substantiations})
-
-
-def _format_cited_references(
-    state: ClaimSubstantiatorState, citations: CitationResponse
-) -> str:
-    references = state.references
-    supporting_files = state.supporting_files
-
-    citations_with_associated_bibliography = [
-        c for c in citations.citations if c.associated_bibliography
-    ]
-
-    if len(citations_with_associated_bibliography) == 0:
-        return "No reference is cited as support for this claim.\n\n"
-
-    cited_references_str = ""
-
-    for citation in citations_with_associated_bibliography:
-        bibliography_index = citation.index_of_associated_bibliography
-        associated_reference = references[bibliography_index - 1]
-        cited_references_str += f"""### Cited bibliography entry #{bibliography_index}
-Citation text: `{citation.text}`
-Bibliography entry text: `{associated_reference.text}`
-"""
-        if associated_reference.has_associated_supporting_document:
-            supporting_file = supporting_files[
-                associated_reference.index_of_associated_supporting_document - 1
-            ]
-            cited_references_str += format_supporting_documents_prompt_section(
-                supporting_file
-            )
-        else:
-            cited_references_str += "No associated supporting document provided by the user, so this bibliography item cannot be used to substantiate the claim\n\n"
-
-    cited_references_str += "\n\n"
-
-    return cited_references_str

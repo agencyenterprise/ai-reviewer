@@ -1,6 +1,6 @@
 import logging
 from lib.agents.claim_detector import ClaimResponse, claim_detector_agent
-from lib.agents.tools import format_domain_context, format_audience_context
+from lib.agents.formatting_utils import format_domain_context, format_audience_context
 from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,

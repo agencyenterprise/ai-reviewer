@@ -7,7 +7,9 @@ from lib.agents.reference_extractor import (
     ReferenceExtractorResponse,
     reference_extractor_agent,
 )
-from lib.agents.tools import format_supporting_documents_prompt_section_multiple
+from lib.agents.formatting_utils import (
+    format_supporting_documents_prompt_section_multiple,
+)
 from lib.models.agent_test_case import AgentTestCase
 from lib.services.file import create_file_document_from_path
 from tests.conftest import data_path

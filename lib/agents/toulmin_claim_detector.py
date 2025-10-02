@@ -15,11 +15,6 @@ class ToulminClaim(BaseModel):
     rationale: str = Field(
         description="Why the excerpt implies this claim (brief analytic rationale)"
     )
-    needs_substantiation: bool = Field(
-        description=(
-            "Whether this claim should be substantiated with citations in academic writing. Set to False for common knowledge, basic definitions, logical deductions, or well-established facts in the domain."
-        )
-    )
 
     # Toulmin elements
     data: list[str] = Field(
@@ -68,16 +63,8 @@ class ToulminClaimResponse(BaseModel):
     )
 
 
-toulmin_claim_detector_agent = Agent(
-    name="Claim Detector (Toulmin)",
-    description=(
-        "Detect claims in a chunk of text and extract Toulmin elements: data/grounds,"
-        " warrants (stated or implied), qualifiers, rebuttals, and backing."
-    ),
-    model=models["gpt-5"],
-    prompt=ChatPromptTemplate.from_template(
-        (
-            """
+_toulmin_claim_detector_prompt = ChatPromptTemplate.from_template(
+    """
 ## Task
 You are a claim detector using the Toulmin model of argumentation. You will receive the full document (context) and a specific chunk. Extract any claims present in the chunk and, when possible, identify Toulmin elements for each claim.
 
@@ -143,8 +130,17 @@ Set `needs_substantiation` to **True** for:
 {chunk}
 ```
 """
-        )
+)
+
+
+toulmin_claim_detector_agent = Agent(
+    name="Claim Detector (Toulmin)",
+    description=(
+        "Detect claims in a chunk of text and extract Toulmin elements: data/grounds,"
+        " warrants (stated or implied), qualifiers, rebuttals, and backing."
     ),
+    model=models["gpt-5"],
+    prompt=_toulmin_claim_detector_prompt,
     tools=[],
     mandatory_tools=[],
     output_schema=ToulminClaimResponse,
