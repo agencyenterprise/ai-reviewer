@@ -1,6 +1,13 @@
 dataset:
   name: "Claim Substantiator Dataset"
   description: "Test cases for validating claim substantiation"
+  test_config:
+    strict_fields:
+      - is_substantiated
+      - severity
+    llm_fields:
+      - rationale
+      - feedback
   items:
     - name: "substantiation_case_1"
       description: "Test case for substantiating a claim with partial supporting evidence"

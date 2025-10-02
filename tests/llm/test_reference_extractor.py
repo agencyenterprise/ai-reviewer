@@ -28,17 +28,11 @@ def _build_cases() -> list[AgentTestCase]:
     dataset_path = str(TESTS_DIR / "datasets" / "reference_extractor.yaml")
     dataset = load_dataset(dataset_path)
 
-    # Test configuration - hardcoded for this specific test
-    strict_fields = {
-        "references": {
-            "__all__": {
-                "text",
-                "has_associated_supporting_document",
-                "index_of_associated_supporting_document",
-                "name_of_associated_supporting_document",
-            }
-        }
-    }
+    # Get test configuration from dataset, with defaults if not present
+    test_config = dataset.test_config
+    if test_config:
+        strict_fields = test_config.strict_fields or set()
+        llm_fields = test_config.llm_fields or set()
 
     cases: list[AgentTestCase] = []
 
@@ -63,6 +57,7 @@ def _build_cases() -> list[AgentTestCase]:
                 },
                 expected_dict=test_case.expected_output,
                 strict_fields=strict_fields,
+                llm_fields=llm_fields,
             )
         )
 

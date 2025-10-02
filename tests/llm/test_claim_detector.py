@@ -22,22 +22,10 @@ def _build_cases() -> list[AgentTestCase]:
     dataset_path = str(TESTS_DIR / "datasets" / "claim_detector.yaml")
     dataset = load_dataset(dataset_path)
 
-    # Test configuration - hardcoded for this specific test
-    strict_fields = {
-        "claims": {
-            "__all__": {
-                "text",
-                "needs_substantiation",
-            }
-        }
-    }
-    llm_fields = {
-        "claims": {
-            "__all__": {
-                "claim",
-            }
-        }
-    }
+    test_config = dataset.test_config
+    if test_config:
+        strict_fields = test_config.strict_fields or set()
+        llm_fields = test_config.llm_fields or set()
 
     cases: list[AgentTestCase] = []
 
