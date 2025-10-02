@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field
 
 from lib.config.llm import models
 from lib.models import Agent
+from lib.models.agent import QCResult
+from typing import Optional
 
 
 class CitationType(str, Enum):
@@ -45,6 +47,10 @@ class CitationResponse(BaseModel):
     )
     rationale: str = Field(
         description="Very brief rationale for why you think the chunk of text includes these citations, if any"
+    )
+    qc_result: Optional[QCResult] = Field(
+        description="The quality control result for the citation response",
+        default=None,
     )
 
 
