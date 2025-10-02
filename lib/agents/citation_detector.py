@@ -78,6 +78,9 @@ The indexes in this list should be used when returning index_of_associated_bibli
 ```
 {chunk}
 ```
+
+## Feedback from the quality control assistant
+{feedback}
 """
 )
 
@@ -85,6 +88,7 @@ citation_detector_agent = Agent(
     name="Citation Detector",
     description="Detect citations in a chunk of text",
     model=models["gpt-5"],
+    with_qc=True,
     prompt=_citation_detector_prompt,
     tools=[],
     mandatory_tools=[],
