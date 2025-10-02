@@ -87,7 +87,7 @@ class ClaimSubstantiatorState(BaseModel):
     config: SubstantiationWorkflowConfig
 
     # Outputs
-    references: List[BibliographyItem] = []
+    references: Annotated[List[BibliographyItem], add] = []
     chunks: Annotated[List[DocumentChunk], create_conciliator(DocumentChunk)] = []
     errors: Annotated[List[WorkflowError], add] = Field(
         default_factory=list,

@@ -7,6 +7,7 @@ import { useWizard } from './wizard-context';
 import { Loader2 } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { Checkbox } from '../ui/checkbox';
 
 export function ProcessStep() {
   const { state, actions } = useWizard();
@@ -81,6 +82,34 @@ export function ProcessStep() {
               value={state.targetAudience}
               onChange={(e) => actions.setTargetAudience(e.target.value)}
             />
+          </div>
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="run-literature-review"
+                checked={state.runLiteratureReview}
+                onCheckedChange={(checked) => actions.setRunLiteratureReview(checked === true)}
+              />
+              <Label
+                htmlFor="run-literature-review"
+                className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Run literature review
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="run-suggest-citations"
+                checked={state.runSuggestCitations}
+                onCheckedChange={(checked) => actions.setRunSuggestCitations(checked === true)}
+              />
+              <Label
+                htmlFor="run-suggest-citations"
+                className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Run suggest citations
+              </Label>
+            </div>
           </div>
         </CardContent>
       </Card>

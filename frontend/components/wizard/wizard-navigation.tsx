@@ -24,6 +24,8 @@ export function WizardNavigation() {
             supportingDocuments: state.supportingDocuments,
             config: {
               useToulmin: true,
+              runLiteratureReview: state.runLiteratureReview,
+              runSuggestCitations: state.runSuggestCitations,
               domain: state.domain || undefined,
               targetAudience: state.targetAudience || undefined,
               sessionId: state.sessionId,

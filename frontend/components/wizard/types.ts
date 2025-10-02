@@ -18,6 +18,8 @@ export interface WizardState {
   supportingDocuments: File[];
   domain: string;
   targetAudience: string;
+  runLiteratureReview: boolean;
+  runSuggestCitations: boolean;
   isProcessing: boolean;
   analysisResults: AnalysisResults | null;
   sessionId: string | null;
@@ -29,6 +31,8 @@ export interface WizardActions {
   setSupportingDocuments: (files: File[]) => void;
   setDomain: (domain: string) => void;
   setTargetAudience: (targetAudience: string) => void;
+  setRunLiteratureReview: (runLiteratureReview: boolean) => void;
+  setRunSuggestCitations: (runSuggestCitations: boolean) => void;
   setIsProcessing: (processing: boolean) => void;
   setAnalysisResults: (results: AnalysisResults | null) => void;
   updateChunkResults: (response: ChunkReevaluationResponse) => void;

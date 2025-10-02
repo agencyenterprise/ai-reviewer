@@ -7,6 +7,8 @@ from lib.config.env import config
 from lib.config.langfuse import langfuse_handler
 from lib.workflows.claim_substantiation.nodes.prepare_documents import prepare_documents
 from langgraph.graph import StateGraph
+
+from lib.workflows.claim_substantiation.nodes.prepare_documents import prepare_documents
 from lib.workflows.claim_substantiation.nodes.check_claim_common_knowledge import (
     check_claim_common_knowledge,
 )
@@ -78,31 +80,28 @@ def build_claim_substantiator_graph(
     # Only after detect_claims, detect_citations, and check_claim_common_knowledge are complete, proceed to substantiate_claims
     graph.add_edge("🤖 check_claim_common_knowledge", "🤖 substantiate_claims")
 
-    graph.set_finish_point("🤖 substantiate_claims")
-
     # Suggest citations (aim 2.a)
+    # Must wait for ALL processing to complete before suggesting citations
     if run_suggest_citations:
+        # Create a synchronization node that waits for all required nodes to complete
+        graph.add_node(
+            "wait_for_all_before_suggestions", lambda state: state
+        )  # Pass-through node for synchronization
+
+        # Wait for substantiation to complete (which depends on the whole pipeline)
+        graph.add_edge("🤖 substantiate_claims", "wait_for_all_before_suggestions")
+
+        # Also explicitly wait for literature review if enabled
         if run_literature_review:
-            # Create a synchronization node that waits for both literature_review and substantiate_claims
-            graph.add_node(
-                "wait_for_literature_and_substantiation", lambda state: state
-            )  # Pass-through node for synchronization
+            graph.add_edge("🤖 literature_review", "wait_for_all_before_suggestions")
 
-            # Only after both are complete, proceed to suggest_citations
-            graph.add_edge(
-                "🤖 substantiate_claims", "wait_for_literature_and_substantiation"
-            )
-            graph.add_edge(
-                "🤖 literature_review", "wait_for_literature_and_substantiation"
-            )
-
-            graph.add_edge(
-                "wait_for_literature_and_substantiation", "🤖 suggest_citations"
-            )
-        else:
-            graph.add_edge("🤖 substantiate_claims", "🤖 suggest_citations")
+        # Only after everything is complete, proceed to suggest_citations
+        graph.add_edge("wait_for_all_before_suggestions", "🤖 suggest_citations")
 
         graph.set_finish_point("🤖 suggest_citations")
+
+    else:
+        graph.set_finish_point("🤖 substantiate_claims")
 
     return graph
 

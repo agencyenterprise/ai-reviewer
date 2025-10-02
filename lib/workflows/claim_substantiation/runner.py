@@ -109,11 +109,22 @@ async def reevaluate_single_chunk(
 
 
 async def _execute(state: ClaimSubstantiatorState):
+    """
+    Execute the claim substantiation workflow.
+
+    Note: If reusing a session_id from a previous run with a different graph structure,
+    checkpoints may cause unexpected behavior. Use a fresh session_id after graph changes.
+    """
     graph = build_claim_substantiator_graph(
         use_toulmin=state.config.use_toulmin,
         run_literature_review=state.config.run_literature_review,
         run_suggest_citations=state.config.run_suggest_citations,
     )
+
+    # Generate a fresh session ID if not provided to avoid checkpoint conflicts
+    if state.config.session_id is None:
+        state.config.session_id = str(uuid.uuid4())
+        logger.info("Generated new session ID: %s", state.config.session_id)
 
     async with get_checkpointer() as checkpointer:
         app = graph.compile(checkpointer=checkpointer).with_config(
