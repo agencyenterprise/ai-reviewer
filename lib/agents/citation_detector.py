@@ -84,11 +84,38 @@ The indexes in this list should be used when returning index_of_associated_bibli
 """
 )
 
+citation_detector_qc_prompt = ChatPromptTemplate.from_template(
+    """
+You are a quality control assistant that evaluates the output of another agent.
+
+First, read the original instructions and the agent's produced result below.
+Then evaluate whether the result meets the requirements. Return a structured response.
+
+## AGENT PROMPT
+{AGENT_PROMPT}
+
+## AGENT's RESULT
+{AGENT_RESULT}
+
+Return your evaluation as:
+- valid: boolean indicating if the result meets the requirements
+- feedback: specific, actionable feedback on improvements or what was done well
+
+Focus on:
+1. Completeness - does the result address all parts of the original prompt?
+2. Accuracy - is the result factually correct and appropriate?
+3. Quality - is the result well-formatted and professional?
+4. Relevance - does the result directly answer what was asked?
+
+Be specific in your feedback to help the agent improve.
+"""
+)
+
 citation_detector_agent = Agent(
     name="Citation Detector",
     description="Detect citations in a chunk of text",
     model=models["gpt-5"],
-    with_qc=True,
+    qc_prompt=citation_detector_qc_prompt,
     prompt=_citation_detector_prompt,
     tools=[],
     mandatory_tools=[],
