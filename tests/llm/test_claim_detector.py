@@ -9,7 +9,7 @@ from lib.agents.claim_detector import (
     ClaimResponse,
     claim_detector_agent,
 )
-from lib.agents.tools import format_domain_context, format_audience_context
+from lib.agents.formatting_utils import format_domain_context, format_audience_context
 from tests.conftest import data_path
 from tests.datasets.loader import load_dataset
 
@@ -22,22 +22,10 @@ def _build_cases() -> list[AgentTestCase]:
     dataset_path = str(TESTS_DIR / "datasets" / "claim_detector.yaml")
     dataset = load_dataset(dataset_path)
 
-    # Test configuration - hardcoded for this specific test
-    strict_fields = {
-        "claims": {
-            "__all__": {
-                "text",
-                "needs_substantiation",
-            }
-        }
-    }
-    llm_fields = {
-        "claims": {
-            "__all__": {
-                "claim",
-            }
-        }
-    }
+    test_config = dataset.test_config
+    if test_config:
+        strict_fields = test_config.strict_fields or set()
+        llm_fields = test_config.llm_fields or set()
 
     cases: list[AgentTestCase] = []
 

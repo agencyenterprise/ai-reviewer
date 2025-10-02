@@ -4,6 +4,14 @@
 dataset:
   name: "Reference Extractor Dataset"
   description: "Test cases for validating reference extraction and supporting document matching"
+  test_config:
+    strict_fields:
+      references:
+        __all__:
+          - text
+          - has_associated_supporting_document
+          - index_of_associated_supporting_document
+          - name_of_associated_supporting_document
   items:
     - name: "reference_case_basic"
       description: "Basic test case with all supporting documents present"

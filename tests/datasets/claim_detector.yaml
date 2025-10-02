@@ -1,6 +1,16 @@
 dataset:
   name: "Claim Detector Dataset"
   description: "Test cases for validating claim detection"
+  test_config:
+    strict_fields:
+      claims:
+        __all__:
+          - text
+          - needs_substantiation
+    llm_fields:
+      claims:
+        __all__:
+          - claim
   items:
     - name: "claim_case_1"
       description: "Test case with multiple claims in a single chunk"

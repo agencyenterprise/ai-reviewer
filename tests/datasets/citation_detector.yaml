@@ -35,6 +35,14 @@ power_capacity_common_config: &power_capacity_common_config
 dataset:
   name: "Citation Detector Dataset"
   description: "Test cases for validating citation detection and bibliography matching"
+  test_config:
+    strict_fields:
+      citations:
+        __all__:
+          - text
+          - needs_bibliography
+          - associated_bibliography
+          - index_of_associated_bibliography
   items:
     - name: "citation_toy_example_1"
       description: "Test case with multiple citations in author (year) format"
