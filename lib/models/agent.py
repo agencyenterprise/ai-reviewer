@@ -31,32 +31,6 @@ class QCResult(BaseModel):
     feedback: str
 
 
-qc_prompt = """
-You are a quality control assistant that evaluates the output of another agent.
-
-First, read the original instructions and the agent's produced result below.
-Then evaluate whether the result meets the requirements. Return a structured response.
-
-## AGENT PROMPT
-{AGENT_PROMPT}
-
-## AGENT's RESULT
-{AGENT_RESULT}
-
-Return your evaluation as:
-- valid: boolean indicating if the result meets the requirements
-- feedback: specific, actionable feedback on improvements or what was done well
-
-Focus on:
-1. Completeness - does the result address all parts of the original prompt?
-2. Accuracy - is the result factually correct and appropriate?
-3. Quality - is the result well-formatted and professional?
-4. Relevance - does the result directly answer what was asked?
-
-Be specific in your feedback to help the agent improve.
-"""
-
-
 class Agent(SQLModel, table=True):
     __tablename__ = "agents"
 
@@ -65,7 +39,7 @@ class Agent(SQLModel, table=True):
     )
     name: str = Field(sa_column=Column(String(255), nullable=False))
     description: str = Field(sa_column=Column(Text))
-    with_qc: bool = Field(sa_column=Column(Boolean, default=False))
+    qc_prompt: Any = Field(sa_column=Column(Text, default=None))
     model: str = Field(
         sa_column=Column(String(255), nullable=False)
     )  # Format: "{provider}:{model}"
@@ -238,7 +212,7 @@ class Agent(SQLModel, table=True):
         # include empty "feedback" field in prompt_kwargs
         prompt_kwargs["feedback"] = ""
 
-        if self.with_qc:
+        if self.qc_prompt:
             logger.info(f"Applying agent with QC: {self.name}")
             # Try up to 3 times with QC validation
             for attempt in range(3):
@@ -257,7 +231,7 @@ class Agent(SQLModel, table=True):
                 agent_prompt_messages = prompt_template.format_messages(**prompt_kwargs)
                 qc_result = await self._apply_run_qc(
                     result=result,
-                    qc_prompt=qc_prompt,  # Use the dedicated QC prompt from the top of the file
+                    qc_prompt=self.qc_prompt,  # Use the dedicated QC prompt from the top of the file
                     agent_prompt=agent_prompt_messages,  # Pass formatted messages for this run
                     config=config,
                 )
