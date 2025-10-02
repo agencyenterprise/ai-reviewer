@@ -25,6 +25,20 @@ class EvaluationResult(BaseModel):
     rationale: str = Field(description="Brief reason for the decision")
 
 
+class EvalSubsetSpec(BaseModel):
+    # Field selectors (same format as pydantic model_dump's include and exclude inputs)
+    strict_fields: set | dict = Field(default_factory=set)
+    llm_fields: set | dict = Field(default_factory=set)
+    ignore_fields: set | dict = Field(default_factory=set)
+
+
+class EvalSubsetResult(BaseModel):
+    # Stored intermediate eval results
+    strict_eval_results: Optional[list[EvaluationResult]] = None
+    llm_eval_results: Optional[list[EvaluationResult]] = None
+    _eval_result: Optional[EvaluationResult] = None
+
+
 class AgentTestCase(BaseModel):
     """Generic container for agent test cases with mixed strict/LLM grading.
 
@@ -49,18 +63,11 @@ class AgentTestCase(BaseModel):
     run_count: int = 1
     results: Optional[list[TResponse]] = None  # For multiple runs
 
-    # Field selectors (same format as pydantic model_dump's include and exclude inputs)
-    strict_fields: set | dict = Field(default_factory=set)
-    llm_fields: set | dict = Field(default_factory=set)
-    ignore_fields: set | dict = Field(default_factory=set)
+    subset_specs: Optional[list[EvalSubsetSpec]] = None
+    subset_results: Optional[list[EvalSubsetResult]] = None
 
     # Evaluator model (provider:model). Keep temperature 0 for determinism.
     evaluator_model: str = Field(default="openai:gpt-5")
-
-    # Stored intermediate eval results
-    strict_eval_results: Optional[list[EvaluationResult]] = None
-    llm_eval_results: Optional[list[EvaluationResult]] = None
-    _eval_result: Optional[EvaluationResult] = None
 
     # Langfuse session information for this test run
     session_id: Optional[str] = None
@@ -253,14 +260,17 @@ RECEIVED JSON (selected fields):
         )
 
     async def compare_results(self) -> EvaluationResult:
-        strict_eval = await self._compare_strict()
-        llm_eval = await self._compare_llm()
+        for subset_spec in self.subset_specs or []:
 
-        eval_result = EvaluationResult(
-            passed=strict_eval.passed and llm_eval.passed,
-            rationale="\n".join([strict_eval.rationale, llm_eval.rationale]),
-        )
+            subset_spec
+            strict_eval = await self._compare_strict()
+            llm_eval = await self._compare_llm()
 
-        self._eval_result = eval_result
+            eval_result = EvaluationResult(
+                passed=strict_eval.passed and llm_eval.passed,
+                rationale="\n".join([strict_eval.rationale, llm_eval.rationale]),
+            )
 
-        return eval_result
+            self._eval_result = eval_result
+
+            return eval_result
