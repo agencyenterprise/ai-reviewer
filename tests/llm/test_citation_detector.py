@@ -25,6 +25,8 @@ def _build_cases() -> list[AgentTestCase]:
                 "needs_bibliography",
                 "associated_bibliography",
                 "index_of_associated_bibliography",
+                "type",
+                # "format", # format doesn't follow a well-defined pattern so we don't check it
             },
         }
     }

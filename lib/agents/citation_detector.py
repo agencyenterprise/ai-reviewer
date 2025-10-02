@@ -60,7 +60,7 @@ For each citation, you need to return the following information:
 - The type of the citation/footnote mark. This should be a value from the CitationType enum.
 - The format of the citation/footnote mark, e.g., [number] or (Name, et al., Year), url, etc.
 - A boolean value indicating whether the citation refers to a bibliography entry or footnote in the document so it expected to have an associated bibliography entry or footnote. For example, URLs often do not refer to a bibliography entry so this should be False, but something like (Doe, et al., 2025) does refer to a bibliography entry so this should be True.
-- If the document includes a bibliography entry related to this citation, this will be an exact copy of that bibliography entry, otherwise it will be an empty string. Bibliography entries are usually included in a dedicated References section at the end of the full document.
+- If the document includes a bibliography entry related to this citation, this will be an exact copy of that bibliography entry from the list of bibliography entries I'm providing separately, otherwise it will be an empty string.
 - Your very brief rationale for why you think this is a citation/footnote mark
 
 ## The full document that the chunk is a part of
@@ -84,7 +84,8 @@ The indexes in this list should be used when returning index_of_associated_bibli
 citation_detector_agent = Agent(
     name="Citation Detector",
     description="Detect citations in a chunk of text",
-    model=models["gpt-5"],
+    model=models["gpt-5-mini"],
+    temperature=0.0,
     prompt=_citation_detector_prompt,
     tools=[],
     mandatory_tools=[],

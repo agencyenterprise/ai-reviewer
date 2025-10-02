@@ -1,18 +1,32 @@
 # Citation Detector Test Dataset
 # This file contains test cases for the citation detector agent
 
+# Define configuration aliases for reuse across test cases
+toy_example_common_config: &toy_example_common_config
+  main_document: "data/case_1/main_document.md"
+  bibliography:
+    - "Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry."
+    - "Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf."
+    - "Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech."
+
+cryptocurrency_common_config: &cryptocurrency_common_config
+  main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+  bibliography:
+    - "Caldwell, Leslie R., “Assistant Attorney General Leslie R. Caldwell Delivers Remarks at the Securities Enforcement Forum West Conference,” U.S. Department of Justice, May 12, 2016."
+    - "Hill, Jonah Force, “Problematic Alternatives: MLAT Reform for the Digital Age,” *Harvard Law School National Security Journal*, January 28, 2015."
+    - "Goodison, Sean E., Robert C. Davis, and Brian A. Jackson, *Digital Evidence and the U.S. Criminal Justice System: Identifying Technology and Other Needs to More Effectively Acquire and Utilize Digital Evidence*, Santa Monica, Calif.: RAND Corporation, RR-890-NIJ, 2015. As of November 15, 2022: https://www.rand.org/pubs/research_reports/RR890.html"
+    - "Goodison, Sean E., Dulani Woods, Jeremy D. Barnum, Adam R. Kemerer, and Brian A. Jackson, *Identifying Law Enforcement Needs for Conducting Criminal Investigations Involving Evidence on the Dark Web*, Santa Monica, Calif.: RAND Corporation, RR-2704-NIJ, 2019. As of November 15, 2022: https://www.rand.org/pubs/research_reports/RR2704.html"
+    - "Tanneeru, Manav, “Can the Law Keep Up with Technology?” CNN, November 17, 2009."
+    - "Vermeer, Michael J. D., Dulani Woods, and Brian A. Jackson, *Identifying Law Enforcement Needs for Access to Digital Evidence in Remote Data Centers*, Santa Monica, Calif.: RAND Corporation, RR-2240-NIJ, 2018. As of November 16, 2022: https://www.rand.org/pubs/research_reports/RR2240.html"
+
 dataset:
   name: "Citation Detector Dataset"
   description: "Test cases for validating citation detection and bibliography matching"
   items:
-    - name: "citation_case_1"
+    - name: "citation_toy_example_1"
       description: "Test case with multiple citations in author (year) format"
       input:
-        main_document: "data/case_1/main_document.md"
-        bibliography:
-          - "Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry."
-          - "Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf."
-          - "Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech."
+        <<: *toy_example_common_config
         chunk: "Prior work such as Smith (2020) and Doe and Roe (2019) provide useful background/insights."
       expected_output:
         citations:
@@ -32,14 +46,10 @@ dataset:
             rationale: ""
         rationale: ""
 
-    - name: "citation_case_2"
+    - name: "citation_toy_example_2"
       description: "Test case with citation in (author, year) format"
       input:
-        main_document: "data/case_1/main_document.md"
-        bibliography:
-          - "Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry."
-          - "Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf."
-          - "Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech."
+        <<: *toy_example_common_config
         chunk: "In this article, we will review what some of the other works in the field, including (Smith, 2017) have found in this domain."
       expected_output:
         citations:
@@ -52,15 +62,112 @@ dataset:
             rationale: ""
         rationale: ""
 
-    - name: "citation_case_3"
+    - name: "citation_toy_example_3"
       description: "Test case with no citations in the chunk"
       input:
-        main_document: "data/case_1/main_document.md"
-        bibliography:
-          - "Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry."
-          - "Doe, A.; Roe, B. (2019). A Comprehensive Study of Gizmos. Proceedings of Gizmo Conf."
-          - "Smith, A.; Anderson, T. (2017), A Study of The Effect of Cellphones on Writing Ability. Journal of Big Tech."
+        <<: *toy_example_common_config
         chunk: "We conducted experiments using standard gizmo benchmarks."
+      expected_output:
+        citations: []
+        rationale: ""
+
+    - name: "citation_cryptocurrency_multiple_citations"
+      description: "Test case with multiple citations separated by semicolons"
+      input:
+        <<: *cryptocurrency_common_config
+        chunk: "This shift of activity into digital spaces has presented a multitude of difficulties, as well as opportunities, for criminal justice practitioners (Goodison, Davis, and Jackson, 2015; Tanneeru, 2009; Vermeer, Woods, and Jackson, 2018)."
+      expected_output:
+        citations:
+          - text: "Goodison, Davis, and Jackson, 2015"
+            type: "bibliography"
+            format: "author (year)"
+            needs_bibliography: true
+            associated_bibliography: "Goodison, Sean E., Robert C. Davis, and Brian A. Jackson, *Digital Evidence and the U.S. Criminal Justice System: Identifying Technology and Other Needs to More Effectively Acquire and Utilize Digital Evidence*, Santa Monica, Calif.: RAND Corporation, RR-890-NIJ, 2015. As of November 15, 2022: https://www.rand.org/pubs/research_reports/RR890.html"
+            index_of_associated_bibliography: 3
+            rationale: ""
+          - text: "Tanneeru, 2009"
+            type: "bibliography"
+            format: "author (year)"
+            needs_bibliography: true
+            associated_bibliography: "Tanneeru, Manav, “Can the Law Keep Up with Technology?” CNN, November 17, 2009."
+            index_of_associated_bibliography: 5
+            rationale: ""
+          - text: "Vermeer, Woods, and Jackson, 2018"
+            type: "bibliography"
+            format: "author (year)"
+            needs_bibliography: true
+            associated_bibliography: "Vermeer, Michael J. D., Dulani Woods, and Brian A. Jackson, *Identifying Law Enforcement Needs for Access to Digital Evidence in Remote Data Centers*, Santa Monica, Calif.: RAND Corporation, RR-2240-NIJ, 2018. As of November 16, 2022: https://www.rand.org/pubs/research_reports/RR2240.html"
+            index_of_associated_bibliography: 6
+            rationale: ""
+        rationale: ""
+
+    - name: "citation_cryptocurrency_et_al_citation"
+      description: "Test case with citation using 'et al' abbreviation"
+      input:
+        <<: *cryptocurrency_common_config
+        chunk: "This presents new challenges for law enforcement agencies in carrying out criminal justice system processes efficiently and effectively (Goodison et al., 2019; Tanneeru, 2009; Vermeer, Woods, and Jackson, 2018)."
+      expected_output:
+        citations:
+          - text: "Goodison et al., 2019"
+            type: "bibliography"
+            format: "author (year)"
+            needs_bibliography: true
+            associated_bibliography: "Goodison, Sean E., Dulani Woods, Jeremy D. Barnum, Adam R. Kemerer, and Brian A. Jackson, *Identifying Law Enforcement Needs for Conducting Criminal Investigations Involving Evidence on the Dark Web*, Santa Monica, Calif.: RAND Corporation, RR-2704-NIJ, 2019. As of November 15, 2022: https://www.rand.org/pubs/research_reports/RR2704.html"
+            index_of_associated_bibliography: 4
+            rationale: ""
+          - text: "Tanneeru, 2009"
+            type: "bibliography"
+            format: "author (year)"
+            needs_bibliography: true
+            associated_bibliography: "Tanneeru, Manav, “Can the Law Keep Up with Technology?” CNN, November 17, 2009."
+            index_of_associated_bibliography: 5
+            rationale: ""
+          - text: "Vermeer, Woods, and Jackson, 2018"
+            type: "bibliography"
+            format: "author (year)"
+            needs_bibliography: true
+            associated_bibliography: "Vermeer, Michael J. D., Dulani Woods, and Brian A. Jackson, *Identifying Law Enforcement Needs for Access to Digital Evidence in Remote Data Centers*, Santa Monica, Calif.: RAND Corporation, RR-2240-NIJ, 2018. As of November 16, 2022: https://www.rand.org/pubs/research_reports/RR2240.html"
+            index_of_associated_bibliography: 6
+            rationale: ""
+        rationale: ""
+
+    - name: "citation_cryptocurrency_jurisdiction_citations"
+      description: "Test case with Caldwell citation for jurisdiction discussion"
+      input:
+        <<: *cryptocurrency_common_config
+        chunk: "The shift to digital and online interactions has meant that the same jurisdiction conditions are being met less and less frequently for many types of crimes (Caldwell, 2016; Vermeer, Woods, and Jackson, 2018)."
+      expected_output:
+        citations:
+          - text: "Caldwell, 2016"
+            type: "bibliography"
+            format: "author (year)"
+            needs_bibliography: true
+            associated_bibliography: "Caldwell, Leslie R., “Assistant Attorney General Leslie R. Caldwell Delivers Remarks at the Securities Enforcement Forum West Conference,” U.S. Department of Justice, May 12, 2016."
+            index_of_associated_bibliography: 1
+            rationale: ""
+          - text: "Vermeer, Woods, and Jackson, 2018"
+            type: "bibliography"
+            format: "author (year)"
+            needs_bibliography: true
+            associated_bibliography: "Vermeer, Michael J. D., Dulani Woods, and Brian A. Jackson, *Identifying Law Enforcement Needs for Access to Digital Evidence in Remote Data Centers*, Santa Monica, Calif.: RAND Corporation, RR-2240-NIJ, 2018. As of November 16, 2022: https://www.rand.org/pubs/research_reports/RR2240.html"
+            index_of_associated_bibliography: 6
+            rationale: ""
+        rationale: ""
+
+    - name: "citation_cryptocurrency_no_citations"
+      description: "Test case with no citations in the chunk"
+      input:
+        <<: *cryptocurrency_common_config
+        chunk: "The criminal justice system in the United States is intended to deter, punish, and reform individuals who violate the norms of good order."
+      expected_output:
+        citations: []
+        rationale: ""
+
+    - name: "citation_cryptocurrency_individual_citations"
+      description: "Test case with individual citation formats"
+      input:
+        <<: *cryptocurrency_common_config
+        chunk: "A traditional assumption, built into the structure of the U.S. criminal justice system, is that individuals who are committing crimes are physically within a geographical jurisdiction, their victims are physically present within that jurisdiction, and any necessary evidence that exists could also be obtained within that jurisdiction."
       expected_output:
         citations: []
         rationale: ""
