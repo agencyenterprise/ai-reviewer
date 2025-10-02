@@ -28,7 +28,11 @@ Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw, Maya Domeshek,
 
 Davenport, Carly, Brian Singer, Neil Mehta, Brian Lee, and John Mackay, “Generational Growth: AI, Data Centers and the Coming US Power Demand Surge,” Goldman Sachs Equity Research, April 28, 2024.
 
+North American Electric Reliability Corporation, *2024 Long-Term Reliability Assessment*, December 2024.
+
 Pilz, Konstantin F., Yusuf Mahmood, and Lennart Heim, *AI’s Power Requirements Under Exponential Growth: Extrapolating AI Data Center Power Demand and Assessing Its Potential Impact on U.S. Competitiveness*, RAND Corporation, RR-A3572-1, 2025. As of June 3, 2025: https://www.rand.org/pubs/research_reports/RRA3572-1.html
+
+Scharre, Paul, *Future-Proofing Frontier AI Regulation: Projecting Future Compute for Frontier AI Models*, Center for a New American Security, March 2024.
 
 Secretary of Energy Advisory Board, “Recommendations on Powering Artificial Intelligence and Data Center Infrastructure,” U.S. Department of Energy, July 30, 2024.
 

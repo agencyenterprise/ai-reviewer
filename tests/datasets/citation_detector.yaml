@@ -19,6 +19,19 @@ cryptocurrency_common_config: &cryptocurrency_common_config
     - "Tanneeru, Manav, “Can the Law Keep Up with Technology?” CNN, November 17, 2009."
     - "Vermeer, Michael J. D., Dulani Woods, and Brian A. Jackson, *Identifying Law Enforcement Needs for Access to Digital Evidence in Remote Data Centers*, Santa Monica, Calif.: RAND Corporation, RR-2240-NIJ, 2018. As of November 16, 2022: https://www.rand.org/pubs/research_reports/RR2240.html"
 
+power_capacity_common_config: &power_capacity_common_config
+  main_document: "data/power-capacity-by-2030-published-minimal/_main.md"
+  bibliography:
+    - "Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw, Maya Domeshek, Jamil Farbes, Allen Fawcett, Anne Hamilton, Jesse Jenkins, Ryan Jones, et al., “Emissions and Energy Impacts of the Inflation Reduction Act,” Science, Vol. 380, No. 6652, June 30, 2023."
+    - "Davenport, Carly, Brian Singer, Neil Mehta, Brian Lee, and John Mackay, “Generational Growth: AI, Data Centers and the Coming US Power Demand Surge,” Goldman Sachs Equity Research, April 28, 2024."
+    - "North American Electric Reliability Corporation, *2024 Long-Term Reliability Assessment*, December 2024."
+    - "Pilz, Konstantin F., Yusuf Mahmood, and Lennart Heim, *AI’s Power Requirements Under Exponential Growth: Extrapolating AI Data Center Power Demand and Assessing Its Potential Impact on U.S. Competitiveness*, RAND Corporation, RR-A3572-1, 2025. As of June 3, 2025: https://www.rand.org/pubs/research_reports/RRA3572-1.html"
+    - "Scharre, Paul, *Future-Proofing Frontier AI Regulation: Projecting Future Compute for Frontier AI Models*, Center for a New American Security, March 2024."
+    - "Secretary of Energy Advisory Board, “Recommendations on Powering Artificial Intelligence and Data Center Infrastructure,” U.S. Department of Energy, July 30, 2024."
+    - "Sevilla, Jaime, Tamay Besiroglu, Ben Cottier, Josh You, Edu Roldán, Pablo Villalobos, and Ege Erdil, “Can AI Scaling Continue Through 2030?” Epoch AI, August 20, 2024."
+    - "Shehabi, Arman, Sarah J. Smith, Alex Hubbard, Alex Newkirk, Nuoa Lei, Md Abu Bakar Siddik, Billie Holecek, Jonathan Koomey, Eric Masanet, and Dale Sartor, *2024 United States Data Center Energy Usage Report*, Berkeley Lab, December 2024."
+    - "Srivathsan, Bhargs, Marc Sorel, Pankaj Sachdeva, Arjita Bhan, Haripreet Batra, Raman Sharma, Rishi Gupta, and Surbhi Choudhary, “AI Power: Expanding Data Center Capacity to Meet Growing Demand,” McKinsey & Company, October 2024."
+
 dataset:
   name: "Citation Detector Dataset"
   description: "Test cases for validating citation detection and bibliography matching"
@@ -170,4 +183,89 @@ dataset:
         chunk: "A traditional assumption, built into the structure of the U.S. criminal justice system, is that individuals who are committing crimes are physically within a geographical jurisdiction, their victims are physically present within that jurisdiction, and any necessary evidence that exists could also be obtained within that jurisdiction."
       expected_output:
         citations: []
+        rationale: ""
+
+    - name: "citation_power_capacity_footnote_18_multiple_refs"
+      description: "Test case with footnote 18 from the full document"
+      input:
+        <<: *power_capacity_common_config
+        chunk: "There is concern that the necessary grid loads to power future AI data centers for training and inference activities may exceed the capacity of additions to the U.S. power grid.[[18]](#footnote-18) In this report, we assess potential increases in supply resources in the contiguous United States and propose a capacity metric that can be directly compared with load increases."
+      expected_output:
+        citations:
+          - text: "[[18]](#footnote-18)"
+            type: "footnote"
+            format: "[number] footnote marker"
+            needs_bibliography: true
+            associated_bibliography: "Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw, Maya Domeshek, Jamil Farbes, Allen Fawcett, Anne Hamilton, Jesse Jenkins, Ryan Jones, et al., “Emissions and Energy Impacts of the Inflation Reduction Act,” Science, Vol. 380, No. 6652, June 30, 2023."
+            index_of_associated_bibliography: 1
+            rationale: ""
+          - text: "[[18]](#footnote-18)"
+            type: "footnote"
+            format: "[number] footnote marker"
+            needs_bibliography: true
+            associated_bibliography: "North American Electric Reliability Corporation, *2024 Long-Term Reliability Assessment*, December 2024."
+            index_of_associated_bibliography: 3
+            rationale: ""
+          - text: "[[18]](#footnote-18)"
+            type: "footnote"
+            format: "[number] footnote marker"
+            needs_bibliography: true
+            associated_bibliography: "Pilz, Konstantin F., Yusuf Mahmood, and Lennart Heim, *AI’s Power Requirements Under Exponential Growth: Extrapolating AI Data Center Power Demand and Assessing Its Potential Impact on U.S. Competitiveness*, RAND Corporation, RR-A3572-1, 2025. As of June 3, 2025: https://www.rand.org/pubs/research_reports/RRA3572-1.html"
+            index_of_associated_bibliography: 4
+            rationale: ""
+        rationale: ""
+
+    - name: "citation_power_capacity_footnote_19_and_20"
+      description: "Test case with footnote 19 and 20 from the full document"
+      input:
+        <<: *power_capacity_common_config
+        chunk: "The anticipated load growth from AI is extraordinary in magnitude, speed, and geographic concentration. Developing advanced AI models requires enormous amounts of power,[[19]](#footnote-19) and existing facilities are already straining the U.S. electricity grids.[[20]](#footnote-20)"
+      expected_output:
+        citations:
+          - text: "[[19]](#footnote-19)"
+            type: "footnote"
+            format: "[number] footnote marker"
+            needs_bibliography: true
+            associated_bibliography: "Srivathsan, Bhargs, Marc Sorel, Pankaj Sachdeva, Arjita Bhan, Haripreet Batra, Raman Sharma, Rishi Gupta, and Surbhi Choudhary, “AI Power: Expanding Data Center Capacity to Meet Growing Demand,” McKinsey & Company, October 2024."
+            index_of_associated_bibliography: 9
+            rationale: ""
+          - text: "[[19]](#footnote-19)"
+            type: "footnote"
+            format: "[number] footnote marker"
+            needs_bibliography: true
+            associated_bibliography: "Scharre, Paul, *Future-Proofing Frontier AI Regulation: Projecting Future Compute for Frontier AI Models*, Center for a New American Security, March 2024."
+            index_of_associated_bibliography: 5
+            rationale: ""
+          - text: "[[20]](#footnote-20)"
+            type: "footnote"
+            format: "[number] footnote marker"
+            needs_bibliography: true
+            associated_bibliography: "Secretary of Energy Advisory Board, “Recommendations on Powering Artificial Intelligence and Data Center Infrastructure,” U.S. Department of Energy, July 30, 2024."
+            index_of_associated_bibliography: 6
+            rationale: ""
+        rationale: ""
+
+    - name: "citation_power_capacity_no_citations"
+      description: "Test case with no citations from the full document"
+      input:
+        <<: *power_capacity_common_config
+        chunk: "Estimates for data center demand growth in the United States by 2030 vary widely, from an additional 34 gigawatts (GW) to as much as 253 GW. This variability stems from significant uncertainties, including the pace of the growth in demand, potential efficiency improvements through innovation, and the unclear long-term expansion plans of data center operators. Differences in reporting units (e.g., terawatt-hours [TWh] versus GW), scope (AI-specific versus general data center demand), and projection timelines further contribute to the range of estimates:"
+      expected_output:
+        citations: []
+        rationale: ""
+
+    - name: "citation_power_capacity_footnote_22"
+      description: "Test case with footnote 22 from the full document"
+      input:
+        <<: *power_capacity_common_config
+        chunk: "- RAND projects that global AI data center power demand could reach 327 GW by 2030.[[22]](#footnote-22) For the United States alone, additional demand is estimated to be between 158 GW and 253 GW, assuming a retention rate of 50 percent to 80 percent."
+      expected_output:
+        citations:
+          - text: "[[22]](#footnote-22)"
+            type: "footnote"
+            format: "[number] footnote marker"
+            needs_bibliography: true
+            associated_bibliography: "Pilz, Konstantin F., Yusuf Mahmood, and Lennart Heim, *AI’s Power Requirements Under Exponential Growth: Extrapolating AI Data Center Power Demand and Assessing Its Potential Impact on U.S. Competitiveness*, RAND Corporation, RR-A3572-1, 2025. As of June 3, 2025: https://www.rand.org/pubs/research_reports/RRA3572-1.html"
+            index_of_associated_bibliography: 4
+            rationale: ""
         rationale: ""

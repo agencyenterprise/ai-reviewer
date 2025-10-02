@@ -21,7 +21,7 @@ def _build_cases() -> list[AgentTestCase]:
     strict_fields = {
         "citations": {
             "__all__": {
-                "text",
+                # "text", # text doesn't follow a well-defined pattern so we don't check it
                 "needs_bibliography",
                 "associated_bibliography",
                 "index_of_associated_bibliography",
