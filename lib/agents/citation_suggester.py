@@ -14,7 +14,8 @@ class ReferenceType(str, Enum):
 
 
 class RecommendedAction(str, Enum):
-    ADD_CITATION = "add_citation"
+    ADD_NEW_CITATION = "add_new_citation"
+    CITE_EXISTING_REFERENCE_IN_NEW_PLACE = "cite_existing_reference_in_new_place"
     REPLACE_EXISTING_REFERENCE = "replace_existing_reference"
     DISCUSS_REFERENCE = "discuss_reference"
     NO_ACTION = "no_action"
@@ -46,6 +47,12 @@ class Reference(BaseModel):
     )
     bibliography_info: str = Field(
         description="Bibliography entry formatted in the article's style; reuse the existing entry when the source is already in the bibliography"
+    )
+    is_already_cited_elsewhere: bool = Field(
+        description="A boolean value indicating whether the reference is already cited elsewhere in the document"
+    )
+    index_of_associated_existing_reference: int = Field(
+        description="The index of the existing reference that this citation refers to, if any. Indices start at 1. If the citation does not refer to an existing reference in the bibliography, this should be -1."
     )
     publication_quality: PublicationQuality = Field(
         description="The quality of the publication that carries the suggested reference"

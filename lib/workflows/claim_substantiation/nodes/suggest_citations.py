@@ -40,6 +40,14 @@ async def suggest_citations(
 async def _suggest_chunk_citations(
     state: ClaimSubstantiatorState, chunk: DocumentChunk
 ) -> DocumentChunk:
+    # Skip if chunk has no claims
+    if chunk.claims is None or not chunk.claims.claims:
+        logger.debug(
+            "Skipping citation suggestions for chunk %s: no claims detected",
+            chunk.chunk_index,
+        )
+        return chunk
+
     citation_suggestions = []
     for claim_index, claim in enumerate(chunk.claims.claims):
         common_knowledge_result = next(

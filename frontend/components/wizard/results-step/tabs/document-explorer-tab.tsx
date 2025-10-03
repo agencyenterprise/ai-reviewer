@@ -323,7 +323,7 @@ export function DocumentExplorerChunk({
                                 <div className="space-y-2">
                                   <div className="flex items-start justify-between">
                                     <h5 className="font-medium text-sm">{reference.title}</h5>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
                                       <span
                                         className={`px-2 py-1 rounded text-xs ${
                                           reference.type === 'article'
@@ -337,6 +337,11 @@ export function DocumentExplorerChunk({
                                       >
                                         {reference.type}
                                       </span>
+                                      {reference.isAlreadyCitedElsewhere && (
+                                        <span className="px-2 py-1 rounded text-xs bg-cyan-100 text-cyan-800">
+                                          Already cited
+                                        </span>
+                                      )}
                                       <span
                                         className={`px-2 py-1 rounded text-xs ${
                                           reference.recommendedAction === 'add_citation'
@@ -388,9 +393,18 @@ export function DocumentExplorerChunk({
 
                                   <div className="text-xs">
                                     <p>
-                                      <strong>Related Excerpt:</strong>
+                                      <strong>Related Excerpt (from our document):</strong>
                                     </p>
                                     <p className="text-muted-foreground">&quot;{reference.relatedExcerpt}&quot;</p>
+                                  </div>
+
+                                  <div className="text-xs">
+                                    <p>
+                                      <strong>Related Excerpt (from reference):</strong>
+                                    </p>
+                                    <p className="text-muted-foreground">
+                                      &quot;{reference.relatedExcerptFromReference}&quot;
+                                    </p>
                                   </div>
 
                                   <div className="text-xs">

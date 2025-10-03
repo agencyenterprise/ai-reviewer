@@ -17,7 +17,8 @@
  * @export
  */
 export const RecommendedAction = {
-  AddCitation: 'add_citation',
+  AddNewCitation: 'add_new_citation',
+  CiteExistingReferenceInNewPlace: 'cite_existing_reference_in_new_place',
   ReplaceExistingReference: 'replace_existing_reference',
   DiscussReference: 'discuss_reference',
   NoAction: 'no_action',

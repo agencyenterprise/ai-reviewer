@@ -73,6 +73,18 @@ export interface Reference {
    */
   bibliographyInfo: string;
   /**
+   * A boolean value indicating whether the reference is already cited elsewhere in the document
+   * @type {boolean}
+   * @memberof Reference
+   */
+  isAlreadyCitedElsewhere: boolean;
+  /**
+   * The index of the existing reference that this citation refers to, if any. Indices start at 1. If the citation does not refer to an existing reference in the bibliography, this should be -1.
+   * @type {number}
+   * @memberof Reference
+   */
+  indexOfAssociatedExistingReference: number;
+  /**
    * The quality of the publication that carries the suggested reference
    * @type {PublicationQuality}
    * @memberof Reference
@@ -84,6 +96,12 @@ export interface Reference {
    * @memberof Reference
    */
   relatedExcerpt: string;
+  /**
+   * Exact sentence or excerpt from the reference that is why we should cite or discuss it
+   * @type {string}
+   * @memberof Reference
+   */
+  relatedExcerptFromReference: string;
   /**
    * Brief explanation of why the reference strengthens, updates, or contextualizes the focused paragraph
    * @type {string}
@@ -118,8 +136,12 @@ export function instanceOfReference(value: object): value is Reference {
   if (!('type' in value) || value['type'] === undefined) return false;
   if (!('link' in value) || value['link'] === undefined) return false;
   if (!('bibliographyInfo' in value) || value['bibliographyInfo'] === undefined) return false;
+  if (!('isAlreadyCitedElsewhere' in value) || value['isAlreadyCitedElsewhere'] === undefined) return false;
+  if (!('indexOfAssociatedExistingReference' in value) || value['indexOfAssociatedExistingReference'] === undefined)
+    return false;
   if (!('publicationQuality' in value) || value['publicationQuality'] === undefined) return false;
   if (!('relatedExcerpt' in value) || value['relatedExcerpt'] === undefined) return false;
+  if (!('relatedExcerptFromReference' in value) || value['relatedExcerptFromReference'] === undefined) return false;
   if (!('rationale' in value) || value['rationale'] === undefined) return false;
   if (!('recommendedAction' in value) || value['recommendedAction'] === undefined) return false;
   if (!('explanationForRecommendedAction' in value) || value['explanationForRecommendedAction'] === undefined)
@@ -141,8 +163,11 @@ export function ReferenceFromJSONTyped(json: any, ignoreDiscriminator: boolean):
     type: ReferenceTypeFromJSON(json['type']),
     link: json['link'],
     bibliographyInfo: json['bibliography_info'],
+    isAlreadyCitedElsewhere: json['is_already_cited_elsewhere'],
+    indexOfAssociatedExistingReference: json['index_of_associated_existing_reference'],
     publicationQuality: PublicationQualityFromJSON(json['publication_quality']),
     relatedExcerpt: json['related_excerpt'],
+    relatedExcerptFromReference: json['related_excerpt_from_reference'],
     rationale: json['rationale'],
     recommendedAction: RecommendedActionFromJSON(json['recommended_action']),
     explanationForRecommendedAction: json['explanation_for_recommended_action'],
@@ -164,8 +189,11 @@ export function ReferenceToJSONTyped(value?: Reference | null, ignoreDiscriminat
     type: ReferenceTypeToJSON(value['type']),
     link: value['link'],
     bibliography_info: value['bibliographyInfo'],
+    is_already_cited_elsewhere: value['isAlreadyCitedElsewhere'],
+    index_of_associated_existing_reference: value['indexOfAssociatedExistingReference'],
     publication_quality: PublicationQualityToJSON(value['publicationQuality']),
     related_excerpt: value['relatedExcerpt'],
+    related_excerpt_from_reference: value['relatedExcerptFromReference'],
     rationale: value['rationale'],
     recommended_action: RecommendedActionToJSON(value['recommendedAction']),
     explanation_for_recommended_action: value['explanationForRecommendedAction'],
