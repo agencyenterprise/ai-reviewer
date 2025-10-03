@@ -1,6 +1,15 @@
 dataset:
   name: "Claim Substantiator Dataset - Common Knowledge"
   description: "Test cases specifically for common knowledge detection and severity assignment based on AI/data center power consumption documents"
+  test_config:
+    strict_fields:
+      - is_substantiated
+      - is_common_knowledge
+      - severity
+    llm_fields:
+      - rationale
+      - feedback
+      - common_knowledge_rationale
   items:
     # Pure Common Knowledge - Severity 0 (Well-established facts)
     - name: "common_knowledge_pure_ai_power_intensive"

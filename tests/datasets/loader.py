@@ -2,10 +2,19 @@
 
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import yaml
 from pydantic import BaseModel, Field
+
+
+class TestConfig(BaseModel):
+    """Model for test evaluation configuration."""
+
+    strict_fields: Optional[Union[set, dict]] = Field(default_factory=set)
+    llm_fields: Optional[Union[set, dict]] = Field(default_factory=set)
+    ignore_fields: Optional[Union[set, dict]] = Field(default_factory=set)
+    run_count: Optional[int] = Field(default=1)
 
 
 class DatasetItem(BaseModel):
@@ -23,6 +32,7 @@ class Dataset(BaseModel):
     name: str
     description: str
     items: List[DatasetItem]
+    test_config: Optional[TestConfig] = None
 
 
 def load_dataset(dataset_path: str) -> Dataset:

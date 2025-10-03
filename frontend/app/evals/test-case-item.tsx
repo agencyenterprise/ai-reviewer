@@ -108,8 +108,8 @@ export function TestCaseItem({ testCase }: TestCaseItemProps) {
                 {Object.entries(testCase.agent_test_case.prompt_kwargs).map(([key, value]) => (
                   <div key={key} className="space-y-1">
                     <span className="font-medium text-sm">{key}:</span>
-                    <div className="text-sm text-muted-foreground bg-background p-2 rounded border max-h-32 overflow-y-auto">
-                      {value.length > 200 ? `${value.substring(0, 200)}...` : value}
+                    <div className="text-sm text-muted-foreground bg-background p-2 rounded border max-h-32 overflow-y-auto whitespace-pre-wrap">
+                      {value}
                     </div>
                   </div>
                 ))}
@@ -149,15 +149,15 @@ export function TestCaseItem({ testCase }: TestCaseItemProps) {
 
                               return (
                                 <tr key={key} className="not-last:border-b">
-                                  <td className="p-3 font-medium text-sm wrap-anywhere">{key}</td>
-                                  <td className={`p-3 wrap-anywhere`}>
+                                  <td className="p-3 font-medium text-sm wrap-anywhere w-[24%]">{key}</td>
+                                  <td className="p-3 wrap-anywhere w-[32%]">
                                     {expectedValue !== undefined ? (
                                       <p className="text-sm text-muted-foreground">{String(expectedValue)}</p>
                                     ) : (
                                       <span className="text-xs text-muted-foreground italic">Not specified</span>
                                     )}
                                   </td>
-                                  <td className={`p-3 wrap-anywhere`}>
+                                  <td className="p-3 wrap-anywhere w-[32%]">
                                     {actualValue !== undefined ? (
                                       <p className="text-sm text-muted-foreground">{String(actualValue)}</p>
                                     ) : (

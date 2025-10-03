@@ -7,11 +7,7 @@ from tests.llm.claim_substantiator.conftest import build_test_cases_from_dataset
 
 def _build_cases():
     """Build test cases from common knowledge dataset."""
-    return build_test_cases_from_dataset(
-        dataset_name="common_knowledge",
-        strict_fields={"is_substantiated", "is_common_knowledge", "severity"},
-        llm_fields={"rationale", "feedback", "common_knowledge_rationale"},
-    )
+    return build_test_cases_from_dataset(dataset_name="common_knowledge")
 
 
 @pytest.mark.asyncio

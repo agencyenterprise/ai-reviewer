@@ -17,17 +17,10 @@ def _build_cases() -> list[AgentTestCase]:
     dataset_path = str(TESTS_DIR / "datasets" / "citation_detector.yaml")
     dataset = load_dataset(dataset_path)
 
-    # Test configuration - hardcoded for this specific test
-    strict_fields = {
-        "citations": {
-            "__all__": {
-                "text",
-                "needs_bibliography",
-                "associated_bibliography",
-                "index_of_associated_bibliography",
-            },
-        }
-    }
+    test_config = dataset.test_config
+    if test_config:
+        strict_fields = test_config.strict_fields or set()
+        llm_fields = test_config.llm_fields or set()
 
     cases: list[AgentTestCase] = []
 
@@ -51,6 +44,7 @@ def _build_cases() -> list[AgentTestCase]:
                 },
                 expected_dict=test_case.expected_output,
                 strict_fields=strict_fields,
+                llm_fields=llm_fields,
             )
         )
 

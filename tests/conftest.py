@@ -7,6 +7,7 @@ This module provides reusable utilities that work across all agent test suites:
 """
 
 import asyncio
+import os
 import uuid
 from enum import Enum
 from pathlib import Path
@@ -26,10 +27,26 @@ TESTS_DIR = Path(__file__).parent
 # Store test case data during test execution
 _agent_test_case_data = {}
 
+# Environment variable key for sharing session_id across workers
+_SESSION_ID_ENV_VAR = "PYTEST_LANGFUSE_SESSION_ID"
+
 
 def pytest_configure(config):
-    """Generate and set a single session ID for the entire test run."""
-    session_id = str(uuid.uuid4())
+    """Generate and set a single session ID for the entire test run.
+
+    For pytest-xdist parallel execution, the controller process generates
+    the session_id and shares it with workers via environment variable.
+    """
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER")
+
+    if worker_id:
+        session_id = os.environ.get(_SESSION_ID_ENV_VAR)
+        if not session_id:
+            session_id = str(uuid.uuid4())
+    else:
+        session_id = str(uuid.uuid4())
+        os.environ[_SESSION_ID_ENV_VAR] = session_id
+
     AgentTestCase.set_shared_session_id(session_id)
 
 
@@ -80,8 +97,8 @@ def pytest_runtest_makereport(item, call):
                     "prompt_kwargs": {
                         # Truncate large fields for readability
                         k: (
-                            v[:200] + "..."
-                            if isinstance(v, str) and len(v) > 200
+                            v[:5000] + "... [Truncated]"
+                            if isinstance(v, str) and len(v) > 5000
                             else v
                         )
                         for k, v in case.prompt_kwargs.items()
