@@ -97,3 +97,75 @@ dataset:
         rationale: "None of the cited sources explicitly state that blockchain is a decentralized digital ledger system that records transactions across a network of computers in a way that makes the data nearly impossible to alter without detection."
         feedback: "Provide references that explicitly support the claim."
         severity: 4
+
+    - name: "substantiation_power_capacity_claim_footnote_18"
+      description: "Test case for power capacity claim with footnote 18"
+      input:
+        main_document: "data/power-capacity-by-2030-published-minimal/_main.md"
+        supporting_documents:
+          - "data/power-capacity-by-2030-published-minimal/ref1.pdf"
+          - "data/power-capacity-by-2030-published-minimal/ref3.pdf"
+          - "data/power-capacity-by-2030-published-minimal/ref4.pdf"
+        chunk: "Anticipated growth in artificial intelligence (AI) development requires the buildout of additional power capacity at an exceptional scale and speed. There is concern that the necessary grid loads to power future AI data centers for training and inference activities may exceed the capacity of additions to the U.S. power grid.[[18]](#footnote-18)"
+        claim: "AI data center grid loads for training and inference may exceed the capacity of additions to the U.S. power grid, and this possibility is a source of concern."
+      expected_output:
+        is_substantiated: true
+        rationale: "NERC’s 2024 Long-Term Reliability Assessment explicitly flags rapid demand growth from large loads including data centers (crypto and AI) and notes that new resource additions are lagging behind what is needed, creating mounting resource adequacy risks and potential supply shortfalls. It states that the size and speed of data centers connecting to the grid present unique challenges, and that less overall (especially dispatchable) capacity is being added than projected and needed to meet future demand. RAND (Pilz et al., 2025) directly states that finding adequate power grid capacity is already a challenge for AI data centers and that it is not certain the U.S. is adding power quickly enough to accommodate AI data center demand, with evidence of increasing difficulty securing sufficient grid capacity. Together, these sources substantiate the concern that future AI data center loads for training and inference may exceed the capacity of grid additions."
+        feedback: "No changes needed."
+        severity: 0
+
+    - name: "substantiation_power_capacity_claim_footnote_22_claim_1"
+      description: "Test case for power capacity claim with footnote 18"
+      input:
+        main_document: "data/power-capacity-by-2030-published-minimal/_main.md"
+        supporting_documents:
+          - "data/power-capacity-by-2030-published-minimal/ref4.pdf"
+        chunk: "- RAND projects that global AI data center power demand could reach 327 GW by 2030.[[22]](#footnote-22) For the United States alone, additional demand is estimated to be between 158 GW and 253 GW, assuming a retention rate of 50 percent to 80 percent."
+        claim: "Global AI data center power demand could reach 327 GW by 2030."
+      expected_output:
+        is_substantiated: true
+        rationale: "The cited RAND report explicitly projects that AI data centers could require about 327 GW of power capacity globally by 2030. In Chapter 1, it states: “We find that this expansion would require about 68 GW of AI data center capacity globally by 2027 and 327 GW by 2030,” based on assumed 1.3–2.0x annual growth in AI chip supply and PUE improvements."
+        feedback: "No major changes needed."
+        severity: 0
+
+    - name: "substantiation_power_capacity_claim_footnote_22_claim_1_false"
+      description: "Test case for power capacity claim with footnote 18"
+      input:
+        main_document: "data/power-capacity-by-2030-published-minimal/_false_claims.md"
+        supporting_documents:
+          - "data/power-capacity-by-2030-published-minimal/ref4.pdf"
+        chunk: "- RAND projects that global AI data center power demand could reach 500 GW by 2030.[[22]](#footnote-22) For the United States alone, additional demand is estimated to be between 50 GW and 100 GW, assuming a retention rate of 50 percent to 80 percent."
+        claim: "Global AI data center power demand could reach 500 GW by 2030."
+      expected_output:
+        is_substantiated: false
+        rationale: "The cited RAND report projects global AI data center power demand of roughly 327 GW by 2030 (with an upper bound around 347 GW per Table A.2), not 500 GW. Nowhere does the report state or imply a 500 GW figure by 2030."
+        feedback: "Revise the claim or provide a different citation that supports the estimate."
+        severity: 4
+
+    - name: "substantiation_power_capacity_claim_footnote_22_claim_2"
+      description: "Test case for power capacity claim with footnote 18"
+      input:
+        main_document: "data/power-capacity-by-2030-published-minimal/_main.md"
+        supporting_documents:
+          - "data/power-capacity-by-2030-published-minimal/ref4.pdf"
+        chunk: "- RAND projects that global AI data center power demand could reach 327 GW by 2030.[[22]](#footnote-22) For the United States alone, additional demand is estimated to be between 158 GW and 253 GW, assuming a retention rate of 50 percent to 80 percent."
+        claim: "U.S. additional AI data center power demand is estimated at 158–253 GW, conditional on a 50%–80% retention rate."
+      expected_output:
+        is_substantiated: true
+        rationale: "The cited RAND report projects global AI data center power capacity needs of about 327 GW by 2030 (Figure 1.1; Chapter 1). It also frames results in terms of the share of AI compute retained in the U.S., e.g., noting that retaining a majority (75%) would require ~51 GW by 2027. Applying RAND’s 2030 global figure to a 50%–80% U.S. retention share yields roughly 164–262 GW by 2030; the stated 158–253 GW range is consistent with this order of magnitude and likely reflects rounding and/or treatment of current baseline capacity as “already present,” making the figures “additional.” Thus, the claim is supported by RAND’s global projection and its retention-share framing."
+        feedback: "No major changes needed."
+        severity: 0
+
+    - name: "substantiation_power_capacity_claim_footnote_22_claim_2_false"
+      description: "Test case for power capacity claim with footnote 18"
+      input:
+        main_document: "data/power-capacity-by-2030-published-minimal/_false_claims.md"
+        supporting_documents:
+          - "data/power-capacity-by-2030-published-minimal/ref4.pdf"
+        chunk: "- RAND projects that global AI data center power demand could reach 500 GW by 2030.[[22]](#footnote-22) For the United States alone, additional demand is estimated to be between 50 GW and 100 GW, assuming a retention rate of 50 percent to 80 percent."
+        claim: "U.S. additional AI data center power demand is estimated at 50-100 GW, conditional on a 50%–80% retention rate."
+      expected_output:
+        is_substantiated: false
+        rationale: "The cited RAND report does not provide a 50–100 GW U.S. estimate tied to a 50%–80% retention rate. RAND’s main projection puts global AI data center power demand around 327 GW by 2030 (not 500 GW) and notes that to retain 75% of AI compute the U.S. would need about 51 GW by 2027. Applying a 50%–80% retention share to RAND’s 2030 global projection would imply roughly 160–260 GW in the U.S., not 50–100 GW. No 100 GW figure or 50–100 GW range for the U.S. appears in the report."
+        feedback: "Revise the claim or cite another source that supports the estimate."
+        severity: 4
