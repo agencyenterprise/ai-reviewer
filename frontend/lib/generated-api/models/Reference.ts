@@ -79,7 +79,7 @@ export interface Reference {
    */
   publicationQuality: PublicationQuality;
   /**
-   * Exact sentence or excerpt from the provided material that should cite or discuss this reference
+   * Exact sentence or excerpt from the our document that should cite or discuss this reference
    * @type {string}
    * @memberof Reference
    */

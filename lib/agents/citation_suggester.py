@@ -51,7 +51,10 @@ class Reference(BaseModel):
         description="The quality of the publication that carries the suggested reference"
     )
     related_excerpt: str = Field(
-        description="Exact sentence or excerpt from the provided material that should cite or discuss this reference"
+        description="Exact sentence or excerpt from the our document that should cite or discuss this reference"
+    )
+    related_excerpt_from_reference: str = Field(
+        description="Exact sentence or excerpt from the reference that is why we should cite or discuss it"
     )
     rationale: str = Field(
         description="Brief explanation of why the reference strengthens, updates, or contextualizes the focused paragraph"

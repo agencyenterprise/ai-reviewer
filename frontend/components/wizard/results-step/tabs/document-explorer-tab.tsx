@@ -3,6 +3,7 @@
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Markdown } from '@/components/markdown';
 import { Badge } from '@/components/ui/badge';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { claimCategoryBaseColors, classifyChunk } from '@/lib/claim-classification';
 import {
   ChunkReevaluationResponse,
@@ -171,6 +172,16 @@ export function DocumentExplorerChunk({
             </React.Fragment>
           )}
 
+          {sortedCitationSuggestions.length > 0 && (
+            <React.Fragment>
+              <HorizontalSeparator />
+              <p className="inline-flex items-center gap-1 text-purple-600 text-xs">
+                <LinkIcon className="w-3 h-3" />
+                {sortedCitationSuggestions.length} suggested citation{sortedCitationSuggestions.length > 1 ? 's' : ''}
+              </p>
+            </React.Fragment>
+          )}
+
           <HorizontalSeparator />
           <ClaimCategoryLabel category={chunkCategory} badge={false} className="cursor-pointer" />
 
@@ -222,169 +233,190 @@ export function DocumentExplorerChunk({
           </div>
 
           {citations.length > 0 && (
-            <div>
-              <h4 className="font-bold mb-2 flex items-center gap-2">
-                <LinkIcon className="w-4 h-4" />
-                Citations
-              </h4>
-              <div className="space-y-2">
-                {citations.map((citation, ci) => (
-                  <ChunkItem key={ci}>
-                    <p className="">
-                      <strong>Citation:</strong> {citation.text}
-                    </p>
-                    <div className="flex gap-2 text-xs mt-1">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">{citation.type}</span>
-                      <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded">{citation.format}</span>
-                    </div>
-                    {citation.associatedBibliography && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        <strong>Associated bibliography:</strong> {citation.associatedBibliography}
-                        {citation.format &&
-                          references[citation.indexOfAssociatedBibliography - 1]?.hasAssociatedSupportingDocument && (
-                            <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                              <strong>Related supporting document:</strong>
-                              <FileIcon className="w-3 h-3" />
-                              {
-                                supportingFiles[
-                                  references[citation.indexOfAssociatedBibliography - 1]
-                                    ?.indexOfAssociatedSupportingDocument - 1
-                                ]?.fileName
-                              }
-                            </div>
-                          )}
-                        {citation.indexOfAssociatedBibliography &&
-                          references[citation.indexOfAssociatedBibliography - 1] &&
-                          !references[citation.indexOfAssociatedBibliography - 1].hasAssociatedSupportingDocument && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              <strong>No related supporting document:</strong>
-                            </div>
-                          )}
-                      </div>
-                    )}
-                  </ChunkItem>
-                ))}
-              </div>
-            </div>
+            <Accordion type="single" collapsible className="border rounded-lg">
+              <AccordionItem value="citations" className="border-none">
+                <AccordionTrigger className="px-4 py-2 hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <LinkIcon className="w-4 h-4" />
+                    <span className="font-bold">Citations ({citations.length})</span>
+                    <span className="text-xs text-muted-foreground font-normal">
+                      {citations.filter((c) => c.associatedBibliography).length} with bibliography
+                    </span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <div className="space-y-2">
+                    {citations.map((citation, ci) => (
+                      <ChunkItem key={ci}>
+                        <p className="">
+                          <strong>Citation:</strong> {citation.text}
+                        </p>
+                        <div className="flex gap-2 text-xs mt-1">
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">{citation.type}</span>
+                          <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded">{citation.format}</span>
+                        </div>
+                        {citation.associatedBibliography && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            <strong>Associated bibliography:</strong> {citation.associatedBibliography}
+                            {citation.format &&
+                              references[citation.indexOfAssociatedBibliography - 1]
+                                ?.hasAssociatedSupportingDocument && (
+                                <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                  <strong>Related supporting document:</strong>
+                                  <FileIcon className="w-3 h-3" />
+                                  {
+                                    supportingFiles[
+                                      references[citation.indexOfAssociatedBibliography - 1]
+                                        ?.indexOfAssociatedSupportingDocument - 1
+                                    ]?.fileName
+                                  }
+                                </div>
+                              )}
+                            {citation.indexOfAssociatedBibliography &&
+                              references[citation.indexOfAssociatedBibliography - 1] &&
+                              !references[citation.indexOfAssociatedBibliography - 1]
+                                .hasAssociatedSupportingDocument && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  <strong>No related supporting document:</strong>
+                                </div>
+                              )}
+                          </div>
+                        )}
+                      </ChunkItem>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           )}
 
           {sortedCitationSuggestions && sortedCitationSuggestions.length > 0 && (
-            <div>
-              <h4 className="font-bold mb-2 flex items-center gap-2">
-                <LinkIcon className="w-4 h-4" />
-                Citation Suggestions
-              </h4>
-              <div className="space-y-4">
-                {sortedCitationSuggestions.map((suggestion, si) => {
-                  const sortedRefs = [...(suggestion.relevantReferences || [])].sort(
-                    (a, b) => scoreReference(b) - scoreReference(a),
-                  );
-                  return (
-                    <div key={si} className="space-y-3">
-                      <div className="text-sm text-muted-foreground">
-                        <strong>
-                          Claim {suggestion.claimIndex !== undefined ? suggestion.claimIndex + 1 : 'Unknown'}:
-                        </strong>{' '}
-                        {suggestion.rationale}
-                      </div>
-                      <div className="space-y-3">
-                        {sortedRefs.map((reference, ri) => (
-                          <ChunkItem key={ri}>
-                            <div className="space-y-2">
-                              <div className="flex items-start justify-between">
-                                <h5 className="font-medium text-sm">{reference.title}</h5>
-                                <div className="flex items-center gap-2">
-                                  <span
-                                    className={`px-2 py-1 rounded text-xs ${
-                                      reference.type === 'article'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : reference.type === 'book'
-                                          ? 'bg-green-100 text-green-800'
-                                          : reference.type === 'webpage'
-                                            ? 'bg-purple-100 text-purple-800'
-                                            : 'bg-gray-100 text-gray-800'
-                                    }`}
-                                  >
-                                    {reference.type}
-                                  </span>
-                                  <span
-                                    className={`px-2 py-1 rounded text-xs ${
-                                      reference.recommendedAction === 'add_citation'
-                                        ? 'bg-green-100 text-green-800'
-                                        : reference.recommendedAction === 'replace_existing_reference'
-                                          ? 'bg-yellow-100 text-yellow-800'
-                                          : reference.recommendedAction === 'discuss_reference'
+            <Accordion type="single" collapsible className="border rounded-lg">
+              <AccordionItem value="suggestions" className="border-none">
+                <AccordionTrigger className="px-4 py-2 hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <LinkIcon className="w-4 h-4 text-purple-600" />
+                    <span className="font-bold">Citation Suggestions ({sortedCitationSuggestions.length})</span>
+                    <span className="text-xs text-muted-foreground font-normal">
+                      {sortedCitationSuggestions.reduce((sum, s) => sum + (s.relevantReferences?.length || 0), 0)} total
+                      references
+                    </span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <div className="space-y-4">
+                    {sortedCitationSuggestions.map((suggestion, si) => {
+                      const sortedRefs = [...(suggestion.relevantReferences || [])].sort(
+                        (a, b) => scoreReference(b) - scoreReference(a),
+                      );
+                      return (
+                        <div key={si} className="space-y-3">
+                          <div className="text-sm text-muted-foreground">
+                            <strong>
+                              Claim {suggestion.claimIndex !== undefined ? suggestion.claimIndex + 1 : 'Unknown'}:
+                            </strong>{' '}
+                            {suggestion.rationale}
+                          </div>
+                          <div className="space-y-3">
+                            {sortedRefs.map((reference, ri) => (
+                              <ChunkItem key={ri}>
+                                <div className="space-y-2">
+                                  <div className="flex items-start justify-between">
+                                    <h5 className="font-medium text-sm">{reference.title}</h5>
+                                    <div className="flex items-center gap-2">
+                                      <span
+                                        className={`px-2 py-1 rounded text-xs ${
+                                          reference.type === 'article'
                                             ? 'bg-blue-100 text-blue-800'
-                                            : reference.recommendedAction === 'no_action'
-                                              ? 'bg-gray-100 text-gray-800'
-                                              : 'bg-orange-100 text-orange-800'
-                                    }`}
-                                  >
-                                    {reference.recommendedAction.replace('_', ' ')}
-                                  </span>
-                                  <span
-                                    className={`px-2 py-1 rounded text-xs ${confidenceBadgeClasses(reference.confidenceInRecommendation)}`}
-                                  >
-                                    {toTitleCase(reference.confidenceInRecommendation)} Confidence
-                                  </span>
-                                  <span
-                                    className={`px-2 py-1 rounded text-xs ${qualityBadgeClasses(reference.publicationQuality)}`}
-                                  >
-                                    {toTitleCase(reference.publicationQuality)}
-                                  </span>
+                                            : reference.type === 'book'
+                                              ? 'bg-green-100 text-green-800'
+                                              : reference.type === 'webpage'
+                                                ? 'bg-purple-100 text-purple-800'
+                                                : 'bg-gray-100 text-gray-800'
+                                        }`}
+                                      >
+                                        {reference.type}
+                                      </span>
+                                      <span
+                                        className={`px-2 py-1 rounded text-xs ${
+                                          reference.recommendedAction === 'add_citation'
+                                            ? 'bg-green-100 text-green-800'
+                                            : reference.recommendedAction === 'replace_existing_reference'
+                                              ? 'bg-yellow-100 text-yellow-800'
+                                              : reference.recommendedAction === 'discuss_reference'
+                                                ? 'bg-blue-100 text-blue-800'
+                                                : reference.recommendedAction === 'no_action'
+                                                  ? 'bg-gray-100 text-gray-800'
+                                                  : 'bg-orange-100 text-orange-800'
+                                        }`}
+                                      >
+                                        {reference.recommendedAction.replace('_', ' ')}
+                                      </span>
+                                      <span
+                                        className={`px-2 py-1 rounded text-xs ${confidenceBadgeClasses(reference.confidenceInRecommendation)}`}
+                                      >
+                                        {toTitleCase(reference.confidenceInRecommendation)} Confidence
+                                      </span>
+                                      <span
+                                        className={`px-2 py-1 rounded text-xs ${qualityBadgeClasses(reference.publicationQuality)}`}
+                                      >
+                                        {toTitleCase(reference.publicationQuality)}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <div className="text-xs text-muted-foreground">
+                                    <p>
+                                      <strong>Link:</strong>{' '}
+                                      <a
+                                        href={reference.link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:underline"
+                                      >
+                                        {reference.link}
+                                      </a>
+                                    </p>
+                                  </div>
+
+                                  <div className="text-xs">
+                                    <p>
+                                      <strong>Bibliography Entry:</strong>
+                                    </p>
+                                    <p className="text-muted-foreground italic">{reference.bibliographyInfo}</p>
+                                  </div>
+
+                                  <div className="text-xs">
+                                    <p>
+                                      <strong>Related Excerpt:</strong>
+                                    </p>
+                                    <p className="text-muted-foreground">&quot;{reference.relatedExcerpt}&quot;</p>
+                                  </div>
+
+                                  <div className="text-xs">
+                                    <p>
+                                      <strong>Rationale:</strong>
+                                    </p>
+                                    <p className="text-muted-foreground">{reference.rationale}</p>
+                                  </div>
+
+                                  <div className="text-xs">
+                                    <p>
+                                      <strong>Recommended Action:</strong>
+                                    </p>
+                                    <p className="text-muted-foreground">{reference.explanationForRecommendedAction}</p>
+                                  </div>
                                 </div>
-                              </div>
-
-                              <div className="text-xs text-muted-foreground">
-                                <p>
-                                  <strong>Link:</strong>{' '}
-                                  <a
-                                    href={reference.link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline"
-                                  >
-                                    {reference.link}
-                                  </a>
-                                </p>
-                              </div>
-
-                              <div className="text-xs">
-                                <p>
-                                  <strong>Bibliography Entry:</strong>
-                                </p>
-                                <p className="text-muted-foreground italic">{reference.bibliographyInfo}</p>
-                              </div>
-
-                              <div className="text-xs">
-                                <p>
-                                  <strong>Related Excerpt:</strong>
-                                </p>
-                                <p className="text-muted-foreground">&quot;{reference.relatedExcerpt}&quot;</p>
-                              </div>
-
-                              <div className="text-xs">
-                                <p>
-                                  <strong>Rationale:</strong>
-                                </p>
-                                <p className="text-muted-foreground">{reference.rationale}</p>
-                              </div>
-
-                              <div className="text-xs">
-                                <p>
-                                  <strong>Recommended Action:</strong>
-                                </p>
-                                <p className="text-muted-foreground">{reference.explanationForRecommendedAction}</p>
-                              </div>
-                            </div>
-                          </ChunkItem>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+                              </ChunkItem>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           )}
 
           <ChunkReevaluateControl
