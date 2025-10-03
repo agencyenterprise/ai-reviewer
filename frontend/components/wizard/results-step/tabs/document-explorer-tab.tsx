@@ -7,13 +7,12 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { claimCategoryBaseColors, classifyChunk } from '@/lib/claim-classification';
 import {
   ChunkReevaluationResponse,
-  CitationSuggestionResultWithClaimIndexOutput,
   ClaimSubstantiatorStateOutput,
   DocumentChunkOutput,
   RecommendedAction,
-  Reference,
 } from '@/lib/generated-api';
 import { getMaxSeverity } from '@/lib/severity';
+import { scoreReference, scoreSuggestion } from '@/lib/reference-scoring';
 import { AlertTriangleIcon, ChevronRight, FileIcon, Link as LinkIcon, MessageCirclePlus } from 'lucide-react';
 import * as React from 'react';
 import { ChunkItem } from '../components/chunk-display';
@@ -28,33 +27,6 @@ import { useSupportedAgents } from '../hooks/use-supported-agents';
 interface DocumentExplorerTabProps {
   results: ClaimSubstantiatorStateOutput;
   onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
-}
-
-// Helper functions for sorting citation suggestions
-const confidenceRank: Record<string, number> = {
-  high: 3,
-  medium: 2,
-  low: 1,
-};
-
-const qualityRank: Record<string, number> = {
-  high_impact_publication: 4,
-  medium_impact_publication: 3,
-  low_impact_publication: 2,
-  not_a_publication: 1,
-};
-
-function scoreReference(ref: Reference) {
-  const c =
-    confidenceRank[(ref?.confidenceInRecommendation || '').toLowerCase?.() || ref?.confidenceInRecommendation] || 0;
-  const q = qualityRank[(ref?.publicationQuality || '').toLowerCase?.() || ref?.publicationQuality] || 0;
-  return c * 10 + q; // weight confidence higher than quality
-}
-
-function scoreSuggestion(s: CitationSuggestionResultWithClaimIndexOutput) {
-  const refs = s?.relevantReferences || [];
-  if (refs.length === 0) return 0;
-  return Math.max(...refs.map(scoreReference));
 }
 
 export function DocumentExplorerTab({ results, onChunkReevaluation }: DocumentExplorerTabProps) {
