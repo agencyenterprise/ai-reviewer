@@ -62,12 +62,12 @@ class ClaimCommonKnowledgeResultWithClaimIndex(ClaimCommonKnowledgeResult):
 _claim_common_knowledge_checker_prompt = ChatPromptTemplate.from_template(
     """
 # Task
-You will be given a chunk of text from a document, a claim that is inferred from that chunk of text, and the list of references cited in this chunk of text to support the claim and their associated supporting document (if any). Your task is to determine if this claim represents common knowledge in the domain or not, and whether the claim can be considered common knowledge, and whether the claim needs to be substantiated by references/evidence or not. 
+You will be given a chunk of text from a document, a claim that is inferred from that chunk of text, and the list of references cited in this chunk of text to support the claim and their associated supporting document (if any). Your task is to determine if this claim represents common knowledge in the domain or not, and whether the claim can be considered common knowledge, and whether the claim needs to be substantiated by references/evidence or not.
 
 Return:
 - is_common_knowledge: A boolean value indicating whether the claim represents common knowledge in the domain
   - Make specific quantitative assertions ("most", "majority", "significant portion") without supporting data
-  - Use vague qualifiers that need clarification ("for the most part", "largely", "typically")  
+  - Use vague qualifiers that need clarification ("for the most part", "largely", "typically")
   - Could benefit from more precise language or supporting evidence for the intended audience
 - common_knowledge_types: A list of the type(s) of common knowledge that the claim represents (if any)
 - claim_types: A list of the type(s) of the claim
@@ -79,7 +79,7 @@ Return:
 **Important guidance on substantiation needs:**
 Set `needs_substantiation` to **False** for:
 - Well-established facts widely known in the domain
-- Basic definitions and terminology 
+- Basic definitions and terminology
 - Logical deductions that follow clearly from stated premises
 - General principles universally accepted in the field
 - Simple factual statements readily available in reference sources
@@ -93,12 +93,8 @@ Set `needs_substantiation` to **True** for:
 - Causal claims or complex explanatory mechanisms
 - Contested or debatable assertions
 
-
-## Document-Specific Context
-### Domain: 
 {domain_context}
 
-### Target Audience:
 {audience_context}
 
 ## General Evaluation Framework
