@@ -40,7 +40,7 @@ def build_claim_substantiator_graph(
         graph.add_node("literature_review", literature_review)
     if run_suggest_citations:
         graph.add_node("summarize_supporting_documents", summarize_supporting_documents)
-        graph.add_node("suggest_citations", suggest_citations)
+        graph.add_node("suggest_citations", suggest_citations, defer=True)
     graph.add_node("split_into_chunks", split_into_chunks)
     graph.add_node(
         "detect_claims", detect_claims if not use_toulmin else detect_claims_toulmin
