@@ -21,6 +21,19 @@ class RecommendedAction(str, Enum):
     OTHER = "other"
 
 
+class PublicationQuality(str, Enum):  # TODO: play with these options
+    HIGH_IMPACT_PUBLICATION = "high_impact_publication"
+    MEDIUM_IMPACT_PUBLICATION = "medium_impact_publication"
+    LOW_IMPACT_PUBLICATION = "low_impact_publication"
+    NOT_A_PUBLICATION = "not_a_publication"
+
+
+class ConfidenceInRecommendation(str, Enum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
 class Reference(BaseModel):
     title: str = Field(
         description="Canonical title for the reference exactly as it should appear in the article's bibliography"
@@ -33,6 +46,9 @@ class Reference(BaseModel):
     )
     bibliography_info: str = Field(
         description="Bibliography entry formatted in the article's style; reuse the existing entry when the source is already in the bibliography"
+    )
+    publication_quality: PublicationQuality = Field(
+        description="The quality of the publication that carries the suggested reference"
     )
     related_excerpt: str = Field(
         description="Exact sentence or excerpt from the provided material that should cite or discuss this reference"
@@ -48,6 +64,9 @@ class Reference(BaseModel):
     )
     explanation_for_recommended_action: str = Field(
         description="Specific guidance for applying the recommended action, including citation placement or text revisions"
+    )
+    confidence_in_recommendation: ConfidenceInRecommendation = Field(
+        description="The confidence in the recommendation"
     )
 
 

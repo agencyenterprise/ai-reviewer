@@ -76,14 +76,10 @@ class OpenAIWrapper(LLMClient):
             )
             while self.resp.status in {"queued", "in_progress"}:
                 self.status = self.resp.status
-                logger.info(
-                    f"Call id: {self.resp.id} => Current status: {self.resp.status}"
-                )
                 sleep(2)
                 self.resp = await self.client.responses.retrieve(self.resp.id)
-
                 logger.info(
-                    f"Final status: {self.resp.status}\nOutput:\n{self.resp.output_text}"
+                    f"Call id: {self.resp.id} => Current status: {self.resp.status}... Checking back in 2 seconds"
                 )
             self.status = self.resp.status
             return (

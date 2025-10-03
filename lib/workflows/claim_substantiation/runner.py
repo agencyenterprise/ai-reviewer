@@ -14,8 +14,8 @@ from lib.workflows.claim_substantiation.graph import build_claim_substantiator_g
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     SubstantiationWorkflowConfig,
-    WorkflowError,
 )
+from lib.workflows.models import WorkflowError
 
 logger = logging.getLogger(__name__)
 
