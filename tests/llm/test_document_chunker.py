@@ -42,7 +42,6 @@ def _build_cases() -> list[AgentTestCase]:
                 expected_dict=test_case.expected_output,
                 strict_fields=strict_fields,
                 llm_fields=llm_fields,
-                run_count=run_count,
             )
         )
 

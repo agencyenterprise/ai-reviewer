@@ -36,3 +36,64 @@ dataset:
         rationale: "The claim is directly contradicted by the cited supporting document. Smith & Anderson (2017) found 'conclusive evidence that smartphone use has no effect on writing ability of users,' which contradicts the claim of a positive impact."
         feedback: "The claim should be corrected to align with the cited research findings, or the citation should be removed and replaced with supporting evidence that actually demonstrates a positive impact."
         severity: 4
+
+    - name: "substantiation_crypto_shift_claim"
+      description: "Test case for jurisdiction claim with adequate supporting evidence"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        supporting_documents:
+          - "data/cryptocurrency-and-blockchain-minimal/ref3.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref5.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref6.pdf"
+        chunk: "This shift of activity into digital spaces has presented a multitude of difficulties, as well as opportunities, for criminal justice practitioners (Goodison, Davis, and Jackson, 2015; Tanneeru, 2009; Vermeer, Woods, and Jackson, 2018)"
+        claim: "The shift of activity into digital spaces has created many difficulties and opportunities for criminal justice practitioners."
+      expected_output:
+        is_substantiated: true
+        rationale: "Goodison et al. (2015) explicitly state that digital devices are ubiquitous and digital evidence is increasingly important to investigations and prosecutions (opportunities) while detailing significant challenges such as training gaps, courtroom understanding, and examiner backlogs. Vermeer et al. (2018) describes multifaceted legal, procedural, and technical difficulties in accessing remotely held digital evidence and identifies needs to improve access (difficulties and implied opportunities). Tanneeru (2009) reports experts noting that law lags behind technology and highlights emerging legal issues (jurisdiction, privacy, defamation), demonstrating difficulties posed by digital spaces. Together, these sources substantiate that the digital shift creates both difficulties and opportunities for criminal justice practitioners."
+        feedback: "No changes needed."
+        severity: 0
+
+    - name: "substantiation_crypto_shift_claim_unverifiable"
+      description: "Test case for jurisdiction claim with unverifiable supporting evidence"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        supporting_documents: []
+        chunk: "This shift of activity into digital spaces has presented a multitude of difficulties, as well as opportunities, for criminal justice practitioners (Goodison, Davis, and Jackson, 2015; Tanneeru, 2009; Vermeer, Woods, and Jackson, 2018)"
+        claim: "The shift of activity into digital spaces has created many difficulties and opportunities for criminal justice practitioners."
+      expected_output:
+        is_substantiated: false
+        rationale: "No supporting documents are provided, so the claim cannot be substantiated."
+        feedback: "Provide supporting documents that substantiate the claim."
+        severity: 1
+
+    - name: "substantiation_crypto_shift_claim_negated"
+      description: "Test case for jurisdiction claim with a negated claim, making it unsupported"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/_false_claims.md"
+        supporting_documents:
+          - "data/cryptocurrency-and-blockchain-minimal/ref3.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref5.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref6.pdf"
+        chunk: "This shift of activity into digital spaces has not presented any difficulties, nor opportunities, for criminal justice practitioners (Goodison, Davis, and Jackson, 2015; Tanneeru, 2009; Vermeer, Woods, and Jackson, 2018)"
+        claim: "The shift of activity into digital spaces has not presented any difficulties or opportunities for criminal justice practitioners."
+      expected_output:
+        is_substantiated: false
+        rationale: "All three cited sources explicitly describe significant difficulties and, in places, opportunities arising from the shift to digital spaces. Goodison, Davis, and Jackson (2015) report “significant challenges” in using digital evidence (training gaps for officers, prosecutors, and judges; backlogs; need for triage tools) and even reference “digital evidence opportunities and challenges.” Vermeer, Woods, and Jackson (2018) state that accessing remotely held digital evidence involves multifaceted legal, procedural, and technical difficulties and detail needs to improve MLAT processes, standards, and training. Tanneeru (2009) highlights that law lags technology and raises jurisdictional and legal complexity online. These directly contradict the claim that the shift has not presented any difficulties or opportunities."
+        feedback: "The sentence appears to contain an erroneous negation."
+        severity: 4
+
+    - name: "substantiation_crypto_wrong_citation"
+      description: "Correct claim but citing references don't substantiate it"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/_wrong_citation.md"
+        supporting_documents:
+          - "data/cryptocurrency-and-blockchain-minimal/ref3.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref5.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref6.pdf"
+        chunk: "According to Goodison, Davis, and Jackson (2015), blockchain is a decentralized digital ledger system that records transactions across a network of computers in a way that makes the data nearly impossible to alter without detection."
+        claim: "Blockchain is a decentralized digital ledger system that records transactions across a network of computers in a way that makes the data nearly impossible to alter without detection."
+      expected_output:
+        is_substantiated: false
+        rationale: "None of the cited sources explicitly state that blockchain is a decentralized digital ledger system that records transactions across a network of computers in a way that makes the data nearly impossible to alter without detection."
+        feedback: "Provide references that explicitly support the claim."
+        severity: 4

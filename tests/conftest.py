@@ -97,8 +97,8 @@ def pytest_runtest_makereport(item, call):
                     "prompt_kwargs": {
                         # Truncate large fields for readability
                         k: (
-                            v[:200] + "..."
-                            if isinstance(v, str) and len(v) > 200
+                            v[:5000] + "... [Truncated]"
+                            if isinstance(v, str) and len(v) > 5000
                             else v
                         )
                         for k, v in case.prompt_kwargs.items()

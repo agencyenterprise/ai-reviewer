@@ -1,29 +1,40 @@
 """Claim substantiator specific test utilities."""
 
 import asyncio
+import re
 from typing import Optional
 
 from lib.agents.claim_substantiator import (
     ClaimSubstantiationResult,
     claim_substantiator_agent,
 )
-from lib.agents.formatting_utils import format_domain_context, format_audience_context
+from lib.agents.formatting_utils import (
+    format_audience_context,
+    format_cited_references,
+    format_domain_context,
+    format_supporting_documents_prompt_section,
+)
 from lib.models.agent_test_case import AgentTestCase
 from tests.conftest import TESTS_DIR, build_supporting_documents_block, load_document
 from tests.datasets.loader import load_dataset
 
 
-def extract_paragraph_from_chunk(chunk: str) -> str:
+def extract_paragraph_from_chunk(full_document: str, chunk: str) -> str:
     """
     Extract paragraph context from chunk.
 
-    For test purposes, we use the chunk itself as the paragraph since
-    we don't have the full paragraph structure from the LLM chunker.
+    For test purposes, we detect the paragraph that contains the chunk breaking the full document into paragraphs.
 
     In production, state.get_paragraph(chunk.paragraph_index) reconstructs
     the full paragraph from all chunks sharing the same paragraph_index.
     """
-    return chunk
+
+    paragraphs = full_document.split("\n")
+    for paragraph in paragraphs:
+        if chunk in paragraph:
+            return paragraph
+
+    raise ValueError(f"Chunk not found in full document: {chunk}")
 
 
 def build_test_cases_from_dataset(
@@ -65,10 +76,10 @@ def build_test_cases_from_dataset(
         main_doc = asyncio.run(load_document(test_case.input["main_document"]))
 
         # Build supporting documents block if provided
-        supporting_docs = test_case.input.get("supporting_documents", [])
-        supporting_documents_block = asyncio.run(
-            build_supporting_documents_block(supporting_docs)
-        )
+        supporting_docs = [
+            asyncio.run(load_document(supporting_doc))
+            for supporting_doc in test_case.input.get("supporting_documents", [])
+        ]
 
         # Extract inputs
         chunk = test_case.input["chunk"]
@@ -79,7 +90,14 @@ def build_test_cases_from_dataset(
         # Extract paragraph from chunk
         # Note: In production, this would be state.get_paragraph(paragraph_index)
         # For tests, we use the chunk itself as a reasonable approximation
-        paragraph = extract_paragraph_from_chunk(chunk)
+        paragraph = extract_paragraph_from_chunk(main_doc.markdown, chunk)
+
+        cited_references = ""
+        for supporting_doc in supporting_docs:
+            cited_references += format_supporting_documents_prompt_section(
+                supporting_doc
+            )
+            cited_references += "\n\n"
 
         # Build prompt kwargs
         prompt_kwargs = {
@@ -87,7 +105,7 @@ def build_test_cases_from_dataset(
             "paragraph": paragraph,
             "chunk": chunk,
             "claim": claim_text,
-            "cited_references": supporting_documents_block,
+            "cited_references": cited_references,
             "cited_references_paragraph": "",
             "domain_context": format_domain_context(domain),
             "audience_context": format_audience_context(target_audience),
