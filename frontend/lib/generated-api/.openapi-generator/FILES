@@ -20,11 +20,13 @@ models/ClaimSubstantiatorStateOutput.ts
 models/ClaimType.ts
 models/Claims.ts
 models/CommonKnowledgeType.ts
+models/ConfidenceInRecommendation.ts
 models/DocumentChunkInput.ts
 models/DocumentChunkOutput.ts
 models/EvalPackageRequest.ts
 models/FileDocument.ts
 models/HTTPValidationError.ts
+models/PublicationQuality.ts
 models/RecommendedAction.ts
 models/Reference.ts
 models/ReferenceType.ts

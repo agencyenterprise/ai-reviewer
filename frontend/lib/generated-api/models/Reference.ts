@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { ConfidenceInRecommendation } from './ConfidenceInRecommendation';
+import {
+  ConfidenceInRecommendationFromJSON,
+  ConfidenceInRecommendationFromJSONTyped,
+  ConfidenceInRecommendationToJSON,
+  ConfidenceInRecommendationToJSONTyped,
+} from './ConfidenceInRecommendation';
 import type { RecommendedAction } from './RecommendedAction';
 import {
   RecommendedActionFromJSON,
@@ -20,6 +27,13 @@ import {
   RecommendedActionToJSON,
   RecommendedActionToJSONTyped,
 } from './RecommendedAction';
+import type { PublicationQuality } from './PublicationQuality';
+import {
+  PublicationQualityFromJSON,
+  PublicationQualityFromJSONTyped,
+  PublicationQualityToJSON,
+  PublicationQualityToJSONTyped,
+} from './PublicationQuality';
 import type { ReferenceType } from './ReferenceType';
 import {
   ReferenceTypeFromJSON,
@@ -59,6 +73,12 @@ export interface Reference {
    */
   bibliographyInfo: string;
   /**
+   * The quality of the publication that carries the suggested reference
+   * @type {PublicationQuality}
+   * @memberof Reference
+   */
+  publicationQuality: PublicationQuality;
+  /**
    * Exact sentence or excerpt from the provided material that should cite or discuss this reference
    * @type {string}
    * @memberof Reference
@@ -82,6 +102,12 @@ export interface Reference {
    * @memberof Reference
    */
   explanationForRecommendedAction: string;
+  /**
+   * The confidence in the recommendation
+   * @type {ConfidenceInRecommendation}
+   * @memberof Reference
+   */
+  confidenceInRecommendation: ConfidenceInRecommendation;
 }
 
 /**
@@ -92,11 +118,13 @@ export function instanceOfReference(value: object): value is Reference {
   if (!('type' in value) || value['type'] === undefined) return false;
   if (!('link' in value) || value['link'] === undefined) return false;
   if (!('bibliographyInfo' in value) || value['bibliographyInfo'] === undefined) return false;
+  if (!('publicationQuality' in value) || value['publicationQuality'] === undefined) return false;
   if (!('relatedExcerpt' in value) || value['relatedExcerpt'] === undefined) return false;
   if (!('rationale' in value) || value['rationale'] === undefined) return false;
   if (!('recommendedAction' in value) || value['recommendedAction'] === undefined) return false;
   if (!('explanationForRecommendedAction' in value) || value['explanationForRecommendedAction'] === undefined)
     return false;
+  if (!('confidenceInRecommendation' in value) || value['confidenceInRecommendation'] === undefined) return false;
   return true;
 }
 
@@ -113,10 +141,12 @@ export function ReferenceFromJSONTyped(json: any, ignoreDiscriminator: boolean):
     type: ReferenceTypeFromJSON(json['type']),
     link: json['link'],
     bibliographyInfo: json['bibliography_info'],
+    publicationQuality: PublicationQualityFromJSON(json['publication_quality']),
     relatedExcerpt: json['related_excerpt'],
     rationale: json['rationale'],
     recommendedAction: RecommendedActionFromJSON(json['recommended_action']),
     explanationForRecommendedAction: json['explanation_for_recommended_action'],
+    confidenceInRecommendation: ConfidenceInRecommendationFromJSON(json['confidence_in_recommendation']),
   };
 }
 
@@ -134,9 +164,11 @@ export function ReferenceToJSONTyped(value?: Reference | null, ignoreDiscriminat
     type: ReferenceTypeToJSON(value['type']),
     link: value['link'],
     bibliography_info: value['bibliographyInfo'],
+    publication_quality: PublicationQualityToJSON(value['publicationQuality']),
     related_excerpt: value['relatedExcerpt'],
     rationale: value['rationale'],
     recommended_action: RecommendedActionToJSON(value['recommendedAction']),
     explanation_for_recommended_action: value['explanationForRecommendedAction'],
+    confidence_in_recommendation: ConfidenceInRecommendationToJSON(value['confidenceInRecommendation']),
   };
 }

@@ -97,6 +97,12 @@ export interface ClaimSubstantiatorStateOutput {
    * @memberof ClaimSubstantiatorStateOutput
    */
   literatureReview?: string | null;
+  /**
+   *
+   * @type {boolean}
+   * @memberof ClaimSubstantiatorStateOutput
+   */
+  citationsReady?: boolean;
 }
 
 /**
@@ -129,6 +135,7 @@ export function ClaimSubstantiatorStateOutputFromJSONTyped(
     chunks: json['chunks'] == null ? undefined : (json['chunks'] as Array<any>).map(DocumentChunkOutputFromJSON),
     errors: json['errors'] == null ? undefined : (json['errors'] as Array<any>).map(WorkflowErrorFromJSON),
     literatureReview: json['literature_review'] == null ? undefined : json['literature_review'],
+    citationsReady: json['citations_ready'] == null ? undefined : json['citations_ready'],
   };
 }
 
@@ -154,5 +161,6 @@ export function ClaimSubstantiatorStateOutputToJSONTyped(
     chunks: value['chunks'] == null ? undefined : (value['chunks'] as Array<any>).map(DocumentChunkOutputToJSON),
     errors: value['errors'] == null ? undefined : (value['errors'] as Array<any>).map(WorkflowErrorToJSON),
     literature_review: value['literatureReview'],
+    citations_ready: value['citationsReady'],
   };
 }
