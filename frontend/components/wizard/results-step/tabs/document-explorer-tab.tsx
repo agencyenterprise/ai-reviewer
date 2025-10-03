@@ -4,7 +4,13 @@ import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Markdown } from '@/components/markdown';
 import { Badge } from '@/components/ui/badge';
 import { claimCategoryBaseColors, classifyChunk } from '@/lib/claim-classification';
-import { ChunkReevaluationResponse, ClaimSubstantiatorStateOutput, DocumentChunkOutput } from '@/lib/generated-api';
+import {
+  ChunkReevaluationResponse,
+  CitationSuggestionResultWithClaimIndexOutput,
+  ClaimSubstantiatorStateOutput,
+  DocumentChunkOutput,
+  Reference,
+} from '@/lib/generated-api';
 import { getMaxSeverity } from '@/lib/severity';
 import { AlertTriangleIcon, ChevronRight, FileIcon, Link as LinkIcon, MessageCirclePlus } from 'lucide-react';
 import * as React from 'react';
@@ -20,6 +26,33 @@ import { useSupportedAgents } from '../hooks/use-supported-agents';
 interface DocumentExplorerTabProps {
   results: ClaimSubstantiatorStateOutput;
   onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
+}
+
+// Helper functions for sorting citation suggestions
+const confidenceRank: Record<string, number> = {
+  high: 3,
+  medium: 2,
+  low: 1,
+};
+
+const qualityRank: Record<string, number> = {
+  high_impact_publication: 4,
+  medium_impact_publication: 3,
+  low_impact_publication: 2,
+  not_a_publication: 1,
+};
+
+function scoreReference(ref: Reference) {
+  const c =
+    confidenceRank[(ref?.confidenceInRecommendation || '').toLowerCase?.() || ref?.confidenceInRecommendation] || 0;
+  const q = qualityRank[(ref?.publicationQuality || '').toLowerCase?.() || ref?.publicationQuality] || 0;
+  return c * 10 + q; // weight confidence higher than quality
+}
+
+function scoreSuggestion(s: CitationSuggestionResultWithClaimIndexOutput) {
+  const refs = s?.relevantReferences || [];
+  if (refs.length === 0) return 0;
+  return Math.max(...refs.map(scoreReference));
 }
 
 export function DocumentExplorerTab({ results, onChunkReevaluation }: DocumentExplorerTabProps) {
@@ -79,6 +112,30 @@ export function DocumentExplorerChunk({
   const maxSeverity = getMaxSeverity(substantiations);
   const errors = results.errors || [];
   const chunkErrors = errors.filter((error) => error.chunkIndex === chunk.chunkIndex);
+
+  const sortedCitationSuggestions = React.useMemo(() => {
+    const suggestions = chunk.citationSuggestions || [];
+    return [...suggestions].sort((a, b) => scoreSuggestion(b) - scoreSuggestion(a));
+  }, [chunk.citationSuggestions]);
+
+  function toTitleCase(s: string) {
+    return s?.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()) || '';
+  }
+
+  function confidenceBadgeClasses(conf: string) {
+    const k = (conf || '').toLowerCase();
+    if (k === 'high') return 'bg-green-100 text-green-800';
+    if (k === 'medium') return 'bg-yellow-100 text-yellow-800';
+    return 'bg-gray-100 text-gray-800';
+  }
+
+  function qualityBadgeClasses(qual: string) {
+    const k = (qual || '').toLowerCase();
+    if (k === 'high_impact_publication') return 'bg-emerald-100 text-emerald-800';
+    if (k === 'medium_impact_publication') return 'bg-teal-100 text-teal-800';
+    if (k === 'low_impact_publication') return 'bg-slate-100 text-slate-700';
+    return 'bg-neutral-100 text-neutral-800';
+  }
 
   return (
     <div>
@@ -211,106 +268,121 @@ export function DocumentExplorerChunk({
             </div>
           )}
 
-          {chunk.citationSuggestions && chunk.citationSuggestions.length > 0 && (
+          {sortedCitationSuggestions && sortedCitationSuggestions.length > 0 && (
             <div>
               <h4 className="font-bold mb-2 flex items-center gap-2">
                 <LinkIcon className="w-4 h-4" />
                 Citation Suggestions
               </h4>
               <div className="space-y-4">
-                {chunk.citationSuggestions.map((suggestion, si) => (
-                  <div key={si} className="space-y-3">
-                    <div className="text-sm text-muted-foreground">
-                      <strong>
-                        Claim {suggestion.claimIndex !== undefined ? suggestion.claimIndex + 1 : 'Unknown'}:
-                      </strong>{' '}
-                      {suggestion.rationale}
-                    </div>
-                    <div className="space-y-3">
-                      {suggestion.relevantReferences.map((reference, ri) => (
-                        <ChunkItem key={ri}>
-                          <div className="space-y-2">
-                            <div className="flex items-start justify-between">
-                              <h5 className="font-medium text-sm">{reference.title}</h5>
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className={`px-2 py-1 rounded text-xs ${
-                                    reference.type === 'article'
-                                      ? 'bg-blue-100 text-blue-800'
-                                      : reference.type === 'book'
+                {sortedCitationSuggestions.map((suggestion, si) => {
+                  const sortedRefs = [...(suggestion.relevantReferences || [])].sort(
+                    (a, b) => scoreReference(b) - scoreReference(a),
+                  );
+                  return (
+                    <div key={si} className="space-y-3">
+                      <div className="text-sm text-muted-foreground">
+                        <strong>
+                          Claim {suggestion.claimIndex !== undefined ? suggestion.claimIndex + 1 : 'Unknown'}:
+                        </strong>{' '}
+                        {suggestion.rationale}
+                      </div>
+                      <div className="space-y-3">
+                        {sortedRefs.map((reference, ri) => (
+                          <ChunkItem key={ri}>
+                            <div className="space-y-2">
+                              <div className="flex items-start justify-between">
+                                <h5 className="font-medium text-sm">{reference.title}</h5>
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={`px-2 py-1 rounded text-xs ${
+                                      reference.type === 'article'
+                                        ? 'bg-blue-100 text-blue-800'
+                                        : reference.type === 'book'
+                                          ? 'bg-green-100 text-green-800'
+                                          : reference.type === 'webpage'
+                                            ? 'bg-purple-100 text-purple-800'
+                                            : 'bg-gray-100 text-gray-800'
+                                    }`}
+                                  >
+                                    {reference.type}
+                                  </span>
+                                  <span
+                                    className={`px-2 py-1 rounded text-xs ${
+                                      reference.recommendedAction === 'add_citation'
                                         ? 'bg-green-100 text-green-800'
-                                        : reference.type === 'webpage'
-                                          ? 'bg-purple-100 text-purple-800'
-                                          : 'bg-gray-100 text-gray-800'
-                                  }`}
-                                >
-                                  {reference.type}
-                                </span>
-                                <span
-                                  className={`px-2 py-1 rounded text-xs ${
-                                    reference.recommendedAction === 'add_citation'
-                                      ? 'bg-green-100 text-green-800'
-                                      : reference.recommendedAction === 'replace_existing_reference'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : reference.recommendedAction === 'discuss_reference'
-                                          ? 'bg-blue-100 text-blue-800'
-                                          : reference.recommendedAction === 'no_action'
-                                            ? 'bg-gray-100 text-gray-800'
-                                            : 'bg-orange-100 text-orange-800'
-                                  }`}
-                                >
-                                  {reference.recommendedAction.replace('_', ' ')}
-                                </span>
+                                        : reference.recommendedAction === 'replace_existing_reference'
+                                          ? 'bg-yellow-100 text-yellow-800'
+                                          : reference.recommendedAction === 'discuss_reference'
+                                            ? 'bg-blue-100 text-blue-800'
+                                            : reference.recommendedAction === 'no_action'
+                                              ? 'bg-gray-100 text-gray-800'
+                                              : 'bg-orange-100 text-orange-800'
+                                    }`}
+                                  >
+                                    {reference.recommendedAction.replace('_', ' ')}
+                                  </span>
+                                  <span
+                                    className={`px-2 py-1 rounded text-xs ${confidenceBadgeClasses(reference.confidenceInRecommendation)}`}
+                                  >
+                                    {toTitleCase(reference.confidenceInRecommendation)} Confidence
+                                  </span>
+                                  <span
+                                    className={`px-2 py-1 rounded text-xs ${qualityBadgeClasses(reference.publicationQuality)}`}
+                                  >
+                                    {toTitleCase(reference.publicationQuality)}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="text-xs text-muted-foreground">
+                                <p>
+                                  <strong>Link:</strong>{' '}
+                                  <a
+                                    href={reference.link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline"
+                                  >
+                                    {reference.link}
+                                  </a>
+                                </p>
+                              </div>
+
+                              <div className="text-xs">
+                                <p>
+                                  <strong>Bibliography Entry:</strong>
+                                </p>
+                                <p className="text-muted-foreground italic">{reference.bibliographyInfo}</p>
+                              </div>
+
+                              <div className="text-xs">
+                                <p>
+                                  <strong>Related Excerpt:</strong>
+                                </p>
+                                <p className="text-muted-foreground">&quot;{reference.relatedExcerpt}&quot;</p>
+                              </div>
+
+                              <div className="text-xs">
+                                <p>
+                                  <strong>Rationale:</strong>
+                                </p>
+                                <p className="text-muted-foreground">{reference.rationale}</p>
+                              </div>
+
+                              <div className="text-xs">
+                                <p>
+                                  <strong>Recommended Action:</strong>
+                                </p>
+                                <p className="text-muted-foreground">{reference.explanationForRecommendedAction}</p>
                               </div>
                             </div>
-
-                            <div className="text-xs text-muted-foreground">
-                              <p>
-                                <strong>Link:</strong>{' '}
-                                <a
-                                  href={reference.link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:underline"
-                                >
-                                  {reference.link}
-                                </a>
-                              </p>
-                            </div>
-
-                            <div className="text-xs">
-                              <p>
-                                <strong>Bibliography Entry:</strong>
-                              </p>
-                              <p className="text-muted-foreground italic">{reference.bibliographyInfo}</p>
-                            </div>
-
-                            <div className="text-xs">
-                              <p>
-                                <strong>Related Excerpt:</strong>
-                              </p>
-                              <p className="text-muted-foreground">&quot;{reference.relatedExcerpt}&quot;</p>
-                            </div>
-
-                            <div className="text-xs">
-                              <p>
-                                <strong>Rationale:</strong>
-                              </p>
-                              <p className="text-muted-foreground">{reference.rationale}</p>
-                            </div>
-
-                            <div className="text-xs">
-                              <p>
-                                <strong>Recommended Action:</strong>
-                              </p>
-                              <p className="text-muted-foreground">{reference.explanationForRecommendedAction}</p>
-                            </div>
-                          </div>
-                        </ChunkItem>
-                      ))}
+                          </ChunkItem>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

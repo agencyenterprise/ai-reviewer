@@ -26,6 +26,15 @@ Given the full article and its extracted bibliography, identify references that 
 - Information about topics of discussion
 - Relevant high quality references about each topic and how they could fit in the document as citations.
 
+# Format
+Your report should be formatted in markdown.
+Make sure to include a list of relevant references with the following information for each:
+- Bibliography item text (Authors, year, title, etc.)
+- Publication name
+- Publication type (website, journal, book, preprint,etc.)
+- Summary of context
+- What claims in the document this reference could be related to and refute or support
+
 Remember:
 - Do not fabricate any references. If confident support cannot be found, omit the recommendation.
 - Format your report in markdown.
