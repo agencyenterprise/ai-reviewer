@@ -7,6 +7,10 @@ from lib.agents.citation_detector import CitationResponse
 from lib.agents.claim_detector import ClaimResponse
 from lib.agents.toulmin_claim_detector import ToulminClaimResponse
 from lib.agents.reference_extractor import BibliographyItem
+from lib.agents.document_chunker import DocumentChunkerResponse
+from lib.agents.claim_common_knowledge_checker import (
+    ClaimCommonKnowledgeResultWithClaimIndex,
+)
 
 
 class TestDataPaths:
@@ -140,17 +144,91 @@ class SubstantiationTestCaseBuilder:
         # Create a test case for each substantiation result
         for i, substantiation in enumerate(substantiations):
             expected_output = normalize_model_data(substantiation)
-            
-            cases.append({
-                "name": f"{test_name}_substantiation_chunk_{chunk_index}_claim_{i}",
-                "description": f"Claim substantiation test for chunk {chunk_index}, claim {i}",
-                "input": {
-                    "main_document": TestDataPaths.main_document(test_name),
-                    "supporting_documents": supporting_file_paths,  # Supporting docs are essential
-                    "chunk": chunk_content,
-                    "claim_index": i
-                },
-                "expected_output": expected_output
-            })
-        
+
+            cases.append(
+                {
+                    "name": f"{test_name}_substantiation_chunk_{chunk_index}_claim_{i}",
+                    "description": f"Claim substantiation test for chunk {chunk_index}, claim {i}",
+                    "input": {
+                        "main_document": TestDataPaths.main_document(test_name),
+                        "supporting_documents": supporting_file_paths,  # Supporting docs are essential
+                        "chunk": chunk_content,
+                        "claim_index": i,
+                    },
+                    "expected_output": expected_output,
+                }
+            )
+
+        return cases
+
+
+class DocumentChunkerTestCaseBuilder:
+    """Builds test cases for document chunking."""
+
+    @classmethod
+    def build(
+        cls,
+        test_name: str,
+        chunker_response: Union[DocumentChunkerResponse, Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Build document chunker test case."""
+        expected_output = normalize_model_data(chunker_response)
+
+        return {
+            "name": f"{test_name}_document_chunker",
+            "description": "Document chunking test",
+            "input": {
+                "main_document": TestDataPaths.main_document(test_name),
+            },
+            "expected_output": expected_output,
+        }
+
+
+class CommonKnowledgeTestCaseBuilder:
+    """Builds test cases for common knowledge checking."""
+
+    @classmethod
+    def build_cases(
+        cls,
+        test_name: str,
+        chunk_index: int,
+        chunk_content: str,
+        claims: Union[ClaimResponse, ToulminClaimResponse, Dict[str, Any]],
+        common_knowledge_results: List[ClaimCommonKnowledgeResultWithClaimIndex],
+        supporting_files: List[Union[BaseModel, Dict[str, Any]]],
+    ) -> List[Dict[str, Any]]:
+        """Build common knowledge test cases with supporting documents."""
+        cases = []
+
+        # Include supporting documents as they may be referenced
+        supporting_file_paths = TestDataPaths.supporting_documents(
+            test_name, supporting_files
+        )
+
+        # Create a test case for each common knowledge result
+        for common_knowledge_result in common_knowledge_results:
+            # Only include results for this chunk
+            if common_knowledge_result.chunk_index != chunk_index:
+                continue
+
+            claim_index = common_knowledge_result.claim_index
+            expected_output = normalize_model_data(common_knowledge_result)
+            # Remove the chunk_index and claim_index from expected output as they're metadata
+            expected_output.pop("chunk_index", None)
+            expected_output.pop("claim_index", None)
+
+            cases.append(
+                {
+                    "name": f"{test_name}_common_knowledge_chunk_{chunk_index}_claim_{claim_index}",
+                    "description": f"Common knowledge check for chunk {chunk_index}, claim {claim_index}",
+                    "input": {
+                        "main_document": TestDataPaths.main_document(test_name),
+                        "supporting_documents": supporting_file_paths,
+                        "chunk": chunk_content,
+                        "claim_index": claim_index,
+                    },
+                    "expected_output": expected_output,
+                }
+            )
+
         return cases

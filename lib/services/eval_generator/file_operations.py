@@ -20,6 +20,17 @@ class AgentConfig(NamedTuple):
 
 # Agent configurations - single source of truth
 AGENT_CONFIGS = {
+    "document_chunker": AgentConfig(
+        key="document_chunker",
+        yaml_filename="document_chunker.yaml",
+        dataset_name_template="Document Chunker Dataset ({test_name})",
+        description="Document chunking test cases",
+        needs_supporting_files=False,
+        test_config={
+            "strict_fields": {"paragraphs": {"__all__": ["chunks"]}},
+            "llm_fields": {"paragraphs": {"__all__": ["chunks"]}},
+        },
+    ),
     "citations": AgentConfig(
         key="citations",
         yaml_filename="citation_detector.yaml",
@@ -48,6 +59,17 @@ AGENT_CONFIGS = {
         test_config={
             "strict_fields": {"claims": {"__all__": ["text", "needs_substantiation"]}},
             "llm_fields": {"claims": {"__all__": ["claim"]}},
+        },
+    ),
+    "common_knowledge": AgentConfig(
+        key="common_knowledge",
+        yaml_filename="claim_common_knowledge_checker.yaml",
+        dataset_name_template="Claim Common Knowledge Checker Dataset ({test_name})",
+        description="Common knowledge checker test cases",
+        needs_supporting_files=True,
+        test_config={
+            "strict_fields": ["is_common_knowledge", "needs_substantiation"],
+            "llm_fields": ["common_knowledge_rationale", "substantiation_rationale"],
         },
     ),
     "substantiation": AgentConfig(

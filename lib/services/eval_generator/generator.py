@@ -11,9 +11,11 @@ from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState, Do
 
 from .test_case_builders import (
     CitationTestCaseBuilder,
-    ClaimTestCaseBuilder, 
+    ClaimTestCaseBuilder,
     ReferenceTestCaseBuilder,
     SubstantiationTestCaseBuilder,
+    DocumentChunkerTestCaseBuilder,
+    CommonKnowledgeTestCaseBuilder,
     TestDataPaths,
     normalize_model_data
 )
@@ -36,6 +38,7 @@ class ChunkEvalPackageRequest(BaseModel):
     selected_agents: List[str]
     test_name: str = Field(default="generated_chunk_test")
     description: str = Field(default="Generated from chunk analysis")
+
 
 class EvalTestGenerator:
     """Service for generating evaluation test packages from analysis results."""
@@ -183,72 +186,134 @@ class EvalTestGenerator:
             citations = chunk.citations or {}
             claims = chunk.claims or {}
             substantiations = chunk.substantiations
+            common_knowledge_results = chunk.claim_common_knowledge_results
             
             # Process each agent type using unified logic
             agent_data = {
                 "citations": citations,
                 "claims": claims,
-                "substantiation": substantiations
+                "substantiation": substantiations,
+                "common_knowledge": common_knowledge_results,
             }
-            
+
             for agent_type, data in agent_data.items():
-                if self._should_include_agent(agent_type, data, all_agents, selected_agents):
+                if self._should_include_agent(
+                    agent_type, data, all_agents, selected_agents
+                ):
                     self._build_test_cases_for_agent(
-                        agent_type, test_name, chunk_index, chunk_content, 
-                        citations, claims, substantiations, results,
-                        citation_cases, claim_cases, substantiation_cases
+                        agent_type,
+                        test_name,
+                        chunk_index,
+                        chunk_content,
+                        citations,
+                        claims,
+                        substantiations,
+                        common_knowledge_results,
+                        results,
+                        citation_cases,
+                        claim_cases,
+                        substantiation_cases,
+                        common_knowledge_cases,
                     )
-        
+
         # Reference extractor works on full document, not individual chunks
-        if self._should_include_agent("references", results.references, all_agents, selected_agents):
-            ref_cases.append(ReferenceTestCaseBuilder.build(test_name, results.references, results.supporting_files))
-        
+        if self._should_include_agent(
+            "references", results.references, all_agents, selected_agents
+        ):
+            ref_cases.append(
+                ReferenceTestCaseBuilder.build(
+                    test_name, results.references, results.supporting_files
+                )
+            )
+
+        # Document chunker works on full document, not individual chunks
+        # Note: DocumentChunkerResponse is not currently stored in ClaimSubstantiatorState,
+        # so document_chunker eval generation is not supported from workflow results.
+        # Document chunker tests should be created manually using the test datasets.
+        chunker_response = getattr(results, "chunker_response", None)
+        if chunker_response and self._should_include_agent(
+            "document_chunker", chunker_response, all_agents, selected_agents
+        ):
+            document_chunker_cases.append(
+                DocumentChunkerTestCaseBuilder.build(test_name, chunker_response)
+            )
+
         return {
             "citations": citation_cases,
             "claims": claim_cases,
             "references": ref_cases,
-            "substantiation": substantiation_cases
+            "substantiation": substantiation_cases,
+            "common_knowledge": common_knowledge_cases,
+            "document_chunker": document_chunker_cases,
         }
 
-    def _should_include_agent(self, agent_type: str, data, all_agents: bool, selected_agents: List[str]) -> bool:
+    def _should_include_agent(
+        self, agent_type: str, data, all_agents: bool, selected_agents: List[str]
+    ) -> bool:
         """Determine if an agent should be included based on data availability and selection."""
         if all_agents:
             # For all agents mode, check if data is valid
             return RequirementsAnalyzer.has_valid_items(data, agent_type)
-        
+
         if selected_agents:
             # For selected agents mode, check both selection and data validity
-            return RequirementsAnalyzer.should_generate_agent_tests(agent_type, selected_agents, data)
-        
+            return RequirementsAnalyzer.should_generate_agent_tests(
+                agent_type, selected_agents, data
+            )
+
         return False
 
     def _build_test_cases_for_agent(
-        self, 
-        agent_type: str, 
-        test_name: str, 
-        chunk_index: int, 
+        self,
+        agent_type: str,
+        test_name: str,
+        chunk_index: int,
         chunk_content: str,
-        citations, 
-        claims, 
-        substantiations, 
+        citations,
+        claims,
+        substantiations,
+        common_knowledge_results,
         results: ClaimSubstantiatorState,
-        citation_cases: List[Dict], 
-        claim_cases: List[Dict], 
-        substantiation_cases: List[Dict]
+        citation_cases: List[Dict],
+        claim_cases: List[Dict],
+        substantiation_cases: List[Dict],
+        common_knowledge_cases: List[Dict],
     ):
         """Build test cases for a specific agent type."""
         if agent_type == "citations":
-            citation_cases.append(CitationTestCaseBuilder.build(
-                test_name, chunk_index, chunk_content, citations, results.references
-            ))
+            citation_cases.append(
+                CitationTestCaseBuilder.build(
+                    test_name, chunk_index, chunk_content, citations, results.references
+                )
+            )
         elif agent_type == "claims":
-            claim_cases.append(ClaimTestCaseBuilder.build(
-                test_name, chunk_index, chunk_content, claims
-            ))
+            claim_cases.append(
+                ClaimTestCaseBuilder.build(
+                    test_name, chunk_index, chunk_content, claims
+                )
+            )
         elif agent_type == "substantiation":
-            substantiation_cases.extend(SubstantiationTestCaseBuilder.build_cases(
-                test_name, chunk_index, chunk_content, claims, substantiations, results.supporting_files
-            ))
+            substantiation_cases.extend(
+                SubstantiationTestCaseBuilder.build_cases(
+                    test_name,
+                    chunk_index,
+                    chunk_content,
+                    claims,
+                    substantiations,
+                    results.supporting_files,
+                )
+            )
+        elif agent_type == "common_knowledge":
+            common_knowledge_cases.extend(
+                CommonKnowledgeTestCaseBuilder.build_cases(
+                    test_name,
+                    chunk_index,
+                    chunk_content,
+                    claims,
+                    common_knowledge_results,
+                    results.supporting_files,
+                )
+            )
 
 
 eval_test_generator = EvalTestGenerator()
