@@ -59,8 +59,8 @@ def build_claim_substantiator_graph(
 
     # Create a synchronization node that waits for both detect_claims and detect_citations
     graph.add_node(
-        "wait_for_claims_citations", lambda state: state
-    )  # Pass-through node for synchronization
+        "wait_for_claims_citations", lambda state: {}
+    )  # Pass-through node for synchronization (no writes)
 
     # Both detect_claims and detect_citations must complete before wait_for_claims_citations
     graph.add_edge("🤖 detect_claims", "wait_for_claims_citations")
@@ -77,8 +77,8 @@ def build_claim_substantiator_graph(
     if run_suggest_citations:
         # Create a synchronization node that waits for all required nodes to complete
         graph.add_node(
-            "wait_for_all_before_suggestions", lambda state: state
-        )  # Pass-through node for synchronization
+            "wait_for_all_before_suggestions", lambda state: {}
+        )  # Pass-through node for synchronization (no writes)
 
         # Gate: only proceed when all chunks have citations populated
         # I had to do this because somehow LangGraph started running 🤖 suggest_citations at the same time as 🤖 detect_citations, which wouldn't work because we are using the results of the latter in the former.
