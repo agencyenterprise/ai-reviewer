@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from typing import Any
-from openai import AsyncOpenAI, OpenAI
+from langfuse.openai import AsyncOpenAI
 from pydantic import BaseModel
 
 import logging
