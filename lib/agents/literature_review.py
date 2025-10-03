@@ -45,7 +45,7 @@ Remember:
 literature_review_agent = Agent(
     name="Literature Review Researcher",
     description="Review a document paragraph against the article bibliography and recent literature to propose citation updates",
-    model="openai:o4-mini-deep-research",
+    model="openai:gpt-5-nano",
     use_responses_api=True,
     use_react_agent=False,
     use_direct_llm_client=True,  # To use open ai tools (openai_web_search, openai_code_interpreter)

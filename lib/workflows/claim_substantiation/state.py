@@ -94,6 +94,7 @@ class ClaimSubstantiatorState(BaseModel):
         description="Errors that occurred during the processing of the document.",
     )
     literature_review: Optional[str] = None
+    citations_ready: bool = False
 
     def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:
         return [

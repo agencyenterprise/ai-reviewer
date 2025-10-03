@@ -1,11 +1,3 @@
-from pdb import run
-from langgraph.checkpoint.postgres import PostgresSaver
-from langgraph.graph import StateGraph
-from langgraph.graph.state import Checkpointer
-
-from lib.config.env import config
-from lib.config.langfuse import langfuse_handler
-from lib.workflows.claim_substantiation.nodes.prepare_documents import prepare_documents
 from langgraph.graph import StateGraph
 
 from lib.workflows.claim_substantiation.nodes.prepare_documents import prepare_documents
@@ -88,15 +80,29 @@ def build_claim_substantiator_graph(
             "wait_for_all_before_suggestions", lambda state: state
         )  # Pass-through node for synchronization
 
-        # Wait for substantiation to complete (which depends on the whole pipeline)
-        graph.add_edge("🤖 substantiate_claims", "wait_for_all_before_suggestions")
+        # Gate: only proceed when all chunks have citations populated
+        # I had to do this because somehow LangGraph started running 🤖 suggest_citations at the same time as 🤖 detect_citations, which wouldn't work because we are using the results of the latter in the former.
+        def await_citations_ready(state):
+            # If any chunk lacks citations, do not emit writes so downstream isn't triggered
+            if any(chunk.citations is None for chunk in state.chunks):
+                return {}
+            return {"citations_ready": True}
 
-        # Also explicitly wait for literature review if enabled
+        graph.add_node("await_citations_ready", await_citations_ready)
+
+        # Wait for all producers of chunk data
+        graph.add_edge("🤖 detect_claims", "wait_for_all_before_suggestions")
+        graph.add_edge("🤖 detect_citations", "wait_for_all_before_suggestions")
+        graph.add_edge(
+            "🤖 check_claim_common_knowledge", "wait_for_all_before_suggestions"
+        )
+        graph.add_edge("🤖 substantiate_claims", "wait_for_all_before_suggestions")
         if run_literature_review:
             graph.add_edge("🤖 literature_review", "wait_for_all_before_suggestions")
 
-        # Only after everything is complete, proceed to suggest_citations
-        graph.add_edge("wait_for_all_before_suggestions", "🤖 suggest_citations")
+        # After all have run, check readiness; only when ready do we trigger suggest_citations
+        graph.add_edge("wait_for_all_before_suggestions", "await_citations_ready")
+        graph.add_edge("await_citations_ready", "🤖 suggest_citations")
 
         graph.set_finish_point("🤖 suggest_citations")
 

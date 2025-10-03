@@ -25,7 +25,10 @@ iterate_claim_chunks = create_chunk_iterator(ClaimSubstantiatorState, DocumentCh
 async def suggest_citations(
     state: ClaimSubstantiatorState,
 ) -> ClaimSubstantiatorState:
-    logger.info("suggest_citations: suggesting citations")
+    import time
+
+    start_time = time.time()
+    logger.info(f"🟢 suggest_citations: STARTING at {start_time}")
 
     agents_to_run = state.config.agents_to_run
     if agents_to_run and "substantiation" not in agents_to_run:
@@ -34,9 +37,21 @@ async def suggest_citations(
         )
         return {}
 
-    return await iterate_claim_chunks(
+    # Guard: if any chunk is missing citations, skip suggestions for now
+    if any(chunk.citations is None for chunk in state.chunks):
+        logger.info(
+            "suggest_citations: Skipping because some chunks have no citations yet"
+        )
+        return {}
+
+    result = await iterate_claim_chunks(
         state, _suggest_chunk_citations, "Suggesting chunk citations"
     )
+    end_time = time.time()
+    logger.info(
+        f"🔴 suggest_citations: FINISHED at {end_time}, duration: {end_time - start_time:.2f}s"
+    )
+    return result
 
 
 async def _suggest_chunk_citations(

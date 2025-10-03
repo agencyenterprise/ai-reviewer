@@ -14,7 +14,10 @@ iterate_claim_chunks = create_chunk_iterator(ClaimSubstantiatorState, DocumentCh
 
 
 async def detect_citations(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
-    logger.info("detect_citations: detecting citations")
+    import time
+
+    start_time = time.time()
+    logger.info(f"🟢 detect_citations: STARTING at {start_time}")
 
     agents_to_run = state.config.agents_to_run
     if agents_to_run and "citations" not in agents_to_run:
@@ -23,9 +26,14 @@ async def detect_citations(state: ClaimSubstantiatorState) -> ClaimSubstantiator
         )
         return {}
 
-    return await iterate_claim_chunks(
+    result = await iterate_claim_chunks(
         state, _detect_chunk_citations, "Detecting chunk citations"
     )
+    end_time = time.time()
+    logger.info(
+        f"🔴 detect_citations: FINISHED at {end_time}, duration: {end_time - start_time:.2f}s"
+    )
+    return result
 
 
 async def _detect_chunk_citations(
