@@ -10,6 +10,7 @@ import {
   CitationSuggestionResultWithClaimIndexOutput,
   ClaimSubstantiatorStateOutput,
   DocumentChunkOutput,
+  RecommendedAction,
   Reference,
 } from '@/lib/generated-api';
 import { getMaxSeverity } from '@/lib/severity';
@@ -344,18 +345,20 @@ export function DocumentExplorerChunk({
                                       )}
                                       <span
                                         className={`px-2 py-1 rounded text-xs ${
-                                          reference.recommendedAction === 'add_citation'
+                                          reference.recommendedAction === RecommendedAction.AddNewCitation ||
+                                          reference.recommendedAction ===
+                                            RecommendedAction.CiteExistingReferenceInNewPlace
                                             ? 'bg-green-100 text-green-800'
-                                            : reference.recommendedAction === 'replace_existing_reference'
+                                            : reference.recommendedAction === RecommendedAction.ReplaceExistingReference
                                               ? 'bg-yellow-100 text-yellow-800'
-                                              : reference.recommendedAction === 'discuss_reference'
+                                              : reference.recommendedAction === RecommendedAction.DiscussReference
                                                 ? 'bg-blue-100 text-blue-800'
-                                                : reference.recommendedAction === 'no_action'
+                                                : reference.recommendedAction === RecommendedAction.NoAction
                                                   ? 'bg-gray-100 text-gray-800'
                                                   : 'bg-orange-100 text-orange-800'
                                         }`}
                                       >
-                                        {reference.recommendedAction.replace('_', ' ')}
+                                        {reference.recommendedAction.replace(/_/g, ' ')}
                                       </span>
                                       <span
                                         className={`px-2 py-1 rounded text-xs ${confidenceBadgeClasses(reference.confidenceInRecommendation)}`}
@@ -383,6 +386,39 @@ export function DocumentExplorerChunk({
                                       </a>
                                     </p>
                                   </div>
+
+                                  {reference.indexOfAssociatedExistingReference !== -1 && (
+                                    <div className="text-xs">
+                                      <p>
+                                        <strong>
+                                          Existing Bibliography Reference (#
+                                          {reference.indexOfAssociatedExistingReference}):
+                                        </strong>
+                                      </p>
+                                      {references[reference.indexOfAssociatedExistingReference - 1] ? (
+                                        <div className="bg-amber-50 border border-amber-200 rounded p-2 mt-1 space-y-1">
+                                          <p className="text-muted-foreground italic">
+                                            {references[reference.indexOfAssociatedExistingReference - 1].text}
+                                          </p>
+                                          {references[reference.indexOfAssociatedExistingReference - 1]
+                                            .hasAssociatedSupportingDocument && (
+                                            <div className="flex items-center gap-1 text-blue-600">
+                                              <FileIcon className="w-3 h-3" />
+                                              <span>
+                                                Has supporting document:{' '}
+                                                {
+                                                  references[reference.indexOfAssociatedExistingReference - 1]
+                                                    .nameOfAssociatedSupportingDocument
+                                                }
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <p className="text-red-600 text-xs">Reference not found in bibliography</p>
+                                      )}
+                                    </div>
+                                  )}
 
                                   <div className="text-xs">
                                     <p>
