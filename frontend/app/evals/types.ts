@@ -100,7 +100,28 @@ export interface EvaluationConfig {
   run_count: number;
 }
 
+export interface ComparisonExample {
+  instance_identifier: string;
+  expected_value: string | null;
+  actual_value: string | null;
+  matched: boolean;
+  note?: string;
+}
+
+export interface FieldComparison {
+  field_path: string;
+  comparison_type: 'strict' | 'llm';
+  total_instances: number;
+  passed_instances: number;
+  failed_instances: number;
+  passed: boolean;
+  rationale: string;
+  examples: ComparisonExample[];
+  matching_strategy?: string;
+}
+
 export interface EvaluationResult {
   passed: boolean;
   rationale: string;
+  field_comparisons?: FieldComparison[];
 }

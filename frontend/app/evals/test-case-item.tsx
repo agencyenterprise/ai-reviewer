@@ -5,7 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ChevronDown, ChevronRight, Clock } from 'lucide-react';
 import { useState } from 'react';
 import { TestCase } from './types';
-import { formatIncEx, getFlattenedObjectKeys, getFlattenedObjectValue } from './util';
+import { formatDuration, formatIncEx, getFlattenedObjectKeys, getFlattenedObjectValue } from './util';
+import { FieldComparisonDetails } from './field-comparison-details';
 
 interface TestCaseItemProps {
   testCase: TestCase;
@@ -13,13 +14,10 @@ interface TestCaseItemProps {
 
 export function TestCaseItem({ testCase }: TestCaseItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showFullOutput, setShowFullOutput] = useState(false);
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
-  };
-
-  const formatDuration = (duration: number) => {
-    return `${duration.toFixed(2)}s`;
   };
 
   return (
@@ -116,64 +114,106 @@ export function TestCaseItem({ testCase }: TestCaseItemProps) {
               </div>
             </div>
 
-            {/* Expected vs Actual Output */}
-            <div>
-              <h4 className="font-medium mb-3">Expected vs Actual Output</h4>
-              {testCase.agent_test_case.actual_outputs.map((output, outputIndex) => (
-                <div key={outputIndex} className="mb-4 last:mb-0">
-                  {outputIndex > 0 && <div className="border-t pt-4 mb-4" />}
-
-                  {/* Get all unique keys from both expected and actual outputs */}
-                  {(() => {
-                    const expectedKeys = getFlattenedObjectKeys(testCase.agent_test_case.expected_output);
-                    const actualKeys = getFlattenedObjectKeys(output);
-                    const allKeys = [...new Set([...expectedKeys, ...actualKeys])].sort((a, b) => a.localeCompare(b));
-
-                    return (
-                      <div className="rounded-lg overflow-hidden">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="text-left p-3 font-medium text-sm">Field</th>
-                              <th className="text-left p-3 font-medium text-sm">Expected</th>
-                              <th className="text-left p-3 font-medium text-sm">Actual</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {allKeys.map((key) => {
-                              const expectedValue = getFlattenedObjectValue(
-                                testCase.agent_test_case.expected_output,
-                                key,
-                              );
-                              const actualValue = getFlattenedObjectValue(output, key);
-
-                              return (
-                                <tr key={key} className="not-last:border-b">
-                                  <td className="p-3 font-medium text-sm wrap-anywhere w-[24%]">{key}</td>
-                                  <td className="p-3 wrap-anywhere w-[32%]">
-                                    {expectedValue !== undefined ? (
-                                      <p className="text-sm text-muted-foreground">{String(expectedValue)}</p>
-                                    ) : (
-                                      <span className="text-xs text-muted-foreground italic">Not specified</span>
-                                    )}
-                                  </td>
-                                  <td className="p-3 wrap-anywhere w-[32%]">
-                                    {actualValue !== undefined ? (
-                                      <p className="text-sm text-muted-foreground">{String(actualValue)}</p>
-                                    ) : (
-                                      <p className="text-sm text-muted-foreground italic">Not provided</p>
-                                    )}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    );
-                  })()}
+            {/* Field-Level Analysis */}
+            {testCase.agent_test_case.evaluation_result?.field_comparisons &&
+              testCase.agent_test_case.evaluation_result.field_comparisons.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-3">Field-Level Analysis</h4>
+                  <div className="space-y-2">
+                    {testCase.agent_test_case.evaluation_result.field_comparisons.map((comp, idx) => (
+                      <FieldComparisonDetails key={idx} comparison={comp} />
+                    ))}
+                  </div>
                 </div>
-              ))}
+              )}
+
+            {/* Expected vs Actual Output - Collapsible */}
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium">Full Output Comparison</h4>
+                <button
+                  onClick={() => setShowFullOutput(!showFullOutput)}
+                  className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                >
+                  {showFullOutput ? (
+                    <>
+                      <ChevronDown className="h-3 w-3" />
+                      Hide
+                    </>
+                  ) : (
+                    <>
+                      <ChevronRight className="h-3 w-3" />
+                      Show details
+                    </>
+                  )}
+                </button>
+              </div>
+              {showFullOutput && (
+                <div className="space-y-4">
+                  {testCase.agent_test_case.actual_outputs.map((output, outputIndex) => (
+                    <div key={outputIndex}>
+                      {outputIndex > 0 && <div className="border-t pt-4 mb-4" />}
+                      {testCase.agent_test_case.evaluation_config.run_count > 1 && (
+                        <p className="text-xs text-muted-foreground mb-2">Run {outputIndex + 1}</p>
+                      )}
+                      {(() => {
+                        const expectedKeys = getFlattenedObjectKeys(testCase.agent_test_case.expected_output);
+                        const actualKeys = getFlattenedObjectKeys(output);
+                        const allKeys = [...new Set([...expectedKeys, ...actualKeys])].sort((a, b) =>
+                          a.localeCompare(b),
+                        );
+
+                        return (
+                          <div className="rounded-lg overflow-hidden border">
+                            <table className="w-full">
+                              <thead className="bg-muted/30">
+                                <tr className="border-b">
+                                  <th className="text-left p-3 font-medium text-sm">Field</th>
+                                  <th className="text-left p-3 font-medium text-sm">Expected</th>
+                                  <th className="text-left p-3 font-medium text-sm">Actual</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {allKeys.map((key) => {
+                                  const expectedValue = getFlattenedObjectValue(
+                                    testCase.agent_test_case.expected_output,
+                                    key,
+                                  );
+                                  const actualValue = getFlattenedObjectValue(output, key);
+
+                                  return (
+                                    <tr key={key} className="border-b last:border-b-0">
+                                      <td className="p-3 font-mono text-xs wrap-anywhere align-top">{key}</td>
+                                      <td className="p-3 wrap-anywhere align-top">
+                                        {expectedValue !== undefined ? (
+                                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                            {String(expectedValue)}
+                                          </p>
+                                        ) : (
+                                          <span className="text-xs text-muted-foreground italic">Not specified</span>
+                                        )}
+                                      </td>
+                                      <td className="p-3 wrap-anywhere align-top">
+                                        {actualValue !== undefined ? (
+                                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                            {String(actualValue)}
+                                          </p>
+                                        ) : (
+                                          <span className="text-xs text-muted-foreground italic">Not provided</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Evaluation Results */}
