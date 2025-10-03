@@ -48,6 +48,13 @@ import {
   SubstantiationWorkflowConfigToJSON,
   SubstantiationWorkflowConfigToJSONTyped,
 } from './SubstantiationWorkflowConfig';
+import type { DocumentSummary } from './DocumentSummary';
+import {
+  DocumentSummaryFromJSON,
+  DocumentSummaryFromJSONTyped,
+  DocumentSummaryToJSON,
+  DocumentSummaryToJSONTyped,
+} from './DocumentSummary';
 
 /**
  *
@@ -99,10 +106,10 @@ export interface ClaimSubstantiatorStateInput {
   literatureReview?: string | null;
   /**
    *
-   * @type {boolean}
+   * @type {Array<DocumentSummary>}
    * @memberof ClaimSubstantiatorStateInput
    */
-  citationsReady?: boolean;
+  supportingDocumentsSummaries?: Array<DocumentSummary>;
 }
 
 /**
@@ -135,7 +142,10 @@ export function ClaimSubstantiatorStateInputFromJSONTyped(
     chunks: json['chunks'] == null ? undefined : (json['chunks'] as Array<any>).map(DocumentChunkInputFromJSON),
     errors: json['errors'] == null ? undefined : (json['errors'] as Array<any>).map(WorkflowErrorFromJSON),
     literatureReview: json['literature_review'] == null ? undefined : json['literature_review'],
-    citationsReady: json['citations_ready'] == null ? undefined : json['citations_ready'],
+    supportingDocumentsSummaries:
+      json['supporting_documents_summaries'] == null
+        ? undefined
+        : (json['supporting_documents_summaries'] as Array<any>).map(DocumentSummaryFromJSON),
   };
 }
 
@@ -161,6 +171,9 @@ export function ClaimSubstantiatorStateInputToJSONTyped(
     chunks: value['chunks'] == null ? undefined : (value['chunks'] as Array<any>).map(DocumentChunkInputToJSON),
     errors: value['errors'] == null ? undefined : (value['errors'] as Array<any>).map(WorkflowErrorToJSON),
     literature_review: value['literatureReview'],
-    citations_ready: value['citationsReady'],
+    supporting_documents_summaries:
+      value['supportingDocumentsSummaries'] == null
+        ? undefined
+        : (value['supportingDocumentsSummaries'] as Array<any>).map(DocumentSummaryToJSON),
   };
 }

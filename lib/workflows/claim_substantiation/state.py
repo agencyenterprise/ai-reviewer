@@ -1,4 +1,4 @@
-from typing import Annotated, List, Optional
+from typing import Annotated, Dict, List, Optional
 from pydantic import BaseModel, Field
 from operator import add
 
@@ -14,9 +14,9 @@ from lib.agents.literature_review import LiteratureReviewResponse
 from lib.agents.toulmin_claim_detector import ToulminClaimResponse
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.claim_substantiator import ClaimSubstantiationResultWithClaimIndex
+from lib.agents.document_summarizer import DocumentSummary
 from lib.services.file import FileDocument
 from lib.agents.models import ChunkWithIndex
-from lib.workflows.chunk_conciliator import create_conciliator
 from lib.workflows.models import WorkflowError
 
 
@@ -60,6 +60,52 @@ class DocumentChunk(ChunkWithIndex):
     citation_suggestions: List[CitationSuggestionResultWithClaimIndex] = []
 
 
+def conciliate_chunks(
+    a: List[DocumentChunk], b: List[DocumentChunk]
+) -> List[DocumentChunk]:
+    """
+    Conciliate two lists of DocumentChunk by merging their properties.
+
+    This reducer function is used by LangGraph to handle multiple updates to the same
+    chunks field from different nodes running in parallel.
+
+    Args:
+        a: First list of DocumentChunk (existing state)
+        b: Second list of DocumentChunk (new updates)
+
+    Returns:
+        Merged list of DocumentChunk with combined properties
+    """
+
+    # Create a dictionary for quick lookup of chunks by index
+    chunks_by_index = {chunk.chunk_index: chunk for chunk in a}
+
+    # Merge updates from b into the existing chunks
+    for updated_chunk in b:
+        if updated_chunk is None:
+            # in case chunk processing errored, a None is returned here so we skip the result
+            continue
+
+        existing_chunk = chunks_by_index.get(updated_chunk.chunk_index)
+        if existing_chunk is None:
+            # If chunk doesn't exist in a, add it
+            chunks_by_index[updated_chunk.chunk_index] = updated_chunk
+        else:
+            # Merge the chunks by updating non-None fields from updated_chunk
+            merged_data = existing_chunk.model_dump()
+
+            # Update fields that are not None in the updated chunk
+            for field, value in updated_chunk.model_dump().items():
+                if value is not None:
+                    merged_data[field] = value
+
+            # Create the merged chunk
+            chunks_by_index[updated_chunk.chunk_index] = DocumentChunk(**merged_data)
+
+    # Return chunks in order by chunk_index
+    return [chunks_by_index[i] for i in sorted(chunks_by_index.keys())]
+
+
 class ClaimCommonKnowledgeResultChunk(BaseModel):
     """
     Wrapper for a list of claim common knowledge results for a single chunk.
@@ -88,13 +134,16 @@ class ClaimSubstantiatorState(BaseModel):
 
     # Outputs
     references: Annotated[List[BibliographyItem], add] = []
-    chunks: Annotated[List[DocumentChunk], create_conciliator(DocumentChunk)] = []
+    chunks: Annotated[List[DocumentChunk], conciliate_chunks] = []
     errors: Annotated[List[WorkflowError], add] = Field(
         default_factory=list,
         description="Errors that occurred during the processing of the document.",
     )
     literature_review: Optional[str] = None
-    citations_ready: bool = False
+    supporting_documents_summaries: Optional[Dict[int, DocumentSummary]] = Field(
+        default=None,
+        description="Dictionary mapping supporting file indices to their summaries",
+    )
 
     def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:
         return [

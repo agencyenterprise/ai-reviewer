@@ -23,6 +23,7 @@ models/CommonKnowledgeType.ts
 models/ConfidenceInRecommendation.ts
 models/DocumentChunkInput.ts
 models/DocumentChunkOutput.ts
+models/DocumentSummary.ts
 models/EvalPackageRequest.ts
 models/FileDocument.ts
 models/HTTPValidationError.ts

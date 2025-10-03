@@ -5,7 +5,7 @@ from lib.agents.formatting_utils import (
     format_domain_context,
     format_audience_context,
 )
-from lib.workflows.chunk_iterator import create_chunk_iterator
+from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
@@ -17,8 +17,6 @@ from lib.agents.claim_substantiator import (
 )
 
 logger = logging.getLogger(__name__)
-
-iterate_claim_chunks = create_chunk_iterator(ClaimSubstantiatorState, DocumentChunk)
 
 
 async def substantiate_claims(
@@ -33,7 +31,7 @@ async def substantiate_claims(
         )
         return {}
 
-    return await iterate_claim_chunks(
+    return await iterate_chunks(
         state, _substantiate_chunk_claims, "Substantiating chunk claims"
     )
 

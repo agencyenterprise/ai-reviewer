@@ -185,7 +185,8 @@ citation_suggester_agent = Agent(
     use_direct_llm_client=True,  # To use open ai tools (openai_web_search, openai_code_interpreter)
     use_background_mode=False,
     prompt=_citation_suggester_agent_prompt,
-    tools=["openai_web_search"],
+    # tools=["openai_web_search"],
+    tools=[],
     mandatory_tools=[],
     output_schema=CitationSuggestionResponse,
 )

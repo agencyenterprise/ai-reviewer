@@ -22,6 +22,9 @@ from lib.workflows.claim_substantiation.nodes.split_into_chunks import split_int
 from lib.workflows.claim_substantiation.nodes.substantiate_claims import (
     substantiate_claims,
 )
+from lib.workflows.claim_substantiation.nodes.summarize_supporting_documents import (
+    summarize_supporting_documents,
+)
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 
 
@@ -36,6 +39,7 @@ def build_claim_substantiator_graph(
     if run_literature_review:
         graph.add_node("literature_review", literature_review)
     if run_suggest_citations:
+        graph.add_node("summarize_supporting_documents", summarize_supporting_documents)
         graph.add_node("suggest_citations", suggest_citations)
     graph.add_node("split_into_chunks", split_into_chunks)
     graph.add_node(
@@ -53,6 +57,8 @@ def build_claim_substantiator_graph(
     graph.add_edge("prepare_documents", "split_into_chunks")
     if run_literature_review:
         graph.add_edge("prepare_documents", "literature_review")
+    if run_suggest_citations:
+        graph.add_edge("prepare_documents", "summarize_supporting_documents")
 
     graph.add_edge("split_into_chunks", "extract_references")
     graph.add_edge("split_into_chunks", "detect_claims")
@@ -71,6 +77,7 @@ def build_claim_substantiator_graph(
     # Must wait for ALL processing to complete before suggesting citations
     if run_suggest_citations:
         graph.add_edge("substantiate_claims", "suggest_citations")
+        graph.add_edge("summarize_supporting_documents", "suggest_citations")
         if run_literature_review:
             graph.add_edge("literature_review", "suggest_citations")
 

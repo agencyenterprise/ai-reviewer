@@ -22,6 +22,7 @@ export * from './CommonKnowledgeType';
 export * from './ConfidenceInRecommendation';
 export * from './DocumentChunkInput';
 export * from './DocumentChunkOutput';
+export * from './DocumentSummary';
 export * from './EvalPackageRequest';
 export * from './FileDocument';
 export * from './HTTPValidationError';

@@ -4,22 +4,17 @@ from lib.agents.citation_suggester import (
     CitationSuggestionResultWithClaimIndex,
     citation_suggester_agent,
 )
-from lib.workflows.chunk_iterator import create_chunk_iterator
+from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
 )
-from lib.workflows.claim_substantiation.nodes.detect_citations import (
-    _format_bibliography_prompt_section,
-)
 from lib.agents.formatting_utils import (
     format_cited_references,
+    format_bibliography_prompt_section,
 )
 
-
 logger = logging.getLogger(__name__)
-
-iterate_claim_chunks = create_chunk_iterator(ClaimSubstantiatorState, DocumentChunk)
 
 
 async def suggest_citations(
@@ -32,7 +27,7 @@ async def suggest_citations(
         )
         return {}
 
-    return await iterate_claim_chunks(
+    return await iterate_chunks(
         state, _suggest_chunk_citations, "Suggesting chunk citations"
     )
 
@@ -71,7 +66,9 @@ async def _suggest_chunk_citations(
         result: CitationSuggestionResponse = await citation_suggester_agent.apply(
             {
                 "full_document": state.file.markdown,
-                "bibliography": _format_bibliography_prompt_section(state.references),
+                "bibliography": format_bibliography_prompt_section(
+                    state.references, state.supporting_documents_summaries
+                ),
                 "paragraph": state.get_paragraph(chunk.paragraph_index),
                 "chunk": chunk.content,
                 "claim": claim.claim,
