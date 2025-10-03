@@ -5,6 +5,8 @@ from lib.agents.document_summarizer import (
     DocumentSummarizerResponse,
     document_summarizer_agent,
 )
+from lib.run_utils import run_tasks
+
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
 )
@@ -32,21 +34,22 @@ async def summarize_supporting_documents(
         len(supporting_files),
     )
 
-    async def summarize_file(index: int, file):
-        logger.info("summarize_supporting_documents: Summarizing %s", file.file_name)
-        response: DocumentSummarizerResponse = await document_summarizer_agent.apply(
+    tasks = [
+        document_summarizer_agent.apply(
             {
                 "document": file.markdown,
             }
         )
-        return index, response.summary
-
-    # Run all summarizations in parallel
-    results = await asyncio.gather(
-        *[summarize_file(i, file) for i, file in enumerate(supporting_files)]
+        for file in supporting_files
+    ]
+    results: tuple[list[DocumentSummarizerResponse], list[Exception]] = await run_tasks(
+        tasks, desc="Summarizing supporting documents"
     )
+    summary_responses, exceptions = results  # TODO: Handle exceptions as WorkflowErrors
 
     # Build dictionary from results
-    summaries = {index: summary for index, summary in results}
+    summaries = {
+        index: response.summary for index, response in enumerate(summary_responses)
+    }
 
     return {"supporting_documents_summaries": summaries}

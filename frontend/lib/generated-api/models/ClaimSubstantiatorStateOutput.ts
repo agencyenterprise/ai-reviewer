@@ -106,10 +106,10 @@ export interface ClaimSubstantiatorStateOutput {
   literatureReview?: string | null;
   /**
    *
-   * @type {Array<DocumentSummary>}
+   * @type {{ [key: string]: DocumentSummary; }}
    * @memberof ClaimSubstantiatorStateOutput
    */
-  supportingDocumentsSummaries?: Array<DocumentSummary>;
+  supportingDocumentsSummaries?: { [key: string]: DocumentSummary } | null;
 }
 
 /**
@@ -145,7 +145,7 @@ export function ClaimSubstantiatorStateOutputFromJSONTyped(
     supportingDocumentsSummaries:
       json['supporting_documents_summaries'] == null
         ? undefined
-        : (json['supporting_documents_summaries'] as Array<any>).map(DocumentSummaryFromJSON),
+        : mapValues(json['supporting_documents_summaries'], DocumentSummaryFromJSON),
   };
 }
 
@@ -174,6 +174,6 @@ export function ClaimSubstantiatorStateOutputToJSONTyped(
     supporting_documents_summaries:
       value['supportingDocumentsSummaries'] == null
         ? undefined
-        : (value['supportingDocumentsSummaries'] as Array<any>).map(DocumentSummaryToJSON),
+        : mapValues(value['supportingDocumentsSummaries'], DocumentSummaryToJSON),
   };
 }
