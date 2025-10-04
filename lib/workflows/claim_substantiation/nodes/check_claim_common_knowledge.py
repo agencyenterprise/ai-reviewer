@@ -89,7 +89,7 @@ async def _check_chunk_claim_common_knowledge(
                 }
             )
         )
-        if len(cited_references) > 0 and not result.needs_substantiation:
+        if len(chunk.citations.citations) > 0 and not result.needs_substantiation:
             result.needs_substantiation = True
             result.substantiation_rationale = (
                 "[Reverted from False to True because there are references cited in the chunk of text so it must be substantiated. The rationale before the reversal was:] "
