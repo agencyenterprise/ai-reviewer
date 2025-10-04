@@ -1,8 +1,7 @@
 from lib.agents.citation_detector import CitationResponse
-from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.reference_extractor import BibliographyItem
 from lib.services.file import FileDocument
-from typing import Dict, List, Optional
+from typing import Optional
 
 
 def format_domain_context(domain: Optional[str]) -> str:
@@ -102,45 +101,3 @@ Bibliography entry text: `{associated_reference.text}`
     cited_references_str += "\n\n"
 
     return cited_references_str
-
-
-def format_bibliography_item_prompt_section(
-    index: int,
-    item: BibliographyItem,
-    supporting_documents_summaries: Optional[Dict[int, DocumentSummary]] = None,
-) -> str:
-    result = f"""### Bibliography entry #{index + 1}
-{item.text}"""
-
-    # If this bibliography item has an associated supporting document, include its summary
-    if (
-        item.has_associated_supporting_document
-        and supporting_documents_summaries
-        and item.index_of_associated_supporting_document >= 1
-    ):
-        # Convert 1-based index to 0-based index
-        doc_index = item.index_of_associated_supporting_document - 1
-        summary = supporting_documents_summaries.get(doc_index)
-        if summary:
-            result += f"""
-
-#### Summary of the associated document
-{summary.summary}
-
-"""
-
-    return result
-
-
-def format_bibliography_prompt_section(
-    references: List[BibliographyItem],
-    supporting_documents_summaries: Optional[Dict[int, DocumentSummary]] = None,
-) -> str:
-    return "\n\n".join(
-        [
-            format_bibliography_item_prompt_section(
-                index, item, supporting_documents_summaries
-            )
-            for index, item in enumerate(references)
-        ]
-    )

@@ -89,7 +89,6 @@ async def _check_chunk_claim_common_knowledge(
                 }
             )
         )
-
         if len(chunk.citations.citations) > 0 and not result.needs_substantiation:
             result.needs_substantiation = True
             result.substantiation_rationale = (

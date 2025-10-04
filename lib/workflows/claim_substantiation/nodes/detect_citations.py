@@ -1,7 +1,9 @@
 import logging
 from lib.agents.citation_detector import CitationResponse, citation_detector_agent
-from typing import List
+from typing import Dict, List, Optional
+from lib.agents.formatting_utils import format_bibliography_prompt_section
 from lib.agents.reference_extractor import BibliographyItem
+from lib.agents.document_summarizer import DocumentSummary
 from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
@@ -32,22 +34,8 @@ async def _detect_chunk_citations(
     citations: CitationResponse = await citation_detector_agent.apply(
         {
             "full_document": state.file.markdown,
-            "bibliography": _format_bibliography_prompt_section(state.references),
+            "bibliography": format_bibliography_prompt_section(state.references),
             "chunk": chunk.content,
         }
     )
     return chunk.model_copy(update={"citations": citations})
-
-
-def _format_bibliography_item_prompt_section(index: int, item: BibliographyItem) -> str:
-    return f"""### Bibliography entry #{index + 1}
-{item.text}"""
-
-
-def _format_bibliography_prompt_section(references: List[BibliographyItem]) -> str:
-    return "\n\n".join(
-        [
-            _format_bibliography_item_prompt_section(index, item)
-            for index, item in enumerate(references)
-        ]
-    )

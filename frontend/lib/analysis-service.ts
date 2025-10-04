@@ -54,6 +54,8 @@ class AnalysisService {
         mainDocument: request.mainDocument,
         supportingDocuments: request.supportingDocuments || null,
         useToulmin: config.useToulmin,
+        runLiteratureReview: config.runLiteratureReview,
+        runSuggestCitations: config.runSuggestCitations,
         domain: config.domain || null,
         targetAudience: config.targetAudience || null,
         targetChunkIndices: config.targetChunkIndices?.join(',') || null,

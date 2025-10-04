@@ -10,6 +10,8 @@ const initialState: WizardState = {
   supportingDocuments: [],
   domain: '',
   targetAudience: '',
+  runLiteratureReview: true,
+  runSuggestCitations: true,
   isProcessing: false,
   analysisResults: null,
   sessionId: null,
@@ -38,6 +40,12 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
     },
     setTargetAudience: (targetAudience: string) => {
       setState((prev) => ({ ...prev, targetAudience }));
+    },
+    setRunLiteratureReview: (runLiteratureReview: boolean) => {
+      setState((prev) => ({ ...prev, runLiteratureReview }));
+    },
+    setRunSuggestCitations: (runSuggestCitations: boolean) => {
+      setState((prev) => ({ ...prev, runSuggestCitations }));
     },
     setIsProcessing: (processing: boolean) => {
       setState((prev) => ({ ...prev, isProcessing: processing }));

@@ -29,6 +29,13 @@ import {
 } from './ClaimCommonKnowledgeResultWithClaimIndex';
 import type { Claims } from './Claims';
 import { ClaimsFromJSON, ClaimsFromJSONTyped, ClaimsToJSON, ClaimsToJSONTyped } from './Claims';
+import type { CitationSuggestionResultWithClaimIndexOutput } from './CitationSuggestionResultWithClaimIndexOutput';
+import {
+  CitationSuggestionResultWithClaimIndexOutputFromJSON,
+  CitationSuggestionResultWithClaimIndexOutputFromJSONTyped,
+  CitationSuggestionResultWithClaimIndexOutputToJSON,
+  CitationSuggestionResultWithClaimIndexOutputToJSONTyped,
+} from './CitationSuggestionResultWithClaimIndexOutput';
 import type { ClaimSubstantiationResultWithClaimIndex } from './ClaimSubstantiationResultWithClaimIndex';
 import {
   ClaimSubstantiationResultWithClaimIndexFromJSON,
@@ -85,6 +92,12 @@ export interface DocumentChunkOutput {
    * @memberof DocumentChunkOutput
    */
   substantiations?: Array<ClaimSubstantiationResultWithClaimIndex>;
+  /**
+   *
+   * @type {Array<CitationSuggestionResultWithClaimIndexOutput>}
+   * @memberof DocumentChunkOutput
+   */
+  citationSuggestions?: Array<CitationSuggestionResultWithClaimIndexOutput>;
 }
 
 /**
@@ -119,6 +132,10 @@ export function DocumentChunkOutputFromJSONTyped(json: any, ignoreDiscriminator:
       json['substantiations'] == null
         ? undefined
         : (json['substantiations'] as Array<any>).map(ClaimSubstantiationResultWithClaimIndexFromJSON),
+    citationSuggestions:
+      json['citation_suggestions'] == null
+        ? undefined
+        : (json['citation_suggestions'] as Array<any>).map(CitationSuggestionResultWithClaimIndexOutputFromJSON),
   };
 }
 
@@ -148,5 +165,9 @@ export function DocumentChunkOutputToJSONTyped(
       value['substantiations'] == null
         ? undefined
         : (value['substantiations'] as Array<any>).map(ClaimSubstantiationResultWithClaimIndexToJSON),
+    citation_suggestions:
+      value['citationSuggestions'] == null
+        ? undefined
+        : (value['citationSuggestions'] as Array<any>).map(CitationSuggestionResultWithClaimIndexOutputToJSON),
   };
 }

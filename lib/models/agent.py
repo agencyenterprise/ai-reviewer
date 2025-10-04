@@ -1,15 +1,18 @@
+from pyexpat import model
 import uuid
 from datetime import datetime
 from typing import Any
 
+from _pytest import outcomes
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
+from langchain_core.tools import StructuredTool
 from langgraph.prebuilt import create_react_agent
 from sqlalchemy import JSON, Column, DateTime, Integer, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
-from sqlmodel import JSON, Field, Float, SQLModel
+from sqlmodel import Boolean, JSON, Field, Float, SQLModel
 
 from lib.config.langfuse import langfuse_handler
 from lib.models.react_agent.agent_runner import (
@@ -18,6 +21,7 @@ from lib.models.react_agent.agent_runner import (
     run_agent_sync,
 )
 from lib.models.react_agent.tool_registry import prepare_tools
+from lib.models.llm import OpenAIWrapper
 
 
 class Agent(SQLModel, table=True):
@@ -31,6 +35,10 @@ class Agent(SQLModel, table=True):
     model: str = Field(
         sa_column=Column(String(255), nullable=False)
     )  # Format: "{provider}:{model}"
+    use_responses_api: bool = Field(sa_column=Column(Boolean, default=False))
+    use_react_agent: bool = Field(sa_column=Column(Boolean, default=True))
+    use_direct_llm_client: bool = Field(sa_column=Column(Boolean, default=False))
+    use_background_mode: bool = Field(sa_column=Column(Boolean, default=False))
     temperature: float = Field(sa_column=Column(Float, default=0.5))
     prompt: Any = Field(sa_column=Column(Text, nullable=False))
     tools: list[str] = Field(
@@ -72,16 +80,49 @@ class Agent(SQLModel, table=True):
             self.model_name,
             model_provider=self.model_provider,
             temperature=self.temperature,
+            use_responses_api=self.use_responses_api,
             timeout=300,
         )
 
-    def _prep_llm_with_structured_output(self):
-        llm = self._prep_llm()
-        return llm.with_structured_output(self.output_schema)
+    def _prep_llm_with_structured_output(self, llm=None):
+        llm = llm or self._prep_llm()
+        if self.output_schema is str:
+            return llm
+        else:
+            return llm.with_structured_output(self.output_schema)
 
-    def prep_llm_args(self, prompt_kwargs: dict):
+    def _prep_llm_with_tools(self, llm=None):
+        llm = llm or self._prep_llm()
+        available_tools = prepare_tools(self.tools)
+        return llm.bind_tools(
+            available_tools,
+            tool_choice=self.mandatory_tools[0] if self.mandatory_tools else None,
+        )
+
+    def prep_llm_args(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ):
         """Prepare arguments for normal non-react-agent llm calls"""
-        llm_with_structure = self._prep_llm_with_structured_output()
+        if self.use_direct_llm_client:
+            available_tools = prepare_tools(self.tools)
+            llm_with_structure = OpenAIWrapper(
+                model=self.model_name,
+                background=self.use_background_mode,
+                tools=available_tools,
+                output_schema=self.output_schema,
+            )
+        else:
+            # Use langchain llm
+            llm = self._prep_llm()
+            if (
+                not self.use_react_agent
+            ):  # If not using react agent, we can just add the tools to the llm itself
+                llm_with_tools = self._prep_llm_with_tools(llm)
+            else:
+                llm_with_tools = llm
+            llm_with_structure = self._prep_llm_with_structured_output(llm_with_tools)
 
         # Create prompt
         prompt_template = (
@@ -93,6 +134,8 @@ class Agent(SQLModel, table=True):
 
         # Apply LLM
         args = {"input": messages}
+        if config is not None:
+            args["config"] = config
         return llm_with_structure, args
 
     def prep_runner_args(self, prompt_kwargs: dict) -> dict:
@@ -108,7 +151,9 @@ class Agent(SQLModel, table=True):
         available_tools = prepare_tools(self.tools)
 
         # Build messages preamble and executor
-        available_tool_names = [t.name for t in available_tools]
+        available_tool_names = [
+            t.name for t in available_tools if isinstance(t, StructuredTool)
+        ]
         messages = _build_prompt_with_tools_preamble(
             base_messages, self.mandatory_tools or [], available_tool_names
         )
@@ -134,8 +179,8 @@ class Agent(SQLModel, table=True):
         config: RunnableConfig = None,
     ):
         """Apply the agent to the prompt kwargs without tools"""
-        llm_with_structure, args = self.prep_llm_args(prompt_kwargs)
-        chunk_result = await llm_with_structure.ainvoke(args["input"], config=config)
+        llm, args = self.prep_llm_args(prompt_kwargs)
+        chunk_result = await llm.ainvoke(**args)
         return chunk_result
 
     def _apply_sync_without_tools(
@@ -144,8 +189,8 @@ class Agent(SQLModel, table=True):
         config: RunnableConfig = None,
     ):
         """Apply the agent to the prompt kwargs without tools synchronously"""
-        llm_with_structure, args = self.prep_llm_args(prompt_kwargs)
-        chunk_result = llm_with_structure.invoke(args["input"], config=config)
+        llm, args = self.prep_llm_args(prompt_kwargs)
+        chunk_result = llm.invoke(**args)
         return chunk_result
 
     async def _apply_with_tools(
@@ -196,7 +241,7 @@ class Agent(SQLModel, table=True):
         config: RunnableConfig = None,
     ):
         """Apply the agent to the prompt kwargs"""
-        if len(self.tools) == 0:
+        if len(self.tools) == 0 or not self.use_react_agent:
             return await self._apply_without_tools(prompt_kwargs, config)
 
         return await self._apply_with_tools(prompt_kwargs, config)
@@ -207,7 +252,7 @@ class Agent(SQLModel, table=True):
         config: RunnableConfig = None,
     ):
         """Apply the agent to the prompt kwargs synchronously"""
-        if len(self.tools) == 0:
+        if len(self.tools) == 0 or not self.use_react_agent:
             return self._apply_sync_without_tools(prompt_kwargs, config)
 
         return self._apply_sync_with_tools(prompt_kwargs, config)

@@ -1,28 +1,23 @@
-from typing import Annotated, List, Optional
+from typing import Annotated, Dict, List, Optional
 from pydantic import BaseModel, Field
+from operator import add
 
 from lib.agents.citation_detector import CitationResponse
+from lib.agents.citation_suggester import (
+    CitationSuggestionResultWithClaimIndex,
+)
 from lib.agents.claim_common_knowledge_checker import (
     ClaimCommonKnowledgeResultWithClaimIndex,
 )
 from lib.agents.claim_detector import ClaimResponse
+from lib.agents.literature_review import LiteratureReviewResponse
 from lib.agents.toulmin_claim_detector import ToulminClaimResponse
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.claim_substantiator import ClaimSubstantiationResultWithClaimIndex
+from lib.agents.document_summarizer import DocumentSummary
 from lib.services.file import FileDocument
 from lib.agents.models import ChunkWithIndex
-from operator import add
-
-
-class WorkflowError(BaseModel):
-    """Error object for the overall workflow or specific chunks."""
-
-    chunk_index: Optional[int] = Field(
-        default=None,
-        description="The index of the chunk that caused the error. This is None if the error occurred before the chunk was processed or in the overall workflow (not chunk-related).",
-    )
-    task_name: str = Field(description="The name of the task that caused the error.")
-    error: str = Field(description="The error message.")
+from lib.workflows.models import WorkflowError
 
 
 class SubstantiationWorkflowConfig(BaseModel):
@@ -30,6 +25,12 @@ class SubstantiationWorkflowConfig(BaseModel):
 
     use_toulmin: bool = Field(
         default=False, description="Whether to use Toulmin claim detection approach"
+    )
+    run_literature_review: bool = Field(
+        default=False, description="Whether to run the literature review"
+    )
+    run_suggest_citations: bool = Field(
+        default=False, description="Whether to run the citation suggestions"
     )
     target_chunk_indices: Optional[List[int]] = Field(
         default=None,
@@ -56,6 +57,7 @@ class DocumentChunk(ChunkWithIndex):
     citations: Optional[CitationResponse] = None
     claim_common_knowledge_results: List[ClaimCommonKnowledgeResultWithClaimIndex] = []
     substantiations: List[ClaimSubstantiationResultWithClaimIndex] = []
+    citation_suggestions: List[CitationSuggestionResultWithClaimIndex] = []
 
 
 def conciliate_chunks(
@@ -131,11 +133,16 @@ class ClaimSubstantiatorState(BaseModel):
     config: SubstantiationWorkflowConfig
 
     # Outputs
-    references: List[BibliographyItem] = []
+    references: Annotated[List[BibliographyItem], add] = []
     chunks: Annotated[List[DocumentChunk], conciliate_chunks] = []
     errors: Annotated[List[WorkflowError], add] = Field(
         default_factory=list,
         description="Errors that occurred during the processing of the document.",
+    )
+    literature_review: Optional[str] = None
+    supporting_documents_summaries: Optional[Dict[int, DocumentSummary]] = Field(
+        default=None,
+        description="Dictionary mapping supporting file indices to their summaries",
     )
 
     def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:
