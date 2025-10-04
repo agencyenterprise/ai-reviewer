@@ -48,6 +48,13 @@ import {
   SubstantiationWorkflowConfigToJSON,
   SubstantiationWorkflowConfigToJSONTyped,
 } from './SubstantiationWorkflowConfig';
+import type { DocumentSummary } from './DocumentSummary';
+import {
+  DocumentSummaryFromJSON,
+  DocumentSummaryFromJSONTyped,
+  DocumentSummaryToJSON,
+  DocumentSummaryToJSONTyped,
+} from './DocumentSummary';
 
 /**
  *
@@ -91,6 +98,18 @@ export interface ClaimSubstantiatorStateInput {
    * @memberof ClaimSubstantiatorStateInput
    */
   errors?: Array<WorkflowError>;
+  /**
+   *
+   * @type {string}
+   * @memberof ClaimSubstantiatorStateInput
+   */
+  literatureReview?: string | null;
+  /**
+   *
+   * @type {{ [key: string]: DocumentSummary; }}
+   * @memberof ClaimSubstantiatorStateInput
+   */
+  supportingDocumentsSummaries?: { [key: string]: DocumentSummary } | null;
 }
 
 /**
@@ -122,6 +141,11 @@ export function ClaimSubstantiatorStateInputFromJSONTyped(
       json['references'] == null ? undefined : (json['references'] as Array<any>).map(BibliographyItemFromJSON),
     chunks: json['chunks'] == null ? undefined : (json['chunks'] as Array<any>).map(DocumentChunkInputFromJSON),
     errors: json['errors'] == null ? undefined : (json['errors'] as Array<any>).map(WorkflowErrorFromJSON),
+    literatureReview: json['literature_review'] == null ? undefined : json['literature_review'],
+    supportingDocumentsSummaries:
+      json['supporting_documents_summaries'] == null
+        ? undefined
+        : mapValues(json['supporting_documents_summaries'], DocumentSummaryFromJSON),
   };
 }
 
@@ -146,5 +170,10 @@ export function ClaimSubstantiatorStateInputToJSONTyped(
       value['references'] == null ? undefined : (value['references'] as Array<any>).map(BibliographyItemToJSON),
     chunks: value['chunks'] == null ? undefined : (value['chunks'] as Array<any>).map(DocumentChunkInputToJSON),
     errors: value['errors'] == null ? undefined : (value['errors'] as Array<any>).map(WorkflowErrorToJSON),
+    literature_review: value['literatureReview'],
+    supporting_documents_summaries:
+      value['supportingDocumentsSummaries'] == null
+        ? undefined
+        : mapValues(value['supportingDocumentsSummaries'], DocumentSummaryToJSON),
   };
 }

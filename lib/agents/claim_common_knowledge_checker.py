@@ -86,6 +86,7 @@ Set `needs_substantiation` to **False** for:
 - Common knowledge that domain experts would not question
 
 Set `needs_substantiation` to **True** for:
+- If there are any references cited in this chunk of text, then regardless of whether we think the claim is common knowledge or not, then the claim MUST be substantiated
 - Specific research findings or statistical claims
 - Expert opinions or interpretations
 - Recent developments or emerging trends

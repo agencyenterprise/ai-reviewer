@@ -62,6 +62,8 @@ export interface RunClaimSubstantiationWorkflowApiRunClaimSubstantiationPostRequ
   mainDocument: Blob;
   supportingDocuments?: Array<Blob> | null;
   useToulmin?: boolean;
+  runLiteratureReview?: boolean;
+  runSuggestCitations?: boolean;
   domain?: string | null;
   targetAudience?: string | null;
   targetChunkIndices?: string | null;
@@ -436,6 +438,14 @@ export class DefaultApi extends runtime.BaseAPI {
 
     if (requestParameters['useToulmin'] != null) {
       formParams.append('use_toulmin', requestParameters['useToulmin'] as any);
+    }
+
+    if (requestParameters['runLiteratureReview'] != null) {
+      formParams.append('run_literature_review', requestParameters['runLiteratureReview'] as any);
+    }
+
+    if (requestParameters['runSuggestCitations'] != null) {
+      formParams.append('run_suggest_citations', requestParameters['runSuggestCitations'] as any);
     }
 
     if (requestParameters['domain'] != null) {
