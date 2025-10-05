@@ -11,49 +11,100 @@ dataset:
       - common_knowledge_rationale
       - substantiation_rationale
   items:
-    # Pure Common Knowledge - Well-established facts
-    - name: "common_knowledge_pure_ai_power_intensive"
+    - name: "common_knowledge_widgets_study_explores_widgets_impact"
+      description: "Study description statement - should be marked as common knowledge"
+      input:
+        main_document: "data/case_1/main_document.md"
+        chunk: "This study explores how widgets impact overall gadget performance metrics."
+        claim: "This study explores how widgets impact overall gadget performance metrics"
+        claim_index: 0
+        domain: "Technology and research"
+        target_audience: "Research community"
+      expected_output:
+        needs_substantiation: false
+        is_common_knowledge: true
+        common_knowledge_rationale: "This is a standard description of a study's purpose and scope, which is a common and expected statement in academic and research contexts."
+        substantiation_rationale: "This is a straightforward description of the study's focus rather than a claim requiring evidence."
+
+    - name: "common_knowledge_widgets_widely_adopted"
+      description: "General statement about widget adoption across industries - should be marked as common knowledge"
+      input:
+        main_document: "data/case_1/main_document.md"
+        chunk: "Widgets have been widely adopted across industries."
+        claim: "Widgets have been widely adopted across industries"
+        claim_index: 0
+        domain: "Technology and business"
+        target_audience: "Business professionals and researchers"
+      expected_output:
+        needs_substantiation: false
+        is_common_knowledge: true
+        common_knowledge_rationale: "Within the technology and business domain, it is widely recognized that widgets have become commonly adopted across various industries. This is a general trend statement that is broadly accepted by business professionals and researchers."
+        substantiation_rationale: "This is a well-established general trend rather than a specific quantitative or contested claim."
+
+    - name: "common_knowledge_widgets_experiments_standard_benchmarks"
+      description: "Statement about conducting experiments with standard benchmarks - should be marked as common knowledge"
+      input:
+        main_document: "data/case_1/main_document.md"
+        chunk: "We conducted experiments using standard gizmo benchmarks."
+        claim: "We conducted experiments using standard gizmo benchmarks"
+        claim_index: 0
+        domain: "Technology and research"
+        target_audience: "Research community"
+      expected_output:
+        needs_substantiation: false
+        is_common_knowledge: true
+        common_knowledge_rationale: "This is a standard methodological statement describing the experimental approach, which is a common and expected practice in research articles."
+        substantiation_rationale: "This is a description of the experimental methodology rather than a substantive claim requiring evidence."
+
+    - name: "common_knowledge_widgets_cellphone_writing_proficiency_claim"
+      description: "Specific claim about cellphones improving writing proficiency - needs substantiation"
+      input:
+        main_document: "data/case_1/main_document.md"
+        chunk: "Of note, cellphones have a positive impact on the user's writing proficiency in most countries (Smith, 2017), making them one of the best widgets out there."
+        claim: "cellphones have a positive impact on the user's writing proficiency in most countries"
+        claim_index: 0
+        domain: "Technology and education"
+        target_audience: "Educational researchers and technology specialists"
+      expected_output:
+        needs_substantiation: true
+        is_common_knowledge: false
+        common_knowledge_rationale: "This is a specific, potentially controversial claim about the educational impact of cellphones that requires empirical evidence and is not universally accepted knowledge."
+        substantiation_rationale: "This is a specific research finding with quantitative implications ('most countries') that requires citation and supporting evidence."
+
+    - name: "common_knowledge_ai_power_intensive"
       description: "Basic well-established fact that AI training requires large amounts of power - should be marked as common knowledge"
       input:
         main_document: "data/common_knowledge/main_document_64520.md"
-        supporting_documents:
-          - "data/common_knowledge/minimal_ai_power_source.md"
-          - "data/common_knowledge/minimal_doe_report.md"
         chunk: "**The anticipated load growth from AI is unprecedented in both magnitude and speed.** Developing advanced AI models requires enormous amounts of power[[4]](#footnote-3) and existing facilities are already straining the U.S. electricity grids.[[5]](#footnote-4)"
         claim: "Developing advanced AI models requires enormous amounts of power"
         claim_index: 1
         domain: "AI and U.S. energy policy"
         target_audience: "Policy makers and researchers"
       expected_output:
-        needs_substantiation: false
+        needs_substantiation: true
         is_common_knowledge: true
         common_knowledge_rationale: "Within the AI and energy domain, it is widely and routinely reported that training large AI models is energy-intensive. Policymakers and researchers (including DOE) and industry analyses frequently note high and rising data center power needs driven by AI workloads. The claim is qualitative and does not assert specific numbers, aligning with well-established understanding."
-        substantiation_rationale: "As a qualitative, widely accepted fact, it generally does not require citation for this audience unless specific quantities or comparisons are introduced. If the claim were quantified or used to support specific policy choices, supporting evidence would be needed."
+        substantiation_rationale: "The claim includes citations, so it needs substantiation."
 
-    - name: "common_knowledge_general_concern"
+    - name: "common_knowledge_ai_power_general_concern"
       description: "General statement about data center power consumption being a concern - should be marked as common knowledge"
       input:
         main_document: "data/common_knowledge/main_document_72038.md"
-        supporting_documents:
-          - "data/common_knowledge/minimal_doe_report.md"
-          - "data/common_knowledge/minimal_ai_power_source.md"
         chunk: "**The anticipated load growth from AI is unprecedented in both magnitude and speed.** Developing advanced AI models requires enormous amounts of power[[4]](#footnote-3) and existing facilities are already straining the U.S. electricity grids.[[5]](#footnote-4) As the demand for computational resources continues to rise, electricity consumption by AI data centers is expected to grow at an unprecedented rate in the coming years.[[6]](#footnote-5)Data center power consumption, especially driven by AI, is a significant and increasing concern."
         claim: "Data center power consumption, especially driven by AI, is a significant and increasing concern"
         claim_index: 4
         domain: "AI and U.S. energy policy"
         target_audience: "Policy makers and energy specialists"
       expected_output:
-        needs_substantiation: false
+        needs_substantiation: true
         is_common_knowledge: true
         common_knowledge_rationale: "By late 2024, multiple authoritative sources (DOE SEAB, major industry analyses, utility planning documents) and extensive media coverage widely recognize rapidly rising data center electricity demand—especially from AI—as a material grid planning and reliability concern. For an audience of policy and energy specialists, this is broadly accepted background knowledge."
-        substantiation_rationale: "The claim is qualitative, reflects a widely accepted trend, and does not present specific quantitative findings or contested causal mechanisms."
+        substantiation_rationale: "The chunk includes citations, so it needs substantiation."
 
-    # Common Knowledge - But Missing Citation
-    - name: "common_knowledge_without_citation_trend"
+    - name: "common_knowledge_ai_power_without_citation_trend"
       description: "Common knowledge claim about general trends but without any citations - should be marked as common knowledge"
       input:
         main_document: "data/common_knowledge/main_document_64520.md"
-        supporting_documents: []
         chunk: "Estimating short-term increases in electricity generation within the United States and the ability to meet growth in AI power demand"
         claim: "AI power demand is growing"
         claim_index: 0
@@ -65,12 +116,10 @@ dataset:
         common_knowledge_rationale: "Within the AI and U.S. energy domain, it is widely and repeatedly reported by government, industry, and research sources that data center/AI electricity demand has been increasing; the claim is a general, non-quantitative trend statement that is broadly accepted by the intended audience."
         substantiation_rationale: "This is a widely accepted general trend rather than a specific quantitative or contested claim."
 
-    # Common Knowledge - General Understanding Without Citations
-    - name: "common_knowledge_general_understanding"
+    - name: "common_knowledge_ai_power_general_understanding"
       description: "Test that common knowledge claims without citations get marked as common knowledge"
       input:
         main_document: "data/common_knowledge/main_document_64520.md"
-        supporting_documents: []
         chunk: "Large concentrated loads can pose challenges for grid infrastructure and stability."
         claim: "Large concentrated loads can pose infrastructure and stability challenges"
         claim_index: 0
@@ -82,14 +131,10 @@ dataset:
         common_knowledge_rationale: "For grid operators and power system engineers, it is fundamental knowledge that large, concentrated loads require careful planning for both infrastructure upgrades and grid stability management."
         substantiation_rationale: "The statement is a general, widely accepted principle in power systems rather than a specific or contentious claim."
 
-    # NOT Common Knowledge - Specific Quantitative Claims (Severity varies)
-    - name: "not_common_knowledge_specific_forecast"
+    - name: "common_knowledge_ai_power_specific_forecast"
       description: "Specific quantitative forecast is NOT common knowledge - should be marked as not common knowledge"
       input:
         main_document: "data/common_knowledge/main_document_64520.md"
-        supporting_documents:
-          - "data/common_knowledge/minimal_epoch_ai_report.md"
-          - "data/common_knowledge/minimal_ai_power_source.md"
         chunk: "As the demand for computational resources continues to rise, electricity consumption by AI data centers is expected to grow at an unprecedented rate in the coming years.[[6]](#footnote-5) Based on current trends for data center power consumption, estimates for AI load growth include 63 GW by 2028,[[7]](#footnote-6) and range between 47 GW[[8]](#footnote-7) to 171 GW by 2030.[[9]](#footnote-8)"
         claim: "Estimates for AI load growth include 63 GW by 2028"
         claim_index: 1
@@ -101,11 +146,10 @@ dataset:
         common_knowledge_rationale: "A precise quantitative forecast (63 GW by 2028) about AI-related power load is not a basic or universally accepted fact; it requires specific sourcing and verification, especially for a policy/research audience."
         substantiation_rationale: "This is a specific, time-bound quantitative estimate with policy relevance. It requires citation to an authoritative source and supporting methodology, as reasonable experts may disagree on projections and underlying assumptions."
 
-    - name: "not_common_knowledge_superlative_no_citation"
+    - name: "common_knowledge_ai_power_superlative_no_citation"
       description: "Superlative claims without citations need substantiation even if concept is known"
       input:
         main_document: "data/common_knowledge/main_document_64520.md"
-        supporting_documents: []
         chunk: "The growth in AI development requires unprecedented power capacity expansion."
         claim: "AI development requires unprecedented power capacity expansion"
         claim_index: 0
@@ -117,12 +161,10 @@ dataset:
         common_knowledge_rationale: "While the general concept that AI is energy-intensive is known, the superlative 'unprecedented' makes a specific historical comparison that requires evidence. This is not common knowledge."
         substantiation_rationale: "A claim of necessity and “unprecedented” scale must be supported by quantitative evidence."
 
-    - name: "not_common_knowledge_state_comparison"
+    - name: "common_knowledge_ai_power_state_comparison"
       description: "Specific state-level electricity capacity figures are NOT common knowledge"
       input:
         main_document: "data/common_knowledge/main_document_64520.md"
-        supporting_documents:
-          - "data/common_knowledge/minimal_epoch_ai_report.md"
         chunk: "Beyond the challenge of aggregated scale, a single site expected to demand a large amount of power also poses issues related to building necessary infrastructure in a timely manner[[10]](#footnote-9) and maintain grid stability.[[11]](#footnote-10) An individual facility may consume up to 5 GW by 2030,[[12]](#footnote-11) a substantial scale comparable to the 2023 net summer generation capacity[[13]](#footnote-12) of a single state such as Idaho (5.4 GW), Maine (5.3 GW), or New Hampshire (4.5 GW).[[14]](#footnote-13)"
         claim: "A 5 GW facility is comparable to the 2023 net summer generation capacity of Idaho (5.4 GW), Maine (5.3 GW), or New Hampshire (4.5 GW)"
         claim_index: 2

@@ -62,7 +62,7 @@ class ClaimCommonKnowledgeResultWithClaimIndex(ClaimCommonKnowledgeResult):
 _claim_common_knowledge_checker_prompt = ChatPromptTemplate.from_template(
     """
 # Task
-You will be given a chunk of text from a document, a claim that is inferred from that chunk of text, and the list of references cited in this chunk of text to support the claim and their associated supporting document (if any). Your task is to determine if this claim represents common knowledge in the domain or not, and whether the claim can be considered common knowledge, and whether the claim needs to be substantiated by references/evidence or not.
+You will be given a chunk of text from a document and a claim that is inferred from that chunk of text. Your task is to determine if this claim represents common knowledge in the domain or not, and whether the claim can be considered common knowledge, and whether the claim needs to be substantiated by references/evidence or not.
 
 Return:
 - is_common_knowledge: A boolean value indicating whether the claim represents common knowledge in the domain
@@ -74,7 +74,6 @@ Return:
 - common_knowledge_rationale: A brief explanation for your common knowledge determination - explain why this claim is or is not considered common knowledge given the specified domain and target audience context.
 - needs_substantiation: A boolean value indicating whether the claim needs to be substantiated by references/evidence
 - substantiation_rationale: A brief explanation for why this claim needs to or does not need to be substantiated by references/evidence
-
 
 **Important guidance on substantiation needs:**
 Set `needs_substantiation` to **False** for:
@@ -109,6 +108,7 @@ Set `needs_substantiation` to **True** for:
 4. **General statistical trends** that are widely reported and uncontroversial
 5. **Standard definitions** and terminology established in the field
 6. **Basic geographic, demographic, or institutional facts** readily available in reference sources
+7. **Statements describing the structure or scope of the work itself** that report on the authors’ own methodology, goals, or organization rather than asserting external facts.
 
 #### **Claims Requiring Substantiation:**
 1. **Specific research findings** or data points from studies, surveys, or analyses
@@ -164,13 +164,6 @@ Set `needs_substantiation` to **True** for:
 
 ## The claim that is inferred from the chunk of text to be substantiated
 {claim}
-
-## The list of references cited in this chunk of text to support the claim and their associated supporting document (if any)
-{cited_references}
-
-## The list of references cited in outside of this chunk, but still in the same paragraph of text to support the claim and their associated supporting document (if any)
-{cited_references_paragraph}
-
 """
 )
 
