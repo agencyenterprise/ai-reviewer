@@ -171,6 +171,7 @@ claim_common_knowledge_checker_agent = Agent(
     name="Claim Common Knowledge Checker",
     description="Check if a claim represents common knowledge in the domain",
     model=models["gpt-5"],
+    temperature=0.2,
     prompt=_claim_common_knowledge_checker_prompt,
     tools=[],
     mandatory_tools=[],

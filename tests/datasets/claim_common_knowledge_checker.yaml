@@ -175,3 +175,123 @@ dataset:
         is_common_knowledge: false
         common_knowledge_rationale: "Specific state-level electricity capacity figures (e.g., 2023 net summer capacity for Idaho, Maine, New Hampshire) are not widely known outside energy statistics circles and require citation for a policy/research audience."
         substantiation_rationale: "Because the claim makes a precise numerical comparison, it needs substantiation."
+
+    - name: "common_knowledge_crypto_blockchain_criminal_justice_purpose"
+      description: "Statement about criminal justice system purpose - should be marked as common knowledge"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        chunk: "The criminal justice system in the United States is intended to deter, punish, and reform individuals who violate the norms of good order and mutual respect that are enshrined in law."
+        claim: "The criminal justice system in the United States is intended to deter, punish, and reform individuals who violate the norms of good order and mutual respect that are enshrined in law"
+        claim_index: 0
+        domain: "Criminal justice and law"
+        target_audience: "Legal and policy professionals"
+      expected_output:
+        needs_substantiation: false
+        is_common_knowledge: true
+        common_knowledge_rationale: "The stated purposes of the U.S. criminal justice system (deterrence, punishment, reformation) are fundamental principles that are widely known and accepted within legal and policy communities."
+        substantiation_rationale: "This is a general statement about the established purposes of the criminal justice system rather than a specific claim requiring evidence."
+
+    - name: "common_knowledge_crypto_blockchain_legal_structures_timing"
+      description: "Historical statement about legal structures development timing - should be marked as common knowledge"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        chunk: "The associated legal structures were developed, for the most part, before the development of such information technologies as the postal service, telegraph, and telephone systems."
+        claim: "The associated legal structures were developed, for the most part, before the development of such information technologies as the postal service, telegraph, and telephone systems"
+        claim_index: 0
+        domain: "Legal history and technology"
+        target_audience: "Legal historians and technology researchers"
+      expected_output:
+        needs_substantiation: false
+        is_common_knowledge: true
+        common_knowledge_rationale: "The general historical timeline that U.S. legal structures predate modern information technologies is widely recognized in legal and technology history contexts."
+        substantiation_rationale: "This is a well-established historical fact about the development timeline of legal systems and communication technologies."
+
+    - name: "common_knowledge_crypto_blockchain_economic_interactions_online"
+      description: "General statement about economic interactions moving online - should be marked as common knowledge"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        chunk: "With the development of personal computers connected by the internet, much larger portions of economic and interpersonal interactions have moved online, as has criminal activity."
+        claim: "With the development of personal computers connected by the internet, much larger portions of economic and interpersonal interactions have moved online, as has criminal activity"
+        claim_index: 0
+        domain: "Technology and society"
+        target_audience: "Technology and social researchers"
+      expected_output:
+        needs_substantiation: false
+        is_common_knowledge: true
+        common_knowledge_rationale: "The general trend that internet and personal computer development has led to increased online economic and social interactions, including criminal activity, is widely recognized in technology and social research communities."
+        substantiation_rationale: "This is a broadly accepted general trend about the digital transformation of society rather than a specific quantitative claim."
+
+    - name: "common_knowledge_crypto_blockchain_digital_spaces_challenges_opportunities"
+      description: "General statement about digital spaces presenting challenges and opportunities - needs substantiation due to citations"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        chunk: "This shift of activity into digital spaces has presented a multitude of difficulties, as well as opportunities, for criminal justice practitioners (Goodison, Davis, and Jackson, 2015; Tanneeru, 2009; Vermeer, Woods, and Jackson, 2018)."
+        claim: "This shift of activity into digital spaces has presented a multitude of difficulties, as well as opportunities, for criminal justice practitioners"
+        claim_index: 0
+        domain: "Criminal justice and technology"
+        target_audience: "Criminal justice practitioners and researchers"
+      expected_output:
+        needs_substantiation: true
+        is_common_knowledge: true
+        common_knowledge_rationale: "For criminal justice practitioners and researchers, it is widely recognized that the migration of activities to digital spaces has created both challenges (e.g., jurisdiction, evidence access) and opportunities (e.g., new investigative tools). This is a broadly accepted, foundational context across authoritative sources."
+        substantiation_rationale: "The chunk includes citations, so it needs substantiation."
+
+    - name: "common_knowledge_crypto_blockchain_traditional_jurisdiction_assumption"
+      description: "Statement about traditional jurisdiction assumptions - should be marked as common knowledge"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        chunk: "A traditional assumption, built into the structure of the U.S. criminal justice system, is that individuals who are committing crimes are physically within a geographical jurisdiction, their victims are physically present within that jurisdiction, and any necessary evidence that exists could also be obtained within that jurisdiction."
+        claim: "A traditional assumption, built into the structure of the U.S. criminal justice system, is that individuals who are committing crimes are physically within a geographical jurisdiction, their victims are physically present within that jurisdiction, and any necessary evidence that exists could also be obtained within that jurisdiction"
+        claim_index: 0
+        domain: "Criminal justice and jurisdiction"
+        target_audience: "Legal professionals and criminal justice researchers"
+      expected_output:
+        needs_substantiation: false
+        is_common_knowledge: true
+        common_knowledge_rationale: "The traditional territorial jurisdiction assumptions underlying U.S. criminal justice systems are fundamental legal principles that are widely understood by legal professionals and criminal justice researchers."
+        substantiation_rationale: "This is a description of established legal principles and jurisdictional concepts rather than a contested claim."
+
+    - name: "common_knowledge_crypto_blockchain_jurisdiction_conditions_less_frequent"
+      description: "Statement about jurisdiction conditions being met less frequently - needs substantiation due to citations"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        chunk: "This shift of activity into digital spaces has presented a multitude of difficulties, as well as opportunities, for criminal justice practitioners (Goodison, Davis, and Jackson, 2015; Tanneeru, 2009; Vermeer, Woods, and Jackson, 2018)."
+        claim: "The shift to digital and online interactions has meant that the same jurisdiction conditions are being met less and less frequently for many types of crimes"
+        claim_index: 0
+        domain: "Criminal justice and digital technology"
+        target_audience: "Criminal justice practitioners and legal researchers"
+      expected_output:
+        needs_substantiation: true
+        is_common_knowledge: true
+        common_knowledge_rationale: "The general concept that digital interactions challenge traditional jurisdictional boundaries is widely recognized, but the specific frequency claim requires substantiation."
+        substantiation_rationale: "The chunk includes citations, so it needs substantiation."
+
+    - name: "common_knowledge_crypto_blockchain_jurisdiction_unknown_enforcement"
+      description: "Statement about jurisdiction being unknown to law enforcement - should be marked as common knowledge"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        chunk: "Furthermore, at the time a crime is committed, the jurisdiction that the participants are in might be completely unknown to law enforcement."
+        claim: "at the time a crime is committed, the jurisdiction that the participants are in might be completely unknown to law enforcement"
+        claim_index: 0
+        domain: "Criminal justice and digital technology"
+        target_audience: "Law enforcement and legal professionals"
+      expected_output:
+        needs_substantiation: false
+        is_common_knowledge: true
+        common_knowledge_rationale: "The challenge of determining jurisdiction in digital crimes is a widely recognized issue among law enforcement and legal professionals dealing with cybercrime."
+        substantiation_rationale: "This is a well-established challenge in digital crime investigation rather than a specific quantitative claim."
+
+    - name: "common_knowledge_crypto_blockchain_new_challenges_law_enforcement"
+      description: "Statement about new challenges for law enforcement - needs substantiation due to citations"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        chunk: "This presents new challenges for law enforcement agencies in carrying out criminal justice system processes efficiently and effectively (Goodison et al., 2019; Tanneeru, 2009; Vermeer, Woods, and Jackson, 2018)."
+        claim: "This presents new challenges for law enforcement agencies in carrying out criminal justice system processes efficiently and effectively"
+        claim_index: 0
+        domain: "Criminal justice and law enforcement"
+        target_audience: "Law enforcement professionals and criminal justice researchers"
+      expected_output:
+        needs_substantiation: true
+        is_common_knowledge: true
+        common_knowledge_rationale: "The general concept that technological changes create new challenges for law enforcement is widely recognized, but the specific application and efficiency claims require substantiation."
+        substantiation_rationale: "The chunk includes citations, so it needs substantiation."
