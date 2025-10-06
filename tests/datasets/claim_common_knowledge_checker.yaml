@@ -22,8 +22,8 @@ dataset:
         target_audience: "Research community"
       expected_output:
         needs_substantiation: false
-        is_common_knowledge: true
-        common_knowledge_rationale: "This is a standard description of a study's purpose and scope, which is a common and expected statement in academic and research contexts."
+        is_common_knowledge: false
+        common_knowledge_rationale: "This is a self-descriptive statement about the paper’s scope, not a widely accepted fact in the domain. It pertains specifically to this study rather than general domain knowledge."
         substantiation_rationale: "This is a straightforward description of the study's focus rather than a claim requiring evidence."
 
     - name: "common_knowledge_widgets_widely_adopted"

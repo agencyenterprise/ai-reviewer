@@ -83,6 +83,7 @@ Set `needs_substantiation` to **False** for:
 - General principles universally accepted in the field
 - Simple factual statements readily available in reference sources
 - Common knowledge that domain experts would not question
+- Statements describing the structure or scope of the work itself that report on the authors’ own methodology, goals, or organization rather than asserting external facts
 
 Set `needs_substantiation` to **True** for:
 - If there are any references cited in this chunk of text, then regardless of whether we think the claim is common knowledge or not, then the claim MUST be substantiated
@@ -108,7 +109,6 @@ Set `needs_substantiation` to **True** for:
 4. **General statistical trends** that are widely reported and uncontroversial
 5. **Standard definitions** and terminology established in the field
 6. **Basic geographic, demographic, or institutional facts** readily available in reference sources
-7. **Statements describing the structure or scope of the work itself** that report on the authors’ own methodology, goals, or organization rather than asserting external facts.
 
 #### **Claims Requiring Substantiation:**
 1. **Specific research findings** or data points from studies, surveys, or analyses
