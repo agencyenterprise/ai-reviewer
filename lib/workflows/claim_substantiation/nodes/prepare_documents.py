@@ -1,5 +1,9 @@
 import logging
 
+from lib.agents.document_summarizer import (
+    DocumentSummarizerResponse,
+    document_summarizer_agent,
+)
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 
 logger = logging.getLogger(__name__)
@@ -15,6 +19,12 @@ async def prepare_documents(state: ClaimSubstantiatorState) -> ClaimSubstantiato
         )
         return {}
 
+    response: DocumentSummarizerResponse = await document_summarizer_agent.apply(
+        {
+            "document": state.file.markdown,
+        }
+    )
+
     logger.info(f"prepare_documents ({state.config.session_id}): done")
 
-    return {}
+    return {"main_document_summary": response.summary}
