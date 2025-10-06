@@ -14,18 +14,20 @@ logger = logging.getLogger(__name__)
 
 
 async def detect_citations(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
-    logger.info("detect_citations: detecting citations")
+    logger.info(f"detect_citations ({state.config.session_id}): starting")
 
     agents_to_run = state.config.agents_to_run
     if agents_to_run and "citations" not in agents_to_run:
         logger.info(
-            "detect_citations: Skipping citations detection (not in agents_to_run)"
+            f"detect_citations ({state.config.session_id}): Skipping citations detection (not in agents_to_run)"
         )
         return {}
 
-    return await iterate_chunks(
+    results = await iterate_chunks(
         state, _detect_chunk_citations, "Detecting chunk citations"
     )
+    logger.info(f"detect_citations ({state.config.session_id}): done")
+    return results
 
 
 async def _detect_chunk_citations(

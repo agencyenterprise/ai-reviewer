@@ -22,18 +22,20 @@ logger = logging.getLogger(__name__)
 async def substantiate_claims(
     state: ClaimSubstantiatorState,
 ) -> ClaimSubstantiatorState:
-    logger.info("substantiate_claims: substantiating claims")
+    logger.info(f"substantiate_claims ({state.config.session_id}): starting")
 
     agents_to_run = state.config.agents_to_run
     if agents_to_run and "substantiation" not in agents_to_run:
         logger.info(
-            "substantiate_claims: Skipping claim substantiation (not in agents_to_run)"
+            f"substantiate_claims ({state.config.session_id}): Skipping claim substantiation (not in agents_to_run)"
         )
         return {}
 
-    return await iterate_chunks(
+    results = await iterate_chunks(
         state, _substantiate_chunk_claims, "Substantiating chunk claims"
     )
+    logger.info(f"substantiate_claims ({state.config.session_id}): done")
+    return results
 
 
 async def _substantiate_chunk_claims(
