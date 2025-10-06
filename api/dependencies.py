@@ -10,7 +10,9 @@ from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfi
 
 
 async def build_config_from_form(
-    use_toulmin: bool = Form(default=False),
+    use_toulmin: bool = Form(default=True),
+    run_literature_review: bool = Form(default=True),
+    run_suggest_citations: bool = Form(default=True),
     domain: Optional[str] = Form(default=None),
     target_audience: Optional[str] = Form(default=None),
     target_chunk_indices: Optional[str] = Form(default=None),
@@ -56,6 +58,8 @@ async def build_config_from_form(
 
     return SubstantiationWorkflowConfig(
         use_toulmin=use_toulmin,
+        run_literature_review=run_literature_review,
+        run_suggest_citations=run_suggest_citations,
         domain=domain,
         target_audience=target_audience,
         target_chunk_indices=parsed_target_chunk_indices,

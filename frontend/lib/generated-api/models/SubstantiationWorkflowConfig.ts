@@ -26,6 +26,18 @@ export interface SubstantiationWorkflowConfig {
    */
   useToulmin?: boolean;
   /**
+   * Whether to run the literature review
+   * @type {boolean}
+   * @memberof SubstantiationWorkflowConfig
+   */
+  runLiteratureReview?: boolean;
+  /**
+   * Whether to run the citation suggestions
+   * @type {boolean}
+   * @memberof SubstantiationWorkflowConfig
+   */
+  runSuggestCitations?: boolean;
+  /**
    *
    * @type {Array<number>}
    * @memberof SubstantiationWorkflowConfig
@@ -77,6 +89,8 @@ export function SubstantiationWorkflowConfigFromJSONTyped(
   }
   return {
     useToulmin: json['use_toulmin'] == null ? undefined : json['use_toulmin'],
+    runLiteratureReview: json['run_literature_review'] == null ? undefined : json['run_literature_review'],
+    runSuggestCitations: json['run_suggest_citations'] == null ? undefined : json['run_suggest_citations'],
     targetChunkIndices: json['target_chunk_indices'] == null ? undefined : json['target_chunk_indices'],
     agentsToRun: json['agents_to_run'] == null ? undefined : json['agents_to_run'],
     domain: json['domain'] == null ? undefined : json['domain'],
@@ -99,6 +113,8 @@ export function SubstantiationWorkflowConfigToJSONTyped(
 
   return {
     use_toulmin: value['useToulmin'],
+    run_literature_review: value['runLiteratureReview'],
+    run_suggest_citations: value['runSuggestCitations'],
     target_chunk_indices: value['targetChunkIndices'],
     agents_to_run: value['agentsToRun'],
     domain: value['domain'],

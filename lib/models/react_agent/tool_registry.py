@@ -47,7 +47,18 @@ Use this to check on current facts, latest news, etc., whenever it is helpful fo
         return_direct=False,
     )
 
+    openai_web_search_tool = {
+        "type": "web_search_preview",
+    }
+
+    openai_code_interpreter_tool = {
+        "type": "code_interpreter",
+        "container": {"type": "auto"},
+    }
+
     tools["web_search"] = search_tool
+    tools["openai_web_search"] = openai_web_search_tool
+    tools["openai_code_interpreter"] = openai_code_interpreter_tool
     return tools
 
 
