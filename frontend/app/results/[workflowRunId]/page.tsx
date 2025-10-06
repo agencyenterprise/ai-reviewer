@@ -5,6 +5,7 @@ import { ResultsVisualization } from '@/components/wizard/results-step/results-v
 import { api } from '@/lib/api';
 import { ChunkReevaluationResponse, WorkflowRunDetailed, WorkflowRunStatus } from '@/lib/generated-api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect } from 'react';
@@ -54,15 +55,6 @@ export default function ResultsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <div className="container mx-auto px-4 py-12 max-w-6xl">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-            Workflow Run Results
-          </h1>
-          <Link href="/">
-            <Button variant="outline">Back to Home</Button>
-          </Link>
-        </div>
-
         {isLoading && (
           <div className="flex items-center justify-center">
             <div className="text-center">
@@ -81,10 +73,24 @@ export default function ResultsPage() {
         )}
 
         {workflowRun && (
-          <ResultsVisualization
-            results={workflowRun.state || undefined}
-            onChunkReevaluation={handleChunkReevaluation}
-          />
+          <>
+            <div className="flex items-center justify-between mb-6">
+              <hgroup>
+                <h1 className="text-2xl font-bold">{workflowRun?.run.title}</h1>
+                <h2 className="text-muted-foreground text-sm">
+                  Workflow Run Results · {format(workflowRun?.run.createdAt || new Date(), 'MMM d, yyyy')}
+                </h2>
+              </hgroup>
+              <Link href="/">
+                <Button variant="outline">Back to Home</Button>
+              </Link>
+            </div>
+
+            <ResultsVisualization
+              results={workflowRun.state || undefined}
+              onChunkReevaluation={handleChunkReevaluation}
+            />
+          </>
         )}
       </div>
     </div>

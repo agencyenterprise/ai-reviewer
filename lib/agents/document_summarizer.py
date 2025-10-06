@@ -35,13 +35,13 @@ document_summarizer_agent = Agent(
 # Task
 You are a document summarizer. You are given a document and you need to summarize it.
 
-Read the following document and summarize it in less than 2000 words. Make sure to include the main takeaways of the document. 
+Read the following document and summarize it in less than 2000 words. Make sure to include the main takeaways of the document.
 
 Also extract:
-- The title, 
-- Authors (if available),
-- Publication date (if available), and
-- Abstract (if available).
+- The title of the document. Suggest a title if the document does not have one.
+- Authors (if available)
+- Publication date (if available)
+- Abstract (if available)
 
 ## The document to summarize
 ```
