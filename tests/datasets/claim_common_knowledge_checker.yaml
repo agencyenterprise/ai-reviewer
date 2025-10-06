@@ -1,0 +1,297 @@
+dataset:
+  name: "Claim Substantiator Dataset - Common Knowledge"
+  description: "Test cases specifically for common knowledge detection and severity assignment based on AI/data center power consumption documents"
+  test_config:
+    strict_fields:
+      - is_common_knowledge
+      # - claim_types
+      # - common_knowledge_types
+      - needs_substantiation
+    llm_fields:
+      - common_knowledge_rationale
+      - substantiation_rationale
+  items:
+    - name: "common_knowledge_widgets_study_explores_widgets_impact"
+      description: "Study description statement - should be marked as common knowledge"
+      input:
+        main_document: "data/case_1/main_document.md"
+        chunk: "This study explores how widgets impact overall gadget performance metrics."
+        claim: "This study explores how widgets impact overall gadget performance metrics"
+        claim_index: 0
+        domain: "Technology and research"
+        target_audience: "Research community"
+      expected_output:
+        needs_substantiation: false
+        is_common_knowledge: true
+        common_knowledge_rationale: "This is a standard description of a study's purpose and scope, which is a common and expected statement in academic and research contexts."
+        substantiation_rationale: "This is a straightforward description of the study's focus rather than a claim requiring evidence."
+
+    - name: "common_knowledge_widgets_widely_adopted"
+      description: "General statement about widget adoption across industries - should be marked as common knowledge"
+      input:
+        main_document: "data/case_1/main_document.md"
+        chunk: "Widgets have been widely adopted across industries."
+        claim: "Widgets have been widely adopted across industries"
+        claim_index: 0
+        domain: "Technology and business"
+        target_audience: "Business professionals and researchers"
+      expected_output:
+        needs_substantiation: false
+        is_common_knowledge: true
+        common_knowledge_rationale: "Within the technology and business domain, it is widely recognized that widgets have become commonly adopted across various industries. This is a general trend statement that is broadly accepted by business professionals and researchers."
+        substantiation_rationale: "This is a well-established general trend rather than a specific quantitative or contested claim."
+
+    - name: "common_knowledge_widgets_experiments_standard_benchmarks"
+      description: "Statement about conducting experiments with standard benchmarks - should be marked as common knowledge"
+      input:
+        main_document: "data/case_1/main_document.md"
+        chunk: "We conducted experiments using standard gizmo benchmarks."
+        claim: "We conducted experiments using standard gizmo benchmarks"
+        claim_index: 0
+        domain: "Technology and research"
+        target_audience: "Research community"
+      expected_output:
+        needs_substantiation: false
+        is_common_knowledge: true
+        common_knowledge_rationale: "This is a standard methodological statement describing the experimental approach, which is a common and expected practice in research articles."
+        substantiation_rationale: "This is a description of the experimental methodology rather than a substantive claim requiring evidence."
+
+    - name: "common_knowledge_widgets_cellphone_writing_proficiency_claim"
+      description: "Specific claim about cellphones improving writing proficiency - needs substantiation"
+      input:
+        main_document: "data/case_1/main_document.md"
+        chunk: "Of note, cellphones have a positive impact on the user's writing proficiency in most countries (Smith, 2017), making them one of the best widgets out there."
+        claim: "cellphones have a positive impact on the user's writing proficiency in most countries"
+        claim_index: 0
+        domain: "Technology and education"
+        target_audience: "Educational researchers and technology specialists"
+      expected_output:
+        needs_substantiation: true
+        is_common_knowledge: false
+        common_knowledge_rationale: "This is a specific, potentially controversial claim about the educational impact of cellphones that requires empirical evidence and is not universally accepted knowledge."
+        substantiation_rationale: "This is a specific research finding with quantitative implications ('most countries') that requires citation and supporting evidence."
+
+    - name: "common_knowledge_ai_power_intensive"
+      description: "Basic well-established fact that AI training requires large amounts of power - should be marked as common knowledge"
+      input:
+        main_document: "data/common_knowledge/main_document_64520.md"
+        chunk: "**The anticipated load growth from AI is unprecedented in both magnitude and speed.** Developing advanced AI models requires enormous amounts of power[[4]](#footnote-3) and existing facilities are already straining the U.S. electricity grids.[[5]](#footnote-4)"
+        claim: "Developing advanced AI models requires enormous amounts of power"
+        claim_index: 1
+        domain: "AI and U.S. energy policy"
+        target_audience: "Policy makers and researchers"
+      expected_output:
+        needs_substantiation: true
+        is_common_knowledge: true
+        common_knowledge_rationale: "Within the AI and energy domain, it is widely and routinely reported that training large AI models is energy-intensive. Policymakers and researchers (including DOE) and industry analyses frequently note high and rising data center power needs driven by AI workloads. The claim is qualitative and does not assert specific numbers, aligning with well-established understanding."
+        substantiation_rationale: "The claim includes citations, so it needs substantiation."
+
+    - name: "common_knowledge_ai_power_general_concern"
+      description: "General statement about data center power consumption being a concern - should be marked as common knowledge"
+      input:
+        main_document: "data/common_knowledge/main_document_72038.md"
+        chunk: "**The anticipated load growth from AI is unprecedented in both magnitude and speed.** Developing advanced AI models requires enormous amounts of power[[4]](#footnote-3) and existing facilities are already straining the U.S. electricity grids.[[5]](#footnote-4) As the demand for computational resources continues to rise, electricity consumption by AI data centers is expected to grow at an unprecedented rate in the coming years.[[6]](#footnote-5)Data center power consumption, especially driven by AI, is a significant and increasing concern."
+        claim: "Data center power consumption, especially driven by AI, is a significant and increasing concern"
+        claim_index: 4
+        domain: "AI and U.S. energy policy"
+        target_audience: "Policy makers and energy specialists"
+      expected_output:
+        needs_substantiation: true
+        is_common_knowledge: true
+        common_knowledge_rationale: "By late 2024, multiple authoritative sources (DOE SEAB, major industry analyses, utility planning documents) and extensive media coverage widely recognize rapidly rising data center electricity demand—especially from AI—as a material grid planning and reliability concern. For an audience of policy and energy specialists, this is broadly accepted background knowledge."
+        substantiation_rationale: "The chunk includes citations, so it needs substantiation."
+
+    - name: "common_knowledge_ai_power_without_citation_trend"
+      description: "Common knowledge claim about general trends but without any citations - should be marked as common knowledge"
+      input:
+        main_document: "data/common_knowledge/main_document_64520.md"
+        chunk: "Estimating short-term increases in electricity generation within the United States and the ability to meet growth in AI power demand"
+        claim: "AI power demand is growing"
+        claim_index: 0
+        domain: "AI and U.S. energy policy"
+        target_audience: "RAND researchers and policy makers"
+      expected_output:
+        needs_substantiation: false
+        is_common_knowledge: true
+        common_knowledge_rationale: "Within the AI and U.S. energy domain, it is widely and repeatedly reported by government, industry, and research sources that data center/AI electricity demand has been increasing; the claim is a general, non-quantitative trend statement that is broadly accepted by the intended audience."
+        substantiation_rationale: "This is a widely accepted general trend rather than a specific quantitative or contested claim."
+
+    - name: "common_knowledge_ai_power_general_understanding"
+      description: "Test that common knowledge claims without citations get marked as common knowledge"
+      input:
+        main_document: "data/common_knowledge/main_document_64520.md"
+        chunk: "Large concentrated loads can pose challenges for grid infrastructure and stability."
+        claim: "Large concentrated loads can pose infrastructure and stability challenges"
+        claim_index: 0
+        domain: "Power systems and energy"
+        target_audience: "Grid operators"
+      expected_output:
+        needs_substantiation: false
+        is_common_knowledge: true
+        common_knowledge_rationale: "For grid operators and power system engineers, it is fundamental knowledge that large, concentrated loads require careful planning for both infrastructure upgrades and grid stability management."
+        substantiation_rationale: "The statement is a general, widely accepted principle in power systems rather than a specific or contentious claim."
+
+    - name: "common_knowledge_ai_power_specific_forecast"
+      description: "Specific quantitative forecast is NOT common knowledge - should be marked as not common knowledge"
+      input:
+        main_document: "data/common_knowledge/main_document_64520.md"
+        chunk: "As the demand for computational resources continues to rise, electricity consumption by AI data centers is expected to grow at an unprecedented rate in the coming years.[[6]](#footnote-5) Based on current trends for data center power consumption, estimates for AI load growth include 63 GW by 2028,[[7]](#footnote-6) and range between 47 GW[[8]](#footnote-7) to 171 GW by 2030.[[9]](#footnote-8)"
+        claim: "Estimates for AI load growth include 63 GW by 2028"
+        claim_index: 1
+        domain: "AI and U.S. energy policy"
+        target_audience: "RAND researchers and policy makers"
+      expected_output:
+        needs_substantiation: true
+        is_common_knowledge: false
+        common_knowledge_rationale: "A precise quantitative forecast (63 GW by 2028) about AI-related power load is not a basic or universally accepted fact; it requires specific sourcing and verification, especially for a policy/research audience."
+        substantiation_rationale: "This is a specific, time-bound quantitative estimate with policy relevance. It requires citation to an authoritative source and supporting methodology, as reasonable experts may disagree on projections and underlying assumptions."
+
+    - name: "common_knowledge_ai_power_superlative_no_citation"
+      description: "Superlative claims without citations need substantiation even if concept is known"
+      input:
+        main_document: "data/common_knowledge/main_document_64520.md"
+        chunk: "The growth in AI development requires unprecedented power capacity expansion."
+        claim: "AI development requires unprecedented power capacity expansion"
+        claim_index: 0
+        domain: "AI and U.S. energy policy"
+        target_audience: "Policy makers"
+      expected_output:
+        needs_substantiation: true
+        is_common_knowledge: false
+        common_knowledge_rationale: "While the general concept that AI is energy-intensive is known, the superlative 'unprecedented' makes a specific historical comparison that requires evidence. This is not common knowledge."
+        substantiation_rationale: "A claim of necessity and “unprecedented” scale must be supported by quantitative evidence."
+
+    - name: "common_knowledge_ai_power_state_comparison"
+      description: "Specific state-level electricity capacity figures are NOT common knowledge"
+      input:
+        main_document: "data/common_knowledge/main_document_64520.md"
+        chunk: "Beyond the challenge of aggregated scale, a single site expected to demand a large amount of power also poses issues related to building necessary infrastructure in a timely manner[[10]](#footnote-9) and maintain grid stability.[[11]](#footnote-10) An individual facility may consume up to 5 GW by 2030,[[12]](#footnote-11) a substantial scale comparable to the 2023 net summer generation capacity[[13]](#footnote-12) of a single state such as Idaho (5.4 GW), Maine (5.3 GW), or New Hampshire (4.5 GW).[[14]](#footnote-13)"
+        claim: "A 5 GW facility is comparable to the 2023 net summer generation capacity of Idaho (5.4 GW), Maine (5.3 GW), or New Hampshire (4.5 GW)"
+        claim_index: 2
+        domain: "Power systems and energy policy"
+        target_audience: "Policy makers"
+      expected_output:
+        needs_substantiation: true
+        is_common_knowledge: false
+        common_knowledge_rationale: "Specific state-level electricity capacity figures (e.g., 2023 net summer capacity for Idaho, Maine, New Hampshire) are not widely known outside energy statistics circles and require citation for a policy/research audience."
+        substantiation_rationale: "Because the claim makes a precise numerical comparison, it needs substantiation."
+
+    - name: "common_knowledge_crypto_blockchain_criminal_justice_purpose"
+      description: "Statement about criminal justice system purpose - should be marked as common knowledge"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        chunk: "The criminal justice system in the United States is intended to deter, punish, and reform individuals who violate the norms of good order and mutual respect that are enshrined in law."
+        claim: "The criminal justice system in the United States is intended to deter, punish, and reform individuals who violate the norms of good order and mutual respect that are enshrined in law"
+        claim_index: 0
+        domain: "Criminal justice and law"
+        target_audience: "Legal and policy professionals"
+      expected_output:
+        needs_substantiation: false
+        is_common_knowledge: true
+        common_knowledge_rationale: "The stated purposes of the U.S. criminal justice system (deterrence, punishment, reformation) are fundamental principles that are widely known and accepted within legal and policy communities."
+        substantiation_rationale: "This is a general statement about the established purposes of the criminal justice system rather than a specific claim requiring evidence."
+
+    - name: "common_knowledge_crypto_blockchain_legal_structures_timing"
+      description: "Historical statement about legal structures development timing - should be marked as common knowledge"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        chunk: "The associated legal structures were developed, for the most part, before the development of such information technologies as the postal service, telegraph, and telephone systems."
+        claim: "The associated legal structures were developed, for the most part, before the development of such information technologies as the postal service, telegraph, and telephone systems"
+        claim_index: 0
+        domain: "Legal history and technology"
+        target_audience: "Legal historians and technology researchers"
+      expected_output:
+        needs_substantiation: false
+        is_common_knowledge: true
+        common_knowledge_rationale: "The general historical timeline that U.S. legal structures predate modern information technologies is widely recognized in legal and technology history contexts."
+        substantiation_rationale: "This is a well-established historical fact about the development timeline of legal systems and communication technologies."
+
+    - name: "common_knowledge_crypto_blockchain_economic_interactions_online"
+      description: "General statement about economic interactions moving online - should be marked as common knowledge"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        chunk: "With the development of personal computers connected by the internet, much larger portions of economic and interpersonal interactions have moved online, as has criminal activity."
+        claim: "With the development of personal computers connected by the internet, much larger portions of economic and interpersonal interactions have moved online, as has criminal activity"
+        claim_index: 0
+        domain: "Technology and society"
+        target_audience: "Technology and social researchers"
+      expected_output:
+        needs_substantiation: false
+        is_common_knowledge: true
+        common_knowledge_rationale: "The general trend that internet and personal computer development has led to increased online economic and social interactions, including criminal activity, is widely recognized in technology and social research communities."
+        substantiation_rationale: "This is a broadly accepted general trend about the digital transformation of society rather than a specific quantitative claim."
+
+    - name: "common_knowledge_crypto_blockchain_digital_spaces_challenges_opportunities"
+      description: "General statement about digital spaces presenting challenges and opportunities - needs substantiation due to citations"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        chunk: "This shift of activity into digital spaces has presented a multitude of difficulties, as well as opportunities, for criminal justice practitioners (Goodison, Davis, and Jackson, 2015; Tanneeru, 2009; Vermeer, Woods, and Jackson, 2018)."
+        claim: "This shift of activity into digital spaces has presented a multitude of difficulties, as well as opportunities, for criminal justice practitioners"
+        claim_index: 0
+        domain: "Criminal justice and technology"
+        target_audience: "Criminal justice practitioners and researchers"
+      expected_output:
+        needs_substantiation: true
+        is_common_knowledge: true
+        common_knowledge_rationale: "For criminal justice practitioners and researchers, it is widely recognized that the migration of activities to digital spaces has created both challenges (e.g., jurisdiction, evidence access) and opportunities (e.g., new investigative tools). This is a broadly accepted, foundational context across authoritative sources."
+        substantiation_rationale: "The chunk includes citations, so it needs substantiation."
+
+    - name: "common_knowledge_crypto_blockchain_traditional_jurisdiction_assumption"
+      description: "Statement about traditional jurisdiction assumptions - should be marked as common knowledge"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        chunk: "A traditional assumption, built into the structure of the U.S. criminal justice system, is that individuals who are committing crimes are physically within a geographical jurisdiction, their victims are physically present within that jurisdiction, and any necessary evidence that exists could also be obtained within that jurisdiction."
+        claim: "A traditional assumption, built into the structure of the U.S. criminal justice system, is that individuals who are committing crimes are physically within a geographical jurisdiction, their victims are physically present within that jurisdiction, and any necessary evidence that exists could also be obtained within that jurisdiction"
+        claim_index: 0
+        domain: "Criminal justice and jurisdiction"
+        target_audience: "Legal professionals and criminal justice researchers"
+      expected_output:
+        needs_substantiation: false
+        is_common_knowledge: true
+        common_knowledge_rationale: "The traditional territorial jurisdiction assumptions underlying U.S. criminal justice systems are fundamental legal principles that are widely understood by legal professionals and criminal justice researchers."
+        substantiation_rationale: "This is a description of established legal principles and jurisdictional concepts rather than a contested claim."
+
+    - name: "common_knowledge_crypto_blockchain_jurisdiction_conditions_less_frequent"
+      description: "Statement about jurisdiction conditions being met less frequently - needs substantiation due to citations"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        chunk: "This shift of activity into digital spaces has presented a multitude of difficulties, as well as opportunities, for criminal justice practitioners (Goodison, Davis, and Jackson, 2015; Tanneeru, 2009; Vermeer, Woods, and Jackson, 2018)."
+        claim: "The shift to digital and online interactions has meant that the same jurisdiction conditions are being met less and less frequently for many types of crimes"
+        claim_index: 0
+        domain: "Criminal justice and digital technology"
+        target_audience: "Criminal justice practitioners and legal researchers"
+      expected_output:
+        needs_substantiation: true
+        is_common_knowledge: true
+        common_knowledge_rationale: "The general concept that digital interactions challenge traditional jurisdictional boundaries is widely recognized, but the specific frequency claim requires substantiation."
+        substantiation_rationale: "The chunk includes citations, so it needs substantiation."
+
+    - name: "common_knowledge_crypto_blockchain_jurisdiction_unknown_enforcement"
+      description: "Statement about jurisdiction being unknown to law enforcement - should be marked as common knowledge"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        chunk: "Furthermore, at the time a crime is committed, the jurisdiction that the participants are in might be completely unknown to law enforcement."
+        claim: "at the time a crime is committed, the jurisdiction that the participants are in might be completely unknown to law enforcement"
+        claim_index: 0
+        domain: "Criminal justice and digital technology"
+        target_audience: "Law enforcement and legal professionals"
+      expected_output:
+        needs_substantiation: false
+        is_common_knowledge: true
+        common_knowledge_rationale: "The challenge of determining jurisdiction in digital crimes is a widely recognized issue among law enforcement and legal professionals dealing with cybercrime."
+        substantiation_rationale: "This is a well-established challenge in digital crime investigation rather than a specific quantitative claim."
+
+    - name: "common_knowledge_crypto_blockchain_new_challenges_law_enforcement"
+      description: "Statement about new challenges for law enforcement - needs substantiation due to citations"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        chunk: "This presents new challenges for law enforcement agencies in carrying out criminal justice system processes efficiently and effectively (Goodison et al., 2019; Tanneeru, 2009; Vermeer, Woods, and Jackson, 2018)."
+        claim: "This presents new challenges for law enforcement agencies in carrying out criminal justice system processes efficiently and effectively"
+        claim_index: 0
+        domain: "Criminal justice and law enforcement"
+        target_audience: "Law enforcement professionals and criminal justice researchers"
+      expected_output:
+        needs_substantiation: true
+        is_common_knowledge: true
+        common_knowledge_rationale: "The general concept that technological changes create new challenges for law enforcement is widely recognized, but the specific application and efficiency claims require substantiation."
+        substantiation_rationale: "The chunk includes citations, so it needs substantiation."

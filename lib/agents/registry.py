@@ -99,12 +99,14 @@ agent_registry = AgentRegistry()
 def initialize_default_agents():
     """Initialize the registry with default agents"""
 
+    from lib.agents.literature_review import literature_review_agent
     from lib.agents.claim_detector import claim_detector_agent
     from lib.agents.citation_detector import citation_detector_agent
     from lib.agents.claim_common_knowledge_checker import (
         claim_common_knowledge_checker_agent,
     )
     from lib.agents.claim_substantiator import claim_substantiator_agent
+    from lib.agents.citation_suggester import citation_suggester_agent
 
     agent_registry.register(
         agent_type="claims",
@@ -128,6 +130,18 @@ def initialize_default_agents():
         agent_type="substantiation",
         agent=claim_substantiator_agent,
         description="Substantiate claims against supporting documents",
+    )
+
+    agent_registry.register(
+        agent_type="suggest_citations",
+        agent=citation_suggester_agent,
+        description="Review a chunk of text against RAND attribution guidelines to identify missing citations and recommend high-quality sources for proper attribution compliance",
+    )
+
+    agent_registry.register(
+        agent_type="literature_review",
+        agent=literature_review_agent,
+        description="Review a document paragraph against the article bibliography and recent literature to propose citation updates",
     )
 
     logger.info("Initialized default agent registry")

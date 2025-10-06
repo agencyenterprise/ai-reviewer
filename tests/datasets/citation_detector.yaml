@@ -39,7 +39,8 @@ dataset:
     strict_fields:
       citations:
         __all__:
-          - text
+          # - text
+          - type
           - needs_bibliography
           - associated_bibliography
           - index_of_associated_bibliography

@@ -1,0 +1,171 @@
+dataset:
+  name: "Claim Substantiator Dataset"
+  description: "Test cases for validating claim substantiation"
+  test_config:
+    strict_fields:
+      - is_substantiated
+      - severity
+    llm_fields:
+      - rationale
+      - feedback
+  items:
+    - name: "substantiation_case_1"
+      description: "Test case for substantiating a claim with partial supporting evidence"
+      input:
+        main_document: "data/case_1/main_document.md"
+        supporting_documents:
+          - "data/case_1/supporting_1.md"
+        chunk: "Prior work such as Smith (2020) and Doe and Roe (2019) provide useful background/insights."
+        claim: "Prior work such as Smith (2020) and Doe and Roe (2019) provide useful background/insights"
+      expected_output:
+        is_substantiated: false
+        rationale: "Only one supporting document (Smith, 2020) is provided which shows it investigates widget effects and presents experimental results—evidence of insights, but not that these are 'useful background.' The second cited work (Doe & Roe, 2019) has no supporting document. Thus, the claim that prior work provides useful background/insights is not adequately substantiated."
+        feedback: "Provide the Doe & Roe (2019) document or quotes/details from Smith (2020) indicating its work provides useful background. Alternatively, soften the claim to 'prior work provides insights' or 'prior work has investigated this area.'"
+        severity: 2
+
+    - name: "substantiation_case_2"
+      description: "Test case for claim contradicted by supporting document"
+      input:
+        main_document: "data/case_1/main_document.md"
+        supporting_documents:
+          - "data/case_1/supporting_3.md"
+        chunk: "cellphones have a positive impact on the user's writing proficiency in most countries (Smith, 2017)"
+        claim: "Cellphones have a positive impact on the user's writing proficiency in most countries"
+      expected_output:
+        is_substantiated: false
+        rationale: "The claim is directly contradicted by the cited supporting document. Smith & Anderson (2017) found 'conclusive evidence that smartphone use has no effect on writing ability of users,' which contradicts the claim of a positive impact."
+        feedback: "The claim should be corrected to align with the cited research findings, or the citation should be removed and replaced with supporting evidence that actually demonstrates a positive impact."
+        severity: 4
+
+    - name: "substantiation_crypto_shift_claim"
+      description: "Test case for jurisdiction claim with adequate supporting evidence"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        supporting_documents:
+          - "data/cryptocurrency-and-blockchain-minimal/ref3.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref5.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref6.pdf"
+        chunk: "This shift of activity into digital spaces has presented a multitude of difficulties, as well as opportunities, for criminal justice practitioners (Goodison, Davis, and Jackson, 2015; Tanneeru, 2009; Vermeer, Woods, and Jackson, 2018)"
+        claim: "The shift of activity into digital spaces has created many difficulties and opportunities for criminal justice practitioners."
+      expected_output:
+        is_substantiated: true
+        rationale: "Goodison et al. (2015) explicitly state that digital devices are ubiquitous and digital evidence is increasingly important to investigations and prosecutions (opportunities) while detailing significant challenges such as training gaps, courtroom understanding, and examiner backlogs. Vermeer et al. (2018) describes multifaceted legal, procedural, and technical difficulties in accessing remotely held digital evidence and identifies needs to improve access (difficulties and implied opportunities). Tanneeru (2009) reports experts noting that law lags behind technology and highlights emerging legal issues (jurisdiction, privacy, defamation), demonstrating difficulties posed by digital spaces. Together, these sources substantiate that the digital shift creates both difficulties and opportunities for criminal justice practitioners."
+        feedback: "No changes needed."
+        severity: 0
+
+    - name: "substantiation_crypto_shift_claim_unverifiable"
+      description: "Test case for jurisdiction claim with unverifiable supporting evidence"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/main_document.md"
+        supporting_documents: []
+        chunk: "This shift of activity into digital spaces has presented a multitude of difficulties, as well as opportunities, for criminal justice practitioners (Goodison, Davis, and Jackson, 2015; Tanneeru, 2009; Vermeer, Woods, and Jackson, 2018)"
+        claim: "The shift of activity into digital spaces has created many difficulties and opportunities for criminal justice practitioners."
+      expected_output:
+        is_substantiated: false
+        rationale: "No supporting documents are provided, so the claim cannot be substantiated."
+        feedback: "Provide supporting documents that substantiate the claim."
+        severity: 1
+
+    - name: "substantiation_crypto_shift_claim_negated"
+      description: "Test case for jurisdiction claim with a negated claim, making it unsupported"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/_false_claims.md"
+        supporting_documents:
+          - "data/cryptocurrency-and-blockchain-minimal/ref3.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref5.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref6.pdf"
+        chunk: "This shift of activity into digital spaces has not presented any difficulties, nor opportunities, for criminal justice practitioners (Goodison, Davis, and Jackson, 2015; Tanneeru, 2009; Vermeer, Woods, and Jackson, 2018)"
+        claim: "The shift of activity into digital spaces has not presented any difficulties or opportunities for criminal justice practitioners."
+      expected_output:
+        is_substantiated: false
+        rationale: "All three cited sources explicitly describe significant difficulties and, in places, opportunities arising from the shift to digital spaces. Goodison, Davis, and Jackson (2015) report “significant challenges” in using digital evidence (training gaps for officers, prosecutors, and judges; backlogs; need for triage tools) and even reference “digital evidence opportunities and challenges.” Vermeer, Woods, and Jackson (2018) state that accessing remotely held digital evidence involves multifaceted legal, procedural, and technical difficulties and detail needs to improve MLAT processes, standards, and training. Tanneeru (2009) highlights that law lags technology and raises jurisdictional and legal complexity online. These directly contradict the claim that the shift has not presented any difficulties or opportunities."
+        feedback: "The sentence appears to contain an erroneous negation."
+        severity: 4
+
+    - name: "substantiation_crypto_wrong_citation"
+      description: "Correct claim but citing references don't substantiate it"
+      input:
+        main_document: "data/cryptocurrency-and-blockchain-minimal/_wrong_citation.md"
+        supporting_documents:
+          - "data/cryptocurrency-and-blockchain-minimal/ref3.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref5.pdf"
+          - "data/cryptocurrency-and-blockchain-minimal/ref6.pdf"
+        chunk: "According to Goodison, Davis, and Jackson (2015), blockchain is a decentralized digital ledger system that records transactions across a network of computers in a way that makes the data nearly impossible to alter without detection."
+        claim: "Blockchain is a decentralized digital ledger system that records transactions across a network of computers in a way that makes the data nearly impossible to alter without detection."
+      expected_output:
+        is_substantiated: false
+        rationale: "None of the cited sources explicitly state that blockchain is a decentralized digital ledger system that records transactions across a network of computers in a way that makes the data nearly impossible to alter without detection."
+        feedback: "Provide references that explicitly support the claim."
+        severity: 4
+
+    - name: "substantiation_power_capacity_claim_footnote_18"
+      description: "Test case for power capacity claim with footnote 18"
+      input:
+        main_document: "data/power-capacity-by-2030-published-minimal/_main.md"
+        supporting_documents:
+          - "data/power-capacity-by-2030-published-minimal/ref1.pdf"
+          - "data/power-capacity-by-2030-published-minimal/ref3.pdf"
+          - "data/power-capacity-by-2030-published-minimal/ref4.pdf"
+        chunk: "Anticipated growth in artificial intelligence (AI) development requires the buildout of additional power capacity at an exceptional scale and speed. There is concern that the necessary grid loads to power future AI data centers for training and inference activities may exceed the capacity of additions to the U.S. power grid.[[18]](#footnote-18)"
+        claim: "AI data center grid loads for training and inference may exceed the capacity of additions to the U.S. power grid, and this possibility is a source of concern."
+      expected_output:
+        is_substantiated: true
+        rationale: "NERC’s 2024 Long-Term Reliability Assessment explicitly flags rapid demand growth from large loads including data centers (crypto and AI) and notes that new resource additions are lagging behind what is needed, creating mounting resource adequacy risks and potential supply shortfalls. It states that the size and speed of data centers connecting to the grid present unique challenges, and that less overall (especially dispatchable) capacity is being added than projected and needed to meet future demand. RAND (Pilz et al., 2025) directly states that finding adequate power grid capacity is already a challenge for AI data centers and that it is not certain the U.S. is adding power quickly enough to accommodate AI data center demand, with evidence of increasing difficulty securing sufficient grid capacity. Together, these sources substantiate the concern that future AI data center loads for training and inference may exceed the capacity of grid additions."
+        feedback: "No changes needed."
+        severity: 0
+
+    - name: "substantiation_power_capacity_claim_footnote_22_claim_1"
+      description: "Test case for power capacity claim with footnote 18"
+      input:
+        main_document: "data/power-capacity-by-2030-published-minimal/_main.md"
+        supporting_documents:
+          - "data/power-capacity-by-2030-published-minimal/ref4.pdf"
+        chunk: "- RAND projects that global AI data center power demand could reach 327 GW by 2030.[[22]](#footnote-22) For the United States alone, additional demand is estimated to be between 158 GW and 253 GW, assuming a retention rate of 50 percent to 80 percent."
+        claim: "Global AI data center power demand could reach 327 GW by 2030."
+      expected_output:
+        is_substantiated: true
+        rationale: "The cited RAND report explicitly projects that AI data centers could require about 327 GW of power capacity globally by 2030. In Chapter 1, it states: “We find that this expansion would require about 68 GW of AI data center capacity globally by 2027 and 327 GW by 2030,” based on assumed 1.3–2.0x annual growth in AI chip supply and PUE improvements."
+        feedback: "No major changes needed."
+        severity: 0
+
+    - name: "substantiation_power_capacity_claim_footnote_22_claim_1_false"
+      description: "Test case for power capacity claim with footnote 18"
+      input:
+        main_document: "data/power-capacity-by-2030-published-minimal/_false_claims.md"
+        supporting_documents:
+          - "data/power-capacity-by-2030-published-minimal/ref4.pdf"
+        chunk: "- RAND projects that global AI data center power demand could reach 500 GW by 2030.[[22]](#footnote-22) For the United States alone, additional demand is estimated to be between 50 GW and 100 GW, assuming a retention rate of 50 percent to 80 percent."
+        claim: "Global AI data center power demand could reach 500 GW by 2030."
+      expected_output:
+        is_substantiated: false
+        rationale: "The cited RAND report projects global AI data center power demand of roughly 327 GW by 2030 (with an upper bound around 347 GW per Table A.2), not 500 GW. Nowhere does the report state or imply a 500 GW figure by 2030."
+        feedback: "Revise the claim or provide a different citation that supports the estimate."
+        severity: 4
+
+    - name: "substantiation_power_capacity_claim_footnote_22_claim_2"
+      description: "Test case for power capacity claim with footnote 18"
+      input:
+        main_document: "data/power-capacity-by-2030-published-minimal/_main.md"
+        supporting_documents:
+          - "data/power-capacity-by-2030-published-minimal/ref4.pdf"
+        chunk: "- RAND projects that global AI data center power demand could reach 327 GW by 2030.[[22]](#footnote-22) For the United States alone, additional demand is estimated to be between 158 GW and 253 GW, assuming a retention rate of 50 percent to 80 percent."
+        claim: "U.S. additional AI data center power demand is estimated at 158–253 GW, conditional on a 50%–80% retention rate."
+      expected_output:
+        is_substantiated: true
+        rationale: "The cited RAND report projects global AI data center power capacity needs of about 327 GW by 2030 (Figure 1.1; Chapter 1). It also frames results in terms of the share of AI compute retained in the U.S., e.g., noting that retaining a majority (75%) would require ~51 GW by 2027. Applying RAND’s 2030 global figure to a 50%–80% U.S. retention share yields roughly 164–262 GW by 2030; the stated 158–253 GW range is consistent with this order of magnitude and likely reflects rounding and/or treatment of current baseline capacity as “already present,” making the figures “additional.” Thus, the claim is supported by RAND’s global projection and its retention-share framing."
+        feedback: "No major changes needed."
+        severity: 0
+
+    - name: "substantiation_power_capacity_claim_footnote_22_claim_2_false"
+      description: "Test case for power capacity claim with footnote 18"
+      input:
+        main_document: "data/power-capacity-by-2030-published-minimal/_false_claims.md"
+        supporting_documents:
+          - "data/power-capacity-by-2030-published-minimal/ref4.pdf"
+        chunk: "- RAND projects that global AI data center power demand could reach 500 GW by 2030.[[22]](#footnote-22) For the United States alone, additional demand is estimated to be between 50 GW and 100 GW, assuming a retention rate of 50 percent to 80 percent."
+        claim: "U.S. additional AI data center power demand is estimated at 50-100 GW, conditional on a 50%–80% retention rate."
+      expected_output:
+        is_substantiated: false
+        rationale: "The cited RAND report does not provide a 50–100 GW U.S. estimate tied to a 50%–80% retention rate. RAND’s main projection puts global AI data center power demand around 327 GW by 2030 (not 500 GW) and notes that to retain 75% of AI compute the U.S. would need about 51 GW by 2027. Applying a 50%–80% retention share to RAND’s 2030 global projection would imply roughly 160–260 GW in the U.S., not 50–100 GW. No 100 GW figure or 50–100 GW range for the U.S. appears in the report."
+        feedback: "Revise the claim or cite another source that supports the estimate."
+        severity: 4

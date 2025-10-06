@@ -97,8 +97,8 @@ def pytest_runtest_makereport(item, call):
                     "prompt_kwargs": {
                         # Truncate large fields for readability
                         k: (
-                            v[:200] + "..."
-                            if isinstance(v, str) and len(v) > 200
+                            v[:5000] + "... [Truncated]"
+                            if isinstance(v, str) and len(v) > 5000
                             else v
                         )
                         for k, v in case.prompt_kwargs.items()
@@ -202,3 +202,21 @@ async def build_supporting_documents_block(paths: list[str]) -> str:
         docs.append(doc.markdown)
 
     return "\n\n---\n\n".join(docs)
+
+
+def extract_paragraph_from_chunk(full_document: str, chunk: str) -> str:
+    """
+    Extract paragraph context from chunk.
+
+    For test purposes, we detect the paragraph that contains the chunk breaking the full document into paragraphs.
+
+    In production, state.get_paragraph(chunk.paragraph_index) reconstructs
+    the full paragraph from all chunks sharing the same paragraph_index.
+    """
+
+    paragraphs = full_document.split("\n")
+    for paragraph in paragraphs:
+        if chunk in paragraph:
+            return paragraph
+
+    raise ValueError(f"Chunk not found in full document: {chunk}")

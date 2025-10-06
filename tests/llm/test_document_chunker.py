@@ -22,7 +22,6 @@ def _build_cases() -> list[AgentTestCase]:
     if test_config:
         strict_fields = test_config.strict_fields or set()
         llm_fields = test_config.llm_fields or set()
-        run_count = test_config.run_count or 1
 
     cases: list[AgentTestCase] = []
 
@@ -42,7 +41,6 @@ def _build_cases() -> list[AgentTestCase]:
                 expected_dict=test_case.expected_output,
                 strict_fields=strict_fields,
                 llm_fields=llm_fields,
-                run_count=run_count,
             )
         )
 

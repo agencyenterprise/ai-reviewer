@@ -53,7 +53,7 @@ const createComponents = (highlight: 'red' | 'yellow' | 'blue' | 'green' | 'none
     h6: componentFactory('h6', 'text-xs font-bold', highlight),
     ul: componentFactory('ul', 'list-disc'),
     ol: componentFactory('ol', 'list-decimal'),
-    li: componentFactory('li', 'ml-4'),
+    li: componentFactory('li', 'ml-4', highlight),
     a: componentFactory('a', 'text-blue-600'),
     img: componentFactory('img', 'w-full'),
     blockquote: componentFactory('blockquote', 'border-l-4 border-gray-300 pl-4'),
