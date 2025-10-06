@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from langgraph.types import StateSnapshot
 from pydantic import BaseModel
 from lib.config.database import get_db
-from lib.models.workflow_run import WorkflowRun
+from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
 from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
@@ -55,3 +55,33 @@ async def get_workflow_runs() -> List[WorkflowRun]:
         )
 
     return runs
+
+
+async def update_workflow_run_from_state(
+    state: ClaimSubstantiatorState, status: WorkflowRunStatus
+):
+    if not state.config.session_id:
+        logger.warning("update_workflow_run_from_state: No session ID found in state")
+        return
+
+    with get_db() as db:
+        run = (
+            db.query(WorkflowRun)
+            .filter(WorkflowRun.langgraph_thread_id == state.config.session_id)
+            .first()
+        )
+
+        if run is None:
+            run = WorkflowRun(
+                langgraph_thread_id=state.config.session_id,
+                title=state.file.file_name,
+                status=status,
+            )
+        else:
+            run.status = status
+
+        if state.main_document_summary and state.main_document_summary.title:
+            run.title = state.main_document_summary.title
+
+        db.add(run)
+        db.commit()

@@ -140,6 +140,9 @@ class ClaimSubstantiatorState(BaseModel):
         description="Errors that occurred during the processing of the document.",
     )
     literature_review: Optional[str] = None
+    main_document_summary: Optional[DocumentSummary] = Field(
+        default=None, description="The summary of the main document"
+    )
     supporting_documents_summaries: Optional[Dict[int, DocumentSummary]] = Field(
         default=None,
         description="Dictionary mapping supporting file indices to their summaries",

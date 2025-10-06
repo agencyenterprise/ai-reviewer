@@ -5,10 +5,10 @@ import logging
 import uuid
 from typing import List, Optional
 
-from lib.config.database import get_db
 from lib.config.langfuse import langfuse_handler
-from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
+from lib.models.workflow_run import WorkflowRunStatus
 from lib.services.file import FileDocument, create_file_document_from_path
+from lib.services.workflow_runs import update_workflow_run_from_state
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
 from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
 from lib.workflows.claim_substantiation.state import (
@@ -134,26 +134,9 @@ async def _execute(state: ClaimSubstantiatorState):
             }
         )
 
-        with get_db() as db:
-            run = (
-                db.query(WorkflowRun)
-                .filter(WorkflowRun.langgraph_thread_id == state.config.session_id)
-                .first()
-            )
-
-            if run is None:
-                run = WorkflowRun(
-                    langgraph_thread_id=state.config.session_id,
-                    title=state.file.file_name,
-                    status=WorkflowRunStatus.RUNNING,
-                )
-            else:
-                run.status = WorkflowRunStatus.RUNNING
-
-            db.add(run)
-            db.commit()
-
         updated_state = state
+
+        await update_workflow_run_from_state(updated_state, WorkflowRunStatus.RUNNING)
 
         try:
             async for values in app.astream(
@@ -162,19 +145,16 @@ async def _execute(state: ClaimSubstantiatorState):
                 stream_mode="values",
             ):
                 updated_state = ClaimSubstantiatorState(**values)
+                await update_workflow_run_from_state(
+                    updated_state, WorkflowRunStatus.RUNNING
+                )
         except Exception as e:
             logger.error(f"Error streaming state: {e}", exc_info=True)
             updated_state.errors.append(WorkflowError(task_name="global", error=str(e)))
         finally:
-            with get_db() as db:
-                run = (
-                    db.query(WorkflowRun)
-                    .filter(WorkflowRun.langgraph_thread_id == state.config.session_id)
-                    .first()
-                )
-                run.status = WorkflowRunStatus.COMPLETED
-                db.add(run)
-                db.commit()
+            await update_workflow_run_from_state(
+                updated_state, WorkflowRunStatus.COMPLETED
+            )
 
     return updated_state
 
