@@ -13,7 +13,8 @@ from deepdiff import DeepDiff
 
 from lib.config.langfuse import langfuse_handler
 from lib.models.agent import Agent
-from lib.models.field_comparator import FieldComparator, FieldComparison
+from lib.models.field_comparator import FieldComparator
+from lib.models.comparison_models import FieldComparison
 
 
 TResponse = TypeVar("TResponse", bound=BaseModel)

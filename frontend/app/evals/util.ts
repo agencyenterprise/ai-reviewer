@@ -99,18 +99,3 @@ export function aggregateFieldInsights(testCases: TestCase[]): FieldInsight[] {
     }))
     .sort((a, b) => a.accuracy - b.accuracy); // Sort by accuracy ascending (worst first)
 }
-
-/**
- * Get a quick summary of field performance for a test case.
- */
-export function getFieldSummary(comparisons: FieldComparison[]): {
-  total: number;
-  passed: number;
-  failed: number;
-} {
-  const total = comparisons.length;
-  const passed = comparisons.filter((c) => c.passed).length;
-  const failed = total - passed;
-
-  return { total, passed, failed };
-}
