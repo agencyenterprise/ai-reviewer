@@ -161,6 +161,11 @@ export function groupTestCasesByAgent(testCases: TestCase[]): AgentSummary[] {
 
   // Group test cases by agent name
   testCases.forEach((testCase) => {
+    // Skip test cases that don't have the expected agent structure
+    if (!testCase.agent_test_case?.agent?.name) {
+      return;
+    }
+
     const agentName = testCase.agent_test_case.agent.name;
     if (!agentGroups.has(agentName)) {
       agentGroups.set(agentName, []);

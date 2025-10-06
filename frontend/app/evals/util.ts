@@ -73,6 +73,11 @@ export function aggregateFieldInsights(testCases: TestCase[]): FieldInsight[] {
   const fieldMap = new Map<string, { passed: number; total: number; failedTests: Set<string> }>();
 
   testCases.forEach((tc) => {
+    // Skip test cases that don't have the expected structure
+    if (!tc.agent_test_case?.evaluation_result) {
+      return;
+    }
+
     const comparisons = tc.agent_test_case.evaluation_result?.field_comparisons || [];
     comparisons.forEach((comp) => {
       if (!fieldMap.has(comp.field_path)) {

@@ -6,8 +6,21 @@ from langchain_core.prompts import ChatPromptTemplate
 from lib.models.agent import Agent
 
 
+class Reference(BaseModel):
+    """A reference that should be cited or discussed in the article"""
+    title: str = Field(description="The title of the reference")
+    bibliography_info: str = Field(description="Full bibliography citation text")
+    type: str = Field(description="Publication type (e.g., journal, website, book, preprint)")
+    link: str | None = Field(default=None, description="URL or DOI link to the reference")
+    related_excerpt: str = Field(description="Relevant excerpt from the document that relates to this reference")
+    rationale: str = Field(description="Why this reference should be cited")
+    recommended_action: str = Field(description="What action to take (e.g., ADD_CITATION, VERIFY_CITATION)")
+    explanation_for_recommended_action: str = Field(description="How to implement the recommended action")
+
+
 class LiteratureReviewResponse(BaseModel):
-    report: str = Field(description="A report of the literature review")
+    relevant_references: list[Reference] = Field(default_factory=list, description="List of relevant references to cite")
+    rationale: str = Field(description="Overall rationale for the literature review recommendations")
 
 
 _literature_review_agent_prompt = ChatPromptTemplate.from_template(
@@ -62,7 +75,7 @@ literature_review_agent = Agent(
     prompt=_literature_review_agent_prompt,
     tools=["openai_web_search"],
     mandatory_tools=[],
-    output_schema=str,
+    output_schema=LiteratureReviewResponse,
 )
 
 
