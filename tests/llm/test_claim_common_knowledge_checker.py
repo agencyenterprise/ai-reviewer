@@ -11,7 +11,6 @@ from lib.agents.claim_common_knowledge_checker import (
 from lib.agents.formatting_utils import (
     format_audience_context,
     format_domain_context,
-    format_supporting_documents_prompt_section,
 )
 from lib.models.agent_test_case import AgentTestCase
 from tests.conftest import TESTS_DIR, extract_paragraph_from_chunk, load_document
@@ -33,14 +32,7 @@ def _build_cases():
     cases: list[AgentTestCase] = []
 
     for test_case in dataset.items:
-        # Load main document
         main_doc = asyncio.run(load_document(test_case.input["main_document"]))
-
-        # Build supporting documents block if provided
-        supporting_docs = [
-            asyncio.run(load_document(supporting_doc))
-            for supporting_doc in test_case.input.get("supporting_documents", [])
-        ]
 
         # Extract inputs
         chunk = test_case.input["chunk"]
@@ -49,21 +41,12 @@ def _build_cases():
         target_audience = test_case.input.get("target_audience")
         paragraph = extract_paragraph_from_chunk(main_doc.markdown, chunk)
 
-        cited_references = ""
-        for supporting_doc in supporting_docs:
-            cited_references += format_supporting_documents_prompt_section(
-                supporting_doc
-            )
-            cited_references += "\n\n"
-
         # Build prompt kwargs
         prompt_kwargs = {
             "full_document": main_doc.markdown,
             "paragraph": paragraph,
             "chunk": chunk,
             "claim": claim_text,
-            "cited_references": cited_references,
-            "cited_references_paragraph": "",
             "domain_context": format_domain_context(domain),
             "audience_context": format_audience_context(target_audience),
         }
