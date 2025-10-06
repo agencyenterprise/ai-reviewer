@@ -36,12 +36,12 @@ chunker = LLMTextSplitter()
 
 
 async def split_into_chunks(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
-    logger.info("split_into_chunks: splitting into chunks")
+    logger.info(f"split_into_chunks ({state.config.session_id}): starting")
 
     agents_to_run = state.config.agents_to_run
     if agents_to_run and "citations" not in agents_to_run:
         logger.info(
-            "split_into_chunks: Skipping split_into_chunks (not in agents_to_run)"
+            f"split_into_chunks ({state.config.session_id}): Skipping split_into_chunks (not in agents_to_run)"
         )
         return {}
 
@@ -49,6 +49,8 @@ async def split_into_chunks(state: ClaimSubstantiatorState) -> ClaimSubstantiato
 
     # Automatically handle both sync and async chunkers
     docs = await call_maybe_async(chunker.create_documents, [markdown])
+
+    logger.info(f"split_into_chunks ({state.config.session_id}): done")
 
     return {
         "chunks": [

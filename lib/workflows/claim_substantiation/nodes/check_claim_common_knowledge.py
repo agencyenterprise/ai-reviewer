@@ -18,20 +18,22 @@ logger = logging.getLogger(__name__)
 async def check_claim_common_knowledge(
     state: ClaimSubstantiatorState,
 ) -> ClaimSubstantiatorState:
-    logger.info("common_knowledge: checking claim common knowledge")
+    logger.info(f"common_knowledge ({state.config.session_id}): starting")
 
     agents_to_run = state.config.agents_to_run
     if agents_to_run and "common_knowledge" not in agents_to_run:
         logger.info(
-            "common_knowledge: Skipping claim common knowledge check (not in agents_to_run)"
+            f"common_knowledge ({state.config.session_id}): Skipping claim common knowledge check (not in agents_to_run)"
         )
         return {}
 
-    return await iterate_chunks(
+    results = await iterate_chunks(
         state,
         _check_chunk_claim_common_knowledge,
         "Checking chunk claim common knowledge",
     )
+    logger.info(f"common_knowledge ({state.config.session_id}): done")
+    return results
 
 
 async def _check_chunk_claim_common_knowledge(

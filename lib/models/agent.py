@@ -14,7 +14,6 @@ from sqlalchemy import JSON, Column, DateTime, Integer, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlmodel import Boolean, JSON, Field, Float, SQLModel
 
-from lib.config.langfuse import langfuse_handler
 from lib.models.react_agent.agent_runner import (
     _build_prompt_with_tools_preamble,
     run_agent,

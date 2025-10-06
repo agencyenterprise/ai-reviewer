@@ -11,14 +11,20 @@ logger = logging.getLogger(__name__)
 
 
 async def detect_claims(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
-    logger.info("detect_claims: detecting claims")
+    logger.info(f"detect_claims ({state.config.session_id}): starting")
 
     agents_to_run = state.config.agents_to_run
     if agents_to_run and "claims" not in agents_to_run:
-        logger.info("detect_claims: Skipping claims detection (not in agents_to_run)")
+        logger.info(
+            f"detect_claims ({state.config.session_id}): Skipping claims detection (not in agents_to_run)"
+        )
         return {}
 
-    return await iterate_chunks(state, _detect_chunk_claims, "Detecting chunk claims")
+    results = await iterate_chunks(
+        state, _detect_chunk_claims, "Detecting chunk claims"
+    )
+    logger.info(f"detect_claims ({state.config.session_id}): done")
+    return results
 
 
 async def _detect_chunk_claims(

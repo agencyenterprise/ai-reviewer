@@ -47,10 +47,10 @@ def build_claim_substantiator_graph(
     )
     graph.add_node("detect_citations", detect_citations)
     graph.add_node("extract_references", extract_references)
-    graph.add_node("check_claim_common_knowledge", check_claim_common_knowledge)
+    graph.add_node(
+        "check_claim_common_knowledge", check_claim_common_knowledge, defer=True
+    )
     graph.add_node("substantiate_claims", substantiate_claims)
-
-    graph.add_node("wait_for_claims_citations", lambda state: {})
 
     graph.set_entry_point("prepare_documents")
 
@@ -65,12 +65,11 @@ def build_claim_substantiator_graph(
 
     graph.add_edge("extract_references", "detect_citations")
 
-    # # Both detect_claims and detect_citations must complete before wait_for_claims_citations
-    graph.add_edge("detect_claims", "wait_for_claims_citations")
-    graph.add_edge("detect_citations", "wait_for_claims_citations")
+    # Both detect_claims and detect_citations must complete before check_claim_common_knowledge
+    graph.add_edge("detect_claims", "check_claim_common_knowledge")
+    graph.add_edge("detect_citations", "check_claim_common_knowledge")
 
     # Only after detect_claims, detect_citations, and check_claim_common_knowledge are complete, proceed to substantiate_claims
-    graph.add_edge("wait_for_claims_citations", "check_claim_common_knowledge")
     graph.add_edge("check_claim_common_knowledge", "substantiate_claims")
 
     # Suggest citations (aim 2.a)

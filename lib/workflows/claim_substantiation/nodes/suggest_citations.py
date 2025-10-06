@@ -20,12 +20,22 @@ logger = logging.getLogger(__name__)
 async def suggest_citations(
     state: ClaimSubstantiatorState,
 ) -> ClaimSubstantiatorState:
-    agents_to_run = state.config.agents_to_run
-    if agents_to_run and "substantiation" not in agents_to_run:
+    logger.info(f"suggest_citations ({state.config.session_id}): starting")
+
+    if not state.config.run_suggest_citations:
         logger.info(
-            "suggest_citations: Skipping citations suggestion (not in agents_to_run)"
+            f"suggest_citations ({state.config.session_id}): skipping citations suggestion (run_suggest_citations is False)"
         )
         return {}
+
+    agents_to_run = state.config.agents_to_run
+    if agents_to_run and "suggest_citations" not in agents_to_run:
+        logger.info(
+            f"suggest_citations ({state.config.session_id}): Skipping citations suggestion (not in agents_to_run)"
+        )
+        return {}
+
+    logger.info(f"suggest_citations ({state.config.session_id}): done")
 
     return await iterate_chunks(
         state, _suggest_chunk_citations, "Suggesting chunk citations"
