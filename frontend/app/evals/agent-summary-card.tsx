@@ -3,9 +3,10 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BotIcon, ChevronDown, ChevronRight, Clock } from 'lucide-react';
+import { BotIcon, ChevronDown, ChevronRight, Clock, AlertCircle } from 'lucide-react';
 import { TestCase } from './types';
 import { TestCaseItem } from './test-case-item';
+import { aggregateFieldInsights, formatDuration } from './util';
 
 interface AgentSummary {
   agentName: string;
@@ -25,14 +26,15 @@ interface AgentSummaryCardProps {
 
 export function AgentSummaryCard({ summary, showOnlyFailed = false }: AgentSummaryCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
+  const [showFieldInsights, setShowFieldInsights] = useState(true);
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
   };
 
-  const formatDuration = (duration: number) => {
-    return `${duration.toFixed(2)}s`;
-  };
+  // Calculate field insights
+  const fieldInsights = aggregateFieldInsights(summary.testCases);
+  const problematicFields = fieldInsights.filter((f) => f.accuracy < 100).slice(0, 5);
 
   return (
     <Card>
@@ -89,6 +91,54 @@ export function AgentSummaryCard({ summary, showOnlyFailed = false }: AgentSumma
           </div>
         </div>
 
+        {/* Field Performance Insights */}
+        {isExpanded && problematicFields.length > 0 && (
+          <div className="pb-4 border-b">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-orange-500" />
+                <h4 className="font-medium text-sm">Field Performance Issues</h4>
+              </div>
+              <button
+                onClick={() => setShowFieldInsights(!showFieldInsights)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                {showFieldInsights ? 'Hide' : 'Show'}
+              </button>
+            </div>
+            {showFieldInsights && (
+              <div className="space-y-1.5">
+                {problematicFields.map((insight) => (
+                  <div
+                    key={insight.field}
+                    className="flex items-center justify-between p-2 bg-muted/30 rounded text-xs"
+                  >
+                    <code className="font-mono">{insight.field}</code>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">
+                        {insight.passed}/{insight.total}
+                      </span>
+                      <Badge
+                        variant={
+                          insight.accuracy >= 80 ? 'success' : insight.accuracy >= 60 ? 'secondary' : 'destructive'
+                        }
+                        className="text-xs"
+                      >
+                        {insight.accuracy}%
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+                {fieldInsights.length > 5 && (
+                  <p className="text-xs text-muted-foreground text-center pt-1">
+                    ... and {fieldInsights.length - 5} more field(s)
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Test Cases */}
         {isExpanded && (
           <div className="space-y-2 border-t pt-4">
@@ -111,6 +161,11 @@ export function groupTestCasesByAgent(testCases: TestCase[]): AgentSummary[] {
 
   // Group test cases by agent name
   testCases.forEach((testCase) => {
+    // Skip test cases that don't have the expected agent structure
+    if (!testCase.agent_test_case?.agent?.name) {
+      return;
+    }
+
     const agentName = testCase.agent_test_case.agent.name;
     if (!agentGroups.has(agentName)) {
       agentGroups.set(agentName, []);

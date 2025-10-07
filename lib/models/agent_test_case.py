@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import uuid
-from typing import Any, Dict, Optional, Set, Type, TypeVar
+from typing import Any, Dict, List, Optional, Set, Type, TypeVar
 
 from pydantic import BaseModel, Field
 from langchain.chat_models import init_chat_model
@@ -13,6 +13,8 @@ from deepdiff import DeepDiff
 
 from lib.config.langfuse import langfuse_handler
 from lib.models.agent import Agent
+from lib.models.field_comparator import FieldComparator
+from lib.models.comparison_models import FieldComparison
 
 
 TResponse = TypeVar("TResponse", bound=BaseModel)
@@ -23,6 +25,9 @@ class EvaluationResult(BaseModel):
         description="Whether the expected and received results match, thus passed the evaluation"
     )
     rationale: str = Field(description="Brief reason for the decision")
+    field_comparisons: List[FieldComparison] = Field(
+        default_factory=list, description="Detailed field-by-field comparison results"
+    )
 
 
 class AgentTestCase(BaseModel):
@@ -123,7 +128,9 @@ class AgentTestCase(BaseModel):
 
         if len(self.llm_fields) == 0:
             return EvaluationResult(
-                passed=True, rationale="No fields require llm comparison"
+                passed=True,
+                rationale="No fields require llm comparison",
+                field_comparisons=[],
             )
 
         expected_llm_json = self.expected.model_dump_json(
@@ -135,7 +142,9 @@ class AgentTestCase(BaseModel):
 
         if expected_llm_json == "{}" and result_llm_json == "{}":
             return EvaluationResult(
-                passed=True, rationale="No fields require llm comparison"
+                passed=True,
+                rationale="No fields require llm comparison",
+                field_comparisons=[],
             )
 
         evaluator_model_str = str(self.evaluator_model)
@@ -172,50 +181,77 @@ RECEIVED JSON (selected fields):
             result_llm_json=result_llm_json,
         )
 
-        return grader.invoke(messages)
+        eval_result = grader.invoke(messages)
+
+        # Add field-level comparisons for LLM fields using comparator
+        comparator = FieldComparator(self.llm_fields, self.ignore_fields)
+        field_comparisons = comparator.compare_fields(
+            self.expected, result, comparison_type="llm"
+        )
+        eval_result.field_comparisons = field_comparisons
+
+        return eval_result
 
     async def _compare_strict_given_result(self, result: TResponse) -> EvaluationResult:
         assert self.expected is not None and result is not None, "Run the test first"
 
-        expected_strict = self.expected.model_dump(
-            include=self.strict_fields, exclude=self.ignore_fields
-        )
         if len(self.strict_fields) == 0:
             return EvaluationResult(
-                passed=True, rationale="No strict fields to compare"
+                passed=True,
+                rationale="No strict fields to compare",
+                field_comparisons=[],
             )
-        result_strict = result.model_dump(
-            include=self.strict_fields, exclude=self.ignore_fields
-        )
-        different_fields = DeepDiff(expected_strict, result_strict, ignore_order=True)
-        different_fields_str = json.dumps(different_fields, indent=2)
 
-        if len(different_fields) == 0:
-            return EvaluationResult(passed=True, rationale="No differences found")
+        # Use field comparator for detailed analysis
+        comparator = FieldComparator(self.strict_fields, self.ignore_fields)
+        field_comparisons = comparator.compare_fields(
+            self.expected, result, comparison_type="strict"
+        )
+
+        # Aggregate results
+        all_passed = all(fc.passed for fc in field_comparisons)
+
+        # Build summary rationale
+        if all_passed:
+            rationale = f"All {len(field_comparisons)} field(s) passed"
         else:
-            return EvaluationResult(
-                passed=False,
-                rationale=f"Fields with differences with expected: {different_fields_str}",
-            )
+            failed_comps = [fc for fc in field_comparisons if not fc.passed]
+            rationale_lines = ["Failed fields:"]
+            for fc in failed_comps[:5]:
+                rationale_lines.append(f"  • {fc.field_path}: {fc.rationale}")
+            if len(failed_comps) > 5:
+                rationale_lines.append(f"  ... and {len(failed_comps) - 5} more")
+            rationale = "\n".join(rationale_lines)
+
+        return EvaluationResult(
+            passed=all_passed, rationale=rationale, field_comparisons=field_comparisons
+        )
 
     async def prepare_aggregate_run_evaluation_result(
         self, eval_results: list[EvaluationResult], test_label: str | None = None
     ) -> EvaluationResult:
         num_passed = sum(1 for result in eval_results if result.passed)
         passed = num_passed == len(eval_results)
-        rationale = f"{"✅" if passed else "❌"} {num_passed/len(eval_results)*100:0.0f}% ({num_passed}/{len(eval_results)}) of runs passed {f"{test_label}" if test_label else ""}"
+        pass_rate = num_passed / len(eval_results) * 100
+        label_suffix = f" {test_label}" if test_label else ""
+        rationale = f"{pass_rate:0.0f}% ({num_passed}/{len(eval_results)}) of runs passed{label_suffix}"
+
         if not passed:
-            rationale += "\n" + "\n".join(
-                [
-                    f"""{"✅" if result.passed else "❌"} Run {i+1}/{self.run_count} {"- " + test_label if test_label else ""}
-    ```
-    {result.rationale}
-    ```
-    """
-                    for i, result in enumerate(eval_results)
-                ]
-            )
-        return EvaluationResult(passed=passed, rationale=rationale)
+            run_details = []
+            for i, result in enumerate(eval_results):
+                status = "✓" if result.passed else "✗"
+                label = f" - {test_label}" if test_label else ""
+                run_details.append(
+                    f"{status} Run {i+1}/{self.run_count}{label}\n    ```\n    {result.rationale}\n    ```"
+                )
+            rationale += "\n" + "\n".join(run_details)
+
+        # Aggregate field comparisons (use first run's comparisons as representative)
+        field_comparisons = eval_results[0].field_comparisons if eval_results else []
+
+        return EvaluationResult(
+            passed=passed, rationale=rationale, field_comparisons=field_comparisons
+        )
 
     async def _compare_llm(self) -> EvaluationResult:
         """Use an LLM to semantically compare selected fields."""
@@ -256,9 +292,15 @@ RECEIVED JSON (selected fields):
         strict_eval = await self._compare_strict()
         llm_eval = await self._compare_llm()
 
+        # Merge field comparisons from both evaluations
+        all_field_comparisons = (
+            strict_eval.field_comparisons + llm_eval.field_comparisons
+        )
+
         eval_result = EvaluationResult(
             passed=strict_eval.passed and llm_eval.passed,
             rationale="\n".join([strict_eval.rationale, llm_eval.rationale]),
+            field_comparisons=all_field_comparisons,
         )
 
         self._eval_result = eval_result
