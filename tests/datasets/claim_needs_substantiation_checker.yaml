@@ -1,6 +1,6 @@
 dataset:
-  name: "Claim Substantiator Dataset - Common Knowledge"
-  description: "Test cases specifically for common knowledge detection and severity assignment based on AI/data center power consumption documents"
+  name: "Claim Needs Substantiation Checker Dataset"
+  description: "Test cases needs substantiation checker detection"
   test_config:
     strict_fields:
       - is_common_knowledge

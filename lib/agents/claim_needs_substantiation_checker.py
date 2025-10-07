@@ -59,7 +59,7 @@ class ClaimCommonKnowledgeResultWithClaimIndex(ClaimCommonKnowledgeResult):
     claim_index: int
 
 
-_claim_common_knowledge_checker_prompt = ChatPromptTemplate.from_template(
+_claim_needs_substantiation_checker_prompt = ChatPromptTemplate.from_template(
     """
 # Task
 You will be given a chunk of text from a document and a claim that is inferred from that chunk of text. Your task is to determine if this claim represents common knowledge in the domain or not, and whether the claim can be considered common knowledge, and whether the claim needs to be substantiated by references/evidence or not.
@@ -167,12 +167,12 @@ Set `needs_substantiation` to **True** for:
 """
 )
 
-claim_common_knowledge_checker_agent = Agent(
-    name="Claim Common Knowledge Checker",
-    description="Check if a claim represents common knowledge in the domain",
+claim_needs_substantiation_checker_agent = Agent(
+    name="Claim Needs Substantiation Checker",
+    description="Check if a claim needs to be substantiated or not (common knowledge etc)",
     model=models["gpt-5"],
     temperature=0.2,
-    prompt=_claim_common_knowledge_checker_prompt,
+    prompt=_claim_needs_substantiation_checker_prompt,
     tools=[],
     mandatory_tools=[],
     output_schema=ClaimCommonKnowledgeResult,

@@ -1,7 +1,7 @@
 from langgraph.graph import StateGraph
 
-from lib.workflows.claim_substantiation.nodes.check_claim_common_knowledge import (
-    check_claim_common_knowledge,
+from lib.workflows.claim_substantiation.nodes.check_claim_needs_substantiation import (
+    check_claim_needs_substantiation,
 )
 from lib.workflows.claim_substantiation.nodes.detect_citations import detect_citations
 from lib.workflows.claim_substantiation.nodes.extract_claims import extract_claims
@@ -41,7 +41,7 @@ def build_claim_substantiator_graph(
     )
     graph.add_node("detect_citations", detect_citations)
     graph.add_node("extract_references", extract_references)
-    graph.add_node("check_claim_common_knowledge", check_claim_common_knowledge)
+    graph.add_node("check_claim_needs_substantiation", check_claim_needs_substantiation)
     graph.add_node("verify_claims", verify_claims, defer=True)
 
     graph.set_entry_point("prepare_documents")
@@ -55,8 +55,8 @@ def build_claim_substantiator_graph(
     graph.add_edge("split_into_chunks", "extract_references")
     graph.add_edge("split_into_chunks", "extract_claims")
     graph.add_edge("extract_references", "detect_citations")
-    graph.add_edge("extract_claims", "check_claim_common_knowledge")
-    graph.add_edge("check_claim_common_knowledge", "verify_claims")
+    graph.add_edge("extract_claims", "check_claim_needs_substantiation")
+    graph.add_edge("check_claim_needs_substantiation", "verify_claims")
     graph.add_edge("detect_citations", "verify_claims")
 
     # Suggest citations (aim 2.a)

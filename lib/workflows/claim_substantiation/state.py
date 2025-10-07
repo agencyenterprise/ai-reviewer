@@ -6,7 +6,7 @@ from lib.agents.citation_detector import CitationResponse
 from lib.agents.citation_suggester import (
     CitationSuggestionResultWithClaimIndex,
 )
-from lib.agents.claim_common_knowledge_checker import (
+from lib.agents.claim_needs_substantiation_checker import (
     ClaimCommonKnowledgeResultWithClaimIndex,
 )
 from lib.agents.claim_extractor import ClaimResponse

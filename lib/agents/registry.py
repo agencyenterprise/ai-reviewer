@@ -102,8 +102,8 @@ def initialize_default_agents():
     from lib.agents.literature_review import literature_review_agent
     from lib.agents.claim_extractor import claim_extractor_agent
     from lib.agents.citation_detector import citation_detector_agent
-    from lib.agents.claim_common_knowledge_checker import (
-        claim_common_knowledge_checker_agent,
+    from lib.agents.claim_needs_substantiation_checker import (
+        claim_needs_substantiation_checker_agent,
     )
     from lib.agents.claim_verifier import claim_verifier_agent
     from lib.agents.citation_suggester import citation_suggester_agent
@@ -121,9 +121,9 @@ def initialize_default_agents():
     )
 
     agent_registry.register(
-        agent_type="common_knowledge",
-        agent=claim_common_knowledge_checker_agent,
-        description="Determine if claims are common knowledge",
+        agent_type="needs_substantiation",
+        agent=claim_needs_substantiation_checker_agent,
+        description="Determine if claims need to be substantiated or not (common knowledge etc)",
     )
 
     agent_registry.register(

@@ -4,9 +4,9 @@ import asyncio
 
 import pytest
 
-from lib.agents.claim_common_knowledge_checker import (
+from lib.agents.claim_needs_substantiation_checker import (
     ClaimCommonKnowledgeResult,
-    claim_common_knowledge_checker_agent,
+    claim_needs_substantiation_checker_agent,
 )
 from lib.agents.formatting_utils import (
     format_audience_context,
@@ -20,7 +20,9 @@ from tests.datasets.loader import load_dataset
 def _build_cases():
     """Build test cases from basic dataset."""
 
-    dataset_path = str(TESTS_DIR / "datasets" / "claim_common_knowledge_checker.yaml")
+    dataset_path = str(
+        TESTS_DIR / "datasets" / "claim_needs_substantiation_checker.yaml"
+    )
     dataset = load_dataset(dataset_path)
 
     # Get test configuration from dataset, with defaults if not present
@@ -54,7 +56,7 @@ def _build_cases():
         cases.append(
             AgentTestCase(
                 name=test_case.name,
-                agent=claim_common_knowledge_checker_agent,
+                agent=claim_needs_substantiation_checker_agent,
                 response_model=ClaimCommonKnowledgeResult,
                 prompt_kwargs=prompt_kwargs,
                 expected_dict=test_case.expected_output,
@@ -68,7 +70,7 @@ def _build_cases():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("case", _build_cases(), ids=lambda case: case.name)
-async def test_claim_common_knowledge_checker(case):
+async def test_claim_needs_substantiation_checker(case):
     """Test basic claim substantiation cases."""
     await case.run()
     eval_result = await case.compare_results()
