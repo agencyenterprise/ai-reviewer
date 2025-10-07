@@ -53,9 +53,9 @@ AGENT_CONFIGS = {
     ),
     "substantiation": AgentConfig(
         key="substantiation",
-        yaml_filename="claim_substantiator.yaml",
-        dataset_name_template="Claim Substantiator Dataset ({test_name})",
-        description="Claim substantiation test cases",
+        yaml_filename="claim_verifier.yaml",
+        dataset_name_template="Claim Verifier Dataset ({test_name})",
+        description="Claim verifier test cases",
         needs_supporting_files=True,
         test_config={
             "strict_fields": ["is_substantiated", "severity"],
