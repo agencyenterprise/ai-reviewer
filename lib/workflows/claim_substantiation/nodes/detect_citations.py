@@ -1,9 +1,6 @@
 import logging
 from lib.agents.citation_detector import CitationResponse, citation_detector_agent
-from typing import Dict, List, Optional
 from lib.agents.formatting_utils import format_bibliography_prompt_section
-from lib.agents.reference_extractor import BibliographyItem
-from lib.agents.document_summarizer import DocumentSummary
 from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
@@ -38,6 +35,7 @@ async def _detect_chunk_citations(
             "full_document": state.file.markdown,
             "bibliography": format_bibliography_prompt_section(state.references),
             "chunk": chunk.content,
+            "feedback": "",
         }
     )
     return chunk.model_copy(update={"citations": citations})
