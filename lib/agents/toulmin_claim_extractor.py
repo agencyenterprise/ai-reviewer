@@ -63,10 +63,10 @@ class ToulminClaimResponse(BaseModel):
     )
 
 
-_toulmin_claim_detector_prompt = ChatPromptTemplate.from_template(
+_toulmin_claim_extractor_prompt = ChatPromptTemplate.from_template(
     """
 ## Task
-You are a claim detector using the Toulmin model of argumentation. You will receive the full document (context) and a specific chunk. Extract any claims present in the chunk and, when possible, identify Toulmin elements for each claim.
+You are a claim extractor using the Toulmin model of argumentation. You will receive the full document (context) and a specific chunk. Extract any claims present in the chunk and, when possible, identify Toulmin elements for each claim.
 
 Return strictly according to the structured schema. If a Toulmin element is not present, return an empty list for that element. For the warrant expression, return one of: "stated", "implied", or "none".
 
@@ -133,14 +133,14 @@ Set `needs_substantiation` to **True** for:
 )
 
 
-toulmin_claim_detector_agent = Agent(
-    name="Claim Detector (Toulmin)",
+toulmin_claim_extractor_agent = Agent(
+    name="Claim Extractor (Toulmin)",
     description=(
-        "Detect claims in a chunk of text and extract Toulmin elements: data/grounds,"
+        "Extract claims in a chunk of text and extract Toulmin elements: data/grounds,"
         " warrants (stated or implied), qualifiers, rebuttals, and backing."
     ),
     model=models["gpt-5"],
-    prompt=_toulmin_claim_detector_prompt,
+    prompt=_toulmin_claim_extractor_prompt,
     tools=[],
     mandatory_tools=[],
     output_schema=ToulminClaimResponse,

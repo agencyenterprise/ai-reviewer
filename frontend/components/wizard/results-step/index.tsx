@@ -50,7 +50,7 @@ export function ResultsStep({ uploadedResults }: ResultsStepProps) {
           <CardContent className="py-8">
             <div className="space-y-4">
               <Progress value={65} className="w-full" />
-              <p className="text-sm text-center text-muted-foreground">Detecting claims and verifying citations...</p>
+              <p className="text-sm text-center text-muted-foreground">Extracting claims and verifying citations...</p>
             </div>
           </CardContent>
         </Card>

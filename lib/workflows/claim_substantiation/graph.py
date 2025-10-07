@@ -5,9 +5,9 @@ from lib.workflows.claim_substantiation.nodes.check_claim_common_knowledge impor
     check_claim_common_knowledge,
 )
 from lib.workflows.claim_substantiation.nodes.detect_citations import detect_citations
-from lib.workflows.claim_substantiation.nodes.detect_claims import detect_claims
-from lib.workflows.claim_substantiation.nodes.detect_claims_toulmin import (
-    detect_claims_toulmin,
+from lib.workflows.claim_substantiation.nodes.extract_claims import extract_claims
+from lib.workflows.claim_substantiation.nodes.extract_claims_toulmin import (
+    extract_claims_toulmin,
 )
 from lib.workflows.claim_substantiation.nodes.extract_references import (
     extract_references,
@@ -43,7 +43,7 @@ def build_claim_substantiator_graph(
         graph.add_node("suggest_citations", suggest_citations, defer=True)
     graph.add_node("split_into_chunks", split_into_chunks)
     graph.add_node(
-        "detect_claims", detect_claims if not use_toulmin else detect_claims_toulmin
+        "extract_claims", extract_claims if not use_toulmin else extract_claims_toulmin
     )
     graph.add_node("detect_citations", detect_citations)
     graph.add_node("extract_references", extract_references)
@@ -59,9 +59,9 @@ def build_claim_substantiator_graph(
         graph.add_edge("prepare_documents", "summarize_supporting_documents")
 
     graph.add_edge("split_into_chunks", "extract_references")
-    graph.add_edge("split_into_chunks", "detect_claims")
+    graph.add_edge("split_into_chunks", "extract_claims")
     graph.add_edge("extract_references", "detect_citations")
-    graph.add_edge("detect_claims", "check_claim_common_knowledge")
+    graph.add_edge("extract_claims", "check_claim_common_knowledge")
     graph.add_edge("check_claim_common_knowledge", "substantiate_claims")
     graph.add_edge("detect_citations", "substantiate_claims")
 

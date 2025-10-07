@@ -5,9 +5,9 @@ import pytest
 
 from lib.models.agent_test_case import AgentTestCase
 from lib.services.file import create_file_document_from_path
-from lib.agents.claim_detector import (
+from lib.agents.claim_extractor import (
     ClaimResponse,
-    claim_detector_agent,
+    claim_extractor_agent,
 )
 from lib.agents.formatting_utils import format_domain_context, format_audience_context
 from tests.conftest import data_path
@@ -19,7 +19,7 @@ TESTS_DIR = Path(__file__).parent.parent
 
 def _build_cases() -> list[AgentTestCase]:
     # Load dataset from YAML
-    dataset_path = str(TESTS_DIR / "datasets" / "claim_detector.yaml")
+    dataset_path = str(TESTS_DIR / "datasets" / "claim_extractor.yaml")
     dataset = load_dataset(dataset_path)
 
     test_config = dataset.test_config
@@ -41,7 +41,7 @@ def _build_cases() -> list[AgentTestCase]:
         cases.append(
             AgentTestCase(
                 name=test_case.name,
-                agent=claim_detector_agent,
+                agent=claim_extractor_agent,
                 response_model=ClaimResponse,
                 prompt_kwargs={
                     "full_document": main_doc.markdown,
@@ -61,7 +61,7 @@ def _build_cases() -> list[AgentTestCase]:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("case", _build_cases(), ids=lambda case: case.name)
-async def test_claim_detector_agent_cases(case: AgentTestCase):
+async def test_claim_extractor_agent_cases(case: AgentTestCase):
     await case.run()
     eval_result = await case.compare_results()
 

@@ -18,7 +18,7 @@ export default function Home() {
               RAND AI Reviewer
             </h1>
             <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              Transform your document review process with AI-powered claim detection, citation analysis, and evidence
+              Transform your document review process with AI-powered claim extraction, citation analysis, and evidence
               substantiation. Built for researchers, analysts, and content reviewers who demand accuracy and
               thoroughness.
             </p>
