@@ -91,13 +91,20 @@ def conciliate_chunks(
             # If chunk doesn't exist in a, add it
             chunks_by_index[updated_chunk.chunk_index] = updated_chunk
         else:
-            # Merge the chunks by updating non-None fields from updated_chunk
+            # Merge the chunks by updating fields that have been updated in the updated chunk
             merged_data = existing_chunk.model_dump()
 
-            # Update fields that are not None in the updated chunk
-            for field, value in updated_chunk.model_dump().items():
-                if value is not None:
-                    merged_data[field] = value
+            # Update fields that have been updated in the updated chunk
+            for field, updated_value in updated_chunk.model_dump().items():
+                if updated_value is None:
+                    # Skip None values - no update has happened
+                    continue
+
+                if isinstance(updated_value, list) and not updated_value:
+                    # Skip empty lists - no update has happened (empty lists are used as default state values for some fields)
+                    continue
+
+                merged_data[field] = updated_value
 
             # Create the merged chunk
             chunks_by_index[updated_chunk.chunk_index] = DocumentChunk(**merged_data)

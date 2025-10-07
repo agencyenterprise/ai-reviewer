@@ -191,13 +191,13 @@ export function DocumentExplorerChunk({
             <span className="font-medium">Rationale:</span> {claimsRationale}
           </p>
           <div className="space-y-2">
-            {claims.map((claim, ci) => {
+            {claims.map((claim, index) => {
               return (
                 <ClaimAnalysisCard
-                  key={ci}
+                  key={index}
                   claim={claim}
-                  commonKnowledgeResult={claimCommonKnowledgeResults[ci]}
-                  substantiation={substantiations[ci]}
+                  commonKnowledgeResult={claimCommonKnowledgeResults.find((c) => c.claimIndex === index)}
+                  substantiation={substantiations.find((s) => s.claimIndex === index)}
                   citations={citations}
                   references={references}
                 />
