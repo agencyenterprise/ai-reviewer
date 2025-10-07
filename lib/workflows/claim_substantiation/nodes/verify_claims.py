@@ -10,35 +10,35 @@ from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
 )
-from lib.agents.claim_substantiator import (
+from lib.agents.claim_verifier import (
     ClaimSubstantiationResult,
-    claim_substantiator_agent,
+    claim_verifier_agent,
     ClaimSubstantiationResultWithClaimIndex,
 )
 
 logger = logging.getLogger(__name__)
 
 
-async def substantiate_claims(
+async def verify_claims(
     state: ClaimSubstantiatorState,
 ) -> ClaimSubstantiatorState:
-    logger.info(f"substantiate_claims ({state.config.session_id}): starting")
+    logger.info(f"verify_claims ({state.config.session_id}): starting")
 
     agents_to_run = state.config.agents_to_run
     if agents_to_run and "substantiation" not in agents_to_run:
         logger.info(
-            f"substantiate_claims ({state.config.session_id}): Skipping claim substantiation (not in agents_to_run)"
+            f"verify_claims ({state.config.session_id}): Skipping claim verification (not in agents_to_run)"
         )
         return {}
 
     results = await iterate_chunks(
-        state, _substantiate_chunk_claims, "Substantiating chunk claims"
+        state, _verify_chunk_claims, "Verifying chunk claims"
     )
-    logger.info(f"substantiate_claims ({state.config.session_id}): done")
+    logger.info(f"verify_claims ({state.config.session_id}): done")
     return results
 
 
-async def _substantiate_chunk_claims(
+async def _verify_chunk_claims(
     state: ClaimSubstantiatorState, chunk: DocumentChunk
 ) -> DocumentChunk:
     substantiations = []
@@ -81,7 +81,7 @@ async def _substantiate_chunk_claims(
             truncate_at_character_count=100000,  # Basically include the whole text of the references
         )
 
-        result: ClaimSubstantiationResult = await claim_substantiator_agent.apply(
+        result: ClaimSubstantiationResult = await claim_verifier_agent.apply(
             {
                 "full_document": state.file.markdown,
                 "paragraph": state.get_paragraph(chunk.paragraph_index),

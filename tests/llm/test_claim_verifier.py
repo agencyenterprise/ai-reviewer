@@ -3,9 +3,9 @@
 import asyncio
 import pytest
 
-from lib.agents.claim_substantiator import (
+from lib.agents.claim_verifier import (
     ClaimSubstantiationResult,
-    claim_substantiator_agent,
+    claim_verifier_agent,
 )
 from lib.agents.formatting_utils import (
     format_audience_context,
@@ -20,7 +20,7 @@ from tests.datasets.loader import load_dataset
 def _build_cases():
     """Build test cases from basic dataset."""
 
-    dataset_path = str(TESTS_DIR / "datasets" / "claim_substantiator.yaml")
+    dataset_path = str(TESTS_DIR / "datasets" / "claim_verifier.yaml")
     dataset = load_dataset(dataset_path)
 
     # Get test configuration from dataset, with defaults if not present
@@ -70,7 +70,7 @@ def _build_cases():
         cases.append(
             AgentTestCase(
                 name=test_case.name,
-                agent=claim_substantiator_agent,
+                agent=claim_verifier_agent,
                 response_model=ClaimSubstantiationResult,
                 prompt_kwargs=prompt_kwargs,
                 expected_dict=test_case.expected_output,
@@ -84,7 +84,7 @@ def _build_cases():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("case", _build_cases(), ids=lambda case: case.name)
-async def test_claim_substantiator(case):
+async def test_claim_verifier(case):
     """Test basic claim substantiation cases."""
     await case.run()
     eval_result = await case.compare_results()

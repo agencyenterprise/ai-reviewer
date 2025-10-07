@@ -105,7 +105,7 @@ def initialize_default_agents():
     from lib.agents.claim_common_knowledge_checker import (
         claim_common_knowledge_checker_agent,
     )
-    from lib.agents.claim_substantiator import claim_substantiator_agent
+    from lib.agents.claim_verifier import claim_verifier_agent
     from lib.agents.citation_suggester import citation_suggester_agent
 
     agent_registry.register(
@@ -128,7 +128,7 @@ def initialize_default_agents():
 
     agent_registry.register(
         agent_type="substantiation",
-        agent=claim_substantiator_agent,
+        agent=claim_verifier_agent,
         description="Substantiate claims against supporting documents",
     )
 
