@@ -47,10 +47,8 @@ def build_claim_substantiator_graph(
     )
     graph.add_node("detect_citations", detect_citations)
     graph.add_node("extract_references", extract_references)
-    graph.add_node(
-        "check_claim_common_knowledge", check_claim_common_knowledge, defer=True
-    )
-    graph.add_node("substantiate_claims", substantiate_claims)
+    graph.add_node("check_claim_common_knowledge", check_claim_common_knowledge)
+    graph.add_node("substantiate_claims", substantiate_claims, defer=True)
 
     graph.set_entry_point("prepare_documents")
 
@@ -62,15 +60,10 @@ def build_claim_substantiator_graph(
 
     graph.add_edge("split_into_chunks", "extract_references")
     graph.add_edge("split_into_chunks", "detect_claims")
-
     graph.add_edge("extract_references", "detect_citations")
-
-    # Both detect_claims and detect_citations must complete before check_claim_common_knowledge
     graph.add_edge("detect_claims", "check_claim_common_knowledge")
-    graph.add_edge("detect_citations", "check_claim_common_knowledge")
-
-    # Only after detect_claims, detect_citations, and check_claim_common_knowledge are complete, proceed to substantiate_claims
     graph.add_edge("check_claim_common_knowledge", "substantiate_claims")
+    graph.add_edge("detect_citations", "substantiate_claims")
 
     # Suggest citations (aim 2.a)
     # Must wait for ALL processing to complete before suggesting citations
@@ -91,6 +84,8 @@ if __name__ == "__main__":
     # Print the graph in mermaid format
     # Paste it into https://mermaid.live/ to see the graph
 
-    workflow_graph = build_claim_substantiator_graph()
+    workflow_graph = build_claim_substantiator_graph(
+        run_literature_review=False, run_suggest_citations=False
+    )
     app = workflow_graph.compile()
     print(app.get_graph().draw_mermaid())
