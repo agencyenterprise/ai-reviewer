@@ -1,8 +1,5 @@
 import logging
-from lib.agents.toulmin_claim_detector import (
-    ToulminClaimResponse,
-    toulmin_claim_detector_agent,
-)
+from lib.agents.claim_extractor import ClaimResponse, claim_extractor_agent
 from lib.agents.formatting_utils import format_domain_context, format_audience_context
 from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.claim_substantiation.state import (
@@ -13,29 +10,27 @@ from lib.workflows.claim_substantiation.state import (
 logger = logging.getLogger(__name__)
 
 
-async def detect_claims_toulmin(
-    state: ClaimSubstantiatorState,
-) -> ClaimSubstantiatorState:
-    logger.info(f"detect_claims_toulmin ({state.config.session_id}): starting")
+async def extract_claims(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
+    logger.info(f"extract_claims ({state.config.session_id}): starting")
 
     agents_to_run = state.config.agents_to_run
     if agents_to_run and "claims" not in agents_to_run:
         logger.info(
-            f"detect_claims_toulmin ({state.config.session_id}): Skipping claims detection (not in agents_to_run)"
+            f"extract_claims ({state.config.session_id}): Skipping claims detection (not in agents_to_run)"
         )
         return {}
 
     results = await iterate_chunks(
-        state, _detect_chunk_claims_toulmin, "Detecting chunk claims (Toulmin)"
+        state, _extract_chunk_claims, "Extracting chunk claims"
     )
-    logger.info(f"detect_claims_toulmin ({state.config.session_id}): done")
+    logger.info(f"extract_claims ({state.config.session_id}): done")
     return results
 
 
-async def _detect_chunk_claims_toulmin(
+async def _extract_chunk_claims(
     state: ClaimSubstantiatorState, chunk: DocumentChunk
 ) -> DocumentChunk:
-    claims: ToulminClaimResponse = await toulmin_claim_detector_agent.apply(
+    claims: ClaimResponse = await claim_extractor_agent.apply(
         {
             "chunk": chunk.content,
             "full_document": state.file.markdown,

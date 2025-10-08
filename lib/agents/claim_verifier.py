@@ -42,7 +42,7 @@ class ClaimSubstantiationResultWithClaimIndex(ClaimSubstantiationResult):
     claim_index: int
 
 
-_claim_substantiator_prompt = ChatPromptTemplate.from_template(
+_claim_verifier_prompt = ChatPromptTemplate.from_template(
     """
 # Task
 You will be given a chunk of text from a document, a claim that is inferred from that chunk of text, and one or multiple supporting documents that are cited to support the claim.
@@ -59,7 +59,7 @@ For each claim that has a substantiation issue, also output a numeric severity l
 Citations may appear in the same chunk of the text that the claim belongs to, or potentially in a later chunk of the paragraph. So you will also be given info for the paragraph and all the citations in the paragraph. Use your judgement to determine whether a reference is cited close enough to the actual claim of the text for readers to understand the author's intent that the citation is supporting that claim or not. For example, if all citations of an introduction paragraph are at the end of the paragraph, then it's likely that the citations are supporting all the claims in the whole paragraph together, rather than just supporting the last sentence/chunk of the paragraph.
 
 ## Document-Specific Context
-### Domain: 
+### Domain:
 {domain_context}
 
 ### Target Audience:
@@ -92,11 +92,11 @@ Citations may appear in the same chunk of the text that the claim belongs to, or
 """
 )
 
-claim_substantiator_agent = Agent(
-    name="Claim Substantiator",
+claim_verifier_agent = Agent(
+    name="Claim Verifier",
     description="Substantiate a claim based on a supporting document",
     model=models["gpt-5"],
-    prompt=_claim_substantiator_prompt,
+    prompt=_claim_verifier_prompt,
     tools=[],
     mandatory_tools=[],
     output_schema=ClaimSubstantiationResult,

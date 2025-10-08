@@ -6,11 +6,11 @@ dataset:
       claims:
         __all__:
           - text
-          - needs_substantiation
     llm_fields:
       claims:
         __all__:
           - claim
+          # - rationale
   items:
     - name: "claim_case_1"
       description: "Test case with multiple claims in a single chunk"
@@ -21,11 +21,9 @@ dataset:
         claims:
           - text: "Prior work such as Smith (2020) and Doe and Roe (2019) provide useful background/insights."
             claim: "Smith (2020) provides useful background/insights."
-            needs_substantiation: true
             rationale: ""
           - text: "Prior work such as Smith (2020) and Doe and Roe (2019) provide useful background/insights."
             claim: "Doe and Roe (2019) provides useful background/insights."
-            needs_substantiation: true
             rationale: ""
         rationale: ""
 
@@ -38,11 +36,9 @@ dataset:
         claims:
           - text: "cellphones have a positive impact on the user's writing proficiency in most countries (Smith, 2017)"
             claim: "Cellphones positively affect users' writing proficiency in most countries."
-            needs_substantiation: true
             rationale: ""
           - text: "making them one of the best widgets out there."
             claim: "Cellphones are one of the best widgets."
-            needs_substantiation: true
             rationale: ""
         rationale: ""
 

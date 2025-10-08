@@ -6,14 +6,13 @@ from lib.agents.citation_detector import CitationResponse
 from lib.agents.citation_suggester import (
     CitationSuggestionResultWithClaimIndex,
 )
-from lib.agents.claim_common_knowledge_checker import (
+from lib.agents.claim_needs_substantiation_checker import (
     ClaimCommonKnowledgeResultWithClaimIndex,
 )
-from lib.agents.claim_detector import ClaimResponse
-from lib.agents.literature_review import LiteratureReviewResponse
-from lib.agents.toulmin_claim_detector import ToulminClaimResponse
+from lib.agents.claim_extractor import ClaimResponse
+from lib.agents.toulmin_claim_extractor import ToulminClaimResponse
 from lib.agents.reference_extractor import BibliographyItem
-from lib.agents.claim_substantiator import ClaimSubstantiationResultWithClaimIndex
+from lib.agents.claim_verifier import ClaimSubstantiationResultWithClaimIndex
 from lib.agents.document_summarizer import DocumentSummary
 from lib.services.file import FileDocument
 from lib.agents.models import ChunkWithIndex

@@ -19,7 +19,7 @@ export function SummaryCards({ totalClaims, totalCitations, totalUnsubstantiated
             <FileText className="h-8 w-8 text-blue-500" />
             <div>
               <div className="text-2xl font-bold">{totalClaims}</div>
-              <p className="text-xs text-muted-foreground">Claims Detected</p>
+              <p className="text-xs text-muted-foreground">Claims Extracted</p>
             </div>
           </div>
         </CardContent>

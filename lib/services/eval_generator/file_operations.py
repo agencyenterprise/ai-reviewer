@@ -10,6 +10,7 @@ from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 
 class AgentConfig(NamedTuple):
     """Configuration for agent evaluation datasets."""
+
     key: str
     yaml_filename: str
     dataset_name_template: str
@@ -40,21 +41,21 @@ AGENT_CONFIGS = {
         },
     ),
     "claims": AgentConfig(
-        key="claims", 
-        yaml_filename="claim_detector.yaml",
-        dataset_name_template="Claim Detector Dataset ({test_name})",
-        description="Claim detection test cases",
+        key="claims",
+        yaml_filename="claim_extractor.yaml",
+        dataset_name_template="Claim Extractor Dataset ({test_name})",
+        description="Claim extraction test cases",
         needs_supporting_files=False,
         test_config={
-            "strict_fields": {"claims": {"__all__": ["text", "needs_substantiation"]}},
+            "strict_fields": {"claims": {"__all__": ["text"]}},
             "llm_fields": {"claims": {"__all__": ["claim"]}},
         },
     ),
     "substantiation": AgentConfig(
         key="substantiation",
-        yaml_filename="claim_substantiator.yaml", 
-        dataset_name_template="Claim Substantiator Dataset ({test_name})",
-        description="Claim substantiation test cases",
+        yaml_filename="claim_verifier.yaml",
+        dataset_name_template="Claim Verifier Dataset ({test_name})",
+        description="Claim verifier test cases",
         needs_supporting_files=True,
         test_config={
             "strict_fields": ["is_substantiated", "severity"],
@@ -85,65 +86,70 @@ AGENT_CONFIGS = {
 
 class DataFileManager:
     """Manages data files within the eval package."""
-    
+
     @classmethod
     def get_required_files(cls, selected_agents: List[str]) -> Set[str]:
         """Determine which files are required based on selected agents."""
         required_files = {"main_document"}  # Always needed
-        
+
         for agent in selected_agents:
             config = AGENT_CONFIGS.get(agent)
             if config and config.needs_supporting_files:
                 required_files.add("supporting_documents")
                 break
-                
+
         return required_files
-    
+
     @classmethod
-    def save_data_files(cls, zip_file: zipfile.ZipFile, results: ClaimSubstantiatorState, test_name: str):
+    def save_data_files(
+        cls, zip_file: zipfile.ZipFile, results: ClaimSubstantiatorState, test_name: str
+    ):
         """Save all document files to the zip."""
         cls._save_main_document(zip_file, results, test_name)
         cls._save_supporting_documents(zip_file, results, test_name)
-    
+
     @classmethod
     def save_required_data_files(
         cls,
         zip_file: zipfile.ZipFile,
         results: ClaimSubstantiatorState,
         test_name: str,
-        selected_agents: List[str]
+        selected_agents: List[str],
     ):
         """Save only the required data files based on agent needs."""
         required_files = cls.get_required_files(selected_agents)
-        
+
         cls._save_main_document(zip_file, results, test_name)
-        
+
         if "supporting_documents" in required_files:
             cls._save_supporting_documents(zip_file, results, test_name)
-    
+
     @classmethod
-    def _save_main_document(cls, zip_file: zipfile.ZipFile, results: ClaimSubstantiatorState, test_name: str):
+    def _save_main_document(
+        cls, zip_file: zipfile.ZipFile, results: ClaimSubstantiatorState, test_name: str
+    ):
         """Save the main document."""
         main_file = results.file
         zip_file.writestr(
-            f"data/{test_name}/main_document.md", 
-            main_file.markdown if main_file else ""
+            f"data/{test_name}/main_document.md",
+            main_file.markdown if main_file else "",
         )
-    
+
     @classmethod
-    def _save_supporting_documents(cls, zip_file: zipfile.ZipFile, results: ClaimSubstantiatorState, test_name: str):
+    def _save_supporting_documents(
+        cls, zip_file: zipfile.ZipFile, results: ClaimSubstantiatorState, test_name: str
+    ):
         """Save all supporting documents."""
         supporting_files = results.supporting_files
         for i, support_doc in enumerate(supporting_files):
             zip_file.writestr(
-                f"data/{test_name}/supporting_{i+1}.md", 
-                support_doc.markdown
+                f"data/{test_name}/supporting_{i+1}.md", support_doc.markdown
             )
 
 
 class YamlFileWriter:
     """Handles YAML file creation and writing."""
-    
+
     @classmethod
     def write_dataset(
         cls,
@@ -173,7 +179,7 @@ class YamlFileWriter:
         )
 
         zip_file.writestr(filename, yaml_content)
-    
+
     @classmethod
     def write_selective_yaml_files(
         cls,
@@ -181,13 +187,13 @@ class YamlFileWriter:
         agent_test_cases: Dict[str, List[Dict]],
         test_name: str,
         description: str,
-        selected_agents: List[str]
+        selected_agents: List[str],
     ):
         """Write YAML files only for selected agents."""
         for agent_key in selected_agents:
             config = AGENT_CONFIGS.get(agent_key)
             test_cases = agent_test_cases.get(agent_key, [])
-            
+
             if config and test_cases:
                 dataset_name = config.dataset_name_template.format(test_name=test_name)
                 cls.write_dataset(
@@ -202,7 +208,7 @@ class YamlFileWriter:
 
 class ReadmeGenerator:
     """Generates README files for eval packages."""
-    
+
     @classmethod
     def add_readme(cls, zip_file: zipfile.ZipFile, test_name: str, description: str):
         """Add README with setup instructions for all agents."""
@@ -211,10 +217,10 @@ class ReadmeGenerator:
             test_name=test_name,
             description=description,
             title_prefix="Generated Evaluation Test",
-            selected_agents=all_agents
+            selected_agents=all_agents,
         )
         zip_file.writestr("README.md", readme_content)
-    
+
     @classmethod
     def add_chunk_readme(
         cls,
@@ -222,11 +228,11 @@ class ReadmeGenerator:
         test_name: str,
         description: str,
         chunk_index: int,
-        selected_agents: List[str]
+        selected_agents: List[str],
     ):
         """Add README with chunk-specific information."""
         required_files = DataFileManager.get_required_files(selected_agents)
-        
+
         extra_sections = f"""## Source
 Generated from chunk {chunk_index} analysis results
 
@@ -239,16 +245,16 @@ This package only includes files required by the selected agents:
 - Claims/Citations: Only need main document
 - References/Substantiation: Need main + supporting documents
 """
-        
+
         readme_content = cls._generate_readme_content(
             test_name=test_name,
             description=description,
             title_prefix="Generated Chunk Evaluation Test",
             selected_agents=selected_agents,
-            extra_sections=extra_sections
+            extra_sections=extra_sections,
         )
         zip_file.writestr("README.md", readme_content)
-    
+
     @classmethod
     def _generate_readme_content(
         cls,
@@ -256,7 +262,7 @@ This package only includes files required by the selected agents:
         description: str,
         title_prefix: str,
         selected_agents: List[str],
-        extra_sections: str = ""
+        extra_sections: str = "",
     ) -> str:
         """Generate README content with common structure."""
         # Get YAML files for selected agents
@@ -265,10 +271,10 @@ This package only includes files required by the selected agents:
             config = AGENT_CONFIGS.get(agent)
             if config:
                 yaml_files.append(f"`{config.yaml_filename}` - {config.description}")
-        
+
         files_list = "\n".join(f"- {file_desc}" for file_desc in yaml_files)
         agents_list = ", ".join(selected_agents)
-        
+
         return f"""# {title_prefix}: {test_name}
 
 ## Description

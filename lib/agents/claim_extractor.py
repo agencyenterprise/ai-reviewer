@@ -24,14 +24,14 @@ class ClaimResponse(BaseModel):
     )
 
 
-claim_detector_agent = Agent(
-    name="Claim Detector",
-    description="Detect claims in a chunk of text",
+claim_extractor_agent = Agent(
+    name="Claim Extractor",
+    description="Extract claims in a chunk of text",
     model=models["gpt-5"],
     prompt=ChatPromptTemplate.from_template(
         """
 ## Task
-You are a claim detector. You are given a chunk of text and you need to extract any claims made in that chunk of text.
+You are a claim extractor. You are given a chunk of text and you need to extract any claims made in that chunk of text.
 You will be given a full document and a chunk of text from that document.
 You need to return a list of claims made in that chunk of text.
 If there are no claims made in the chunk, return an empty list.

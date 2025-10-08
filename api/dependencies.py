@@ -23,7 +23,7 @@ async def build_config_from_form(
     Build SubstantiationWorkflowConfig from individual form fields.
 
     Args:
-        use_toulmin: Whether to use Toulmin claim detection approach
+        use_toulmin: Whether to use Toulmin claim extraction approach
         domain: Domain context for more accurate analysis
         target_audience: Target audience context for analysis
         target_chunk_indices: Comma-separated chunk indices to process (optional)

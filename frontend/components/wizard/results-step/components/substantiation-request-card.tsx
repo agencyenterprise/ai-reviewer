@@ -93,7 +93,7 @@ function WorkflowConfigDisplay({ config }: { config: SubstantiationWorkflowConfi
             • <strong>Analysis Scope:</strong>{' '}
             {config.useToulmin
               ? 'Full argument analysis with substantiation'
-              : 'Basic claim detection and substantiation'}
+              : 'Basic claim extraction and substantiation'}
           </p>
         </div>
       </div>
