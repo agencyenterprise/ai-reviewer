@@ -12,8 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: write
-      actions: read
 
     steps:
       - name: Checkout code
@@ -29,62 +27,34 @@ jobs:
         uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: rand-ai-reviewer-api:${{ github.sha }}
-          format: sarif
-          output: trivy-backend-image.sarif
+          format: table
+          exit-code: 0
           scanners: vuln
-
-      - name: Upload Backend Image Results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: trivy-backend-image.sarif
-          category: backend-image
 
       - name: Scan Frontend Image
         uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: rand-ai-reviewer-app:${{ github.sha }}
-          format: sarif
-          output: trivy-frontend-image.sarif
+          format: table
+          exit-code: 0
           scanners: vuln
           skip-setup-trivy: true
-
-      - name: Upload Frontend Image Results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: trivy-frontend-image.sarif
-          category: frontend-image
 
       - name: Scan PostgreSQL Image
         uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: postgres:16-alpine
-          format: sarif
-          output: trivy-postgres-image.sarif
+          format: table
+          exit-code: 0
           scanners: vuln
           skip-setup-trivy: true
-
-      - name: Upload PostgreSQL Image Results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: trivy-postgres-image.sarif
-          category: postgres-image
 
       - name: Scan Configuration Files
         uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: config
           scan-ref: .
-          format: sarif
-          output: trivy-config.sarif
+          format: table
+          exit-code: 0
           scanners: misconfig
           skip-setup-trivy: true
-
-      - name: Upload Configuration Results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: trivy-config.sarif
-          category: configuration

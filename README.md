@@ -366,15 +366,17 @@ Every PR automatically scans using `aquasecurity/trivy-action@0.28.0`:
 - **Docker Images**: Backend, frontend, and PostgreSQL containers
 - **Configuration**: Dockerfiles, docker-compose.yml for misconfigurations
 - **Built-in Caching**: Vulnerability database cached between runs for faster scans
-- **Auto-upload to GitHub Security**: Results automatically appear in Security tab
+- **Non-blocking**: Scans run with `exit-code: 0` to warn without failing builds
 
 The action provides:
 - Automatic Trivy installation and caching
-- Direct integration with GitHub Code Scanning
+- Table format output in workflow logs
 - Optimized performance with `skip-setup-trivy` for subsequent scans
 
 Results appear in:
-1. **GitHub Security tab** → Code scanning alerts (SARIF format)
-2. **PR checks** → Security Scan workflow status
+1. **PR checks** → Security Scan workflow logs (table format)
+2. **Actions tab** → Click workflow run to see detailed scan results
 
 Scans **warn but don't block PRs** - they're informational to help you fix issues.
+
+> **Note:** To upload results to GitHub Security tab, enable GitHub Advanced Security and change `format: table` to `format: sarif` with upload steps.
