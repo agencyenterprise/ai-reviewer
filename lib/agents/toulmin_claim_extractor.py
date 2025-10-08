@@ -87,23 +87,6 @@ Reference: Purdue OWL - Toulmin Argument (for definitions and orientation): http
 ## Important Instructions
 - Focus only on content in the provided chunk when extracting claims and text evidence; use the full document only for context/clarification.
 - Extract zero or more claims. If none are present, return an empty list.
-
-**Substantiation Assessment:**
-Set `needs_substantiation` to **False** for:
-- Common knowledge widely accepted in the domain
-- Basic definitions and established terminology
-- Logical deductions from clearly stated premises
-- General principles universally accepted in the field
-- Simple factual statements available in reference sources
-
-Set `needs_substantiation` to **True** for:
-- Specific research findings or data claims
-- Expert interpretations or opinions
-- Recent developments or emerging concepts
-- Comparative or evaluative assertions
-- Complex causal explanations
-- Contested or debatable statements
-
 - For each identified claim:
   - "data": list specific evidence from the chunk that supports the claim (quoted or paraphrased).
   - "warrants": list the assumptions that link the data to the claim. If you infer a warrant from context, include it.
@@ -140,6 +123,7 @@ toulmin_claim_extractor_agent = Agent(
         " warrants (stated or implied), qualifiers, rebuttals, and backing."
     ),
     model=models["gpt-5"],
+    temperature=0.2,
     prompt=_toulmin_claim_extractor_prompt,
     tools=[],
     mandatory_tools=[],
