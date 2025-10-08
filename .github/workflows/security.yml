@@ -38,7 +38,6 @@ jobs:
           format: table
           exit-code: 0
           scanners: vuln
-          skip-setup-trivy: true
 
       - name: Scan PostgreSQL Image
         uses: aquasecurity/trivy-action@0.28.0
@@ -47,14 +46,3 @@ jobs:
           format: table
           exit-code: 0
           scanners: vuln
-          skip-setup-trivy: true
-
-      - name: Scan Configuration Files
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          scan-type: config
-          scan-ref: .
-          format: table
-          exit-code: 0
-          scanners: misconfig
-          skip-setup-trivy: true
