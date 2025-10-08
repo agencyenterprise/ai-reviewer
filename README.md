@@ -335,3 +335,48 @@ cd frontend && pnpm lint
 # Type check frontend
 cd frontend && pnpm type-check
 ```
+
+## Security Scanning
+
+Security scans run automatically on every PR using [Trivy](https://trivy.dev/) via the official [trivy-action](https://github.com/aquasecurity/trivy-action).
+
+> **Why Trivy?** While Docker Scout is excellent and integrates natively with Docker, we use Trivy for compliance and auditing purposes. Trivy is open-source, vendor-neutral, and widely accepted in enterprise security workflows.
+
+### Local Scanning (Optional)
+
+```bash
+# Install Trivy (macOS)
+brew install aquasecurity/trivy/trivy
+
+# Scan Docker images (build first with docker compose)
+docker compose build
+trivy image rand-ai-reviewer-api
+trivy image rand-ai-reviewer-frontend
+trivy image postgres:16-alpine
+
+# Scan for Docker/config misconfigurations
+trivy config .
+```
+
+**Note:** Trivy automatically uses `trivy.yaml` configuration (scans HIGH/CRITICAL only, outputs SARIF format).
+
+### Automated PR Scanning
+
+Every PR automatically scans using `aquasecurity/trivy-action@0.28.0`:
+- **Docker Images**: Backend, frontend, and PostgreSQL containers
+- **Configuration**: Dockerfiles, docker-compose.yml for misconfigurations
+- **Built-in Caching**: Vulnerability database cached between runs for faster scans
+- **Non-blocking**: Scans run with `exit-code: 0` to warn without failing builds
+
+The action provides:
+- Automatic Trivy installation and caching
+- Table format output in workflow logs
+- Optimized performance with `skip-setup-trivy` for subsequent scans
+
+Results appear in:
+1. **PR checks** → Security Scan workflow logs (table format)
+2. **Actions tab** → Click workflow run to see detailed scan results
+
+Scans **warn but don't block PRs** - they're informational to help you fix issues.
+
+> **Note:** To upload results to GitHub Security tab, enable GitHub Advanced Security and change `format: table` to `format: sarif` with upload steps.

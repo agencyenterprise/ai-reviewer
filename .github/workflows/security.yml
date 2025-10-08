@@ -1,0 +1,48 @@
+name: Security Scan
+
+on:
+  pull_request:
+    branches: ['**']
+  push:
+    branches: [main]
+
+jobs:
+  trivy-scan:
+    name: Trivy Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Backend Image
+        run: docker build -t rand-ai-reviewer-api:${{ github.sha }} -f Dockerfile .
+
+      - name: Build Frontend Image
+        run: docker build -t rand-ai-reviewer-app:${{ github.sha }} -f frontend/Dockerfile ./frontend
+
+      - name: Scan Backend Image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: rand-ai-reviewer-api:${{ github.sha }}
+          format: table
+          exit-code: 0
+          scanners: vuln
+
+      - name: Scan Frontend Image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: rand-ai-reviewer-app:${{ github.sha }}
+          format: table
+          exit-code: 0
+          scanners: vuln
+
+      - name: Scan PostgreSQL Image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: postgres:16-alpine
+          format: table
+          exit-code: 0
+          scanners: vuln
