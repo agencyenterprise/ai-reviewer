@@ -30,6 +30,7 @@ jobs:
           image-ref: rand-ai-reviewer-api:${{ github.sha }}
           format: sarif
           output: trivy-backend-image.sarif
+          scanners: vuln
 
       - name: Upload Backend Image Results
         uses: github/codeql-action/upload-sarif@v3
@@ -44,6 +45,7 @@ jobs:
           image-ref: rand-ai-reviewer-app:${{ github.sha }}
           format: sarif
           output: trivy-frontend-image.sarif
+          scanners: vuln
           skip-setup-trivy: true
 
       - name: Upload Frontend Image Results
@@ -59,6 +61,7 @@ jobs:
           image-ref: postgres:16-alpine
           format: sarif
           output: trivy-postgres-image.sarif
+          scanners: vuln
           skip-setup-trivy: true
 
       - name: Upload PostgreSQL Image Results
@@ -75,6 +78,7 @@ jobs:
           scan-ref: .
           format: sarif
           output: trivy-config.sarif
+          scanners: misconfig
           skip-setup-trivy: true
 
       - name: Upload Configuration Results

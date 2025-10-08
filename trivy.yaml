@@ -3,11 +3,6 @@
 
 # Scan settings
 scan:
-  # Security issues only (ignore licenses, secrets for now)
-  scanners:
-    - vuln
-    - misconfig
-  
   # Only report HIGH and CRITICAL vulnerabilities
   severity:
     - HIGH
