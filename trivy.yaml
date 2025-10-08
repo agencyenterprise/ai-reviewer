@@ -1,0 +1,48 @@
+# Trivy Configuration
+# Used for both local scanning and CI/CD
+
+# Scan settings
+scan:
+  # Security issues only (ignore licenses, secrets for now)
+  scanners:
+    - vuln
+    - misconfig
+  
+  # Only report HIGH and CRITICAL vulnerabilities
+  severity:
+    - HIGH
+    - CRITICAL
+  
+  skip-dirs:
+    - node_modules
+    - .venv
+    - .git
+    - dist
+    - build
+    - __pycache__
+
+# Output settings
+output:
+  format: sarif
+
+pkg:
+  types:
+    - os
+    - library
+
+# Vulnerability settings
+vulnerability:
+  # Don't fail on vulnerabilities (warn only)
+  exit-code: 0
+
+# Misconfiguration settings
+misconfiguration:
+  exit-code: 0
+  policy:
+    - builtin
+
+timeout: 10m
+
+# Cache settings (speeds up consecutive scans)
+cache:
+  dir: .trivy-cache

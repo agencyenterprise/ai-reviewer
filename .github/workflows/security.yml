@@ -1,0 +1,84 @@
+name: Security Scan
+
+on:
+  pull_request:
+    branches: ['**']
+  push:
+    branches: [main]
+
+jobs:
+  trivy-scan:
+    name: Trivy Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Backend Image
+        run: docker build -t rand-ai-reviewer-api:${{ github.sha }} -f Dockerfile .
+
+      - name: Build Frontend Image
+        run: docker build -t rand-ai-reviewer-app:${{ github.sha }} -f frontend/Dockerfile ./frontend
+
+      - name: Pull PostgreSQL Image
+        run: docker pull postgres:16-alpine
+
+      - name: Scan Backend Image
+        run: |
+          trivy image \
+            --format sarif \
+            --output trivy-backend-image.sarif \
+            rand-ai-reviewer-api:${{ github.sha }}
+
+      - name: Scan Frontend Image
+        run: |
+          trivy image \
+            --format sarif \
+            --output trivy-frontend-image.sarif \
+            rand-ai-reviewer-app:${{ github.sha }}
+
+      - name: Scan PostgreSQL Image
+        run: |
+          trivy image \
+            --format sarif \
+            --output trivy-postgres-image.sarif \
+            postgres:16-alpine
+
+      - name: Scan Configuration Files
+        run: |
+          trivy config \
+            --format sarif \
+            --output trivy-config.sarif \
+            .
+
+      - name: Upload Backend Image Results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-backend-image.sarif
+          category: backend-image
+
+      - name: Upload Frontend Image Results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-frontend-image.sarif
+          category: frontend-image
+
+      - name: Upload PostgreSQL Image Results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-postgres-image.sarif
+          category: postgres-image
+
+      - name: Upload Configuration Results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-config.sarif
+          category: configuration

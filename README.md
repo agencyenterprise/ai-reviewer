@@ -335,3 +335,39 @@ cd frontend && pnpm lint
 # Type check frontend
 cd frontend && pnpm type-check
 ```
+
+## Security Scanning
+
+Security scans run automatically on every PR using [Trivy](https://trivy.dev/).
+
+> **Why Trivy?** While Docker Scout is excellent and integrates natively with Docker, we use Trivy for compliance and auditing purposes. Trivy is open-source, vendor-neutral, and widely accepted in enterprise security workflows.
+
+### Local Scanning (Optional)
+
+```bash
+# Install Trivy (macOS)
+brew install aquasecurity/trivy/trivy
+
+# Scan Docker images (build first with docker compose)
+docker compose build
+trivy image rand-ai-reviewer-api
+trivy image rand-ai-reviewer-frontend
+trivy image postgres:16-alpine
+
+# Scan for Docker/config misconfigurations
+trivy config .
+```
+
+**Note:** Trivy automatically uses `trivy.yaml` configuration (scans HIGH/CRITICAL only, outputs SARIF format).
+
+### Automated PR Scanning
+
+Every PR automatically scans:
+- **Docker Images**: Backend, frontend, and PostgreSQL containers
+- **Configuration**: Dockerfiles, docker-compose.yml for misconfigurations
+
+Results appear in:
+1. **GitHub Security tab** → Code scanning alerts
+2. **PR checks** → Security Scan workflow
+
+Scans **warn but don't block PRs** - they're informational to help you fix issues.
