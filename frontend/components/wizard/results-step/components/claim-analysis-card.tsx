@@ -57,6 +57,7 @@ export function ClaimAnalysisCard({
       rationale: '',
       feedback: '',
       severity: Severity.NUMBER_0,
+      severityRationale: '',
     },
     citations,
     references,

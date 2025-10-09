@@ -3,6 +3,7 @@
 import React from 'react';
 import { ClaimCommonKnowledgeResultWithClaimIndex, ClaimSubstantiationResultWithClaimIndex } from '@/lib/generated-api';
 import { SeverityBadge } from './severity-badge';
+import { getSeverityLabel } from '@/lib/severity';
 
 interface SubstantiationResultsProps {
   substantiation?: ClaimSubstantiationResultWithClaimIndex;
@@ -42,6 +43,12 @@ export function SubstantiationResults({
               <p className="text-sm text-green-700">
                 <strong>Rationale:</strong> {substantiation.rationale}
               </p>
+              <p className="text-sm text-green-700">
+                <strong>Severity:</strong> {getSeverityLabel(substantiation.severity)}
+              </p>
+              <p className="text-sm text-green-700">
+                <strong>Severity Rationale:</strong> {substantiation.severityRationale}
+              </p>
             </div>
           </div>
         </div>
@@ -66,6 +73,12 @@ export function SubstantiationResults({
               </h4>
               <p className={`text-sm ${!needsSubstantiation ? 'text-orange-700' : 'text-red-700'}`}>
                 <strong>Rationale:</strong> {substantiation.rationale}
+              </p>
+              <p className="text-sm text-red-700">
+                <strong>Severity:</strong> {getSeverityLabel(substantiation.severity)}
+              </p>
+              <p className="text-sm text-red-700">
+                <strong>Severity Rationale:</strong> {substantiation.severityRationale}
               </p>
             </div>
           </div>

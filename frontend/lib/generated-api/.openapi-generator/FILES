@@ -28,6 +28,7 @@ models/EvalPackageRequest.ts
 models/FileDocument.ts
 models/HTTPValidationError.ts
 models/PublicationQuality.ts
+models/QCResult.ts
 models/RecommendedAction.ts
 models/Reference.ts
 models/ReferenceType.ts
