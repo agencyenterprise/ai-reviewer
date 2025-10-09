@@ -9,21 +9,16 @@ from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
 )
+from lib.workflows.decorators import handle_chunk_errors, requires_agent
 
 logger = logging.getLogger(__name__)
 
 
+@requires_agent("claims")
 async def extract_claims_toulmin(
     state: ClaimSubstantiatorState,
 ) -> ClaimSubstantiatorState:
     logger.info(f"extract_claims_toulmin ({state.config.session_id}): starting")
-
-    agents_to_run = state.config.agents_to_run
-    if agents_to_run and "claims" not in agents_to_run:
-        logger.info(
-            f"extract_claims_toulmin ({state.config.session_id}): Skipping claims detection (not in agents_to_run)"
-        )
-        return {}
 
     results = await iterate_chunks(
         state, _extract_chunk_claims_toulmin, "Extracting chunk claims (Toulmin)"
@@ -32,6 +27,7 @@ async def extract_claims_toulmin(
     return results
 
 
+@handle_chunk_errors("Toulmin claim extraction")
 async def _extract_chunk_claims_toulmin(
     state: ClaimSubstantiatorState, chunk: DocumentChunk
 ) -> DocumentChunk:

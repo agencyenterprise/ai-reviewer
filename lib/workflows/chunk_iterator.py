@@ -32,9 +32,12 @@ async def iterate_chunks(
     errors = []
     for index, exception in enumerate(exceptions):
         if exception is not None:
+            chunk_index = target_chunks[index].chunk_index
             errors.append(
                 WorkflowError(
-                    task_name=func.__name__, error=str(exception), chunk_index=index
+                    task_name=func.__name__,
+                    error=str(exception),
+                    chunk_index=chunk_index,
                 )
             )
 

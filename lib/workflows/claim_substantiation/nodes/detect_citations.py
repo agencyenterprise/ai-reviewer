@@ -6,19 +6,14 @@ from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
 )
+from lib.workflows.decorators import handle_chunk_errors, requires_agent
 
 logger = logging.getLogger(__name__)
 
 
+@requires_agent("citations")
 async def detect_citations(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
     logger.info(f"detect_citations ({state.config.session_id}): starting")
-
-    agents_to_run = state.config.agents_to_run
-    if agents_to_run and "citations" not in agents_to_run:
-        logger.info(
-            f"detect_citations ({state.config.session_id}): Skipping citations detection (not in agents_to_run)"
-        )
-        return {}
 
     results = await iterate_chunks(
         state, _detect_chunk_citations, "Detecting chunk citations"
@@ -27,6 +22,7 @@ async def detect_citations(state: ClaimSubstantiatorState) -> ClaimSubstantiator
     return results
 
 
+@handle_chunk_errors("Citation detection")
 async def _detect_chunk_citations(
     state: ClaimSubstantiatorState, chunk: DocumentChunk
 ) -> DocumentChunk:
