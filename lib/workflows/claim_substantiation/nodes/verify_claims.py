@@ -15,21 +15,16 @@ from lib.agents.claim_verifier import (
     claim_verifier_agent,
     ClaimSubstantiationResultWithClaimIndex,
 )
+from lib.workflows.decorators import handle_chunk_errors, requires_agent
 
 logger = logging.getLogger(__name__)
 
 
+@requires_agent("substantiation")
 async def verify_claims(
     state: ClaimSubstantiatorState,
 ) -> ClaimSubstantiatorState:
     logger.info(f"verify_claims ({state.config.session_id}): starting")
-
-    agents_to_run = state.config.agents_to_run
-    if agents_to_run and "substantiation" not in agents_to_run:
-        logger.info(
-            f"verify_claims ({state.config.session_id}): Skipping claim verification (not in agents_to_run)"
-        )
-        return {}
 
     results = await iterate_chunks(
         state, _verify_chunk_claims, "Verifying chunk claims"
@@ -38,9 +33,22 @@ async def verify_claims(
     return results
 
 
+@handle_chunk_errors("Claim verification")
 async def _verify_chunk_claims(
     state: ClaimSubstantiatorState, chunk: DocumentChunk
 ) -> DocumentChunk:
+    if chunk.citations is None:
+        logger.warning(
+            f"verify_claims: Chunk {chunk.chunk_index} has no citations detected, skipping verification"
+        )
+        return chunk
+
+    if chunk.claims is None or not chunk.claims.claims:
+        logger.warning(
+            f"verify_claims: Chunk {chunk.chunk_index} has no claims to verify"
+        )
+        return chunk
+
     substantiations = []
     for claim_index, claim in enumerate(chunk.claims.claims):
         common_knowledge_result = next(
@@ -65,10 +73,10 @@ async def _verify_chunk_claims(
             citation
             for other_chunk in paragraph_chunks
             if other_chunk != chunk
-            and other_chunk.citations
+            and other_chunk.citations is not None
             and other_chunk.citations.citations
             for citation in other_chunk.citations.citations
-            if citation not in chunk.citations.citations
+            if chunk.citations is not None and citation not in chunk.citations.citations
         ]
         paragraph_other_chunk_citations = CitationResponse(
             citations=paragraph_chunks_citations_not_in_the_chunk,

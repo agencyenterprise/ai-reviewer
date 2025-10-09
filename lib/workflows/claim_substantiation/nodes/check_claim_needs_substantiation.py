@@ -11,23 +11,18 @@ from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
 )
+from lib.workflows.decorators import handle_chunk_errors, requires_agent
 
 logger = logging.getLogger(__name__)
 
 
+@requires_agent("needs_substantiation")
 async def check_claim_needs_substantiation(
     state: ClaimSubstantiatorState,
 ) -> ClaimSubstantiatorState:
     logger.info(
         f"check_claim_needs_substantiation ({state.config.session_id}): starting"
     )
-
-    agents_to_run = state.config.agents_to_run
-    if agents_to_run and "needs_substantiation" not in agents_to_run:
-        logger.info(
-            f"check_claim_needs_substantiation ({state.config.session_id}): Skipping claim common knowledge check (not in agents_to_run)"
-        )
-        return {}
 
     results = await iterate_chunks(
         state,
@@ -38,9 +33,16 @@ async def check_claim_needs_substantiation(
     return results
 
 
+@handle_chunk_errors("Claim substantiation check")
 async def _check_chunk_claim_needs_substantiation(
     state: ClaimSubstantiatorState, chunk: DocumentChunk
 ) -> DocumentChunk:
+    if chunk.claims is None or not chunk.claims.claims:
+        logger.warning(
+            f"check_claim_needs_substantiation: Chunk {chunk.chunk_index} has no claims to check"
+        )
+        return chunk
+
     claim_common_knowledge_results = []
     for claim_index, claim in enumerate(chunk.claims.claims):
         result: ClaimCommonKnowledgeResult = (
