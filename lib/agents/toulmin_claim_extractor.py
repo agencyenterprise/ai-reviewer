@@ -68,7 +68,9 @@ _toulmin_claim_extractor_prompt = ChatPromptTemplate.from_template(
 ## Task
 You are a claim extractor using the Toulmin model of argumentation. You will receive the full document (context) and a specific chunk. Extract any claims present in the chunk and, when possible, identify Toulmin elements for each claim.
 
-Return strictly according to the structured schema. If a Toulmin element is not present, return an empty list for that element. For the warrant expression, return one of: "stated", "implied", or "none".
+- If a Toulmin element is not present, return an empty list for that element. For the warrant expression, return one of: "stated", "implied", or "none".
+- If the chunk of text is a bibliographic entry (usually found in the references or bibliography section of the full document), do not consider it as having claims.
+- If the chunk of text does not contain any argumentative content, do not consider it as having claims.
 
 ## Toulmin Definitions (concise)
 - Claim: the assertion or conclusion to be established.

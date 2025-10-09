@@ -205,18 +205,32 @@ dataset:
         main_document: "data/power-capacity-by-2030-published-minimal/_main.md"
         chunk: "We address the following question: What will the United States’ additional power capacity be by 2030?"
       expected_output:
-        claims:
-          - text: "We address the following question: What will the United States’ additional power capacity be by 2030?"
-            claim: "The report will address the question of the United States’ additional power capacity by 2030."
-            warrant_expression: "stated"
-            rationale: ""
+        claims: []
         rationale: ""
 
-    - name: "claim_power_capacity_reference_entry"
+    - name: "claim_power_capacity_reference_entry_1"
       description: "Test case with reference entry - no claims expected"
       input:
         main_document: "data/power-capacity-by-2030-published-minimal/_main.md"
         chunk: "Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw, Maya Domeshek, Jamil Farbes, Allen Fawcett, Anne Hamilton, Jesse Jenkins, Ryan Jones, et al., “Emissions and Energy Impacts of the Inflation Reduction Act,” Science, Vol. 380, No. 6652, June 30, 2023."
+      expected_output:
+        claims: []
+        rationale: ""
+
+    - name: "claim_power_capacity_reference_entry_2"
+      description: "Test case with reference entry - no claims expected"
+      input:
+        main_document: "data/geopolitics-of-agi-minimal-1/_original.md"
+        chunk: "Okemwa, Kevin, “OpenAI CEO Sam Altman Says AGI Would Have ‘Whooshed by’ in 5 Years with ‘Surprisingly Little’ Societal Change Than Speculated,” Windows Central, November 5, 2024. As of December 18, 2024: https://www.windowscentral.com/software-apps/openai-ceo-sam-altman-says-agi-would-have-whooshed-by-in-5-years"
+      expected_output:
+        claims: []
+        rationale: ""
+
+    - name: "claim_power_capacity_reference_entry_3"
+      description: "Test case with reference entry - no claims expected"
+      input:
+        main_document: "data/geopolitics-of-agi-minimal-1/_original.md"
+        chunk: "Zittrain, Jonathan L., “We Need to Control AI Agents Now,” _The Atlantic_, July 2, 2024"
       expected_output:
         claims: []
         rationale: ""
