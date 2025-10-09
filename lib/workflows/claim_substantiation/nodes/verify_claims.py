@@ -38,13 +38,13 @@ async def _verify_chunk_claims(
     state: ClaimSubstantiatorState, chunk: DocumentChunk
 ) -> DocumentChunk:
     if chunk.citations is None:
-        logger.warning(
+        logger.debug(
             f"verify_claims: Chunk {chunk.chunk_index} has no citations detected, skipping verification"
         )
         return chunk
 
     if chunk.claims is None or not chunk.claims.claims:
-        logger.warning(
+        logger.debug(
             f"verify_claims: Chunk {chunk.chunk_index} has no claims to verify"
         )
         return chunk

@@ -38,7 +38,7 @@ async def _check_chunk_claim_needs_substantiation(
     state: ClaimSubstantiatorState, chunk: DocumentChunk
 ) -> DocumentChunk:
     if chunk.claims is None or not chunk.claims.claims:
-        logger.warning(
+        logger.debug(
             f"check_claim_needs_substantiation: Chunk {chunk.chunk_index} has no claims to check"
         )
         return chunk
