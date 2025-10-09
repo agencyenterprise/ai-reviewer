@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, XCircle, AlertTriangle, Scale, Info } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { ToulminClaim, ToulminClaimWarrantExpressionEnum } from '@/lib/generated-api/models/ToulminClaim';
+import { cn } from '@/lib/utils';
+import { Info, Scale } from 'lucide-react';
 import { ToulminElement, ToulminElementCard } from './toulmin-elements';
 
 export interface ToulminClaimAnalysisProps {
