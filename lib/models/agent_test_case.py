@@ -91,32 +91,21 @@ class AgentTestCase(BaseModel):
 
     async def run(self) -> TResponse:
         """Run the agent and store the typed result."""
-        from langfuse.langchain import CallbackHandler
-
-        # Create a new callback handler for this test case
-        handler = CallbackHandler()
 
         tasks = [
             self.agent.apply(
                 self.prompt_kwargs,
                 config={
                     "run_name": self.name,
-                    "callbacks": [handler],
+                    "callbacks": [langfuse_handler],
                     "metadata": {
                         "langfuse_session_id": self.session_id,
-                        "test_name": self.name,
                     },
                 },
             )
             for _ in range(self.run_count)
         ]
         results = await asyncio.gather(*tasks)
-
-        # Flush the handler to ensure all traces are sent to Langfuse
-        if hasattr(handler, "flush"):
-            handler.flush()
-        elif hasattr(handler, "langfuse") and hasattr(handler.langfuse, "flush"):
-            handler.langfuse.flush()
 
         # Ensure result is the expected pydantic type
         self.results = [self.response_model.model_validate(result) for result in results]  # type: ignore[arg-type]
@@ -149,7 +138,9 @@ class AgentTestCase(BaseModel):
 
         evaluator_model_str = str(self.evaluator_model)
         provider, model = evaluator_model_str.split(":", 1)
-        grader = init_chat_model(model, model_provider=provider, temperature=0)
+        grader = init_chat_model(
+            model, model_provider=provider, temperature=0, timeout=180
+        )
         grader = grader.with_structured_output(EvaluationResult)
 
         prompt = ChatPromptTemplate.from_template(
@@ -181,7 +172,16 @@ RECEIVED JSON (selected fields):
             result_llm_json=result_llm_json,
         )
 
-        eval_result = grader.invoke(messages)
+        eval_result = await grader.ainvoke(
+            messages,
+            config={
+                "run_name": f"{self.name}::llm_grader",
+                "callbacks": [langfuse_handler],
+                "metadata": {
+                    "langfuse_session_id": self.session_id,
+                },
+            },
+        )
 
         # Add field-level comparisons for LLM fields using comparator
         comparator = FieldComparator(self.llm_fields, self.ignore_fields)

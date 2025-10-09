@@ -189,7 +189,7 @@ class Agent(SQLModel, table=True):
         config: RunnableConfig = None,
     ):
         """Apply the agent to the prompt kwargs without tools"""
-        llm, args = self.prep_llm_args(prompt_kwargs)
+        llm, args = self.prep_llm_args(prompt_kwargs, config)
         chunk_result = await llm.ainvoke(**args)
         return chunk_result
 
@@ -199,7 +199,7 @@ class Agent(SQLModel, table=True):
         config: RunnableConfig = None,
     ):
         """Apply the agent to the prompt kwargs without tools synchronously"""
-        llm, args = self.prep_llm_args(prompt_kwargs)
+        llm, args = self.prep_llm_args(prompt_kwargs, config)
         chunk_result = llm.invoke(**args)
         return chunk_result
 
@@ -219,7 +219,8 @@ class Agent(SQLModel, table=True):
                     HumanMessage(
                         content="Now return your results in the specified structured format"
                     )
-                ]
+                ],
+                config=config,
             )
         except (TypeError, ValueError, AttributeError):
             return await self._apply_without_tools(prompt_kwargs, config)
@@ -240,7 +241,8 @@ class Agent(SQLModel, table=True):
                     HumanMessage(
                         content="Now return your results in the specified structured format"
                     )
-                ]
+                ],
+                config=config,
             )
         except (TypeError, ValueError, AttributeError):
             return self._apply_sync_without_tools(prompt_kwargs, config)

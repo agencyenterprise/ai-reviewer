@@ -41,6 +41,7 @@ def _build_cases() -> list[AgentTestCase]:
                         for i, ref in enumerate(test_case.input["bibliography"])
                     ),
                     "chunk": test_case.input["chunk"],
+                    "feedback": "",
                 },
                 expected_dict=test_case.expected_output,
                 strict_fields=strict_fields,

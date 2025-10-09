@@ -194,6 +194,24 @@ dataset:
         citations: []
         rationale: ""
 
+    - name: "citation_cryptocurrency_bibliographic_entry_1"
+      description: "Test case with bibliographic entry, that should not return any citation"
+      input:
+        <<: *cryptocurrency_common_config
+        chunk: "Caldwell, Leslie R., “Assistant Attorney General Leslie R. Caldwell Delivers Remarks at the Securities Enforcement Forum West Conference,” U.S. Department of Justice, May 12, 2016."
+      expected_output:
+        citations: []
+        rationale: ""
+
+    - name: "citation_cryptocurrency_bibliographic_entry_2"
+      description: "Test case with bibliographic entry, that should not return any citation"
+      input:
+        <<: *cryptocurrency_common_config
+        chunk: "Goodison, Sean E., Dulani Woods, Jeremy D. Barnum, Adam R. Kemerer, and Brian A. Jackson, *Identifying Law Enforcement Needs for Conducting Criminal Investigations Involving Evidence on the Dark Web*, Santa Monica, Calif.: RAND Corporation, RR-2704-NIJ, 2019. As of November 15, 2022: https://www.rand.org/pubs/research\_reports/RR2704.html"
+      expected_output:
+        citations: []
+        rationale: ""
+
     - name: "citation_power_capacity_footnote_18_multiple_refs"
       description: "Test case with footnote 18 from the full document"
       input:
