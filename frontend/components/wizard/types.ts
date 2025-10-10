@@ -12,6 +12,14 @@ export interface AnalysisResults {
   fullResults?: ClaimSubstantiatorStateOutput;
 }
 
+export type ProcessingStage = 'idle' | 'uploading' | 'complete';
+
+export interface UploadProgress {
+  progress: number; // 0-100
+  status: 'idle' | 'uploading' | 'complete' | 'error';
+  error?: string;
+}
+
 export interface WizardState {
   currentStep: number;
   mainDocument: File | null;
@@ -21,6 +29,9 @@ export interface WizardState {
   runLiteratureReview: boolean;
   runSuggestCitations: boolean;
   isProcessing: boolean;
+  processingStage: ProcessingStage;
+  uploadProgress: UploadProgress;
+  workflowRunId: string | null;
   analysisResults: AnalysisResults | null;
   sessionId: string | null;
 }
@@ -34,6 +45,9 @@ export interface WizardActions {
   setRunLiteratureReview: (runLiteratureReview: boolean) => void;
   setRunSuggestCitations: (runSuggestCitations: boolean) => void;
   setIsProcessing: (processing: boolean) => void;
+  setProcessingStage: (stage: ProcessingStage) => void;
+  setUploadProgress: (progress: UploadProgress) => void;
+  setWorkflowRunId: (id: string | null) => void;
   setAnalysisResults: (results: AnalysisResults | null) => void;
   updateChunkResults: (response: ChunkReevaluationResponse) => void;
   setSessionId: (sessionId: string) => void;

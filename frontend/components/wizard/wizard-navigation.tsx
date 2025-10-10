@@ -1,6 +1,6 @@
 'use client';
 
-import { analysisService } from '@/lib/analysis-service';
+import { uploadOrchestrator } from '@/lib/services/upload-orchestrator';
 import { cn } from '@/lib/utils';
 import { Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -17,35 +17,76 @@ export function WizardNavigation() {
     if (state.currentStep === 1) {
       actions.setCurrentStep(2);
     } else if (state.currentStep === 2) {
-      actions.setIsProcessing(true);
+      // Collect all files
+      const allFiles = [state.mainDocument!, ...state.supportingDocuments];
 
-      try {
-        const analysisResults = await analysisService.runClaimSubstantiation({
-          mainDocument: state.mainDocument!,
-          supportingDocuments: state.supportingDocuments,
-          config: {
-            useToulmin: true,
-            runLiteratureReview: state.runLiteratureReview,
-            runSuggestCitations: state.runSuggestCitations,
-            domain: state.domain || undefined,
-            targetAudience: state.targetAudience || undefined,
-            sessionId: state.sessionId,
-          },
-        });
-
-        actions.setAnalysisResults(analysisResults);
-
-        if (analysisResults.fullResults?.workflowRunId) {
-          router.push(`/results/${analysisResults.fullResults.workflowRunId}`);
-        }
-      } catch (error) {
-        console.error('Unexpected error during analysis:', error);
+      // Validate files before upload
+      const validation = uploadOrchestrator.validateFiles(allFiles);
+      if (!validation.valid && validation.errors) {
         actions.setAnalysisResults({
           status: 'error',
-          error: 'An unexpected error occurred during analysis',
+          error: uploadOrchestrator.formatValidationErrors(validation.errors),
         });
-      } finally {
+        return;
+      }
+
+      // Start upload process
+      actions.setIsProcessing(true);
+      actions.setUploadProgress({ progress: 0, status: 'idle' });
+
+      try {
+        // Start analysis with progress tracking
+        const response = await uploadOrchestrator.startAnalysisWithProgress(
+          {
+            mainDocument: state.mainDocument!,
+            supportingDocuments: state.supportingDocuments,
+            config: {
+              useToulmin: true,
+              runLiteratureReview: state.runLiteratureReview,
+              runSuggestCitations: state.runSuggestCitations,
+              domain: state.domain || undefined,
+              targetAudience: state.targetAudience || undefined,
+              sessionId: state.sessionId || undefined,
+            },
+          },
+          {
+            onProgress: (progress) => {
+              actions.setUploadProgress({
+                progress,
+                status: 'uploading',
+              });
+            },
+            onStageChange: (stage) => {
+              actions.setProcessingStage(stage);
+            },
+          },
+        );
+
+        // Store workflow run ID and session ID
+        actions.setWorkflowRunId(response.workflow_run_id);
+        actions.setSessionId(response.session_id);
+
+        // Redirect to results page to watch progress
+        router.push(`/results/${response.workflow_run_id}`);
+      } catch (error) {
+        console.error('Error starting analysis:', error);
+
+        // Update progress with error
+        actions.setUploadProgress({
+          progress: 0,
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Upload failed',
+        });
+
+        // Show error message
+        actions.setAnalysisResults({
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Failed to start analysis',
+        });
+
+        // Reset processing state but keep error visible
         actions.setIsProcessing(false);
+        actions.setProcessingStage('idle');
       }
     }
   };
