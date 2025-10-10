@@ -1,27 +1,32 @@
 'use client';
 
-import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Markdown } from '@/components/markdown';
-import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { claimCategoryBaseColors, classifyChunk } from '@/lib/claim-classification';
+import { Badge } from '@/components/ui/badge';
 import {
   ChunkReevaluationResponse,
   ClaimSubstantiatorStateOutput,
   DocumentChunkOutput,
+  EvidenceAlignmentLevel,
   RecommendedAction,
 } from '@/lib/generated-api';
-import { getMaxSeverity } from '@/lib/severity';
 import { scoreReference, scoreSuggestion } from '@/lib/reference-scoring';
-import { AlertTriangleIcon, ChevronRight, FileIcon, Link as LinkIcon, MessageCirclePlus } from 'lucide-react';
+import { getSeverity, severityColors } from '@/lib/severity';
+import {
+  AlertTriangleIcon,
+  CheckCircleIcon,
+  ChevronRight,
+  FileIcon,
+  Link as LinkIcon,
+  MessageCirclePlus,
+} from 'lucide-react';
 import * as React from 'react';
 import { ChunkItem } from '../components/chunk-display';
 import { ChunkEvalGenerator } from '../components/chunk-eval-generator';
 import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
-import { ErrorsCard } from '../components/errors-card';
 import { ClaimAnalysisCard } from '../components/claim-analysis-card';
-import { ClaimCategoryLabel } from '../components/claim-category-label';
-import { SeverityBadge } from '../components/severity-badge';
+import { ErrorsCard } from '../components/errors-card';
+import { EvidenceAlignmentLevelBadge } from '../components/evidence-alignment-level-badge';
 import { useSupportedAgents } from '../hooks/use-supported-agents';
 
 interface DocumentExplorerTabProps {
@@ -82,10 +87,21 @@ export function DocumentExplorerChunk({
   const supportingFiles = results.supportingFiles || [];
   const claimCommonKnowledgeResults = chunk.claimCommonKnowledgeResults || [];
   const substantiations = chunk.substantiations || [];
-  const chunkCategory = classifyChunk(chunk, references);
-  const maxSeverity = getMaxSeverity(substantiations);
   const errors = results.errors || [];
   const chunkErrors = errors.filter((error) => error.chunkIndex === chunk.chunkIndex);
+  const evidenceAlignmentCounts = chunk.substantiations?.reduce(
+    (acc, substantiation) => {
+      acc[substantiation.evidenceAlignment] = (acc[substantiation.evidenceAlignment] || 0) + 1;
+      return acc;
+    },
+    {} as Record<EvidenceAlignmentLevel, number>,
+  );
+  const commonKnowledgeCounts =
+    chunk.claimCommonKnowledgeResults?.reduce(
+      (acc, commonKnowledgeResult) => (commonKnowledgeResult.isCommonKnowledge ? acc + 1 : acc),
+      0,
+    ) ?? 0;
+  const severity = getSeverity(chunk);
 
   const sortedCitationSuggestions = React.useMemo(() => {
     const suggestions = chunk.citationSuggestions || [];
@@ -113,7 +129,7 @@ export function DocumentExplorerChunk({
 
   return (
     <div>
-      <Markdown highlight={claimCategoryBaseColors[chunkCategory]}>{chunk.content}</Markdown>
+      <Markdown highlight={severityColors[severity]}>{chunk.content}</Markdown>
 
       <div
         className="flex items-center space-x-1 cursor-pointer hover:bg-muted/50 rounded-lg px-2"
@@ -155,15 +171,28 @@ export function DocumentExplorerChunk({
             </React.Fragment>
           )}
 
-          <HorizontalSeparator />
-          <ClaimCategoryLabel category={chunkCategory} badge={false} className="cursor-pointer" />
-
-          {maxSeverity > 0 && (
+          {commonKnowledgeCounts > 0 && (
             <React.Fragment>
               <HorizontalSeparator />
-              <SeverityBadge severity={maxSeverity} />
+              <Badge variant="success" className="font-normal bg-transparent p-0 m-0 text-green-600">
+                <CheckCircleIcon className="w-3 h-3" />
+                {commonKnowledgeCounts} Common knowledge claim{commonKnowledgeCounts > 1 ? 's' : ''}
+              </Badge>
             </React.Fragment>
           )}
+
+          {Object.entries(evidenceAlignmentCounts || {}).map(([evidenceAlignment, count]) => (
+            <React.Fragment key={evidenceAlignment}>
+              <HorizontalSeparator />
+
+              <EvidenceAlignmentLevelBadge
+                evidenceAlignment={evidenceAlignment as EvidenceAlignmentLevel}
+                badge={false}
+                count={count}
+                className="font-normal"
+              />
+            </React.Fragment>
+          ))}
 
           {chunkErrors.length > 0 && (
             <React.Fragment>
@@ -181,15 +210,6 @@ export function DocumentExplorerChunk({
         <div className="space-y-4 bg-muted/50 p-4 rounded-lg mt-2 ml-8 text-sm">
           {chunkErrors.length > 0 && <ErrorsCard errors={chunkErrors} />}
 
-          <AiGeneratedLabel className="float-right" />
-
-          <h4 className="font-bold mb-2 flex items-center gap-2">
-            <MessageCirclePlus className="w-4 h-4" />
-            Claims
-          </h4>
-          <p className="mb-2">
-            <span className="font-medium">Rationale:</span> {claimsRationale}
-          </p>
           <div className="space-y-2">
             {claims.map((claim, index) => {
               return (
@@ -198,8 +218,8 @@ export function DocumentExplorerChunk({
                   claim={claim}
                   commonKnowledgeResult={claimCommonKnowledgeResults.find((c) => c.claimIndex === index)}
                   substantiation={substantiations.find((s) => s.claimIndex === index)}
-                  citations={citations}
-                  references={references}
+                  claimIndex={index}
+                  totalClaims={claims.length}
                 />
               );
             })}
@@ -440,6 +460,11 @@ export function DocumentExplorerChunk({
               </AccordionItem>
             </Accordion>
           )}
+
+          <p className="mb-2">
+            <span className="font-bold mb-2 flex items-center gap-2">Claim extraction rationale:</span>
+            {claimsRationale}
+          </p>
 
           <ChunkReevaluateControl
             chunkIndex={chunk.chunkIndex}
