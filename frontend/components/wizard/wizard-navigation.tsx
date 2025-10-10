@@ -14,38 +14,39 @@ export function WizardNavigation() {
   const canProceedFromStep1 = state.mainDocument !== null;
 
   const handleNext = async () => {
-    if (state.currentStep < 3) {
-      if (state.currentStep === 2) {
-        actions.setIsProcessing(true);
+    if (state.currentStep === 1) {
+      actions.setCurrentStep(2);
+    } else if (state.currentStep === 2) {
+      actions.setIsProcessing(true);
 
-        try {
-          const analysisResults = await analysisService.runClaimSubstantiation({
-            mainDocument: state.mainDocument!,
-            supportingDocuments: state.supportingDocuments,
-            config: {
-              useToulmin: true,
-              runLiteratureReview: state.runLiteratureReview,
-              runSuggestCitations: state.runSuggestCitations,
-              domain: state.domain || undefined,
-              targetAudience: state.targetAudience || undefined,
-              sessionId: state.sessionId,
-            },
-          });
+      try {
+        const analysisResults = await analysisService.runClaimSubstantiation({
+          mainDocument: state.mainDocument!,
+          supportingDocuments: state.supportingDocuments,
+          config: {
+            useToulmin: true,
+            runLiteratureReview: state.runLiteratureReview,
+            runSuggestCitations: state.runSuggestCitations,
+            domain: state.domain || undefined,
+            targetAudience: state.targetAudience || undefined,
+            sessionId: state.sessionId,
+          },
+        });
 
-          actions.setAnalysisResults(analysisResults);
-        } catch (error) {
-          console.error('Unexpected error during analysis:', error);
-          actions.setAnalysisResults({
-            status: 'error',
-            error: 'An unexpected error occurred during analysis',
-          });
+        actions.setAnalysisResults(analysisResults);
+
+        if (analysisResults.fullResults?.workflowRunId) {
+          router.push(`/results/${analysisResults.fullResults.workflowRunId}`);
         }
-
+      } catch (error) {
+        console.error('Unexpected error during analysis:', error);
+        actions.setAnalysisResults({
+          status: 'error',
+          error: 'An unexpected error occurred during analysis',
+        });
+      } finally {
         actions.setIsProcessing(false);
       }
-      actions.setCurrentStep(state.currentStep + 1);
-    } else if (state.currentStep === 3) {
-      actions.reset();
     }
   };
 
@@ -67,8 +68,6 @@ export function WizardNavigation() {
             <Play className="w-4 h-4" /> Start Analysis
           </p>
         );
-      case 3:
-        return 'Start New Analysis';
       default:
         return 'Next';
     }

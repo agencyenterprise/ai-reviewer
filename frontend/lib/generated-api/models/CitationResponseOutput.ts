@@ -15,6 +15,8 @@
 import { mapValues } from '../runtime';
 import type { Citation } from './Citation';
 import { CitationFromJSON, CitationFromJSONTyped, CitationToJSON, CitationToJSONTyped } from './Citation';
+import type { QCResult } from './QCResult';
+import { QCResultFromJSON, QCResultFromJSONTyped, QCResultToJSON, QCResultToJSONTyped } from './QCResult';
 
 /**
  *
@@ -34,6 +36,12 @@ export interface CitationResponseOutput {
    * @memberof CitationResponseOutput
    */
   rationale: string;
+  /**
+   *
+   * @type {QCResult}
+   * @memberof CitationResponseOutput
+   */
+  qcResult?: QCResult | null;
 }
 
 /**
@@ -56,6 +64,7 @@ export function CitationResponseOutputFromJSONTyped(json: any, ignoreDiscriminat
   return {
     citations: (json['citations'] as Array<any>).map(CitationFromJSON),
     rationale: json['rationale'],
+    qcResult: json['qc_result'] == null ? undefined : QCResultFromJSON(json['qc_result']),
   };
 }
 
@@ -74,5 +83,6 @@ export function CitationResponseOutputToJSONTyped(
   return {
     citations: (value['citations'] as Array<any>).map(CitationToJSON),
     rationale: value['rationale'],
+    qc_result: QCResultToJSON(value['qcResult']),
   };
 }

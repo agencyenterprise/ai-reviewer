@@ -27,6 +27,7 @@ export * from './EvalPackageRequest';
 export * from './FileDocument';
 export * from './HTTPValidationError';
 export * from './PublicationQuality';
+export * from './QCResult';
 export * from './RecommendedAction';
 export * from './Reference';
 export * from './ReferenceType';

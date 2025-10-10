@@ -2,7 +2,6 @@
 
 import { Stepper } from '@/components/ui/stepper';
 import { ProcessStep } from '@/components/wizard/process-step';
-import { ResultsStep } from '@/components/wizard/results-step';
 import { WizardStep } from '@/components/wizard/types';
 import { UploadStep } from '@/components/wizard/upload-step';
 import { useWizard, WizardProvider } from '@/components/wizard/wizard-context';
@@ -35,8 +34,6 @@ function WizardContent() {
         return <UploadStep />;
       case 2:
         return <ProcessStep />;
-      case 3:
-        return <ResultsStep />;
       default:
         return <UploadStep />;
     }

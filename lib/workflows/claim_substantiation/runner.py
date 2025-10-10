@@ -8,7 +8,10 @@ from typing import List, Optional
 from lib.config.langfuse import langfuse_handler
 from lib.models.workflow_run import WorkflowRunStatus
 from lib.services.file import FileDocument, create_file_document_from_path
-from lib.services.workflow_runs import update_workflow_run_from_state
+from lib.services.workflow_runs import (
+    get_workflow_run_id_by_session,
+    upsert_workflow_run,
+)
 from lib.workflows.claim_substantiation.checkpointer import get_checkpointer
 from lib.workflows.claim_substantiation.graph import build_claim_substantiator_graph
 from lib.workflows.claim_substantiation.state import (
@@ -136,7 +139,15 @@ async def _execute(state: ClaimSubstantiatorState):
 
         updated_state = state
 
-        await update_workflow_run_from_state(updated_state, WorkflowRunStatus.RUNNING)
+        workflow_run_id = None
+        if state.config.session_id:
+            workflow_run_id = await upsert_workflow_run(
+                session_id=state.config.session_id,
+                status=WorkflowRunStatus.RUNNING,
+                title=state.file.file_name,
+            )
+            if workflow_run_id:
+                updated_state.workflow_run_id = workflow_run_id
 
         try:
             async for values in app.astream(
@@ -145,16 +156,30 @@ async def _execute(state: ClaimSubstantiatorState):
                 stream_mode="values",
             ):
                 updated_state = ClaimSubstantiatorState(**values)
-                await update_workflow_run_from_state(
-                    updated_state, WorkflowRunStatus.RUNNING
-                )
+
+                if workflow_run_id:
+                    updated_state.workflow_run_id = workflow_run_id
+
+                if state.config.session_id:
+                    await upsert_workflow_run(
+                        session_id=state.config.session_id,
+                        status=WorkflowRunStatus.RUNNING,
+                        title=(
+                            updated_state.main_document_summary.title
+                            if updated_state.main_document_summary
+                            and updated_state.main_document_summary.title
+                            else None
+                        ),
+                    )
         except Exception as e:
             logger.error(f"Error streaming state: {e}", exc_info=True)
             updated_state.errors.append(WorkflowError(task_name="global", error=str(e)))
         finally:
-            await update_workflow_run_from_state(
-                updated_state, WorkflowRunStatus.COMPLETED
-            )
+            if state.config.session_id:
+                await upsert_workflow_run(
+                    session_id=state.config.session_id,
+                    status=WorkflowRunStatus.COMPLETED,
+                )
 
     return updated_state
 
