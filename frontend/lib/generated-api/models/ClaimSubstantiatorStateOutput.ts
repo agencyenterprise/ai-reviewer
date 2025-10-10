@@ -82,6 +82,12 @@ export interface ClaimSubstantiatorStateOutput {
   config: SubstantiationWorkflowConfig;
   /**
    *
+   * @type {string}
+   * @memberof ClaimSubstantiatorStateOutput
+   */
+  workflowRunId?: string | null;
+  /**
+   *
    * @type {Array<BibliographyItem>}
    * @memberof ClaimSubstantiatorStateOutput
    */
@@ -143,6 +149,7 @@ export function ClaimSubstantiatorStateOutputFromJSONTyped(
     supportingFiles:
       json['supporting_files'] == null ? undefined : (json['supporting_files'] as Array<any>).map(FileDocumentFromJSON),
     config: SubstantiationWorkflowConfigFromJSON(json['config']),
+    workflowRunId: json['workflow_run_id'] == null ? undefined : json['workflow_run_id'],
     references:
       json['references'] == null ? undefined : (json['references'] as Array<any>).map(BibliographyItemFromJSON),
     chunks: json['chunks'] == null ? undefined : (json['chunks'] as Array<any>).map(DocumentChunkOutputFromJSON),
@@ -174,6 +181,7 @@ export function ClaimSubstantiatorStateOutputToJSONTyped(
     supporting_files:
       value['supportingFiles'] == null ? undefined : (value['supportingFiles'] as Array<any>).map(FileDocumentToJSON),
     config: SubstantiationWorkflowConfigToJSON(value['config']),
+    workflow_run_id: value['workflowRunId'],
     references:
       value['references'] == null ? undefined : (value['references'] as Array<any>).map(BibliographyItemToJSON),
     chunks: value['chunks'] == null ? undefined : (value['chunks'] as Array<any>).map(DocumentChunkOutputToJSON),
