@@ -1,7 +1,3 @@
-/**
- * Progress tracking utilities for file uploads
- */
-
 export interface FileProgress {
   fileName: string;
   progress: number; // 0-100
@@ -17,9 +13,6 @@ export interface ProgressCallbacks {
   onStageChange?: StageChangeCallback;
 }
 
-/**
- * Simple progress tracker for overall upload progress
- */
 export class ProgressTracker {
   private currentProgress: number = 0;
   private status: FileProgress['status'] = 'pending';

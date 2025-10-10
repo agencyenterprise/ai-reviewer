@@ -67,18 +67,15 @@ async def start_analysis(
         workflow_run_id and session_id to track the analysis
     """
     try:
-        # Phase 1: Upload and convert files to markdown (this is what we wait for)
         logger.info("Converting uploaded files to markdown...")
         [main_file, *supporting_files] = await convert_uploaded_files_to_file_document(
             [main_document] + (supporting_documents or [])
         )
         logger.info(f"File conversion complete for {main_file.file_name}")
 
-        # Generate session ID if not provided
         if not config.session_id:
             config.session_id = str(uuid.uuid4())
 
-        # Create workflow run in database with PENDING status
         with get_db() as db:
             workflow_run = WorkflowRun(
                 langgraph_thread_id=config.session_id,
@@ -94,7 +91,6 @@ async def start_analysis(
             f"Created workflow run {workflow_run_id} for session {config.session_id}"
         )
 
-        # Phase 2: Start workflow in background
         background_tasks.add_task(
             run_workflow_background,
             main_file,

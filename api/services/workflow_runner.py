@@ -22,14 +22,12 @@ async def run_workflow_background(
     Background task to run the claim substantiation workflow.
 
     Updates workflow status from PENDING -> RUNNING -> COMPLETED.
-    Logs errors but does not update status to error (keeps it simple).
     """
     try:
         logger.info(
             f"Starting background workflow execution for session {config.session_id}"
         )
 
-        # Update status to RUNNING
         with get_db() as db:
             workflow_run = (
                 db.query(WorkflowRun)
@@ -40,14 +38,12 @@ async def run_workflow_background(
                 workflow_run.status = WorkflowRunStatus.RUNNING
                 db.commit()
 
-        # Run workflow
         await run_claim_substantiator(
             file=main_file,
             supporting_files=supporting_files,
             config=config,
         )
 
-        # Update status to COMPLETED
         with get_db() as db:
             workflow_run = (
                 db.query(WorkflowRun)

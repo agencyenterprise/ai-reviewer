@@ -36,7 +36,6 @@ export function ProcessStep() {
     }
   };
 
-  // Show error state if there's an error
   if (state.analysisResults?.status === 'error') {
     return (
       <div className="space-y-6">
@@ -50,7 +49,6 @@ export function ProcessStep() {
               <p className="text-sm text-destructive">{state.analysisResults.error}</p>
             </div>
 
-            {/* Show error details */}
             {state.uploadProgress.error && (
               <div className="mt-3">
                 <p className="text-xs text-destructive whitespace-pre-line">{state.uploadProgress.error}</p>

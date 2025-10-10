@@ -17,10 +17,8 @@ export function WizardNavigation() {
     if (state.currentStep === 1) {
       actions.setCurrentStep(2);
     } else if (state.currentStep === 2) {
-      // Collect all files
       const allFiles = [state.mainDocument!, ...state.supportingDocuments];
 
-      // Validate files before upload
       const validation = uploadOrchestrator.validateFiles(allFiles);
       if (!validation.valid && validation.errors) {
         actions.setAnalysisResults({
@@ -30,12 +28,10 @@ export function WizardNavigation() {
         return;
       }
 
-      // Start upload process
       actions.setIsProcessing(true);
       actions.setUploadProgress({ progress: 0, status: 'idle' });
 
       try {
-        // Start analysis with progress tracking
         const response = await uploadOrchestrator.startAnalysisWithProgress(
           {
             mainDocument: state.mainDocument!,
@@ -62,29 +58,24 @@ export function WizardNavigation() {
           },
         );
 
-        // Store workflow run ID and session ID
         actions.setWorkflowRunId(response.workflow_run_id);
         actions.setSessionId(response.session_id);
 
-        // Redirect to results page to watch progress
         router.push(`/results/${response.workflow_run_id}`);
       } catch (error) {
         console.error('Error starting analysis:', error);
 
-        // Update progress with error
         actions.setUploadProgress({
           progress: 0,
           status: 'error',
           error: error instanceof Error ? error.message : 'Upload failed',
         });
 
-        // Show error message
         actions.setAnalysisResults({
           status: 'error',
           error: error instanceof Error ? error.message : 'Failed to start analysis',
         });
 
-        // Reset processing state but keep error visible
         actions.setIsProcessing(false);
         actions.setProcessingStage('idle');
       }
