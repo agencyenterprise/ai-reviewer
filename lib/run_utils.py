@@ -1,4 +1,5 @@
 import asyncio
+import os
 
 from tqdm import tqdm
 
@@ -7,16 +8,42 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-async def run_tasks(tasks, desc="Processing tasks"):
+# This prevents overwhelming the tracing system and LLM APIs
+MAX_CONCURRENT_TASKS = int(os.getenv("MAX_CONCURRENT_TASKS", "15"))
+
+
+async def run_tasks(tasks, desc="Processing tasks", max_concurrent=None):
+    """
+    Run tasks with concurrency limit to avoid overwhelming systems.
+
+    Args:
+        tasks: List of coroutines to run
+        desc: Description for progress bar
+        max_concurrent: Maximum number of concurrent tasks (default: MAX_CONCURRENT_TASKS env var or 15)
+
+    Returns:
+        Tuple of (results, errors) lists
+    """
+    if max_concurrent is None:
+        max_concurrent = MAX_CONCURRENT_TASKS
+
+    # Use semaphore to limit concurrent executions
+    semaphore = asyncio.Semaphore(max_concurrent)
+
+    logger.info(
+        f"{desc}: Running {len(tasks)} tasks with max concurrency of {max_concurrent}"
+    )
+
     async def track_task(index, coro):
-        try:
-            return index, await coro, None
-        except Exception as e:
-            logger.error(
-                f"Error processing task {index}: {e}",
-                exc_info=True,
-            )
-            return index, None, e
+        async with semaphore:  # Acquire semaphore before running task
+            try:
+                return index, await coro, None
+            except Exception as e:
+                logger.error(
+                    f"Error processing task {index}: {e}",
+                    exc_info=True,
+                )
+                return index, None, e
 
     wrapped_tasks = [track_task(i, coro) for i, coro in enumerate(tasks)]
 
