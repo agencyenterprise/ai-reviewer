@@ -141,7 +141,7 @@ class ClaimSubstantiatorState(BaseModel):
     # Outputs
     workflow_run_id: Optional[str] = Field(
         default=None,
-        description="The UUID of the workflow run (populated after workflow completes)",
+        description="The UUID of the workflow run (populated when workflow starts)",
     )
     references: Annotated[List[BibliographyItem], add] = []
     chunks: Annotated[List[DocumentChunk], conciliate_chunks] = []
