@@ -71,6 +71,23 @@ def pytest_configure(config):
     )
 
 
+def _extract_by_path(obj: Any, parts: list[str]) -> Any:
+    """Extract nested values from dict/list given a field path split into parts.
+
+    - If obj is a list, returns a list by mapping extraction over all items.
+    - If obj is a dict, descends by key.
+    - If obj or parts are empty, returns obj.
+    """
+    if obj is None or not parts:
+        return obj
+    head, *tail = parts
+    if isinstance(obj, list):
+        return [_extract_by_path(el, parts) for el in obj]
+    if isinstance(obj, dict):
+        return _extract_by_path(obj.get(head), tail)
+    return None
+
+
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     """Store AgentTestCase metadata during test execution."""
@@ -176,20 +193,9 @@ def pytest_runtest_logreport(report):
                         actual_output = actual_outputs[0] if actual_outputs else None
 
                         # Extract just the failed field value using the field path
-                        field_parts = field_path.split(".")
-                        expected_field_value = expected_output
-                        actual_field_value = actual_output
-                        for part in field_parts:
-                            expected_field_value = (
-                                expected_field_value.get(part)
-                                if isinstance(expected_field_value, dict)
-                                else None
-                            )
-                            actual_field_value = (
-                                actual_field_value.get(part)
-                                if isinstance(actual_field_value, dict)
-                                else None
-                            )
+                        parts = (field_path or "").split(".")
+                        expected_field_value = _extract_by_path(expected_output, parts)
+                        actual_field_value = _extract_by_path(actual_output, parts)
 
                         print(f"\n {field_path} failed")
                         print("  Expected Result:")
