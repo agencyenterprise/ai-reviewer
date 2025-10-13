@@ -5,7 +5,7 @@ import { IncEx, TestCase } from './types';
  * Format duration in seconds to display string (e.g., "1.23s")
  */
 export function formatDuration(duration: number): string {
-  return `${duration.toFixed(2)}s`;
+  return `${duration.toFixed(1)}s`;
 }
 
 // Helper function to format IncEx for display
@@ -103,4 +103,40 @@ export function aggregateFieldInsights(testCases: TestCase[]): FieldInsight[] {
       failedTests: Array.from(stats.failedTests),
     }))
     .sort((a, b) => a.accuracy - b.accuracy); // Sort by accuracy ascending (worst first)
+}
+
+/**
+ * Calculate the probability of output consistency across test cases, using standard deviation of binary outcomes for each test case
+ * and then taking the average.
+ */
+export function calculateConsistency(testCases: TestCase[]) {
+  const testsByNames = testCases.reduce(
+    (acc, test) => {
+      acc[test.agent_test_case.name] = [...(acc[test.agent_test_case.name] || []), test];
+      return acc;
+    },
+    {} as Record<string, TestCase[]>,
+  );
+
+  // Calculate standard deviations for each test case
+  const stds = Object.values(testsByNames).reduce(
+    (acc, tests) => {
+      const fails = tests.filter((test) => test.outcome === 'failed').length;
+      const passes = tests.filter((test) => test.outcome === 'passed').length;
+      const n = fails + passes;
+
+      const pFails = fails / n; // probability of failing
+      const pPasses = passes / n; // probability of passing
+
+      const std = Math.sqrt(pFails * pPasses); // standard deviation
+
+      acc[tests[0].agent_test_case.name] = 1 - std;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+
+  const avg = Object.values(stds).reduce((acc, variance) => acc + variance, 0) / Object.values(stds).length;
+
+  return { avg, byTestCase: stds };
 }

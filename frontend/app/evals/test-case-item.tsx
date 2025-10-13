@@ -4,12 +4,13 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronDown, ChevronRight, Clock } from 'lucide-react';
 import { useState } from 'react';
+import { FieldComparisonDetails } from './field-comparison-details';
 import { TestCase } from './types';
 import { formatDuration, formatIncEx, getFlattenedObjectKeys, getFlattenedObjectValue } from './util';
-import { FieldComparisonDetails } from './field-comparison-details';
 
 interface TestCaseItemProps {
   testCase: TestCase;
+  consistencyProbability: number;
 }
 
 export function TestCaseItem({ testCase }: TestCaseItemProps) {
@@ -41,7 +42,7 @@ export function TestCaseItem({ testCase }: TestCaseItemProps) {
               <p className="text-xs text-muted-foreground wrap-anywhere">{testCase.nodeid}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 flex-col">
             <Badge variant={testCase.outcome === 'passed' ? 'success' : 'destructive'}>
               {testCase.outcome === 'passed' ? 'Passed' : 'Failed'}
             </Badge>
