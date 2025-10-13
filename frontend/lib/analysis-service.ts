@@ -1,4 +1,3 @@
-import { AnalysisResults } from '@/components/wizard/types';
 import {
   AnalysisApi,
   ChunkEvalPackageRequest,
@@ -9,6 +8,7 @@ import {
   EvalPackageRequest,
   HealthApi,
   SubstantiationWorkflowConfig,
+  StartAnalysisResponse,
 } from '@/lib/generated-api';
 import { downloadBlobResponse, generateDefaultTestName } from '@/lib/utils';
 import { analysisApi, evaluationApi, healthApi, apiUrl } from './api';
