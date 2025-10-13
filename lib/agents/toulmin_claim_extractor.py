@@ -68,7 +68,9 @@ _toulmin_claim_extractor_prompt = ChatPromptTemplate.from_template(
 ## Task
 You are a claim extractor using the Toulmin model of argumentation. You will receive the full document (context) and a specific chunk. Extract any claims present in the chunk and, when possible, identify Toulmin elements for each claim.
 
-Return strictly according to the structured schema. If a Toulmin element is not present, return an empty list for that element. For the warrant expression, return one of: "stated", "implied", or "none".
+- If a Toulmin element is not present, return an empty list for that element. For the warrant expression, return one of: "stated", "implied", or "none".
+- If the chunk of text is a bibliographic entry (usually found in the references or bibliography section of the full document), do not consider it as having claims.
+- If the chunk of text does not contain any argumentative content, do not consider it as having claims.
 
 ## Toulmin Definitions (concise)
 - Claim: the assertion or conclusion to be established.
@@ -87,23 +89,6 @@ Reference: Purdue OWL - Toulmin Argument (for definitions and orientation): http
 ## Important Instructions
 - Focus only on content in the provided chunk when extracting claims and text evidence; use the full document only for context/clarification.
 - Extract zero or more claims. If none are present, return an empty list.
-
-**Substantiation Assessment:**
-Set `needs_substantiation` to **False** for:
-- Common knowledge widely accepted in the domain
-- Basic definitions and established terminology
-- Logical deductions from clearly stated premises
-- General principles universally accepted in the field
-- Simple factual statements available in reference sources
-
-Set `needs_substantiation` to **True** for:
-- Specific research findings or data claims
-- Expert interpretations or opinions
-- Recent developments or emerging concepts
-- Comparative or evaluative assertions
-- Complex causal explanations
-- Contested or debatable statements
-
 - For each identified claim:
   - "data": list specific evidence from the chunk that supports the claim (quoted or paraphrased).
   - "warrants": list the assumptions that link the data to the claim. If you infer a warrant from context, include it.
@@ -140,6 +125,7 @@ toulmin_claim_extractor_agent = Agent(
         " warrants (stated or implied), qualifiers, rebuttals, and backing."
     ),
     model=models["gpt-5"],
+    temperature=0.2,
     prompt=_toulmin_claim_extractor_prompt,
     tools=[],
     mandatory_tools=[],

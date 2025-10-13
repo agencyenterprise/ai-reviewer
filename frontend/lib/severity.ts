@@ -2,16 +2,18 @@ import { ClaimSubstantiationResultWithClaimIndex, Severity } from './generated-a
 
 export const getSeverityLabel = (severity?: Severity) => {
   switch (severity) {
+    case Severity.NUMBER_0:
+      return 'No issue';
     case Severity.NUMBER_1:
-      return 'not enough data to know for sure';
+      return 'Not enough data to know for sure';
     case Severity.NUMBER_2:
-      return 'may be ok';
+      return 'Low severity';
     case Severity.NUMBER_3:
-      return 'should be fixed';
+      return 'Medium severity';
     case Severity.NUMBER_4:
-      return 'must be fixed';
+      return 'High severity';
     default:
-      return 'no issue';
+      return 'Unknown';
   }
 };
 
@@ -24,7 +26,7 @@ export const getSeverityClasses = (severity?: Severity) => {
     case Severity.NUMBER_2:
       return 'bg-yellow-100 text-yellow-800';
     case Severity.NUMBER_1:
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-yellow-100 text-yellow-800';
     default:
       return 'bg-green-100 text-green-800';
   }

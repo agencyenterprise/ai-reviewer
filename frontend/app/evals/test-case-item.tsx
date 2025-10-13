@@ -183,8 +183,8 @@ export function TestCaseItem({ testCase }: TestCaseItemProps) {
 
                                   return (
                                     <tr key={key} className="border-b last:border-b-0">
-                                      <td className="p-3 font-mono text-xs wrap-anywhere align-top">{key}</td>
-                                      <td className="p-3 wrap-anywhere align-top">
+                                      <td className="p-3 font-mono text-xs wrap-anywhere align-top w-[20%]">{key}</td>
+                                      <td className="p-3 wrap-anywhere align-top w-[40%]">
                                         {expectedValue !== undefined ? (
                                           <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                                             {String(expectedValue)}
@@ -193,7 +193,7 @@ export function TestCaseItem({ testCase }: TestCaseItemProps) {
                                           <span className="text-xs text-muted-foreground italic">Not specified</span>
                                         )}
                                       </td>
-                                      <td className="p-3 wrap-anywhere align-top">
+                                      <td className="p-3 wrap-anywhere align-top w-[40%]">
                                         {actualValue !== undefined ? (
                                           <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                                             {String(actualValue)}

@@ -63,6 +63,7 @@ You are a citation detector. You are given a chunk of text and you need to extra
 - You need to return a list of citations made in that chunk of text.
 - If there are no citations made in the chunk, return an empty list.
 - The citation can be a footnote that can refer to multiple bibliography entries, so you need to return all the bibliography entries that the footnote refers to.
+- If the chunk of text is a bibliographic entry itself, do not consider it a citation.
 
 For each citation, you need to return the following information:
 - The text of the citation/footnote mark

@@ -108,7 +108,7 @@ export function AgentSummaryCard({ summary, showOnlyFailed = false }: AgentSumma
             </div>
             {showFieldInsights && (
               <div className="space-y-1.5">
-                {problematicFields.map((insight) => (
+                {fieldInsights.map((insight) => (
                   <div
                     key={insight.field}
                     className="flex items-center justify-between p-2 bg-muted/30 rounded text-xs"

@@ -35,17 +35,23 @@ export interface ClaimSubstantiationResultWithClaimIndex {
    */
   rationale: string;
   /**
-   * A brief suggestion on how the issue can be resolved, e.g., by adding more supporting documents or by rephrasing the original chunk, etc.
+   * A brief suggestion on how the issue can be resolved, e.g., by adding more supporting documents or by rephrasing the original chunk, etc. Return 'No changes needed' if there are no significant issues with the substantiation of the claim.
    * @type {string}
    * @memberof ClaimSubstantiationResultWithClaimIndex
    */
   feedback: string;
   /**
-   * The severity of the substantiation issue with increasing numeric levels: 0 = no issue, 1 = not enough data to know for sure, 2 = may be ok, 3 = should be fixed, 4 = must be fixed
+   * The severity of the substantiation issue with increasing numeric levels: 0 = no issue, 1 = not enough data to know for sure, 2 = low severity issues, 3 = medium severity issues, 4 = high severity issues
    * @type {Severity}
    * @memberof ClaimSubstantiationResultWithClaimIndex
    */
   severity: Severity;
+  /**
+   * A brief rationale for why you think the severity level is appropriate
+   * @type {string}
+   * @memberof ClaimSubstantiationResultWithClaimIndex
+   */
+  severityRationale: string;
   /**
    *
    * @type {number}
@@ -70,6 +76,7 @@ export function instanceOfClaimSubstantiationResultWithClaimIndex(
   if (!('rationale' in value) || value['rationale'] === undefined) return false;
   if (!('feedback' in value) || value['feedback'] === undefined) return false;
   if (!('severity' in value) || value['severity'] === undefined) return false;
+  if (!('severityRationale' in value) || value['severityRationale'] === undefined) return false;
   if (!('chunkIndex' in value) || value['chunkIndex'] === undefined) return false;
   if (!('claimIndex' in value) || value['claimIndex'] === undefined) return false;
   return true;
@@ -91,6 +98,7 @@ export function ClaimSubstantiationResultWithClaimIndexFromJSONTyped(
     rationale: json['rationale'],
     feedback: json['feedback'],
     severity: SeverityFromJSON(json['severity']),
+    severityRationale: json['severity_rationale'],
     chunkIndex: json['chunk_index'],
     claimIndex: json['claim_index'],
   };
@@ -113,6 +121,7 @@ export function ClaimSubstantiationResultWithClaimIndexToJSONTyped(
     rationale: value['rationale'],
     feedback: value['feedback'],
     severity: SeverityToJSON(value['severity']),
+    severity_rationale: value['severityRationale'],
     chunk_index: value['chunkIndex'],
     claim_index: value['claimIndex'],
   };
