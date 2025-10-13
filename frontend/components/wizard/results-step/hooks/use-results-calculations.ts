@@ -1,4 +1,4 @@
-import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
+import { ClaimSubstantiatorStateOutput, EvidenceAlignmentLevel } from '@/lib/generated-api';
 
 export function useResultsCalculations(detailedResults: ClaimSubstantiatorStateOutput | undefined) {
   if (!detailedResults) {
@@ -20,7 +20,13 @@ export function useResultsCalculations(detailedResults: ClaimSubstantiatorStateO
 
   const totalUnsubstantiated =
     detailedResults.chunks?.reduce(
-      (sum, chunk) => sum + (chunk.substantiations?.filter((sub) => !sub.isSubstantiated)?.length || 0),
+      (sum, chunk) =>
+        sum +
+        (chunk.substantiations?.filter(
+          (sub) =>
+            sub.evidenceAlignment === EvidenceAlignmentLevel.Unsupported ||
+            sub.evidenceAlignment === EvidenceAlignmentLevel.Contradicted,
+        ).length || 0),
       0,
     ) || 0;
 

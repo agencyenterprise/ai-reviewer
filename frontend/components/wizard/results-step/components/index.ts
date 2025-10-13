@@ -4,7 +4,6 @@ export { ChunkDisplay, ChunkItem } from './chunk-display';
 export { AgentSelector } from './agent-selector';
 export { ChunkEvalGenerator } from './chunk-eval-generator';
 export { ExpandableControl } from './expandable-control';
-export { FeedbackSection } from './feedback-section';
 export { CollapsibleFeedback } from './collapsible-feedback';
 export { SubstantiationRequestCard } from './substantiation-request-card';
 export { ClaimAnalysisCard } from './claim-analysis-card';
