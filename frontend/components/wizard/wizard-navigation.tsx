@@ -58,10 +58,10 @@ export function WizardNavigation() {
           },
         );
 
-        actions.setWorkflowRunId(response.workflow_run_id);
-        actions.setSessionId(response.session_id);
+        actions.setWorkflowRunId(response.workflowRunId);
+        actions.setSessionId(response.sessionId);
 
-        router.push(`/results/${response.workflow_run_id}`);
+        router.push(`/results/${response.workflowRunId}`);
       } catch (error) {
         console.error('Error starting analysis:', error);
 
