@@ -31,7 +31,16 @@ def _build_cases() -> list[AgentTestCase]:
         # Inputs from dataset
         chunk = test_case.input["chunk"]
         claim_text = test_case.input["claim"]
-        literature_review_report = test_case.input.get("literature_review_report", "")
+        literature_review_input = test_case.input.get("literature_review_report", "")
+
+        # Resolve literature review: if it's a file path (under tests/), read content
+        literature_review_report = literature_review_input
+        if isinstance(
+            literature_review_input, str
+        ) and literature_review_input.endswith((".md", ".txt")):
+            lit_path = TESTS_DIR / literature_review_input
+            if lit_path.exists():
+                literature_review_report = lit_path.read_text(encoding="utf-8")
 
         # Build paragraph context from chunk
         paragraph = extract_paragraph_from_chunk(main_doc.markdown, chunk)
