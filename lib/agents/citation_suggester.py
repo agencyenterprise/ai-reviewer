@@ -2,7 +2,7 @@ from enum import Enum
 import asyncio
 from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
-
+from lib.config.llm import models
 from lib.models.agent import Agent
 
 
@@ -58,7 +58,7 @@ class Reference(BaseModel):
         description="The quality of the publication that carries the suggested reference"
     )
     related_excerpt: str = Field(
-        description="Exact sentence or excerpt from the our document that should cite or discuss this reference"
+        description="Exact sentence or excerpt from the full document that should cite or discuss this reference"
     )
     related_excerpt_from_reference: str = Field(
         description="Exact sentence or excerpt from the reference that is why we should cite or discuss it"
@@ -179,7 +179,7 @@ It is ok to double check anything you add by doing web searches.
 citation_suggester_agent = Agent(
     name="Citation Suggester",
     description="Review a chunk of text against RAND attribution guidelines to identify missing citations and recommend high-quality sources for proper attribution compliance",
-    model="openai:gpt-5",
+    model=models["gpt-5"],
     use_responses_api=True,
     use_react_agent=False,
     use_direct_llm_client=True,  # To use open ai tools (openai_web_search, openai_code_interpreter)
@@ -280,23 +280,7 @@ Recommended high-quality sources to cite
 How to fit this in the document
 - Add a short paragraph noting that the 22nd Amendment restricts elected terms to two; mention that there is public discussion about revising or circumventing it, but emphasize that current law adheres to a two-term limit. Support with Britannica turn4search3 and Reagan Library turn5search1; and for contemporary debates or misunderstandings, the Reuters fact-check (turn5news12) provides a neutral legal framing. ([britannica.com](https://www.britannica.com/topic/Twenty-second-Amendment?utm_source=openai))
 
-Topic 5. The 2024 U.S. presidential election results and what they imply for the article’s argument
-What’s in the article
-- The piece posits that it would be “exceedingly unlikely” for Trump to win in 2024, based on past patterns.
-
-What’s right or plausible
-- In reality, the 2024 election concluded with Donald Trump winning the presidency, reversing 2020 results in which he lost to Biden. Grounding this claim in actual results is essential.
-
-Recommended high-quality sources to cite
-- AP News: Trump elected president in 2024 and later certification (January 2025) – credible reporting on the result and the certification process. ([apnews.com](https://apnews.com/article/83c8e246ab97f5b97be45cdc156af4e2?utm_source=openai))
-- AP News: Congress certifies Trump’s 2024 win (January 6, 2025) – official certification details. ([apnews.com](https://apnews.com/article/b8284b9b6b22f78ab7f23f8c8b3c3da3?utm_source=openai))
-- BBC: Harris certifies Trump’s win (January 6, 2025) – independent international coverage confirming the outcome and the certification process. ([bbc.com](https://www.bbc.com/news/articles/cd9x33z8nzpo?utm_source=openai))
-- CNBC/Bloomberg/Reuters coverage (as supplemental, non-Wikipedia sources) confirming the certified result and the political context. ([cnbc.com](https://www.cnbc.com/2025/01/06/congress-trump-harris-election-certification-jan-6.html?utm_source=openai))
-
-How to fit this in the document
-- Replace the sentence that frames Trump’s defeat as “exceedingly unlikely” with a concise ±contextual note: “In the 2024 election, Donald Trump defeated Kamala Harris and won the presidency; Congress certified the result on January 6, 2025” and provide sources. This corrects the article’s factual trajectory and aligns with credible reporting. ([apnews.com](https://apnews.com/article/83c8e246ab97f5b97be45cdc156af4e2?utm_source=openai))
-
-Topic 6. Theoretical framing: Skowronek’s presidential leadership in political time and Foner’s Reconstruction
+Topic 5. Theoretical framing: Skowronek’s presidential leadership in political time and Foner’s Reconstruction
 What’s in the bibliography now
 - Foner (2014). Reconstruction: America's Unfinished Revolution, 1863–1877.
 - Skowronek (2011). Presidential Leadership in Political Time.
@@ -316,7 +300,7 @@ How to fit this in the document
   - Use Foner to situate Reconstruction as a long-run pressure-test on legitimacy and constitutional arrangements, which can contextualize debates about term limits and impeachment (cite Foner’s updated edition details, turn10search1).
   - Provide a caution that Skowronek’s theory emphasizes historical patterns but does not predict individual outcomes with certainty; cite the Cambridge review (turn6search8) for a critical perspective. ([politicalscience.yale.edu](https://politicalscience.yale.edu/publications/presidential-leadership-political-time-reprise-and-reappraisal-third-edition?utm_source=openai))
 
-Topic 7. The factual scaffolding around “dozens of handoffs” and the terminology of terms
+Topic 6. The factual scaffolding around “dozens of handoffs” and the terminology of terms
 What to fix or clarify
 - Rather than a vague “dozens of handoffs,” provide a precise, sourced metric of transitions and terms, including how nonconsecutive terms are counted in the presidency.
 
@@ -327,7 +311,7 @@ Recommended high-quality sources to cite
 How to fit this in the document
 - Replace the vague language with a precise sentence such as: “Since 1789 there have been 47 presidencies across 45 individuals, due to Grover Cleveland’s nonconsecutive terms.” Attach the Britannica sources after that sentence. ([britannica.com](https://www.britannica.com/topic/Presidents-of-the-United-States-1846696?utm_source=openai))
 
-Topic 8. Reconstruction and the current argument’s broader narrative
+Topic 7. Reconstruction and the current argument’s broader narrative
 What to add
 - The article’s opening could be strengthened by incorporating a concise note about the scale and stakes of Reconstruction-era reforms and constitutional changes, connected to how we think about modern executive power.
 
@@ -346,16 +330,9 @@ Structured recommendations for bibliography edits
   - Add: Britannica. Andrew Johnson (impeached but not removed) – to support impeachment correction. ([britannica.com](https://www.britannica.com/biography/Andrew-Johnson?utm_source=openai))
   - Add: U.S. Senate. Impeachment Trial of Andrew Johnson (official trial record). ([senate.gov](https://www.senate.gov/about/powers-procedures/impeachment/impeachment-johnsonandrew.htm?utm_source=openai))
   - Add: National Archives. Impeachment (official history context). ([archives.gov](https://www.archives.gov/legislative/features/impeachment?utm_source=openai))
-  - Add: AP News. Trump elected president in 2024 and subsequent certification (to support the actual outcome). ([apnews.com](https://apnews.com/article/83c8e246ab97f5b97be45cdc156af4e2?utm_source=openai))
-  - Add: AP News. Congress certifies Trump’s 2024 win (Jan 6, 2025). ([apnews.com](https://apnews.com/article/b8284b9b6b22f78ab7f23f8c8b3c3da3?utm_source=openai))
-  - Add: BBC/other credible outlets confirming certification (to triangulate the result). ([bbc.com](https://www.bbc.com/news/articles/cd9x33z8nzpo?utm_source=openai))
   - Add: Yale/Bridges to Skowronek (summaries of his theory for accessibility in the text). ([politicalscience.yale.edu](https://politicalscience.yale.edu/publications/presidential-leadership-political-time-reprise-and-reappraisal-third-edition?utm_source=openai))
   - Add: Foner’s Reconstruction updated edition page (publisher info) to ground the discussion in credible scholarship. ([barnesandnoble.com](https://www.barnesandnoble.com/w/reconstruction-updated-edition-eric-foner/1129142102?utm_source=openai))
 
-Notes on dates and context
-- If the article discusses “the 2024 election,” anchor statements with absolute dates:
-  - Election date: November 5, 2024.
-  - Certification date (Congress vote): January 6, 2025. This is when credible outlets reported the formal certification, and you should cite primary/credible outlets for these dates (AP News turn8news12; BBC turn8search2; CNBC turn8search4; Bloomberg turn8search6). ([apnews.com](https://apnews.com/article/b8284b9b6b22f78ab7f23f8c8b3c3da3?utm_source=openai))
 
 Concise editing plan (how to implement)
 - Step 1: Correct factual inaccuracies
@@ -363,9 +340,7 @@ Concise editing plan (how to implement)
   - Introduce Grover Cleveland as a counterexample to the “one-term comeback” claim; add Britannica turn0search0 or turn3search2 (and optionally NPR/History.com for accessible narrative). ([britannica.com](https://www.britannica.com/biography/Grover-Cleveland?utm_source=openai))
 - Step 2: Ground the “dozens of changes” claim
   - Add a precise figure and cite Britannica’s presidency list (turn4search2) after a sentence like: “There have been 47 presidencies across 45 individuals (as of 2025), including one nonconsecutive-term case.” ([britannica.com](https://www.britannica.com/topic/Presidents-of-the-United-States-1846696?utm_source=openai))
-- Step 3: Update the 2024 election discussion
-  - State the actual outcome: Trump won the 2024 election; Congress certified the result on January 6, 2025; cite AP News turn1news14 and turn8news12, and BBC turn8search2 as corroboration. ([apnews.com](https://apnews.com/article/83c8e246ab97f5b97be45cdc156af4e2?utm_source=openai))
-- Step 4: Introduce theory to frame the narrative
+- Step 3: Introduce theory to frame the narrative
   - Add a short paragraph linking the piece to Skowronek’s “political time” framework and Foner’s Reconstruction narrative; cite Yale/turn6search3 and Cambridge/turn6search8 for scholarly framing, and Foner turn10search1 for historical breadth. ([politicalscience.yale.edu](https://politicalscience.yale.edu/publications/presidential-leadership-political-time-reprise-and-reappraisal-third-edition?utm_source=openai))
 
 Would you like me to draft a revised, citation-annotated version of the opening paragraph and the problematic sentences now, using these sources? I can deliver a compact revision that preserves your voice while correcting the factual points and embedding the new references.""",
