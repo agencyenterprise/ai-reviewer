@@ -23,17 +23,6 @@ export interface SupportedAgentsResponse {
   supported_agents: string[];
   agent_descriptions: Record<string, string>;
 }
-
-/**
- * Response from starting an analysis workflow
- * Note: This should match the backend StartAnalysisResponse model
- */
-export interface StartAnalysisResponse {
-  workflow_run_id: string;
-  session_id: string;
-  message: string;
-}
-
 class AnalysisService {
   private readonly analysisApi: AnalysisApi;
   private readonly evaluationApi: EvaluationApi;

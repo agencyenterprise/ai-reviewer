@@ -1,6 +1,7 @@
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '../constants';
 import { ProgressCallbacks, ProgressTracker } from './progress-tracker';
-import { analysisService, AnalysisRequest, StartAnalysisResponse } from '../analysis-service';
+import { analysisService, AnalysisRequest } from '../analysis-service';
+import { StartAnalysisResponse } from '../generated-api';
 
 export interface ValidationError {
   fileName: string;
