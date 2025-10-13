@@ -15,11 +15,7 @@ from api.upload import convert_uploaded_files_to_file_document
 from lib.agents.registry import agent_registry
 from lib.config.database import get_db
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
-from lib.services.eval_generator.generator import ClaimSubstantiatorState
-from lib.workflows.claim_substantiation.runner import (
-    reevaluate_single_chunk,
-    run_claim_substantiator,
-)
+from lib.workflows.claim_substantiation.runner import reevaluate_single_chunk
 from lib.workflows.claim_substantiation.state import (
     ChunkReevaluationRequest,
     ChunkReevaluationResponse,
@@ -108,45 +104,6 @@ async def start_analysis(
         logger.error(f"Error starting analysis: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"Error starting analysis: {str(e)}"
-        )
-
-
-@router.post("/api/run-claim-substantiation", response_model=ClaimSubstantiatorState)
-async def run_claim_substantiation_workflow(
-    main_document: UploadFile = File(...),
-    supporting_documents: Optional[list[UploadFile]] = File(default=None),
-    config: SubstantiationWorkflowConfig = Depends(build_config_from_form),
-):
-    """
-    Run the claim substantiation workflow on uploaded documents (LEGACY - blocks until complete).
-
-    Use /api/start-analysis instead for async workflow execution.
-
-    Args:
-        main_document: The main document to analyze for claims
-        supporting_documents: Optional supporting documents for substantiation
-        config: Workflow configuration built from form fields
-
-    Returns:
-        The workflow state containing claims, citations, references, and substantiations
-    """
-    try:
-        [main_file, *supporting_files] = await convert_uploaded_files_to_file_document(
-            [main_document] + (supporting_documents or [])
-        )
-
-        result_state = await run_claim_substantiator(
-            file=main_file,
-            supporting_files=supporting_files if supporting_files else None,
-            config=config,
-        )
-
-        return result_state
-
-    except Exception as e:
-        logger.error(f"Error processing workflow: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500, detail=f"Error processing workflow: {str(e)}"
         )
 
 

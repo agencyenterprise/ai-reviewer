@@ -3,7 +3,8 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusIndicator } from '@/components/ui/status-indicator';
-import { api } from '@/lib/api';
+import { workflowsApi } from '@/lib/api';
+import { WorkflowRun } from '@/lib/generated-api';
 import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
@@ -20,7 +21,7 @@ export function WorkflowRunsList({ className }: WorkflowRunsListProps) {
   } = useQuery({
     queryKey: ['workflowRuns'],
     refetchInterval: 3000,
-    queryFn: () => api.listWorkflowRunsApiWorkflowRunsGet(),
+    queryFn: () => workflowsApi.listWorkflowRunsApiWorkflowRunsGet(),
   });
 
   if (isLoading) {

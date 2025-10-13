@@ -1,15 +1,17 @@
 import { AnalysisResults } from '@/components/wizard/types';
 import {
+  AnalysisApi,
   ChunkEvalPackageRequest,
   ChunkReevaluationRequest,
   ChunkReevaluationResponse,
   ClaimSubstantiatorStateOutput,
-  DefaultApi,
+  EvaluationApi,
   EvalPackageRequest,
+  HealthApi,
   SubstantiationWorkflowConfig,
 } from '@/lib/generated-api';
 import { downloadBlobResponse, generateDefaultTestName } from '@/lib/utils';
-import { api, apiUrl } from './api';
+import { analysisApi, evaluationApi, healthApi, apiUrl } from './api';
 
 interface AnalysisRequest {
   mainDocument: File;
@@ -33,26 +35,14 @@ export interface StartAnalysisResponse {
 }
 
 class AnalysisService {
-  private readonly api: DefaultApi;
+  private readonly analysisApi: AnalysisApi;
+  private readonly evaluationApi: EvaluationApi;
+  private readonly healthApi: HealthApi;
 
   constructor() {
-    this.api = api;
-  }
-
-  private transformResponse(apiResponse: ClaimSubstantiatorStateOutput): AnalysisResults {
-    return {
-      status: 'completed',
-      fullResults: apiResponse,
-    };
-  }
-
-  private createErrorResult(error: unknown): AnalysisResults {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-
-    return {
-      status: 'error',
-      error: errorMessage,
-    };
+    this.analysisApi = analysisApi;
+    this.evaluationApi = evaluationApi;
+    this.healthApi = healthApi;
   }
 
   /**
@@ -129,34 +119,9 @@ class AnalysisService {
     });
   }
 
-  async runClaimSubstantiation(request: AnalysisRequest): Promise<AnalysisResults> {
-    try {
-      const config = request.config || {};
-
-      // Use OpenAPI client for claim substantiation
-      const result = await this.api.runClaimSubstantiationWorkflowApiRunClaimSubstantiationPost({
-        mainDocument: request.mainDocument,
-        supportingDocuments: request.supportingDocuments || null,
-        useToulmin: config.useToulmin,
-        runLiteratureReview: config.runLiteratureReview,
-        runSuggestCitations: config.runSuggestCitations,
-        domain: config.domain || null,
-        targetAudience: config.targetAudience || null,
-        targetChunkIndices: config.targetChunkIndices?.join(',') || null,
-        agentsToRun: config.agentsToRun?.join(',') || null,
-        sessionId: config.sessionId || null,
-      });
-
-      return this.transformResponse(result);
-    } catch (error) {
-      console.error('Error calling claim substantiation API:', error);
-      return this.createErrorResult(error);
-    }
-  }
-
   async getSupportedAgents(): Promise<SupportedAgentsResponse> {
     try {
-      return await this.api.getSupportedAgentsApiSupportedAgentsGet();
+      return await this.healthApi.getSupportedAgentsApiSupportedAgentsGet();
     } catch (error) {
       console.error('Error fetching supported agents:', error);
       throw error;
@@ -172,7 +137,7 @@ class AnalysisService {
         sessionId: request.sessionId,
       };
 
-      return await this.api.reevaluateChunkApiReevaluateChunkPost({
+      return await this.analysisApi.reevaluateChunkApiReevaluateChunkPost({
         chunkReevaluationRequest: requestWithSession,
       });
     } catch (error) {
@@ -194,7 +159,7 @@ class AnalysisService {
       };
 
       return downloadBlobResponse(() =>
-        this.api.generateEvalPackageApiGenerateEvalPackagePostRaw({
+        this.evaluationApi.generateEvalPackageApiGenerateEvalPackagePostRaw({
           evalPackageRequest: evalRequest,
         }),
       );
@@ -221,7 +186,7 @@ class AnalysisService {
       };
 
       return downloadBlobResponse(() =>
-        this.api.generateChunkEvalPackageApiGenerateChunkEvalPackagePostRaw({
+        this.evaluationApi.generateChunkEvalPackageApiGenerateChunkEvalPackagePostRaw({
           chunkEvalPackageRequest: evalRequest,
         }),
       );
