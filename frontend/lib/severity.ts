@@ -1,42 +1,51 @@
-import { ClaimSubstantiationResultWithClaimIndex, Severity } from './generated-api';
+import { DocumentChunkOutput, EvidenceAlignmentLevel } from './generated-api';
 
-export const getSeverityLabel = (severity?: Severity) => {
-  switch (severity) {
-    case Severity.NUMBER_0:
-      return 'No issue';
-    case Severity.NUMBER_1:
-      return 'Not enough data to know for sure';
-    case Severity.NUMBER_2:
-      return 'Low severity';
-    case Severity.NUMBER_3:
-      return 'Medium severity';
-    case Severity.NUMBER_4:
-      return 'High severity';
-    default:
-      return 'Unknown';
+export enum SeverityLevel {
+  None = 'none',
+  Low = 'low',
+  Medium = 'medium',
+  High = 'high',
+  Good = 'good',
+}
+
+export function getSeverity(chunk: DocumentChunkOutput) {
+  const substantiations = chunk.substantiations || [];
+
+  if (
+    substantiations.some(
+      (substantiation) =>
+        substantiation.evidenceAlignment === EvidenceAlignmentLevel.Unsupported ||
+        substantiation.evidenceAlignment === EvidenceAlignmentLevel.Contradicted,
+    )
+  ) {
+    return SeverityLevel.High;
   }
-};
 
-export const getSeverityClasses = (severity?: Severity) => {
-  switch (severity) {
-    case Severity.NUMBER_4:
-      return 'bg-red-100 text-red-800';
-    case Severity.NUMBER_3:
-      return 'bg-orange-100 text-orange-800';
-    case Severity.NUMBER_2:
-      return 'bg-yellow-100 text-yellow-800';
-    case Severity.NUMBER_1:
-      return 'bg-yellow-100 text-yellow-800';
-    default:
-      return 'bg-green-100 text-green-800';
+  if (
+    substantiations.some(
+      (substantiation) => substantiation.evidenceAlignment === EvidenceAlignmentLevel.PartiallySupported,
+    )
+  ) {
+    return SeverityLevel.Medium;
   }
-};
 
-export const getMaxSeverity = (substantiations: ClaimSubstantiationResultWithClaimIndex[]): Severity => {
-  return substantiations.reduce((max, s) => {
-    if (!s.isSubstantiated && typeof s.severity === 'number') {
-      return Math.max(max, s.severity) as Severity;
-    }
-    return max as Severity;
-  }, Severity.NUMBER_0 as Severity);
+  if (
+    substantiations.some((substantiation) => substantiation.evidenceAlignment === EvidenceAlignmentLevel.Unverifiable)
+  ) {
+    return SeverityLevel.Low;
+  }
+
+  if (substantiations.some((substantiation) => substantiation.evidenceAlignment === EvidenceAlignmentLevel.Supported)) {
+    return SeverityLevel.Good;
+  }
+
+  return SeverityLevel.None;
+}
+
+export const severityColors: Record<SeverityLevel, 'none' | 'yellow' | 'red' | 'green' | 'blue'> = {
+  [SeverityLevel.None]: 'none',
+  [SeverityLevel.Low]: 'blue',
+  [SeverityLevel.Medium]: 'yellow',
+  [SeverityLevel.High]: 'red',
+  [SeverityLevel.Good]: 'green',
 };

@@ -1,4 +1,4 @@
-from enum import IntEnum
+from enum import IntEnum, StrEnum
 
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
@@ -7,36 +7,23 @@ from lib.config.llm import models
 from lib.models.agent import Agent
 
 
-class Severity(IntEnum):
-    NO_ISSUE = 0
-    NOT_ENOUGH_DATA = 1
-    LOW_SEVERITY = 2
-    MEDIUM_SEVERITY = 3
-    HIGH_SEVERITY = 4
+class EvidenceAlignmentLevel(StrEnum):
+    UNVERIFIABLE = "unverifiable"
+    SUPPORTED = "supported"
+    PARTIALLY_SUPPORTED = "partially_supported"
+    UNSUPPORTED = "unsupported"
+    CONTRADICTED = "contradicted"
 
 
 class ClaimSubstantiationResult(BaseModel):
-    is_substantiated: bool = Field(
-        description="A boolean value indicating whether the claim is substantiated by the supporting document(s) or not"
+    evidence_alignment: EvidenceAlignmentLevel = Field(
+        description=f"The degree of evidence that the supporting document(s) provides to support the claim. Possible values: {[e.value for e in EvidenceAlignmentLevel]}"
     )
     rationale: str = Field(
         description="A brief rationale for why you think the claim is substantiated or not substantiated by the cited supporting document(s)"
     )
     feedback: str = Field(
         description="A brief suggestion on how the issue can be resolved, e.g., by adding more supporting documents or by rephrasing the original chunk, etc. Return 'No changes needed' if there are no significant issues with the substantiation of the claim."
-    )
-    severity: Severity = Field(
-        description=(
-            "The severity of the substantiation issue with increasing numeric levels: "
-            "0 = no issue, "
-            "1 = not enough data to know for sure, "
-            "2 = low severity issues, "
-            "3 = medium severity issues, "
-            "4 = high severity issues"
-        )
-    )
-    severity_rationale: str = Field(
-        description="A brief rationale for why you think the severity level is appropriate"
     )
 
 
@@ -52,28 +39,18 @@ You will be given a chunk of text from a document, a claim that is inferred from
 Your task is to carefully read the supporting document(s) and determine wether the claim is supported by the supporting documents or not.
 Return a rationale for why you think the claim is supported or not supported by the cited supporting document(s).
 
-## Severity level definitions
+## Evidence alignment definitions
 
-For each claim, also output a numeric severity level based on the following definitions:
+For each claim, output an evidence alignment level based on the following definitions:
 
-0 – No issue
-The claim is well-substantiated and faithful to the source. No factual or interpretive drift.
-
-1 – Not enough data
-The supporting document(s) were not provided, or are inaccessible to confirm or deny the claim.
-
-2 – Low severity issue
-Minor inaccuracies or stylistic differences. The statement preserves the author’s meaning but could be worded more precisely or loses a small nuance. Acceptable in most contexts but worth polishing.
-
-3 – Medium severity issue
-Moderate distortion. The claim remains on the same topic but misstates scope, frequency, tone, or degree. Should be revised before publication.
-
-4 – High severity issue
-Major misrepresentation. The claim contradicts, reverses, or fabricates the source’s position, or adds strong unsupported language that would mislead a reader about the author’s intent. The claim uses numbers or metrics that are not supported by the source or are not clearly derived from the source. Must be corrected before publication.
+- unverifiable: The supporting document(s) were not provided, or are inaccessible to confirm or deny the claim.
+- supported: The claim is substantiated by the cited material. The reference clearly provides evidence or reasoning that matches both the claim’s factual scope and its evaluative tone.
+- partially_supported: The citation provides related evidence but doesn’t fully substantiate the claim. It may support only part of the statement or use weaker phrasing than the claim implies. The mismatch usually involves scope, frequency, or tone rather than outright contradiction.
+- unsupported: The cited material does not contain evidence for the claim. The connection may be irrelevant, tangential, or outright fabricated.
+- contradicted: The reference actually disagrees with the claim. The claim contradicts or reverses the source’s position, or adds strong unsupported language that would mislead a reader about the author’s intent. The claim may also use numbers or metrics that are not supported by the source or are not clearly derived from the source.
 
 ## Other instructions
 
-- Consider "low severity issues" as substantiated, so mark "is_substantiated" as true for these cases.
 - Citations may appear in the same chunk of the text that the claim belongs to, or potentially in a later chunk of the paragraph. So you will also be given info for the paragraph and all the citations in the paragraph. Use your judgement to determine whether a reference is cited close enough to the actual claim of the text for readers to understand the author's intent that the citation is supporting that claim or not. For example, if all citations of an introduction paragraph are at the end of the paragraph, then it's likely that the citations are supporting all the claims in the whole paragraph together, rather than just supporting the last sentence/chunk of the paragraph.
 
 {domain_context}

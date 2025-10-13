@@ -28,6 +28,7 @@ models/DocumentChunkInput.ts
 models/DocumentChunkOutput.ts
 models/DocumentSummary.ts
 models/EvalPackageRequest.ts
+models/EvidenceAlignmentLevel.ts
 models/FileDocument.ts
 models/HTTPValidationError.ts
 models/PublicationQuality.ts
@@ -35,7 +36,6 @@ models/QCResult.ts
 models/RecommendedAction.ts
 models/Reference.ts
 models/ReferenceType.ts
-models/Severity.ts
 models/StartAnalysisResponse.ts
 models/SubstantiationWorkflowConfig.ts
 models/ToulminClaim.ts

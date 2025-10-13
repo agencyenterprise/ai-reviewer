@@ -1,5 +1,5 @@
 import { flatMap, get, isArray, isPlainObject, keys } from 'lodash';
-import { IncEx, TestCase, FieldComparison } from './types';
+import { IncEx, TestCase } from './types';
 
 /**
  * Format duration in seconds to display string (e.g., "1.23s")

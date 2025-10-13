@@ -13,8 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
-import type { Severity } from './Severity';
-import { SeverityFromJSON, SeverityFromJSONTyped, SeverityToJSON, SeverityToJSONTyped } from './Severity';
+import type { EvidenceAlignmentLevel } from './EvidenceAlignmentLevel';
+import {
+  EvidenceAlignmentLevelFromJSON,
+  EvidenceAlignmentLevelFromJSONTyped,
+  EvidenceAlignmentLevelToJSON,
+  EvidenceAlignmentLevelToJSONTyped,
+} from './EvidenceAlignmentLevel';
 
 /**
  *
@@ -23,11 +28,11 @@ import { SeverityFromJSON, SeverityFromJSONTyped, SeverityToJSON, SeverityToJSON
  */
 export interface ClaimSubstantiationResultWithClaimIndex {
   /**
-   * A boolean value indicating whether the claim is substantiated by the supporting document(s) or not
-   * @type {boolean}
+   * The degree of evidence that the supporting document(s) provides to support the claim. Possible values: ['unverifiable', 'supported', 'partially_supported', 'unsupported', 'contradicted']
+   * @type {EvidenceAlignmentLevel}
    * @memberof ClaimSubstantiationResultWithClaimIndex
    */
-  isSubstantiated: boolean;
+  evidenceAlignment: EvidenceAlignmentLevel;
   /**
    * A brief rationale for why you think the claim is substantiated or not substantiated by the cited supporting document(s)
    * @type {string}
@@ -40,18 +45,6 @@ export interface ClaimSubstantiationResultWithClaimIndex {
    * @memberof ClaimSubstantiationResultWithClaimIndex
    */
   feedback: string;
-  /**
-   * The severity of the substantiation issue with increasing numeric levels: 0 = no issue, 1 = not enough data to know for sure, 2 = low severity issues, 3 = medium severity issues, 4 = high severity issues
-   * @type {Severity}
-   * @memberof ClaimSubstantiationResultWithClaimIndex
-   */
-  severity: Severity;
-  /**
-   * A brief rationale for why you think the severity level is appropriate
-   * @type {string}
-   * @memberof ClaimSubstantiationResultWithClaimIndex
-   */
-  severityRationale: string;
   /**
    *
    * @type {number}
@@ -72,11 +65,9 @@ export interface ClaimSubstantiationResultWithClaimIndex {
 export function instanceOfClaimSubstantiationResultWithClaimIndex(
   value: object,
 ): value is ClaimSubstantiationResultWithClaimIndex {
-  if (!('isSubstantiated' in value) || value['isSubstantiated'] === undefined) return false;
+  if (!('evidenceAlignment' in value) || value['evidenceAlignment'] === undefined) return false;
   if (!('rationale' in value) || value['rationale'] === undefined) return false;
   if (!('feedback' in value) || value['feedback'] === undefined) return false;
-  if (!('severity' in value) || value['severity'] === undefined) return false;
-  if (!('severityRationale' in value) || value['severityRationale'] === undefined) return false;
   if (!('chunkIndex' in value) || value['chunkIndex'] === undefined) return false;
   if (!('claimIndex' in value) || value['claimIndex'] === undefined) return false;
   return true;
@@ -94,11 +85,9 @@ export function ClaimSubstantiationResultWithClaimIndexFromJSONTyped(
     return json;
   }
   return {
-    isSubstantiated: json['is_substantiated'],
+    evidenceAlignment: EvidenceAlignmentLevelFromJSON(json['evidence_alignment']),
     rationale: json['rationale'],
     feedback: json['feedback'],
-    severity: SeverityFromJSON(json['severity']),
-    severityRationale: json['severity_rationale'],
     chunkIndex: json['chunk_index'],
     claimIndex: json['claim_index'],
   };
@@ -117,11 +106,9 @@ export function ClaimSubstantiationResultWithClaimIndexToJSONTyped(
   }
 
   return {
-    is_substantiated: value['isSubstantiated'],
+    evidence_alignment: EvidenceAlignmentLevelToJSON(value['evidenceAlignment']),
     rationale: value['rationale'],
     feedback: value['feedback'],
-    severity: SeverityToJSON(value['severity']),
-    severity_rationale: value['severityRationale'],
     chunk_index: value['chunkIndex'],
     claim_index: value['claimIndex'],
   };

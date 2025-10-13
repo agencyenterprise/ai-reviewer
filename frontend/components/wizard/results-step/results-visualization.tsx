@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../../ui/tooltip';
 import { SummaryCards, TabNavigation } from './components';
 import { TabType } from './constants';
 import { useResultsCalculations } from './hooks/use-results-calculations';
-import { ChunksTab, CitationsTab, ClaimsTab, FilesTab, LiteratureReviewTab, ReferencesTab, SummaryTab } from './tabs';
+import { CitationsTab, FilesTab, LiteratureReviewTab, ReferencesTab, SummaryTab } from './tabs';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
 
 interface ResultsVisualizationProps {
@@ -63,8 +63,6 @@ export function ResultsVisualization({ results, onChunkReevaluation }: ResultsVi
             supportedReferences={calculations.supportedReferences}
           />
         );
-      case 'claims':
-        return <ClaimsTab results={results} />;
       case 'citations':
         return <CitationsTab results={results} />;
       case 'references':
@@ -73,8 +71,6 @@ export function ResultsVisualization({ results, onChunkReevaluation }: ResultsVi
         return <LiteratureReviewTab results={results} />;
       case 'files':
         return <FilesTab results={results} />;
-      case 'chunks':
-        return <ChunksTab results={results} onChunkReevaluation={onChunkReevaluation} />;
       case 'document-explorer':
         return <DocumentExplorerTab results={results} onChunkReevaluation={onChunkReevaluation} />;
     }
