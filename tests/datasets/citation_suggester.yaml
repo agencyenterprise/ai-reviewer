@@ -45,44 +45,30 @@ dataset:
               literature_review_report: "data/citation_suggester/literature_review.md"
           expected_output:
               relevant_references:
-                  - title: "Grover Cleveland | Biography & Facts"
-                    type: "webpage"
+                  - title: "Grover Cleveland"
+                    type: "article"
                     link: "https://www.britannica.com/biography/Grover-Cleveland"
-                    bibliography_info: "Encyclopaedia Britannica. (n.d.). Grover Cleveland | Biography & Facts. Retrieved October 13, 2025, from https://www.britannica.com/biography/Grover-Cleveland"
+                    bibliography_info: "Encyclopaedia Britannica. \"Grover Cleveland.\" Last updated September 13, 2025. https://www.britannica.com/biography/Grover-Cleveland. Accessed October 13, 2025."
                     is_already_cited_elsewhere: false
                     index_of_associated_existing_reference: -1
                     publication_quality: "medium_impact_publication"
                     related_excerpt: "One thing that has never happened, is that a one-term president comes back to office in a later term after losing one reelection bid."
-                    related_excerpt_from_reference: "\"Grover Cleveland … was the 22nd and 24th president of the United States … the first president ever to serve two discontinuous terms.\""
-                    rationale: "This directly refutes the paragraph's assertion by documenting the historical counterexample of a president who lost reelection in 1888 and later returned to office in 1893."
+                    related_excerpt_from_reference: "Grover Cleveland… was the 22nd and 24th president of the United States (1885–89 and 1893–97) and the first president ever to serve two discontinuous terms."
+                    rationale: "This sentence makes a falsifiable historical claim that is incorrect without citation. Britannica provides an authoritative correction that a president has, in fact, returned after losing reelection (Grover Cleveland)."
                     recommended_action: "add_new_citation"
-                    explanation_for_recommended_action: "Revise the sentence to acknowledge the precedent (e.g., \"This has happened once: Grover Cleveland served nonconsecutive terms after losing his 1888 reelection bid\") and place the citation immediately after that clause. Attribution type: historical fact."
+                    explanation_for_recommended_action: "Revise the sentence to: \"This has happened once: Grover Cleveland lost his 1888 reelection bid but returned to win in 1892, serving two nonconsecutive terms,\" and insert the citation immediately after \"nonconsecutive terms.\" Attribution type: fact."
                     confidence_in_recommendation: "high"
-                  - title: "Congress certifies Trump's 2024 win, without the Jan. 6 mob violence of four years ago"
+                  - title: "Trump isn't first to be second: Grover Cleveland set precedent of nonconsecutive presidential terms"
                     type: "article"
-                    link: "https://apnews.com/article/b8284b9b6b22f78ab7f23f8c8b3c3da3"
-                    bibliography_info: "Associated Press. (2025, January 6). Congress certifies Trump's 2024 win, without the Jan. 6 mob violence of four years ago. https://apnews.com/article/b8284b9b6b22f78ab7f23f8c8b3c3da3 (accessed October 13, 2025)."
+                    link: "https://apnews.com/article/7ea2c92c72911462ccb1bc2e7352fa23"
+                    bibliography_info: "Hajela, Deepti. \"Trump isn't first to be second: Grover Cleveland set precedent of nonconsecutive presidential terms.\" AP News. https://apnews.com/article/7ea2c92c72911462ccb1bc2e7352fa23. Accessed October 13, 2025."
                     is_already_cited_elsewhere: false
                     index_of_associated_existing_reference: -1
                     publication_quality: "medium_impact_publication"
                     related_excerpt: "So surely, based on this track record alone it seems exceedingly unlikely that former president Trump would be able to defeat President Joe Biden in the 2024 election."
-                    related_excerpt_from_reference: "\"Congress certified President‑elect Donald Trump as the winner of the 2024 election…\""
-                    rationale: "The paragraph's forward‑looking claim about the 2024 outcome is now outdated. This source documents the certified result and should replace the speculative assertion."
+                    related_excerpt_from_reference: "\"Donald John Trump has won the 2024 presidential election…\" and \"only one other American president did it the way Trump will — with a gap of four years between terms.\""
+                    rationale: "The sentence makes a predictive claim about the 2024 election that is now outdated. AP provides a definitive, widely relied-on report of the actual outcome and contextualizes the nonconsecutive-terms precedent."
                     recommended_action: "add_new_citation"
-                    explanation_for_recommended_action: "Replace the speculative sentence with a factual update such as: \"In the 2024 election, Donald Trump defeated the Democratic nominee and Congress certified his victory on January 6, 2025.\" Add this AP citation at the end of the updated sentence. Attribution type: factual outcome of a specific event."
+                    explanation_for_recommended_action: "Replace the sentence with a factually accurate update, e.g., \"In fact, in 2024 Donald Trump won a nonconsecutive second term, becoming only the second president after Grover Cleveland to do so,\" and add the AP citation at the end of the sentence. Attribution type: fact."
                     confidence_in_recommendation: "high"
-                  - title: "U.S. Constitution—Twenty‑Second Amendment | Constitution Annotated"
-                    type: "webpage"
-                    link: "https://constitution.congress.gov/constitution/amendment-22/"
-                    bibliography_info: "Congress.gov, Library of Congress. (n.d.). U.S. Constitution—Twenty‑Second Amendment. Retrieved October 13, 2025, from https://constitution.congress.gov/constitution/amendment-22/"
-                    is_already_cited_elsewhere: false
-                    index_of_associated_existing_reference: -1
-                    publication_quality: "high_impact_publication"
-                    related_excerpt: "One thing that has never happened, is that a one-term president comes back to office in a later term after losing one reelection bid."
-                    related_excerpt_from_reference: "\"No person shall be elected to the office of the President more than twice…\""
-                    rationale: "Clarifies that the Constitution permits nonconsecutive service up to two elected terms, contextualizing why a comeback is legally possible and has occurred historically."
-                    recommended_action: "add_new_citation"
-                    explanation_for_recommended_action: "After the corrected sentence acknowledging Cleveland's precedent, add a brief clause noting that the Constitution permits up to two elected terms (including nonconsecutive) and place this citation at the end of that clause. Attribution type: legal fact."
-                    confidence_in_recommendation: "high"
-              rationale: >
-                  The paragraph makes two attribution‑sensitive claims: (1) it asserts an absolute historical "never" about presidential comebacks that is false; (2) it speculates about the 2024 election outcome, which is now known and contradicts the text. To meet RAND's attribution rules, the historical claim should cite an authoritative source documenting the Grover Cleveland precedent, and the speculative sentence should be replaced with a precise, sourced statement of the certified 2024 result. Adding a primary legal citation to the Twenty‑Second Amendment provides necessary context on the constitutional permissibility of nonconsecutive terms. These targeted citations correct the record, ground key facts, and ensure accurate, faithful use of sources.
+              rationale: "The paragraph contains two attribution problems: an incorrect historical assertion (that no one-term president has ever returned) and a predictive statement about the 2024 election that is now contradicted by events. To meet RAND's Three Rules of Attribution, correct the historical claim and cite an authoritative source (Britannica) and update the election statement to a verifiable fact with a high-quality news source (AP). These targeted citations address missing/incorrect facts without overburdening the paragraph, ensuring accuracy and compliance."
