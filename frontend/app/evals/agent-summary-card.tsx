@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { BotIcon, ChevronDown, ChevronRight, Clock, AlertCircle } from 'lucide-react';
 import { TestCase } from './types';
 import { TestCaseItem } from './test-case-item';
-import { aggregateFieldInsights, formatDuration } from './util';
+import { aggregateFieldInsights, calculateConsistency, formatDuration } from './util';
+import { percentageFormatter } from './formatters';
 
 interface AgentSummary {
   agentName: string;
@@ -17,6 +18,8 @@ interface AgentSummary {
   accuracy: number;
   totalDuration: number;
   averageDuration: number;
+  consistencyProbabilityAvg: number;
+  consistencyProbabilityByTestCase: Record<string, number>;
 }
 
 interface AgentSummaryCardProps {
@@ -65,7 +68,7 @@ export function AgentSummaryCard({ summary, showOnlyFailed = false }: AgentSumma
 
       <CardContent className="pt-0">
         {/* Summary Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-4">
           <div className="text-center p-3 bg-muted/30 rounded-lg">
             <div className="text-lg font-bold text-foreground">{summary.total}</div>
             <div className="text-xs text-muted-foreground">Total Tests</div>
@@ -81,6 +84,12 @@ export function AgentSummaryCard({ summary, showOnlyFailed = false }: AgentSumma
           <div className="text-center p-3 bg-blue-50 rounded-lg">
             <div className="text-lg font-bold text-blue-600">{summary.accuracy}%</div>
             <div className="text-xs text-muted-foreground">Accuracy</div>
+          </div>
+          <div className="text-center p-3 bg-amber-50 rounded-lg">
+            <div className="text-lg font-bold text-amber-600">
+              {percentageFormatter.format(summary.consistencyProbabilityAvg)}
+            </div>
+            <div className="text-xs text-muted-foreground">Consistency Probability</div>
           </div>
           <div className="text-center p-3 bg-purple-50 rounded-lg">
             <div className="text-lg font-bold text-purple-600 flex items-center justify-center gap-1">
@@ -146,7 +155,11 @@ export function AgentSummaryCard({ summary, showOnlyFailed = false }: AgentSumma
             {summary.testCases
               .filter((testCase) => !showOnlyFailed || testCase.outcome === 'failed')
               .map((testCase, index) => (
-                <TestCaseItem key={index} testCase={testCase} />
+                <TestCaseItem
+                  key={index}
+                  testCase={testCase}
+                  consistencyProbability={summary.consistencyProbabilityByTestCase[testCase.agent_test_case.name]}
+                />
               ))}
           </div>
         )}
@@ -182,6 +195,8 @@ export function groupTestCasesByAgent(testCases: TestCase[]): AgentSummary[] {
       const accuracy = total > 0 ? Math.round((passed / total) * 100) : 0;
       const totalDuration = cases.reduce((sum, c) => sum + c.call.duration, 0);
       const averageDuration = total > 0 ? totalDuration / total : 0;
+      const { avg: consistencyProbabilityAvg, byTestCase: consistencyProbabilityByTestCase } =
+        calculateConsistency(cases);
 
       return {
         agentName,
@@ -192,6 +207,8 @@ export function groupTestCasesByAgent(testCases: TestCase[]): AgentSummary[] {
         accuracy,
         totalDuration,
         averageDuration,
+        consistencyProbabilityAvg,
+        consistencyProbabilityByTestCase,
       };
     })
     .sort((a, b) => b.accuracy - a.accuracy); // Sort by accuracy descending

@@ -1,15 +1,17 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileUpload } from '@/components/ui/file-upload';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { FileUpload } from '@/components/ui/file-upload';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
 import { AgentSummaryCard, groupTestCasesByAgent } from './agent-summary-card';
+import { percentageFormatter } from './formatters';
 import { TestResults } from './types';
+import { calculateConsistency, formatDuration } from './util';
 
 export default function EvalsPage() {
   const [uploadedData, setUploadedData] = useState<TestResults | null>(null);
@@ -46,16 +48,17 @@ export default function EvalsPage() {
 
   const calculateSummaryMetrics = (data: TestResults | null) => {
     if (!data) {
-      return { total: 0, passed: 0, failed: 0, accuracy: 0, duration: 0 };
+      return { total: 0, passed: 0, failed: 0, accuracy: 0, duration: 0, consistencyProbability: 0 };
     }
 
     const total = data.summary.total;
     const passed = data.summary.passed || 0;
     const failed = data.summary.failed || 0;
-    const accuracy = total > 0 ? Math.round((passed / total) * 100) : 0;
+    const accuracy = total > 0 ? passed / total : 0;
     const duration = data.duration;
+    const { avg: consistencyProbability } = calculateConsistency(data.tests);
 
-    return { total, passed, failed, accuracy, duration };
+    return { total, passed, failed, accuracy, duration, consistencyProbability };
   };
 
   const metrics = calculateSummaryMetrics(uploadedData);
@@ -153,7 +156,7 @@ export default function EvalsPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-5 gap-4">
+                <div className="grid grid-cols-6 gap-4">
                   <div className="text-center p-4 bg-muted/30 rounded-lg">
                     <div className="text-2xl font-bold text-foreground">{metrics.total}</div>
                     <div className="text-sm text-muted-foreground">Total Tests</div>
@@ -167,11 +170,19 @@ export default function EvalsPage() {
                     <div className="text-sm text-muted-foreground">Failed</div>
                   </div>
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">{metrics.accuracy}%</div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {percentageFormatter.format(metrics.accuracy)}
+                    </div>
                     <div className="text-sm text-muted-foreground">Accuracy</div>
                   </div>
+                  <div className="text-center p-4 bg-amber-50 rounded-lg">
+                    <div className="text-2xl font-bold text-amber-600">
+                      {percentageFormatter.format(metrics.consistencyProbability)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Consistency Probability</div>
+                  </div>
                   <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-600">{metrics.duration.toFixed(1)}s</div>
+                    <div className="text-2xl font-bold text-purple-600">{formatDuration(metrics.duration)}</div>
                     <div className="text-sm text-muted-foreground">Duration</div>
                   </div>
                 </div>
