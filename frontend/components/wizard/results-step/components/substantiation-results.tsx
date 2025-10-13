@@ -24,7 +24,7 @@ export function SubstantiationResults({ substantiation, className = '' }: Substa
             Claim-Reference Validation
           </h3>
 
-          <EvidenceAlignmentLevelBadge evidenceAlignment={substantiation.evidenceAlignment} badge={true} />
+          <EvidenceAlignmentLevelBadge evidenceAlignment={substantiation.evidenceAlignment} variant="solid" />
         </div>
 
         <Button

@@ -187,7 +187,7 @@ export function DocumentExplorerChunk({
 
               <EvidenceAlignmentLevelBadge
                 evidenceAlignment={evidenceAlignment as EvidenceAlignmentLevel}
-                badge={false}
+                variant="text"
                 count={count}
                 className="font-normal"
               />
