@@ -12,6 +12,7 @@ import uuid
 from enum import Enum
 from pathlib import Path
 from typing import Optional, Any
+import json
 
 import pytest
 
@@ -23,6 +24,9 @@ from lib.models.agent_test_case import AgentTestCase
 # Root tests directory
 TESTS_DIR = Path(__file__).parent
 
+# Whether to print per-field comparison details after each test
+_PRINT_AGENT_FIELDS = False
+
 
 # Store test case data during test execution
 _agent_test_case_data = {}
@@ -31,12 +35,24 @@ _agent_test_case_data = {}
 _SESSION_ID_ENV_VAR = "PYTEST_LANGFUSE_SESSION_ID"
 
 
+def pytest_addoption(parser):
+    """Add CLI options for test diagnostics."""
+    parser.addoption(
+        "--print-agent-fields",
+        action="store_true",
+        default=False,
+        help="Print detailed per-field agent comparison results after each test",
+    )
+
+
 def pytest_configure(config):
     """Generate and set a single session ID for the entire test run.
 
     For pytest-xdist parallel execution, the controller process generates
     the session_id and shares it with workers via environment variable.
     """
+    global _PRINT_AGENT_FIELDS
+
     worker_id = os.environ.get("PYTEST_XDIST_WORKER")
 
     if worker_id:
@@ -48,6 +64,11 @@ def pytest_configure(config):
         os.environ[_SESSION_ID_ENV_VAR] = session_id
 
     AgentTestCase.set_shared_session_id(session_id)
+
+    # Enable printing via CLI flag or environment variable
+    _PRINT_AGENT_FIELDS = bool(
+        config.getoption("print_agent_fields") or os.getenv("AGENT_TEST_PRINT_FIELDS")
+    )
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -128,6 +149,71 @@ def pytest_runtest_logreport(report):
     """
     if hasattr(report, "agent_test_case_data"):
         _agent_test_case_data[report.nodeid] = report.agent_test_case_data
+
+        # Optionally print per-field comparison details after the test
+        if _PRINT_AGENT_FIELDS:
+            data = report.agent_test_case_data
+            eval_result = (data or {}).get("evaluation_result") or {}
+            field_comparisons = eval_result.get("field_comparisons") or []
+            if field_comparisons:
+                print(f"\n=== Agent Field Comparisons: {data.get('name')} ===")
+                for fc in field_comparisons:
+                    status = "PASS" if fc.get("passed") else "FAIL"
+                    field_path = fc.get("field_path")
+                    comp_type = fc.get("comparison_type")
+                    strategy = fc.get("matching_strategy")
+                    total = fc.get("total_instances")
+                    passed = fc.get("passed_instances")
+                    failed = fc.get("failed_instances")
+                    rationale = fc.get("rationale")
+                    print(
+                        f"[{status}] {field_path}  type={comp_type}  matched={passed}/{total}  strategy={strategy or '-'}\n  -> {rationale}"
+                    )
+
+                    if not fc.get("passed"):
+                        expected_output = data.get("expected_output")
+                        actual_outputs = data.get("actual_outputs") or []
+                        actual_output = actual_outputs[0] if actual_outputs else None
+
+                        # Extract just the failed field value using the field path
+                        field_parts = field_path.split(".")
+                        expected_field_value = expected_output
+                        actual_field_value = actual_output
+                        for part in field_parts:
+                            expected_field_value = (
+                                expected_field_value.get(part)
+                                if isinstance(expected_field_value, dict)
+                                else None
+                            )
+                            actual_field_value = (
+                                actual_field_value.get(part)
+                                if isinstance(actual_field_value, dict)
+                                else None
+                            )
+
+                        print(f"\n {field_path} failed")
+                        print("  Expected Result:")
+                        try:
+                            print(
+                                json.dumps(
+                                    expected_field_value, indent=2, ensure_ascii=False
+                                )
+                            )
+                        except Exception:
+                            print(expected_field_value)
+
+                        print("  Actual Result (first run):")
+                        try:
+                            print(
+                                json.dumps(
+                                    actual_field_value, indent=2, ensure_ascii=False
+                                )
+                            )
+                        except Exception:
+                            print(actual_field_value)
+                        print("\n")
+
+                print("=== End Agent Field Comparisons ===\n")
 
 
 @pytest.hookimpl()
