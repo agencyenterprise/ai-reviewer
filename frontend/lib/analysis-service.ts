@@ -9,6 +9,7 @@ import {
   HealthApi,
   SubstantiationWorkflowConfig,
   StartAnalysisResponse,
+  StartAnalysisResponseFromJSON,
 } from '@/lib/generated-api';
 import { downloadBlobResponse, generateDefaultTestName } from '@/lib/utils';
 import { analysisApi, evaluationApi, healthApi, apiUrl } from './api';
@@ -81,7 +82,8 @@ class AnalysisService {
         xhr.addEventListener('load', () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
-              const response = JSON.parse(xhr.responseText);
+              const rawResponse = JSON.parse(xhr.responseText);
+              const response = StartAnalysisResponseFromJSON(rawResponse);
               resolve(response);
             } catch (e) {
               reject(new Error('Failed to parse response'));
