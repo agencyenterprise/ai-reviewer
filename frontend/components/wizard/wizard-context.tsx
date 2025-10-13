@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { v4 as uuid } from 'uuid';
 import { WizardContextType, WizardState, WizardActions } from './types';
 
 const initialState: WizardState = {
@@ -13,6 +12,9 @@ const initialState: WizardState = {
   runLiteratureReview: false,
   runSuggestCitations: false,
   isProcessing: false,
+  processingStage: 'idle',
+  uploadProgress: { progress: 0, status: 'idle' },
+  workflowRunId: null,
   analysisResults: null,
   sessionId: null,
 };
@@ -27,10 +29,7 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
       setState((prev) => ({ ...prev, currentStep: step }));
     },
     setMainDocument: (file: File | null) => {
-      setState((prev) => {
-        const newSessionId = file && !prev.sessionId ? uuid() : prev.sessionId;
-        return { ...prev, mainDocument: file, sessionId: newSessionId };
-      });
+      setState((prev) => ({ ...prev, mainDocument: file }));
     },
     setSupportingDocuments: (files: File[]) => {
       setState((prev) => ({ ...prev, supportingDocuments: files }));
@@ -49,6 +48,15 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
     },
     setIsProcessing: (processing: boolean) => {
       setState((prev) => ({ ...prev, isProcessing: processing }));
+    },
+    setProcessingStage: (stage) => {
+      setState((prev) => ({ ...prev, processingStage: stage }));
+    },
+    setUploadProgress: (progress) => {
+      setState((prev) => ({ ...prev, uploadProgress: progress }));
+    },
+    setWorkflowRunId: (id) => {
+      setState((prev) => ({ ...prev, workflowRunId: id }));
     },
     setAnalysisResults: (results) => {
       setState((prev) => ({ ...prev, analysisResults: results }));

@@ -1,15 +1,17 @@
-import { AnalysisResults } from '@/components/wizard/types';
 import {
+  AnalysisApi,
   ChunkEvalPackageRequest,
   ChunkReevaluationRequest,
   ChunkReevaluationResponse,
   ClaimSubstantiatorStateOutput,
-  DefaultApi,
+  EvaluationApi,
   EvalPackageRequest,
+  HealthApi,
   SubstantiationWorkflowConfig,
+  StartAnalysisResponse,
 } from '@/lib/generated-api';
 import { downloadBlobResponse, generateDefaultTestName } from '@/lib/utils';
-import { api } from './api';
+import { analysisApi, evaluationApi, healthApi, apiUrl } from './api';
 
 interface AnalysisRequest {
   mainDocument: File;
@@ -21,58 +23,94 @@ export interface SupportedAgentsResponse {
   supported_agents: string[];
   agent_descriptions: Record<string, string>;
 }
-
 class AnalysisService {
-  private readonly api: DefaultApi;
+  private readonly analysisApi: AnalysisApi;
+  private readonly evaluationApi: EvaluationApi;
+  private readonly healthApi: HealthApi;
 
   constructor() {
-    this.api = api;
+    this.analysisApi = analysisApi;
+    this.evaluationApi = evaluationApi;
+    this.healthApi = healthApi;
   }
 
-  private transformResponse(apiResponse: ClaimSubstantiatorStateOutput): AnalysisResults {
-    return {
-      status: 'completed',
-      fullResults: apiResponse,
-    };
-  }
+  /**
+   * Start analysis with upload progress tracking.
+   *
+   * Note: This method bypasses the OpenAPI client to support
+   * XMLHttpRequest progress events. All other endpoints use
+   * the generated client for type safety.
+   */
+  async startAnalysis(
+    request: AnalysisRequest,
+    onProgress?: (progress: number) => void,
+  ): Promise<StartAnalysisResponse> {
+    return new Promise((resolve, reject) => {
+      try {
+        const config = request.config || {};
 
-  private createErrorResult(error: unknown): AnalysisResults {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        const formData = new FormData();
+        formData.append('main_document', request.mainDocument);
 
-    return {
-      status: 'error',
-      error: errorMessage,
-    };
-  }
+        if (request.supportingDocuments) {
+          request.supportingDocuments.forEach((file) => {
+            formData.append('supporting_documents', file);
+          });
+        }
 
-  async runClaimSubstantiation(request: AnalysisRequest): Promise<AnalysisResults> {
-    try {
-      const config = request.config || {};
+        // Add config parameters
+        if (config.useToulmin !== undefined) formData.append('use_toulmin', String(config.useToulmin));
+        if (config.runLiteratureReview !== undefined)
+          formData.append('run_literature_review', String(config.runLiteratureReview));
+        if (config.runSuggestCitations !== undefined)
+          formData.append('run_suggest_citations', String(config.runSuggestCitations));
+        if (config.domain) formData.append('domain', config.domain);
+        if (config.targetAudience) formData.append('target_audience', config.targetAudience);
+        if (config.sessionId) formData.append('session_id', config.sessionId);
 
-      // Use OpenAPI client for claim substantiation
-      const result = await this.api.runClaimSubstantiationWorkflowApiRunClaimSubstantiationPost({
-        mainDocument: request.mainDocument,
-        supportingDocuments: request.supportingDocuments || null,
-        useToulmin: config.useToulmin,
-        runLiteratureReview: config.runLiteratureReview,
-        runSuggestCitations: config.runSuggestCitations,
-        domain: config.domain || null,
-        targetAudience: config.targetAudience || null,
-        targetChunkIndices: config.targetChunkIndices?.join(',') || null,
-        agentsToRun: config.agentsToRun?.join(',') || null,
-        sessionId: config.sessionId || null,
-      });
+        // Use XMLHttpRequest for upload progress tracking
+        const xhr = new XMLHttpRequest();
 
-      return this.transformResponse(result);
-    } catch (error) {
-      console.error('Error calling claim substantiation API:', error);
-      return this.createErrorResult(error);
-    }
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable && onProgress) {
+            const percentComplete = (event.loaded / event.total) * 100;
+            onProgress(percentComplete);
+          }
+        });
+
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const response = JSON.parse(xhr.responseText);
+              resolve(response);
+            } catch (e) {
+              reject(new Error('Failed to parse response'));
+            }
+          } else {
+            reject(new Error(`HTTP error! status: ${xhr.status}`));
+          }
+        });
+
+        xhr.addEventListener('error', () => {
+          reject(new Error('Network error occurred'));
+        });
+
+        xhr.addEventListener('abort', () => {
+          reject(new Error('Upload aborted'));
+        });
+
+        xhr.open('POST', `${apiUrl}/api/start-analysis`);
+        xhr.send(formData);
+      } catch (error) {
+        console.error('Error starting analysis:', error);
+        reject(error);
+      }
+    });
   }
 
   async getSupportedAgents(): Promise<SupportedAgentsResponse> {
     try {
-      return await this.api.getSupportedAgentsApiSupportedAgentsGet();
+      return await this.healthApi.getSupportedAgentsApiSupportedAgentsGet();
     } catch (error) {
       console.error('Error fetching supported agents:', error);
       throw error;
@@ -88,7 +126,7 @@ class AnalysisService {
         sessionId: request.sessionId,
       };
 
-      return await this.api.reevaluateChunkApiReevaluateChunkPost({
+      return await this.analysisApi.reevaluateChunkApiReevaluateChunkPost({
         chunkReevaluationRequest: requestWithSession,
       });
     } catch (error) {
@@ -110,7 +148,7 @@ class AnalysisService {
       };
 
       return downloadBlobResponse(() =>
-        this.api.generateEvalPackageApiGenerateEvalPackagePostRaw({
+        this.evaluationApi.generateEvalPackageApiGenerateEvalPackagePostRaw({
           evalPackageRequest: evalRequest,
         }),
       );
@@ -137,7 +175,7 @@ class AnalysisService {
       };
 
       return downloadBlobResponse(() =>
-        this.api.generateChunkEvalPackageApiGenerateChunkEvalPackagePostRaw({
+        this.evaluationApi.generateChunkEvalPackageApiGenerateChunkEvalPackagePostRaw({
           chunkEvalPackageRequest: evalRequest,
         }),
       );

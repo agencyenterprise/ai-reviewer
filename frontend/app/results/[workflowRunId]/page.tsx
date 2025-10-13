@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { ResultsVisualization } from '@/components/wizard/results-step/results-visualization';
-import { api } from '@/lib/api';
+import { workflowsApi } from '@/lib/api';
 import { ChunkReevaluationResponse, WorkflowRunDetailed, WorkflowRunStatus } from '@/lib/generated-api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -24,7 +24,7 @@ export default function ResultsPage() {
   } = useQuery({
     queryKey: ['workflowRun', workflowRunId],
     refetchInterval: ({ state }) => (state.data?.run.status === WorkflowRunStatus.Running ? 3000 : false),
-    queryFn: () => api.getWorkflowRunApiWorkflowRunWorkflowRunIdGet({ workflowRunId }),
+    queryFn: () => workflowsApi.getWorkflowRunApiWorkflowRunWorkflowRunIdGet({ workflowRunId }),
   });
 
   const handleChunkReevaluation = (response: ChunkReevaluationResponse) => {

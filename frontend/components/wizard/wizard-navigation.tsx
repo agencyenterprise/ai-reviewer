@@ -1,6 +1,6 @@
 'use client';
 
-import { analysisService } from '@/lib/analysis-service';
+import { uploadOrchestrator } from '@/lib/services/upload-orchestrator';
 import { cn } from '@/lib/utils';
 import { Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -17,35 +17,67 @@ export function WizardNavigation() {
     if (state.currentStep === 1) {
       actions.setCurrentStep(2);
     } else if (state.currentStep === 2) {
-      actions.setIsProcessing(true);
+      const allFiles = [state.mainDocument!, ...state.supportingDocuments];
 
-      try {
-        const analysisResults = await analysisService.runClaimSubstantiation({
-          mainDocument: state.mainDocument!,
-          supportingDocuments: state.supportingDocuments,
-          config: {
-            useToulmin: true,
-            runLiteratureReview: state.runLiteratureReview,
-            runSuggestCitations: state.runSuggestCitations,
-            domain: state.domain || undefined,
-            targetAudience: state.targetAudience || undefined,
-            sessionId: state.sessionId,
-          },
-        });
-
-        actions.setAnalysisResults(analysisResults);
-
-        if (analysisResults.fullResults?.workflowRunId) {
-          router.push(`/results/${analysisResults.fullResults.workflowRunId}`);
-        }
-      } catch (error) {
-        console.error('Unexpected error during analysis:', error);
+      const validation = uploadOrchestrator.validateFiles(allFiles);
+      if (!validation.valid && validation.errors) {
         actions.setAnalysisResults({
           status: 'error',
-          error: 'An unexpected error occurred during analysis',
+          error: uploadOrchestrator.formatValidationErrors(validation.errors),
         });
-      } finally {
+        return;
+      }
+
+      actions.setIsProcessing(true);
+      actions.setUploadProgress({ progress: 0, status: 'idle' });
+
+      try {
+        const response = await uploadOrchestrator.startAnalysisWithProgress(
+          {
+            mainDocument: state.mainDocument!,
+            supportingDocuments: state.supportingDocuments,
+            config: {
+              useToulmin: true,
+              runLiteratureReview: state.runLiteratureReview,
+              runSuggestCitations: state.runSuggestCitations,
+              domain: state.domain || undefined,
+              targetAudience: state.targetAudience || undefined,
+              sessionId: state.sessionId || undefined,
+            },
+          },
+          {
+            onProgress: (progress) => {
+              actions.setUploadProgress({
+                progress,
+                status: 'uploading',
+              });
+            },
+            onStageChange: (stage) => {
+              actions.setProcessingStage(stage);
+            },
+          },
+        );
+
+        actions.setWorkflowRunId(response.workflowRunId);
+        actions.setSessionId(response.sessionId);
+
+        router.push(`/results/${response.workflowRunId}`);
+      } catch (error) {
+        console.error('Error starting analysis:', error);
+
+        actions.setUploadProgress({
+          progress: 0,
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Upload failed',
+        });
+
+        actions.setAnalysisResults({
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Failed to start analysis',
+        });
+
         actions.setIsProcessing(false);
+        actions.setProcessingStage('idle');
       }
     }
   };

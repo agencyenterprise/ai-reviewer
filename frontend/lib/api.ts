@@ -1,9 +1,12 @@
-import { Configuration, DefaultApi } from './generated-api';
+import { AnalysisApi, Configuration, EvaluationApi, HealthApi, WorkflowsApi } from './generated-api';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+export const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-export const api = new DefaultApi(
-  new Configuration({
-    basePath: apiUrl,
-  }),
-);
+const config = new Configuration({
+  basePath: apiUrl,
+});
+
+export const analysisApi = new AnalysisApi(config);
+export const evaluationApi = new EvaluationApi(config);
+export const healthApi = new HealthApi(config);
+export const workflowsApi = new WorkflowsApi(config);

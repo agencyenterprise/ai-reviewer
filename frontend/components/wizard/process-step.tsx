@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Progress } from '../ui/progress';
+import { Button } from '../ui/button';
 import { useWizard } from './wizard-context';
 import { Loader2 } from 'lucide-react';
 import { Input } from '../ui/input';
@@ -12,21 +13,91 @@ import { Checkbox } from '../ui/checkbox';
 export function ProcessStep() {
   const { state, actions } = useWizard();
 
+  const getStageInfo = () => {
+    switch (state.processingStage) {
+      case 'uploading':
+        return {
+          title: 'Uploading Documents',
+          description: 'Uploading and converting your files...',
+          detail: 'This may take a moment for large PDF files',
+        };
+      case 'complete':
+        return {
+          title: 'Upload Complete',
+          description: 'Documents uploaded successfully',
+          detail: 'Redirecting to analysis...',
+        };
+      default:
+        return {
+          title: 'Preparing Upload',
+          description: 'Getting ready to upload your documents...',
+          detail: 'Please wait',
+        };
+    }
+  };
+
+  if (state.analysisResults?.status === 'error') {
+    return (
+      <div className="space-y-6">
+        <Card className="max-w-xl mx-auto border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive">Upload Failed</CardTitle>
+            <CardDescription>There was an error processing your files</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-md">
+              <p className="text-sm text-destructive">{state.analysisResults.error}</p>
+            </div>
+
+            {state.uploadProgress.error && (
+              <div className="mt-3">
+                <p className="text-xs text-destructive whitespace-pre-line">{state.uploadProgress.error}</p>
+              </div>
+            )}
+
+            <Button
+              onClick={() => {
+                actions.setAnalysisResults(null);
+                actions.setUploadProgress({ progress: 0, status: 'idle' });
+              }}
+              variant="outline"
+              className="w-full"
+            >
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (state.isProcessing) {
+    const stageInfo = getStageInfo();
+
     return (
       <div className="space-y-6">
         <div className="text-center space-y-4">
           <Loader2 className="w-12 h-12 mx-auto animate-spin text-primary" />
-          <h2 className="text-2xl font-bold">Processing Documents</h2>
-          <p className="text-muted-foreground max-w-md mx-auto">
-            AI is analyzing your documents for claims, citations, and accuracy...
-          </p>
+          <h2 className="text-2xl font-bold">{stageInfo.title}</h2>
+          <p className="text-muted-foreground max-w-md mx-auto">{stageInfo.description}</p>
         </div>
         <Card className="max-w-xl mx-auto">
           <CardContent className="py-8">
             <div className="space-y-4">
-              <Progress value={65} className="w-full" />
-              <p className="text-sm text-center text-muted-foreground">Extracting claims and verifying citations...</p>
+              <Progress value={state.uploadProgress.progress} className="w-full" />
+              <p className="text-sm text-center text-muted-foreground">{stageInfo.detail}</p>
+
+              {/* Show upload progress percentage */}
+              {state.uploadProgress.status === 'uploading' && state.uploadProgress.progress > 0 && (
+                <div className="text-center">
+                  <p className="text-2xl font-semibold text-primary">{Math.round(state.uploadProgress.progress)}%</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Uploading {state.mainDocument?.name}
+                    {state.supportingDocuments.length > 0 &&
+                      ` and ${state.supportingDocuments.length} supporting file${state.supportingDocuments.length > 1 ? 's' : ''}`}
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

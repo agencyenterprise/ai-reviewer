@@ -1,4 +1,7 @@
-apis/DefaultApi.ts
+apis/AnalysisApi.ts
+apis/EvaluationApi.ts
+apis/HealthApi.ts
+apis/WorkflowsApi.ts
 apis/index.ts
 index.ts
 models/BibliographyItem.ts
@@ -33,6 +36,7 @@ models/QCResult.ts
 models/RecommendedAction.ts
 models/Reference.ts
 models/ReferenceType.ts
+models/StartAnalysisResponse.ts
 models/SubstantiationWorkflowConfig.ts
 models/ToulminClaim.ts
 models/ToulminClaimResponse.ts
