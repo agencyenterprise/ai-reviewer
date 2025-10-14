@@ -30,6 +30,7 @@ async def literature_review(
         {
             "full_document": markdown,
             "bibliography": state.references,
+            "document_publication_date": state.document_publication_date,
         }
     )
 
