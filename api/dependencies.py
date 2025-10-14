@@ -5,7 +5,7 @@ FastAPI dependencies for form data processing.
 import uuid
 from typing import Optional, List
 from fastapi import Form, HTTPException
-
+from datetime import datetime
 from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfig
 
 
@@ -16,6 +16,7 @@ async def build_config_from_form(
     domain: Optional[str] = Form(default=None),
     target_audience: Optional[str] = Form(default=None),
     target_chunk_indices: Optional[str] = Form(default=None),
+    document_publication_date: Optional[str] = Form(default=None),
     agents_to_run: Optional[str] = Form(default=None),
     session_id: Optional[str] = Form(default=None),
 ) -> SubstantiationWorkflowConfig:
@@ -24,9 +25,12 @@ async def build_config_from_form(
 
     Args:
         use_toulmin: Whether to use Toulmin claim extraction approach
+        run_literature_review: Whether to run the literature review
+        run_suggest_citations: Whether to run the citation suggestions
         domain: Domain context for more accurate analysis
         target_audience: Target audience context for analysis
         target_chunk_indices: Comma-separated chunk indices to process (optional)
+        document_publication_date: Publication date of the document (optional)
         agents_to_run: Comma-separated agent names to run (optional)
         session_id: Session ID for Langfuse tracing (optional)
 
@@ -56,6 +60,18 @@ async def build_config_from_form(
     if not session_id:
         session_id = str(uuid.uuid4())
 
+    # Parse publication date
+    parsed_publication_date = None
+    if document_publication_date:
+        try:
+            parsed_publication_date = datetime.strptime(
+                document_publication_date, "%Y-%m-%d"
+            ).date()
+        except ValueError:
+            raise HTTPException(
+                status_code=422, detail="document_publication_date must be YYYY-MM-DD"
+            )
+
     return SubstantiationWorkflowConfig(
         use_toulmin=use_toulmin,
         run_literature_review=run_literature_review,
@@ -63,6 +79,7 @@ async def build_config_from_form(
         domain=domain,
         target_audience=target_audience,
         target_chunk_indices=parsed_target_chunk_indices,
+        document_publication_date=parsed_publication_date,
         agents_to_run=parsed_agents_to_run,
         session_id=session_id,
     )
