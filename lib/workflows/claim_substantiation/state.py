@@ -1,7 +1,7 @@
 from typing import Annotated, Dict, List, Optional
 from pydantic import BaseModel, Field
 from operator import add
-
+from datetime import date
 from lib.agents.citation_detector import CitationResponse
 from lib.agents.citation_suggester import (
     CitationSuggestionResultWithClaimIndex,
@@ -150,6 +150,10 @@ class ClaimSubstantiatorState(BaseModel):
         description="Errors that occurred during the processing of the document.",
     )
     literature_review: Optional[str] = None
+    document_publication_date: Optional[date] = Field(
+        default=None,
+        description="Publication date (YYYY-MM-DD) of the document for literature review and live reports",
+    )
     main_document_summary: Optional[DocumentSummary] = Field(
         default=None, description="The summary of the main document"
     )
