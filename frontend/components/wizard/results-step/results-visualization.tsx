@@ -17,9 +17,14 @@ import { DocumentExplorerTab } from './tabs/document-explorer-tab';
 interface ResultsVisualizationProps {
   results: ClaimSubstantiatorStateOutput | undefined;
   onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
+  isProcessing?: boolean;
 }
 
-export function ResultsVisualization({ results, onChunkReevaluation }: ResultsVisualizationProps) {
+export function ResultsVisualization({
+  results,
+  onChunkReevaluation,
+  isProcessing = false,
+}: ResultsVisualizationProps) {
   const [activeTab, setActiveTab] = React.useState<TabType>('summary');
 
   const calculations = useResultsCalculations(results);
@@ -64,15 +69,21 @@ export function ResultsVisualization({ results, onChunkReevaluation }: ResultsVi
           />
         );
       case 'citations':
-        return <CitationsTab results={results} />;
+        return <CitationsTab results={results} isProcessing={isProcessing} />;
       case 'references':
-        return <ReferencesTab results={results} />;
+        return <ReferencesTab results={results} isProcessing={isProcessing} />;
       case 'literature_review':
-        return <LiteratureReviewTab results={results} />;
+        return <LiteratureReviewTab results={results} isProcessing={isProcessing} />;
       case 'files':
         return <FilesTab results={results} />;
       case 'document-explorer':
-        return <DocumentExplorerTab results={results} onChunkReevaluation={onChunkReevaluation} />;
+        return (
+          <DocumentExplorerTab
+            results={results}
+            onChunkReevaluation={onChunkReevaluation}
+            isProcessing={isProcessing}
+          />
+        );
     }
   };
 
@@ -82,6 +93,7 @@ export function ResultsVisualization({ results, onChunkReevaluation }: ResultsVi
         totalClaims={calculations.totalClaims}
         totalCitations={calculations.totalCitations}
         totalUnsubstantiated={calculations.totalUnsubstantiated}
+        isProcessing={isProcessing}
       />
 
       <div className="flex justify-center gap-4">
