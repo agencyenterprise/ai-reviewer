@@ -7,32 +7,32 @@ from lib.models.agent import Agent
 
 
 class ReferenceType(str, Enum):
-    WEBPAGE = "WEBPAGE"
-    BOOK = "BOOK"
-    ARTICLE = "ARTICLE"
-    OTHER = "OTHER"
+    WEBPAGE = "webpage"
+    BOOK = "book"
+    ARTICLE = "article"
+    OTHER = "other"
 
 
 class RecommendedAction(str, Enum):
-    ADD_NEW_CITATION = "ADD_NEW_CITATION"
-    CITE_EXISTING_REFERENCE_IN_NEW_PLACE = "CITE_EXISTING_REFERENCE_IN_NEW_PLACE"
-    REPLACE_EXISTING_REFERENCE = "REPLACE_EXISTING_REFERENCE"
-    DISCUSS_REFERENCE = "DISCUSS_REFERENCE"
-    NO_ACTION = "NO_ACTION"
-    OTHER = "OTHER"
+    ADD_NEW_CITATION = "add_new_citation"
+    CITE_EXISTING_REFERENCE_IN_NEW_PLACE = "cite_existing_reference_in_new_place"
+    REPLACE_EXISTING_REFERENCE = "replace_existing_reference"
+    DISCUSS_REFERENCE = "discuss_reference"
+    NO_ACTION = "no_action"
+    OTHER = "other"
 
 
 class PublicationQuality(str, Enum):  # TODO: play with these options
-    HIGH_IMPACT_PUBLICATION = "HIGH_IMPACT_PUBLICATION"
-    MEDIUM_IMPACT_PUBLICATION = "MEDIUM_IMPACT_PUBLICATION"
-    LOW_IMPACT_PUBLICATION = "LOW_IMPACT_PUBLICATION"
-    NOT_A_PUBLICATION = "NOT_A_PUBLICATION"
+    HIGH_IMPACT_PUBLICATION = "high_impact_publication"
+    MEDIUM_IMPACT_PUBLICATION = "medium_impact_publication"
+    LOW_IMPACT_PUBLICATION = "low_impact_publication"
+    NOT_A_PUBLICATION = "not_a_publication"
 
 
 class ConfidenceInRecommendation(str, Enum):
-    HIGH = "HIGH"
-    MEDIUM = "MEDIUM"
-    LOW = "LOW"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
 
 
 class Reference(BaseModel):
