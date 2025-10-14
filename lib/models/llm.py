@@ -2,6 +2,8 @@ from abc import abstractmethod
 from typing import Any
 from langfuse.openai import AsyncOpenAI
 from pydantic import BaseModel
+from lib.models.react_agent.agent_runner import _ensure_structured_output
+from time import sleep
 
 import logging
 
@@ -32,8 +34,6 @@ class OpenAIWrapper(LLMClient):
         self.client = AsyncOpenAI()
 
     async def ainvoke(self, input: str) -> str:
-        from openai import AsyncOpenAI
-        from time import sleep
 
         input_dict = [
             message.model_dump(include={"content", "type", "role"}) for message in input
@@ -64,6 +64,9 @@ class OpenAIWrapper(LLMClient):
                 text_format=self.output_schema,
             )
 
+        # Store the original response before polling
+        original_resp = self.resp
+
         if not self.background:
             return (
                 self.resp.output_text
@@ -72,20 +75,24 @@ class OpenAIWrapper(LLMClient):
             )
         else:
             logger.info(
-                f"Calling {self.model} in background mode and waiting for response"
+                "Calling %s in background mode and waiting for response", self.model
             )
             while self.resp.status in {"queued", "in_progress"}:
                 self.status = self.resp.status
                 sleep(2)
-                self.resp = await self.client.responses.retrieve(self.resp.id)
+                self.resp = await self.client.responses.retrieve(original_resp.id)
                 logger.info(
-                    f"Call id: {self.resp.id} => Current status: {self.resp.status}... Checking back in 2 seconds"
+                    "Call id: %s => Current status: %s... Checking back in 2 seconds",
+                    self.resp.id,
+                    self.resp.status,
                 )
             self.status = self.resp.status
             return (
                 self.resp.output_text
                 if not structured_output
-                else self.resp.self.output_parsed
+                else _ensure_structured_output(
+                    self.resp.output_text, self.output_schema
+                )
             )
 
     def __enter__(self):
@@ -95,6 +102,6 @@ class OpenAIWrapper(LLMClient):
         if self.background and hasattr(self, "resp") and hasattr(self, "client"):
             try:
                 self.client.responses.cancel(self.resp.id)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.error("Error canceling response: %s", e)
             self.client.close()
