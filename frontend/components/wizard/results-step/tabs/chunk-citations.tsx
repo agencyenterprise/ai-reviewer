@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Link as LinkIcon, FileIcon } from 'lucide-react';
-import { Citation, Reference, FileDocument } from '@/lib/generated-api';
+import { Citation, BibliographyItem, FileDocument } from '@/lib/generated-api';
 import { ChunkItem } from '../components/chunk-display';
 
 interface ChunkCitationsProps {
   citations: Citation[];
-  references: Reference[];
+  references: BibliographyItem[];
   supportingFiles: FileDocument[];
 }
 

@@ -25,57 +25,60 @@ interface ChunkStatusBadgeProps {
   isWorkflowRunning: boolean;
 }
 
+export function useShouldShowStatusBadge(isWorkflowRunning: boolean) {
+  const hasEverRun = React.useRef(false);
+
+  React.useEffect(() => {
+    if (isWorkflowRunning) {
+      hasEverRun.current = true;
+    }
+  }, [isWorkflowRunning]);
+
+  return hasEverRun.current || isWorkflowRunning;
+}
+
 export function ChunkStatusBadge({ chunk, isWorkflowRunning }: ChunkStatusBadgeProps) {
   const status = getChunkStatus(chunk);
-  const [showCompleteBadge, setShowCompleteBadge] = React.useState(false);
-  const [fadeOut, setFadeOut] = React.useState(false);
-  const wasRunningRef = React.useRef(isWorkflowRunning);
+  const [completeBadgeState, setCompleteBadgeState] = React.useState<'hidden' | 'visible' | 'fading'>('hidden');
+  const prevRunningRef = React.useRef(isWorkflowRunning);
+  const shouldShow = useShouldShowStatusBadge(isWorkflowRunning);
 
   React.useEffect(() => {
-    if (status === 'complete' && isWorkflowRunning) {
-      setShowCompleteBadge(true);
-      setFadeOut(false);
+    const justCompleted =
+      status === 'complete' &&
+      (isWorkflowRunning || // Completed while running
+        (!isWorkflowRunning && prevRunningRef.current)); // Just finished running
 
-      const fadeTimer = setTimeout(() => setFadeOut(true), COMPLETE_BADGE_FADE_START_MS);
-      const removeTimer = setTimeout(() => setShowCompleteBadge(false), COMPLETE_BADGE_REMOVE_MS);
+    if (justCompleted) {
+      setCompleteBadgeState('visible');
+
+      const fadeTimer = setTimeout(() => {
+        setCompleteBadgeState('fading');
+      }, COMPLETE_BADGE_FADE_START_MS);
+
+      const removeTimer = setTimeout(() => {
+        setCompleteBadgeState('hidden');
+      }, COMPLETE_BADGE_REMOVE_MS);
 
       return () => {
         clearTimeout(fadeTimer);
         clearTimeout(removeTimer);
       };
     }
+
+    prevRunningRef.current = isWorkflowRunning;
   }, [status, isWorkflowRunning]);
 
-  React.useEffect(() => {
-    if (!isWorkflowRunning && wasRunningRef.current && status === 'complete') {
-      setShowCompleteBadge(true);
-      setFadeOut(false);
-
-      const fadeTimer = setTimeout(() => setFadeOut(true), COMPLETE_BADGE_FADE_START_MS);
-      const removeTimer = setTimeout(() => setShowCompleteBadge(false), COMPLETE_BADGE_REMOVE_MS);
-
-      return () => {
-        clearTimeout(fadeTimer);
-        clearTimeout(removeTimer);
-      };
-    }
-    wasRunningRef.current = isWorkflowRunning;
-  }, [isWorkflowRunning, status]);
-
-  if (!wasRunningRef.current && !isWorkflowRunning) {
+  if (!shouldShow) {
     return null;
   }
 
-  if (!isWorkflowRunning && !showCompleteBadge) {
-    return null;
-  }
-
-  if (showCompleteBadge && status === 'complete') {
+  if (completeBadgeState !== 'hidden' && status === 'complete') {
     return (
       <Badge
         variant="secondary"
         className={`gap-1 transition-all duration-1000 ease-out ${
-          fadeOut ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+          completeBadgeState === 'fading' ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
         }`}
       >
         <CheckCircle2 className="h-3 w-3" />

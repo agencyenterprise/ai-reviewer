@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Link as LinkIcon } from 'lucide-react';
-import { CitationSuggestionResultWithClaimIndexOutput, Reference } from '@/lib/generated-api';
+import { CitationSuggestionResultWithClaimIndexOutput, BibliographyItem } from '@/lib/generated-api';
 import { scoreReference } from '@/lib/reference-scoring';
 import { CitationReferenceItem } from './citation-reference-item';
 
 interface ChunkCitationSuggestionsProps {
   suggestions: CitationSuggestionResultWithClaimIndexOutput[];
-  references: Reference[];
+  references: BibliographyItem[];
 }
 
 export function ChunkCitationSuggestions({ suggestions, references }: ChunkCitationSuggestionsProps) {

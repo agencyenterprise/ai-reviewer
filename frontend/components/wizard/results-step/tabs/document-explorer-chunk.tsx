@@ -14,7 +14,7 @@ import { AlertTriangleIcon, CheckCircleIcon, ChevronRight, Link as LinkIcon, Mes
 import * as React from 'react';
 import { ChunkEvalGenerator } from '../components/chunk-eval-generator';
 import { ChunkReevaluateControl } from '../components/chunk-reevaluate-control';
-import { ChunkStatusBadge } from '../components/chunk-status-badge';
+import { ChunkStatusBadge, useShouldShowStatusBadge } from '../components/chunk-status-badge';
 import { ClaimAnalysisCard } from '../components/claim-analysis-card';
 import { ErrorsCard } from '../components/errors-card';
 import { EvidenceAlignmentLevelBadge } from '../components/evidence-alignment-level-badge';
@@ -42,6 +42,7 @@ export function DocumentExplorerChunk({
   isWorkflowRunning,
 }: DocumentExplorerChunkProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const shouldShowStatusBadge = useShouldShowStatusBadge(isWorkflowRunning);
 
   const claims = chunk.claims?.claims || [];
   const claimsLength = claims.length || 0;
@@ -87,8 +88,13 @@ export function DocumentExplorerChunk({
           <p className="text-xs text-muted-foreground">Chunk {chunk.chunkIndex + 1}</p>
 
           <HorizontalSeparator />
-          <ChunkStatusBadge chunk={chunk} isWorkflowRunning={isWorkflowRunning} />
-          <HorizontalSeparator />
+
+          {shouldShowStatusBadge && (
+            <>
+              <ChunkStatusBadge chunk={chunk} isWorkflowRunning={isWorkflowRunning} />
+              <HorizontalSeparator />
+            </>
+          )}
 
           {noClaims && <p className="text-xs text-muted-foreground">No claims</p>}
 

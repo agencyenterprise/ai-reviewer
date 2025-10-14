@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { FileIcon } from 'lucide-react';
 import { ChunkItem } from '../components/chunk-display';
-import { Reference, RecommendedAction } from '@/lib/generated-api';
+import { Reference, BibliographyItem } from '@/lib/generated-api';
 import {
   getConfidenceBadgeClasses,
   getQualityBadgeClasses,
@@ -12,7 +12,7 @@ import {
 
 interface CitationReferenceItemProps {
   reference: Reference;
-  references: Reference[];
+  references: BibliographyItem[];
 }
 
 export function CitationReferenceItem({ reference, references }: CitationReferenceItemProps) {
