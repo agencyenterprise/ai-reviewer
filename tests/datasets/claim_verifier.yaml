@@ -33,7 +33,7 @@ dataset:
       expected_output:
         rationale: "The claim is directly contradicted by the cited supporting document. Smith & Anderson (2017) found 'conclusive evidence that smartphone use has no effect on writing ability of users,' which contradicts the claim of a positive impact."
         feedback: "The claim should be corrected to align with the cited research findings, or the citation should be removed and replaced with supporting evidence that actually demonstrates a positive impact."
-        evidence_alignment: "contradicted"
+        evidence_alignment: "unsupported"
         evidence_sources: []
 
     - name: "substantiation_crypto_shift_claim"
@@ -78,7 +78,7 @@ dataset:
       expected_output:
         rationale: "All three cited sources explicitly describe significant difficulties and, in places, opportunities arising from the shift to digital spaces. Goodison, Davis, and Jackson (2015) report “significant challenges” in using digital evidence (training gaps for officers, prosecutors, and judges; backlogs; need for triage tools) and even reference “digital evidence opportunities and challenges.” Vermeer, Woods, and Jackson (2018) state that accessing remotely held digital evidence involves multifaceted legal, procedural, and technical difficulties and detail needs to improve MLAT processes, standards, and training. Tanneeru (2009) highlights that law lags technology and raises jurisdictional and legal complexity online. These directly contradict the claim that the shift has not presented any difficulties or opportunities."
         feedback: "The sentence appears to contain an erroneous negation."
-        evidence_alignment: "contradicted"
+        evidence_alignment: "unsupported"
         evidence_sources: []
 
     - name: "substantiation_crypto_wrong_citation"
@@ -138,7 +138,7 @@ dataset:
       expected_output:
         rationale: "The cited RAND report projects global AI data center power demand of roughly 327 GW by 2030 (with an upper bound around 347 GW per Table A.2), not 500 GW. Nowhere does the report state or imply a 500 GW figure by 2030."
         feedback: "Revise the claim or provide a different citation that supports the estimate."
-        evidence_alignment: "contradicted"
+        evidence_alignment: "unsupported"
         evidence_sources: []
 
     - name: "substantiation_power_capacity_claim_footnote_22_claim_2"
@@ -150,7 +150,7 @@ dataset:
         chunk: "- RAND projects that global AI data center power demand could reach 327 GW by 2030.[[22]](#footnote-22) For the United States alone, additional demand is estimated to be between 158 GW and 253 GW, assuming a retention rate of 50 percent to 80 percent."
         claim: "U.S. additional AI data center power demand is estimated at 158–253 GW, conditional on a 50%–80% retention rate."
       expected_output:
-        rationale: "The cited RAND report projects global AI data center power capacity needs of about 327 GW by 2030 (Figure 1.1; Chapter 1). It also frames results in terms of the share of AI compute retained in the U.S., e.g., noting that retaining a majority (75%) would require ~51 GW by 2027. Applying RAND’s 2030 global figure to a 50%–80% U.S. retention share yields roughly 164–262 GW by 2030; the stated 158–253 GW range is consistent with this order of magnitude and likely reflects rounding and/or treatment of current baseline capacity as “already present,” making the figures “additional.” Thus, the claim is supported by RAND’s global projection and its retention-share framing."
+        rationale: "The RAND report projects global AI data center power demand of about 327 GW by 2030 and explicitly discusses estimating the U.S. share by assuming a retention percentage (e.g., 75% by 2027). Thus, the method of deriving a U.S. estimate from a retention rate is supported. However, the specific range 158–253 GW does not appear in the source and does not match 50%–80% of 327 GW (which would be ~164–262 GW). Therefore, while the approach is supported, the exact numbers in the claim are not."
         feedback: "Consider aligning the numeric range with the direct calculation from RAND’s 327 GW (e.g., “roughly 165–262 GW”) or explicitly note it is a derived estimate from RAND’s global projection and a 50%–80% retention assumption. Otherwise, no major changes needed."
         evidence_alignment: "partially_supported"
         evidence_sources: []
@@ -166,7 +166,7 @@ dataset:
       expected_output:
         rationale: "The cited RAND report does not provide a 50–100 GW U.S. estimate tied to a 50%–80% retention rate. RAND’s main projection puts global AI data center power demand around 327 GW by 2030 (not 500 GW) and notes that to retain 75% of AI compute the U.S. would need about 51 GW by 2027. Applying a 50%–80% retention share to RAND’s 2030 global projection would imply roughly 160–260 GW in the U.S., not 50–100 GW. No 100 GW figure or 50–100 GW range for the U.S. appears in the report."
         feedback: "Revise the claim or cite another source that supports the estimate."
-        evidence_alignment: "contradicted"
+        evidence_alignment: "unsupported"
         evidence_sources: []
 
     - name: "substantiation_geopolitics_of_agi_claim_1a"
@@ -250,7 +250,7 @@ dataset:
       expected_output:
         rationale: "The cited article explicitly argues the opposite: Zittrain warns that AI agents can have “potentially devastating consequences,” and provides examples of unexpected or harmful outcomes (e.g., the 2010 flash crash, an airline chatbot giving inaccurate advice leading to compensation). He repeatedly notes agents can “mess up” and cause harm accidentally or through misuse. Thus, the claim that AI models “never” produce unexpected or harmful consequences is contradicted by the source."
         feedback: "Replace “never” with language consistent with the source, such as “sometimes,” “potentially,” or “can,” e.g., “AI models … sometimes produce unexpected or harmful consequences (Zittrain, 2024).” Alternatively, remove the absolutist claim or add supporting evidence (though the current citation does not support a ‘never’ claim)."
-        evidence_alignment: "contradicted"
+        evidence_alignment: "unsupported"
         evidence_sources: []
 
     - name: "substantiation_geopolitics_of_agi_nuances_high_severity_2_contradiction"
@@ -264,7 +264,7 @@ dataset:
       expected_output:
         rationale: "The cited article explicitly warns that AI agents can cause harm and need control, noting “potentially devastating consequences,” examples like the flash crash, harmful chatbot behavior, and reward hacking. Zittrain argues for governance to mitigate risks, not that AI is always safe and beneficial."
         feedback: "Revise the claim to reflect Zittrain’s warning stance, e.g., “Zittrain (2024) warns that AI agents can lead to unexpected or harmful consequences and calls for controls to manage their risks.”"
-        evidence_alignment: "contradicted"
+        evidence_alignment: "unsupported"
         evidence_sources: []
 
     - name: "substantiation_geopolitics_of_agi_nuances_high_severity_3_fabricated"
@@ -292,7 +292,7 @@ dataset:
       expected_output:
         rationale: "The cited article warns that AI agents can cause harm and gives examples of potential and actual incidents (e.g., the 2010 flash crash, Air Canada chatbot) but consistently uses conditional language (“can,” “could,” “may”) and explicitly notes that much remains speculative and “too early to tell.” It does not claim that AI models consistently produce harmful consequences."
         feedback: "Rephrase the claim to reflect possibility rather than inevitability, e.g., “AI models can have unexpected or harmful consequences” or “as AI systems generalize, they can sometimes produce harmful outcomes,” and cite Zittrain (2024)."
-        evidence_alignment: "contradicted"
+        evidence_alignment: "unsupported"
         evidence_sources: []
 
     - name: "substantiation_geopolitics_of_agi_nuances_high_severity_5_understatement"
@@ -306,5 +306,5 @@ dataset:
       expected_output:
         rationale: "The cited article warns that AI agents can have “potentially devastating consequences,” gives real examples of harmful outcomes (e.g., the 2010 flash crash, Air Canada’s chatbot causing customer harm), and argues for controls to mitigate risks. It does not state or imply that AI models “rarely cause harm.” The claim misrepresents the source’s thrust."
         feedback: "Revise the statement to align with Zittrain (2024), e.g., “Zittrain (2024) warns that AI agents can cause unexpected or harmful consequences,” or cite a different source that specifically supports the “rarely cause harm” assertion."
-        evidence_alignment: "contradicted"
+        evidence_alignment: "unsupported"
         evidence_sources: []

@@ -13,7 +13,6 @@ class EvidenceAlignmentLevel(StrEnum):
     SUPPORTED = "supported"
     PARTIALLY_SUPPORTED = "partially_supported"
     UNSUPPORTED = "unsupported"
-    CONTRADICTED = "contradicted"
 
 
 class ClaimEvidenceSource(BaseModel):
@@ -62,8 +61,7 @@ For each claim, output an evidence alignment level based on the following defini
 - unverifiable: The supporting document(s) were not provided, or are inaccessible to confirm or deny the claim.
 - supported: The claim is substantiated by the cited material. The reference clearly provides evidence or reasoning that matches both the claim’s factual scope and its evaluative tone.
 - partially_supported: The citation provides related evidence but doesn’t fully substantiate the claim. It may support only part of the statement or use weaker phrasing than the claim implies. The mismatch usually involves scope, frequency, or tone rather than outright contradiction.
-- unsupported: The cited material does not contain evidence for the claim. The connection may be irrelevant, tangential, or outright fabricated.
-- contradicted: The reference actually disagrees with the claim. The claim contradicts or reverses the source’s position, or adds strong unsupported language that would mislead a reader about the author’s intent. The claim may also use numbers or metrics that are not supported by the source or are not clearly derived from the source.
+- unsupported: The cited material does not contain evidence for the claim. The connection may be irrelevant, tangential, outright fabricated, or the reference actually disagrees with the claim. This includes cases where the claim contradicts or reverses the source's position, or adds strong unsupported language that would mislead a reader about the author's intent. The claim may also use numbers or metrics that are not supported by the source or are not clearly derived from the source.
 
 ## Other instructions
 

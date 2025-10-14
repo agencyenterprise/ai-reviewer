@@ -1,5 +1,6 @@
 apis/AnalysisApi.ts
 apis/EvaluationApi.ts
+apis/FilesApi.ts
 apis/HealthApi.ts
 apis/WorkflowsApi.ts
 apis/index.ts

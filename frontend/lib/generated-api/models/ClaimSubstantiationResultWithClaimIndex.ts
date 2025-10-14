@@ -35,7 +35,7 @@ import {
  */
 export interface ClaimSubstantiationResultWithClaimIndex {
   /**
-   * The degree of evidence that the supporting document(s) provides to support the claim. Possible values: ['unverifiable', 'supported', 'partially_supported', 'unsupported', 'contradicted']
+   * The degree of evidence that the supporting document(s) provides to support the claim. Possible values: ['unverifiable', 'supported', 'partially_supported', 'unsupported']
    * @type {EvidenceAlignmentLevel}
    * @memberof ClaimSubstantiationResultWithClaimIndex
    */
