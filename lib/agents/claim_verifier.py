@@ -1,4 +1,5 @@
 from enum import IntEnum, StrEnum
+from typing import List
 
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
@@ -15,6 +16,18 @@ class EvidenceAlignmentLevel(StrEnum):
     CONTRADICTED = "contradicted"
 
 
+class ClaimEvidenceSource(BaseModel):
+    quote: str = Field(
+        description="A quote from the document that contains the evidence for the claim"
+    )
+    location: str = Field(
+        description="The location of the quote in the document, e.g., 'page 3', 'section 2', 'figure 3', etc. Be as specific as possible"
+    )
+    reference_file_name: str = Field(
+        description="The name of the reference file that contains the evidence for the claim, as provided in the 'list of references cited' section of the input"
+    )
+
+
 class ClaimSubstantiationResult(BaseModel):
     evidence_alignment: EvidenceAlignmentLevel = Field(
         description=f"The degree of evidence that the supporting document(s) provides to support the claim. Possible values: {[e.value for e in EvidenceAlignmentLevel]}"
@@ -24,6 +37,9 @@ class ClaimSubstantiationResult(BaseModel):
     )
     feedback: str = Field(
         description="A brief suggestion on how the issue can be resolved, e.g., by adding more supporting documents or by rephrasing the original chunk, etc. Return 'No changes needed' if there are no significant issues with the substantiation of the claim."
+    )
+    evidence_sources: List[ClaimEvidenceSource] = Field(
+        description="The sources that provide the evidence for the claim. If there are multiple sources, include all of them."
     )
 
 

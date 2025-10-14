@@ -28,6 +28,7 @@ import { ClaimAnalysisCard } from '../components/claim-analysis-card';
 import { ErrorsCard } from '../components/errors-card';
 import { EvidenceAlignmentLevelBadge } from '../components/evidence-alignment-level-badge';
 import { useSupportedAgents } from '../hooks/use-supported-agents';
+import { ChunkAnalysisCard } from '../components/chunk-analysis-card';
 
 interface DocumentExplorerTabProps {
   results: ClaimSubstantiatorStateOutput;
@@ -207,81 +208,25 @@ export function DocumentExplorerChunk({
       </div>
 
       {isExpanded && (
-        <div className="space-y-4 bg-muted/50 p-4 rounded-lg mt-2 ml-8 text-sm">
+        <div className="space-y-2 bg-muted/50 p-4 rounded-lg mt-2 ml-8 text-sm">
           {chunkErrors.length > 0 && <ErrorsCard errors={chunkErrors} />}
 
           <div className="space-y-2">
-            {claims.map((claim, index) => {
-              return (
-                <ClaimAnalysisCard
-                  key={index}
-                  claim={claim}
-                  commonKnowledgeResult={claimCommonKnowledgeResults.find((c) => c.claimIndex === index)}
-                  substantiation={substantiations.find((s) => s.claimIndex === index)}
-                  claimIndex={index}
-                  totalClaims={claims.length}
-                />
-              );
-            })}
+            {claims.map((claim, index) => (
+              <ClaimAnalysisCard
+                key={index}
+                claim={claim}
+                commonKnowledgeResult={claimCommonKnowledgeResults.find((c) => c.claimIndex === index)}
+                substantiation={substantiations.find((s) => s.claimIndex === index)}
+                claimIndex={index}
+                totalClaims={claims.length}
+                references={references}
+                supportingFiles={results.supportingFiles || []}
+              />
+            ))}
           </div>
 
-          {citations.length > 0 && (
-            <Accordion type="single" collapsible className="border rounded-lg">
-              <AccordionItem value="citations" className="border-none">
-                <AccordionTrigger className="px-4 py-2 hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <LinkIcon className="w-4 h-4" />
-                    <span className="font-bold">Citations ({citations.length})</span>
-                    <span className="text-xs text-muted-foreground font-normal">
-                      {citations.filter((c) => c.associatedBibliography).length} with bibliography
-                    </span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4">
-                  <div className="space-y-2">
-                    {citations.map((citation, ci) => (
-                      <ChunkItem key={ci}>
-                        <p className="">
-                          <strong>Citation:</strong> {citation.text}
-                        </p>
-                        <div className="flex gap-2 text-xs mt-1">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">{citation.type}</span>
-                          <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded">{citation.format}</span>
-                        </div>
-                        {citation.associatedBibliography && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            <strong>Associated bibliography:</strong> {citation.associatedBibliography}
-                            {citation.format &&
-                              references[citation.indexOfAssociatedBibliography - 1]
-                                ?.hasAssociatedSupportingDocument && (
-                                <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                                  <strong>Related supporting document:</strong>
-                                  <FileIcon className="w-3 h-3" />
-                                  {
-                                    supportingFiles[
-                                      references[citation.indexOfAssociatedBibliography - 1]
-                                        ?.indexOfAssociatedSupportingDocument - 1
-                                    ]?.fileName
-                                  }
-                                </div>
-                              )}
-                            {citation.indexOfAssociatedBibliography &&
-                              references[citation.indexOfAssociatedBibliography - 1] &&
-                              !references[citation.indexOfAssociatedBibliography - 1]
-                                .hasAssociatedSupportingDocument && (
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  <strong>No related supporting document:</strong>
-                                </div>
-                              )}
-                          </div>
-                        )}
-                      </ChunkItem>
-                    ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          )}
+          <ChunkAnalysisCard chunk={chunk} references={references} />
 
           {sortedCitationSuggestions && sortedCitationSuggestions.length > 0 && (
             <Accordion type="single" collapsible className="border rounded-lg">
@@ -460,11 +405,6 @@ export function DocumentExplorerChunk({
               </AccordionItem>
             </Accordion>
           )}
-
-          <p className="mb-2">
-            <span className="font-bold mb-2 flex items-center gap-2">Claim extraction rationale:</span>
-            {claimsRationale}
-          </p>
 
           <ChunkReevaluateControl
             chunkIndex={chunk.chunkIndex}

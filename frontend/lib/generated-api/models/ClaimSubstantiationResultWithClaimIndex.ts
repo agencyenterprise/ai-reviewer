@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { ClaimEvidenceSource } from './ClaimEvidenceSource';
+import {
+  ClaimEvidenceSourceFromJSON,
+  ClaimEvidenceSourceFromJSONTyped,
+  ClaimEvidenceSourceToJSON,
+  ClaimEvidenceSourceToJSONTyped,
+} from './ClaimEvidenceSource';
 import type { EvidenceAlignmentLevel } from './EvidenceAlignmentLevel';
 import {
   EvidenceAlignmentLevelFromJSON,
@@ -46,6 +53,12 @@ export interface ClaimSubstantiationResultWithClaimIndex {
    */
   feedback: string;
   /**
+   * The sources that provide the evidence for the claim. If there are multiple sources, include all of them.
+   * @type {Array<ClaimEvidenceSource>}
+   * @memberof ClaimSubstantiationResultWithClaimIndex
+   */
+  evidenceSources: Array<ClaimEvidenceSource>;
+  /**
    *
    * @type {number}
    * @memberof ClaimSubstantiationResultWithClaimIndex
@@ -68,6 +81,7 @@ export function instanceOfClaimSubstantiationResultWithClaimIndex(
   if (!('evidenceAlignment' in value) || value['evidenceAlignment'] === undefined) return false;
   if (!('rationale' in value) || value['rationale'] === undefined) return false;
   if (!('feedback' in value) || value['feedback'] === undefined) return false;
+  if (!('evidenceSources' in value) || value['evidenceSources'] === undefined) return false;
   if (!('chunkIndex' in value) || value['chunkIndex'] === undefined) return false;
   if (!('claimIndex' in value) || value['claimIndex'] === undefined) return false;
   return true;
@@ -88,6 +102,7 @@ export function ClaimSubstantiationResultWithClaimIndexFromJSONTyped(
     evidenceAlignment: EvidenceAlignmentLevelFromJSON(json['evidence_alignment']),
     rationale: json['rationale'],
     feedback: json['feedback'],
+    evidenceSources: (json['evidence_sources'] as Array<any>).map(ClaimEvidenceSourceFromJSON),
     chunkIndex: json['chunk_index'],
     claimIndex: json['claim_index'],
   };
@@ -109,6 +124,7 @@ export function ClaimSubstantiationResultWithClaimIndexToJSONTyped(
     evidence_alignment: EvidenceAlignmentLevelToJSON(value['evidenceAlignment']),
     rationale: value['rationale'],
     feedback: value['feedback'],
+    evidence_sources: (value['evidenceSources'] as Array<any>).map(ClaimEvidenceSourceToJSON),
     chunk_index: value['chunkIndex'],
     claim_index: value['claimIndex'],
   };

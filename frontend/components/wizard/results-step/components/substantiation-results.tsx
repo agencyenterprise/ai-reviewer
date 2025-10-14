@@ -1,18 +1,27 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { ClaimSubstantiationResultWithClaimIndex } from '@/lib/generated-api';
+import { BibliographyItem, ClaimSubstantiationResultWithClaimIndex, FileDocument } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronRight, FileSearch } from 'lucide-react';
 import { useState } from 'react';
 import { EvidenceAlignmentLevelBadge } from './evidence-alignment-level-badge';
+import Link from 'next/link';
+import { apiUrl } from '@/lib/api';
 
 interface SubstantiationResultsProps {
   substantiation: ClaimSubstantiationResultWithClaimIndex;
+  references: BibliographyItem[];
+  supportingFiles: FileDocument[];
   className?: string;
 }
 
-export function SubstantiationResults({ substantiation, className = '' }: SubstantiationResultsProps) {
+export function SubstantiationResults({
+  substantiation,
+  references,
+  supportingFiles,
+  className = '',
+}: SubstantiationResultsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -48,16 +57,51 @@ export function SubstantiationResults({ substantiation, className = '' }: Substa
       </div>
 
       {isExpanded && (
-        <div className="space-y-2">
-          <p className="text-sm leading-relaxed">
+        <div className="space-y-2 text-sm leading-relaxed">
+          <p>
             <span className="font-medium">Evidence Alignment:</span> {substantiation.evidenceAlignment}
           </p>
-          <p className="text-sm leading-relaxed">
+          <p>
             <span className="font-medium">Rationale:</span> {substantiation.rationale}
           </p>
-          <p className="text-sm leading-relaxed">
+          <p>
             <span className="font-medium">Feedback to resolve:</span> {substantiation.feedback}
           </p>
+          <h4 className="font-medium">Evidence sources:</h4>
+          {substantiation.evidenceSources.length === 0 && (
+            <p className=" text-muted-foreground ml-4">No evidence sources found.</p>
+          )}
+          {substantiation.evidenceSources.map((source, index) => {
+            const matchedReference = references.find(
+              (reference) => reference.nameOfAssociatedSupportingDocument === source.referenceFileName,
+            );
+            const matchedFile = supportingFiles.find((file) => file.fileName === source.referenceFileName);
+
+            return (
+              <div key={index} className="bg-muted p-4 rounded-md ml-4 leading-relaxed space-y-1">
+                <p className="font-medium">
+                  Source {index + 1} of {substantiation.evidenceSources.length}
+                </p>
+                <p>
+                  <span className="font-medium">Reference:</span>{' '}
+                  <Link
+                    href={`${apiUrl}/api/files/download/${matchedFile?.filePath.split('/').pop()}/${matchedFile?.fileName}`}
+                    target="_blank"
+                    className="text-blue-600 underline"
+                  >
+                    {source.referenceFileName}
+                  </Link>{' '}
+                  <span className="text-muted-foreground"> - {matchedReference?.text}</span>
+                </p>
+                <p>
+                  <span className="font-medium">Location:</span> {source.location}
+                </p>
+                <p>
+                  <span className="font-medium">Quote:</span> <span className="italic">&quot;{source.quote}&quot;</span>
+                </p>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

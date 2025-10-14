@@ -3,8 +3,10 @@
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Card, CardContent } from '@/components/ui/card';
 import {
+  BibliographyItem,
   ClaimCommonKnowledgeResultWithClaimIndex,
   ClaimSubstantiationResultWithClaimIndex,
+  FileDocument,
   ToulminClaim,
 } from '@/lib/generated-api';
 import { CommonKnowledgeAccordion } from './common-knowledge-accordion';
@@ -15,14 +17,18 @@ export interface ClaimAnalysisCardProps {
   claim: ToulminClaim;
   commonKnowledgeResult?: ClaimCommonKnowledgeResultWithClaimIndex;
   substantiation?: ClaimSubstantiationResultWithClaimIndex;
+  references: BibliographyItem[];
   claimIndex: number;
   totalClaims: number;
+  supportingFiles: FileDocument[];
 }
 
 export function ClaimAnalysisCard({
   claim,
   commonKnowledgeResult,
   substantiation,
+  references,
+  supportingFiles,
   claimIndex,
   totalClaims,
 }: ClaimAnalysisCardProps) {
@@ -43,7 +49,13 @@ export function ClaimAnalysisCard({
 
         <ToulminClaimAccordion claim={claim} />
         {commonKnowledgeResult && <CommonKnowledgeAccordion result={commonKnowledgeResult} />}
-        {substantiation && <SubstantiationResults substantiation={substantiation} />}
+        {substantiation && (
+          <SubstantiationResults
+            substantiation={substantiation}
+            references={references}
+            supportingFiles={supportingFiles}
+          />
+        )}
       </CardContent>
     </Card>
   );
