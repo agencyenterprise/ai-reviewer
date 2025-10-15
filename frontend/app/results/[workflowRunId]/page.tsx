@@ -14,7 +14,6 @@ import { toast } from 'sonner';
 export default function ResultsPage() {
   const params = useParams();
   const workflowRunId = params.workflowRunId as string;
-
   const queryClient = useQueryClient();
 
   const {
@@ -27,6 +26,8 @@ export default function ResultsPage() {
     queryFn: () => workflowsApi.getWorkflowRunApiWorkflowRunWorkflowRunIdGet({ workflowRunId }),
   });
 
+  const isProcessing = workflowRun?.run.status === WorkflowRunStatus.Running;
+
   const handleChunkReevaluation = (response: ChunkReevaluationResponse) => {
     queryClient.setQueryData(['workflowRun', workflowRunId], (curr: WorkflowRunDetailed) => {
       return {
@@ -38,60 +39,72 @@ export default function ResultsPage() {
 
   useEffect(() => {
     let toastId: string | number | undefined;
-    if (workflowRun?.run.status === WorkflowRunStatus.Running) {
+    if (isProcessing) {
       toastId = toast.loading('Analysis in progress', {
-        description: 'This may take a few minutes. Some results in this page may be incomplete.',
+        description: 'Results will update automatically as sections complete',
       });
     }
 
     return () => {
       if (toastId) {
         toast.dismiss(toastId);
-        toastId = undefined;
       }
     };
-  }, [workflowRun?.run.status]);
+  }, [isProcessing]);
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="container mx-auto px-4 py-12 max-w-6xl">
-        {isLoading && (
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        <div className="container mx-auto px-4 py-12 max-w-6xl">
           <div className="flex items-center justify-center">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
               <p className="text-muted-foreground">Loading workflow run...</p>
             </div>
           </div>
-        )}
+        </div>
+      </div>
+    );
+  }
 
-        {error && (
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        <div className="container mx-auto px-4 py-12 max-w-6xl">
           <div className="flex items-center justify-center">
             <div className="text-center">
               <p className="text-destructive mb-4">{error.message}</p>
             </div>
           </div>
-        )}
+        </div>
+      </div>
+    );
+  }
 
-        {workflowRun && (
-          <>
-            <div className="flex items-center justify-between mb-6">
-              <hgroup>
-                <h1 className="text-2xl font-bold">{workflowRun?.run.title}</h1>
-                <h2 className="text-muted-foreground text-sm">
-                  Workflow Run Results · {format(workflowRun?.run.createdAt || new Date(), 'MMM d, yyyy')}
-                </h2>
-              </hgroup>
-              <Link href="/">
-                <Button variant="outline">Back to Home</Button>
-              </Link>
-            </div>
+  if (!workflowRun) {
+    return null;
+  }
 
-            <ResultsVisualization
-              results={workflowRun.state || undefined}
-              onChunkReevaluation={handleChunkReevaluation}
-            />
-          </>
-        )}
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      <div className="container mx-auto px-4 py-12 max-w-6xl">
+        <div className="flex items-center justify-between mb-6">
+          <hgroup>
+            <h1 className="text-2xl font-bold">{workflowRun.run.title}</h1>
+            <h2 className="text-muted-foreground text-sm">
+              Workflow Run Results · {format(workflowRun.run.createdAt || new Date(), 'MMM d, yyyy')}
+            </h2>
+          </hgroup>
+          <Link href="/">
+            <Button variant="outline">Back to Home</Button>
+          </Link>
+        </div>
+
+        <ResultsVisualization
+          results={workflowRun.state || undefined}
+          onChunkReevaluation={handleChunkReevaluation}
+          isProcessing={isProcessing}
+        />
       </div>
     </div>
   );

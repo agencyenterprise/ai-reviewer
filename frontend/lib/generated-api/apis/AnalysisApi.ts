@@ -43,6 +43,7 @@ export interface StartAnalysisApiStartAnalysisPostRequest {
   domain?: string | null;
   targetAudience?: string | null;
   targetChunkIndices?: string | null;
+  documentPublicationDate?: string | null;
   agentsToRun?: string | null;
   sessionId?: string | null;
 }
@@ -167,6 +168,10 @@ export class AnalysisApi extends runtime.BaseAPI {
 
     if (requestParameters['targetChunkIndices'] != null) {
       formParams.append('target_chunk_indices', requestParameters['targetChunkIndices'] as any);
+    }
+
+    if (requestParameters['documentPublicationDate'] != null) {
+      formParams.append('document_publication_date', requestParameters['documentPublicationDate'] as any);
     }
 
     if (requestParameters['agentsToRun'] != null) {

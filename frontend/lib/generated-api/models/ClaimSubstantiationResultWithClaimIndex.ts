@@ -102,7 +102,8 @@ export function ClaimSubstantiationResultWithClaimIndexFromJSONTyped(
     evidenceAlignment: EvidenceAlignmentLevelFromJSON(json['evidence_alignment']),
     rationale: json['rationale'],
     feedback: json['feedback'],
-    evidenceSources: (json['evidence_sources'] as Array<any>).map(ClaimEvidenceSourceFromJSON),
+    evidenceSources:
+      json['evidence_sources'] == null ? [] : (json['evidence_sources'] as Array<any>).map(ClaimEvidenceSourceFromJSON),
     chunkIndex: json['chunk_index'],
     claimIndex: json['claim_index'],
   };
