@@ -1,4 +1,4 @@
-export const TABS = ['summary', 'document-explorer', 'files', 'citations', 'references', 'literature_review'] as const;
+export const TABS = ['document-explorer', 'summary', 'files', 'citations', 'references', 'literature_review'] as const;
 
 export type TabType = (typeof TABS)[number];
 
