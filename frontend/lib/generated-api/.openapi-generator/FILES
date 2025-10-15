@@ -1,5 +1,6 @@
 apis/AnalysisApi.ts
 apis/EvaluationApi.ts
+apis/FilesApi.ts
 apis/HealthApi.ts
 apis/WorkflowsApi.ts
 apis/index.ts
@@ -16,6 +17,7 @@ models/CitationSuggestionResultWithClaimIndexOutput.ts
 models/CitationType.ts
 models/Claim.ts
 models/ClaimCommonKnowledgeResultWithClaimIndex.ts
+models/ClaimEvidenceSource.ts
 models/ClaimResponse.ts
 models/ClaimSubstantiationResultWithClaimIndex.ts
 models/ClaimSubstantiatorStateInput.ts

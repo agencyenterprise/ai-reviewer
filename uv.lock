@@ -2408,6 +2408,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "sqlalchemy" },
     { name = "sqlmodel" },
+    { name = "xxhash" },
 ]
 
 [package.metadata]
@@ -2438,6 +2439,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "sqlalchemy", specifier = ">=2.0.25" },
     { name = "sqlmodel", specifier = ">=0.0.24" },
+    { name = "xxhash", specifier = ">=3.5.0" },
 ]
 
 [[package]]

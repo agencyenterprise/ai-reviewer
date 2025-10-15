@@ -1,4 +1,5 @@
 from enum import IntEnum, StrEnum
+from typing import List
 
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
@@ -12,7 +13,18 @@ class EvidenceAlignmentLevel(StrEnum):
     SUPPORTED = "supported"
     PARTIALLY_SUPPORTED = "partially_supported"
     UNSUPPORTED = "unsupported"
-    CONTRADICTED = "contradicted"
+
+
+class ClaimEvidenceSource(BaseModel):
+    quote: str = Field(
+        description="A quote from the document that contains the evidence for the claim"
+    )
+    location: str = Field(
+        description="The location of the quote in the document, e.g., 'page 3', 'section 2', 'figure 3', etc. Be as specific as possible"
+    )
+    reference_file_name: str = Field(
+        description="The name of the reference file that contains the evidence for the claim, as provided in the 'list of references cited' section of the input"
+    )
 
 
 class ClaimSubstantiationResult(BaseModel):
@@ -24,6 +36,9 @@ class ClaimSubstantiationResult(BaseModel):
     )
     feedback: str = Field(
         description="A brief suggestion on how the issue can be resolved, e.g., by adding more supporting documents or by rephrasing the original chunk, etc. Return 'No changes needed' if there are no significant issues with the substantiation of the claim."
+    )
+    evidence_sources: List[ClaimEvidenceSource] = Field(
+        description="The sources that provide the evidence for the claim. If there are multiple sources, include all of them."
     )
 
 
@@ -46,8 +61,7 @@ For each claim, output an evidence alignment level based on the following defini
 - unverifiable: The supporting document(s) were not provided, or are inaccessible to confirm or deny the claim.
 - supported: The claim is substantiated by the cited material. The reference clearly provides evidence or reasoning that matches both the claim’s factual scope and its evaluative tone.
 - partially_supported: The citation provides related evidence but doesn’t fully substantiate the claim. It may support only part of the statement or use weaker phrasing than the claim implies. The mismatch usually involves scope, frequency, or tone rather than outright contradiction.
-- unsupported: The cited material does not contain evidence for the claim. The connection may be irrelevant, tangential, or outright fabricated.
-- contradicted: The reference actually disagrees with the claim. The claim contradicts or reverses the source’s position, or adds strong unsupported language that would mislead a reader about the author’s intent. The claim may also use numbers or metrics that are not supported by the source or are not clearly derived from the source.
+- unsupported: The cited material does not contain evidence for the claim. The connection may be irrelevant, tangential, outright fabricated, or the reference actually disagrees with the claim. This includes cases where the claim contradicts or reverses the source's position, or adds strong unsupported language that would mislead a reader about the author's intent. The claim may also use numbers or metrics that are not supported by the source or are not clearly derived from the source.
 
 ## Other instructions
 

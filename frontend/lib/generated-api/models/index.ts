@@ -12,6 +12,7 @@ export * from './CitationSuggestionResultWithClaimIndexOutput';
 export * from './CitationType';
 export * from './Claim';
 export * from './ClaimCommonKnowledgeResultWithClaimIndex';
+export * from './ClaimEvidenceSource';
 export * from './ClaimResponse';
 export * from './ClaimSubstantiationResultWithClaimIndex';
 export * from './ClaimSubstantiatorStateInput';

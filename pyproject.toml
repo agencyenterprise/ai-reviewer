@@ -31,6 +31,7 @@ dependencies = [
     "psycopg[binary,pool]>=3.2.10",
     "alembic-postgresql-enum>=1.8.0",
     "pytest-repeat>=0.9.4",
+    "xxhash>=3.5.0",
 ]
 
 [tool.pytest.ini_options]

@@ -26,6 +26,8 @@ class Config(BaseModel):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
 
+    FILE_UPLOADS_MOUNT_PATH: str
+
     @model_validator(mode="after")
     def validate_openai_config(self):
         """Validate that either OpenAI API key or Azure OpenAI credentials are present."""
@@ -61,6 +63,7 @@ config = Config(
     LANGFUSE_SECRET_KEY=os.getenv("LANGFUSE_SECRET_KEY"),
     LANGFUSE_PUBLIC_KEY=os.getenv("LANGFUSE_PUBLIC_KEY"),
     LANGFUSE_PROJECT_ID=os.getenv("LANGFUSE_PROJECT_ID"),
+    FILE_UPLOADS_MOUNT_PATH=os.getenv("FILE_UPLOADS_MOUNT_PATH", "uploads"),
     # Database Configuration
     DATABASE_URL=os.getenv(
         "DATABASE_URL",
