@@ -107,6 +107,8 @@ def initialize_default_agents():
     )
     from lib.agents.claim_verifier import claim_verifier_agent
     from lib.agents.citation_suggester import citation_suggester_agent
+    from lib.agents.evidence_weighter import evidence_weighter_agent
+    from lib.agents.live_literature_review import live_literature_review_agent
 
     agent_registry.register(
         agent_type="claims",
@@ -141,6 +143,18 @@ def initialize_default_agents():
     agent_registry.register(
         agent_type="literature_review",
         agent=literature_review_agent,
+        description="Review a document paragraph against the article bibliography and recent literature to propose citation updates",
+    )
+
+    agent_registry.register(
+        agent_type="evidence_weighter",
+        agent=evidence_weighter_agent,
+        description="Analyze and weight evidence from multiple sources to determine overall direction and strength",
+    )
+
+    agent_registry.register(
+        agent_type="live_literature_review",
+        agent=live_literature_review_agent,
         description="Review a document paragraph against the article bibliography and recent literature to propose citation updates",
     )
 
