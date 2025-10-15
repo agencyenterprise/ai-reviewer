@@ -13,6 +13,32 @@ class ReferenceType(str, Enum):
     OTHER = "other"
 
 
+class ReferencePublicationType(str, Enum):
+    # Academic publications that have undergone formal peer review
+    PEER_REVIEWED_PUBLICATION = "peer_reviewed_publication"
+
+    # Preliminary research that hasn't completed peer review
+    PREPRINT = "preprint"
+
+    # Published books and book chapters
+    BOOK = "book"
+
+    # Official reports from government agencies and NGOs that are not peer reviewed
+    GOVERNMENT_NGO_REPORT = "government_ngo_report"
+
+    # Research data, code and software artifacts
+    DATA_SOFTWARE = "data_software"
+
+    # Journalism and media publications
+    NEWS_MEDIA = "news_media"
+
+    # Reference works and encyclopedic content
+    REFERENCE = "reference"
+
+    # Online and web-based content like blogs, wikis, social media, etc.
+    WEBPAGE = "webpage"
+
+
 class RecommendedAction(str, Enum):
     ADD_NEW_CITATION = "add_new_citation"
     CITE_EXISTING_REFERENCE_IN_NEW_PLACE = "cite_existing_reference_in_new_place"
