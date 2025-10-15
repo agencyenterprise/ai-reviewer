@@ -3,19 +3,38 @@
 import * as React from 'react';
 import { ChunkDisplay, ChunkItem } from '../components/chunk-display';
 import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
+import { BookOpen } from 'lucide-react';
+import { TabWithLoadingStates } from './tab-with-loading-states';
 
 interface CitationsTabProps {
   results: ClaimSubstantiatorStateOutput;
+  isProcessing?: boolean;
 }
 
-export function CitationsTab({ results }: CitationsTabProps) {
+export function CitationsTab({ results, isProcessing = false }: CitationsTabProps) {
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Citations Analysis</h3>
-      <div className="space-y-4">
-        {results.chunks?.map(
-          (chunk) =>
-            (chunk.citations?.citations?.length || 0) > 0 && (
+    <TabWithLoadingStates
+      title="Citations Analysis"
+      data={results.chunks}
+      isProcessing={isProcessing}
+      hasData={(chunks) => chunks?.some((c) => (c.citations?.citations?.length || 0) > 0) || false}
+      loadingMessage={{
+        title: 'Detecting citations...',
+        description: 'Analyzing document for citation patterns',
+      }}
+      emptyMessage={{
+        icon: <BookOpen className="h-12 w-12 text-muted-foreground" />,
+        title: 'No citations found',
+        description: "This document doesn't contain formal citations or references",
+      }}
+      skeletonType="list"
+      skeletonCount={3}
+    >
+      {(chunks) => {
+        const chunksWithCitations = chunks.filter((chunk) => (chunk.citations?.citations?.length || 0) > 0);
+        return (
+          <div className="space-y-4">
+            {chunksWithCitations.map((chunk) => (
               <ChunkDisplay key={chunk.chunkIndex} chunkIndex={chunk.chunkIndex}>
                 {chunk.citations?.citations?.map((citation, citationIndex) => (
                   <ChunkItem key={citationIndex}>
@@ -34,9 +53,10 @@ export function CitationsTab({ results }: CitationsTabProps) {
                   </ChunkItem>
                 ))}
               </ChunkDisplay>
-            ),
-        )}
-      </div>
-    </div>
+            ))}
+          </div>
+        );
+      }}
+    </TabWithLoadingStates>
   );
 }

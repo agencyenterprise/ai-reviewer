@@ -54,7 +54,7 @@ export function ClaimResponseFromJSONTyped(json: any, ignoreDiscriminator: boole
     return json;
   }
   return {
-    claims: (json['claims'] as Array<any>).map(ClaimFromJSON),
+    claims: json['claims'] == null ? [] : (json['claims'] as Array<any>).map(ClaimFromJSON),
     rationale: json['rationale'],
   };
 }

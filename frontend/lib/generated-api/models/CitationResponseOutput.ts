@@ -62,7 +62,7 @@ export function CitationResponseOutputFromJSONTyped(json: any, ignoreDiscriminat
     return json;
   }
   return {
-    citations: (json['citations'] as Array<any>).map(CitationFromJSON),
+    citations: json['citations'] == null ? [] : (json['citations'] as Array<any>).map(CitationFromJSON),
     rationale: json['rationale'],
     qcResult: json['qc_result'] == null ? undefined : QCResultFromJSON(json['qc_result']),
   };

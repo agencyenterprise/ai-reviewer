@@ -75,7 +75,8 @@ export function CitationSuggestionResultWithClaimIndexInputFromJSONTyped(
     return json;
   }
   return {
-    relevantReferences: (json['relevant_references'] as Array<any>).map(ReferenceFromJSON),
+    relevantReferences:
+      json['relevant_references'] == null ? [] : (json['relevant_references'] as Array<any>).map(ReferenceFromJSON),
     rationale: json['rationale'],
     chunkIndex: json['chunk_index'],
     claimIndex: json['claim_index'],
