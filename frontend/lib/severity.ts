@@ -12,11 +12,7 @@ export function getSeverity(chunk: DocumentChunkOutput) {
   const substantiations = chunk.substantiations || [];
 
   if (
-    substantiations.some(
-      (substantiation) =>
-        substantiation.evidenceAlignment === EvidenceAlignmentLevel.Unsupported ||
-        substantiation.evidenceAlignment === EvidenceAlignmentLevel.Contradicted,
-    )
+    substantiations.some((substantiation) => substantiation.evidenceAlignment === EvidenceAlignmentLevel.Unsupported)
   ) {
     return SeverityLevel.High;
   }

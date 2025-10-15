@@ -32,15 +32,9 @@ const evidenceAlignmentLevelConfig: Record<
     icon: <AlertTriangle />,
     tone: 'gray',
   },
-  [EvidenceAlignmentLevel.Contradicted]: {
-    title: 'Contradicted',
-    description: 'The supporting document(s) actually disagree with the claim.',
-    icon: <AlertTriangle />,
-    tone: 'red',
-  },
   [EvidenceAlignmentLevel.Unsupported]: {
     title: 'Unsupported',
-    description: 'The supporting document(s) do not provide evidence for the claim.',
+    description: 'The supporting document(s) do not provide evidence for the claim or contradict the claim.',
     icon: <AlertTriangle />,
     tone: 'red',
   },

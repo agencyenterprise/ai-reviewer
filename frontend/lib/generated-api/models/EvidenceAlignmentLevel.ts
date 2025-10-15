@@ -21,7 +21,6 @@ export const EvidenceAlignmentLevel = {
   Supported: 'supported',
   PartiallySupported: 'partially_supported',
   Unsupported: 'unsupported',
-  Contradicted: 'contradicted',
 } as const;
 export type EvidenceAlignmentLevel = (typeof EvidenceAlignmentLevel)[keyof typeof EvidenceAlignmentLevel];
 
