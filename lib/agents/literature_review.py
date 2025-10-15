@@ -4,34 +4,89 @@ from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 from lib.config.llm import models
 from lib.models.agent import Agent
+from lib.models.react_agent.agent_runner import _ensure_structured_output
 
 
-class ContextType(str, Enum):
-    SUPPORTING = "SUPPORTING"
-    CONFLICTING = "CONFLICTING"
-    CONTEXTUAL = "CONTEXTUAL"
+class RecommendedAction(str, Enum):
+    ADD_NEW_CITATION = "add_new_citation"
+    CITE_EXISTING_REFERENCE_IN_NEW_PLACE = "cite_existing_reference_in_new_place"
+    REPLACE_EXISTING_REFERENCE = "replace_existing_reference"
+    DISCUSS_REFERENCE = "discuss_reference"
+    NO_ACTION = "no_action"
+    OTHER = "other"
 
 
-class Reference(BaseModel):
+class ReferenceType(str, Enum):
+    # Academic publications that have undergone formal peer review
+    PEER_REVIEWED_PUBLICATION = "peer_reviewed_publication"
+
+    # Preliminary research that hasn't completed peer review
+    PREPRINT = "preprint"
+
+    # Published books and book chapters
+    BOOK = "book"
+
+    # Official reports from government agencies and NGOs that are not peer reviewed
+    GOVERNMENT_NGO_REPORT = "government_ngo_report"
+
+    # Research data, code and software artifacts
+    DATA_SOFTWARE = "data_software"
+
+    # Journalism and media publications
+    NEWS_MEDIA = "news_media"
+
+    # Reference works and encyclopedic content
+    REFERENCE = "reference"
+
+    # Online and web-based content like blogs, wikis, social media, etc.
+    WEBPAGE = "webpage"
+
+
+# applies to the evidence
+class ReferenceDirection(str, Enum):
+    SUPPORTING = "supporting"
+    CONFLICTING = "conflicting"
+    MIXED = "mixed"
+    CONTEXTUAL_ONLY = "contextual"
+
+
+class PoliticalBias(str, Enum):
+    CONSERVATIVE = "conservative"
+    LIBERAL = "liberal"
+    OTHER = "other"
+
+
+class QualityLevel(str, Enum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+class DocumentReferenceFactors(BaseModel):
     """A reference that should be cited or discussed in the article"""
 
     title: str = Field(description="The title of the reference")
     authors: str = Field(description="Authors of the source")
     publication_year: int = Field(description="Year of publication")
     bibliography_info: str = Field(description="Full bibliography citation text")
-    reference_type: str = Field(
-        description="Publication type (e.g., journal, website, book, preprint)"
-    )
-    context_type: ContextType = Field(
-        description="Type of context: supporting, conflicting, or contextual"
-    )
     link: str | None = Field(
         default=None, description="URL or DOI link to the reference"
     )
-    related_excerpt: str = Field(
-        description="Relevant excerpt from the document that relates to this reference"
+    reference_excerpt: str = Field(
+        description="Relevant excerpt from the reference that is why we should cite or discuss it"
     )
+    reference_type: ReferenceType = Field(
+        description="Publication type (e.g., journal, website, book, preprint)"
+    )
+    quality: QualityLevel = Field(description="Quality of the reference")
+    reference_direction: ReferenceDirection = Field(
+        description="Type of source: supporting, conflicting, or contextual"
+    )
+    political_bias: PoliticalBias = Field(description="Political bias of the evidence")
     rationale: str = Field(description="Why this reference should be cited")
+    main_document_excerpt: str = Field(
+        description="Relevant excerpt from the main document that relates to this reference"
+    )
     recommended_action: str = Field(
         description="What action to take (e.g., ADD_CITATION, VERIFY_CITATION)"
     )
@@ -43,7 +98,7 @@ class Reference(BaseModel):
 # note (2025-10-14): for the deep research model, the pydantic data models are not used and the format of the
 # frontend is not setup to use the existing structure of the models. So we might modify this format.
 class LiteratureReviewResponse(BaseModel):
-    relevant_references: list[Reference] = Field(
+    relevant_references: list[DocumentReferenceFactors] = Field(
         default_factory=list, description="List of relevant references to cite"
     )
     rationale: str = Field(
@@ -67,16 +122,46 @@ Given the full article and its extracted bibliography, identify references that 
 - Information about topics of discussion
 - Relevant high quality references about each topic and how they could fit in the document as citations.
 
-# Format
-Your report should be formatted in markdown as a bulleted list. Each reference should follow this format:
-
+# Needed Fields
+The ouput should have the following fields:
 - **[Authors] ([Year])**, "[Title]". [Publication Name]. ([Publication Type])
 **Summary:** [Detailed summary of the reference's key findings and context]
 **Relevant to Claims:** [Analysis of how this reference relates to specific claims in the document, including whether it SUPPORTS, CONFLICTS, or CONTEXTUALIZES them]
-**Recommended Action:** [What action to take. Possible actions are to add a new citation, cite an existing reference in a new place, replace an existing reference, discuss a reference, or no action.]
+**Link:** [URL or DOI link to the reference]
+**Reference Excerpt:** [Relevant excerpt from the reference that is why we should cite or discuss it]
+**Reference Type:** [OPTIONS: peer_reviewed_publication, government_ngo_report, news_media, book, data_software, reference, webpage, or other]
+**Quality:** [OPTIONS: high, medium, low]
+**Reference Direction:** [OPTIONS: supporting, conflicting, mixed, contextual]
+**Political Bias:** [OPTIONS: conservative, liberal, other]
+**Rationale:** [Why this reference should be cited]
+**Main Document Excerpt:** [Relevant excerpt from the main document that relates to this reference]
+**Recommended Action:** [OPTIONS: add_new_citation, cite_existing_reference_in_new_place, replace_existing_reference, discuss_reference, no_action, other]
 **Explanation for Recommended Action:** [How to implement the recommended action]
 
-Don't include any other text in your report. Only the bulleted list of references.
+# Format
+Return a single JSON object that matches this exact schema; output only JSON (no Markdown, no extra text).
+
+{{
+  "relevant_references": [
+    {{
+      "title": "...",
+      "authors": "...", 
+      "publication_year": "...",
+      "bibliography_info": "...",
+      "link": "...",
+      "reference_excerpt": "...",
+      "reference_type": "",
+      "quality": "high",
+      "reference_direction": "",
+      "political_bias": "other",
+      "rationale": "...",
+      "main_document_excerpt": "...",
+      "recommended_action": "",
+      "explanation_for_recommended_action": "..."
+    }}
+  ],
+  "rationale": "..."
+}}
 
 Remember:
 - If the document publication date is provided, you are only to look for references that come BEFORE the document publication date.
@@ -112,7 +197,7 @@ literature_review_agent = Agent(
     prompt=_literature_review_agent_prompt,
     tools=["openai_web_search"],
     mandatory_tools=[],
-    output_schema=LiteratureReviewResponse if "deep" not in model_choice else str,
+    output_schema=LiteratureReviewResponse,
 )
 
 
@@ -133,4 +218,8 @@ Skowronek, S. (2011). Presidential Leadership in Political Time. Lawrence, KS: U
             }
         )
     )
-    print(response)
+
+    # convert to json
+    print("Literature Review Response:")
+    print(response.model_dump_json(indent=2))
+    # print(response)
