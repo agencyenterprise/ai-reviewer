@@ -3,12 +3,11 @@ import { FileIcon } from 'lucide-react';
 import { ChunkItem } from '../components/chunk-display';
 import { Reference, BibliographyItem } from '@/lib/generated-api';
 import {
-  getConfidenceBadgeClasses,
-  getQualityBadgeClasses,
-  getRecommendedActionBadgeClasses,
-  getReferenceTypeBadgeClasses,
-  toTitleCase,
-} from '@/lib/badge-styles';
+  PublicationQualityBadge,
+  ConfidenceBadge,
+  RecommendedActionBadge,
+  ReferenceTypeBadge,
+} from '../components/citation-suggestion-badges';
 
 interface CitationReferenceItemProps {
   reference: Reference;
@@ -22,25 +21,13 @@ export function CitationReferenceItem({ reference, references }: CitationReferen
         <div className="flex items-start justify-between">
           <h5 className="font-medium text-sm">{reference.title}</h5>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`px-2 py-1 rounded text-xs ${getReferenceTypeBadgeClasses(reference.type)}`}>
-              {reference.type}
-            </span>
+            <ReferenceTypeBadge type={reference.type} />
             {reference.isAlreadyCitedElsewhere && (
               <span className="px-2 py-1 rounded text-xs bg-cyan-100 text-cyan-800">Already cited</span>
             )}
-            <span
-              className={`px-2 py-1 rounded text-xs ${getRecommendedActionBadgeClasses(reference.recommendedAction)}`}
-            >
-              {toTitleCase(reference.recommendedAction)}
-            </span>
-            <span
-              className={`px-2 py-1 rounded text-xs ${getConfidenceBadgeClasses(reference.confidenceInRecommendation)}`}
-            >
-              {toTitleCase(reference.confidenceInRecommendation)} Confidence
-            </span>
-            <span className={`px-2 py-1 rounded text-xs ${getQualityBadgeClasses(reference.publicationQuality)}`}>
-              {toTitleCase(reference.publicationQuality)}
-            </span>
+            <RecommendedActionBadge action={reference.recommendedAction} />
+            <ConfidenceBadge confidence={reference.confidenceInRecommendation} />
+            <PublicationQualityBadge quality={reference.publicationQuality} />
           </div>
         </div>
 

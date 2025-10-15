@@ -2,6 +2,12 @@ export { AgentSelector } from './agent-selector';
 export { ChunkDisplay, ChunkItem } from './chunk-display';
 export { ChunkEvalGenerator } from './chunk-eval-generator';
 export { ChunkStatusBadge } from './chunk-status-badge';
+export {
+  PublicationQualityBadge,
+  ConfidenceBadge,
+  RecommendedActionBadge,
+  ReferenceTypeBadge,
+} from './citation-suggestion-badges';
 export { ClaimAnalysisCard } from './claim-analysis-card';
 export { CollapsibleFeedback } from './collapsible-feedback';
 export { ExpandableControl } from './expandable-control';

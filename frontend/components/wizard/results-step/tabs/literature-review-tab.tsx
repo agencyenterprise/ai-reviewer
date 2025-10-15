@@ -21,7 +21,7 @@ export function LiteratureReviewTab({ results, isProcessing = false }: Literatur
       hasData={(review) => !!review}
       loadingMessage={{
         title: 'Conducting literature review...',
-        description: 'This may take 30-60 seconds as we analyze the bibliography and supporting documents',
+        description: 'This may take some minutes as we analyze the bibliography and supporting documents',
       }}
       emptyMessage={{
         icon: <AlertCircle className="h-12 w-12 text-muted-foreground" />,
