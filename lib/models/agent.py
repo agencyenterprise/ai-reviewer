@@ -144,7 +144,7 @@ class Agent(SQLModel, table=True):
 
         # Apply LLM
         args = {"input": messages}
-        if config is not None:
+        if config is not None and not self.use_direct_llm_client:
             args["config"] = config
         return llm_with_structure, args
 
