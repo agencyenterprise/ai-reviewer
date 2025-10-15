@@ -22,11 +22,8 @@ export function useResultsCalculations(detailedResults: ClaimSubstantiatorStateO
     detailedResults.chunks?.reduce(
       (sum, chunk) =>
         sum +
-        (chunk.substantiations?.filter(
-          (sub) =>
-            sub.evidenceAlignment === EvidenceAlignmentLevel.Unsupported ||
-            sub.evidenceAlignment === EvidenceAlignmentLevel.Contradicted,
-        ).length || 0),
+        (chunk.substantiations?.filter((sub) => sub.evidenceAlignment === EvidenceAlignmentLevel.Unsupported).length ||
+          0),
       0,
     ) || 0;
 

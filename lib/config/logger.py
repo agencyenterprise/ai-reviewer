@@ -15,3 +15,9 @@ def setup_logger():
     logging.getLogger("opentelemetry.exporter.otlp.proto.http").setLevel(
         logging.CRITICAL
     )
+
+    # Suppress noisy langchain text splitter warnings
+    logging.getLogger("langchain_text_splitters.base").setLevel(logging.ERROR)
+
+    # Suppress noisy logs from sqlalchemy
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)

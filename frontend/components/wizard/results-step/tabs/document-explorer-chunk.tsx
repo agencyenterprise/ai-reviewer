@@ -21,6 +21,7 @@ import { EvidenceAlignmentLevelBadge } from '../components/evidence-alignment-le
 import { useSupportedAgents } from '../hooks/use-supported-agents';
 import { ChunkCitations } from './chunk-citations';
 import { ChunkCitationSuggestions } from './chunk-citation-suggestions';
+import { ChunkAnalysisCard } from '../components/chunk-analysis-card';
 
 export interface DocumentExplorerChunkProps {
   chunk: DocumentChunkOutput;
@@ -174,10 +175,14 @@ export function DocumentExplorerChunk({
                   substantiation={substantiations.find((s) => s.claimIndex === index)}
                   claimIndex={index}
                   totalClaims={claims.length}
+                  references={references}
+                  supportingFiles={supportingFiles}
                 />
               );
             })}
           </div>
+
+          <ChunkAnalysisCard chunk={chunk} references={references} />
 
           <ChunkCitations citations={citations} references={references} supportingFiles={supportingFiles} />
 

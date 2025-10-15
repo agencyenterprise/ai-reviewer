@@ -112,6 +112,12 @@ export interface ClaimSubstantiatorStateOutput {
   literatureReview?: string | null;
   /**
    *
+   * @type {Date}
+   * @memberof ClaimSubstantiatorStateOutput
+   */
+  documentPublicationDate?: Date | null;
+  /**
+   *
    * @type {DocumentSummary}
    * @memberof ClaimSubstantiatorStateOutput
    */
@@ -155,6 +161,8 @@ export function ClaimSubstantiatorStateOutputFromJSONTyped(
     chunks: json['chunks'] == null ? undefined : (json['chunks'] as Array<any>).map(DocumentChunkOutputFromJSON),
     errors: json['errors'] == null ? undefined : (json['errors'] as Array<any>).map(WorkflowErrorFromJSON),
     literatureReview: json['literature_review'] == null ? undefined : json['literature_review'],
+    documentPublicationDate:
+      json['document_publication_date'] == null ? undefined : new Date(json['document_publication_date']),
     mainDocumentSummary:
       json['main_document_summary'] == null ? undefined : DocumentSummaryFromJSON(json['main_document_summary']),
     supportingDocumentsSummaries:
@@ -187,6 +195,10 @@ export function ClaimSubstantiatorStateOutputToJSONTyped(
     chunks: value['chunks'] == null ? undefined : (value['chunks'] as Array<any>).map(DocumentChunkOutputToJSON),
     errors: value['errors'] == null ? undefined : (value['errors'] as Array<any>).map(WorkflowErrorToJSON),
     literature_review: value['literatureReview'],
+    document_publication_date:
+      value['documentPublicationDate'] === null
+        ? null
+        : (value['documentPublicationDate'] as any)?.toISOString().substring(0, 10),
     main_document_summary: DocumentSummaryToJSON(value['mainDocumentSummary']),
     supporting_documents_summaries:
       value['supportingDocumentsSummaries'] == null
