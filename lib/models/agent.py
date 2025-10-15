@@ -193,16 +193,6 @@ class Agent(SQLModel, table=True):
         chunk_result = await llm.ainvoke(**args)
         return chunk_result
 
-    def _apply_sync_without_tools(
-        self,
-        prompt_kwargs: dict,
-        config: RunnableConfig = None,
-    ):
-        """Apply the agent to the prompt kwargs without tools synchronously"""
-        llm, args = self.prep_llm_args(prompt_kwargs, config)
-        chunk_result = llm.invoke(**args)
-        return chunk_result
-
     async def _apply_with_tools(
         self,
         prompt_kwargs: dict,
@@ -213,7 +203,7 @@ class Agent(SQLModel, table=True):
         try:
             messages = await run_agent(**runner_args)
             llm_with_structure = self._prep_llm_with_structured_output()
-            return llm_with_structure.invoke(
+            chunk_result = llm_with_structure.ainvoke(
                 messages
                 + [
                     HumanMessage(
@@ -222,8 +212,19 @@ class Agent(SQLModel, table=True):
                 ],
                 config=config,
             )
+            return chunk_result
         except (TypeError, ValueError, AttributeError):
             return await self._apply_without_tools(prompt_kwargs, config)
+
+    def _apply_sync_without_tools(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ):
+        """Apply the agent to the prompt kwargs without tools synchronously"""
+        llm, args = self.prep_llm_args(prompt_kwargs, config)
+        chunk_result = llm.invoke(**args)
+        return chunk_result
 
     def _apply_sync_with_tools(
         self,
@@ -235,7 +236,7 @@ class Agent(SQLModel, table=True):
         try:
             messages = run_agent_sync(**runner_args)
             llm_with_structure = self._prep_llm_with_structured_output()
-            return llm_with_structure.invoke(
+            chunk_result = llm_with_structure.invoke(
                 messages
                 + [
                     HumanMessage(
@@ -244,6 +245,7 @@ class Agent(SQLModel, table=True):
                 ],
                 config=config,
             )
+            return chunk_result
         except (TypeError, ValueError, AttributeError):
             return self._apply_sync_without_tools(prompt_kwargs, config)
 
