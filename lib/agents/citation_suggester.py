@@ -4,22 +4,7 @@ from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 from lib.config.llm import models
 from lib.models.agent import Agent
-
-
-class ReferenceType(str, Enum):
-    WEBPAGE = "webpage"
-    BOOK = "book"
-    ARTICLE = "article"
-    OTHER = "other"
-
-
-class RecommendedAction(str, Enum):
-    ADD_NEW_CITATION = "add_new_citation"
-    CITE_EXISTING_REFERENCE_IN_NEW_PLACE = "cite_existing_reference_in_new_place"
-    REPLACE_EXISTING_REFERENCE = "replace_existing_reference"
-    DISCUSS_REFERENCE = "discuss_reference"
-    NO_ACTION = "no_action"
-    OTHER = "other"
+from lib.agents.literature_review import ReferenceType, RecommendedAction
 
 
 class PublicationQuality(str, Enum):  # TODO: play with these options
@@ -168,8 +153,9 @@ The indexes in this list should be used when returning index_of_associated_bibli
 
 ## A literature review report created by the literature review agent
 search for additional references. Use the literature review report as a guide to the references that should be cited. Only include the reference if you think it is highly relevant to the claim, chunk, and paragraph.
-It is ok if you do not recommend any references from the literature review report.
-It is ok to double check anything you add by doing web searches, but do not add references beyond those provided in the literature review report.
+- It is NOT ok to add references beyond those provided in the literature review report.
+- It is ok if you do not recommend any references from the literature review report.
+- It is ok to double check anything you add by doing web searches, but do not add references beyond those provided in the literature review report.
 ```
 {literature_review_report}
 ```

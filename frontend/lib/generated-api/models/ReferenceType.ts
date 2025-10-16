@@ -17,10 +17,14 @@
  * @export
  */
 export const ReferenceType = {
-  Webpage: 'webpage',
+  PeerReviewedPublication: 'peer_reviewed_publication',
+  Preprint: 'preprint',
   Book: 'book',
-  Article: 'article',
-  Other: 'other',
+  GovernmentNgoReport: 'government_ngo_report',
+  DataSoftware: 'data_software',
+  NewsMedia: 'news_media',
+  Reference: 'reference',
+  Webpage: 'webpage',
 } as const;
 export type ReferenceType = (typeof ReferenceType)[keyof typeof ReferenceType];
 

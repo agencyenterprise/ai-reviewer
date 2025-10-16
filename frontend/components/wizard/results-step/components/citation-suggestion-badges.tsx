@@ -80,13 +80,22 @@ export function RecommendedActionBadge({ action, className }: BadgeProps & { act
 export function ReferenceTypeBadge({ type, className }: BadgeProps & { type: ReferenceType }) {
   const getClasses = (type: ReferenceType): string => {
     switch (type) {
-      case ReferenceType.Article:
-        return 'bg-blue-100 text-blue-800';
+      case ReferenceType.PeerReviewedPublication:
+        return 'bg-indigo-100 text-indigo-800';
+      case ReferenceType.Preprint:
+        return 'bg-amber-100 text-amber-800';
       case ReferenceType.Book:
         return 'bg-green-100 text-green-800';
+      case ReferenceType.GovernmentNgoReport:
+        return 'bg-teal-100 text-teal-800';
+      case ReferenceType.DataSoftware:
+        return 'bg-cyan-100 text-cyan-800';
+      case ReferenceType.NewsMedia:
+        return 'bg-red-100 text-red-800';
+      case ReferenceType.Reference:
+        return 'bg-slate-100 text-slate-800';
       case ReferenceType.Webpage:
         return 'bg-purple-100 text-purple-800';
-      case ReferenceType.Other:
       default:
         return 'bg-gray-100 text-gray-800';
     }

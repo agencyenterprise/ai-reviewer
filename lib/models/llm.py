@@ -10,6 +10,31 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+async def coerce_to_schema(text: str, schema: Any) -> Any:
+    """Attempt to coerce text into the given schema using a parsing model."""
+    coerce_prompt = [
+        {
+            "role": "system",
+            "content": "Convert the following text into a JSON object that strictly matches the provided JSON Schema. Output only JSON.",
+        },
+        {
+            "role": "user",
+            "content": f"JSON Schema:\n{schema.model_json_schema()}",
+        },
+        {"role": "user", "content": f"Text:\n{text}"},
+    ]
+    try:
+        coercion = await AsyncOpenAI().responses.parse(
+            model="gpt-5",  # or a lightweight model you know supports parse
+            input=coerce_prompt,
+            text_format=schema,
+        )
+        return coercion.output_parsed
+    except Exception:
+        logger.warning("Secondary schema coercion failed; returning raw text")
+        return text
+
+
 class LLMClient(BaseModel):
     provider: str
     model: str
@@ -48,6 +73,7 @@ class OpenAIWrapper(LLMClient):
         structured_output = (
             self.output_schema is not None and self.output_schema is not str
         )
+        used_parse = False
         if not structured_output:
             self.resp = await self.client.responses.create(
                 model=self.model,
@@ -56,23 +82,44 @@ class OpenAIWrapper(LLMClient):
                 tools=self.tools,
             )
         else:
-            self.resp = await self.client.responses.parse(
-                model=self.model,
-                input=input_dict,
-                background=self.background,
-                tools=self.tools,
-                text_format=self.output_schema,
-            )
+            # Attempt structured parsing; if unsupported by the model, fall back to create
+            try:
+                self.resp = await self.client.responses.parse(
+                    model=self.model,
+                    input=input_dict,
+                    background=self.background,
+                    tools=self.tools,
+                    text_format=self.output_schema,
+                )
+                used_parse = True
+            except Exception as e:
+                logger.warning(
+                    "Structured parse not supported for model %s; falling back to create. Error: %s",
+                    self.model,
+                    getattr(e, "message", str(e)),
+                )
+                self.resp = await self.client.responses.create(
+                    model=self.model,
+                    input=input_dict,
+                    background=self.background,
+                    tools=self.tools,
+                )
 
         # Store the original response before polling
         original_resp = self.resp
 
         if not self.background:
-            return (
-                self.resp.output_text
-                if not structured_output
-                else self.resp.output_parsed
-            )
+            if not structured_output:
+                return self.resp.output_text
+            if used_parse and hasattr(self.resp, "output_parsed"):
+                return self.resp.output_parsed
+            try:
+                return _ensure_structured_output(
+                    self.resp.output_text, self.output_schema
+                )
+            except Exception as e:
+                logger.warning("Error parsing structured output: %s", e)
+                return await coerce_to_schema(self.resp.output_text, self.output_schema)
         else:
             logger.info(
                 "Calling %s in background mode and waiting for response", self.model
@@ -87,13 +134,18 @@ class OpenAIWrapper(LLMClient):
                     self.resp.status,
                 )
             self.status = self.resp.status
-            return (
-                self.resp.output_text
-                if not structured_output
-                else _ensure_structured_output(
+
+            if not structured_output:
+                return self.resp.output_text
+            if used_parse and hasattr(self.resp, "output_parsed"):
+                return self.resp.output_parsed
+            try:
+                return _ensure_structured_output(
                     self.resp.output_text, self.output_schema
                 )
-            )
+            except Exception as e:
+                logger.warning("Error parsing structured output: %s", e)
+                return await coerce_to_schema(self.resp.output_text, self.output_schema)
 
     def __enter__(self):
         return self

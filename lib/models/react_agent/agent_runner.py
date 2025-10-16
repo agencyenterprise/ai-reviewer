@@ -60,6 +60,8 @@ def _ensure_structured_output(output: Any, schema: type[BaseModel]) -> BaseModel
     If the output is already a dict, validate directly. If it's a string, let the
     schema try to parse JSON. As a last resort, raise and let caller decide fallback.
     """
+    if isinstance(output, BaseModel):
+        return output
     if isinstance(output, dict):
         return schema.model_validate(output)
     if isinstance(output, str):
