@@ -59,7 +59,14 @@ async def _verify_chunk_claims(
             ),
             None,
         )
-        if common_knowledge_result and not common_knowledge_result.needs_substantiation:
+
+        # Skip if the claim doesn't need substantiation and there are no citations in the chunk
+        if (
+            common_knowledge_result
+            and not common_knowledge_result.needs_substantiation
+            and chunk.citations
+            and not chunk.citations.citations
+        ):
             continue
 
         cited_references = format_cited_references(

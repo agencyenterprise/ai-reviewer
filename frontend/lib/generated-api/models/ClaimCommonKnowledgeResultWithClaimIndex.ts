@@ -13,46 +13,12 @@
  */
 
 import { mapValues } from '../runtime';
-import type { CommonKnowledgeType } from './CommonKnowledgeType';
-import {
-  CommonKnowledgeTypeFromJSON,
-  CommonKnowledgeTypeFromJSONTyped,
-  CommonKnowledgeTypeToJSON,
-  CommonKnowledgeTypeToJSONTyped,
-} from './CommonKnowledgeType';
-import type { ClaimType } from './ClaimType';
-import { ClaimTypeFromJSON, ClaimTypeFromJSONTyped, ClaimTypeToJSON, ClaimTypeToJSONTyped } from './ClaimType';
-
 /**
  *
  * @export
  * @interface ClaimCommonKnowledgeResultWithClaimIndex
  */
 export interface ClaimCommonKnowledgeResultWithClaimIndex {
-  /**
-   * A boolean value that is True if the claim represents common knowledge in the domain that typically doesn't require substantiation, and False otherwise
-   * @type {boolean}
-   * @memberof ClaimCommonKnowledgeResultWithClaimIndex
-   */
-  isCommonKnowledge?: boolean;
-  /**
-   * The type(s) of the claim
-   * @type {Array<ClaimType>}
-   * @memberof ClaimCommonKnowledgeResultWithClaimIndex
-   */
-  claimTypes?: Array<ClaimType>;
-  /**
-   * The type(s) of common knowledge that the claim represents
-   * @type {Array<CommonKnowledgeType>}
-   * @memberof ClaimCommonKnowledgeResultWithClaimIndex
-   */
-  commonKnowledgeTypes?: Array<CommonKnowledgeType>;
-  /**
-   * A brief explanation for why this claim is or is not considered common knowledge in the specified domain and context
-   * @type {string}
-   * @memberof ClaimCommonKnowledgeResultWithClaimIndex
-   */
-  commonKnowledgeRationale?: string;
   /**
    * A boolean value indicating whether the claim needs to be substantiated.
    * @type {boolean}
@@ -64,7 +30,7 @@ export interface ClaimCommonKnowledgeResultWithClaimIndex {
    * @type {string}
    * @memberof ClaimCommonKnowledgeResultWithClaimIndex
    */
-  substantiationRationale?: string;
+  rationale: string;
   /**
    *
    * @type {number}
@@ -86,6 +52,7 @@ export function instanceOfClaimCommonKnowledgeResultWithClaimIndex(
   value: object,
 ): value is ClaimCommonKnowledgeResultWithClaimIndex {
   if (!('needsSubstantiation' in value) || value['needsSubstantiation'] === undefined) return false;
+  if (!('rationale' in value) || value['rationale'] === undefined) return false;
   if (!('chunkIndex' in value) || value['chunkIndex'] === undefined) return false;
   if (!('claimIndex' in value) || value['claimIndex'] === undefined) return false;
   return true;
@@ -103,16 +70,8 @@ export function ClaimCommonKnowledgeResultWithClaimIndexFromJSONTyped(
     return json;
   }
   return {
-    isCommonKnowledge: json['is_common_knowledge'] == null ? undefined : json['is_common_knowledge'],
-    claimTypes: json['claim_types'] == null ? undefined : (json['claim_types'] as Array<any>).map(ClaimTypeFromJSON),
-    commonKnowledgeTypes:
-      json['common_knowledge_types'] == null
-        ? undefined
-        : (json['common_knowledge_types'] as Array<any>).map(CommonKnowledgeTypeFromJSON),
-    commonKnowledgeRationale:
-      json['common_knowledge_rationale'] == null ? undefined : json['common_knowledge_rationale'],
     needsSubstantiation: json['needs_substantiation'],
-    substantiationRationale: json['substantiation_rationale'] == null ? undefined : json['substantiation_rationale'],
+    rationale: json['rationale'],
     chunkIndex: json['chunk_index'],
     claimIndex: json['claim_index'],
   };
@@ -131,15 +90,8 @@ export function ClaimCommonKnowledgeResultWithClaimIndexToJSONTyped(
   }
 
   return {
-    is_common_knowledge: value['isCommonKnowledge'],
-    claim_types: value['claimTypes'] == null ? undefined : (value['claimTypes'] as Array<any>).map(ClaimTypeToJSON),
-    common_knowledge_types:
-      value['commonKnowledgeTypes'] == null
-        ? undefined
-        : (value['commonKnowledgeTypes'] as Array<any>).map(CommonKnowledgeTypeToJSON),
-    common_knowledge_rationale: value['commonKnowledgeRationale'],
     needs_substantiation: value['needsSubstantiation'],
-    substantiation_rationale: value['substantiationRationale'],
+    rationale: value['rationale'],
     chunk_index: value['chunkIndex'],
     claim_index: value['claimIndex'],
   };

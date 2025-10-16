@@ -1,9 +1,7 @@
 import asyncio
+import logging
 import os
 
-from tqdm import tqdm
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -49,14 +47,15 @@ async def run_tasks(tasks, desc="Processing tasks", max_concurrent=None):
 
     task_results_dict = {}
     task_errors_dict = {}
-    for finished_task in tqdm(
-        asyncio.as_completed(wrapped_tasks),
-        total=len(tasks),
-        desc=desc,
-    ):
+    completed_count = 0
+    for finished_task in asyncio.as_completed(wrapped_tasks):
         original_index, result, error = await finished_task
         task_results_dict[original_index] = result
         task_errors_dict[original_index] = error
+        completed_count += 1
+        logger.info(
+            f"{desc}: Completed {completed_count} / {len(tasks)} (Task #{original_index} completed)"
+        )
 
     task_results = []
     task_errors = []

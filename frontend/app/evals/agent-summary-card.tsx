@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BotIcon, ChevronDown, ChevronRight, Clock, AlertCircle } from 'lucide-react';
-import { TestCase } from './types';
-import { TestCaseItem } from './test-case-item';
-import { aggregateFieldInsights, calculateConsistency, formatDuration } from './util';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertCircle, BotIcon, ChevronDown, ChevronRight, Clock } from 'lucide-react';
+import { useState } from 'react';
 import { percentageFormatter } from './formatters';
+import { GroupedTestCaseItem } from './grouped-test-case-item';
+import { TestCase } from './types';
+import { aggregateFieldInsights, calculateConsistency, formatDuration } from './util';
 
 interface AgentSummary {
   agentName: string;
@@ -38,6 +38,9 @@ export function AgentSummaryCard({ summary, showOnlyFailed = false }: AgentSumma
   // Calculate field insights
   const fieldInsights = aggregateFieldInsights(summary.testCases);
   const problematicFields = fieldInsights.filter((f) => f.accuracy < 100).slice(0, 5);
+
+  const groupedTestCases = groupTestCasesByName(summary.testCases);
+  const sortedGroupedTestCases = Array.from(groupedTestCases.entries()).sort((a, b) => a[0].localeCompare(b[0]));
 
   return (
     <Card>
@@ -152,7 +155,7 @@ export function AgentSummaryCard({ summary, showOnlyFailed = false }: AgentSumma
         {isExpanded && (
           <div className="space-y-2 border-t pt-4">
             <h4 className="font-medium text-sm text-muted-foreground">Test Cases</h4>
-            {summary.testCases
+            {/* {summary.testCases
               .filter((testCase) => !showOnlyFailed || testCase.outcome === 'failed')
               .map((testCase, index) => (
                 <TestCaseItem
@@ -160,12 +163,32 @@ export function AgentSummaryCard({ summary, showOnlyFailed = false }: AgentSumma
                   testCase={testCase}
                   consistencyProbability={summary.consistencyProbabilityByTestCase[testCase.agent_test_case.name]}
                 />
+              ))} */}
+
+            {sortedGroupedTestCases
+              .filter(
+                ([_, testCases]) => !showOnlyFailed || testCases.some((testCase) => testCase.outcome === 'failed'),
+              )
+              .map(([name, testCases], index) => (
+                <GroupedTestCaseItem key={index} name={name} testCases={testCases} consistencyProbability={0} />
               ))}
           </div>
         )}
       </CardContent>
     </Card>
   );
+}
+
+export function groupTestCasesByName(testCases: TestCase[]): Map<string, TestCase[]> {
+  const groupedTestCases = new Map<string, TestCase[]>();
+  testCases.forEach((testCase) => {
+    const name = testCase.agent_test_case.name;
+    if (!groupedTestCases.has(name)) {
+      groupedTestCases.set(name, []);
+    }
+    groupedTestCases.get(name)!.push(testCase);
+  });
+  return groupedTestCases;
 }
 
 // Utility function to group test cases by agent name

@@ -59,8 +59,8 @@ class AgentTestCase(BaseModel):
     llm_fields: set | dict = Field(default_factory=set)
     ignore_fields: set | dict = Field(default_factory=set)
 
-    # Evaluator model (provider:model). Keep temperature 0 for determinism.
-    evaluator_model: str = Field(default="openai:gpt-5")
+    # Evaluator model (provider:model) for LLM comparisons. Keep temperature 0 for determinism.
+    evaluator_model: str = Field(default="openai:gpt-5-mini")
 
     # Stored intermediate eval results
     strict_eval_results: Optional[list[EvaluationResult]] = None

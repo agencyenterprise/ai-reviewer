@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusIndicator } from '@/components/ui/status-indicator';
 import { workflowsApi } from '@/lib/api';
-import { WorkflowRun } from '@/lib/generated-api';
 import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
