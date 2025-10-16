@@ -25,9 +25,9 @@ export function ToulminClaimAccordion({ claim, className }: ToulminClaimAccordio
 
         <Button
           variant="ghost"
-          size="sm"
+          size="xs"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+          className="text-gray-600 hover:text-gray-900"
         >
           {isExpanded ? (
             <>
@@ -45,77 +45,89 @@ export function ToulminClaimAccordion({ claim, className }: ToulminClaimAccordio
 
       {isExpanded && (
         <div className="space-y-3">
-          <p className="text-sm leading-relaxed">
+          <p>
             <span className="font-medium">Extracted Claim:</span> {claim.claim}
           </p>
 
-          <p className="text-sm leading-relaxed">
+          <p>
             <span className="font-medium">Related text:</span> {claim.text}
           </p>
 
-          <p className="text-sm leading-relaxed">
+          <p>
             <span className="font-medium">Rationale:</span> {claim.rationale}
           </p>
 
-          <h4 className="font-medium">Toulmin Elements:</h4>
-          <Table>
-            <TableBody>
-              <TableRow>
-                <TableCell>Data</TableCell>
-                <TableCell>
-                  <ul className="list-disc pl-5">
-                    {claim.data?.map((data) => (
-                      <li key={data}>{data}</li>
-                    ))}
-                  </ul>
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Warrants</TableCell>
-                <TableCell>
-                  <ul className="list-disc pl-5">
-                    {claim.warrants?.map((warrant) => (
-                      <li key={warrant}>{warrant}</li>
-                    ))}
-                  </ul>
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Qualifiers</TableCell>
-                <TableCell>
-                  <ul className="list-disc pl-5">
-                    {claim.qualifiers?.map((qualifier) => (
-                      <li key={qualifier}>{qualifier}</li>
-                    ))}
-                  </ul>
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Rebuttals</TableCell>
-                <TableCell>
-                  <ul className="list-disc pl-5">
-                    {claim.rebuttals?.map((rebuttal) => (
-                      <li key={rebuttal}>{rebuttal}</li>
-                    ))}
-                  </ul>
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Backing</TableCell>
-                <TableCell>
-                  <ul className="list-disc pl-5">
-                    {claim.backing?.map((backing) => (
-                      <li key={backing}>{backing}</li>
-                    ))}
-                  </ul>
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Warrant Expression</TableCell>
-                <TableCell>{claim.warrantExpression}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+          <h4 className="font-medium text-base">Toulmin Elements</h4>
+          <div className="space-y-2">
+            <div>
+              <span className="font-medium">Data:</span>{' '}
+              {claim.data && claim.data.length > 0 ? (
+                <ul className="list-disc pl-5">
+                  {claim.data.map((data) => (
+                    <li key={data}>{data}</li>
+                  ))}
+                </ul>
+              ) : (
+                <span className="text-muted-foreground">None</span>
+              )}
+            </div>
+            <div>
+              <span className="font-medium">Warrants:</span>{' '}
+              {claim.warrants && claim.warrants.length > 0 ? (
+                <ul className="list-disc pl-5">
+                  {claim.warrants.map((warrant) => (
+                    <li key={warrant}>{warrant}</li>
+                  ))}
+                </ul>
+              ) : (
+                <span className="text-muted-foreground">None</span>
+              )}
+            </div>
+            <div>
+              <span className="font-medium">Qualifiers:</span>{' '}
+              {claim.qualifiers && claim.qualifiers.length > 0 ? (
+                <ul className="list-disc pl-5">
+                  {claim.qualifiers.map((qualifier) => (
+                    <li key={qualifier}>{qualifier}</li>
+                  ))}
+                </ul>
+              ) : (
+                <span className="text-muted-foreground">None</span>
+              )}
+            </div>
+            <div>
+              <span className="font-medium">Rebuttals:</span>{' '}
+              {claim.rebuttals && claim.rebuttals.length > 0 ? (
+                <ul className="list-disc pl-5">
+                  {claim.rebuttals.map((rebuttal) => (
+                    <li key={rebuttal}>{rebuttal}</li>
+                  ))}
+                </ul>
+              ) : (
+                <span className="text-muted-foreground">None</span>
+              )}
+            </div>
+            <div>
+              <span className="font-medium">Backing:</span>{' '}
+              {claim.backing && claim.backing.length > 0 ? (
+                <ul className="list-disc pl-5">
+                  {claim.backing.map((backing) => (
+                    <li key={backing}>{backing}</li>
+                  ))}
+                </ul>
+              ) : (
+                <span className="text-muted-foreground">None</span>
+              )}
+            </div>
+            <div>
+              <span className="font-medium">Warrant Expression:</span>{' '}
+              {claim.warrantExpression ? (
+                <span>{claim.warrantExpression}</span>
+              ) : (
+                <span className="text-muted-foreground">None</span>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

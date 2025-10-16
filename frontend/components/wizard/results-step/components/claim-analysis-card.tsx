@@ -34,28 +34,32 @@ export function ClaimAnalysisCard({
 }: ClaimAnalysisCardProps) {
   return (
     <Card>
-      <CardContent className="space-y-4 py-0">
-        <AiGeneratedLabel className="float-right" />
-        <p className="text-sm font-medium">
-          Claim {claimIndex + 1} of {totalClaims}
-        </p>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <p className="font-medium">
+            Claim Analysis - {claimIndex + 1} of {totalClaims}
+          </p>
+          <AiGeneratedLabel />
+        </div>
 
-        <p className="italic text-center text-base mb-5">&quot;{claim.text}&quot;</p>
+        <p className="italic text-center">&quot;{claim.text}&quot;</p>
 
         <p>
           <span className="font-medium">Extracted Claim: </span>
           {claim.claim}
         </p>
 
-        <ToulminClaimAccordion claim={claim} />
-        {commonKnowledgeResult && <CommonKnowledgeAccordion result={commonKnowledgeResult} />}
-        {substantiation && (
-          <SubstantiationResults
-            substantiation={substantiation}
-            references={references}
-            supportingFiles={supportingFiles}
-          />
-        )}
+        <div className="space-y-2">
+          <ToulminClaimAccordion claim={claim} />
+          {commonKnowledgeResult && <CommonKnowledgeAccordion result={commonKnowledgeResult} />}
+          {substantiation && (
+            <SubstantiationResults
+              substantiation={substantiation}
+              references={references}
+              supportingFiles={supportingFiles}
+            />
+          )}
+        </div>
       </CardContent>
     </Card>
   );

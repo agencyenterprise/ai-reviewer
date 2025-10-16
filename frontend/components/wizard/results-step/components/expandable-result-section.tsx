@@ -18,9 +18,9 @@ export function ExpandableResultSection({ title, children, initialIsExpanded = f
 
         <Button
           variant="ghost"
-          size="sm"
+          size="xs"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+          className="text-gray-600 hover:text-gray-900"
         >
           {isExpanded ? (
             <>

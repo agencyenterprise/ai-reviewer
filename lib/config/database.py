@@ -8,7 +8,7 @@ from .env import config
 # SQLAlchemy engine
 engine = create_engine(
     config.DATABASE_URL,
-    echo=True,  # Set to False in production
+    echo=False,
 )
 
 # Session factory

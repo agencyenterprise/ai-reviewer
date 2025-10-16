@@ -1,17 +1,16 @@
 'use client';
 
-import * as React from 'react';
-import { FileText } from 'lucide-react';
-import { analysisService, SupportedAgentsResponse } from '@/lib/analysis-service';
-import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
-import { ExpandableControl } from './expandable-control';
+import { analysisService } from '@/lib/analysis-service';
 import { downloadFile, generateEvalFilename } from '@/lib/file-download';
+import { ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
+import { FileText } from 'lucide-react';
+import * as React from 'react';
+import { useSupportedAgents } from '../hooks/use-supported-agents';
+import { ExpandableControl } from './expandable-control';
 
 interface ChunkEvalGeneratorProps {
   chunkIndex: number;
   originalState: ClaimSubstantiatorStateOutput;
-  supportedAgents: SupportedAgentsResponse | null;
-  supportedAgentsError: string | null;
 }
 
 interface OptimizationInfoProps {
@@ -38,13 +37,9 @@ function OptimizationInfo({ selectedAgents }: OptimizationInfoProps) {
   );
 }
 
-export function ChunkEvalGenerator({
-  chunkIndex,
-  originalState,
-  supportedAgents,
-  supportedAgentsError,
-}: ChunkEvalGeneratorProps) {
+export function ChunkEvalGenerator({ chunkIndex, originalState }: ChunkEvalGeneratorProps) {
   const [isGenerating, setIsGenerating] = React.useState(false);
+  const { supportedAgents, supportedAgentsError } = useSupportedAgents();
 
   const handleGenerateEval = async (selectedAgents: Set<string>) => {
     setIsGenerating(true);

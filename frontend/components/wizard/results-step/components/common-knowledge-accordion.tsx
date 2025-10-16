@@ -21,13 +21,33 @@ export function CommonKnowledgeAccordion({ result, className }: CommonKnowledgeA
 
   return (
     <div className={cn('border-b pb-2 space-y-4', className)}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
           <h3 className="flex items-center gap-2 font-semibold">
             {isCommonKnowledge ? <CheckCircle className="h-4 w-4 " /> : <AlertCircle className="h-4 w-4" />}
             Common Knowledge Check
           </h3>
 
+          <Button
+            variant="ghost"
+            size="xs"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-gray-600 hover:text-gray-900"
+          >
+            {isExpanded ? (
+              <>
+                <ChevronDown />
+                Hide Details
+              </>
+            ) : (
+              <>
+                <ChevronRight />
+                Show Details
+              </>
+            )}
+          </Button>
+        </div>
+        <div className="flex items-center gap-1">
           <Tooltip>
             <TooltipTrigger asChild>
               <Badge
@@ -66,25 +86,6 @@ export function CommonKnowledgeAccordion({ result, className }: CommonKnowledgeA
             </TooltipContent>
           </Tooltip>
         </div>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
-        >
-          {isExpanded ? (
-            <>
-              <ChevronDown />
-              Hide Details
-            </>
-          ) : (
-            <>
-              <ChevronRight />
-              Show Details
-            </>
-          )}
-        </Button>
       </div>
 
       {isExpanded && (
