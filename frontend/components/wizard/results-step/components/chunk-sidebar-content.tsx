@@ -7,20 +7,28 @@ import { ChunkEvalGenerator } from './chunk-eval-generator';
 import { ChunkCitationSuggestions } from '../tabs/chunk-citation-suggestions';
 import { useMemo } from 'react';
 import { scoreSuggestion } from '@/lib/reference-scoring';
+import { ChunkStatusBadge, useShouldShowStatusBadge } from './chunk-status-badge';
 
 export interface ChunkSidebarContentProps {
   results: ClaimSubstantiatorStateOutput;
   chunkIndex: number | null;
+  isWorkflowRunning: boolean;
   onChunkReevaluation: (response: ChunkReevaluationResponse) => void;
 }
 
-export function ChunkSidebarContent({ results, chunkIndex, onChunkReevaluation }: ChunkSidebarContentProps) {
+export function ChunkSidebarContent({
+  results,
+  chunkIndex,
+  isWorkflowRunning,
+  onChunkReevaluation,
+}: ChunkSidebarContentProps) {
   const chunkErrors = results.errors?.filter((error) => error.chunkIndex === chunkIndex) || [];
   const references = results.references || [];
   const chunk = results.chunks?.find((chunk) => chunk.chunkIndex === chunkIndex);
   const claims = chunk?.claims?.claims || [];
   const claimCommonKnowledgeResults = chunk?.claimCommonKnowledgeResults || [];
   const substantiations = chunk?.substantiations || [];
+  const shouldShowStatusBadge = useShouldShowStatusBadge(isWorkflowRunning);
 
   const sortedCitationSuggestions = useMemo(() => {
     const suggestions = chunk?.citationSuggestions || [];
@@ -33,6 +41,8 @@ export function ChunkSidebarContent({ results, chunkIndex, onChunkReevaluation }
 
   return (
     <div className="space-y-2">
+      {shouldShowStatusBadge && <ChunkStatusBadge chunk={chunk} isWorkflowRunning={isWorkflowRunning} />}
+
       {chunkErrors.length > 0 && <ErrorsCard errors={chunkErrors} />}
 
       <div className="space-y-2">

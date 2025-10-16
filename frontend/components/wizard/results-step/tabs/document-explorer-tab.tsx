@@ -4,11 +4,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ChunkReevaluationResponse, ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
-import * as React from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChunkSidebarContent } from '../components/chunk-sidebar-content';
 import { DocumentReconstructor } from '../components/document-reconstructor';
 import { ErrorsCard } from '../components/errors-card';
-import { useEffect, useRef, useState } from 'react';
 
 interface DocumentExplorerTabProps {
   results: ClaimSubstantiatorStateOutput;
@@ -64,7 +63,7 @@ export function DocumentExplorerTab({ results, onChunkReevaluation, isProcessing
         >
           {!selectedChunk && (
             <Card>
-              <CardContent className="flex flex-col items-center justify-center space-y-2 py-8">
+              <CardContent className="flex flex-col justify-center space-y-2 py-8 text-center items-center">
                 <Image
                   src="/undraw_chat-with-ai_ir62.svg"
                   alt="Document Explorer"
@@ -72,8 +71,24 @@ export function DocumentExplorerTab({ results, onChunkReevaluation, isProcessing
                   height={100}
                   className="mb-8"
                 />
-                <p className="font-medium text-xl">Select a paragraph</p>
-                <p className="text-gray-600">Select a paragraph to view analysis results</p>
+                {isProcessing && (
+                  <>
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                      <p className="font-medium text-xl">Analyzing document</p>
+                    </div>
+                    <p className="text-gray-600">
+                      You can leave this page and come back later to view the results as the analysis runs in the
+                      background.
+                    </p>
+                  </>
+                )}
+                {!isProcessing && (
+                  <>
+                    <p className="font-medium text-xl">Select a paragraph</p>
+                    <p className="text-gray-600">Select a paragraph to view analysis results</p>
+                  </>
+                )}
               </CardContent>
             </Card>
           )}
@@ -81,6 +96,7 @@ export function DocumentExplorerTab({ results, onChunkReevaluation, isProcessing
             <ChunkSidebarContent
               results={results}
               chunkIndex={selectedChunkIndex}
+              isWorkflowRunning={isProcessing}
               onChunkReevaluation={onChunkReevaluation}
             />
           )}
