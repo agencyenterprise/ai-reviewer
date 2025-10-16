@@ -1,20 +1,19 @@
 'use client';
 
-import * as React from 'react';
-import { analysisService, SupportedAgentsResponse } from '@/lib/analysis-service';
+import { analysisService } from '@/lib/analysis-service';
 import {
-  ClaimSubstantiatorStateOutput,
   ChunkReevaluationRequest,
   ChunkReevaluationResponse,
+  ClaimSubstantiatorStateOutput,
 } from '@/lib/generated-api';
+import * as React from 'react';
+import { useSupportedAgents } from '../hooks/use-supported-agents';
 import { ExpandableControl } from './expandable-control';
 
 interface ChunkReevaluateControlProps {
   chunkIndex: number;
   originalState: ClaimSubstantiatorStateOutput;
   onReevaluation: (response: ChunkReevaluationResponse) => void;
-  supportedAgents: SupportedAgentsResponse | null;
-  supportedAgentsError: string | null;
   sessionId?: string | null;
 }
 
@@ -22,11 +21,10 @@ export function ChunkReevaluateControl({
   chunkIndex,
   originalState,
   onReevaluation,
-  supportedAgents,
-  supportedAgentsError,
   sessionId,
 }: ChunkReevaluateControlProps) {
   const [isReevaluating, setIsReevaluating] = React.useState(false);
+  const { supportedAgents, supportedAgentsError } = useSupportedAgents();
 
   const handleReevaluate = async (selectedAgents: Set<string>) => {
     setIsReevaluating(true);

@@ -92,7 +92,7 @@ export default function ResultsPage() {
           <hgroup>
             <h1 className="text-2xl font-bold">{workflowRun.run.title}</h1>
             <h2 className="text-muted-foreground text-sm">
-              Workflow Run Results · {format(workflowRun.run.createdAt || new Date(), 'MMM d, yyyy')}
+              Workflow Run Results · Created on {format(workflowRun.run.createdAt || new Date(), 'MMM d, yyyy')}
             </h2>
           </hgroup>
           <Link href="/">
