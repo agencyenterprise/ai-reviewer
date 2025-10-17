@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { ToulminClaim } from '@/lib/generated-api/models/ToulminClaim';
 import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronRight, Scale } from 'lucide-react';

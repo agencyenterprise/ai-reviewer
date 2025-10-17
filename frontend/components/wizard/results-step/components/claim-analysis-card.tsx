@@ -9,7 +9,7 @@ import {
   FileDocument,
   ToulminClaim,
 } from '@/lib/generated-api';
-import { CommonKnowledgeAccordion } from './common-knowledge-accordion';
+import { ClaimNeedsSubstantiationAccordion } from './claim-needs-substantiation-accordion';
 import { SubstantiationResults } from './substantiation-results';
 import { ToulminClaimAccordion } from './toulmin-claim-accordion';
 
@@ -51,7 +51,7 @@ export function ClaimAnalysisCard({
 
         <div className="space-y-2">
           <ToulminClaimAccordion claim={claim} />
-          {commonKnowledgeResult && <CommonKnowledgeAccordion result={commonKnowledgeResult} />}
+          {commonKnowledgeResult && <ClaimNeedsSubstantiationAccordion result={commonKnowledgeResult} />}
           {substantiation && (
             <SubstantiationResults
               substantiation={substantiation}

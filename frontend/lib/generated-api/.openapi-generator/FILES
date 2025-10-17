@@ -22,9 +22,7 @@ models/ClaimResponse.ts
 models/ClaimSubstantiationResultWithClaimIndex.ts
 models/ClaimSubstantiatorStateInput.ts
 models/ClaimSubstantiatorStateOutput.ts
-models/ClaimType.ts
 models/Claims.ts
-models/CommonKnowledgeType.ts
 models/ConfidenceInRecommendation.ts
 models/DocumentChunkInput.ts
 models/DocumentChunkOutput.ts

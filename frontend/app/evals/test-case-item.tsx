@@ -15,7 +15,7 @@ interface TestCaseItemProps {
 
 export function TestCaseItem({ testCase }: TestCaseItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showFullOutput, setShowFullOutput] = useState(false);
+  const [showFullOutput, setShowFullOutput] = useState(true);
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
@@ -235,31 +235,6 @@ export function TestCaseItem({ testCase }: TestCaseItemProps) {
                 </div>
               </div>
             </div>
-
-            {/* Error Information */}
-            {testCase.call.crash && (
-              <div className="border-t pt-4">
-                <h4 className="font-medium mb-3 text-red-600">Error Information</h4>
-                <div className="bg-red-50 p-3 rounded-lg">
-                  <div className="space-y-2">
-                    <div>
-                      <span className="font-medium text-sm text-red-800">Error Message:</span>
-                      <p className="text-sm text-red-700 mt-1 whitespace-pre-wrap font-mono">
-                        {testCase.call.crash.message}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="font-medium text-sm text-red-800">File:</span>
-                      <p className="text-sm text-red-700 mt-1 font-mono">{testCase.call.crash.path}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium text-sm text-red-800">Line:</span>
-                      <p className="text-sm text-red-700 mt-1">{testCase.call.crash.lineno}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </CardContent>
       )}
