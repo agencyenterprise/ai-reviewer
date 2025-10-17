@@ -26,6 +26,7 @@ def build_claim_substantiator_graph(
     use_toulmin: bool = False,
     run_literature_review: bool = True,
     run_suggest_citations: bool = True,
+    use_rag: bool = True,
 ):
     graph = StateGraph(ClaimSubstantiatorState)
 
@@ -35,6 +36,20 @@ def build_claim_substantiator_graph(
     if run_suggest_citations:
         graph.add_node("summarize_supporting_documents", summarize_supporting_documents)
         graph.add_node("suggest_citations", suggest_citations, defer=True)
+
+    if use_rag:
+        from lib.workflows.claim_substantiation.nodes.index_supporting_documents import (
+            index_supporting_documents,
+        )
+        from lib.workflows.claim_substantiation.nodes.verify_claims_rag import (
+            verify_claims_with_rag,
+        )
+
+        graph.add_node("index_supporting_documents", index_supporting_documents)
+        verify_node = verify_claims_with_rag
+    else:
+        verify_node = verify_claims
+
     graph.add_node("split_into_chunks", split_into_chunks)
     graph.add_node(
         "extract_claims", extract_claims if not use_toulmin else extract_claims_toulmin
@@ -42,7 +57,7 @@ def build_claim_substantiator_graph(
     graph.add_node("detect_citations", detect_citations)
     graph.add_node("extract_references", extract_references)
     graph.add_node("check_claim_needs_substantiation", check_claim_needs_substantiation)
-    graph.add_node("verify_claims", verify_claims, defer=True)
+    graph.add_node("verify_claims", verify_node, defer=True)
 
     graph.set_entry_point("prepare_documents")
 
@@ -51,6 +66,8 @@ def build_claim_substantiator_graph(
         graph.add_edge("prepare_documents", "literature_review")
     if run_suggest_citations:
         graph.add_edge("prepare_documents", "summarize_supporting_documents")
+    if use_rag:
+        graph.add_edge("prepare_documents", "index_supporting_documents")
 
     graph.add_edge("split_into_chunks", "extract_references")
     graph.add_edge("split_into_chunks", "extract_claims")
@@ -58,6 +75,8 @@ def build_claim_substantiator_graph(
     graph.add_edge("extract_claims", "check_claim_needs_substantiation")
     graph.add_edge("check_claim_needs_substantiation", "verify_claims")
     graph.add_edge("detect_citations", "verify_claims")
+    if use_rag:
+        graph.add_edge("index_supporting_documents", "verify_claims")
 
     # Suggest citations (aim 2.a)
     # Must wait for ALL processing to complete before suggesting citations

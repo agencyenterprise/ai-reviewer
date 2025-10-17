@@ -128,6 +128,12 @@ export interface ClaimSubstantiatorStateOutput {
    * @memberof ClaimSubstantiatorStateOutput
    */
   supportingDocumentsSummaries?: { [key: string]: DocumentSummary } | null;
+  /**
+   * Maps file hashes to collection IDs for RAG retrieval
+   * @type {{ [key: string]: string; }}
+   * @memberof ClaimSubstantiatorStateOutput
+   */
+  indexedCollections?: { [key: string]: string };
 }
 
 /**
@@ -169,6 +175,7 @@ export function ClaimSubstantiatorStateOutputFromJSONTyped(
       json['supporting_documents_summaries'] == null
         ? undefined
         : mapValues(json['supporting_documents_summaries'], DocumentSummaryFromJSON),
+    indexedCollections: json['indexed_collections'] == null ? undefined : json['indexed_collections'],
   };
 }
 
@@ -204,5 +211,6 @@ export function ClaimSubstantiatorStateOutputToJSONTyped(
       value['supportingDocumentsSummaries'] == null
         ? undefined
         : mapValues(value['supportingDocumentsSummaries'], DocumentSummaryToJSON),
+    indexed_collections: value['indexedCollections'],
   };
 }

@@ -100,6 +100,26 @@ def pytest_runtest_makereport(item, call):
         if hasattr(item, "callspec") and "case" in item.callspec.params:
             case = item.callspec.params["case"]
 
+            # Handle dict-based test cases (like RAG tests)
+            if isinstance(case, dict):
+                # For dict-based cases, just store minimal info
+                report.agent_test_case_data = {
+                    "name": case.get("name", "unknown"),
+                    "agent": {"name": "RAG-based", "version": "N/A"},
+                    "prompt_kwargs": {},
+                    "expected_output": case.get("expected_output", {}),
+                    "actual_outputs": [],
+                    "evaluation_config": {
+                        "strict_fields": list(case.get("strict_fields", set())),
+                        "llm_fields": list(case.get("llm_fields", set())),
+                        "evaluator_model": "N/A",
+                        "run_count": 1,
+                    },
+                    "evaluation_result": None,
+                    "session_id": None,
+                }
+                return
+
             # Get evaluation result if test was run
             eval_result = None
             if hasattr(case, "_eval_result") and case._eval_result is not None:

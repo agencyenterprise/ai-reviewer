@@ -33,6 +33,7 @@ export * from './QCResult';
 export * from './RecommendedAction';
 export * from './Reference';
 export * from './ReferenceType';
+export * from './RetrievedPassageInfo';
 export * from './StartAnalysisResponse';
 export * from './SubstantiationWorkflowConfig';
 export * from './ToulminClaim';

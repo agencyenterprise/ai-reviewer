@@ -38,6 +38,12 @@ export interface SubstantiationWorkflowConfig {
    */
   runSuggestCitations?: boolean;
   /**
+   * Use RAG for claim verification (reduces token costs by ~89%)
+   * @type {boolean}
+   * @memberof SubstantiationWorkflowConfig
+   */
+  useRag?: boolean;
+  /**
    *
    * @type {Array<number>}
    * @memberof SubstantiationWorkflowConfig
@@ -91,6 +97,7 @@ export function SubstantiationWorkflowConfigFromJSONTyped(
     useToulmin: json['use_toulmin'] == null ? undefined : json['use_toulmin'],
     runLiteratureReview: json['run_literature_review'] == null ? undefined : json['run_literature_review'],
     runSuggestCitations: json['run_suggest_citations'] == null ? undefined : json['run_suggest_citations'],
+    useRag: json['use_rag'] == null ? undefined : json['use_rag'],
     targetChunkIndices: json['target_chunk_indices'] == null ? undefined : json['target_chunk_indices'],
     agentsToRun: json['agents_to_run'] == null ? undefined : json['agents_to_run'],
     domain: json['domain'] == null ? undefined : json['domain'],
@@ -115,6 +122,7 @@ export function SubstantiationWorkflowConfigToJSONTyped(
     use_toulmin: value['useToulmin'],
     run_literature_review: value['runLiteratureReview'],
     run_suggest_citations: value['runSuggestCitations'],
+    use_rag: value['useRag'],
     target_chunk_indices: value['targetChunkIndices'],
     agents_to_run: value['agentsToRun'],
     domain: value['domain'],

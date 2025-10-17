@@ -38,6 +38,7 @@ models/QCResult.ts
 models/RecommendedAction.ts
 models/Reference.ts
 models/ReferenceType.ts
+models/RetrievedPassageInfo.ts
 models/StartAnalysisResponse.ts
 models/SubstantiationWorkflowConfig.ts
 models/ToulminClaim.ts

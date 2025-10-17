@@ -31,6 +31,10 @@ class SubstantiationWorkflowConfig(BaseModel):
     run_suggest_citations: bool = Field(
         default=False, description="Whether to run the citation suggestions"
     )
+    use_rag: bool = Field(
+        default=True,
+        description="Use RAG for claim verification (reduces token costs by ~89%)",
+    )
     target_chunk_indices: Optional[List[int]] = Field(
         default=None,
         description="Specific chunk indices to process (None = process all chunks)",
@@ -160,6 +164,10 @@ class ClaimSubstantiatorState(BaseModel):
     supporting_documents_summaries: Optional[Dict[int, DocumentSummary]] = Field(
         default=None,
         description="Dictionary mapping supporting file indices to their summaries",
+    )
+    indexed_collections: Dict[str, str] = Field(
+        default_factory=dict,
+        description="Maps file hashes to collection IDs for RAG retrieval",
     )
 
     def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:

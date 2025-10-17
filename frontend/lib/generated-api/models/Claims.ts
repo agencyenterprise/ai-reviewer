@@ -73,7 +73,7 @@ export function ClaimsFromJSONTyped(json: any, ignoreDiscriminator: boolean): Cl
     return json;
   }
   return {
-    claims: json['claims'] == null ? [] : (json['claims'] as Array<any>).map(ToulminClaimFromJSON),
+    claims: (json['claims'] as Array<any>).map(ToulminClaimFromJSON),
     rationale: json['rationale'],
   };
 }
