@@ -18,7 +18,10 @@ from lib.workflows.claim_substantiation.nodes.suggest_citations import suggest_c
 from lib.workflows.claim_substantiation.nodes.summarize_supporting_documents import (
     summarize_supporting_documents,
 )
-from lib.workflows.claim_substantiation.nodes.verify_claims import verify_claims
+from lib.workflows.claim_substantiation.nodes.verify_claims import (
+    verify_claims,
+    verify_claims_with_rag,
+)
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 
 
@@ -40,9 +43,6 @@ def build_claim_substantiator_graph(
     if use_rag:
         from lib.workflows.claim_substantiation.nodes.index_supporting_documents import (
             index_supporting_documents,
-        )
-        from lib.workflows.claim_substantiation.nodes.verify_claims_rag import (
-            verify_claims_with_rag,
         )
 
         graph.add_node("index_supporting_documents", index_supporting_documents)

@@ -3,6 +3,7 @@ from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.reference_extractor import BibliographyItem
 from lib.services.file import FileDocument
 from typing import Dict, List, Optional
+from lib.services.vector_store import RetrievedPassage
 
 
 def format_domain_context(domain: Optional[str]) -> str:
@@ -144,3 +145,18 @@ def format_bibliography_prompt_section(
             for index, item in enumerate(references)
         ]
     )
+
+
+def format_retrieved_passages(passages: List["RetrievedPassage"]) -> str:
+    """Format retrieved passages from RAG for use as cited references."""
+    if not passages:
+        return "No relevant passages found in supporting documents."
+
+    formatted = []
+    for i, passage in enumerate(passages, 1):
+        formatted.append(
+            f"[Retrieved Passage {i} from {passage.source_file}]\n"
+            f"{passage.content}\n"
+            f"(Similarity: {passage.similarity_score:.2f})\n"
+        )
+    return "\n".join(formatted)

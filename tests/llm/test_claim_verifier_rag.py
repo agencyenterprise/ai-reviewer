@@ -6,17 +6,15 @@ full documents in the prompt. Results can be compared with test_claim_verifier.p
 to evaluate the effectiveness of the RAG approach.
 """
 
-import asyncio
 import pytest
 
 from lib.agents.claim_extractor import Claim, ClaimResponse
 from lib.agents.claim_verifier import ClaimSubstantiationResult
-from lib.models.field_comparator import FieldComparator
 from lib.services.file import FileDocument
 from lib.workflows.claim_substantiation.nodes.index_supporting_documents import (
     index_supporting_documents,
 )
-from lib.workflows.claim_substantiation.nodes.verify_claims_rag import (
+from lib.workflows.claim_substantiation.nodes.verify_claims import (
     _verify_chunk_claims_rag,
 )
 from lib.workflows.claim_substantiation.state import (
@@ -24,8 +22,11 @@ from lib.workflows.claim_substantiation.state import (
     DocumentChunk,
     SubstantiationWorkflowConfig,
 )
-from tests.conftest import TESTS_DIR, extract_paragraph_from_chunk, load_document
-from tests.datasets.loader import load_dataset
+from tests.conftest import extract_paragraph_from_chunk
+from tests.llm.test_helpers import (
+    compare_claim_substantiation_result,
+    load_claim_verifier_dataset,
+)
 
 
 async def _run_rag_verification(
@@ -38,7 +39,6 @@ async def _run_rag_verification(
 ) -> ClaimSubstantiationResult:
     """Run RAG-based claim verification for a single claim."""
 
-    # Create workflow config with RAG enabled
     config = SubstantiationWorkflowConfig(
         use_rag=True,
         domain=domain,
@@ -46,7 +46,6 @@ async def _run_rag_verification(
         session_id=f"test_rag_{id(main_doc)}",
     )
 
-    # Extract paragraph from chunk
     paragraph = extract_paragraph_from_chunk(main_doc.markdown, chunk_text)
 
     # Find paragraph index (simplified - assumes chunk is at start of paragraph)
@@ -57,7 +56,6 @@ async def _run_rag_verification(
             paragraph_index = i
             break
 
-    # Create a DocumentChunk with the claim
     chunk = DocumentChunk(
         chunk_index=0,
         paragraph_index=paragraph_index,
@@ -76,7 +74,6 @@ async def _run_rag_verification(
         claim_common_knowledge_results=[],  # Empty means needs substantiation
     )
 
-    # Create initial state
     state = ClaimSubstantiatorState(
         file=main_doc,
         supporting_files=supporting_docs,
@@ -84,13 +81,10 @@ async def _run_rag_verification(
         chunks=[chunk],
     )
 
-    # Index supporting documents
     await index_supporting_documents(state)
 
-    # Run RAG verification on the chunk
     verified_chunk = await _verify_chunk_claims_rag(state, chunk)
 
-    # Extract the result
     if verified_chunk.substantiations:
         return verified_chunk.substantiations[0]
     else:
@@ -99,52 +93,17 @@ async def _run_rag_verification(
 
 def _build_cases():
     """Build test cases from dataset using RAG verification."""
+    test_cases, strict_fields, llm_fields = load_claim_verifier_dataset()
 
-    dataset_path = str(TESTS_DIR / "datasets" / "claim_verifier.yaml")
-    dataset = load_dataset(dataset_path)
-
-    # Get test configuration from dataset
-    test_config = dataset.test_config
-    strict_fields = set()
-    llm_fields = set()
-    if test_config:
-        strict_fields = test_config.strict_fields or set()
-        llm_fields = test_config.llm_fields or set()
-
-    cases = []
-
-    for test_case in dataset.items:
-        # Load main document
-        main_doc = asyncio.run(load_document(test_case.input["main_document"]))
-
-        # Load supporting documents
-        supporting_docs = [
-            asyncio.run(load_document(supporting_doc))
-            for supporting_doc in test_case.input.get("supporting_documents", [])
-        ]
-
-        # Extract inputs
-        chunk = test_case.input["chunk"]
-        claim_text = test_case.input["claim"]
-        domain = test_case.input.get("domain")
-        target_audience = test_case.input.get("target_audience")
-
-        cases.append(
-            {
-                "name": f"{test_case.name}_rag",
-                "main_doc": main_doc,
-                "supporting_docs": supporting_docs,
-                "chunk": chunk,
-                "claim_text": claim_text,
-                "domain": domain,
-                "target_audience": target_audience,
-                "expected_output": test_case.expected_output,
-                "strict_fields": strict_fields,
-                "llm_fields": llm_fields,
-            }
-        )
-
-    return cases
+    return [
+        {
+            **case,
+            "name": f"{case['name']}_rag",
+            "strict_fields": strict_fields,
+            "llm_fields": llm_fields,
+        }
+        for case in test_cases
+    ]
 
 
 @pytest.mark.asyncio
@@ -155,7 +114,6 @@ async def test_claim_verifier_rag(case):
     These tests use the same dataset and evaluation criteria as test_claim_verifier.py,
     allowing for direct comparison between the full-text and RAG approaches.
     """
-    # Run RAG verification
     result = await _run_rag_verification(
         main_doc=case["main_doc"],
         supporting_docs=case["supporting_docs"],
@@ -165,25 +123,10 @@ async def test_claim_verifier_rag(case):
         target_audience=case["target_audience"],
     )
 
-    # Parse expected and actual results
-    expected = ClaimSubstantiationResult.model_validate(case["expected_output"])
-
-    # Compare strict fields
-    if case["strict_fields"]:
-        comparator = FieldComparator(case["strict_fields"], set())
-        field_comparisons = comparator.compare_fields(
-            expected, result, comparison_type="strict"
-        )
-
-        for fc in field_comparisons:
-            assert (
-                fc.passed
-            ), f"{case['name']} - Strict field '{fc.field_path}' failed: {fc.rationale}"
-
-    # For LLM fields, we'll do a simple check (you can enhance this with LLM evaluation later)
-    if case["llm_fields"]:
-        # For now, just check that the fields exist
-        for field in case["llm_fields"]:
-            assert hasattr(
-                result, field
-            ), f"{case['name']} - Missing field '{field}' in result"
+    compare_claim_substantiation_result(
+        expected_output=case["expected_output"],
+        actual_result=result,
+        strict_fields=case["strict_fields"],
+        llm_fields=case["llm_fields"],
+        test_name=case["name"],
+    )
