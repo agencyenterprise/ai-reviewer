@@ -11,6 +11,7 @@ import {
 } from '@/lib/generated-api';
 import { CommonKnowledgeAccordion } from './common-knowledge-accordion';
 import { RetrievedPassagesDisplay } from './retrieved-passages-display';
+import { ClaimNeedsSubstantiationAccordion } from './claim-needs-substantiation-accordion';
 import { SubstantiationResults } from './substantiation-results';
 import { ToulminClaimAccordion } from './toulmin-claim-accordion';
 
@@ -52,7 +53,7 @@ export function ClaimAnalysisCard({
 
         <div className="space-y-2">
           <ToulminClaimAccordion claim={claim} />
-          {commonKnowledgeResult && <CommonKnowledgeAccordion result={commonKnowledgeResult} />}
+          {commonKnowledgeResult && <ClaimNeedsSubstantiationAccordion result={commonKnowledgeResult} />}
           {substantiation && (
             <>
               <SubstantiationResults

@@ -27,7 +27,7 @@ async def check_claim_needs_substantiation(
     results = await iterate_chunks(
         state,
         _check_chunk_claim_needs_substantiation,
-        "Checking chunk claim common knowledge",
+        "Checking chunk claim needs substantiation",
     )
     logger.info(f"check_claim_needs_substantiation ({state.config.session_id}): done")
     return results

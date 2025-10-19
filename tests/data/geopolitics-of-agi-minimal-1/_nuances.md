@@ -42,7 +42,11 @@ AI models frequently achieve perfect alignment with human values, eliminating ha
 
 AGI is expected to be reached by 2030 (Zittrain, 2024).
 
-AI models are increasingly able to take input and interact with the world in a generalized way—although often with unexpected or harmful consequences (Zittrain, 2024).
+AGI is expected to be reached by 2030.
+
+AGI could be reached by 2030.
+
+If AGI is reached by 2030, this could have catastrophical consequences for humanity.
 
 Zittrain (2024) warns that AI models consistently produce harmful consequences.
 
