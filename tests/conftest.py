@@ -15,6 +15,7 @@ from typing import Optional, Any
 import json
 
 import pytest
+from pydantic import BaseModel
 
 from lib.config.env import config
 from lib.services.file import create_file_document_from_path
@@ -100,41 +101,25 @@ def pytest_runtest_makereport(item, call):
         if hasattr(item, "callspec") and "case" in item.callspec.params:
             case = item.callspec.params["case"]
 
-            # Handle dict-based test cases (like RAG tests)
-            if isinstance(case, dict):
-                # For dict-based cases, just store minimal info
-                report.agent_test_case_data = {
-                    "name": case.get("name", "unknown"),
-                    "agent": {"name": "RAG-based", "version": "N/A"},
-                    "prompt_kwargs": {},
-                    "expected_output": case.get("expected_output", {}),
-                    "actual_outputs": [],
-                    "evaluation_config": {
-                        "strict_fields": list(case.get("strict_fields", set())),
-                        "llm_fields": list(case.get("llm_fields", set())),
-                        "evaluator_model": "N/A",
-                        "run_count": 1,
-                    },
-                    "evaluation_result": None,
-                    "session_id": None,
-                }
-                return
-
             # Get evaluation result if test was run
             eval_result = None
             if hasattr(case, "_eval_result") and case._eval_result is not None:
                 eval_result = case._eval_result.model_dump()
 
             def serialize_for_xdist(obj):
-                """Convert enums and sets to serializable types for pytest-xdist.
+                """Convert enums, sets, and Pydantic models to serializable types for pytest-xdist.
 
                 This recursively processes dictionaries, lists, and other structures
-                to convert enums to their string values and sets to lists.
+                to convert enums to their string values, sets to lists, and Pydantic
+                models to dicts.
                 """
                 if isinstance(obj, Enum):
                     return obj.value
                 elif isinstance(obj, set):
                     return list(obj)
+                elif isinstance(obj, BaseModel):
+                    # Handle Pydantic models by converting to dict
+                    return serialize_for_xdist(obj.model_dump())
                 elif isinstance(obj, dict):
                     return {k: serialize_for_xdist(v) for k, v in obj.items()}
                 elif isinstance(obj, (list, tuple)):
