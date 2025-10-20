@@ -43,7 +43,7 @@ function WizardContent() {
     <>
       <div className="text-center mb-16">
         <h1 className="text-4xl font-bold text-center mb-8 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-          Rand AI Reviewer
+          AI Reviewer
         </h1>
 
         <div className="max-w-2xl mx-auto">

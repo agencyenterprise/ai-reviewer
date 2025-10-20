@@ -1,4 +1,4 @@
-# RAND AI Analyst
+# AI Reviewer
 
 An AI-powered document review system that analyzes documents for claims, citations, and references using agent-based workflows. The system consists of a Python backend (FastAPI + LangChain) and a Next.js frontend.
 
@@ -350,8 +350,8 @@ brew install aquasecurity/trivy/trivy
 
 # Scan Docker images (build first with docker compose)
 docker compose build
-trivy image rand-ai-reviewer-api
-trivy image rand-ai-reviewer-frontend
+trivy image ai-reviewer-api
+trivy image ai-reviewer-frontend
 trivy image postgres:16-alpine
 
 # Scan for Docker/config misconfigurations
@@ -363,17 +363,20 @@ trivy config .
 ### Automated PR Scanning
 
 Every PR automatically scans using `aquasecurity/trivy-action@0.28.0`:
+
 - **Docker Images**: Backend, frontend, and PostgreSQL containers
 - **Configuration**: Dockerfiles, docker-compose.yml for misconfigurations
 - **Built-in Caching**: Vulnerability database cached between runs for faster scans
 - **Non-blocking**: Scans run with `exit-code: 0` to warn without failing builds
 
 The action provides:
+
 - Automatic Trivy installation and caching
 - Table format output in workflow logs
 - Optimized performance with `skip-setup-trivy` for subsequent scans
 
 Results appear in:
+
 1. **PR checks** → Security Scan workflow logs (table format)
 2. **Actions tab** → Click workflow run to see detailed scan results
 
