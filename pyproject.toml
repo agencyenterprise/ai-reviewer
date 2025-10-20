@@ -32,6 +32,11 @@ dependencies = [
     "alembic-postgresql-enum>=1.8.0",
     "pytest-repeat>=0.9.4",
     "xxhash>=3.5.0",
+    "tabulate>=0.9.0",
+    "fitz>=0.0.1.dev2",
+    "markdown>=3.9",
+    "tools>=1.0.6",
+    "sympy>=1.14.0",
 ]
 
 [tool.pytest.ini_options]
