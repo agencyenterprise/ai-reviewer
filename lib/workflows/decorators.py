@@ -87,7 +87,7 @@ def handle_chunk_errors(operation_name: str):
                     exc_info=True,
                 )
 
-                raise Exception(f"{operation_name} failed: {str(e)[:200]}") from e
+                raise Exception(f"{operation_name} failed: {str(e)}") from e
 
         return wrapper
 

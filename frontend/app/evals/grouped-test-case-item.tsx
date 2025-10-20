@@ -224,23 +224,22 @@ export function GroupedTestCaseItem({ name, testCases }: GroupedTestCaseItem) {
             </div>
 
             {/* Evaluation Results */}
-            {/* <div className="border-t pt-4">
+            <div className="border-t pt-4">
               <h4 className="font-medium mb-3">Evaluation Results</h4>
-              <div className="bg-muted/30 p-3 rounded-lg space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">Overall Result:</span>
-                  <Badge variant={testCase.agent_test_case.evaluation_result?.passed ? 'success' : 'destructive'}>
-                    {testCase.agent_test_case.evaluation_result?.passed ? 'Passed' : 'Failed'}
-                  </Badge>
-                </div>
-                <div>
-                  <span className="font-medium text-sm">Evaluation Rationale:</span>
+              {testCases.map((testCase, index) => (
+                <div key={testCase.nodeid}>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm">Overall Result #{index + 1}:</span>
+                    <Badge variant={testCase.agent_test_case.evaluation_result?.passed ? 'success' : 'destructive'}>
+                      {testCase.agent_test_case.evaluation_result?.passed ? 'Passed' : 'Failed'}
+                    </Badge>
+                  </div>
                   <div className="text-sm text-muted-foreground mt-1 bg-background p-2 rounded border max-h-64 overflow-y-auto whitespace-pre-wrap font-mono">
                     {testCase.agent_test_case.evaluation_result?.rationale}
                   </div>
                 </div>
-              </div>
-            </div> */}
+              ))}
+            </div>
           </div>
         </CardContent>
       )}

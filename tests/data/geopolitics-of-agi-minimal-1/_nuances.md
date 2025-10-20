@@ -20,8 +20,6 @@ In many ways, AGI-driven robots can share characteristics of the “loss of cont
 
 # Tests
 
-AI models are increasingly able to take input and interact with the world in a generalized way—although often with unexpected or harmful consequences (Zittrain, 2024).
-
 AI models are increasingly able to take input and interact with the world in a generalized way—although sometimes with unexpected or harmful consequences (Zittrain, 2024)
 
 AI models are increasingly able to take input and interact with the world in a generalized way—although potentially with unexpected or harmful consequences (Zittrain, 2024)
@@ -48,6 +46,12 @@ AGI could be reached by 2030.
 
 If AGI is reached by 2030, this could have catastrophical consequences for humanity.
 
+AGI is expected to be reached by 2030, as has been found before.
+
+AGI is expected to be reached by 2030, as has been found before (Fake, 2025).
+
+If AGI is reached by 2030, this could have catastrophical consequences for humanity, as has been found before.
+
 Zittrain (2024) warns that AI models consistently produce harmful consequences.
 
 AI models are increasingly able to take input and interact with the world in a generalized way—rarely with unexpected or harmful consequences (Zittrain, 2024)
@@ -59,6 +63,8 @@ AI models are increasingly able to take input and interact with the world in a g
 # References
 
 Bengio, Yoshua, “How Rogue AIs May Arise,” yoshuabengio.org, webpage, May 22, 2023. As of December 17, 2024: https://yoshuabengio.org/2023/05/22/how-rogue-ais-may-arise/
+
+John Fake, “Collection of fallacies”, 2025.
 
 Okemwa, Kevin, “OpenAI CEO Sam Altman Says AGI Would Have ‘Whooshed by’ in 5 Years with ‘Surprisingly Little’ Societal Change Than Speculated,” Windows Central, November 5, 2024. As of December 18, 2024:
 https://www.windowscentral.com/software-apps/openai-ceo-sam-altman-says-agi-would-have-whooshed-by-in-5-years

@@ -69,12 +69,6 @@ async def _verify_chunk_claims(
         ):
             continue
 
-        cited_references = format_cited_references(
-            state.references,
-            state.supporting_files,
-            chunk.citations,
-            truncate_at_character_count=100000,  # Basically include the whole text of the references
-        )
         paragraph_chunks = state.get_paragraph_chunks(chunk.paragraph_index)
         paragraph_chunks_citations_not_in_the_chunk = [
             citation
@@ -88,6 +82,22 @@ async def _verify_chunk_claims(
         paragraph_other_chunk_citations = CitationResponse(
             citations=paragraph_chunks_citations_not_in_the_chunk,
             rationale="The other citations in the paragraph that are not in the chunk",
+        )
+
+        if (
+            not chunk.citations.citations
+            and not paragraph_other_chunk_citations.citations
+        ):
+            logger.debug(
+                f"verify_claims: Chunk {chunk.chunk_index} has no citations in the chunk, skipping verification"
+            )
+            continue
+
+        cited_references = format_cited_references(
+            state.references,
+            state.supporting_files,
+            chunk.citations,
+            truncate_at_character_count=100000,  # Basically include the whole text of the references
         )
         cited_references_paragraph = format_cited_references(
             state.references,
@@ -103,7 +113,13 @@ async def _verify_chunk_claims(
                 "chunk": chunk.content,
                 "claim": claim.claim,
                 "cited_references": cited_references,
-                "cited_references_paragraph": cited_references_paragraph,
+                "cited_references_paragraph": (
+                    # Only include references from the paragraph if there's no citations in the chunk itself
+                    # TODO: instead of including all paragraph references, include only the ones appearing **after** the chunk being analyzed (past citations will never be used to support subsequent chunks)
+                    cited_references_paragraph
+                    if not chunk.citations.citations
+                    else "None"
+                ),
                 "domain_context": format_domain_context(state.config.domain),
                 "audience_context": format_audience_context(
                     state.config.target_audience

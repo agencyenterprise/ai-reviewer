@@ -50,7 +50,7 @@ export function DocumentExplorerTab({ results, onChunkReevaluation, isProcessing
       {workflowErrors.length > 0 && <ErrorsCard errors={workflowErrors} />}
 
       <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-7 pb-100 leading-relaxed">
+        <div className="col-span-7 pb-100 leading-relaxed text-sm">
           <DocumentReconstructor
             results={results}
             selectedChunkIndex={selectedChunkIndex}
