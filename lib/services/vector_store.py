@@ -1,41 +1,35 @@
 import logging
 import os
-from dataclasses import dataclass
 from typing import List, Optional
 
 from langchain_openai import OpenAIEmbeddings
 from langchain_postgres import PGVector
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from lib.config.env import config
 
 logger = logging.getLogger(__name__)
 
-RAG_TOP_K = 10
-RAG_CHUNK_SIZE = 1000
-RAG_CHUNK_OVERLAP = 200
+# Top k to retrieve the most relevant passages
+RAG_TOP_K = 15
+
+# Chunk size and overlap based on character count of the document
+RAG_CHUNK_SIZE = 2000
+RAG_CHUNK_OVERLAP = 400
 
 
-@dataclass
-class RetrievedPassage:
+class RetrievedPassage(BaseModel):
     """Represents a passage retrieved from vector store."""
 
-    content: str
-    source_file: str
-    chunk_index: int
-    similarity_score: float
-    page_number: Optional[str] = None
-
-    def to_dict(self) -> dict:
-        """Convert to dictionary for serialization."""
-        return {
-            "content": self.content,
-            "source": self.source_file,
-            "chunk_index": self.chunk_index,
-            "similarity_score": round(self.similarity_score, 3),
-            "page": self.page_number,
-        }
+    content: str = Field(description="The text content of the retrieved passage")
+    source_file: str = Field(description="Name of the source file")
+    chunk_index: int = Field(description="Index of the chunk within the source")
+    similarity_score: float = Field(description="Cosine similarity score (0-1)")
+    page_number: Optional[str] = Field(
+        default=None, description="Page number if available"
+    )
 
 
 def get_file_hash_from_path(file_path: str) -> str:
@@ -153,7 +147,7 @@ class VectorStoreService:
             return passages
 
         except Exception as e:
-            logger.error(f"Retrieval failed for query '{query[:50]}...': {e}")
+            logger.error(f"Retrieval failed for query '{query}...': {e}")
             return []
 
 

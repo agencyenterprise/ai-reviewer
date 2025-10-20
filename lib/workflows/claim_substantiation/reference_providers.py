@@ -6,8 +6,9 @@ through different methods (citation-based vs RAG-based).
 
 import asyncio
 import logging
-from dataclasses import dataclass
 from typing import List, Optional, Protocol
+
+from pydantic import BaseModel, Field
 
 from lib.agents.citation_detector import CitationResponse
 from lib.agents.claim_extractor import Claim
@@ -33,13 +34,18 @@ logger = logging.getLogger(__name__)
 MAX_REFERENCE_CHARACTER_COUNT = 100000
 
 
-@dataclass
-class ReferenceContext:
+class ReferenceContext(BaseModel):
     """Context containing references for claim verification."""
 
-    cited_references: str
-    cited_references_paragraph: str
-    retrieved_passages: Optional[List[RetrievedPassageInfo]] = None
+    cited_references: str = Field(
+        description="Formatted references cited in the current chunk"
+    )
+    cited_references_paragraph: str = Field(
+        description="Formatted references from other chunks in the same paragraph"
+    )
+    retrieved_passages: Optional[List[RetrievedPassageInfo]] = Field(
+        default=None, description="Passages retrieved via RAG for this claim"
+    )
 
 
 class ReferenceProvider(Protocol):

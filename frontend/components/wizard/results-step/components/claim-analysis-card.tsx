@@ -9,7 +9,6 @@ import {
   FileDocument,
   ToulminClaim,
 } from '@/lib/generated-api';
-import { CommonKnowledgeAccordion } from './common-knowledge-accordion';
 import { RetrievedPassagesDisplay } from './retrieved-passages-display';
 import { ClaimNeedsSubstantiationAccordion } from './claim-needs-substantiation-accordion';
 import { SubstantiationResults } from './substantiation-results';
