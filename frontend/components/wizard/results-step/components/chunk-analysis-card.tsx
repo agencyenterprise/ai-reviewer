@@ -2,18 +2,21 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { BibliographyItem } from '@/lib/generated-api';
+import { BibliographyItem, FileDocument } from '@/lib/generated-api';
 import { DocumentChunk } from '@/lib/generated-api/models/DocumentChunk';
-import { Link, MessageCirclePlus } from 'lucide-react';
+import { LinkIcon, MessageCirclePlus } from 'lucide-react';
 import { ExpandableResultSection } from './expandable-result-section';
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
+import { apiUrl } from '@/lib/api';
+import Link from 'next/link';
 
 export interface ChunkAnalysisCardProps {
   chunk: DocumentChunk;
+  supportingFiles: FileDocument[];
   references: BibliographyItem[];
 }
 
-export function ChunkAnalysisCard({ chunk, references }: ChunkAnalysisCardProps) {
+export function ChunkAnalysisCard({ chunk, references, supportingFiles }: ChunkAnalysisCardProps) {
   const citationsWithBibliography = chunk.citations?.citations?.filter((citation) => citation.associatedBibliography);
 
   return (
@@ -40,7 +43,7 @@ export function ChunkAnalysisCard({ chunk, references }: ChunkAnalysisCardProps)
             title={
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold flex items-center gap-2">
-                  <Link className="w-4 h-4" /> Citations
+                  <LinkIcon className="w-4 h-4" /> Citations
                 </h3>
 
                 <Badge variant="outline">{citationsWithBibliography?.length || 0} with bibliography</Badge>
@@ -49,34 +52,52 @@ export function ChunkAnalysisCard({ chunk, references }: ChunkAnalysisCardProps)
           >
             {chunk.citations?.citations?.length === 0 && <p className="text-muted-foreground">No citations found</p>}
 
-            {chunk.citations?.citations?.map((citation, index) => (
-              <div key={index} className="bg-muted p-3 rounded-md space-y-1">
-                <p>
-                  <span className="font-medium">Associated text: </span> {citation.text}
-                </p>
-                <p>
-                  <span className="font-medium">Format: </span> {citation.format}
-                </p>
-                <p>
-                  <span className="font-medium">Type: </span> {citation.type}
-                </p>
-                <p>
-                  <span className="font-medium">Needs bibliography: </span> {citation.needsBibliography ? 'Yes' : 'No'}
-                </p>
-                <p>
-                  <span className="font-medium">Associated reference file: </span>{' '}
-                  {citation.indexOfAssociatedBibliography !== -1
-                    ? references[citation.indexOfAssociatedBibliography - 1]?.nameOfAssociatedSupportingDocument
-                    : 'None'}
-                </p>
-                <p>
-                  <span className="font-medium">Associated bibliography: </span> {citation.associatedBibliography}
-                </p>
-                <p>
-                  <span className="font-medium">Rationale: </span> {citation.rationale}
-                </p>
-              </div>
-            ))}
+            {chunk.citations?.citations?.map((citation, index) => {
+              const matchedReference = citation.indexOfAssociatedBibliography
+                ? references[citation.indexOfAssociatedBibliography - 1]
+                : null;
+              const matchedSupportingFile = supportingFiles.find(
+                (file) => file.fileName === matchedReference?.nameOfAssociatedSupportingDocument,
+              );
+
+              return (
+                <div key={index} className="bg-muted p-3 rounded-md space-y-1">
+                  <p>
+                    <span className="font-medium">Associated text: </span> {citation.text}
+                  </p>
+                  <p>
+                    <span className="font-medium">Format: </span> {citation.format}
+                  </p>
+                  <p>
+                    <span className="font-medium">Type: </span> {citation.type}
+                  </p>
+                  <p>
+                    <span className="font-medium">Needs bibliography: </span>{' '}
+                    {citation.needsBibliography ? 'Yes' : 'No'}
+                  </p>
+                  <p>
+                    <span className="font-medium">Associated reference file: </span>{' '}
+                    {matchedSupportingFile ? (
+                      <Link
+                        href={`${apiUrl}/api/files/download/${matchedSupportingFile.filePath.split('/').pop()}/${matchedSupportingFile.fileName}`}
+                        target="_blank"
+                        className="text-blue-600 underline"
+                      >
+                        {matchedSupportingFile.fileName}
+                      </Link>
+                    ) : (
+                      'None'
+                    )}
+                  </p>
+                  <p>
+                    <span className="font-medium">Associated bibliography: </span> {citation.associatedBibliography}
+                  </p>
+                  <p>
+                    <span className="font-medium">Rationale: </span> {citation.rationale}
+                  </p>
+                </div>
+              );
+            })}
           </ExpandableResultSection>
         </div>
       </CardContent>
