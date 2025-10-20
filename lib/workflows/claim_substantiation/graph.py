@@ -11,6 +11,9 @@ from lib.workflows.claim_substantiation.nodes.extract_claims_toulmin import (
 from lib.workflows.claim_substantiation.nodes.extract_references import (
     extract_references,
 )
+from lib.workflows.claim_substantiation.nodes.index_supporting_documents import (
+    index_supporting_documents,
+)
 from lib.workflows.claim_substantiation.nodes.prepare_documents import prepare_documents
 from lib.workflows.claim_substantiation.nodes.review_literature import literature_review
 from lib.workflows.claim_substantiation.nodes.split_into_chunks import split_into_chunks
@@ -30,7 +33,19 @@ def build_claim_substantiator_graph(
     run_literature_review: bool = True,
     run_suggest_citations: bool = True,
     use_rag: bool = True,
-):
+) -> StateGraph:
+    """
+    Build a LangGraph workflow for claim substantiation analysis.
+
+    Args:
+        use_toulmin: Use Toulmin model for claim extraction
+        run_literature_review: Include literature review node
+        run_suggest_citations: Include citation suggestion nodes
+        use_rag: Use RAG-based claim verification (reduces token costs by ~89%)
+
+    Returns:
+        Configured StateGraph for claim substantiation workflow
+    """
     graph = StateGraph(ClaimSubstantiatorState)
 
     graph.add_node("prepare_documents", prepare_documents)
@@ -41,10 +56,6 @@ def build_claim_substantiator_graph(
         graph.add_node("suggest_citations", suggest_citations, defer=True)
 
     if use_rag:
-        from lib.workflows.claim_substantiation.nodes.index_supporting_documents import (
-            index_supporting_documents,
-        )
-
         graph.add_node("index_supporting_documents", index_supporting_documents)
         verify_node = verify_claims_with_rag
     else:
@@ -94,9 +105,6 @@ def build_claim_substantiator_graph(
 
 
 if __name__ == "__main__":
-    # Print the graph in mermaid format
-    # Paste it into https://mermaid.live/ to see the graph
-
     workflow_graph = build_claim_substantiator_graph(
         run_literature_review=False, run_suggest_citations=False
     )

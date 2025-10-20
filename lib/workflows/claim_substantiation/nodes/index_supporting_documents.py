@@ -28,7 +28,8 @@ async def index_supporting_documents(
     logger.info(f"Indexing {len(state.supporting_files)} supporting documents for RAG")
 
     vector_store = get_vector_store_service()
-    indexed_collections = {}
+    indexed_collections: dict[str, str] = {}
+    failed_files: list[str] = []
 
     for file_doc in state.supporting_files:
         try:
@@ -53,5 +54,11 @@ async def index_supporting_documents(
 
         except Exception as e:
             logger.error(f"Failed to index {file_doc.file_name}: {e}")
+            failed_files.append(file_doc.file_name)
+
+    if indexed_collections:
+        logger.info(f"Successfully indexed {len(indexed_collections)} collections")
+    if failed_files:
+        logger.warning(f"Failed to index {len(failed_files)} files: {failed_files}")
 
     return {"indexed_collections": indexed_collections}

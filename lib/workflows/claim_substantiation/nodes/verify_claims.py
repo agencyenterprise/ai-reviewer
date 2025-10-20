@@ -1,7 +1,6 @@
 import logging
 
 from lib.agents.claim_verifier import (
-    ClaimSubstantiationResult,
     ClaimSubstantiationResultWithClaimIndex,
     claim_verifier_agent,
 )
@@ -10,6 +9,7 @@ from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.claim_substantiation.reference_providers import (
     CitationBasedReferenceProvider,
     RAGReferenceProvider,
+    ReferenceContext,
     ReferenceProvider,
 )
 from lib.workflows.claim_substantiation.state import (
@@ -20,16 +20,33 @@ from lib.workflows.decorators import handle_chunk_errors, requires_agent
 
 logger = logging.getLogger(__name__)
 
+_CITATION_PROVIDER = CitationBasedReferenceProvider()
+_RAG_PROVIDER = RAGReferenceProvider()
+
+
+def _needs_substantiation(chunk: DocumentChunk, claim_index: int) -> bool:
+    """Check if a claim needs substantiation based on common knowledge results."""
+    common_knowledge_result = next(
+        (
+            r
+            for r in chunk.claim_common_knowledge_results
+            if r.claim_index == claim_index
+        ),
+        None,
+    )
+    return not common_knowledge_result or common_knowledge_result.needs_substantiation
+
 
 async def _verify_chunk_claims_with_provider(
     state: ClaimSubstantiatorState,
     chunk: DocumentChunk,
     reference_provider: ReferenceProvider,
 ) -> DocumentChunk:
-    """Claim verification using a reference provider.
+    """Verify chunk claims using the provided reference provider.
 
-    This function contains the core verification logic shared by both
-    citation-based and RAG-based verification approaches.
+    Skips chunks with no claims and claims marked as common knowledge.
+    For claims needing verification, retrieves references and runs them
+    through the claim verifier agent.
     """
     if chunk.claims is None or not chunk.claims.claims:
         logger.debug(f"Chunk {chunk.chunk_index} has no claims")
@@ -38,31 +55,21 @@ async def _verify_chunk_claims_with_provider(
     substantiations = []
 
     for claim_index, claim in enumerate(chunk.claims.claims):
-        common_knowledge_result = next(
-            (
-                r
-                for r in chunk.claim_common_knowledge_results
-                if r.claim_index == claim_index
-            ),
-            None,
-        )
-        if common_knowledge_result and not common_knowledge_result.needs_substantiation:
+        if not _needs_substantiation(chunk, claim_index):
             continue
 
-        cited_refs, cited_refs_paragraph, retrieved_passages = (
-            await reference_provider.get_references_for_claim(
-                state, chunk, claim, claim_index
-            )
+        ref_context = await reference_provider.get_references_for_claim(
+            state, chunk, claim, claim_index
         )
 
-        result: ClaimSubstantiationResult = await claim_verifier_agent.apply(
+        result = await claim_verifier_agent.apply(
             {
                 "full_document": state.file.markdown,
                 "paragraph": state.get_paragraph(chunk.paragraph_index),
                 "chunk": chunk.content,
                 "claim": claim.claim,
-                "cited_references": cited_refs,
-                "cited_references_paragraph": cited_refs_paragraph,
+                "cited_references": ref_context.cited_references,
+                "cited_references_paragraph": ref_context.cited_references_paragraph,
                 "domain_context": format_domain_context(state.config.domain),
                 "audience_context": format_audience_context(
                     state.config.target_audience
@@ -70,10 +77,9 @@ async def _verify_chunk_claims_with_provider(
             }
         )
 
-        # We must add retrieved passages if available (RAG only)
-        if retrieved_passages:
+        if ref_context.retrieved_passages:
             result = result.model_copy(
-                update={"retrieved_passages": retrieved_passages}
+                update={"retrieved_passages": ref_context.retrieved_passages}
             )
 
         substantiations.append(
@@ -112,8 +118,7 @@ async def _verify_chunk_claims(
         )
         return chunk
 
-    provider = CitationBasedReferenceProvider()
-    return await _verify_chunk_claims_with_provider(state, chunk, provider)
+    return await _verify_chunk_claims_with_provider(state, chunk, _CITATION_PROVIDER)
 
 
 @requires_agent("substantiation")
@@ -137,8 +142,7 @@ async def _verify_chunk_claims_rag(
 ) -> DocumentChunk:
     """Verify claims using RAG-based references.
 
-    Note: RAG doesn't require citations to be detected first - it retrieves
-    relevant passages directly based on the claim text.
+    RAG retrieves relevant passages directly based on claim text,
+    without requiring citations to be detected first.
     """
-    provider = RAGReferenceProvider()
-    return await _verify_chunk_claims_with_provider(state, chunk, provider)
+    return await _verify_chunk_claims_with_provider(state, chunk, _RAG_PROVIDER)
