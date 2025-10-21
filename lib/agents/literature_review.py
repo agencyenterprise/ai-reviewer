@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 from lib.config.llm import models
 from lib.models.agent import Agent
-from lib.agents.citation_suggester import RecommendedAction
 
 
 class LitRecommendedAction(str, Enum):
