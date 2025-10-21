@@ -30,6 +30,7 @@ export * from './EvidenceWeighterResponseWithClaimIndexInput';
 export * from './EvidenceWeighterResponseWithClaimIndexOutput';
 export * from './FileDocument';
 export * from './HTTPValidationError';
+export * from './LibAgentsCitationSuggesterRecommendedAction';
 export * from './LibAgentsEvidenceWeighterRecommendedAction';
 export * from './LibAgentsLiteratureReviewRecommendedAction';
 export * from './LiteratureReviewResponseInput';

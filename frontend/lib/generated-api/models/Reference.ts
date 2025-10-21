@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { LibAgentsCitationSuggesterRecommendedAction } from './LibAgentsCitationSuggesterRecommendedAction';
+import {
+  LibAgentsCitationSuggesterRecommendedActionFromJSON,
+  LibAgentsCitationSuggesterRecommendedActionFromJSONTyped,
+  LibAgentsCitationSuggesterRecommendedActionToJSON,
+  LibAgentsCitationSuggesterRecommendedActionToJSONTyped,
+} from './LibAgentsCitationSuggesterRecommendedAction';
 import type { ConfidenceInRecommendation } from './ConfidenceInRecommendation';
 import {
   ConfidenceInRecommendationFromJSON,
@@ -27,13 +34,6 @@ import {
   PublicationQualityToJSON,
   PublicationQualityToJSONTyped,
 } from './PublicationQuality';
-import type { LibAgentsLiteratureReviewRecommendedAction } from './LibAgentsLiteratureReviewRecommendedAction';
-import {
-  LibAgentsLiteratureReviewRecommendedActionFromJSON,
-  LibAgentsLiteratureReviewRecommendedActionFromJSONTyped,
-  LibAgentsLiteratureReviewRecommendedActionToJSON,
-  LibAgentsLiteratureReviewRecommendedActionToJSONTyped,
-} from './LibAgentsLiteratureReviewRecommendedAction';
 import type { ReferenceType } from './ReferenceType';
 import {
   ReferenceTypeFromJSON,
@@ -110,10 +110,10 @@ export interface Reference {
   rationale: string;
   /**
    * Action to take for this reference: add_citation, replace_existing_reference, discuss_reference, no_action, or other
-   * @type {LibAgentsLiteratureReviewRecommendedAction}
+   * @type {LibAgentsCitationSuggesterRecommendedAction}
    * @memberof Reference
    */
-  recommendedAction: LibAgentsLiteratureReviewRecommendedAction;
+  recommendedAction: LibAgentsCitationSuggesterRecommendedAction;
   /**
    * Specific guidance for applying the recommended action, including citation placement or text revisions
    * @type {string}
@@ -169,7 +169,7 @@ export function ReferenceFromJSONTyped(json: any, ignoreDiscriminator: boolean):
     relatedExcerpt: json['related_excerpt'],
     relatedExcerptFromReference: json['related_excerpt_from_reference'],
     rationale: json['rationale'],
-    recommendedAction: LibAgentsLiteratureReviewRecommendedActionFromJSON(json['recommended_action']),
+    recommendedAction: LibAgentsCitationSuggesterRecommendedActionFromJSON(json['recommended_action']),
     explanationForRecommendedAction: json['explanation_for_recommended_action'],
     confidenceInRecommendation: ConfidenceInRecommendationFromJSON(json['confidence_in_recommendation']),
   };
@@ -195,7 +195,7 @@ export function ReferenceToJSONTyped(value?: Reference | null, ignoreDiscriminat
     related_excerpt: value['relatedExcerpt'],
     related_excerpt_from_reference: value['relatedExcerptFromReference'],
     rationale: value['rationale'],
-    recommended_action: LibAgentsLiteratureReviewRecommendedActionToJSON(value['recommendedAction']),
+    recommended_action: LibAgentsCitationSuggesterRecommendedActionToJSON(value['recommendedAction']),
     explanation_for_recommended_action: value['explanationForRecommendedAction'],
     confidence_in_recommendation: ConfidenceInRecommendationToJSON(value['confidenceInRecommendation']),
   };

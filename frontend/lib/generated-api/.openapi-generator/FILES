@@ -35,6 +35,7 @@ models/EvidenceWeighterResponseWithClaimIndexInput.ts
 models/EvidenceWeighterResponseWithClaimIndexOutput.ts
 models/FileDocument.ts
 models/HTTPValidationError.ts
+models/LibAgentsCitationSuggesterRecommendedAction.ts
 models/LibAgentsEvidenceWeighterRecommendedAction.ts
 models/LibAgentsLiteratureReviewRecommendedAction.ts
 models/LiteratureReviewResponseInput.ts
