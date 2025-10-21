@@ -19,6 +19,8 @@ RAG_TOP_K = 30  # Number of passages to retrieve per query
 RAG_CHUNK_SIZE = 2000  # Characters per chunk when indexing documents
 RAG_CHUNK_OVERLAP = 400  # Character overlap between adjacent chunks
 
+EMBEDDING_MODEL = "text-embedding-3-large"
+
 
 class RetrievedPassage(BaseModel):
     """Represents a passage retrieved from vector store."""
@@ -47,7 +49,7 @@ class VectorStoreService:
 
     def __init__(self, connection_string: str):
         """Initialize vector store with database connection."""
-        self.embeddings = OpenAIEmbeddings(model="text-embedding-ada-002")
+        self.embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
         self.chunker = RecursiveCharacterTextSplitter(
             chunk_size=RAG_CHUNK_SIZE,
             chunk_overlap=RAG_CHUNK_OVERLAP,

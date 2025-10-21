@@ -25,7 +25,16 @@ _RAG_PROVIDER = RAGReferenceProvider()
 
 
 def _needs_substantiation(chunk: DocumentChunk, claim_index: int) -> bool:
-    """Check if a claim needs substantiation based on common knowledge results."""
+    """Check if a claim needs substantiation.
+
+    A claim needs substantiation if:
+    1. It has citations in the chunk that need to be verified (regardless of common knowledge status)
+    2. OR it's not common knowledge and needs supporting evidence
+    """
+    # We need to ALWAYS verify if there are citations in the chunk
+    if chunk.citations and chunk.citations.citations:
+        return True
+
     common_knowledge_result = next(
         (
             r
@@ -44,9 +53,11 @@ async def _verify_chunk_claims_with_provider(
 ) -> DocumentChunk:
     """Verify chunk claims using the provided reference provider.
 
-    Skips chunks with no claims and claims marked as common knowledge.
-    For claims needing verification, retrieves references and runs them
-    through the claim verifier agent.
+    Skips chunks with no claims. For each claim:
+    - ALWAYS verifies if the chunk has citations (even if common knowledge)
+    - Verifies if the claim needs substantiation (not common knowledge)
+
+    This ensures all citations are validated regardless of common knowledge status.
     """
     if chunk.claims is None or not chunk.claims.claims:
         logger.debug(f"Chunk {chunk.chunk_index} has no claims")
@@ -62,12 +73,27 @@ async def _verify_chunk_claims_with_provider(
             state, chunk, claim, claim_index
         )
 
+        # Determine if we're using RAG or citation-based approach
+        is_rag_mode = ref_context.retrieved_passages is not None
+
+        evidence_explanation = (
+            "### Evidence Retrieval Method: RAG (Retrieval-Augmented Generation)\n"
+            "The supporting evidence below consists of **relevant passages retrieved via semantic search** from the supporting documents. "
+            "These passages were selected based on their semantic similarity to the claim. "
+            "Evaluate whether these retrieved passages provide sufficient support for the claim."
+            if is_rag_mode
+            else "### Evidence Retrieval Method: Citation-Based\n"
+            "The supporting evidence below consists of **complete supporting documents** that are cited in the text. "
+            "Review the full documents to determine if they support the claim."
+        )
+
         result = await claim_verifier_agent.apply(
             {
                 "full_document": state.file.markdown,
                 "paragraph": state.get_paragraph(chunk.paragraph_index),
                 "chunk": chunk.content,
                 "claim": claim.claim,
+                "evidence_context_explanation": evidence_explanation,
                 "cited_references": ref_context.cited_references,
                 "cited_references_paragraph": ref_context.cited_references_paragraph,
                 "domain_context": format_domain_context(state.config.domain),

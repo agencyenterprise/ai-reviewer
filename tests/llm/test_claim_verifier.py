@@ -61,6 +61,11 @@ def _build_cases():
             "paragraph": paragraph,
             "chunk": chunk,
             "claim": claim_text,
+            "evidence_context_explanation": (
+                "### Evidence Retrieval Method: Citation-Based\n"
+                "The supporting evidence below consists of **complete supporting documents** that are cited in the text. "
+                "Review the full documents to determine if they support the claim."
+            ),
             "cited_references": cited_references,
             "cited_references_paragraph": "",
             "domain_context": format_domain_context(domain),

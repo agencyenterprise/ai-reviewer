@@ -102,10 +102,12 @@ For each claim, output an evidence alignment level based on the following defini
 ## The claim that is inferred from the chunk of text to be substantiated
 {claim}
 
-## The list of references cited in this chunk of text to support the claim and their associated supporting document (if any)
+{evidence_context_explanation}
+
+## Supporting evidence cited in this chunk of text
 {cited_references}
 
-## The list of references cited in outside of this chunk, but still in the same paragraph of text to support the claim and their associated supporting document (if any)
+## Supporting evidence from elsewhere in the same paragraph
 {cited_references_paragraph}
 
 """
