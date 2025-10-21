@@ -34,6 +34,13 @@ import {
   BibliographyItemToJSON,
   BibliographyItemToJSONTyped,
 } from './BibliographyItem';
+import type { LiteratureReviewResponseInput } from './LiteratureReviewResponseInput';
+import {
+  LiteratureReviewResponseInputFromJSON,
+  LiteratureReviewResponseInputFromJSONTyped,
+  LiteratureReviewResponseInputToJSON,
+  LiteratureReviewResponseInputToJSONTyped,
+} from './LiteratureReviewResponseInput';
 import type { WorkflowError } from './WorkflowError';
 import {
   WorkflowErrorFromJSON,
@@ -106,10 +113,10 @@ export interface ClaimSubstantiatorStateInput {
   errors?: Array<WorkflowError>;
   /**
    *
-   * @type {string}
+   * @type {LiteratureReviewResponseInput}
    * @memberof ClaimSubstantiatorStateInput
    */
-  literatureReview?: string | null;
+  literatureReview?: LiteratureReviewResponseInput | null;
   /**
    *
    * @type {Date}
@@ -160,7 +167,8 @@ export function ClaimSubstantiatorStateInputFromJSONTyped(
       json['references'] == null ? undefined : (json['references'] as Array<any>).map(BibliographyItemFromJSON),
     chunks: json['chunks'] == null ? undefined : (json['chunks'] as Array<any>).map(DocumentChunkInputFromJSON),
     errors: json['errors'] == null ? undefined : (json['errors'] as Array<any>).map(WorkflowErrorFromJSON),
-    literatureReview: json['literature_review'] == null ? undefined : json['literature_review'],
+    literatureReview:
+      json['literature_review'] == null ? undefined : LiteratureReviewResponseInputFromJSON(json['literature_review']),
     documentPublicationDate:
       json['document_publication_date'] == null ? undefined : new Date(json['document_publication_date']),
     mainDocumentSummary:
@@ -194,7 +202,7 @@ export function ClaimSubstantiatorStateInputToJSONTyped(
       value['references'] == null ? undefined : (value['references'] as Array<any>).map(BibliographyItemToJSON),
     chunks: value['chunks'] == null ? undefined : (value['chunks'] as Array<any>).map(DocumentChunkInputToJSON),
     errors: value['errors'] == null ? undefined : (value['errors'] as Array<any>).map(WorkflowErrorToJSON),
-    literature_review: value['literatureReview'],
+    literature_review: LiteratureReviewResponseInputToJSON(value['literatureReview']),
     document_publication_date:
       value['documentPublicationDate'] === null
         ? null
