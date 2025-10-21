@@ -165,7 +165,7 @@ if __name__ == "__main__":
                 citations=[
                     Citation(
                         text="(Nakamoto, 2008)",
-                        type=CitationType.BIBLIOGRAPHY,
+                        type="bibliography",
                         format="(Author, Year)",
                         needs_bibliography=True,
                         associated_bibliography="Nakamoto, S. (2008). Bitcoin: A Peer-to-Peer Electronic Cash System.",
@@ -190,8 +190,9 @@ if __name__ == "__main__":
                 session_id="test-session",
                 domain="cryptocurrency",
                 target_audience="technical",
+                document_publication_date=datetime(2023, 1, 1).date(),
+                agents_to_run=["live_reports"],
             ),
-            document_publication_date=datetime(2023, 1, 1).date(),
             references=[
                 BibliographyItem(
                     text="Nakamoto, S. (2008). Bitcoin: A Peer-to-Peer Electronic Cash System.",
