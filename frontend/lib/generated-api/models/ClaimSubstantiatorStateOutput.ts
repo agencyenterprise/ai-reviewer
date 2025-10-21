@@ -41,6 +41,13 @@ import {
   WorkflowErrorToJSON,
   WorkflowErrorToJSONTyped,
 } from './WorkflowError';
+import type { LiteratureReviewResponseOutput } from './LiteratureReviewResponseOutput';
+import {
+  LiteratureReviewResponseOutputFromJSON,
+  LiteratureReviewResponseOutputFromJSONTyped,
+  LiteratureReviewResponseOutputToJSON,
+  LiteratureReviewResponseOutputToJSONTyped,
+} from './LiteratureReviewResponseOutput';
 import type { SubstantiationWorkflowConfig } from './SubstantiationWorkflowConfig';
 import {
   SubstantiationWorkflowConfigFromJSON,
@@ -106,10 +113,10 @@ export interface ClaimSubstantiatorStateOutput {
   errors?: Array<WorkflowError>;
   /**
    *
-   * @type {string}
+   * @type {LiteratureReviewResponseOutput}
    * @memberof ClaimSubstantiatorStateOutput
    */
-  literatureReview?: string | null;
+  literatureReview?: LiteratureReviewResponseOutput | null;
   /**
    *
    * @type {DocumentSummary}
@@ -160,7 +167,8 @@ export function ClaimSubstantiatorStateOutputFromJSONTyped(
       json['references'] == null ? undefined : (json['references'] as Array<any>).map(BibliographyItemFromJSON),
     chunks: json['chunks'] == null ? undefined : (json['chunks'] as Array<any>).map(DocumentChunkOutputFromJSON),
     errors: json['errors'] == null ? undefined : (json['errors'] as Array<any>).map(WorkflowErrorFromJSON),
-    literatureReview: json['literature_review'] == null ? undefined : json['literature_review'],
+    literatureReview:
+      json['literature_review'] == null ? undefined : LiteratureReviewResponseOutputFromJSON(json['literature_review']),
     mainDocumentSummary:
       json['main_document_summary'] == null ? undefined : DocumentSummaryFromJSON(json['main_document_summary']),
     supportingDocumentsSummaries:
@@ -193,7 +201,7 @@ export function ClaimSubstantiatorStateOutputToJSONTyped(
       value['references'] == null ? undefined : (value['references'] as Array<any>).map(BibliographyItemToJSON),
     chunks: value['chunks'] == null ? undefined : (value['chunks'] as Array<any>).map(DocumentChunkOutputToJSON),
     errors: value['errors'] == null ? undefined : (value['errors'] as Array<any>).map(WorkflowErrorToJSON),
-    literature_review: value['literatureReview'],
+    literature_review: LiteratureReviewResponseOutputToJSON(value['literatureReview']),
     main_document_summary: DocumentSummaryToJSON(value['mainDocumentSummary']),
     supporting_documents_summaries:
       value['supportingDocumentsSummaries'] == null

@@ -14,6 +14,7 @@ from lib.agents.toulmin_claim_extractor import ToulminClaimResponse
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.claim_verifier import ClaimSubstantiationResultWithClaimIndex
 from lib.agents.document_summarizer import DocumentSummary
+from lib.agents.literature_review import LiteratureReviewResponse
 from lib.services.file import FileDocument
 from lib.agents.models import ChunkWithIndex
 from lib.workflows.models import WorkflowError
@@ -159,7 +160,7 @@ class ClaimSubstantiatorState(BaseModel):
         default_factory=list,
         description="Errors that occurred during the processing of the document.",
     )
-    literature_review: Optional[str] = None
+    literature_review: Optional[LiteratureReviewResponse] = None
     main_document_summary: Optional[DocumentSummary] = Field(
         default=None, description="The summary of the main document"
     )
