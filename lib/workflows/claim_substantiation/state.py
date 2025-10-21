@@ -66,7 +66,9 @@ class DocumentChunk(ChunkWithIndex):
     claim_common_knowledge_results: List[ClaimCommonKnowledgeResultWithClaimIndex] = []
     substantiations: List[ClaimSubstantiationResultWithClaimIndex] = []
     citation_suggestions: List[CitationSuggestionResultWithClaimIndex] = []
-    live_reports_analysis: Optional[List[EvidenceWeighterResponseWithClaimIndex]] = []
+    live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = Field(
+        default_factory=list
+    )
 
 
 def conciliate_chunks(
@@ -167,8 +169,8 @@ class ClaimSubstantiatorState(BaseModel):
         default=None,
         description="Dictionary mapping supporting file indices to their summaries",
     )
-    live_reports_analysis: Optional[List[EvidenceWeighterResponseWithClaimIndex]] = (
-        Field(default=list, description="Live reports analysis results by chunk index")
+    live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = Field(
+        default_factory=list, description="Live reports analysis results by chunk index"
     )
 
     def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:
