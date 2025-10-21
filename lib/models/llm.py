@@ -129,7 +129,7 @@ class OpenAIWrapper(LLMClient):
                 sleep(5)
                 self.resp = await self.client.responses.retrieve(original_resp.id)
                 logger.info(
-                    "Call id: %s => Current status: %s... Checking back in 2 seconds",
+                    "Call id: %s => Current status: %s... Checking back in 5 seconds",
                     self.resp.id,
                     self.resp.status,
                 )
