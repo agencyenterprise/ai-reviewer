@@ -34,13 +34,13 @@ import {
   EvidenceAlignmentLevelToJSON,
   EvidenceAlignmentLevelToJSONTyped,
 } from './EvidenceAlignmentLevel';
-import type { LibAgentsEvidenceWeighterRecommendedAction } from './LibAgentsEvidenceWeighterRecommendedAction';
+import type { EvidenceWeighterRecommendedAction } from './EvidenceWeighterRecommendedAction';
 import {
-  LibAgentsEvidenceWeighterRecommendedActionFromJSON,
-  LibAgentsEvidenceWeighterRecommendedActionFromJSONTyped,
-  LibAgentsEvidenceWeighterRecommendedActionToJSON,
-  LibAgentsEvidenceWeighterRecommendedActionToJSONTyped,
-} from './LibAgentsEvidenceWeighterRecommendedAction';
+  EvidenceWeighterRecommendedActionFromJSON,
+  EvidenceWeighterRecommendedActionFromJSONTyped,
+  EvidenceWeighterRecommendedActionToJSON,
+  EvidenceWeighterRecommendedActionToJSONTyped,
+} from './EvidenceWeighterRecommendedAction';
 
 /**
  *
@@ -62,10 +62,10 @@ export interface EvidenceWeighterResponseWithClaimIndexInput {
   newerReferencesAlignment: EvidenceAlignmentLevel;
   /**
    * Recommended action for the claim: update_claim, add_citation, or no_change
-   * @type {LibAgentsEvidenceWeighterRecommendedAction}
+   * @type {EvidenceWeighterRecommendedAction}
    * @memberof EvidenceWeighterResponseWithClaimIndexInput
    */
-  claimUpdateAction: LibAgentsEvidenceWeighterRecommendedAction;
+  claimUpdateAction: EvidenceWeighterRecommendedAction;
   /**
    * Explanation of the claim update
    * @type {string}
@@ -124,7 +124,7 @@ export function EvidenceWeighterResponseWithClaimIndexInputFromJSONTyped(
   return {
     newerReferences: (json['newer_references'] as Array<any>).map(ClaimReferenceFactorsFromJSON),
     newerReferencesAlignment: EvidenceAlignmentLevelFromJSON(json['newer_references_alignment']),
-    claimUpdateAction: LibAgentsEvidenceWeighterRecommendedActionFromJSON(json['claim_update_action']),
+    claimUpdateAction: EvidenceWeighterRecommendedActionFromJSON(json['claim_update_action']),
     rationale: json['rationale'],
     confidenceLevel: QualityLevelFromJSON(json['confidence_level']),
     chunkIndex: json['chunk_index'],
@@ -149,7 +149,7 @@ export function EvidenceWeighterResponseWithClaimIndexInputToJSONTyped(
   return {
     newer_references: (value['newerReferences'] as Array<any>).map(ClaimReferenceFactorsToJSON),
     newer_references_alignment: EvidenceAlignmentLevelToJSON(value['newerReferencesAlignment']),
-    claim_update_action: LibAgentsEvidenceWeighterRecommendedActionToJSON(value['claimUpdateAction']),
+    claim_update_action: EvidenceWeighterRecommendedActionToJSON(value['claimUpdateAction']),
     rationale: value['rationale'],
     confidence_level: QualityLevelToJSON(value['confidenceLevel']),
     chunk_index: value['chunkIndex'],

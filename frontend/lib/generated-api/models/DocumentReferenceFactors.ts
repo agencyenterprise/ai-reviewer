@@ -34,13 +34,6 @@ import {
   PoliticalBiasToJSON,
   PoliticalBiasToJSONTyped,
 } from './PoliticalBias';
-import type { LibAgentsLiteratureReviewRecommendedAction } from './LibAgentsLiteratureReviewRecommendedAction';
-import {
-  LibAgentsLiteratureReviewRecommendedActionFromJSON,
-  LibAgentsLiteratureReviewRecommendedActionFromJSONTyped,
-  LibAgentsLiteratureReviewRecommendedActionToJSON,
-  LibAgentsLiteratureReviewRecommendedActionToJSONTyped,
-} from './LibAgentsLiteratureReviewRecommendedAction';
 import type { ReferenceType } from './ReferenceType';
 import {
   ReferenceTypeFromJSON,
@@ -129,10 +122,10 @@ export interface DocumentReferenceFactors {
   mainDocumentExcerpt: string;
   /**
    * What action to take (e.g., add_new_citation, cite_existing_reference_in_new_place, replace_existing_reference, discuss_reference, no_action, other)
-   * @type {LibAgentsLiteratureReviewRecommendedAction}
+   * @type {string}
    * @memberof DocumentReferenceFactors
    */
-  recommendedAction: LibAgentsLiteratureReviewRecommendedAction;
+  recommendedAction: string;
   /**
    * How to implement the recommended action
    * @type {string}
@@ -186,7 +179,7 @@ export function DocumentReferenceFactorsFromJSONTyped(
     politicalBias: PoliticalBiasFromJSON(json['political_bias']),
     rationale: json['rationale'],
     mainDocumentExcerpt: json['main_document_excerpt'],
-    recommendedAction: LibAgentsLiteratureReviewRecommendedActionFromJSON(json['recommended_action']),
+    recommendedAction: json['recommended_action'],
     explanationForRecommendedAction: json['explanation_for_recommended_action'],
   };
 }
@@ -216,7 +209,7 @@ export function DocumentReferenceFactorsToJSONTyped(
     political_bias: PoliticalBiasToJSON(value['politicalBias']),
     rationale: value['rationale'],
     main_document_excerpt: value['mainDocumentExcerpt'],
-    recommended_action: LibAgentsLiteratureReviewRecommendedActionToJSON(value['recommendedAction']),
+    recommended_action: value['recommendedAction'],
     explanation_for_recommended_action: value['explanationForRecommendedAction'],
   };
 }
