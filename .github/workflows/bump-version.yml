@@ -1,0 +1,31 @@
+name: Bump Version
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump version and push tag
+        uses: phips28/gh-action-bump-version@master
+        with:
+          tag-prefix: 'v'
+          default: patch
+          minor-wording: 'minor'
+          major-wording: 'major'
+          patch-wording: 'patch'
+          commit-message: 'chore: bump version to {{version}}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          packagejson_dir: 'frontend'
+
