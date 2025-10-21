@@ -7,6 +7,15 @@ from lib.models.agent import Agent
 from lib.agents.citation_suggester import RecommendedAction
 
 
+class LitRecommendedAction(str, Enum):
+    ADD_NEW_CITATION = "add_new_citation"
+    CITE_EXISTING_REFERENCE_IN_NEW_PLACE = "cite_existing_reference_in_new_place"
+    REPLACE_EXISTING_REFERENCE = "replace_existing_reference"
+    DISCUSS_REFERENCE = "discuss_reference"
+    NO_ACTION = "no_action"
+    OTHER = "other"
+
+
 class ReferenceType(str, Enum):
     # Academic publications that have undergone formal peer review
     PEER_REVIEWED_PUBLICATION = "peer_reviewed_publication"
@@ -79,7 +88,7 @@ class DocumentReferenceFactors(BaseModel):
         description="Relevant excerpt from the main document that relates to this reference"
     )
     recommended_action: str = Field(
-        description=f"What action to take ({', '.join([e.value for e in RecommendedAction])}"
+        description=f"What action to take ({', '.join([e.value for e in LitRecommendedAction])}"
     )
     explanation_for_recommended_action: str = Field(
         description="How to implement the recommended action"
