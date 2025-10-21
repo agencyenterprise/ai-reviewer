@@ -6,6 +6,7 @@ from lib.agents.live_literature_review import (
 )
 from lib.agents.evidence_weighter import (
     evidence_weighter_agent,
+    EvidenceWeighterResponse,
     EvidenceWeighterResponseWithClaimIndex,
 )
 from lib.workflows.claim_substantiation.state import (
@@ -80,7 +81,7 @@ async def _analyze_chunk_live_reports(
             )
 
             # Step 2: Analyze evidence strength and direction and update recommendations
-            live_reports_analysis_result: EvidenceWeighterResponseWithClaimIndex = (
+            live_reports_analysis_result: EvidenceWeighterResponse = (
                 await evidence_weighter_agent.apply(
                     {
                         "full_document": state.file.markdown,
@@ -100,10 +101,11 @@ async def _analyze_chunk_live_reports(
             )
 
             live_reports_analysis_results.append(
-                {
-                    "claim_index": claim_index,
-                    "live_reports_analysis": live_reports_analysis_result.model_dump(),
-                }
+                EvidenceWeighterResponseWithClaimIndex(
+                    chunk_index=chunk.chunk_index,
+                    claim_index=claim_index,
+                    **live_reports_analysis_result.model_dump(),
+                )
             )
 
         except Exception as e:
@@ -113,9 +115,6 @@ async def _analyze_chunk_live_reports(
             )
             # Continue processing other claims even if one fails
             continue
-
-    logger.info("Live Reports Analysis Results:")
-    logger.info(live_reports_analysis_results)
 
     return chunk.model_copy(
         update={
