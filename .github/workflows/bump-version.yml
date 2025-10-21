@@ -25,7 +25,7 @@ jobs:
           major-wording: 'major'
           patch-wording: 'patch'
           commit-message: 'chore: bump version to {{version}}'
+          packagejson-dir: 'frontend'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          packagejson_dir: 'frontend'
 
