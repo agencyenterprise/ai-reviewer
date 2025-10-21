@@ -101,5 +101,7 @@ export function ReferenceTypeBadge({ type, className }: BadgeProps & { type: Ref
     }
   };
 
-  return <span className={`px-2 py-1 rounded text-xs ${getClasses(type)} ${className || ''}`}>{type}</span>;
+  return (
+    <span className={`px-2 py-1 rounded text-xs ${getClasses(type)} ${className || ''}`}>{toTitleCase(type)}</span>
+  );
 }

@@ -1,13 +1,10 @@
 import { ChunkReevaluationResponse, ClaimSubstantiatorStateOutput } from '@/lib/generated-api';
 import { ChunkAnalysisCard } from './chunk-analysis-card';
+import { ChunkEvalGenerator } from './chunk-eval-generator';
+import { ChunkReevaluateControl } from './chunk-reevaluate-control';
+import { ChunkStatusBadge, useShouldShowStatusBadge } from './chunk-status-badge';
 import { ClaimAnalysisCard } from './claim-analysis-card';
 import { ErrorsCard } from './errors-card';
-import { ChunkReevaluateControl } from './chunk-reevaluate-control';
-import { ChunkEvalGenerator } from './chunk-eval-generator';
-import { ChunkCitationSuggestions } from '../tabs/chunk-citation-suggestions';
-import { useMemo } from 'react';
-import { scoreSuggestion } from '@/lib/reference-scoring';
-import { ChunkStatusBadge, useShouldShowStatusBadge } from './chunk-status-badge';
 
 export interface ChunkSidebarContentProps {
   results: ClaimSubstantiatorStateOutput;
@@ -30,11 +27,7 @@ export function ChunkSidebarContent({
   const substantiations = chunk?.substantiations || [];
   const supportingFiles = results.supportingFiles || [];
   const shouldShowStatusBadge = useShouldShowStatusBadge(isWorkflowRunning);
-
-  const sortedCitationSuggestions = useMemo(() => {
-    const suggestions = chunk?.citationSuggestions || [];
-    return [...suggestions].sort((a, b) => scoreSuggestion(b) - scoreSuggestion(a));
-  }, [chunk?.citationSuggestions]);
+  const citationSuggestions = chunk?.citationSuggestions || [];
 
   if (!chunk) {
     return null;
@@ -53,6 +46,7 @@ export function ChunkSidebarContent({
             claim={claim}
             commonKnowledgeResult={claimCommonKnowledgeResults.find((c) => c.claimIndex === index)}
             substantiation={substantiations.find((s) => s.claimIndex === index)}
+            citationSuggestion={citationSuggestions.find((c) => c.claimIndex === index)}
             claimIndex={index}
             totalClaims={claims.length}
             references={references}
@@ -62,8 +56,6 @@ export function ChunkSidebarContent({
       </div>
 
       <ChunkAnalysisCard chunk={chunk} references={references} supportingFiles={supportingFiles} />
-
-      <ChunkCitationSuggestions suggestions={sortedCitationSuggestions} references={references} />
 
       <ChunkReevaluateControl
         chunkIndex={chunk.chunkIndex}

@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { EvidenceAlignmentLevelBadge } from './evidence-alignment-level-badge';
 import Link from 'next/link';
 import { apiUrl } from '@/lib/api';
+import { LabeledValue } from '@/components/labeled-value';
 
 interface SubstantiationResultsProps {
   substantiation: ClaimSubstantiationResultWithClaimIndex;
@@ -58,15 +59,9 @@ export function SubstantiationResults({
 
       {isExpanded && (
         <div className="space-y-2">
-          <p>
-            <span className="font-medium">Evidence Alignment:</span> {substantiation.evidenceAlignment}
-          </p>
-          <p>
-            <span className="font-medium">Rationale:</span> {substantiation.rationale}
-          </p>
-          <p>
-            <span className="font-medium">Feedback to resolve:</span> {substantiation.feedback}
-          </p>
+          <LabeledValue label="Evidence Alignment">{substantiation.evidenceAlignment}</LabeledValue>
+          <LabeledValue label="Rationale">{substantiation.rationale}</LabeledValue>
+          <LabeledValue label="Feedback to resolve">{substantiation.feedback}</LabeledValue>
           <h4 className="font-medium">Evidence sources:</h4>
           {substantiation.evidenceSources.length === 0 && (
             <p className="text-muted-foreground">No evidence sources found.</p>
@@ -78,12 +73,11 @@ export function SubstantiationResults({
             const matchedFile = supportingFiles.find((file) => file.fileName === source.referenceFileName);
 
             return (
-              <div key={index} className="bg-muted p-3 rounded-md leading-relaxed space-y-1">
+              <div key={index} className="bg-muted p-3 rounded-md space-y-1">
                 <p className="font-medium">
                   Source {index + 1} of {substantiation.evidenceSources.length}
                 </p>
-                <p>
-                  <span className="font-medium">Reference:</span>{' '}
+                <LabeledValue label="Reference">
                   <Link
                     href={`${apiUrl}/api/files/download/${matchedFile?.filePath.split('/').pop()}/${matchedFile?.fileName}`}
                     target="_blank"
@@ -92,13 +86,9 @@ export function SubstantiationResults({
                     {source.referenceFileName}
                   </Link>{' '}
                   <span className="text-muted-foreground"> - {matchedReference?.text}</span>
-                </p>
-                <p>
-                  <span className="font-medium">Location:</span> {source.location}
-                </p>
-                <p>
-                  <span className="font-medium">Quote:</span> <span className="italic">&quot;{source.quote}&quot;</span>
-                </p>
+                </LabeledValue>
+                <LabeledValue label="Location">{source.location}</LabeledValue>
+                <LabeledValue label="Quote">&quot;{source.quote}&quot;</LabeledValue>
               </div>
             );
           })}

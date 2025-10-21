@@ -1,5 +1,6 @@
 'use client';
 
+import { LabeledValue } from '@/components/labeled-value';
 import { Button } from '@/components/ui/button';
 import { ToulminClaim } from '@/lib/generated-api/models/ToulminClaim';
 import { cn } from '@/lib/utils';
@@ -43,23 +44,14 @@ export function ToulminClaimAccordion({ claim, className }: ToulminClaimAccordio
       </div>
 
       {isExpanded && (
-        <div className="space-y-3">
-          <p>
-            <span className="font-medium">Extracted Claim:</span> {claim.claim}
-          </p>
-
-          <p>
-            <span className="font-medium">Related text:</span> {claim.text}
-          </p>
-
-          <p>
-            <span className="font-medium">Rationale:</span> {claim.rationale}
-          </p>
+        <div className="space-y-2">
+          <LabeledValue label="Extracted Claim">{claim.claim}</LabeledValue>
+          <LabeledValue label="Related text">{claim.text}</LabeledValue>
+          <LabeledValue label="Rationale">{claim.rationale}</LabeledValue>
 
           <h4 className="font-medium text-base">Toulmin Elements</h4>
           <div className="space-y-2">
-            <div>
-              <span className="font-medium">Data:</span>{' '}
+            <LabeledValue label="Data">
               {claim.data && claim.data.length > 0 ? (
                 <ul className="list-disc pl-5">
                   {claim.data.map((data) => (
@@ -69,9 +61,8 @@ export function ToulminClaimAccordion({ claim, className }: ToulminClaimAccordio
               ) : (
                 <span className="text-muted-foreground">None</span>
               )}
-            </div>
-            <div>
-              <span className="font-medium">Warrants:</span>{' '}
+            </LabeledValue>
+            <LabeledValue label="Warrants">
               {claim.warrants && claim.warrants.length > 0 ? (
                 <ul className="list-disc pl-5">
                   {claim.warrants.map((warrant) => (
@@ -81,9 +72,8 @@ export function ToulminClaimAccordion({ claim, className }: ToulminClaimAccordio
               ) : (
                 <span className="text-muted-foreground">None</span>
               )}
-            </div>
-            <div>
-              <span className="font-medium">Qualifiers:</span>{' '}
+            </LabeledValue>
+            <LabeledValue label="Qualifiers">
               {claim.qualifiers && claim.qualifiers.length > 0 ? (
                 <ul className="list-disc pl-5">
                   {claim.qualifiers.map((qualifier) => (
@@ -93,9 +83,8 @@ export function ToulminClaimAccordion({ claim, className }: ToulminClaimAccordio
               ) : (
                 <span className="text-muted-foreground">None</span>
               )}
-            </div>
-            <div>
-              <span className="font-medium">Rebuttals:</span>{' '}
+            </LabeledValue>
+            <LabeledValue label="Rebuttals">
               {claim.rebuttals && claim.rebuttals.length > 0 ? (
                 <ul className="list-disc pl-5">
                   {claim.rebuttals.map((rebuttal) => (
@@ -105,9 +94,8 @@ export function ToulminClaimAccordion({ claim, className }: ToulminClaimAccordio
               ) : (
                 <span className="text-muted-foreground">None</span>
               )}
-            </div>
-            <div>
-              <span className="font-medium">Backing:</span>{' '}
+            </LabeledValue>
+            <LabeledValue label="Backing">
               {claim.backing && claim.backing.length > 0 ? (
                 <ul className="list-disc pl-5">
                   {claim.backing.map((backing) => (
@@ -117,15 +105,14 @@ export function ToulminClaimAccordion({ claim, className }: ToulminClaimAccordio
               ) : (
                 <span className="text-muted-foreground">None</span>
               )}
-            </div>
-            <div>
-              <span className="font-medium">Warrant Expression:</span>{' '}
+            </LabeledValue>
+            <LabeledValue label="Warrant Expression">
               {claim.warrantExpression ? (
                 <span>{claim.warrantExpression}</span>
               ) : (
                 <span className="text-muted-foreground">None</span>
               )}
-            </div>
+            </LabeledValue>
           </div>
         </div>
       )}
