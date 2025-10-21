@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 
 from lib.config.llm import models
 from lib.models import Agent
+from lib.agents.models import ClaimCategory
 
 
 class Claim(BaseModel):
@@ -12,6 +13,17 @@ class Claim(BaseModel):
     claim: str = Field(description="The claim made in the text")
     rationale: str = Field(
         description="The rationale for why you think the chunk of text implies this claim"
+    )
+
+    # new, all optional to avoid breaking callers
+    claim_category: ClaimCategory | None = Field(
+        default=None, description="Assigned category for the claim"
+    )
+    categorization_rationale: str | None = Field(
+        default=None, description="Why this category was assigned"
+    )
+    needs_external_verification: bool | None = Field(
+        default=None, description="Whether the claim needs external verification"
     )
 
 
