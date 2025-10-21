@@ -27,6 +27,13 @@ import {
   FileDocumentToJSON,
   FileDocumentToJSONTyped,
 } from './FileDocument';
+import type { EvidenceWeighterResponseWithClaimIndexOutput } from './EvidenceWeighterResponseWithClaimIndexOutput';
+import {
+  EvidenceWeighterResponseWithClaimIndexOutputFromJSON,
+  EvidenceWeighterResponseWithClaimIndexOutputFromJSONTyped,
+  EvidenceWeighterResponseWithClaimIndexOutputToJSON,
+  EvidenceWeighterResponseWithClaimIndexOutputToJSONTyped,
+} from './EvidenceWeighterResponseWithClaimIndexOutput';
 import type { BibliographyItem } from './BibliographyItem';
 import {
   BibliographyItemFromJSON,
@@ -130,11 +137,11 @@ export interface ClaimSubstantiatorStateOutput {
    */
   supportingDocumentsSummaries?: { [key: string]: DocumentSummary } | null;
   /**
-   *
-   * @type {{ [key: string]: { [key: string]: any; }; }}
+   * Live reports analysis results by chunk index
+   * @type {Array<EvidenceWeighterResponseWithClaimIndexOutput>}
    * @memberof ClaimSubstantiatorStateOutput
    */
-  liveReportsAnalysis?: { [key: string]: { [key: string]: any } } | null;
+  liveReportsAnalysis?: Array<EvidenceWeighterResponseWithClaimIndexOutput>;
 }
 
 /**
@@ -175,7 +182,10 @@ export function ClaimSubstantiatorStateOutputFromJSONTyped(
       json['supporting_documents_summaries'] == null
         ? undefined
         : mapValues(json['supporting_documents_summaries'], DocumentSummaryFromJSON),
-    liveReportsAnalysis: json['live_reports_analysis'] == null ? undefined : json['live_reports_analysis'],
+    liveReportsAnalysis:
+      json['live_reports_analysis'] == null
+        ? undefined
+        : (json['live_reports_analysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexOutputFromJSON),
   };
 }
 
@@ -207,6 +217,9 @@ export function ClaimSubstantiatorStateOutputToJSONTyped(
       value['supportingDocumentsSummaries'] == null
         ? undefined
         : mapValues(value['supportingDocumentsSummaries'], DocumentSummaryToJSON),
-    live_reports_analysis: value['liveReportsAnalysis'],
+    live_reports_analysis:
+      value['liveReportsAnalysis'] == null
+        ? undefined
+        : (value['liveReportsAnalysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexOutputToJSON),
   };
 }
