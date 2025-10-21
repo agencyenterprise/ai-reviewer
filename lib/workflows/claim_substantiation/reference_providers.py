@@ -31,7 +31,15 @@ from lib.workflows.claim_substantiation.state import (
 
 logger = logging.getLogger(__name__)
 
-MAX_REFERENCE_CHARACTER_COUNT = 100000
+# Citation-based reference provider settings
+MAX_REFERENCE_CHARACTER_COUNT = 100000  # Max characters from full documents
+
+# RAG reference provider settings
+MAX_DISTANCE_THRESHOLD = (
+    0.35  # Max cosine distance for passage relevance (0-1 scale, lower = more similar)
+)
+MAX_QUERY_LENGTH = 3000  # Max characters in enriched query
+MAX_BACKING_ITEM_LENGTH = 600  # Max characters per backing item to include in query
 
 
 class ReferenceContext(BaseModel):
@@ -134,7 +142,12 @@ class RAGReferenceProvider:
         claim: Claim,
         claim_index: int,
     ) -> ReferenceContext:
-        """Get references via RAG retrieval."""
+        """
+        Get references via RAG retrieval.
+
+        Retrieves relevant passages from ALL supporting documents and lets the
+        claim verifier LLM determine if they support/don't support the claim.
+        """
         if not state.supporting_files:
             logger.warning(
                 f"No supporting files for RAG retrieval on claim {claim_index}"
@@ -144,9 +157,13 @@ class RAGReferenceProvider:
         try:
             vector_store = get_vector_store_service()
 
+            query = self._build_enriched_query(chunk, claim)
+
+            logger.debug(f"RAG query for claim {claim_index}: '{query}.'")
+
             retrieval_tasks = [
                 vector_store.retrieve_relevant_passages(
-                    query=claim.claim,
+                    query=query,
                     collection_id=get_collection_id(
                         get_file_hash_from_path(file_doc.file_path)
                     ),
@@ -157,13 +174,24 @@ class RAGReferenceProvider:
             results = await asyncio.gather(*retrieval_tasks)
             all_passages = [passage for passages in results for passage in passages]
 
-            all_passages.sort(key=lambda p: p.similarity_score, reverse=True)
-            top_passages = all_passages[:RAG_TOP_K]
+            all_passages.sort(key=lambda p: p.similarity_score, reverse=False)
 
-            logger.debug(
-                f"Retrieved {len(top_passages)} passages from {len(state.supporting_files)} files "
-                f"for claim {claim_index}"
+            quality_passages = [
+                p for p in all_passages if p.similarity_score <= MAX_DISTANCE_THRESHOLD
+            ]
+            top_passages = quality_passages[:RAG_TOP_K]
+
+            logger.info(
+                f"Retrieved {len(top_passages)} passages for claim {claim_index} "
+                f"from {len(state.supporting_files)} files "
+                f"({len(all_passages)} total passages, {len(quality_passages)} below threshold)"
             )
+
+            if top_passages:
+                logger.debug(
+                    f"Top passage: {top_passages[0].source_file} "
+                    f"(distance: {top_passages[0].similarity_score:.3f})"
+                )
 
             cited_references = format_retrieved_passages(top_passages)
 
@@ -189,3 +217,29 @@ class RAGReferenceProvider:
                 exc_info=True,
             )
             return ReferenceContext(cited_references="", cited_references_paragraph="")
+
+    def _build_enriched_query(self, chunk: DocumentChunk, claim: Claim) -> str:
+        """
+        Build an enriched query by combining the claim with citation and backing context.
+        This helps the embedding model match the right document by adding author names
+        and key contextual information.
+        Handles both regular Claim and ToulminClaim.
+        """
+        query_parts = [claim.claim]
+
+        if chunk.citations and chunk.citations.citations:
+            citation_texts = [c.text for c in chunk.citations.citations]
+            query_parts.extend(citation_texts)
+
+        if hasattr(claim, "backing") and claim.backing:
+            backing_texts = [
+                b for b in claim.backing if len(b) < MAX_BACKING_ITEM_LENGTH
+            ]
+            query_parts.extend(backing_texts)
+
+        enriched_query = " ".join(query_parts)
+
+        if len(enriched_query) > MAX_QUERY_LENGTH:
+            enriched_query = enriched_query[:MAX_QUERY_LENGTH]
+
+        return enriched_query

@@ -12,12 +12,12 @@ from lib.config.env import config
 
 logger = logging.getLogger(__name__)
 
-# Top k to retrieve the most relevant passages
-RAG_TOP_K = 15
+# RAG retrieval settings
+RAG_TOP_K = 30  # Number of passages to retrieve per query
 
-# Chunk size and overlap based on character count of the document
-RAG_CHUNK_SIZE = 2000
-RAG_CHUNK_OVERLAP = 400
+# RAG chunking settings (all in characters)
+RAG_CHUNK_SIZE = 2000  # Characters per chunk when indexing documents
+RAG_CHUNK_OVERLAP = 400  # Character overlap between adjacent chunks
 
 
 class RetrievedPassage(BaseModel):
@@ -63,22 +63,34 @@ class VectorStoreService:
         else:
             async_url = connection_string
 
-        async_engine = create_async_engine(async_url)
-        self.vectorstore = PGVector(
-            connection=async_engine,
-            embeddings=self.embeddings,
-            collection_name="document_passages",
-            use_jsonb=True,
-        )
+        self.async_engine = create_async_engine(async_url)
+        self._vectorstore_cache: dict[str, PGVector] = {}
+
         logger.info("VectorStore initialized with async engine")
+
+    def _get_vectorstore(self, collection_id: str) -> PGVector:
+        """
+        Get or create a PGVector instance for a specific collection.
+        Each document gets its own collection for efficient retrieval.
+        """
+        if collection_id not in self._vectorstore_cache:
+            self._vectorstore_cache[collection_id] = PGVector(
+                connection=self.async_engine,
+                embeddings=self.embeddings,
+                collection_name=collection_id,  # Each document has its own collection
+                use_jsonb=True,
+            )
+            logger.debug(f"Created PGVector instance for collection: {collection_id}")
+
+        return self._vectorstore_cache[collection_id]
 
     async def collection_exists(self, collection_id: str) -> bool:
         """Check if collection already indexed."""
         try:
-            results = await self.vectorstore.asimilarity_search(
+            vectorstore = self._get_vectorstore(collection_id)
+            results = await vectorstore.asimilarity_search(
                 query="test",
                 k=1,
-                filter={"collection_id": collection_id},
             )
             return len(results) > 0
         except Exception:
@@ -111,9 +123,12 @@ class VectorStoreService:
                 doc.metadata["file_name"] = file_name
                 doc.metadata["collection_id"] = collection_id
 
-            await self.vectorstore.aadd_documents(docs)
+            vectorstore = self._get_vectorstore(collection_id)
+            await vectorstore.aadd_documents(docs)
 
-            logger.info(f"Indexed {len(docs)} chunks for {file_name}")
+            logger.info(
+                f"Indexed {len(docs)} chunks for {file_name} in collection {collection_id}"
+            )
             return len(docs)
 
         except Exception as e:
@@ -124,12 +139,18 @@ class VectorStoreService:
         self, query: str, collection_id: str, top_k: int = RAG_TOP_K
     ) -> List[RetrievedPassage]:
         """
-        Retrieve most relevant passages for query.
+        Retrieve most relevant passages for query from a SPECIFIC collection.
+        Each document has its own collection, so no filtering needed.
         Returns empty list on failure for graceful degradation.
         """
         try:
-            results = await self.vectorstore.asimilarity_search_with_score(
-                query, k=top_k, filter={"collection_id": collection_id}
+            vectorstore = self._get_vectorstore(collection_id)
+
+            results = await vectorstore.asimilarity_search_with_score(query, k=top_k)
+
+            logger.info(
+                f"Retrieved {len(results)} passages from collection {collection_id} "
+                f"for query: '{query}.'"
             )
 
             passages = []
