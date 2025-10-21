@@ -144,15 +144,7 @@ async def delete_workflow_run(workflow_run_id: str) -> None:
 
     try:
         async with get_checkpointer() as checkpointer:
-            async with checkpointer.conn.cursor() as cur:
-                await cur.execute(
-                    "DELETE FROM checkpoints WHERE thread_id = %s",
-                    (thread_id,),
-                )
-                await cur.execute(
-                    "DELETE FROM checkpoint_writes WHERE thread_id = %s",
-                    (thread_id,),
-                )
+            await checkpointer.adelete_thread(thread_id)
     except Exception as e:
         logger.error(f"Error deleting checkpoints for thread {thread_id}: {e}")
         raise HTTPException(
