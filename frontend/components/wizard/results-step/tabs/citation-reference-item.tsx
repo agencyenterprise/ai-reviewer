@@ -1,10 +1,10 @@
-import * as React from 'react';
-import { FileIcon } from 'lucide-react';
-import { ChunkItem } from '../components/chunk-display';
-import { Reference, BibliographyItem } from '@/lib/generated-api';
+import { LabeledValue } from '@/components/labeled-value';
+import { apiUrl } from '@/lib/api';
+import { BibliographyItem, FileDocument, Reference } from '@/lib/generated-api';
+import Link from 'next/link';
 import {
-  PublicationQualityBadge,
   ConfidenceBadge,
+  PublicationQualityBadge,
   RecommendedActionBadge,
   ReferenceTypeBadge,
 } from '../components/citation-suggestion-badges';
@@ -12,100 +12,63 @@ import {
 interface CitationReferenceItemProps {
   reference: Reference;
   references: BibliographyItem[];
+  supportingFiles: FileDocument[];
 }
 
-export function CitationReferenceItem({ reference, references }: CitationReferenceItemProps) {
+export function CitationReferenceItem({ reference, references, supportingFiles }: CitationReferenceItemProps) {
+  const associatedExistingReference =
+    reference.indexOfAssociatedExistingReference !== -1
+      ? references[reference.indexOfAssociatedExistingReference - 1]
+      : null;
+
+  const associatedSupportingFile = associatedExistingReference
+    ? supportingFiles.find((file) => file.fileName === associatedExistingReference.nameOfAssociatedSupportingDocument)
+    : null;
+
   return (
-    <ChunkItem>
-      <div className="space-y-2">
-        <div className="flex items-start justify-between">
-          <h5 className="font-medium text-sm">{reference.title}</h5>
-          <div className="flex items-center gap-2 flex-wrap">
-            <ReferenceTypeBadge type={reference.type} />
-            {reference.isAlreadyCitedElsewhere && (
-              <span className="px-2 py-1 rounded text-xs bg-cyan-100 text-cyan-800">Already cited</span>
-            )}
-            <RecommendedActionBadge action={reference.recommendedAction} />
-            <ConfidenceBadge confidence={reference.confidenceInRecommendation} />
-            <PublicationQualityBadge quality={reference.publicationQuality} />
-          </div>
-        </div>
-
-        <div className="text-xs text-muted-foreground">
-          <p>
-            <strong>Link:</strong>{' '}
-            <a
-              href={reference.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
-            >
-              {reference.link}
-            </a>
-          </p>
-        </div>
-
-        {reference.indexOfAssociatedExistingReference !== -1 && (
-          <div className="text-xs">
-            <p>
-              <strong>Existing Bibliography Reference (#{reference.indexOfAssociatedExistingReference}):</strong>
-            </p>
-            {references[reference.indexOfAssociatedExistingReference - 1] ? (
-              <div className="bg-amber-50 border border-amber-200 rounded p-2 mt-1 space-y-1">
-                <p className="text-muted-foreground italic">
-                  {references[reference.indexOfAssociatedExistingReference - 1].text}
-                </p>
-                {references[reference.indexOfAssociatedExistingReference - 1].hasAssociatedSupportingDocument && (
-                  <div className="flex items-center gap-1 text-blue-600">
-                    <FileIcon className="w-3 h-3" />
-                    <span>
-                      Has supporting document:{' '}
-                      {references[reference.indexOfAssociatedExistingReference - 1].nameOfAssociatedSupportingDocument}
-                    </span>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <p className="text-red-600 text-xs">Reference not found in bibliography</p>
-            )}
-          </div>
+    <div className="space-y-1">
+      <h5 className="font-medium">{reference.title}</h5>
+      <div className="flex items-center gap-2 flex-wrap">
+        <ReferenceTypeBadge type={reference.type} />
+        {reference.isAlreadyCitedElsewhere && (
+          <span className="px-2 py-1 rounded text-xs bg-cyan-100 text-cyan-800">Already cited</span>
         )}
-
-        <div className="text-xs">
-          <p>
-            <strong>Bibliography Entry:</strong>
-          </p>
-          <p className="text-muted-foreground italic">{reference.bibliographyInfo}</p>
-        </div>
-
-        <div className="text-xs">
-          <p>
-            <strong>Related Excerpt (from our document):</strong>
-          </p>
-          <p className="text-muted-foreground">&quot;{reference.relatedExcerpt}&quot;</p>
-        </div>
-
-        <div className="text-xs">
-          <p>
-            <strong>Related Excerpt (from reference):</strong>
-          </p>
-          <p className="text-muted-foreground">&quot;{reference.relatedExcerptFromReference}&quot;</p>
-        </div>
-
-        <div className="text-xs">
-          <p>
-            <strong>Rationale:</strong>
-          </p>
-          <p className="text-muted-foreground">{reference.rationale}</p>
-        </div>
-
-        <div className="text-xs">
-          <p>
-            <strong>Recommended Action:</strong>
-          </p>
-          <p className="text-muted-foreground">{reference.explanationForRecommendedAction}</p>
-        </div>
+        <RecommendedActionBadge action={reference.recommendedAction} />
+        <ConfidenceBadge confidence={reference.confidenceInRecommendation} />
+        <PublicationQualityBadge quality={reference.publicationQuality} />
       </div>
-    </ChunkItem>
+
+      {reference.link && (
+        <p>
+          <span className="font-medium">Link:</span>{' '}
+          <a href={reference.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+            {reference.link}
+          </a>
+        </p>
+      )}
+
+      {associatedExistingReference && associatedSupportingFile && (
+        <LabeledValue label="Existing Bibliography Reference">
+          <Link
+            href={`${apiUrl}/api/files/download/${associatedSupportingFile.filePath.split('/').pop()}/${associatedSupportingFile.fileName}`}
+            target="_blank"
+            className="text-blue-600 underline"
+          >
+            {associatedSupportingFile.fileName}
+          </Link>{' '}
+          - <span className="text-muted-foreground italic">{associatedExistingReference.text}</span>
+        </LabeledValue>
+      )}
+
+      <LabeledValue label="Bibliography Entry">{reference.bibliographyInfo}</LabeledValue>
+
+      <LabeledValue label="Related Excerpt (from our document)">&quot;{reference.relatedExcerpt}&quot;</LabeledValue>
+
+      <LabeledValue label="Related Excerpt (from reference)">{reference.relatedExcerptFromReference}</LabeledValue>
+
+      <LabeledValue label="Rationale">{reference.rationale}</LabeledValue>
+
+      <LabeledValue label="Recommended Action">{reference.explanationForRecommendedAction}</LabeledValue>
+    </div>
   );
 }

@@ -9,6 +9,7 @@ import { ExpandableResultSection } from './expandable-result-section';
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { apiUrl } from '@/lib/api';
 import Link from 'next/link';
+import { LabeledValue } from '@/components/labeled-value';
 
 export interface ChunkAnalysisCardProps {
   chunk: DocumentChunk;
@@ -62,21 +63,11 @@ export function ChunkAnalysisCard({ chunk, references, supportingFiles }: ChunkA
 
               return (
                 <div key={index} className="bg-muted p-3 rounded-md space-y-1">
-                  <p>
-                    <span className="font-medium">Associated text: </span> {citation.text}
-                  </p>
-                  <p>
-                    <span className="font-medium">Format: </span> {citation.format}
-                  </p>
-                  <p>
-                    <span className="font-medium">Type: </span> {citation.type}
-                  </p>
-                  <p>
-                    <span className="font-medium">Needs bibliography: </span>{' '}
-                    {citation.needsBibliography ? 'Yes' : 'No'}
-                  </p>
-                  <p>
-                    <span className="font-medium">Associated reference file: </span>{' '}
+                  <LabeledValue label="Associated text">{citation.text}</LabeledValue>
+                  <LabeledValue label="Format">{citation.format}</LabeledValue>
+                  <LabeledValue label="Type">{citation.type}</LabeledValue>
+                  <LabeledValue label="Needs bibliography">{citation.needsBibliography ? 'Yes' : 'No'}</LabeledValue>
+                  <LabeledValue label="Associated reference file">
                     {matchedSupportingFile ? (
                       <Link
                         href={`${apiUrl}/api/files/download/${matchedSupportingFile.filePath.split('/').pop()}/${matchedSupportingFile.fileName}`}
@@ -88,13 +79,9 @@ export function ChunkAnalysisCard({ chunk, references, supportingFiles }: ChunkA
                     ) : (
                       'None'
                     )}
-                  </p>
-                  <p>
-                    <span className="font-medium">Associated bibliography: </span> {citation.associatedBibliography}
-                  </p>
-                  <p>
-                    <span className="font-medium">Rationale: </span> {citation.rationale}
-                  </p>
+                  </LabeledValue>
+                  <LabeledValue label="Associated bibliography">{citation.associatedBibliography}</LabeledValue>
+                  <LabeledValue label="Rationale">{citation.rationale}</LabeledValue>
                 </div>
               );
             })}

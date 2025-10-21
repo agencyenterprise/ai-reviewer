@@ -4,14 +4,17 @@ import { AiGeneratedLabel } from '@/components/ai-generated-label';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   BibliographyItem,
+  CitationSuggestionResultWithClaimIndexOutput,
   ClaimCommonKnowledgeResultWithClaimIndex,
   ClaimSubstantiationResultWithClaimIndex,
   FileDocument,
   ToulminClaim,
 } from '@/lib/generated-api';
+import { ClaimCitationSuggestions } from './claim-citation-suggestions';
 import { ClaimNeedsSubstantiationAccordion } from './claim-needs-substantiation-accordion';
 import { SubstantiationResults } from './substantiation-results';
 import { ToulminClaimAccordion } from './toulmin-claim-accordion';
+import { LabeledValue } from '@/components/labeled-value';
 
 export interface ClaimAnalysisCardProps {
   claim: ToulminClaim;
@@ -21,6 +24,7 @@ export interface ClaimAnalysisCardProps {
   claimIndex: number;
   totalClaims: number;
   supportingFiles: FileDocument[];
+  citationSuggestion?: CitationSuggestionResultWithClaimIndexOutput;
 }
 
 export function ClaimAnalysisCard({
@@ -31,6 +35,7 @@ export function ClaimAnalysisCard({
   supportingFiles,
   claimIndex,
   totalClaims,
+  citationSuggestion,
 }: ClaimAnalysisCardProps) {
   return (
     <Card>
@@ -44,10 +49,7 @@ export function ClaimAnalysisCard({
 
         <p className="italic text-center">&quot;{claim.text}&quot;</p>
 
-        <p>
-          <span className="font-medium">Extracted Claim: </span>
-          {claim.claim}
-        </p>
+        <LabeledValue label="Extracted Claim">{claim.claim}</LabeledValue>
 
         <div className="space-y-2">
           <ToulminClaimAccordion claim={claim} />
@@ -55,6 +57,13 @@ export function ClaimAnalysisCard({
           {substantiation && (
             <SubstantiationResults
               substantiation={substantiation}
+              references={references}
+              supportingFiles={supportingFiles}
+            />
+          )}
+          {citationSuggestion && (
+            <ClaimCitationSuggestions
+              citationSuggestion={citationSuggestion}
               references={references}
               supportingFiles={supportingFiles}
             />

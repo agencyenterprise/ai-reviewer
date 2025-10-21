@@ -1,5 +1,6 @@
 'use client';
 
+import { LabeledValue } from '@/components/labeled-value';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -56,7 +57,7 @@ export function ClaimNeedsSubstantiationAccordion({ result, className }: ClaimNe
               </Badge>
             </TooltipTrigger>
             <TooltipContent side="top" className="max-w-sm">
-              <p className="text-xs leading-relaxed">{result.rationale}</p>
+              <p className="text-xs">{result.rationale}</p>
             </TooltipContent>
           </Tooltip>
         </div>
@@ -64,12 +65,8 @@ export function ClaimNeedsSubstantiationAccordion({ result, className }: ClaimNe
 
       {isExpanded && (
         <div className="space-y-2">
-          <p className="text-sm leading-relaxed">
-            <span className="font-medium">Needs Substantiation:</span> {result.needsSubstantiation ? 'Yes' : 'No'}
-          </p>
-          <p className="text-sm leading-relaxed">
-            <span className="font-medium">Rationale:</span> {result.rationale}
-          </p>
+          <LabeledValue label="Needs Substantiation">{result.needsSubstantiation ? 'Yes' : 'No'}</LabeledValue>
+          <LabeledValue label="Rationale">{result.rationale}</LabeledValue>
         </div>
       )}
     </div>
