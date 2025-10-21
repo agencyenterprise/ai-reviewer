@@ -29,6 +29,13 @@ import {
 } from './ClaimCommonKnowledgeResultWithClaimIndex';
 import type { Claims } from './Claims';
 import { ClaimsFromJSON, ClaimsFromJSONTyped, ClaimsToJSON, ClaimsToJSONTyped } from './Claims';
+import type { EvidenceWeighterResponseWithClaimIndexOutput } from './EvidenceWeighterResponseWithClaimIndexOutput';
+import {
+  EvidenceWeighterResponseWithClaimIndexOutputFromJSON,
+  EvidenceWeighterResponseWithClaimIndexOutputFromJSONTyped,
+  EvidenceWeighterResponseWithClaimIndexOutputToJSON,
+  EvidenceWeighterResponseWithClaimIndexOutputToJSONTyped,
+} from './EvidenceWeighterResponseWithClaimIndexOutput';
 import type { CitationSuggestionResultWithClaimIndexOutput } from './CitationSuggestionResultWithClaimIndexOutput';
 import {
   CitationSuggestionResultWithClaimIndexOutputFromJSON,
@@ -98,6 +105,12 @@ export interface DocumentChunkOutput {
    * @memberof DocumentChunkOutput
    */
   citationSuggestions?: Array<CitationSuggestionResultWithClaimIndexOutput>;
+  /**
+   *
+   * @type {Array<EvidenceWeighterResponseWithClaimIndexOutput>}
+   * @memberof DocumentChunkOutput
+   */
+  liveReportsAnalysis?: Array<EvidenceWeighterResponseWithClaimIndexOutput>;
 }
 
 /**
@@ -136,6 +149,10 @@ export function DocumentChunkOutputFromJSONTyped(json: any, ignoreDiscriminator:
       json['citation_suggestions'] == null
         ? undefined
         : (json['citation_suggestions'] as Array<any>).map(CitationSuggestionResultWithClaimIndexOutputFromJSON),
+    liveReportsAnalysis:
+      json['live_reports_analysis'] == null
+        ? undefined
+        : (json['live_reports_analysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexOutputFromJSON),
   };
 }
 
@@ -169,5 +186,9 @@ export function DocumentChunkOutputToJSONTyped(
       value['citationSuggestions'] == null
         ? undefined
         : (value['citationSuggestions'] as Array<any>).map(CitationSuggestionResultWithClaimIndexOutputToJSON),
+    live_reports_analysis:
+      value['liveReportsAnalysis'] == null
+        ? undefined
+        : (value['liveReportsAnalysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexOutputToJSON),
   };
 }

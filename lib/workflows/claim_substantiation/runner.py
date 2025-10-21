@@ -122,6 +122,7 @@ async def _execute(state: ClaimSubstantiatorState):
         use_toulmin=state.config.use_toulmin,
         run_literature_review=state.config.run_literature_review,
         run_suggest_citations=state.config.run_suggest_citations,
+        run_live_reports=state.config.run_live_reports,
     )
 
     # Generate a fresh session ID if not provided to avoid checkpoint conflicts
@@ -219,6 +220,13 @@ if __name__ == "__main__":
         help="Run literature review",
     )
     parser.add_argument(
+        "-r",
+        "--live-reports",
+        action="store_true",
+        default=False,
+        help="Run live reports",
+    )
+    parser.add_argument(
         "--session-id",
         help="Session ID for Langfuse tracing",
         default=str(uuid.uuid4()),
@@ -229,6 +237,7 @@ if __name__ == "__main__":
         use_toulmin=args.use_toulmin,
         run_suggest_citations=args.suggest_citations,
         run_literature_review=args.literature_review,
+        run_live_reports=args.live_reports,
         session_id=args.session_id,
     )
     result_state = asyncio.run(

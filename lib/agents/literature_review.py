@@ -4,10 +4,9 @@ from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 from lib.config.llm import models
 from lib.models.agent import Agent
-from lib.models.react_agent.agent_runner import _ensure_structured_output
 
 
-class RecommendedAction(str, Enum):
+class LitRecommendedAction(str, Enum):
     ADD_NEW_CITATION = "add_new_citation"
     CITE_EXISTING_REFERENCE_IN_NEW_PLACE = "cite_existing_reference_in_new_place"
     REPLACE_EXISTING_REFERENCE = "replace_existing_reference"
@@ -88,7 +87,7 @@ class DocumentReferenceFactors(BaseModel):
         description="Relevant excerpt from the main document that relates to this reference"
     )
     recommended_action: str = Field(
-        description="What action to take (e.g., ADD_CITATION, VERIFY_CITATION)"
+        description=f"What action to take ({', '.join([e.value for e in LitRecommendedAction])}"
     )
     explanation_for_recommended_action: str = Field(
         description="How to implement the recommended action"

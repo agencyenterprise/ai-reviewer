@@ -43,126 +43,109 @@ import {
 } from './ReferenceType';
 
 /**
- * A reference that should be cited or discussed in the article
+ * A newer source that provides evidence for or against a claim
  * @export
- * @interface DocumentReferenceFactors
+ * @interface ClaimReferenceFactors
  */
-export interface DocumentReferenceFactors {
+export interface ClaimReferenceFactors {
   /**
-   * The title of the reference
+   * Title of the source
    * @type {string}
-   * @memberof DocumentReferenceFactors
+   * @memberof ClaimReferenceFactors
    */
   title: string;
   /**
    * Authors of the source
    * @type {string}
-   * @memberof DocumentReferenceFactors
+   * @memberof ClaimReferenceFactors
    */
   authors: string;
   /**
    * Year of publication
    * @type {number}
-   * @memberof DocumentReferenceFactors
+   * @memberof ClaimReferenceFactors
    */
   publicationYear: number;
   /**
-   * Full bibliography citation text
+   * Bibliography entry formatted in the article's style
    * @type {string}
-   * @memberof DocumentReferenceFactors
+   * @memberof ClaimReferenceFactors
    */
   bibliographyInfo: string;
   /**
-   *
+   * URL or DOI link to the source
    * @type {string}
-   * @memberof DocumentReferenceFactors
+   * @memberof ClaimReferenceFactors
    */
-  link?: string | null;
+  link: string;
   /**
-   * Relevant excerpt from the reference that is why we should cite or discuss it
+   * Relevant excerpt from the source
    * @type {string}
-   * @memberof DocumentReferenceFactors
+   * @memberof ClaimReferenceFactors
    */
   referenceExcerpt: string;
   /**
-   * Publication type (e.g., journal, website, book, preprint)
+   * Publication type of the source
    * @type {ReferenceType}
-   * @memberof DocumentReferenceFactors
+   * @memberof ClaimReferenceFactors
    */
   referenceType: ReferenceType;
   /**
-   * Quality of the reference
-   * @type {QualityLevel}
-   * @memberof DocumentReferenceFactors
-   */
-  quality: QualityLevel;
-  /**
    * Type of source: supporting, conflicting, or contextual
    * @type {ReferenceDirection}
-   * @memberof DocumentReferenceFactors
+   * @memberof ClaimReferenceFactors
    */
   referenceDirection: ReferenceDirection;
   /**
+   * Source quality level: high, medium, or low
+   * @type {QualityLevel}
+   * @memberof ClaimReferenceFactors
+   */
+  quality: QualityLevel;
+  /**
    * Political bias of the evidence
    * @type {PoliticalBias}
-   * @memberof DocumentReferenceFactors
+   * @memberof ClaimReferenceFactors
    */
   politicalBias: PoliticalBias;
   /**
-   * Why this reference should be cited
+   * Why this source is relevant to the claim and the claim's evidence alignment and why does it have this quality level
    * @type {string}
-   * @memberof DocumentReferenceFactors
+   * @memberof ClaimReferenceFactors
    */
   rationale: string;
   /**
-   * Relevant excerpt from the main document that relates to this reference
+   * Notes about study methodology or data quality
    * @type {string}
-   * @memberof DocumentReferenceFactors
+   * @memberof ClaimReferenceFactors
    */
-  mainDocumentExcerpt: string;
-  /**
-   * What action to take (e.g., add_new_citation, cite_existing_reference_in_new_place, replace_existing_reference, discuss_reference, no_action, other)
-   * @type {string}
-   * @memberof DocumentReferenceFactors
-   */
-  recommendedAction: string;
-  /**
-   * How to implement the recommended action
-   * @type {string}
-   * @memberof DocumentReferenceFactors
-   */
-  explanationForRecommendedAction: string;
+  methodology: string;
 }
 
 /**
- * Check if a given object implements the DocumentReferenceFactors interface.
+ * Check if a given object implements the ClaimReferenceFactors interface.
  */
-export function instanceOfDocumentReferenceFactors(value: object): value is DocumentReferenceFactors {
+export function instanceOfClaimReferenceFactors(value: object): value is ClaimReferenceFactors {
   if (!('title' in value) || value['title'] === undefined) return false;
   if (!('authors' in value) || value['authors'] === undefined) return false;
   if (!('publicationYear' in value) || value['publicationYear'] === undefined) return false;
   if (!('bibliographyInfo' in value) || value['bibliographyInfo'] === undefined) return false;
+  if (!('link' in value) || value['link'] === undefined) return false;
   if (!('referenceExcerpt' in value) || value['referenceExcerpt'] === undefined) return false;
   if (!('referenceType' in value) || value['referenceType'] === undefined) return false;
-  if (!('quality' in value) || value['quality'] === undefined) return false;
   if (!('referenceDirection' in value) || value['referenceDirection'] === undefined) return false;
+  if (!('quality' in value) || value['quality'] === undefined) return false;
   if (!('politicalBias' in value) || value['politicalBias'] === undefined) return false;
   if (!('rationale' in value) || value['rationale'] === undefined) return false;
-  if (!('mainDocumentExcerpt' in value) || value['mainDocumentExcerpt'] === undefined) return false;
-  if (!('recommendedAction' in value) || value['recommendedAction'] === undefined) return false;
-  if (!('explanationForRecommendedAction' in value) || value['explanationForRecommendedAction'] === undefined)
-    return false;
+  if (!('methodology' in value) || value['methodology'] === undefined) return false;
   return true;
 }
 
-export function DocumentReferenceFactorsFromJSON(json: any): DocumentReferenceFactors {
-  return DocumentReferenceFactorsFromJSONTyped(json, false);
+export function ClaimReferenceFactorsFromJSON(json: any): ClaimReferenceFactors {
+  return ClaimReferenceFactorsFromJSONTyped(json, false);
 }
 
-export function DocumentReferenceFactorsFromJSONTyped(
-  json: any,
-  ignoreDiscriminator: boolean,
-): DocumentReferenceFactors {
+export function ClaimReferenceFactorsFromJSONTyped(json: any, ignoreDiscriminator: boolean): ClaimReferenceFactors {
   if (json == null) {
     return json;
   }
@@ -171,25 +154,23 @@ export function DocumentReferenceFactorsFromJSONTyped(
     authors: json['authors'],
     publicationYear: json['publication_year'],
     bibliographyInfo: json['bibliography_info'],
-    link: json['link'] == null ? undefined : json['link'],
+    link: json['link'],
     referenceExcerpt: json['reference_excerpt'],
     referenceType: ReferenceTypeFromJSON(json['reference_type']),
-    quality: QualityLevelFromJSON(json['quality']),
     referenceDirection: ReferenceDirectionFromJSON(json['reference_direction']),
+    quality: QualityLevelFromJSON(json['quality']),
     politicalBias: PoliticalBiasFromJSON(json['political_bias']),
     rationale: json['rationale'],
-    mainDocumentExcerpt: json['main_document_excerpt'],
-    recommendedAction: json['recommended_action'],
-    explanationForRecommendedAction: json['explanation_for_recommended_action'],
+    methodology: json['methodology'],
   };
 }
 
-export function DocumentReferenceFactorsToJSON(json: any): DocumentReferenceFactors {
-  return DocumentReferenceFactorsToJSONTyped(json, false);
+export function ClaimReferenceFactorsToJSON(json: any): ClaimReferenceFactors {
+  return ClaimReferenceFactorsToJSONTyped(json, false);
 }
 
-export function DocumentReferenceFactorsToJSONTyped(
-  value?: DocumentReferenceFactors | null,
+export function ClaimReferenceFactorsToJSONTyped(
+  value?: ClaimReferenceFactors | null,
   ignoreDiscriminator: boolean = false,
 ): any {
   if (value == null) {
@@ -204,12 +185,10 @@ export function DocumentReferenceFactorsToJSONTyped(
     link: value['link'],
     reference_excerpt: value['referenceExcerpt'],
     reference_type: ReferenceTypeToJSON(value['referenceType']),
-    quality: QualityLevelToJSON(value['quality']),
     reference_direction: ReferenceDirectionToJSON(value['referenceDirection']),
+    quality: QualityLevelToJSON(value['quality']),
     political_bias: PoliticalBiasToJSON(value['politicalBias']),
     rationale: value['rationale'],
-    main_document_excerpt: value['mainDocumentExcerpt'],
-    recommended_action: value['recommendedAction'],
-    explanation_for_recommended_action: value['explanationForRecommendedAction'],
+    methodology: value['methodology'],
   };
 }

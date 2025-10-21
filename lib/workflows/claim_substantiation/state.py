@@ -6,6 +6,7 @@ from lib.agents.citation_detector import CitationResponse
 from lib.agents.citation_suggester import (
     CitationSuggestionResultWithClaimIndex,
 )
+from lib.agents.evidence_weighter import EvidenceWeighterResponseWithClaimIndex
 from lib.agents.claim_needs_substantiation_checker import (
     ClaimCommonKnowledgeResultWithClaimIndex,
 )
@@ -31,6 +32,13 @@ class SubstantiationWorkflowConfig(BaseModel):
     )
     run_suggest_citations: bool = Field(
         default=False, description="Whether to run the citation suggestions"
+    )
+    run_live_reports: bool = Field(
+        default=False, description="Whether to run the live reports analysis"
+    )
+    document_publication_date: Optional[date] = Field(
+        default=None,
+        description="Publication date (YYYY-MM-DD) of the document for literature review and live reports",
     )
     target_chunk_indices: Optional[List[int]] = Field(
         default=None,
@@ -58,6 +66,9 @@ class DocumentChunk(ChunkWithIndex):
     claim_common_knowledge_results: List[ClaimCommonKnowledgeResultWithClaimIndex] = []
     substantiations: List[ClaimSubstantiationResultWithClaimIndex] = []
     citation_suggestions: List[CitationSuggestionResultWithClaimIndex] = []
+    live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = Field(
+        default_factory=list
+    )
 
 
 def conciliate_chunks(
@@ -151,16 +162,15 @@ class ClaimSubstantiatorState(BaseModel):
         description="Errors that occurred during the processing of the document.",
     )
     literature_review: Optional[LiteratureReviewResponse] = None
-    document_publication_date: Optional[date] = Field(
-        default=None,
-        description="Publication date (YYYY-MM-DD) of the document for literature review and live reports",
-    )
     main_document_summary: Optional[DocumentSummary] = Field(
         default=None, description="The summary of the main document"
     )
     supporting_documents_summaries: Optional[Dict[int, DocumentSummary]] = Field(
         default=None,
         description="Dictionary mapping supporting file indices to their summaries",
+    )
+    live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = Field(
+        default_factory=list, description="Live reports analysis results by chunk index"
     )
 
     def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:
