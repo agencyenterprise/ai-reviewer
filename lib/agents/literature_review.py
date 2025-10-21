@@ -87,8 +87,8 @@ class DocumentReferenceFactors(BaseModel):
     main_document_excerpt: str = Field(
         description="Relevant excerpt from the main document that relates to this reference"
     )
-    recommended_action: str = Field(
-        description="What action to take (e.g., ADD_CITATION, VERIFY_CITATION)"
+    recommended_action: RecommendedAction = Field(
+        description="What action to take (e.g., add_new_citation, cite_existing_reference_in_new_place, replace_existing_reference, discuss_reference, no_action, other)"
     )
     explanation_for_recommended_action: str = Field(
         description="How to implement the recommended action"
