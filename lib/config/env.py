@@ -65,13 +65,10 @@ config = Config(
     LANGFUSE_PROJECT_ID=os.getenv("LANGFUSE_PROJECT_ID"),
     FILE_UPLOADS_MOUNT_PATH=os.getenv("FILE_UPLOADS_MOUNT_PATH", "uploads"),
     # Database Configuration
-    DATABASE_URL=os.getenv(
-        "DATABASE_URL",
-        "postgresql://rand_user:rand_password@localhost:5432/rand_ai_reviewer",
-    ),
-    POSTGRES_HOST=os.getenv("POSTGRES_HOST", "localhost"),
-    POSTGRES_PORT=os.getenv("POSTGRES_PORT", "5432"),
-    POSTGRES_DB=os.getenv("POSTGRES_DB", "rand_ai_reviewer"),
-    POSTGRES_USER=os.getenv("POSTGRES_USER", "rand_user"),
-    POSTGRES_PASSWORD=os.getenv("POSTGRES_PASSWORD", "rand_password"),
+    DATABASE_URL=os.getenv("DATABASE_URL"),
+    POSTGRES_HOST=os.getenv("POSTGRES_HOST"),
+    POSTGRES_PORT=os.getenv("POSTGRES_PORT"),
+    POSTGRES_DB=os.getenv("POSTGRES_DB"),
+    POSTGRES_USER=os.getenv("POSTGRES_USER"),
+    POSTGRES_PASSWORD=os.getenv("POSTGRES_PASSWORD"),
 )

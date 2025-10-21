@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Rand AI Reviewer',
+  title: 'AI Reviewer',
   description:
     'AI-powered document review and analysis platform for accurate citations, fact-checking, and quality assessment',
 };

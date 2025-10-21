@@ -28,6 +28,7 @@ export function ChunkSidebarContent({
   const claims = chunk?.claims?.claims || [];
   const claimCommonKnowledgeResults = chunk?.claimCommonKnowledgeResults || [];
   const substantiations = chunk?.substantiations || [];
+  const supportingFiles = results.supportingFiles || [];
   const shouldShowStatusBadge = useShouldShowStatusBadge(isWorkflowRunning);
 
   const sortedCitationSuggestions = useMemo(() => {
@@ -60,7 +61,7 @@ export function ChunkSidebarContent({
         ))}
       </div>
 
-      <ChunkAnalysisCard chunk={chunk} references={references} />
+      <ChunkAnalysisCard chunk={chunk} references={references} supportingFiles={supportingFiles} />
 
       <ChunkCitationSuggestions suggestions={sortedCitationSuggestions} references={references} />
 

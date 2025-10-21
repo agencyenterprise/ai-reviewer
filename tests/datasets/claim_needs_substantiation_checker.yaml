@@ -342,3 +342,15 @@ dataset:
       expected_output:
         needs_substantiation: false
         rationale: "The statement is framed as a hypothetical scenario (“could allow,” “could…execute”) within a threat-modeling context and builds on nearby reasoning about agentic AI risks and potential common vulnerabilities. It does not assert new empirical facts, quantitative claims, or specific findings."
+
+    - name: "common_knowledge_geopolitics_minimal_as_has_been_found_before"
+      description: ""
+      input:
+        main_document: "data/geopolitics-of-agi-minimal-1/_nuances.md"
+        chunk: "AGI is expected to be reached by 2030, as has been found before (Fake, 2025)"
+        claim: "AGI is expected to be reached by 2030"
+        domain: "Geopolitics of AGI"
+        target_audience: "Geopolitics policy researchers"
+      expected_output:
+        needs_substantiation: true
+        rationale: "The statement is a time-specific predictive claim about AGI timelines and needs to be supported by a citation to a source that provides evidence for the claim."

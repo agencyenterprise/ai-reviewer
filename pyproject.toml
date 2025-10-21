@@ -1,8 +1,7 @@
 [project]
-name = "rand-ai-reviewer"
+name = "ai-reviewer"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
+description = "AI-powered peer-review document analysis"
 requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.14.0",

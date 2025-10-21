@@ -10,6 +10,14 @@ export enum SeverityLevel {
 
 export function getSeverity(chunk: DocumentChunkOutput) {
   const substantiations = chunk.substantiations || [];
+  const needsSubstantiation = chunk.claimCommonKnowledgeResults || [];
+
+  if (substantiations.length === 0) {
+    if (needsSubstantiation.some((result) => result.needsSubstantiation)) {
+      return SeverityLevel.Medium;
+    }
+    return SeverityLevel.None;
+  }
 
   if (
     substantiations.some((substantiation) => substantiation.evidenceAlignment === EvidenceAlignmentLevel.Unsupported)
