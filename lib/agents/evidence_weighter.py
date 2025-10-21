@@ -156,5 +156,5 @@ evidence_weighter_agent = Agent(
     prompt=_evidence_weighter_agent_prompt,
     tools=[],
     mandatory_tools=[],
-    output_schema=EvidenceWeighterResponseWithClaimIndex,
+    output_schema=EvidenceWeighterResponse,
 )
