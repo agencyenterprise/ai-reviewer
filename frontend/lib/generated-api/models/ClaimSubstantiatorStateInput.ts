@@ -34,6 +34,13 @@ import {
   BibliographyItemToJSON,
   BibliographyItemToJSONTyped,
 } from './BibliographyItem';
+import type { LiteratureReviewResponseInput } from './LiteratureReviewResponseInput';
+import {
+  LiteratureReviewResponseInputFromJSON,
+  LiteratureReviewResponseInputFromJSONTyped,
+  LiteratureReviewResponseInputToJSON,
+  LiteratureReviewResponseInputToJSONTyped,
+} from './LiteratureReviewResponseInput';
 import type { WorkflowError } from './WorkflowError';
 import {
   WorkflowErrorFromJSON,
@@ -55,6 +62,13 @@ import {
   DocumentSummaryToJSON,
   DocumentSummaryToJSONTyped,
 } from './DocumentSummary';
+import type { EvidenceWeighterResponseWithClaimIndexInput } from './EvidenceWeighterResponseWithClaimIndexInput';
+import {
+  EvidenceWeighterResponseWithClaimIndexInputFromJSON,
+  EvidenceWeighterResponseWithClaimIndexInputFromJSONTyped,
+  EvidenceWeighterResponseWithClaimIndexInputToJSON,
+  EvidenceWeighterResponseWithClaimIndexInputToJSONTyped,
+} from './EvidenceWeighterResponseWithClaimIndexInput';
 
 /**
  *
@@ -106,16 +120,10 @@ export interface ClaimSubstantiatorStateInput {
   errors?: Array<WorkflowError>;
   /**
    *
-   * @type {string}
+   * @type {LiteratureReviewResponseInput}
    * @memberof ClaimSubstantiatorStateInput
    */
-  literatureReview?: string | null;
-  /**
-   *
-   * @type {Date}
-   * @memberof ClaimSubstantiatorStateInput
-   */
-  documentPublicationDate?: Date | null;
+  literatureReview?: LiteratureReviewResponseInput | null;
   /**
    *
    * @type {DocumentSummary}
@@ -134,6 +142,12 @@ export interface ClaimSubstantiatorStateInput {
    * @memberof ClaimSubstantiatorStateInput
    */
   indexedCollections?: { [key: string]: string };
+  /**
+   * Live reports analysis results by chunk index
+   * @type {Array<EvidenceWeighterResponseWithClaimIndexInput>}
+   * @memberof ClaimSubstantiatorStateInput
+   */
+  liveReportsAnalysis?: Array<EvidenceWeighterResponseWithClaimIndexInput>;
 }
 
 /**
@@ -166,9 +180,8 @@ export function ClaimSubstantiatorStateInputFromJSONTyped(
       json['references'] == null ? undefined : (json['references'] as Array<any>).map(BibliographyItemFromJSON),
     chunks: json['chunks'] == null ? undefined : (json['chunks'] as Array<any>).map(DocumentChunkInputFromJSON),
     errors: json['errors'] == null ? undefined : (json['errors'] as Array<any>).map(WorkflowErrorFromJSON),
-    literatureReview: json['literature_review'] == null ? undefined : json['literature_review'],
-    documentPublicationDate:
-      json['document_publication_date'] == null ? undefined : new Date(json['document_publication_date']),
+    literatureReview:
+      json['literature_review'] == null ? undefined : LiteratureReviewResponseInputFromJSON(json['literature_review']),
     mainDocumentSummary:
       json['main_document_summary'] == null ? undefined : DocumentSummaryFromJSON(json['main_document_summary']),
     supportingDocumentsSummaries:
@@ -176,6 +189,10 @@ export function ClaimSubstantiatorStateInputFromJSONTyped(
         ? undefined
         : mapValues(json['supporting_documents_summaries'], DocumentSummaryFromJSON),
     indexedCollections: json['indexed_collections'] == null ? undefined : json['indexed_collections'],
+    liveReportsAnalysis:
+      json['live_reports_analysis'] == null
+        ? undefined
+        : (json['live_reports_analysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexInputFromJSON),
   };
 }
 
@@ -201,16 +218,16 @@ export function ClaimSubstantiatorStateInputToJSONTyped(
       value['references'] == null ? undefined : (value['references'] as Array<any>).map(BibliographyItemToJSON),
     chunks: value['chunks'] == null ? undefined : (value['chunks'] as Array<any>).map(DocumentChunkInputToJSON),
     errors: value['errors'] == null ? undefined : (value['errors'] as Array<any>).map(WorkflowErrorToJSON),
-    literature_review: value['literatureReview'],
-    document_publication_date:
-      value['documentPublicationDate'] === null
-        ? null
-        : (value['documentPublicationDate'] as any)?.toISOString().substring(0, 10),
+    literature_review: LiteratureReviewResponseInputToJSON(value['literatureReview']),
     main_document_summary: DocumentSummaryToJSON(value['mainDocumentSummary']),
     supporting_documents_summaries:
       value['supportingDocumentsSummaries'] == null
         ? undefined
         : mapValues(value['supportingDocumentsSummaries'], DocumentSummaryToJSON),
     indexed_collections: value['indexedCollections'],
+    live_reports_analysis:
+      value['liveReportsAnalysis'] == null
+        ? undefined
+        : (value['liveReportsAnalysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexInputToJSON),
   };
 }

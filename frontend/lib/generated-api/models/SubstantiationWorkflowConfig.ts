@@ -44,6 +44,18 @@ export interface SubstantiationWorkflowConfig {
    */
   useRag?: boolean;
   /**
+   * Whether to run the live reports analysis
+   * @type {boolean}
+   * @memberof SubstantiationWorkflowConfig
+   */
+  runLiveReports?: boolean;
+  /**
+   *
+   * @type {Date}
+   * @memberof SubstantiationWorkflowConfig
+   */
+  documentPublicationDate?: Date | null;
+  /**
    *
    * @type {Array<number>}
    * @memberof SubstantiationWorkflowConfig
@@ -98,6 +110,9 @@ export function SubstantiationWorkflowConfigFromJSONTyped(
     runLiteratureReview: json['run_literature_review'] == null ? undefined : json['run_literature_review'],
     runSuggestCitations: json['run_suggest_citations'] == null ? undefined : json['run_suggest_citations'],
     useRag: json['use_rag'] == null ? undefined : json['use_rag'],
+    runLiveReports: json['run_live_reports'] == null ? undefined : json['run_live_reports'],
+    documentPublicationDate:
+      json['document_publication_date'] == null ? undefined : new Date(json['document_publication_date']),
     targetChunkIndices: json['target_chunk_indices'] == null ? undefined : json['target_chunk_indices'],
     agentsToRun: json['agents_to_run'] == null ? undefined : json['agents_to_run'],
     domain: json['domain'] == null ? undefined : json['domain'],
@@ -123,6 +138,11 @@ export function SubstantiationWorkflowConfigToJSONTyped(
     run_literature_review: value['runLiteratureReview'],
     run_suggest_citations: value['runSuggestCitations'],
     use_rag: value['useRag'],
+    run_live_reports: value['runLiveReports'],
+    document_publication_date:
+      value['documentPublicationDate'] === null
+        ? null
+        : (value['documentPublicationDate'] as any)?.toISOString().substring(0, 10),
     target_chunk_indices: value['targetChunkIndices'],
     agents_to_run: value['agentsToRun'],
     domain: value['domain'],

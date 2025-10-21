@@ -4,7 +4,16 @@ from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 from lib.config.llm import models
 from lib.models.agent import Agent
-from lib.agents.literature_review import ReferenceType, RecommendedAction
+from lib.agents.literature_review import ReferenceType
+
+
+class RecommendedAction(str, Enum):
+    ADD_NEW_CITATION = "add_new_citation"
+    CITE_EXISTING_REFERENCE_IN_NEW_PLACE = "cite_existing_reference_in_new_place"
+    REPLACE_EXISTING_REFERENCE = "replace_existing_reference"
+    DISCUSS_REFERENCE = "discuss_reference"
+    NO_ACTION = "no_action"
+    OTHER = "other"
 
 
 class PublicationQuality(str, Enum):  # TODO: play with these options

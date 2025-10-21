@@ -23,6 +23,10 @@ import {
   WorkflowRunDetailedToJSON,
 } from '../models/index';
 
+export interface DeleteWorkflowRunEndpointApiWorkflowRunWorkflowRunIdDeleteRequest {
+  workflowRunId: string;
+}
+
 export interface GetWorkflowRunApiWorkflowRunWorkflowRunIdGetRequest {
   workflowRunId: string;
 }
@@ -31,6 +35,60 @@ export interface GetWorkflowRunApiWorkflowRunWorkflowRunIdGetRequest {
  *
  */
 export class WorkflowsApi extends runtime.BaseAPI {
+  /**
+   * Delete a workflow run and its associated checkpoint data
+   * Delete Workflow Run Endpoint
+   */
+  async deleteWorkflowRunEndpointApiWorkflowRunWorkflowRunIdDeleteRaw(
+    requestParameters: DeleteWorkflowRunEndpointApiWorkflowRunWorkflowRunIdDeleteRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<any>> {
+    if (requestParameters['workflowRunId'] == null) {
+      throw new runtime.RequiredError(
+        'workflowRunId',
+        'Required parameter "workflowRunId" was null or undefined when calling deleteWorkflowRunEndpointApiWorkflowRunWorkflowRunIdDelete().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    let urlPath = `/api/workflow-run/{workflow_run_id}`;
+    urlPath = urlPath.replace(`{${'workflow_run_id'}}`, encodeURIComponent(String(requestParameters['workflowRunId'])));
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'DELETE',
+        headers: headerParameters,
+        query: queryParameters,
+      },
+      initOverrides,
+    );
+
+    if (this.isJsonMime(response.headers.get('content-type'))) {
+      return new runtime.JSONApiResponse<any>(response);
+    } else {
+      return new runtime.TextApiResponse(response) as any;
+    }
+  }
+
+  /**
+   * Delete a workflow run and its associated checkpoint data
+   * Delete Workflow Run Endpoint
+   */
+  async deleteWorkflowRunEndpointApiWorkflowRunWorkflowRunIdDelete(
+    requestParameters: DeleteWorkflowRunEndpointApiWorkflowRunWorkflowRunIdDeleteRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<any> {
+    const response = await this.deleteWorkflowRunEndpointApiWorkflowRunWorkflowRunIdDeleteRaw(
+      requestParameters,
+      initOverrides,
+    );
+    return await response.value();
+  }
+
   /**
    * Get detailed workflow run information including state
    * Get Workflow Run

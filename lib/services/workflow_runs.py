@@ -128,3 +128,25 @@ def get_workflow_run_id_by_session(session_id: str) -> Optional[str]:
             .first()
         )
         return str(run.id) if run else None
+
+
+async def delete_workflow_run(workflow_run_id: str) -> None:
+    with get_db() as db:
+        run = db.query(WorkflowRun).filter(WorkflowRun.id == workflow_run_id).first()
+
+        if run is None:
+            raise HTTPException(status_code=404, detail="Workflow run not found")
+
+        thread_id = run.langgraph_thread_id
+
+        db.delete(run)
+        db.commit()
+
+    try:
+        async with get_checkpointer() as checkpointer:
+            await checkpointer.adelete_thread(thread_id)
+    except Exception as e:
+        logger.error(f"Error deleting checkpoints for thread {thread_id}: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Error deleting checkpoint data: {str(e)}"
+        )

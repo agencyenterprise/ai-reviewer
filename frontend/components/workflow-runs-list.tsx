@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusIndicator } from '@/components/ui/status-indicator';
+import { DeleteWorkflowRunDialog } from './workflow-runs-list/delete-workflow-run-dialog';
 import { workflowsApi } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
@@ -97,11 +98,15 @@ export function WorkflowRunsList({ className }: WorkflowRunsListProps) {
                 </div>
               </div>
 
-              <Link href={`/results/${run.id}`}>
-                <Button variant="outline" size="sm" className="ml-4">
-                  View Results
-                </Button>
-              </Link>
+              <div className="flex gap-2">
+                <Link href={`/results/${run.id}`}>
+                  <Button variant="outline" size="sm">
+                    View Results
+                  </Button>
+                </Link>
+
+                <DeleteWorkflowRunDialog workflowRunId={run.id} workflowRunTitle={run.title} />
+              </div>
             </div>
           ))}
         </div>

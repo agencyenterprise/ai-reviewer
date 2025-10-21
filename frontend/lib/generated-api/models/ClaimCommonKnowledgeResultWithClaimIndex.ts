@@ -32,6 +32,12 @@ export interface ClaimCommonKnowledgeResultWithClaimIndex {
    */
   rationale: string;
   /**
+   * Which rule(s) from the instructions most strongly guided your judgment and why
+   * @type {string}
+   * @memberof ClaimCommonKnowledgeResultWithClaimIndex
+   */
+  guidingRules?: string;
+  /**
    *
    * @type {number}
    * @memberof ClaimCommonKnowledgeResultWithClaimIndex
@@ -72,6 +78,7 @@ export function ClaimCommonKnowledgeResultWithClaimIndexFromJSONTyped(
   return {
     needsSubstantiation: json['needs_substantiation'],
     rationale: json['rationale'],
+    guidingRules: json['guiding_rules'] == null ? undefined : json['guiding_rules'],
     chunkIndex: json['chunk_index'],
     claimIndex: json['claim_index'],
   };
@@ -92,6 +99,7 @@ export function ClaimCommonKnowledgeResultWithClaimIndexToJSONTyped(
   return {
     needs_substantiation: value['needsSubstantiation'],
     rationale: value['rationale'],
+    guiding_rules: value['guidingRules'],
     chunk_index: value['chunkIndex'],
     claim_index: value['claimIndex'],
   };

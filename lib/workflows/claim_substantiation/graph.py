@@ -26,6 +26,11 @@ from lib.workflows.claim_substantiation.nodes.verify_claims import (
     verify_claims_with_rag,
 )
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
+from lib.workflows.claim_substantiation.nodes.live_reports import live_reports_analysis
+
+
+def finalize(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
+    return {}
 
 
 def build_claim_substantiator_graph(
@@ -33,6 +38,7 @@ def build_claim_substantiator_graph(
     run_literature_review: bool = True,
     run_suggest_citations: bool = True,
     use_rag: bool = True,
+    run_live_reports: bool = False,
 ) -> StateGraph:
     """
     Build a LangGraph workflow for claim substantiation analysis.
@@ -46,9 +52,12 @@ def build_claim_substantiator_graph(
     Returns:
         Configured StateGraph for claim substantiation workflow
     """
+
     graph = StateGraph(ClaimSubstantiatorState)
 
+    # required nodes
     graph.add_node("prepare_documents", prepare_documents)
+
     if run_literature_review:
         graph.add_node("literature_review", literature_review)
     if run_suggest_citations:
@@ -70,9 +79,25 @@ def build_claim_substantiator_graph(
     graph.add_node("check_claim_needs_substantiation", check_claim_needs_substantiation)
     graph.add_node("verify_claims", verify_node, defer=True)
 
+    # optional nodes
+    if run_literature_review:
+        graph.add_node("literature_review", literature_review)
+    if run_suggest_citations:
+        graph.add_node("summarize_supporting_documents", summarize_supporting_documents)
+        graph.add_node("suggest_citations", suggest_citations, defer=True)
+    if run_live_reports:
+        graph.add_node("live_reports_analysis", live_reports_analysis, defer=True)
+
+    # Finalize/join node to allow parallel branches to complete
+    if run_suggest_citations and run_live_reports:
+        graph.add_node("finalize", finalize)
+
+    # entry point
     graph.set_entry_point("prepare_documents")
 
+    # base edges
     graph.add_edge("prepare_documents", "split_into_chunks")
+
     if run_literature_review:
         graph.add_edge("prepare_documents", "literature_review")
     if run_suggest_citations:
@@ -89,15 +114,33 @@ def build_claim_substantiator_graph(
     if use_rag:
         graph.add_edge("index_supporting_documents", "verify_claims")
 
+    # Literature review (aim 1.a)
+    if run_literature_review:
+        graph.add_edge("prepare_documents", "literature_review")
+
     # Suggest citations (aim 2.a)
     # Must wait for ALL processing to complete before suggesting citations
     if run_suggest_citations:
+        graph.add_edge("prepare_documents", "summarize_supporting_documents")
         graph.add_edge("verify_claims", "suggest_citations")
         graph.add_edge("summarize_supporting_documents", "suggest_citations")
         if run_literature_review:
             graph.add_edge("literature_review", "suggest_citations")
 
+    # Live reports runs in parallel and is NOT dependent on suggest_citations
+    # Keep it downstream of verify_claims to ensure claims/citations/references exist
+    if run_live_reports:
+        graph.add_edge("verify_claims", "live_reports_analysis")
+
+    # Finalize/join node to allow parallel branches to complete
+    if run_suggest_citations and run_live_reports:
+        graph.add_edge("suggest_citations", "finalize")
+        graph.add_edge("live_reports_analysis", "finalize")
+        graph.set_finish_point("finalize")
+    elif run_suggest_citations:
         graph.set_finish_point("suggest_citations")
+    elif run_live_reports:
+        graph.set_finish_point("live_reports_analysis")
     else:
         graph.set_finish_point("verify_claims")
 
@@ -106,7 +149,7 @@ def build_claim_substantiator_graph(
 
 if __name__ == "__main__":
     workflow_graph = build_claim_substantiator_graph(
-        run_literature_review=False, run_suggest_citations=False
+        run_literature_review=True, run_suggest_citations=True, run_live_reports=True
     )
     app = workflow_graph.compile()
     print(app.get_graph().draw_mermaid())

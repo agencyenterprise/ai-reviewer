@@ -6,6 +6,7 @@ from lib.agents.citation_detector import CitationResponse
 from lib.agents.citation_suggester import (
     CitationSuggestionResultWithClaimIndex,
 )
+from lib.agents.evidence_weighter import EvidenceWeighterResponseWithClaimIndex
 from lib.agents.claim_needs_substantiation_checker import (
     ClaimCommonKnowledgeResultWithClaimIndex,
 )
@@ -14,6 +15,7 @@ from lib.agents.toulmin_claim_extractor import ToulminClaimResponse
 from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.claim_verifier import ClaimSubstantiationResultWithClaimIndex
 from lib.agents.document_summarizer import DocumentSummary
+from lib.agents.literature_review import LiteratureReviewResponse
 from lib.services.file import FileDocument
 from lib.agents.models import ChunkWithIndex
 from lib.workflows.models import WorkflowError
@@ -34,6 +36,13 @@ class SubstantiationWorkflowConfig(BaseModel):
     use_rag: bool = Field(
         default=True,
         description="Use RAG for claim verification (reduces token costs by ~89%)",
+    )
+    run_live_reports: bool = Field(
+        default=False, description="Whether to run the live reports analysis"
+    )
+    document_publication_date: Optional[date] = Field(
+        default=None,
+        description="Publication date (YYYY-MM-DD) of the document for literature review and live reports",
     )
     target_chunk_indices: Optional[List[int]] = Field(
         default=None,
@@ -61,6 +70,9 @@ class DocumentChunk(ChunkWithIndex):
     claim_common_knowledge_results: List[ClaimCommonKnowledgeResultWithClaimIndex] = []
     substantiations: List[ClaimSubstantiationResultWithClaimIndex] = []
     citation_suggestions: List[CitationSuggestionResultWithClaimIndex] = []
+    live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = Field(
+        default_factory=list
+    )
 
 
 def conciliate_chunks(
@@ -153,11 +165,7 @@ class ClaimSubstantiatorState(BaseModel):
         default_factory=list,
         description="Errors that occurred during the processing of the document.",
     )
-    literature_review: Optional[str] = None
-    document_publication_date: Optional[date] = Field(
-        default=None,
-        description="Publication date (YYYY-MM-DD) of the document for literature review and live reports",
-    )
+    literature_review: Optional[LiteratureReviewResponse] = None
     main_document_summary: Optional[DocumentSummary] = Field(
         default=None, description="The summary of the main document"
     )
@@ -168,6 +176,9 @@ class ClaimSubstantiatorState(BaseModel):
     indexed_collections: Dict[str, str] = Field(
         default_factory=dict,
         description="Maps file hashes to collection IDs for RAG retrieval",
+    )
+    live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = Field(
+        default_factory=list, description="Live reports analysis results by chunk index"
     )
 
     def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:

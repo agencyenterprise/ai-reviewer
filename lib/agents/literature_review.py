@@ -4,10 +4,9 @@ from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 from lib.config.llm import models
 from lib.models.agent import Agent
-from lib.models.react_agent.agent_runner import _ensure_structured_output
 
 
-class RecommendedAction(str, Enum):
+class LitRecommendedAction(str, Enum):
     ADD_NEW_CITATION = "add_new_citation"
     CITE_EXISTING_REFERENCE_IN_NEW_PLACE = "cite_existing_reference_in_new_place"
     REPLACE_EXISTING_REFERENCE = "replace_existing_reference"
@@ -88,7 +87,7 @@ class DocumentReferenceFactors(BaseModel):
         description="Relevant excerpt from the main document that relates to this reference"
     )
     recommended_action: str = Field(
-        description="What action to take (e.g., ADD_CITATION, VERIFY_CITATION)"
+        description=f"What action to take ({', '.join([e.value for e in LitRecommendedAction])}"
     )
     explanation_for_recommended_action: str = Field(
         description="How to implement the recommended action"
@@ -122,51 +121,28 @@ Given the full article and its extracted bibliography, identify references that 
 - Information about topics of discussion
 - Relevant high quality references about each topic and how they could fit in the document as citations.
 
-# Needed Fields
-The ouput should have the following fields:
-- **[Authors] ([Year])**, "[Title]". [Publication Name]. ([Publication Type])
-**Summary:** [Detailed summary of the reference's key findings and context]
-**Relevant to Claims:** [Analysis of how this reference relates to specific claims in the document, including whether it SUPPORTS, CONFLICTS, or CONTEXTUALIZES them]
-**Link:** [URL or DOI link to the reference]
-**Reference Excerpt:** [Relevant excerpt from the reference that is why we should cite or discuss it]
-**Reference Type:** [OPTIONS: peer_reviewed_publication, government_ngo_report, news_media, book, data_software, reference, webpage, or other]
-**Quality:** [OPTIONS: high, medium, low]
-**Reference Direction:** [OPTIONS: supporting, conflicting, mixed, contextual]
-**Political Bias:** [OPTIONS: conservative, liberal, other]
-**Rationale:** [Why this reference should be cited]
-**Main Document Excerpt:** [Relevant excerpt from the main document that relates to this reference]
-**Recommended Action:** [OPTIONS: add_new_citation, cite_existing_reference_in_new_place, replace_existing_reference, discuss_reference, no_action, other]
-**Explanation for Recommended Action:** [How to implement the recommended action]
+# Output Format
+For each relevant reference, provide:
+- **title**: The title of the reference
+- **authors**: Authors of the source
+- **publication_year**: Year of publication
+- **bibliography_info**: Full bibliography citation text
+- **link**: URL or DOI link to the reference (if available)
+- **reference_excerpt**: Relevant excerpt from the reference that is why we should cite or discuss it
+- **reference_type**: Publication type (peer_reviewed_publication, government_ngo_report, news_media, book, preprint, data_software, reference, webpage)
+- **quality**: Quality of the reference (high, medium, low)
+- **reference_direction**: Type of source (supporting, conflicting, mixed, contextual)
+- **political_bias**: Political bias of the evidence (conservative, liberal, other)
+- **rationale**: Why this reference should be cited
+- **main_document_excerpt**: Relevant excerpt from the main document that relates to this reference
+- **recommended_action**: What action to take (add_new_citation, cite_existing_reference_in_new_place, replace_existing_reference, discuss_reference, no_action, other)
+- **explanation_for_recommended_action**: How to implement the recommended action
 
-# Format
-Return a single JSON object that matches this exact schema; output only JSON (no Markdown, no extra text).
-
-{{
-  "relevant_references": [
-    {{
-      "title": "...",
-      "authors": "...", 
-      "publication_year": "...",
-      "bibliography_info": "...",
-      "link": "...",
-      "reference_excerpt": "...",
-      "reference_type": "",
-      "quality": "high",
-      "reference_direction": "",
-      "political_bias": "other",
-      "rationale": "...",
-      "main_document_excerpt": "...",
-      "recommended_action": "",
-      "explanation_for_recommended_action": "..."
-    }}
-  ],
-  "rationale": "..."
-}}
+Also provide an overall **rationale** summarizing your literature review recommendations.
 
 Remember:
 - If the document publication date is provided, you are only to look for references that come BEFORE the document publication date.
 - Do not fabricate any references. If relevance to the claims cannot be found, omit the recommendation.
-- Format your report in markdown.
 
 ## Document publication date
 {document_publication_date}

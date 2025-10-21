@@ -26,13 +26,13 @@ async def literature_review(
 
     markdown = state.file.markdown
 
-    literature_review_report: str = await literature_review_agent.apply(
+    literature_review_response = await literature_review_agent.apply(
         {
             "full_document": markdown,
             "bibliography": state.references,
-            "document_publication_date": state.document_publication_date,
+            "document_publication_date": state.config.document_publication_date.isoformat(),
         }
     )
 
     logger.info(f"literature_review ({state.config.session_id}): done")
-    return {"literature_review": literature_review_report}
+    return {"literature_review": literature_review_response}
