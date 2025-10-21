@@ -18,7 +18,7 @@ class EvidenceAlignmentLevel(str, Enum):
     UNSUPPORTED = "unsupported"
 
 
-class RecommendedAction(str, Enum):
+class EvidenceWeighterRecommendedAction(str, Enum):
     UPDATE_CLAIM = "update_claim"  # claim is either no longer true and needs to be updated or it should be qualified given the newer sources
     ADD_CITATION = "add_citation"  # claim can remain as is,  but additional citations prove more influential
     NO_CHANGE = "no_update_needed"  # claim does not need to be updated
@@ -31,7 +31,7 @@ class EvidenceWeighterResponse(BaseModel):
     newer_references_alignment: EvidenceAlignmentLevel = Field(
         description="Evidence alignment of the newer references: unverifiable, supported, partially_supported, or unsupported"
     )
-    claim_update_action: RecommendedAction = Field(
+    claim_update_action: EvidenceWeighterRecommendedAction = Field(
         description="Recommended action for the claim: update_claim, add_citation, or no_change"
     )
     rationale: str = Field(description="Explanation of the claim update")
