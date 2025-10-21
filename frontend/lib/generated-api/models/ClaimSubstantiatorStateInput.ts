@@ -62,6 +62,13 @@ import {
   DocumentSummaryToJSON,
   DocumentSummaryToJSONTyped,
 } from './DocumentSummary';
+import type { EvidenceWeighterResponseWithClaimIndexInput } from './EvidenceWeighterResponseWithClaimIndexInput';
+import {
+  EvidenceWeighterResponseWithClaimIndexInputFromJSON,
+  EvidenceWeighterResponseWithClaimIndexInputFromJSONTyped,
+  EvidenceWeighterResponseWithClaimIndexInputToJSON,
+  EvidenceWeighterResponseWithClaimIndexInputToJSONTyped,
+} from './EvidenceWeighterResponseWithClaimIndexInput';
 
 /**
  *
@@ -119,12 +126,6 @@ export interface ClaimSubstantiatorStateInput {
   literatureReview?: LiteratureReviewResponseInput | null;
   /**
    *
-   * @type {Date}
-   * @memberof ClaimSubstantiatorStateInput
-   */
-  documentPublicationDate?: Date | null;
-  /**
-   *
    * @type {DocumentSummary}
    * @memberof ClaimSubstantiatorStateInput
    */
@@ -135,6 +136,12 @@ export interface ClaimSubstantiatorStateInput {
    * @memberof ClaimSubstantiatorStateInput
    */
   supportingDocumentsSummaries?: { [key: string]: DocumentSummary } | null;
+  /**
+   * Live reports analysis results by chunk index
+   * @type {Array<EvidenceWeighterResponseWithClaimIndexInput>}
+   * @memberof ClaimSubstantiatorStateInput
+   */
+  liveReportsAnalysis?: Array<EvidenceWeighterResponseWithClaimIndexInput>;
 }
 
 /**
@@ -169,14 +176,16 @@ export function ClaimSubstantiatorStateInputFromJSONTyped(
     errors: json['errors'] == null ? undefined : (json['errors'] as Array<any>).map(WorkflowErrorFromJSON),
     literatureReview:
       json['literature_review'] == null ? undefined : LiteratureReviewResponseInputFromJSON(json['literature_review']),
-    documentPublicationDate:
-      json['document_publication_date'] == null ? undefined : new Date(json['document_publication_date']),
     mainDocumentSummary:
       json['main_document_summary'] == null ? undefined : DocumentSummaryFromJSON(json['main_document_summary']),
     supportingDocumentsSummaries:
       json['supporting_documents_summaries'] == null
         ? undefined
         : mapValues(json['supporting_documents_summaries'], DocumentSummaryFromJSON),
+    liveReportsAnalysis:
+      json['live_reports_analysis'] == null
+        ? undefined
+        : (json['live_reports_analysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexInputFromJSON),
   };
 }
 
@@ -203,14 +212,14 @@ export function ClaimSubstantiatorStateInputToJSONTyped(
     chunks: value['chunks'] == null ? undefined : (value['chunks'] as Array<any>).map(DocumentChunkInputToJSON),
     errors: value['errors'] == null ? undefined : (value['errors'] as Array<any>).map(WorkflowErrorToJSON),
     literature_review: LiteratureReviewResponseInputToJSON(value['literatureReview']),
-    document_publication_date:
-      value['documentPublicationDate'] === null
-        ? null
-        : (value['documentPublicationDate'] as any)?.toISOString().substring(0, 10),
     main_document_summary: DocumentSummaryToJSON(value['mainDocumentSummary']),
     supporting_documents_summaries:
       value['supportingDocumentsSummaries'] == null
         ? undefined
         : mapValues(value['supportingDocumentsSummaries'], DocumentSummaryToJSON),
+    live_reports_analysis:
+      value['liveReportsAnalysis'] == null
+        ? undefined
+        : (value['liveReportsAnalysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexInputToJSON),
   };
 }
