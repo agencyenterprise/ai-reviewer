@@ -98,6 +98,12 @@ export interface DocumentChunkInput {
    * @memberof DocumentChunkInput
    */
   citationSuggestions?: Array<CitationSuggestionResultWithClaimIndexInput>;
+  /**
+   *
+   * @type {Array<{ [key: string]: any; }>}
+   * @memberof DocumentChunkInput
+   */
+  liveReportsAnalysis?: Array<{ [key: string]: any }> | null;
 }
 
 /**
@@ -136,6 +142,7 @@ export function DocumentChunkInputFromJSONTyped(json: any, ignoreDiscriminator: 
       json['citation_suggestions'] == null
         ? undefined
         : (json['citation_suggestions'] as Array<any>).map(CitationSuggestionResultWithClaimIndexInputFromJSON),
+    liveReportsAnalysis: json['live_reports_analysis'] == null ? undefined : json['live_reports_analysis'],
   };
 }
 
@@ -169,5 +176,6 @@ export function DocumentChunkInputToJSONTyped(
       value['citationSuggestions'] == null
         ? undefined
         : (value['citationSuggestions'] as Array<any>).map(CitationSuggestionResultWithClaimIndexInputToJSON),
+    live_reports_analysis: value['liveReportsAnalysis'],
   };
 }
