@@ -6,6 +6,7 @@ from lib.agents.citation_detector import CitationResponse
 from lib.agents.citation_suggester import (
     CitationSuggestionResultWithClaimIndex,
 )
+from lib.agents.evidence_weighter import EvidenceWeighterResponseWithClaimIndex
 from lib.agents.claim_needs_substantiation_checker import (
     ClaimCommonKnowledgeResultWithClaimIndex,
 )
@@ -65,9 +66,7 @@ class DocumentChunk(ChunkWithIndex):
     claim_common_knowledge_results: List[ClaimCommonKnowledgeResultWithClaimIndex] = []
     substantiations: List[ClaimSubstantiationResultWithClaimIndex] = []
     citation_suggestions: List[CitationSuggestionResultWithClaimIndex] = []
-    live_reports_analysis: Optional[List[dict]] = (
-        None  # TODO: Need a pydantic object to fill this in
-    )
+    live_reports_analysis: Optional[List[EvidenceWeighterResponseWithClaimIndex]] = []
 
 
 def conciliate_chunks(
@@ -168,8 +167,8 @@ class ClaimSubstantiatorState(BaseModel):
         default=None,
         description="Dictionary mapping supporting file indices to their summaries",
     )
-    live_reports_analysis: Optional[Dict[int, Dict]] = Field(
-        default=None, description="Live reports analysis results by chunk index"
+    live_reports_analysis: Optional[List[EvidenceWeighterResponseWithClaimIndex]] = (
+        Field(default=list, description="Live reports analysis results by chunk index")
     )
 
     def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:
