@@ -73,7 +73,6 @@ async def _verify_chunk_claims_with_provider(
             state, chunk, claim, claim_index
         )
 
-        # Determine if we're using RAG or citation-based approach
         is_rag_mode = ref_context.retrieved_passages is not None
 
         evidence_explanation = (
