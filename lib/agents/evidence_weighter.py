@@ -3,7 +3,6 @@ from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 from lib.models.agent import Agent
 from lib.config.llm import models
-from lib.agents.claim_verifier import EvidenceAlignmentLevel
 from lib.agents.live_literature_review import (
     QualityLevel,
     ClaimReferenceFactors,
@@ -11,7 +10,7 @@ from lib.agents.live_literature_review import (
 
 
 # applies to the claim
-class EvidenceAlignmentLevel(str, Enum):
+class ReferenceAlignmentLevel(str, Enum):
     UNVERIFIABLE = "unverifiable"
     SUPPORTED = "supported"
     PARTIALLY_SUPPORTED = "partially_supported"
@@ -28,7 +27,7 @@ class EvidenceWeighterResponse(BaseModel):
     newer_references: list[ClaimReferenceFactors] = Field(
         description="Newer references found from the literature review report"
     )
-    newer_references_alignment: EvidenceAlignmentLevel = Field(
+    newer_references_alignment: ReferenceAlignmentLevel = Field(
         description="Evidence alignment of the newer references: unverifiable, supported, partially_supported, or unsupported"
     )
     claim_update_action: EvidenceWeighterRecommendedAction = Field(
