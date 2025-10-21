@@ -43,13 +43,6 @@ import {
   CitationResponseInputToJSON,
   CitationResponseInputToJSONTyped,
 } from './CitationResponseInput';
-import type { EvidenceWeighterResponseWithClaimIndexInput } from './EvidenceWeighterResponseWithClaimIndexInput';
-import {
-  EvidenceWeighterResponseWithClaimIndexInputFromJSON,
-  EvidenceWeighterResponseWithClaimIndexInputFromJSONTyped,
-  EvidenceWeighterResponseWithClaimIndexInputToJSON,
-  EvidenceWeighterResponseWithClaimIndexInputToJSONTyped,
-} from './EvidenceWeighterResponseWithClaimIndexInput';
 
 /**
  * Independent chunk response object with all processing results
@@ -105,12 +98,6 @@ export interface DocumentChunkInput {
    * @memberof DocumentChunkInput
    */
   citationSuggestions?: Array<CitationSuggestionResultWithClaimIndexInput>;
-  /**
-   *
-   * @type {Array<EvidenceWeighterResponseWithClaimIndexInput>}
-   * @memberof DocumentChunkInput
-   */
-  liveReportsAnalysis?: Array<EvidenceWeighterResponseWithClaimIndexInput>;
 }
 
 /**
@@ -149,10 +136,6 @@ export function DocumentChunkInputFromJSONTyped(json: any, ignoreDiscriminator: 
       json['citation_suggestions'] == null
         ? undefined
         : (json['citation_suggestions'] as Array<any>).map(CitationSuggestionResultWithClaimIndexInputFromJSON),
-    liveReportsAnalysis:
-      json['live_reports_analysis'] == null
-        ? undefined
-        : (json['live_reports_analysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexInputFromJSON),
   };
 }
 
@@ -186,9 +169,5 @@ export function DocumentChunkInputToJSONTyped(
       value['citationSuggestions'] == null
         ? undefined
         : (value['citationSuggestions'] as Array<any>).map(CitationSuggestionResultWithClaimIndexInputToJSON),
-    live_reports_analysis:
-      value['liveReportsAnalysis'] == null
-        ? undefined
-        : (value['liveReportsAnalysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexInputToJSON),
   };
 }
