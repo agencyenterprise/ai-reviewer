@@ -24,7 +24,7 @@ class RecommendedAction(str, Enum):
     NO_CHANGE = "no_update_needed"  # claim does not need to be updated
 
 
-class ClaimUpdate(BaseModel):
+class EvidenceWeighterResponse(BaseModel):
     newer_references: list[ClaimReferenceFactors] = Field(
         description="Newer references found from the literature review report"
     )
@@ -40,7 +40,7 @@ class ClaimUpdate(BaseModel):
     )
 
 
-class ClaimUpdateWithClaimIndex(ClaimUpdate):
+class EvidenceWeighterResponseWithClaimIndex(EvidenceWeighterResponse):
     chunk_index: int
     claim_index: int
 
@@ -115,7 +115,7 @@ Here are the contextual details:
 ## The list of references already cited in this chunk of text to support the claim and their associated supporting document (if any)
 {cited_references}
 
-## The list of references alreadycited in outside of this chunk, but still in the same paragraph of text to support the claim and their associated supporting document (if any)
+## The list of references already cited in outside of this chunk, but still in the same paragraph of text to support the claim and their associated supporting document (if any)
 {cited_references_paragraph}
 
 ## The paragraph containing the claim
@@ -156,5 +156,5 @@ evidence_weighter_agent = Agent(
     prompt=_evidence_weighter_agent_prompt,
     tools=[],
     mandatory_tools=[],
-    output_schema=ClaimUpdateWithClaimIndex,
+    output_schema=EvidenceWeighterResponseWithClaimIndex,
 )
