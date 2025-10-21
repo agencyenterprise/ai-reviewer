@@ -7,15 +7,6 @@ from lib.models.agent import Agent
 from lib.models.react_agent.agent_runner import _ensure_structured_output
 
 
-class RecommendedAction(str, Enum):
-    ADD_NEW_CITATION = "add_new_citation"
-    CITE_EXISTING_REFERENCE_IN_NEW_PLACE = "cite_existing_reference_in_new_place"
-    REPLACE_EXISTING_REFERENCE = "replace_existing_reference"
-    DISCUSS_REFERENCE = "discuss_reference"
-    NO_ACTION = "no_action"
-    OTHER = "other"
-
-
 class ReferenceType(str, Enum):
     # Academic publications that have undergone formal peer review
     PEER_REVIEWED_PUBLICATION = "peer_reviewed_publication"
@@ -87,7 +78,7 @@ class DocumentReferenceFactors(BaseModel):
     main_document_excerpt: str = Field(
         description="Relevant excerpt from the main document that relates to this reference"
     )
-    recommended_action: RecommendedAction = Field(
+    recommended_action: str = Field(
         description="What action to take (e.g., add_new_citation, cite_existing_reference_in_new_place, replace_existing_reference, discuss_reference, no_action, other)"
     )
     explanation_for_recommended_action: str = Field(
