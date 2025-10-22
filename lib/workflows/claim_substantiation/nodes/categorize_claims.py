@@ -4,6 +4,7 @@ import logging
 from lib.agents.claim_categorizer import (
     claim_categorizer_agent,
     ClaimCategorizationResponse,
+    ClaimCategorizationResponseWithClaimIndex,
 )
 from lib.agents.formatting_utils import (
     format_audience_context,
@@ -13,22 +14,11 @@ from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
 )
-from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfig
 from lib.workflows.chunk_iterator import iterate_chunks
-
-import asyncio
-import argparse
-from datetime import datetime
-from lib.services.file import FileDocument
-from lib.agents.claim_extractor import Claim, ClaimResponse
-from rich.console import Console
-from rich.panel import Panel
-import nest_asyncio
 
 logger = logging.getLogger(__name__)
 
 
-# @requires_agent("categorize_claims")
 async def categorize_claims(
     state: ClaimSubstantiatorState,
 ) -> ClaimSubstantiatorState:
@@ -44,13 +34,15 @@ async def categorize_claims(
 async def _categorize_chunk_claims(
     state: ClaimSubstantiatorState, chunk: DocumentChunk
 ) -> DocumentChunk:
+    # Skip if chunk has no claims
     if chunk.claims is None or not chunk.claims.claims:
         logger.debug(
-            f"categorize_claims: Chunk {chunk.chunk_index} has no claims to categorize"
+            "Skipping claim categorization for chunk %s: no claims detected",
+            chunk.chunk_index,
         )
         return chunk
 
-    updated_claims = []
+    categorization_results = []
     for claim_index, claim in enumerate(chunk.claims.claims):
         try:
             result: ClaimCategorizationResponse = await claim_categorizer_agent.apply(
@@ -65,30 +57,34 @@ async def _categorize_chunk_claims(
                     ),
                 }
             )
-            updated_claims.append(
-                claim.model_copy(
-                    update={
-                        "claim_category": result.claim_category,
-                        "categorization_rationale": result.rationale,
-                        "needs_external_verification": result.needs_external_verification,
-                    }
+            categorization_results.append(
+                ClaimCategorizationResponseWithClaimIndex(
+                    chunk_index=chunk.chunk_index,
+                    claim_index=claim_index,
+                    **result.model_dump(),
                 )
             )
         except Exception:
             logger.exception(
                 f"categorize_claims: Error categorizing claim {claim_index} in chunk {chunk.chunk_index}"
             )
-            updated_claims.append(claim)
+            # Continue with remaining claims even if one fails
+            continue
 
-    # preserve existing ClaimResponse.rationale; only replace its claims list
-    return chunk.model_copy(
-        update={
-            "claims": chunk.claims.model_copy(update={"claims": updated_claims}),
-        }
-    )
+    return chunk.model_copy(update={"claim_categories": categorization_results})
 
 
 if __name__ == "__main__":
+    import asyncio
+    import argparse
+    from datetime import datetime
+    from lib.services.file import FileDocument
+    from lib.agents.claim_extractor import Claim, ClaimResponse
+    from lib.workflows.claim_substantiation.state import SubstantiationWorkflowConfig
+    from rich.console import Console
+    from rich.panel import Panel
+    import nest_asyncio
+    import json
 
     nest_asyncio.apply()
 
@@ -124,16 +120,11 @@ if __name__ == "__main__":
                 session_id="test-session",
                 domain="machine learning",
                 target_audience="technical",
-                document_publication_date=datetime(2023, 1, 1).date(),
-                agents_to_run=["categorize_claims"],
             ),
             chunks=[test_chunk],
         )
 
         console.print("\n[bold cyan]Running Claim Categorization Test[/bold cyan]")
-        console.print("\n[yellow]Input State:[/yellow]")
-        console.print(Panel(test_state.model_dump_json(indent=2), title="Test State"))
-
         console.print("\n[yellow]Input Chunk:[/yellow]")
         console.print(Panel(test_chunk.model_dump_json(indent=2), title="Test Chunk"))
 
@@ -142,16 +133,28 @@ if __name__ == "__main__":
             result = await _categorize_chunk_claims(test_state, test_chunk)
 
             console.print("\n[green]Categorization Results:[/green]")
-            console.print(
-                Panel(
-                    result.claims.model_dump_json(indent=2),
-                    title="Categorized Claims",
-                )
-            )
+            if result.claim_categories:
+                for cat_result in result.claim_categories:
+                    console.print(
+                        Panel(
+                            json.dumps(
+                                cat_result.model_dump(),
+                                indent=2,
+                                default=str,
+                                ensure_ascii=False,
+                            ),
+                            title=f"Claim {cat_result.claim_index} - {cat_result.claim_category.value}",
+                        )
+                    )
+            else:
+                console.print("[yellow]No categorization results[/yellow]")
 
         except Exception as e:
             console.print(f"\n[red]Error during categorization:[/red]")
             console.print(Panel(str(e), title="Error", style="red"))
+            import traceback
+
+            traceback.print_exc()
 
     parser = argparse.ArgumentParser(description="Test Claim Categorization")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
