@@ -2,6 +2,7 @@ from pyexpat import model
 import uuid
 from datetime import datetime
 from typing import Any, Protocol
+from warnings import deprecated
 
 from _pytest import outcomes
 from langchain.chat_models import init_chat_model
@@ -44,6 +45,7 @@ class QCResult(BaseModel):
     feedback: str
 
 
+@deprecated("Use AgentProtocol instead")
 class Agent(SQLModel, table=True):
     __tablename__ = "agents"
 
