@@ -33,14 +33,14 @@ class EvidenceWeighterResponse(BaseModel):
     claim_update_action: EvidenceWeighterRecommendedAction = Field(
         description="Recommended action for the claim: update_claim, add_citation, or no_change"
     )
-    rewritten_claim: str = Field(
-        description="The rewritten claim that is more specific and clear"
-    )
     rationale: str = Field(
-        description="Explanation of the claim update. In a maximum of two sentences. Explain why the claim needs to be updated, why the newer sources are more relevant, and why the confidence level is high, medium, or low."
+        description="Explanation of the rationale for the claim update action in a maximum of TWO sentences."
     )
     confidence_level: QualityLevel = Field(
         description="Confidence level in the claim update: high, medium, or low"
+    )
+    rewritten_claim: str = Field(
+        description="The rewritten claim that is more clear and accurate according to the recommended action and taking the newer sources into account."
     )
 
 
@@ -77,7 +77,7 @@ For each claim provide the following:
 - **Unsupported**: The cited material does not contain evidence for the claim or the claim contradicts or reverses the source’s position, or adds strong unsupported language that would mislead a reader about the author’s intent. The claim may also use numbers or metrics that are not supported by the source or are not clearly derived from the source.
 
 ### Recommended Action
-- **Update Claim**: The claim is either no longer true and needs to be updated or it should be qualified given the newer sources
+- **Update Claim**: The claim is either no longer true and needs to be updated to state the correct information or the claim is partially true and should be qualified given the newer sources
 - **Add Citation**: The claim can remain as is,  but additional citations prove more influential
 - **No Change**: The claim does not need to be updated
 
