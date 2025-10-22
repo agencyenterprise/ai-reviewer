@@ -154,6 +154,15 @@ export function ProcessStep() {
               onChange={(e) => actions.setTargetAudience(e.target.value)}
             />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="publication-date">Document Publication Date</Label>
+            <Input
+              id="publication-date"
+              type="date"
+              value={state.documentPublicationDate}
+              onChange={(e) => actions.setDocumentPublicationDate(e.target.value)}
+            />
+          </div>
           <div className="space-y-3 pt-2">
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -179,6 +188,19 @@ export function ProcessStep() {
                 className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
                 Run suggest citations
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="run-live-reports"
+                checked={state.runLiveReports}
+                onCheckedChange={(checked) => actions.setRunLiveReports(checked === true)}
+              />
+              <Label
+                htmlFor="run-live-reports"
+                className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Run live reports
               </Label>
             </div>
           </div>

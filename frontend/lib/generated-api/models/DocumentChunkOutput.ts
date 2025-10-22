@@ -43,6 +43,13 @@ import {
   CitationSuggestionResultWithClaimIndexOutputToJSON,
   CitationSuggestionResultWithClaimIndexOutputToJSONTyped,
 } from './CitationSuggestionResultWithClaimIndexOutput';
+import type { ClaimCategorizationResponseWithClaimIndex } from './ClaimCategorizationResponseWithClaimIndex';
+import {
+  ClaimCategorizationResponseWithClaimIndexFromJSON,
+  ClaimCategorizationResponseWithClaimIndexFromJSONTyped,
+  ClaimCategorizationResponseWithClaimIndexToJSON,
+  ClaimCategorizationResponseWithClaimIndexToJSONTyped,
+} from './ClaimCategorizationResponseWithClaimIndex';
 import type { ClaimSubstantiationResultWithClaimIndex } from './ClaimSubstantiationResultWithClaimIndex';
 import {
   ClaimSubstantiationResultWithClaimIndexFromJSON,
@@ -81,6 +88,12 @@ export interface DocumentChunkOutput {
    * @memberof DocumentChunkOutput
    */
   claims?: Claims | null;
+  /**
+   *
+   * @type {Array<ClaimCategorizationResponseWithClaimIndex>}
+   * @memberof DocumentChunkOutput
+   */
+  claimCategories?: Array<ClaimCategorizationResponseWithClaimIndex> | null;
   /**
    *
    * @type {CitationResponseOutput}
@@ -136,6 +149,10 @@ export function DocumentChunkOutputFromJSONTyped(json: any, ignoreDiscriminator:
     chunkIndex: json['chunk_index'],
     paragraphIndex: json['paragraph_index'],
     claims: json['claims'] == null ? undefined : ClaimsFromJSON(json['claims']),
+    claimCategories:
+      json['claim_categories'] == null
+        ? undefined
+        : (json['claim_categories'] as Array<any>).map(ClaimCategorizationResponseWithClaimIndexFromJSON),
     citations: json['citations'] == null ? undefined : CitationResponseOutputFromJSON(json['citations']),
     claimCommonKnowledgeResults:
       json['claim_common_knowledge_results'] == null
@@ -173,6 +190,10 @@ export function DocumentChunkOutputToJSONTyped(
     chunk_index: value['chunkIndex'],
     paragraph_index: value['paragraphIndex'],
     claims: ClaimsToJSON(value['claims']),
+    claim_categories:
+      value['claimCategories'] == null
+        ? undefined
+        : (value['claimCategories'] as Array<any>).map(ClaimCategorizationResponseWithClaimIndexToJSON),
     citations: CitationResponseOutputToJSON(value['citations']),
     claim_common_knowledge_results:
       value['claimCommonKnowledgeResults'] == null

@@ -26,8 +26,10 @@ export interface WizardState {
   supportingDocuments: File[];
   domain: string;
   targetAudience: string;
+  documentPublicationDate: string;
   runLiteratureReview: boolean;
   runSuggestCitations: boolean;
+  runLiveReports: boolean;
   isProcessing: boolean;
   processingStage: ProcessingStage;
   uploadProgress: UploadProgress;
@@ -42,8 +44,10 @@ export interface WizardActions {
   setSupportingDocuments: (files: File[]) => void;
   setDomain: (domain: string) => void;
   setTargetAudience: (targetAudience: string) => void;
+  setDocumentPublicationDate: (date: string) => void;
   setRunLiteratureReview: (runLiteratureReview: boolean) => void;
   setRunSuggestCitations: (runSuggestCitations: boolean) => void;
+  setRunLiveReports: (runLiveReports: boolean) => void;
   setIsProcessing: (processing: boolean) => void;
   setProcessingStage: (stage: ProcessingStage) => void;
   setUploadProgress: (progress: UploadProgress) => void;

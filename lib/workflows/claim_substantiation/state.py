@@ -175,9 +175,7 @@ class ClaimSubstantiatorState(BaseModel):
         default=None,
         description="Dictionary mapping supporting file indices to their summaries",
     )
-    live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = Field(
-        default_factory=list, description="Live reports analysis results by chunk index"
-    )
+    literature_review: Optional[LiteratureReviewResponse] = None
 
     def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:
         return [

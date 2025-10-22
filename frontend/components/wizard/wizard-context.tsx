@@ -9,8 +9,10 @@ const initialState: WizardState = {
   supportingDocuments: [],
   domain: '',
   targetAudience: '',
+  documentPublicationDate: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
   runLiteratureReview: false,
   runSuggestCitations: false,
+  runLiveReports: false,
   isProcessing: false,
   processingStage: 'idle',
   uploadProgress: { progress: 0, status: 'idle' },
@@ -40,11 +42,17 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
     setTargetAudience: (targetAudience: string) => {
       setState((prev) => ({ ...prev, targetAudience }));
     },
+    setDocumentPublicationDate: (date: string) => {
+      setState((prev) => ({ ...prev, documentPublicationDate: date }));
+    },
     setRunLiteratureReview: (runLiteratureReview: boolean) => {
       setState((prev) => ({ ...prev, runLiteratureReview }));
     },
     setRunSuggestCitations: (runSuggestCitations: boolean) => {
       setState((prev) => ({ ...prev, runSuggestCitations }));
+    },
+    setRunLiveReports: (runLiveReports: boolean) => {
+      setState((prev) => ({ ...prev, runLiveReports }));
     },
     setIsProcessing: (processing: boolean) => {
       setState((prev) => ({ ...prev, isProcessing: processing }));

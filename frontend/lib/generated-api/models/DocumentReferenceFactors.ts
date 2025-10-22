@@ -121,7 +121,7 @@ export interface DocumentReferenceFactors {
    */
   mainDocumentExcerpt: string;
   /**
-   * What action to take (e.g., add_new_citation, cite_existing_reference_in_new_place, replace_existing_reference, discuss_reference, no_action, other)
+   * What action to take (add_new_citation, cite_existing_reference_in_new_place, replace_existing_reference, discuss_reference, no_action, other
    * @type {string}
    * @memberof DocumentReferenceFactors
    */
