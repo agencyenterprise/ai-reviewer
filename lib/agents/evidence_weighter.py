@@ -33,9 +33,14 @@ class EvidenceWeighterResponse(BaseModel):
     claim_update_action: EvidenceWeighterRecommendedAction = Field(
         description="Recommended action for the claim: update_claim, add_citation, or no_change"
     )
-    rationale: str = Field(description="Explanation of the claim update")
+    rationale: str = Field(
+        description="Explanation of the rationale for the claim update action in a maximum of TWO sentences."
+    )
     confidence_level: QualityLevel = Field(
         description="Confidence level in the claim update: high, medium, or low"
+    )
+    rewritten_claim: str = Field(
+        description="The rewritten claim that is more clear and accurate according to the recommended action and taking the newer sources into account."
     )
 
 
@@ -71,19 +76,21 @@ For each claim provide the following:
 - **Partially Supported**: The citation provides related evidence but doesn’t fully substantiate the claim. It may support only part of the statement or use weaker phrasing than the claim implies. The mismatch usually involves scope, frequency, or tone rather than outright contradiction.
 - **Unsupported**: The cited material does not contain evidence for the claim or the claim contradicts or reverses the source’s position, or adds strong unsupported language that would mislead a reader about the author’s intent. The claim may also use numbers or metrics that are not supported by the source or are not clearly derived from the source.
 
-### Recommended Action
-- **Update Claim**: The claim is either no longer true and needs to be updated or it should be qualified given the newer sources
+### Claim Update Action
+- **Update Claim**: The claim is either no longer true and needs to be updated to state the correct information or the claim is partially true and should be qualified given the newer sources
 - **Add Citation**: The claim can remain as is,  but additional citations prove more influential
 - **No Change**: The claim does not need to be updated
 
-### Confidence in Recommended Action
+### Confidence in Claim Update Action
 - **High**: There are multiple high-quality sources with consistent findings and clear consensus
 - **Medium**: There are some quality sources but with some inconsistencies or limited evidence
 - **Low**: There is limited or conflicting evidence from quality sources, or mostly low-quality sources or the evidence is unverifiable
 
-### Rationale for the Recommended Action
-- Brief explanation for why the recommended action is appropriate given the evidence alignment and confidence in the recommended action
+### Rationale for the Claim Update Action
+- Brief explanation for why the recommended action is appropriate given the evidence alignment and confidence in the recommended action. In a maximum of TWO sentences.
 
+### Rewritten Claim
+- Rewrite the claim according to the recommended action and taking the newer sources into account.
 
 General Guidelines for Processing
 - Use the full document and paragraph context to understand the claim's role and importance.
