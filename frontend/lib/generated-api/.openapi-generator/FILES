@@ -16,6 +16,8 @@ models/CitationSuggestionResultWithClaimIndexInput.ts
 models/CitationSuggestionResultWithClaimIndexOutput.ts
 models/CitationType.ts
 models/Claim.ts
+models/ClaimCategorizationResponseWithClaimIndex.ts
+models/ClaimCategory.ts
 models/ClaimCommonKnowledgeResultWithClaimIndex.ts
 models/ClaimEvidenceSource.ts
 models/ClaimReferenceFactors.ts
@@ -44,6 +46,7 @@ models/QCResult.ts
 models/QualityLevel.ts
 models/RecommendedAction.ts
 models/Reference.ts
+models/ReferenceAlignmentLevel.ts
 models/ReferenceDirection.ts
 models/ReferenceType.ts
 models/StartAnalysisResponse.ts

@@ -65,8 +65,11 @@ class AnalysisService {
           formData.append('run_literature_review', String(config.runLiteratureReview));
         if (config.runSuggestCitations !== undefined)
           formData.append('run_suggest_citations', String(config.runSuggestCitations));
+        if (config.runLiveReports !== undefined) formData.append('run_live_reports', String(config.runLiveReports));
         if (config.domain) formData.append('domain', config.domain);
         if (config.targetAudience) formData.append('target_audience', config.targetAudience);
+        if (config.documentPublicationDate)
+          formData.append('document_publication_date', config.documentPublicationDate.toISOString().split('T')[0]);
         if (config.sessionId) formData.append('session_id', config.sessionId);
 
         // Use XMLHttpRequest for upload progress tracking

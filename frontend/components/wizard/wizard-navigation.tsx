@@ -40,8 +40,12 @@ export function WizardNavigation() {
               useToulmin: true,
               runLiteratureReview: state.runLiteratureReview,
               runSuggestCitations: state.runSuggestCitations,
+              runLiveReports: state.runLiveReports,
               domain: state.domain || undefined,
               targetAudience: state.targetAudience || undefined,
+              documentPublicationDate: state.documentPublicationDate
+                ? new Date(state.documentPublicationDate)
+                : undefined,
               sessionId: state.sessionId || undefined,
             },
           },
