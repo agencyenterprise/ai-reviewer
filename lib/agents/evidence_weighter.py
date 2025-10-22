@@ -33,7 +33,12 @@ class EvidenceWeighterResponse(BaseModel):
     claim_update_action: EvidenceWeighterRecommendedAction = Field(
         description="Recommended action for the claim: update_claim, add_citation, or no_change"
     )
-    rationale: str = Field(description="Explanation of the claim update")
+    rewritten_claim: str = Field(
+        description="The rewritten claim that is more specific and clear"
+    )
+    rationale: str = Field(
+        description="Explanation of the claim update. In a maximum of two sentences. Explain why the claim needs to be updated, why the newer sources are more relevant, and why the confidence level is high, medium, or low."
+    )
     confidence_level: QualityLevel = Field(
         description="Confidence level in the claim update: high, medium, or low"
     )
@@ -82,8 +87,10 @@ For each claim provide the following:
 - **Low**: There is limited or conflicting evidence from quality sources, or mostly low-quality sources or the evidence is unverifiable
 
 ### Rationale for the Recommended Action
-- Brief explanation for why the recommended action is appropriate given the evidence alignment and confidence in the recommended action
+- Brief explanation for why the recommended action is appropriate given the evidence alignment and confidence in the recommended action. In a maximum of TWO sentences.
 
+### Rewritten Claim
+- Rewrite the claim according to the recommended action and taking the newer sources into account.
 
 General Guidelines for Processing
 - Use the full document and paragraph context to understand the claim's role and importance.
