@@ -35,7 +35,7 @@ class SubstantiationWorkflowConfig(BaseModel):
     )
     use_rag: bool = Field(
         default=True,
-        description="Use RAG for claim verification (reduces token costs by ~89%)",
+        description="Use RAG for claim verification",
     )
     run_live_reports: bool = Field(
         default=False, description="Whether to run the live reports analysis"

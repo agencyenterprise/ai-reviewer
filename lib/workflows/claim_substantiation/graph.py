@@ -47,7 +47,7 @@ def build_claim_substantiator_graph(
         use_toulmin: Use Toulmin model for claim extraction
         run_literature_review: Include literature review node
         run_suggest_citations: Include citation suggestion nodes
-        use_rag: Use RAG-based claim verification (reduces token costs by ~89%)
+        use_rag: Use RAG-based claim verification
 
     Returns:
         Configured StateGraph for claim substantiation workflow

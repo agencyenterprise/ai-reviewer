@@ -31,7 +31,7 @@ def _needs_substantiation(chunk: DocumentChunk, claim_index: int) -> bool:
     1. It has citations in the chunk that need to be verified (regardless of common knowledge status)
     2. OR it's not common knowledge and needs supporting evidence
     """
-    # We need to ALWAYS verify if there are citations in the chunk
+
     if chunk.citations and chunk.citations.citations:
         return True
 
