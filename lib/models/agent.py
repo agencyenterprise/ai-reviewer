@@ -1,7 +1,7 @@
 from pyexpat import model
 import uuid
 from datetime import datetime
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 from warnings import deprecated
 
 from _pytest import outcomes
@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_LLM_TIMEOUT = 300
 
 
+@runtime_checkable
 class AgentProtocol(Protocol):
     name: str
     description: str
