@@ -1,8 +1,10 @@
+from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.llm import models
-from lib.models.agent import Agent
+from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
 
 
 class DocumentSummary(BaseModel):
@@ -25,13 +27,8 @@ class DocumentSummarizerResponse(BaseModel):
     summary: DocumentSummary = Field(description="The summary of the document")
 
 
-document_summarizer_agent = Agent(
-    name="Document Summarizer",
-    description="Read and summarize a supporting document",
-    model=models["gpt-5-mini"],
-    temperature=0.0,
-    prompt=ChatPromptTemplate.from_template(
-        """
+_document_summarizer_agent_prompt = ChatPromptTemplate.from_template(
+    """
 # Task
 You are a document summarizer. You are given a document and you need to summarize it.
 
@@ -48,8 +45,27 @@ Also extract:
 {document}
 ```
 """
-    ),
-    tools=[],
-    mandatory_tools=[],
-    output_schema=DocumentSummarizerResponse,
 )
+
+
+class DocumentSummarizerAgent(AgentProtocol):
+    name = "Document Summarizer"
+    description = "Read and summarize a supporting document"
+
+    def __init__(self):
+        self.llm = init_chat_model(
+            models["gpt-5-mini"],
+            temperature=0.0,
+            timeout=DEFAULT_LLM_TIMEOUT,
+        ).with_structured_output(DocumentSummarizerResponse)
+
+    async def ainvoke(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ) -> DocumentSummarizerResponse:
+        messages = _document_summarizer_agent_prompt.format_messages(**prompt_kwargs)
+        return await self.llm.ainvoke(messages, config=config)
+
+
+document_summarizer_agent = DocumentSummarizerAgent()

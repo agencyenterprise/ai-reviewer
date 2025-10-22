@@ -1,8 +1,10 @@
+from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.llm import models
-from lib.models.agent import Agent
+from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
 
 
 class BibliographyItem(BaseModel):
@@ -24,13 +26,8 @@ class ReferenceExtractorResponse(BaseModel):
     )
 
 
-reference_extractor_agent = Agent(
-    name="Reference Extractor",
-    description="Extract bibliographic items from a document",
-    model=models["gpt-5-mini"],
-    temperature=0.0,
-    prompt=ChatPromptTemplate.from_template(
-        """
+_reference_extractor_prompt = ChatPromptTemplate.from_template(
+    """
 # Task
 You are a reference extractor. You are given an academic paper text and you need to extract any bibliographic items used in that text.
 - References are usually found in the bibliography section at the end of the paper.
@@ -51,8 +48,25 @@ For each bibliographic item, you need to return the following information:
 ## The supporting documents provided by the user
 {supporting_documents}
 """
-    ),
-    tools=[],
-    mandatory_tools=[],
-    output_schema=ReferenceExtractorResponse,
 )
+
+
+class ReferenceExtractorAgent(AgentProtocol):
+    name = "Reference Extractor"
+    description = "Extract bibliographic items from a document"
+
+    def __init__(self):
+        self.llm = init_chat_model(
+            models["gpt-5-mini"], temperature=0.0, timeout=DEFAULT_LLM_TIMEOUT
+        ).with_structured_output(ReferenceExtractorResponse)
+
+    async def ainvoke(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ) -> ReferenceExtractorResponse:
+        messages = _reference_extractor_prompt.format_messages(**prompt_kwargs)
+        return await self.llm.ainvoke(messages, config=config)
+
+
+reference_extractor_agent = ReferenceExtractorAgent()

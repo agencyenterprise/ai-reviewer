@@ -1,13 +1,13 @@
 from enum import Enum
+from typing import Optional
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.llm import models
-from lib.models import Agent
-from lib.models.agent import QCResult
-from typing import Optional
+from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol, QCResult
 
 
 class CitationType(str, Enum):
@@ -121,14 +121,23 @@ Be specific in your feedback to help the agent improve.
 """
 )
 
-citation_detector_agent = Agent(
-    name="Citation Detector",
-    description="Detect citations in a chunk of text",
-    model=models["gpt-5-mini"],
-    temperature=0.0,
-    qc_prompt=None,
-    prompt=_citation_detector_prompt,
-    tools=[],
-    mandatory_tools=[],
-    output_schema=CitationResponse,
-)
+
+class CitationDetectorAgent(AgentProtocol):
+    name = "Citation Detector"
+    description = "Detect citations in a chunk of text"
+
+    def __init__(self):
+        self.llm = init_chat_model(
+            models["gpt-5-mini"],
+            temperature=0.0,
+            timeout=DEFAULT_LLM_TIMEOUT,
+        ).with_structured_output(CitationResponse)
+
+    async def ainvoke(
+        self, prompt_kwargs: dict, config: RunnableConfig = None
+    ) -> CitationResponse:
+        messages = _citation_detector_prompt.format_messages(**prompt_kwargs)
+        return await self.llm.ainvoke(messages, config=config)
+
+
+citation_detector_agent = CitationDetectorAgent()

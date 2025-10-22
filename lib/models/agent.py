@@ -1,7 +1,8 @@
 from pyexpat import model
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
+from warnings import deprecated
 
 from _pytest import outcomes
 from langchain.chat_models import init_chat_model
@@ -27,12 +28,25 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_LLM_TIMEOUT = 300
+
+
+@runtime_checkable
+class AgentProtocol(Protocol):
+    name: str
+    description: str
+
+    async def ainvoke(
+        self, prompt_kwargs: dict, config: RunnableConfig = None
+    ) -> Any: ...
+
 
 class QCResult(BaseModel):
     valid: bool
     feedback: str
 
 
+@deprecated("Use AgentProtocol instead")
 class Agent(SQLModel, table=True):
     __tablename__ = "agents"
 

@@ -1,19 +1,19 @@
 import logging
+
 from lib.agents.citation_detector import CitationResponse
+from lib.agents.claim_verifier import (
+    ClaimSubstantiationResultWithClaimIndex,
+    claim_verifier_agent,
+)
 from lib.agents.formatting_utils import (
+    format_audience_context,
     format_cited_references,
     format_domain_context,
-    format_audience_context,
 )
 from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.claim_substantiation.state import (
     ClaimSubstantiatorState,
     DocumentChunk,
-)
-from lib.agents.claim_verifier import (
-    ClaimSubstantiationResult,
-    claim_verifier_agent,
-    ClaimSubstantiationResultWithClaimIndex,
 )
 from lib.workflows.decorators import handle_chunk_errors, requires_agent
 
@@ -106,7 +106,7 @@ async def _verify_chunk_claims(
             truncate_at_character_count=100000,  # Basically include the whole text of the references
         )
 
-        result: ClaimSubstantiationResult = await claim_verifier_agent.apply(
+        result = await claim_verifier_agent.ainvoke(
             {
                 "full_document": state.file.markdown,
                 "paragraph": state.get_paragraph(chunk.paragraph_index),

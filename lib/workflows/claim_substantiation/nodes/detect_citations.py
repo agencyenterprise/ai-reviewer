@@ -1,5 +1,5 @@
 import logging
-from lib.agents.citation_detector import CitationResponse, citation_detector_agent
+from lib.agents.citation_detector import citation_detector_agent
 from lib.agents.formatting_utils import format_bibliography_prompt_section
 from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.claim_substantiation.state import (
@@ -26,7 +26,7 @@ async def detect_citations(state: ClaimSubstantiatorState) -> ClaimSubstantiator
 async def _detect_chunk_citations(
     state: ClaimSubstantiatorState, chunk: DocumentChunk
 ) -> DocumentChunk:
-    citations: CitationResponse = await citation_detector_agent.apply(
+    citations = await citation_detector_agent.ainvoke(
         {
             "full_document": state.file.markdown,
             "bibliography": format_bibliography_prompt_section(state.references),
