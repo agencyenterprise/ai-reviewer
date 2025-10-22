@@ -48,7 +48,6 @@ class ClaimCategory(str, Enum):
 
 
 class ClaimCategorizationResponse(BaseModel):
-    index: int = Field(..., description="1-based index of the claim in the passage.")
     claim: str = Field(..., description="Exact claim text as analyzed.")
     claim_category: ClaimCategory = Field(..., description="Assigned category.")
     rationale: str = Field(
@@ -62,11 +61,6 @@ class ClaimCategorizationResponse(BaseModel):
             "require an external source. False for purely internal methods/results/structure."
         ),
     )
-
-    @field_validator("claim")
-    @classmethod
-    def trim_claim(cls, v: str) -> str:
-        return v.strip()
 
 
 class ClaimCategorizationResponseWithClaimIndex(ClaimCategorizationResponse):
