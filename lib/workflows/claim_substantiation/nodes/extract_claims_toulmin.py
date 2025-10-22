@@ -1,6 +1,5 @@
 import logging
 from lib.agents.toulmin_claim_extractor import (
-    ToulminClaimResponse,
     toulmin_claim_extractor_agent,
 )
 from lib.agents.formatting_utils import format_domain_context, format_audience_context
@@ -31,7 +30,7 @@ async def extract_claims_toulmin(
 async def _extract_chunk_claims_toulmin(
     state: ClaimSubstantiatorState, chunk: DocumentChunk
 ) -> DocumentChunk:
-    claims: ToulminClaimResponse = await toulmin_claim_extractor_agent.apply(
+    claims = await toulmin_claim_extractor_agent.ainvoke(
         {
             "chunk": chunk.content,
             "full_document": state.file.markdown,

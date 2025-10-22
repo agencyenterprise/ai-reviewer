@@ -1,5 +1,5 @@
 import logging
-from lib.agents.claim_extractor import ClaimResponse, claim_extractor_agent
+from lib.agents.claim_extractor import claim_extractor_agent
 from lib.agents.formatting_utils import format_domain_context, format_audience_context
 from lib.workflows.chunk_iterator import iterate_chunks
 from lib.workflows.claim_substantiation.state import (
@@ -26,7 +26,7 @@ async def extract_claims(state: ClaimSubstantiatorState) -> ClaimSubstantiatorSt
 async def _extract_chunk_claims(
     state: ClaimSubstantiatorState, chunk: DocumentChunk
 ) -> DocumentChunk:
-    claims: ClaimResponse = await claim_extractor_agent.apply(
+    claims = await claim_extractor_agent.ainvoke(
         {
             "chunk": chunk.content,
             "full_document": state.file.markdown,

@@ -1,11 +1,10 @@
-from enum import Enum
-from typing import Optional
-
+from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.llm import models
-from lib.models.agent import Agent
+from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
 
 
 class ClaimCommonKnowledgeResult(BaseModel):
@@ -96,13 +95,27 @@ When assessing a claim, prioritize evidence and reasoning contained within or ne
 """
 )
 
-claim_needs_substantiation_checker_agent = Agent(
-    name="Claim Needs Substantiation Checker",
-    description="Check if a claim needs to be substantiated or not (common knowledge etc)",
-    model=models["gpt-5"],
-    temperature=0.2,
-    prompt=_claim_needs_substantiation_checker_prompt,
-    tools=[],
-    mandatory_tools=[],
-    output_schema=ClaimCommonKnowledgeResult,
-)
+
+class ClaimNeedsSubstantiationCheckerAgent(AgentProtocol):
+    name = "Claim Needs Substantiation Checker"
+    description = (
+        "Check if a claim needs to be substantiated or not (common knowledge etc)"
+    )
+
+    def __init__(self):
+        self.llm = init_chat_model(
+            models["gpt-5"],
+            temperature=0.2,
+            timeout=DEFAULT_LLM_TIMEOUT,
+        ).with_structured_output(ClaimCommonKnowledgeResult)
+
+    async def ainvoke(
+        self, prompt_kwargs: dict, config: RunnableConfig = None
+    ) -> ClaimCommonKnowledgeResult:
+        messages = _claim_needs_substantiation_checker_prompt.format_messages(
+            **prompt_kwargs
+        )
+        return await self.llm.ainvoke(messages, config=config)
+
+
+claim_needs_substantiation_checker_agent = ClaimNeedsSubstantiationCheckerAgent()

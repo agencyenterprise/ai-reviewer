@@ -1,9 +1,11 @@
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain.chat_models import init_chat_model
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.config.llm import models
-from lib.models import Agent
 from lib.agents.models import ValidatedDocument
+from lib.config.llm import models
+from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
 
 
 class Paragraph(BaseModel):
@@ -60,21 +62,34 @@ Follow this procedure exactly:
 3. If blank lines separate portions of the paragraph, attach the newline characters to the preceding or following chunk so that no chunk is empty or only has white space or new line characters.
 4. Make sure that if all chunks are concatenated in order, the reconstructed string matches the original markdown exactly (minus any insignificant white space or new line differences).
 
-Return structured data with the requested schema:
-{DocumentChunkerResponse.model_json_schema()}
-
 I will send the markdown document that you need to chunk as my next message.
 """
 
-document_chunker_agent = Agent(
-    name="Document Chunker",
-    description="Chunk a document into paragraphs and each paragraph into reasonable sentence-level chunks",
-    model=models["gpt-4.1"],
-    prompt=SystemMessage(
-        content=_document_chunker_agent_system_prompt,
-    )
-    + "{full_document}",
-    tools=[],
-    mandatory_tools=[],
-    output_schema=DocumentChunkerResponse,
-)
+
+class DocumentChunkerAgent(AgentProtocol):
+    name = "Document Chunker"
+    description = "Chunk a document into paragraphs and each paragraph into reasonable sentence-level chunks"
+
+    def __init__(self):
+        self.llm = init_chat_model(
+            models["gpt-4.1"],
+            temperature=0.2,
+            timeout=DEFAULT_LLM_TIMEOUT,
+        ).with_structured_output(DocumentChunkerResponse)
+
+    async def ainvoke(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ) -> DocumentChunkerResponse:
+        template = ChatPromptTemplate(
+            [
+                ("system", _document_chunker_agent_system_prompt),
+                ("user", "{full_document}"),
+            ]
+        )
+        messages = template.invoke(prompt_kwargs)
+        return await self.llm.ainvoke(messages, config=config)
+
+
+document_chunker_agent = DocumentChunkerAgent()

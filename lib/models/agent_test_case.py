@@ -12,7 +12,7 @@ from deepdiff import DeepDiff
 
 
 from lib.config.langfuse import langfuse_handler
-from lib.models.agent import Agent
+from lib.models.agent import AgentProtocol
 from lib.models.field_comparator import FieldComparator
 from lib.models.comparison_models import FieldComparison
 
@@ -44,7 +44,7 @@ class AgentTestCase(BaseModel):
     _shared_session_id: Optional[str] = None
 
     name: str
-    agent: Agent
+    agent: AgentProtocol
     response_model: Type[TResponse]
     prompt_kwargs: Dict[str, Any]
 
@@ -93,7 +93,7 @@ class AgentTestCase(BaseModel):
         """Run the agent and store the typed result."""
 
         tasks = [
-            self.agent.apply(
+            self.agent.ainvoke(
                 self.prompt_kwargs,
                 config={
                     "run_name": self.name,

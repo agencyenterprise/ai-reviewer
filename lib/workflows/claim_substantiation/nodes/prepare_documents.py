@@ -19,7 +19,7 @@ async def prepare_documents(state: ClaimSubstantiatorState) -> ClaimSubstantiato
         )
         return {}
 
-    response: DocumentSummarizerResponse = await document_summarizer_agent.apply(
+    response = await document_summarizer_agent.ainvoke(
         {
             "document": state.file.markdown,
         }

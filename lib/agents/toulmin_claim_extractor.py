@@ -1,10 +1,12 @@
 from typing import Literal
 
+from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.llm import models
-from lib.models import Agent
+from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
 
 
 class ToulminClaim(BaseModel):
@@ -118,16 +120,24 @@ Reference: Purdue OWL - Toulmin Argument (for definitions and orientation): http
 )
 
 
-toulmin_claim_extractor_agent = Agent(
-    name="Claim Extractor (Toulmin)",
-    description=(
-        "Extract claims in a chunk of text and extract Toulmin elements: data/grounds,"
-        " warrants (stated or implied), qualifiers, rebuttals, and backing."
-    ),
-    model=models["gpt-5"],
-    temperature=0.2,
-    prompt=_toulmin_claim_extractor_prompt,
-    tools=[],
-    mandatory_tools=[],
-    output_schema=ToulminClaimResponse,
-)
+class ToulminClaimExtractorAgent(AgentProtocol):
+    name = "Claim Extractor (Toulmin)"
+    description = "Extract claims in a chunk of text and extract Toulmin elements: data/grounds, warrants (stated or implied), qualifiers, rebuttals, and backing."
+
+    def __init__(self):
+        self.llm = init_chat_model(
+            models["gpt-5"],
+            temperature=0.2,
+            timeout=DEFAULT_LLM_TIMEOUT,
+        ).with_structured_output(ToulminClaimResponse)
+
+    async def ainvoke(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ) -> ToulminClaimResponse:
+        messages = _toulmin_claim_extractor_prompt.format_messages(**prompt_kwargs)
+        return await self.llm.ainvoke(messages, config=config)
+
+
+toulmin_claim_extractor_agent = ToulminClaimExtractorAgent()

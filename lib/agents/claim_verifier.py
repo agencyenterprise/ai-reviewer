@@ -1,11 +1,13 @@
-from enum import IntEnum, StrEnum
+from enum import StrEnum
 from typing import List
 
+from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
+from langgraph.graph.state import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.llm import models
-from lib.models.agent import Agent
+from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
 
 
 class EvidenceAlignmentLevel(StrEnum):
@@ -98,13 +100,25 @@ For each claim, output an evidence alignment level based on the following defini
 """
 )
 
-claim_verifier_agent = Agent(
-    name="Claim Verifier",
-    description="Substantiate a claim based on a supporting document",
-    model=models["gpt-5"],
-    temperature=0.2,
-    prompt=_claim_verifier_prompt,
-    tools=[],
-    mandatory_tools=[],
-    output_schema=ClaimSubstantiationResult,
-)
+
+class ClaimVerifierAgent(AgentProtocol):
+    name = "Claim Verifier"
+    description = "Substantiate a claim based on a supporting document"
+
+    def __init__(self):
+        self.llm = init_chat_model(
+            models["gpt-5"],
+            temperature=0.2,
+            timeout=DEFAULT_LLM_TIMEOUT,
+        ).with_structured_output(ClaimSubstantiationResult)
+
+    async def ainvoke(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ) -> ClaimSubstantiationResult:
+        messages = _claim_verifier_prompt.format_messages(**prompt_kwargs)
+        return await self.llm.ainvoke(messages, config=config)
+
+
+claim_verifier_agent = ClaimVerifierAgent()

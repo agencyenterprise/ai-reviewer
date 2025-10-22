@@ -1,6 +1,5 @@
 import mimetypes
 import os
-from typing import List
 from markitdown import MarkItDown
 from pydantic import BaseModel, Field
 
@@ -27,14 +26,6 @@ async def create_file_document_from_path(
     md = MarkItDown(enable_plugins=False)  # Set to True to enable plugins
     result = md.convert(file_path)
     markdown = result.markdown
-
-    # TODO: For PDFs, we may need something like this:
-    # result = await markdown_cleaner_agent.apply(
-    #     prompt_kwargs={
-    #         "full_document": result.markdown,
-    #     }
-    # )
-    # self._markdown = result.text
 
     file_name = original_file_name or os.path.basename(file_path)
     file_type = mimetypes.guess_type(file_name)[0] or "text/plain"
