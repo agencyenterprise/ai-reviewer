@@ -76,17 +76,17 @@ For each claim provide the following:
 - **Partially Supported**: The citation provides related evidence but doesn’t fully substantiate the claim. It may support only part of the statement or use weaker phrasing than the claim implies. The mismatch usually involves scope, frequency, or tone rather than outright contradiction.
 - **Unsupported**: The cited material does not contain evidence for the claim or the claim contradicts or reverses the source’s position, or adds strong unsupported language that would mislead a reader about the author’s intent. The claim may also use numbers or metrics that are not supported by the source or are not clearly derived from the source.
 
-### Recommended Action
+### Claim Update Action
 - **Update Claim**: The claim is either no longer true and needs to be updated to state the correct information or the claim is partially true and should be qualified given the newer sources
 - **Add Citation**: The claim can remain as is,  but additional citations prove more influential
 - **No Change**: The claim does not need to be updated
 
-### Confidence in Recommended Action
+### Confidence in Claim Update Action
 - **High**: There are multiple high-quality sources with consistent findings and clear consensus
 - **Medium**: There are some quality sources but with some inconsistencies or limited evidence
 - **Low**: There is limited or conflicting evidence from quality sources, or mostly low-quality sources or the evidence is unverifiable
 
-### Rationale for the Recommended Action
+### Rationale for the Claim Update Action
 - Brief explanation for why the recommended action is appropriate given the evidence alignment and confidence in the recommended action. In a maximum of TWO sentences.
 
 ### Rewritten Claim
