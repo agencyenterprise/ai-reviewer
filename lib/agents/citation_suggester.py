@@ -62,8 +62,7 @@ class Reference(BaseModel):
     )
     recommended_action: RecommendedAction = Field(
         description=(
-            "Action to take for this reference: add_citation, replace_existing_reference, "
-            "discuss_reference, no_action, or other"
+            "Action to take for this reference: add_citation, replace_existing_reference, discuss_reference, no_action, or other"
         )
     )
     explanation_for_recommended_action: str = Field(

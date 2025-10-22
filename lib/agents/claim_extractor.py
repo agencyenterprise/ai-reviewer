@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 
 from lib.config.llm import models
 from lib.models import Agent
+from lib.agents.models import ClaimCategory
 
 
 class Claim(BaseModel):
