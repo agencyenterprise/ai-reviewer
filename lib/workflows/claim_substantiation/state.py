@@ -168,7 +168,6 @@ class ClaimSubstantiatorState(BaseModel):
         default_factory=list,
         description="Errors that occurred during the processing of the document.",
     )
-    literature_review: Optional[LiteratureReviewResponse] = None
     main_document_summary: Optional[DocumentSummary] = Field(
         default=None, description="The summary of the main document"
     )
