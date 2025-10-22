@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useForm } from '@tanstack/react-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Progress } from '../ui/progress';
 import { Button } from '../ui/button';
@@ -12,6 +13,29 @@ import { Checkbox } from '../ui/checkbox';
 
 export function ProcessStep() {
   const { state, actions } = useWizard();
+
+  const form = useForm({
+    defaultValues: state.config,
+    listeners: {
+      onChange: ({ formApi }) => {
+        actions.setConfig(formApi.state.values);
+      },
+    },
+    validators: {
+      onChange: ({ value }) => {
+        if (value.runLiteratureReview || value.runLiveReports) {
+          if (!value.documentPublicationDate) {
+            return {
+              fields: {
+                documentPublicationDate: 'Document publication date is required',
+              },
+            };
+          }
+        }
+        return undefined;
+      },
+    },
+  });
 
   const getStageInfo = () => {
     switch (state.processingStage) {
@@ -136,74 +160,107 @@ export function ProcessStep() {
           <CardDescription>Provide context for more accurate analysis</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="domain">Domain</Label>
-            <Input
-              id="domain"
-              placeholder="e.g., Healthcare, Technology, Finance..."
-              value={state.domain}
-              onChange={(e) => actions.setDomain(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="target-audience">Target Audience</Label>
-            <Input
-              id="target-audience"
-              placeholder="e.g., General public, Experts, Students..."
-              value={state.targetAudience}
-              onChange={(e) => actions.setTargetAudience(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="publication-date">Document Publication Date</Label>
-            <Input
-              id="publication-date"
-              type="date"
-              value={state.documentPublicationDate}
-              onChange={(e) => actions.setDocumentPublicationDate(e.target.value)}
-            />
-          </div>
+          <form.Field name="domain">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="domain">Domain</Label>
+                <Input
+                  id="domain"
+                  placeholder="e.g., Healthcare, Technology, Finance..."
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                />
+              </div>
+            )}
+          </form.Field>
+          <form.Field name="targetAudience">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="target-audience">Target Audience</Label>
+                <Input
+                  id="target-audience"
+                  placeholder="e.g., General public, Experts, Students..."
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                />
+              </div>
+            )}
+          </form.Field>
           <div className="space-y-3 pt-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="run-literature-review"
-                checked={state.runLiteratureReview}
-                onCheckedChange={(checked) => actions.setRunLiteratureReview(checked === true)}
-              />
-              <Label
-                htmlFor="run-literature-review"
-                className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Run literature review
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="run-suggest-citations"
-                checked={state.runSuggestCitations}
-                onCheckedChange={(checked) => actions.setRunSuggestCitations(checked === true)}
-              />
-              <Label
-                htmlFor="run-suggest-citations"
-                className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Run suggest citations
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="run-live-reports"
-                checked={state.runLiveReports}
-                onCheckedChange={(checked) => actions.setRunLiveReports(checked === true)}
-              />
-              <Label
-                htmlFor="run-live-reports"
-                className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Run live reports
-              </Label>
-            </div>
+            <form.Field name="runLiteratureReview">
+              {(field) => (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="run-literature-review"
+                    checked={field.state.value}
+                    onCheckedChange={(checked) => field.handleChange(checked === true)}
+                  />
+                  <Label
+                    htmlFor="run-literature-review"
+                    className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Run literature review
+                  </Label>
+                </div>
+              )}
+            </form.Field>
+            <form.Field name="runSuggestCitations">
+              {(field) => (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="run-suggest-citations"
+                    checked={field.state.value}
+                    onCheckedChange={(checked) => field.handleChange(checked === true)}
+                  />
+                  <Label
+                    htmlFor="run-suggest-citations"
+                    className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Run suggest citations
+                  </Label>
+                </div>
+              )}
+            </form.Field>
+            <form.Field name="runLiveReports">
+              {(field) => (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="run-live-reports"
+                    checked={field.state.value}
+                    onCheckedChange={(checked) => field.handleChange(checked === true)}
+                  />
+                  <Label
+                    htmlFor="run-live-reports"
+                    className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Run live reports
+                  </Label>
+                </div>
+              )}
+            </form.Field>
           </div>
+          {(form.state.values.runLiteratureReview || form.state.values.runLiveReports) && (
+            <form.Field name="documentPublicationDate">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="publication-date">
+                    Document Publication Date
+                    <span className="text-destructive ml-1">*</span>
+                  </Label>
+                  <Input
+                    id="publication-date"
+                    type="date"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    className={field.state.meta.errors.length > 0 ? 'border-destructive' : ''}
+                  />
+                  {!field.state.meta.isValid && (
+                    <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
+                  )}
+                </div>
+              )}
+            </form.Field>
+          )}
         </CardContent>
       </Card>
 

@@ -6,6 +6,15 @@ export interface WizardStep {
   description: string;
 }
 
+export interface AnalysisConfig {
+  domain: string;
+  targetAudience: string;
+  documentPublicationDate: string;
+  runLiteratureReview: boolean;
+  runSuggestCitations: boolean;
+  runLiveReports: boolean;
+}
+
 export interface AnalysisResults {
   status: 'processing' | 'completed' | 'error';
   error?: string;
@@ -24,12 +33,7 @@ export interface WizardState {
   currentStep: number;
   mainDocument: File | null;
   supportingDocuments: File[];
-  domain: string;
-  targetAudience: string;
-  documentPublicationDate: string;
-  runLiteratureReview: boolean;
-  runSuggestCitations: boolean;
-  runLiveReports: boolean;
+  config: AnalysisConfig;
   isProcessing: boolean;
   processingStage: ProcessingStage;
   uploadProgress: UploadProgress;
@@ -42,12 +46,7 @@ export interface WizardActions {
   setCurrentStep: (step: number) => void;
   setMainDocument: (file: File | null) => void;
   setSupportingDocuments: (files: File[]) => void;
-  setDomain: (domain: string) => void;
-  setTargetAudience: (targetAudience: string) => void;
-  setDocumentPublicationDate: (date: string) => void;
-  setRunLiteratureReview: (runLiteratureReview: boolean) => void;
-  setRunSuggestCitations: (runSuggestCitations: boolean) => void;
-  setRunLiveReports: (runLiveReports: boolean) => void;
+  setConfig: (config: AnalysisConfig) => void;
   setIsProcessing: (processing: boolean) => void;
   setProcessingStage: (stage: ProcessingStage) => void;
   setUploadProgress: (progress: UploadProgress) => void;
