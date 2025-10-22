@@ -15,17 +15,6 @@ class Claim(BaseModel):
         description="The rationale for why you think the chunk of text implies this claim"
     )
 
-    # new, all optional to avoid breaking callers
-    claim_category: ClaimCategory | None = Field(
-        default=None, description="Assigned category for the claim"
-    )
-    categorization_rationale: str | None = Field(
-        default=None, description="Why this category was assigned"
-    )
-    needs_external_verification: bool | None = Field(
-        default=None, description="Whether the claim needs external verification"
-    )
-
 
 class ClaimResponse(BaseModel):
     claims: list[Claim] = Field(
