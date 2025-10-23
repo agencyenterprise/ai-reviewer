@@ -90,16 +90,16 @@ export interface DocumentChunkInput {
   claims?: Claims | null;
   /**
    *
-   * @type {Array<ClaimCategorizationResponseWithClaimIndex>}
-   * @memberof DocumentChunkInput
-   */
-  claimCategories?: Array<ClaimCategorizationResponseWithClaimIndex> | null;
-  /**
-   *
    * @type {CitationResponseInput}
    * @memberof DocumentChunkInput
    */
   citations?: CitationResponseInput | null;
+  /**
+   *
+   * @type {Array<ClaimCategorizationResponseWithClaimIndex>}
+   * @memberof DocumentChunkInput
+   */
+  claimCategories?: Array<ClaimCategorizationResponseWithClaimIndex>;
   /**
    *
    * @type {Array<ClaimCommonKnowledgeResultWithClaimIndex>}
@@ -149,11 +149,11 @@ export function DocumentChunkInputFromJSONTyped(json: any, ignoreDiscriminator: 
     chunkIndex: json['chunk_index'],
     paragraphIndex: json['paragraph_index'],
     claims: json['claims'] == null ? undefined : ClaimsFromJSON(json['claims']),
+    citations: json['citations'] == null ? undefined : CitationResponseInputFromJSON(json['citations']),
     claimCategories:
       json['claim_categories'] == null
         ? undefined
         : (json['claim_categories'] as Array<any>).map(ClaimCategorizationResponseWithClaimIndexFromJSON),
-    citations: json['citations'] == null ? undefined : CitationResponseInputFromJSON(json['citations']),
     claimCommonKnowledgeResults:
       json['claim_common_knowledge_results'] == null
         ? undefined
@@ -190,11 +190,11 @@ export function DocumentChunkInputToJSONTyped(
     chunk_index: value['chunkIndex'],
     paragraph_index: value['paragraphIndex'],
     claims: ClaimsToJSON(value['claims']),
+    citations: CitationResponseInputToJSON(value['citations']),
     claim_categories:
       value['claimCategories'] == null
         ? undefined
         : (value['claimCategories'] as Array<any>).map(ClaimCategorizationResponseWithClaimIndexToJSON),
-    citations: CitationResponseInputToJSON(value['citations']),
     claim_common_knowledge_results:
       value['claimCommonKnowledgeResults'] == null
         ? undefined

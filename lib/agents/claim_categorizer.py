@@ -23,8 +23,10 @@ The categories are:
 
 """
 from __future__ import annotations
+from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
-from lib.models.agent import Agent
+from langchain_core.runnables import RunnableConfig
+from lib.models.agent import DEFAULT_LLM_TIMEOUT, Agent, AgentProtocol
 
 from enum import Enum
 
@@ -48,13 +50,10 @@ class ClaimCategory(str, Enum):
 
 
 class ClaimCategorizationResponse(BaseModel):
-    claim: str = Field(..., description="Exact claim text as analyzed.")
-    claim_category: ClaimCategory = Field(..., description="Assigned category.")
-    rationale: str = Field(
-        ..., description="One-line reason for the category assignment."
-    )
+    claim: str = Field(description="Exact claim text as analyzed.")
+    claim_category: ClaimCategory = Field(description="Assigned category.")
+    rationale: str = Field(description="One-line reason for the category assignment.")
     needs_external_verification: bool = Field(
-        ...,
         description=(
             "True if: (a) the sentence contains a citation, OR (b) it asserts reported/established "
             "knowledge that originates outside the current document/analysis and would typically "
@@ -85,7 +84,7 @@ CATEGORIES WITH EXAMPLES:
        • "Previous studies have shown that X causes Y (Smith et al., 2021)."
        • "According to prior studies, neural networks outperform linear models on vision tasks."
    - Rule of Thumb for citations:
-        - If the knowledge did not originate in this paper and is not universally accepted, cite it.       
+        - If the knowledge did not originate in this paper and is not universally accepted, cite it.
    - Citation exemptions:
         - If the knowledge is universally accepted in the domain, then it does not need to be cited (The chemical composition of water is H2O; The United States is a country; The speed of light is 299,792,458 meters per second)
 
@@ -103,18 +102,18 @@ CATEGORIES WITH EXAMPLES:
    - Rule of Thumb for citations:
         - If the method, algorithm, dataset, or software package used in the sentence did not originate in this paper and is not universally accepted, then it requires a citation.
    - Citation exemptions:
-        - Citations are not required for methodologies that are universally accepted in the domain (e.g., stochastic gradient descent in DL and AI; bag of words in NLP; etc.)        
+        - Citations are not required for methodologies that are universally accepted in the domain (e.g., stochastic gradient descent in DL and AI; bag of words in NLP; etc.)
 
 3. **Empirical / Analytical Results** -> Usually does not require citations
 
-   - Purpose: to present new findings or quantitative results generated within the current work. 
+   - Purpose: to present new findings or quantitative results generated within the current work.
    - Typical content: measured values, error rates, or discovered patterns. Contains phrases like "improved by" "reached equilibrium in" "found a strong correlation between"
    - Examples:
        • "Accuracy improved by 12 percentage points over baseline."
        • "The reaction reached equilibrium in 30 seconds."
        • "We found a strong correlation between the two variables."
    - Rule of Thumb for citations:
-        - Results obtained from the current work should not require a citation unless these results are compared to prior work or external theory (e.g., "Our accuracy exceeds the 89 percent reported by Li et al., 2023.")  require a citation for the baseline.  
+        - Results obtained from the current work should not require a citation unless these results are compared to prior work or external theory (e.g., "Our accuracy exceeds the 89 percent reported by Li et al., 2023.")  require a citation for the baseline.
 
 4. **Inferential / Interpretive Claims** -> Occasionally requires citations
 
@@ -189,17 +188,25 @@ have exactly one category and one-line rationale.
 )
 
 
-claim_categorizer_agent = Agent(
-    name="Claim Categorizer",
-    description="Categorize a claim into one of the six categories",
-    model=models["gpt-5"],
-    temperature=0.2,
-    prompt=_claim_categorizer_prompt,
-    tools=[],
-    mandatory_tools=[],
-    output_schema=ClaimCategorizationResponse,
-)
+class ClaimCategorizerAgent(AgentProtocol):
+    name: str = "Claim Categorizer"
+    description: str = "Categorize a claim into one of the six categories"
 
+    def __init__(self):
+        self.llm = init_chat_model(
+            models["gpt-5"],
+            temperature=0.2,
+            timeout=DEFAULT_LLM_TIMEOUT,
+        ).with_structured_output(ClaimCategorizationResponse)
+
+    async def ainvoke(
+        self, prompt_kwargs: dict, config: RunnableConfig = None
+    ) -> ClaimCategorizationResponse:
+        messages = _claim_categorizer_prompt.format_messages(**prompt_kwargs)
+        return await self.llm.ainvoke(messages, config=config)
+
+
+claim_categorizer_agent = ClaimCategorizerAgent()
 
 if __name__ == "__main__":
     import asyncio
@@ -295,17 +302,16 @@ if __name__ == "__main__":
 
     # Run tests and compare results
     for i, test_case in enumerate(test_cases, 1):
-        response = asyncio.run(claim_categorizer_agent.apply(test_case))
-        response = _ensure_structured_output(response, ClaimCategorizationResponse)
+        response = asyncio.run(claim_categorizer_agent.ainvoke(test_case))
 
         print(f"\nTest Case {i}:")
         print(f"Claim: {test_case['claim']}")
         print(f"Expected Category: {test_case['expected_category']}")
-        print(f"Inferred Category: {response.category}")
+        print(f"Inferred Category: {response.claim_category}")
         print(
             f"Expected Needs Verification: {test_case['expected_needs_verification']}"
         )
         print(f"Inferred Needs Verification: {response.needs_external_verification}")
         print(
-            f"Match: {test_case['expected_category'] == response.category and test_case['expected_needs_verification'] == response.needs_external_verification}"
+            f"Match: {test_case['expected_category'] == response.claim_category and test_case['expected_needs_verification'] == response.needs_external_verification}"
         )

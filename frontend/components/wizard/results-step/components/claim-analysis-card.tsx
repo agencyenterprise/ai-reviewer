@@ -1,10 +1,12 @@
 'use client';
 
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
+import { LabeledValue } from '@/components/labeled-value';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   BibliographyItem,
   CitationSuggestionResultWithClaimIndexOutput,
+  ClaimCategorizationResponseWithClaimIndex,
   ClaimCommonKnowledgeResultWithClaimIndex,
   ClaimSubstantiationResultWithClaimIndex,
   EvidenceWeighterResponseWithClaimIndexOutput,
@@ -12,14 +14,15 @@ import {
   ToulminClaim,
 } from '@/lib/generated-api';
 import { ClaimCitationSuggestions } from './claim-citation-suggestions';
+import { ClaimLiveReports } from './claim-live-reports';
 import { ClaimNeedsSubstantiationAccordion } from './claim-needs-substantiation-accordion';
 import { SubstantiationResults } from './substantiation-results';
 import { ToulminClaimAccordion } from './toulmin-claim-accordion';
-import { LabeledValue } from '@/components/labeled-value';
-import { ClaimLiveReports } from './claim-live-reports';
+import { ClaimCategoryResults } from './claim-category-results';
 
 export interface ClaimAnalysisCardProps {
   claim: ToulminClaim;
+  claimCategory?: ClaimCategorizationResponseWithClaimIndex;
   commonKnowledgeResult?: ClaimCommonKnowledgeResultWithClaimIndex;
   substantiation?: ClaimSubstantiationResultWithClaimIndex;
   references: BibliographyItem[];
@@ -32,6 +35,7 @@ export interface ClaimAnalysisCardProps {
 
 export function ClaimAnalysisCard({
   claim,
+  claimCategory,
   commonKnowledgeResult,
   substantiation,
   references,
@@ -57,6 +61,7 @@ export function ClaimAnalysisCard({
 
         <div className="space-y-2">
           <ToulminClaimAccordion claim={claim} />
+          {claimCategory && <ClaimCategoryResults claimCategory={claimCategory} />}
           {commonKnowledgeResult && <ClaimNeedsSubstantiationAccordion result={commonKnowledgeResult} />}
           {substantiation && (
             <SubstantiationResults

@@ -1,13 +1,9 @@
 import * as React from 'react';
 import { PublicationQuality, ConfidenceInRecommendation, RecommendedAction, ReferenceType } from '@/lib/generated-api';
+import { snakeCaseToTitleCase } from '@/lib/utils';
 
 interface BadgeProps {
   className?: string;
-}
-
-// Helper function to convert snake_case to Title Case
-function toTitleCase(s: string): string {
-  return s?.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()) || '';
 }
 
 export function PublicationQualityBadge({ quality, className }: BadgeProps & { quality: PublicationQuality }) {
@@ -28,7 +24,7 @@ export function PublicationQualityBadge({ quality, className }: BadgeProps & { q
 
   return (
     <span className={`px-2 py-1 rounded text-xs ${getClasses(quality)} ${className || ''}`}>
-      {toTitleCase(quality)}
+      {snakeCaseToTitleCase(quality)}
     </span>
   );
 }
@@ -49,7 +45,7 @@ export function ConfidenceBadge({ confidence, className }: BadgeProps & { confid
 
   return (
     <span className={`px-2 py-1 rounded text-xs ${getClasses(confidence)} ${className || ''}`}>
-      {toTitleCase(confidence)} Confidence
+      {snakeCaseToTitleCase(confidence)} Confidence
     </span>
   );
 }
@@ -73,7 +69,9 @@ export function RecommendedActionBadge({ action, className }: BadgeProps & { act
   };
 
   return (
-    <span className={`px-2 py-1 rounded text-xs ${getClasses(action)} ${className || ''}`}>{toTitleCase(action)}</span>
+    <span className={`px-2 py-1 rounded text-xs ${getClasses(action)} ${className || ''}`}>
+      {snakeCaseToTitleCase(action)}
+    </span>
   );
 }
 
@@ -102,6 +100,8 @@ export function ReferenceTypeBadge({ type, className }: BadgeProps & { type: Ref
   };
 
   return (
-    <span className={`px-2 py-1 rounded text-xs ${getClasses(type)} ${className || ''}`}>{toTitleCase(type)}</span>
+    <span className={`px-2 py-1 rounded text-xs ${getClasses(type)} ${className || ''}`}>
+      {snakeCaseToTitleCase(type)}
+    </span>
   );
 }
