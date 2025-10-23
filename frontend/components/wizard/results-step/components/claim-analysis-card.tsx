@@ -10,7 +10,6 @@ import {
   FileDocument,
   ToulminClaim,
 } from '@/lib/generated-api';
-import { RetrievedPassagesDisplay } from './retrieved-passages-display';
 import { ClaimCitationSuggestions } from './claim-citation-suggestions';
 import { ClaimNeedsSubstantiationAccordion } from './claim-needs-substantiation-accordion';
 import { SubstantiationResults } from './substantiation-results';
@@ -56,16 +55,12 @@ export function ClaimAnalysisCard({
           <ToulminClaimAccordion claim={claim} />
           {commonKnowledgeResult && <ClaimNeedsSubstantiationAccordion result={commonKnowledgeResult} />}
           {substantiation && (
-            <>
-              <SubstantiationResults
-                substantiation={substantiation}
-                references={references}
-                supportingFiles={supportingFiles}
-              />
-              {substantiation.retrievedPassages && substantiation.retrievedPassages.length > 0 && (
-                <RetrievedPassagesDisplay passages={substantiation.retrievedPassages} />
-              )}
-            </>
+            <SubstantiationResults
+              substantiation={substantiation}
+              references={references}
+              supportingFiles={supportingFiles}
+              retrievedPassages={substantiation.retrievedPassages ?? undefined}
+            />
           )}
           {citationSuggestion && (
             <ClaimCitationSuggestions

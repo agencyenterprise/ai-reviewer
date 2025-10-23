@@ -11,7 +11,6 @@ export {
 export { ClaimAnalysisCard } from './claim-analysis-card';
 export { CollapsibleFeedback } from './collapsible-feedback';
 export { ExpandableControl } from './expandable-control';
-export { RetrievedPassagesDisplay } from './retrieved-passages-display';
 export { SubstantiationRequestCard } from './substantiation-request-card';
 export { SummaryCards } from './summary-cards';
 export { TabNavigation } from './tab-navigation';
