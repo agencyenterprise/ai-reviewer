@@ -92,7 +92,7 @@ async def _verify_chunk_claims_with_provider(
             "Review the full documents to determine if they support the claim."
         )
 
-        result = await claim_verifier_agent.apply(
+        result = await claim_verifier_agent.ainvoke(
             {
                 "full_document": state.file.markdown,
                 "paragraph": state.get_paragraph(chunk.paragraph_index),

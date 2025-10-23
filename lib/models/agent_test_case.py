@@ -5,7 +5,7 @@ import json
 import uuid
 from typing import Any, Dict, List, Optional, Protocol, Set, Type, TypeVar
 
-from pydantic import BaseModel, Field, SkipValidation, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict
 from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
@@ -16,29 +16,6 @@ from lib.config.langfuse import langfuse_handler
 from lib.models.agent import AgentProtocol
 from lib.models.field_comparator import FieldComparator
 from lib.models.comparison_models import FieldComparison
-
-
-class AgentLike(Protocol):
-    """Protocol for objects that can be used as agents in test cases.
-
-    This allows both full Agent instances and lightweight wrappers
-    to be used with AgentTestCase. Any object with the following
-    attributes/methods can be used:
-    - name: str
-    - version: str or int
-    - apply(prompt_kwargs, config) -> async method
-    """
-
-    name: str
-    version: str | int
-
-    async def apply(
-        self,
-        prompt_kwargs: Dict[str, Any],
-        config: Optional[RunnableConfig] = None,
-    ) -> Any:
-        """Apply the agent to the given inputs."""
-        ...
 
 
 TResponse = TypeVar("TResponse", bound=BaseModel)
@@ -70,7 +47,7 @@ class AgentTestCase(BaseModel):
     _shared_session_id: Optional[str] = None
 
     name: str
-    agent: SkipValidation[AgentLike]  # Accept any object matching AgentLike protocol
+    agent: AgentProtocol
     response_model: Type[TResponse]
     prompt_kwargs: Dict[str, Any]
 

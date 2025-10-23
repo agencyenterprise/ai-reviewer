@@ -39,9 +39,9 @@ class RAGClaimVerifierWrapper:
     """
 
     name: str = "RAG Claim Verifier"
-    version: str = "1.0"
+    description: str = "RAG-based claim verification workflow"
 
-    async def apply(
+    async def ainvoke(
         self, prompt_kwargs: Dict[str, Any], config: Optional[RunnableConfig] = None
     ) -> ClaimSubstantiationResult:
         """Execute RAG-based claim verification.
