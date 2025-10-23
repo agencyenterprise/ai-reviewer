@@ -44,7 +44,7 @@ async def summarize_supporting_documents(
     )
 
     tasks = [
-        document_summarizer_agent.apply(
+        document_summarizer_agent.ainvoke(
             {
                 "document": file.markdown,
             }

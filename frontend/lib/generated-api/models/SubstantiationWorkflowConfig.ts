@@ -38,7 +38,7 @@ export interface SubstantiationWorkflowConfig {
    */
   runSuggestCitations?: boolean;
   /**
-   * Use RAG for claim verification (reduces token costs by ~89%)
+   * Use RAG for claim verification
    * @type {boolean}
    * @memberof SubstantiationWorkflowConfig
    */

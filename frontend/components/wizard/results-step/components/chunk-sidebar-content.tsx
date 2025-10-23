@@ -28,6 +28,7 @@ export function ChunkSidebarContent({
   const supportingFiles = results.supportingFiles || [];
   const shouldShowStatusBadge = useShouldShowStatusBadge(isWorkflowRunning);
   const citationSuggestions = chunk?.citationSuggestions || [];
+  const liveReportsAnalysis = chunk?.liveReportsAnalysis || [];
 
   if (!chunk) {
     return null;
@@ -47,6 +48,7 @@ export function ChunkSidebarContent({
             commonKnowledgeResult={claimCommonKnowledgeResults.find((c) => c.claimIndex === index)}
             substantiation={substantiations.find((s) => s.claimIndex === index)}
             citationSuggestion={citationSuggestions.find((c) => c.claimIndex === index)}
+            liveReportsAnalysis={liveReportsAnalysis.find((l) => l.claimIndex === index)}
             claimIndex={index}
             totalClaims={claims.length}
             references={references}

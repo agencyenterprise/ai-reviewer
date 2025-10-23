@@ -1,16 +1,20 @@
 'use client';
 
 import * as React from 'react';
-import { WizardContextType, WizardState, WizardActions } from './types';
+import { WizardContextType, WizardState, WizardActions, AnalysisConfig } from './types';
 
 const initialState: WizardState = {
   currentStep: 1,
   mainDocument: null,
   supportingDocuments: [],
-  domain: '',
-  targetAudience: '',
-  runLiteratureReview: false,
-  runSuggestCitations: false,
+  config: {
+    domain: '',
+    targetAudience: '',
+    documentPublicationDate: '',
+    runLiteratureReview: false,
+    runSuggestCitations: false,
+    runLiveReports: false,
+  },
   isProcessing: false,
   processingStage: 'idle',
   uploadProgress: { progress: 0, status: 'idle' },
@@ -34,17 +38,8 @@ export function WizardProvider({ children }: { children: React.ReactNode }) {
     setSupportingDocuments: (files: File[]) => {
       setState((prev) => ({ ...prev, supportingDocuments: files }));
     },
-    setDomain: (domain: string) => {
-      setState((prev) => ({ ...prev, domain }));
-    },
-    setTargetAudience: (targetAudience: string) => {
-      setState((prev) => ({ ...prev, targetAudience }));
-    },
-    setRunLiteratureReview: (runLiteratureReview: boolean) => {
-      setState((prev) => ({ ...prev, runLiteratureReview }));
-    },
-    setRunSuggestCitations: (runSuggestCitations: boolean) => {
-      setState((prev) => ({ ...prev, runSuggestCitations }));
+    setConfig: (config: AnalysisConfig) => {
+      setState((prev) => ({ ...prev, config }));
     },
     setIsProcessing: (processing: boolean) => {
       setState((prev) => ({ ...prev, isProcessing: processing }));

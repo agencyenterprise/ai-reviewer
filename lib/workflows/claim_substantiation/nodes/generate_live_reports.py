@@ -19,10 +19,10 @@ from lib.workflows.chunk_iterator import iterate_chunks
 logger = logging.getLogger(__name__)
 
 
-async def live_reports_analysis(
+async def generate_live_reports_analysis(
     state: ClaimSubstantiatorState,
 ) -> ClaimSubstantiatorState:
-    logger.info(f"live_reports_analysis ({state.config.session_id}): starting")
+    logger.info(f"generate_live_reports_analysis ({state.config.session_id}): starting")
 
     if not state.config.run_live_reports:
         logger.info(

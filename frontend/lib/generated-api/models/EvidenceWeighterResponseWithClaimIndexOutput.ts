@@ -27,13 +27,13 @@ import {
   ClaimReferenceFactorsToJSON,
   ClaimReferenceFactorsToJSONTyped,
 } from './ClaimReferenceFactors';
-import type { EvidenceAlignmentLevel } from './EvidenceAlignmentLevel';
+import type { ReferenceAlignmentLevel } from './ReferenceAlignmentLevel';
 import {
-  EvidenceAlignmentLevelFromJSON,
-  EvidenceAlignmentLevelFromJSONTyped,
-  EvidenceAlignmentLevelToJSON,
-  EvidenceAlignmentLevelToJSONTyped,
-} from './EvidenceAlignmentLevel';
+  ReferenceAlignmentLevelFromJSON,
+  ReferenceAlignmentLevelFromJSONTyped,
+  ReferenceAlignmentLevelToJSON,
+  ReferenceAlignmentLevelToJSONTyped,
+} from './ReferenceAlignmentLevel';
 import type { EvidenceWeighterRecommendedAction } from './EvidenceWeighterRecommendedAction';
 import {
   EvidenceWeighterRecommendedActionFromJSON,
@@ -56,10 +56,10 @@ export interface EvidenceWeighterResponseWithClaimIndexOutput {
   newerReferences: Array<ClaimReferenceFactors>;
   /**
    * Evidence alignment of the newer references: unverifiable, supported, partially_supported, or unsupported
-   * @type {EvidenceAlignmentLevel}
+   * @type {ReferenceAlignmentLevel}
    * @memberof EvidenceWeighterResponseWithClaimIndexOutput
    */
-  newerReferencesAlignment: EvidenceAlignmentLevel;
+  newerReferencesAlignment: ReferenceAlignmentLevel;
   /**
    * Recommended action for the claim: update_claim, add_citation, or no_change
    * @type {EvidenceWeighterRecommendedAction}
@@ -67,7 +67,7 @@ export interface EvidenceWeighterResponseWithClaimIndexOutput {
    */
   claimUpdateAction: EvidenceWeighterRecommendedAction;
   /**
-   * Explanation of the claim update
+   * Explanation of the rationale for the claim update action in a maximum of TWO sentences.
    * @type {string}
    * @memberof EvidenceWeighterResponseWithClaimIndexOutput
    */
@@ -78,6 +78,12 @@ export interface EvidenceWeighterResponseWithClaimIndexOutput {
    * @memberof EvidenceWeighterResponseWithClaimIndexOutput
    */
   confidenceLevel: QualityLevel;
+  /**
+   * The rewritten claim that is more clear and accurate according to the recommended action and taking the newer sources into account.
+   * @type {string}
+   * @memberof EvidenceWeighterResponseWithClaimIndexOutput
+   */
+  rewrittenClaim: string;
   /**
    *
    * @type {number}
@@ -103,6 +109,7 @@ export function instanceOfEvidenceWeighterResponseWithClaimIndexOutput(
   if (!('claimUpdateAction' in value) || value['claimUpdateAction'] === undefined) return false;
   if (!('rationale' in value) || value['rationale'] === undefined) return false;
   if (!('confidenceLevel' in value) || value['confidenceLevel'] === undefined) return false;
+  if (!('rewrittenClaim' in value) || value['rewrittenClaim'] === undefined) return false;
   if (!('chunkIndex' in value) || value['chunkIndex'] === undefined) return false;
   if (!('claimIndex' in value) || value['claimIndex'] === undefined) return false;
   return true;
@@ -123,10 +130,11 @@ export function EvidenceWeighterResponseWithClaimIndexOutputFromJSONTyped(
   }
   return {
     newerReferences: (json['newer_references'] as Array<any>).map(ClaimReferenceFactorsFromJSON),
-    newerReferencesAlignment: EvidenceAlignmentLevelFromJSON(json['newer_references_alignment']),
+    newerReferencesAlignment: ReferenceAlignmentLevelFromJSON(json['newer_references_alignment']),
     claimUpdateAction: EvidenceWeighterRecommendedActionFromJSON(json['claim_update_action']),
     rationale: json['rationale'],
     confidenceLevel: QualityLevelFromJSON(json['confidence_level']),
+    rewrittenClaim: json['rewritten_claim'],
     chunkIndex: json['chunk_index'],
     claimIndex: json['claim_index'],
   };
@@ -148,10 +156,11 @@ export function EvidenceWeighterResponseWithClaimIndexOutputToJSONTyped(
 
   return {
     newer_references: (value['newerReferences'] as Array<any>).map(ClaimReferenceFactorsToJSON),
-    newer_references_alignment: EvidenceAlignmentLevelToJSON(value['newerReferencesAlignment']),
+    newer_references_alignment: ReferenceAlignmentLevelToJSON(value['newerReferencesAlignment']),
     claim_update_action: EvidenceWeighterRecommendedActionToJSON(value['claimUpdateAction']),
     rationale: value['rationale'],
     confidence_level: QualityLevelToJSON(value['confidenceLevel']),
+    rewritten_claim: value['rewrittenClaim'],
     chunk_index: value['chunkIndex'],
     claim_index: value['claimIndex'],
   };

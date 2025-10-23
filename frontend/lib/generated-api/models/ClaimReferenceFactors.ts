@@ -109,7 +109,7 @@ export interface ClaimReferenceFactors {
    */
   politicalBias: PoliticalBias;
   /**
-   * Why this source is relevant to the claim and the claim's evidence alignment and why does it have this quality level
+   * Why this source is relevant to the claim and the claim's evidence alignment and why does it have this quality level. In a maximum of THREE sentences.
    * @type {string}
    * @memberof ClaimReferenceFactors
    */

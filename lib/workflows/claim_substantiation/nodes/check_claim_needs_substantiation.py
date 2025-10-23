@@ -45,19 +45,17 @@ async def _check_chunk_claim_needs_substantiation(
 
     claim_common_knowledge_results = []
     for claim_index, claim in enumerate(chunk.claims.claims):
-        result: ClaimCommonKnowledgeResult = (
-            await claim_needs_substantiation_checker_agent.apply(
-                {
-                    "full_document": state.file.markdown,
-                    "paragraph": state.get_paragraph(chunk.paragraph_index),
-                    "chunk": chunk.content,
-                    "claim": claim.claim,
-                    "domain_context": format_domain_context(state.config.domain),
-                    "audience_context": format_audience_context(
-                        state.config.target_audience
-                    ),
-                }
-            )
+        result = await claim_needs_substantiation_checker_agent.ainvoke(
+            {
+                "full_document": state.file.markdown,
+                "paragraph": state.get_paragraph(chunk.paragraph_index),
+                "chunk": chunk.content,
+                "claim": claim.claim,
+                "domain_context": format_domain_context(state.config.domain),
+                "audience_context": format_audience_context(
+                    state.config.target_audience
+                ),
+            }
         )
 
         claim_common_knowledge_results.append(

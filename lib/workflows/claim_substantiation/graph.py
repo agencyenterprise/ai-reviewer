@@ -26,7 +26,10 @@ from lib.workflows.claim_substantiation.nodes.verify_claims import (
     verify_claims_with_rag,
 )
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
-from lib.workflows.claim_substantiation.nodes.live_reports import live_reports_analysis
+from lib.workflows.claim_substantiation.nodes.generate_live_reports import (
+    generate_live_reports_analysis,
+)
+from lib.workflows.claim_substantiation.nodes.categorize_claims import categorize_claims
 
 
 def finalize(state: ClaimSubstantiatorState) -> ClaimSubstantiatorState:
@@ -64,6 +67,7 @@ def build_claim_substantiator_graph(
     graph.add_node("detect_citations", detect_citations)
     graph.add_node("extract_references", extract_references)
     graph.add_node("check_claim_needs_substantiation", check_claim_needs_substantiation)
+    graph.add_node("categorize_claims", categorize_claims)
 
     # Conditional verify node based on RAG setting
     if use_rag:
@@ -80,7 +84,9 @@ def build_claim_substantiator_graph(
         graph.add_node("summarize_supporting_documents", summarize_supporting_documents)
         graph.add_node("suggest_citations", suggest_citations, defer=True)
     if run_live_reports:
-        graph.add_node("live_reports_analysis", live_reports_analysis, defer=True)
+        graph.add_node(
+            "generate_live_reports_analysis", generate_live_reports_analysis, defer=True
+        )
 
     # Finalize/join node to allow parallel branches to complete
     if run_suggest_citations and run_live_reports:
@@ -94,7 +100,11 @@ def build_claim_substantiator_graph(
     graph.add_edge("split_into_chunks", "extract_references")
     graph.add_edge("split_into_chunks", "extract_claims")
     graph.add_edge("extract_references", "detect_citations")
-    graph.add_edge("extract_claims", "check_claim_needs_substantiation")
+    # NOTE (2025-10-21): Currently going directly from extract_claims to check_claim_needs_substantiation
+    # and then to verify claims;
+    # Later we can likely remove the `check_claim_needs_substantiation` node and just go from  categorize_claims to verify_claims and a future verify_inferences
+    graph.add_edge("extract_claims", "categorize_claims")
+    graph.add_edge("categorize_claims", "check_claim_needs_substantiation")
     graph.add_edge("check_claim_needs_substantiation", "verify_claims")
     graph.add_edge("detect_citations", "verify_claims")
 
@@ -119,17 +129,17 @@ def build_claim_substantiator_graph(
     # Live reports runs in parallel and is NOT dependent on suggest_citations
     # Keep it downstream of verify_claims to ensure claims/citations/references exist
     if run_live_reports:
-        graph.add_edge("verify_claims", "live_reports_analysis")
+        graph.add_edge("verify_claims", "generate_live_reports_analysis")
 
     # Finalize/join node to allow parallel branches to complete
     if run_suggest_citations and run_live_reports:
         graph.add_edge("suggest_citations", "finalize")
-        graph.add_edge("live_reports_analysis", "finalize")
+        graph.add_edge("generate_live_reports_analysis", "finalize")
         graph.set_finish_point("finalize")
     elif run_suggest_citations:
         graph.set_finish_point("suggest_citations")
     elif run_live_reports:
-        graph.set_finish_point("live_reports_analysis")
+        graph.set_finish_point("generate_live_reports_analysis")
     else:
         graph.set_finish_point("verify_claims")
 

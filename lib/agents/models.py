@@ -1,3 +1,5 @@
+# lib/agents/enums.py
+from enum import Enum
 from langchain_core.documents import Document
 from pydantic import BaseModel, Field, field_validator
 from typing import Any
@@ -44,3 +46,12 @@ class ChunkWithIndex(BaseModel):
     content: str
     chunk_index: int
     paragraph_index: int
+
+
+class ClaimCategory(str, Enum):
+    ESTABLISHED = "established_reported_knowledge"
+    METHODOLOGY = "methodology_procedural"
+    RESULTS = "empirical_analytical_results"
+    INTERPRETATION = "inferential_interpretive_claims"
+    META = "meta_structural_evaluative"
+    OTHER = "other"

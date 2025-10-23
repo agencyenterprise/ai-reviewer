@@ -120,12 +120,6 @@ export interface ClaimSubstantiatorStateOutput {
   errors?: Array<WorkflowError>;
   /**
    *
-   * @type {LiteratureReviewResponseOutput}
-   * @memberof ClaimSubstantiatorStateOutput
-   */
-  literatureReview?: LiteratureReviewResponseOutput | null;
-  /**
-   *
    * @type {DocumentSummary}
    * @memberof ClaimSubstantiatorStateOutput
    */
@@ -148,6 +142,12 @@ export interface ClaimSubstantiatorStateOutput {
    * @memberof ClaimSubstantiatorStateOutput
    */
   liveReportsAnalysis?: Array<EvidenceWeighterResponseWithClaimIndexOutput>;
+  /**
+   *
+   * @type {LiteratureReviewResponseOutput}
+   * @memberof ClaimSubstantiatorStateOutput
+   */
+  literatureReview?: LiteratureReviewResponseOutput | null;
 }
 
 /**
@@ -180,8 +180,6 @@ export function ClaimSubstantiatorStateOutputFromJSONTyped(
       json['references'] == null ? undefined : (json['references'] as Array<any>).map(BibliographyItemFromJSON),
     chunks: json['chunks'] == null ? undefined : (json['chunks'] as Array<any>).map(DocumentChunkOutputFromJSON),
     errors: json['errors'] == null ? undefined : (json['errors'] as Array<any>).map(WorkflowErrorFromJSON),
-    literatureReview:
-      json['literature_review'] == null ? undefined : LiteratureReviewResponseOutputFromJSON(json['literature_review']),
     mainDocumentSummary:
       json['main_document_summary'] == null ? undefined : DocumentSummaryFromJSON(json['main_document_summary']),
     supportingDocumentsSummaries:
@@ -193,6 +191,8 @@ export function ClaimSubstantiatorStateOutputFromJSONTyped(
       json['live_reports_analysis'] == null
         ? undefined
         : (json['live_reports_analysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexOutputFromJSON),
+    literatureReview:
+      json['literature_review'] == null ? undefined : LiteratureReviewResponseOutputFromJSON(json['literature_review']),
   };
 }
 
@@ -218,7 +218,6 @@ export function ClaimSubstantiatorStateOutputToJSONTyped(
       value['references'] == null ? undefined : (value['references'] as Array<any>).map(BibliographyItemToJSON),
     chunks: value['chunks'] == null ? undefined : (value['chunks'] as Array<any>).map(DocumentChunkOutputToJSON),
     errors: value['errors'] == null ? undefined : (value['errors'] as Array<any>).map(WorkflowErrorToJSON),
-    literature_review: LiteratureReviewResponseOutputToJSON(value['literatureReview']),
     main_document_summary: DocumentSummaryToJSON(value['mainDocumentSummary']),
     supporting_documents_summaries:
       value['supportingDocumentsSummaries'] == null
@@ -229,5 +228,6 @@ export function ClaimSubstantiatorStateOutputToJSONTyped(
       value['liveReportsAnalysis'] == null
         ? undefined
         : (value['liveReportsAnalysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexOutputToJSON),
+    literature_review: LiteratureReviewResponseOutputToJSON(value['literatureReview']),
   };
 }

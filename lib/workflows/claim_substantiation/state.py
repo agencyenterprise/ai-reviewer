@@ -1,23 +1,29 @@
-from typing import Annotated, Dict, List, Optional
-from pydantic import BaseModel, Field
-from operator import add
 from datetime import date
+from operator import add
+from typing import Annotated, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+
+# Agent response models
 from lib.agents.citation_detector import CitationResponse
-from lib.agents.citation_suggester import (
-    CitationSuggestionResultWithClaimIndex,
-)
-from lib.agents.evidence_weighter import EvidenceWeighterResponseWithClaimIndex
+from lib.agents.citation_suggester import CitationSuggestionResultWithClaimIndex
+from lib.agents.claim_categorizer import ClaimCategorizationResponseWithClaimIndex
+from lib.agents.claim_extractor import ClaimResponse
 from lib.agents.claim_needs_substantiation_checker import (
     ClaimCommonKnowledgeResultWithClaimIndex,
 )
-from lib.agents.claim_extractor import ClaimResponse
-from lib.agents.toulmin_claim_extractor import ToulminClaimResponse
-from lib.agents.reference_extractor import BibliographyItem
 from lib.agents.claim_verifier import ClaimSubstantiationResultWithClaimIndex
 from lib.agents.document_summarizer import DocumentSummary
+from lib.agents.evidence_weighter import EvidenceWeighterResponseWithClaimIndex
 from lib.agents.literature_review import LiteratureReviewResponse
-from lib.services.file import FileDocument
 from lib.agents.models import ChunkWithIndex
+from lib.agents.reference_extractor import BibliographyItem
+from lib.agents.toulmin_claim_extractor import ToulminClaimResponse
+
+# Service models
+from lib.services.file import FileDocument
+
+# Workflow models
 from lib.workflows.models import WorkflowError
 
 
@@ -66,6 +72,7 @@ class DocumentChunk(ChunkWithIndex):
     """Independent chunk response object with all processing results"""
 
     claims: Optional[ClaimResponse | ToulminClaimResponse] = None
+    claim_categories: Optional[List[ClaimCategorizationResponseWithClaimIndex]] = None
     citations: Optional[CitationResponse] = None
     claim_common_knowledge_results: List[ClaimCommonKnowledgeResultWithClaimIndex] = []
     substantiations: List[ClaimSubstantiationResultWithClaimIndex] = []
@@ -165,7 +172,6 @@ class ClaimSubstantiatorState(BaseModel):
         default_factory=list,
         description="Errors that occurred during the processing of the document.",
     )
-    literature_review: Optional[LiteratureReviewResponse] = None
     main_document_summary: Optional[DocumentSummary] = Field(
         default=None, description="The summary of the main document"
     )
@@ -180,6 +186,7 @@ class ClaimSubstantiatorState(BaseModel):
     live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = Field(
         default_factory=list, description="Live reports analysis results by chunk index"
     )
+    literature_review: Optional[LiteratureReviewResponse] = None
 
     def get_paragraph_chunks(self, paragraph_index: int) -> List[DocumentChunk]:
         return [

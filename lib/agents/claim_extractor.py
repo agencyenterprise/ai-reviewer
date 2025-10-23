@@ -1,8 +1,10 @@
+from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.llm import models
-from lib.models import Agent
+from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
 
 
 class Claim(BaseModel):
@@ -24,12 +26,8 @@ class ClaimResponse(BaseModel):
     )
 
 
-claim_extractor_agent = Agent(
-    name="Claim Extractor",
-    description="Extract claims in a chunk of text",
-    model=models["gpt-5"],
-    prompt=ChatPromptTemplate.from_template(
-        """
+_claim_extractor_prompt = ChatPromptTemplate.from_template(
+    """
 ## Task
 You are a claim extractor. You are given a chunk of text and you need to extract any claims made in that chunk of text.
 You will be given a full document and a chunk of text from that document.
@@ -58,8 +56,27 @@ For each claim, you need to return the following information:
 {chunk}
 ```
 """
-    ),
-    tools=[],
-    mandatory_tools=[],
-    output_schema=ClaimResponse,
 )
+
+
+class ClaimExtractorAgent(AgentProtocol):
+    name = "Claim Extractor"
+    description = "Extract claims from a chunk of text"
+
+    def __init__(self):
+        self.llm = init_chat_model(
+            models["gpt-5"],
+            temperature=0.2,
+            timeout=DEFAULT_LLM_TIMEOUT,
+        ).with_structured_output(ClaimResponse)
+
+    async def ainvoke(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ) -> ClaimResponse:
+        messages = _claim_extractor_prompt.format_messages(**prompt_kwargs)
+        return await self.llm.ainvoke(messages, config=config)
+
+
+claim_extractor_agent = ClaimExtractorAgent()

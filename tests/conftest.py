@@ -135,7 +135,6 @@ def pytest_runtest_makereport(item, call):
                     "name": case.name,
                     "agent": {
                         "name": case.agent.name,
-                        "version": case.agent.version,
                     },
                     "prompt_kwargs": {
                         # Truncate large fields for readability

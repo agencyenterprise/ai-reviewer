@@ -1,8 +1,14 @@
 import logging
 
+from lib.agents.citation_detector import CitationResponse
 from lib.agents.claim_verifier import (
     ClaimSubstantiationResultWithClaimIndex,
     claim_verifier_agent,
+)
+from lib.agents.formatting_utils import (
+    format_audience_context,
+    format_cited_references,
+    format_domain_context,
 )
 from lib.agents.formatting_utils import format_audience_context, format_domain_context
 from lib.workflows.chunk_iterator import iterate_chunks

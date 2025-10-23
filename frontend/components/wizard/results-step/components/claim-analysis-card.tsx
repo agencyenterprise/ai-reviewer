@@ -7,6 +7,7 @@ import {
   CitationSuggestionResultWithClaimIndexOutput,
   ClaimCommonKnowledgeResultWithClaimIndex,
   ClaimSubstantiationResultWithClaimIndex,
+  EvidenceWeighterResponseWithClaimIndexOutput,
   FileDocument,
   ToulminClaim,
 } from '@/lib/generated-api';
@@ -15,6 +16,7 @@ import { ClaimNeedsSubstantiationAccordion } from './claim-needs-substantiation-
 import { SubstantiationResults } from './substantiation-results';
 import { ToulminClaimAccordion } from './toulmin-claim-accordion';
 import { LabeledValue } from '@/components/labeled-value';
+import { ClaimLiveReports } from './claim-live-reports';
 
 export interface ClaimAnalysisCardProps {
   claim: ToulminClaim;
@@ -25,6 +27,7 @@ export interface ClaimAnalysisCardProps {
   totalClaims: number;
   supportingFiles: FileDocument[];
   citationSuggestion?: CitationSuggestionResultWithClaimIndexOutput;
+  liveReportsAnalysis?: EvidenceWeighterResponseWithClaimIndexOutput;
 }
 
 export function ClaimAnalysisCard({
@@ -36,6 +39,7 @@ export function ClaimAnalysisCard({
   claimIndex,
   totalClaims,
   citationSuggestion,
+  liveReportsAnalysis,
 }: ClaimAnalysisCardProps) {
   return (
     <Card>
@@ -69,6 +73,7 @@ export function ClaimAnalysisCard({
               supportingFiles={supportingFiles}
             />
           )}
+          {liveReportsAnalysis && <ClaimLiveReports liveReportsAnalysis={liveReportsAnalysis} />}
         </div>
       </CardContent>
     </Card>

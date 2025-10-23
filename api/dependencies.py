@@ -14,6 +14,7 @@ async def build_config_from_form(
     run_literature_review: bool = Form(default=True),
     run_suggest_citations: bool = Form(default=True),
     use_rag: bool = Form(default=True),
+    run_live_reports: bool = Form(default=False),
     domain: Optional[str] = Form(default=None),
     target_audience: Optional[str] = Form(default=None),
     target_chunk_indices: Optional[str] = Form(default=None),
@@ -29,6 +30,7 @@ async def build_config_from_form(
         run_literature_review: Whether to run the literature review
         run_suggest_citations: Whether to run the citation suggestions
         use_rag: Whether to use RAG for claim verification
+        run_live_reports: Whether to run the live reports analysis
         domain: Domain context for more accurate analysis
         target_audience: Target audience context for analysis
         target_chunk_indices: Comma-separated chunk indices to process (optional)
@@ -79,6 +81,7 @@ async def build_config_from_form(
         run_literature_review=run_literature_review,
         run_suggest_citations=run_suggest_citations,
         use_rag=use_rag,
+        run_live_reports=run_live_reports,
         domain=domain,
         target_audience=target_audience,
         target_chunk_indices=parsed_target_chunk_indices,

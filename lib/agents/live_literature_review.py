@@ -31,7 +31,7 @@ class ClaimReferenceFactors(BaseModel):
     )
     political_bias: PoliticalBias = Field(description="Political bias of the evidence")
     rationale: str = Field(
-        description="Why this source is relevant to the claim and the claim's evidence alignment and why does it have this quality level"
+        description="Why this source is relevant to the claim and the claim's evidence alignment and why does it have this quality level. In a maximum of THREE sentences."
     )
     methodology: str = Field(
         description="Notes about study methodology or data quality"
@@ -109,12 +109,13 @@ Provide each piece of evidence related to a claim with one of the following qual
 - **Low**: Blogs, opinion pieces, sources with unclear methodology or potential bias
 
 # Output Requirements
-- Return at most 5 high-quality references per claim
+- Return at most THREE high-quality references per claim. Only return a full set of THREE if all three are high quality and relevant to the claim.
 - Prioritize peer-reviewed academic sources, government reports, and reputable institutions
 - Focus on more recent high quality references from the last 5 years
 - Provide specific excerpts that demonstrate the reference relationship
 - Explain the methodology and quality factors for each source
 - Focus on the highest quality and most relevant sources only
+- In the rationale, explain why the source is relevant to the claim and why it has this quality level, in a maximum of THREE sentences.
 
 # Search Guidelines
 - Use specific search terms related to the claim's key concepts

@@ -41,6 +41,7 @@ export interface StartAnalysisApiStartAnalysisPostRequest {
   runLiteratureReview?: boolean;
   runSuggestCitations?: boolean;
   useRag?: boolean;
+  runLiveReports?: boolean;
   domain?: string | null;
   targetAudience?: string | null;
   targetChunkIndices?: string | null;
@@ -161,6 +162,10 @@ export class AnalysisApi extends runtime.BaseAPI {
 
     if (requestParameters['useRag'] != null) {
       formParams.append('use_rag', requestParameters['useRag'] as any);
+    }
+
+    if (requestParameters['runLiveReports'] != null) {
+      formParams.append('run_live_reports', requestParameters['runLiveReports'] as any);
     }
 
     if (requestParameters['domain'] != null) {

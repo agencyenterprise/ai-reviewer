@@ -5,7 +5,7 @@ import json
 import uuid
 from typing import Any, Dict, List, Optional, Protocol, Set, Type, TypeVar
 
-from pydantic import BaseModel, Field, SkipValidation
+from pydantic import BaseModel, Field, SkipValidation, ConfigDict
 from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
@@ -13,7 +13,7 @@ from deepdiff import DeepDiff
 
 
 from lib.config.langfuse import langfuse_handler
-from lib.models.agent import Agent
+from lib.models.agent import AgentProtocol
 from lib.models.field_comparator import FieldComparator
 from lib.models.comparison_models import FieldComparison
 
@@ -64,7 +64,7 @@ class AgentTestCase(BaseModel):
     - ignore_fields are dotted prefixes to omit from both expected and result prior to checks
     """
 
-    model_config = {"arbitrary_types_allowed": True}
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     # Class-level shared session ID for all test cases in a run
     _shared_session_id: Optional[str] = None
@@ -119,7 +119,7 @@ class AgentTestCase(BaseModel):
         """Run the agent and store the typed result."""
 
         tasks = [
-            self.agent.apply(
+            self.agent.ainvoke(
                 self.prompt_kwargs,
                 config={
                     "run_name": self.name,
