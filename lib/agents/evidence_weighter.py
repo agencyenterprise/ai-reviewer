@@ -1,12 +1,13 @@
 from enum import Enum
+
+from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
-from langchain_core.prompts import ChatPromptTemplate
-from lib.models.agent import Agent
-from lib.config.llm import models
-from lib.agents.live_literature_review import (
-    QualityLevel,
-    ClaimReferenceFactors,
-)
+
+from lib.agents.live_literature_review import ClaimReferenceFactors, QualityLevel
+from lib.config.llm_models import gpt_5_model
+from lib.models.agent import AgentProtocol
+from lib.services.openai import ensure_structured_output_response, get_openai_client
 
 
 # applies to the claim
@@ -49,13 +50,13 @@ class EvidenceWeighterResponseWithClaimIndex(EvidenceWeighterResponse):
     claim_index: int
 
 
-_evidence_weighter_agent_prompt = ChatPromptTemplate.from_template(
+_evidence_weighter_agent_prompt = PromptTemplate.from_template(
     """
 # Role
-You are an expert research evidence analyst specializing in evaluating the strength, quality, and direction of sources that are relevant to claims in research document. 
+You are an expert research evidence analyst specializing in evaluating the strength, quality, and direction of sources that are relevant to claims in research document.
 
 # Goal
-You will be given a new literature review report that contains the newer sources that have been found recently for a claim. Analyze this collection of newer sources to determine the overall evidence direction and strength for a specific claim, considering source quality, methodology, and potential biases. Importantly state whether the newer sources override the older ones in supporting, contextualizing, or conflicting with the claim. 
+You will be given a new literature review report that contains the newer sources that have been found recently for a claim. Analyze this collection of newer sources to determine the overall evidence direction and strength for a specific claim, considering source quality, methodology, and potential biases. Importantly state whether the newer sources override the older ones in supporting, contextualizing, or conflicting with the claim.
 
 # Analysis Framework
 
@@ -65,7 +66,7 @@ From the existing sources that are cited to support the claim and the newer sour
 
 For each claim provide the following:
 - evidence factors
-- evidence alignment 
+- evidence alignment
 - recommended action
 - confidence in recommended action
 - rationale for the recommended action
@@ -151,16 +152,37 @@ Here are the contextual details:
 """
 )
 
-evidence_weighter_agent = Agent(
-    name="Evidence Weighting Analyst",
-    description="Analyze and weight evidence from multiple sources to determine overall direction and strength",
-    model=models["gpt-5"],
-    use_responses_api=True,
-    use_react_agent=False,
-    use_direct_llm_client=True,
-    use_background_mode=False,
-    prompt=_evidence_weighter_agent_prompt,
-    tools=[],
-    mandatory_tools=[],
-    output_schema=EvidenceWeighterResponse,
-)
+
+class EvidenceWeighterAgent(AgentProtocol):
+    name: str = "Evidence Weighter"
+    description: str = (
+        "Analyze and weight evidence from multiple sources to determine overall direction and strength"
+    )
+
+    def __init__(self):
+        self.client = get_openai_client()
+
+    async def ainvoke(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ) -> EvidenceWeighterResponse:
+        prompt = _evidence_weighter_agent_prompt.invoke(prompt_kwargs)
+        input = [{"role": "user", "content": prompt.text}]
+
+        response = await self.client.responses.parse(
+            model=gpt_5_model.name,
+            tools=[{"type": "web_search"}],
+            max_tool_calls=20,
+            # reasoning={
+            #     "effort": "low",  # "minimal", "low", "medium", "high"
+            #     "summary": "auto",
+            # },
+            text_format=EvidenceWeighterResponse,
+            input=input,
+        )
+
+        return ensure_structured_output_response(response, EvidenceWeighterResponse)
+
+
+evidence_weighter_agent = EvidenceWeighterAgent()

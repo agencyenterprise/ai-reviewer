@@ -1,14 +1,16 @@
-from enum import Enum
+from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
-from langchain_core.prompts import ChatPromptTemplate
-from lib.models.agent import Agent
-from lib.config.llm import models
+
 from lib.agents.literature_review import (
-    ReferenceType,
-    ReferenceDirection,
-    QualityLevel,
     PoliticalBias,
+    QualityLevel,
+    ReferenceDirection,
+    ReferenceType,
 )
+from lib.config.llm_models import gpt_5_model
+from lib.models.agent import AgentProtocol
+from lib.services.openai import ensure_structured_output_response, get_openai_client
 
 
 class ClaimReferenceFactors(BaseModel):
@@ -55,7 +57,7 @@ class LiveLiteratureReviewResponse(BaseModel):
     )
 
 
-_live_literature_review_agent_prompt = ChatPromptTemplate.from_template(
+_live_literature_review_agent_prompt = PromptTemplate.from_template(
     """
 # Role
 You are an expert literature review researcher specializing in finding newer evidence that could update or contextualize existing claims in academic and policy documents.
@@ -73,7 +75,7 @@ Given a claim from a document and the document's publication date, find newer li
 
 ## Reference Classification Guidelines
 
-For each piece of evidence 
+For each piece of evidence
 - reference direction
 - quality
 - publication type
@@ -86,13 +88,13 @@ Provide each piece of evidence related to a claim with one of the following dire
 - **Mixed**: Considering the collection of highest quality new and old sources reveals that the most authoritative and highest quality sources provide a MIXED resolution to the claim. Thus the claim needs to be updated with sources and to reflect this mixed perspective.
 - **Contextual Only**: Sources provide context but don't directly support or conflict with the claim.
 
-### Political Leaning of Reference Assessment 
+### Political Leaning of Reference Assessment
 Provide each piece of evidence related to a claim with one of the following political leaning labels:
 - **Conservative**: Sources that support conservative values, policies, or viewpoints
 - **Liberal**: Sources that support liberal values, policies, or viewpoints
 - **Other**: Sources that are neither conservative nor liberal in bias
 
-### Publication Type of Reference Assessment 
+### Publication Type of Reference Assessment
 - peer_reviewed_publication: Articles found in high quality academic journals
 - preprint: Articles found in preprint servers, unpublished theses, working papers
 - book: monographs, edited volumes, chapters, textbooks
@@ -152,27 +154,45 @@ Provide each piece of evidence related to a claim with one of the following qual
 """
 )
 
-live_literature_review_agent = Agent(
-    name="Live Literature Review Researcher",
-    description="Find newer literature that could update or contextualize existing claims",
-    model=models["gpt-5"],
-    use_responses_api=True,
-    use_react_agent=False,
-    use_direct_llm_client=True,
-    use_background_mode=True,
-    prompt=_live_literature_review_agent_prompt,
-    tools=["openai_web_search"],
-    mandatory_tools=[],
-    output_schema=LiveLiteratureReviewResponse,
-)
 
+class LiveLiteratureReviewAgent(AgentProtocol):
+    name: str = "Live Literature Review Researcher"
+    description: str = (
+        "Find newer literature that could update or contextualize existing claims"
+    )
+
+    def __init__(self):
+        self.client = get_openai_client()
+
+    async def ainvoke(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ) -> LiveLiteratureReviewResponse:
+        prompt = _live_literature_review_agent_prompt.invoke(prompt_kwargs)
+        input = [{"role": "user", "content": prompt.text}]
+
+        response = await self.client.responses.parse(
+            model=gpt_5_model.name,
+            tools=[{"type": "web_search"}],
+            max_tool_calls=20,
+            # reasoning={
+            #     "effort": "low",  # "minimal", "low", "medium", "high"
+            #     "summary": "auto",
+            # },
+            text_format=LiveLiteratureReviewResponse,
+            input=input,
+        )
+
+        return ensure_structured_output_response(response, LiveLiteratureReviewResponse)
+
+
+live_literature_review_agent = LiveLiteratureReviewAgent()
 
 if __name__ == "__main__":
 
     import asyncio
-    from lib.models.react_agent.agent_runner import _ensure_structured_output
 
-    # Fake input payload for live_literature_review_agent.apply(...)
     fake_input = {
         "domain_context": "US public policy; presidential elections; constitutional law",
         "audience_context": "Policy analysts and editors at a research organization",
@@ -188,7 +208,6 @@ One thing that has never happened, is that a one-term president comes back to of
     2. Achen, C. H., & Bartels, L. M. (2016). Democracy for Realists: Why Elections Do Not Produce Responsive Government. Princeton University Press.""",
     }
 
-    response = asyncio.run(live_literature_review_agent.apply(fake_input))
-    response = _ensure_structured_output(response, LiveLiteratureReviewResponse)
+    response = asyncio.run(live_literature_review_agent.ainvoke(fake_input))
     print("Live Literature Review Response:")
     print(response.model_dump_json(indent=2))

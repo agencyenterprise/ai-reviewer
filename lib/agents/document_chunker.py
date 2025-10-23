@@ -4,7 +4,7 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.models import ValidatedDocument
-from lib.config.llm import models
+from lib.config.llm_models import gpt_4_1_model
 from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
 
 
@@ -72,7 +72,7 @@ class DocumentChunkerAgent(AgentProtocol):
 
     def __init__(self):
         self.llm = init_chat_model(
-            models["gpt-4.1"],
+            gpt_4_1_model.model_name,
             temperature=0.2,
             timeout=DEFAULT_LLM_TIMEOUT,
         ).with_structured_output(DocumentChunkerResponse)

@@ -66,38 +66,34 @@ async def _analyze_chunk_live_reports(
     for claim_index, claim in enumerate(chunk.claims.claims):
         try:
             # Step 1: Find newer literature
-            literature_review_result: LiveLiteratureReviewResponse = (
-                await live_literature_review_agent.apply(
-                    {
-                        "full_document": state.file.markdown,
-                        "paragraph": state.get_paragraph(chunk.paragraph_index),
-                        "claim": claim.claim,
-                        "document_publication_date": state.config.document_publication_date.isoformat(),
-                        "domain_context": state.config.domain or "",
-                        "audience_context": state.config.target_audience or "",
-                        "bibliography": state.references,
-                    }
-                )
+            literature_review_result = await live_literature_review_agent.ainvoke(
+                {
+                    "full_document": state.file.markdown,
+                    "paragraph": state.get_paragraph(chunk.paragraph_index),
+                    "claim": claim.claim,
+                    "document_publication_date": state.config.document_publication_date.isoformat(),
+                    "domain_context": state.config.domain or "",
+                    "audience_context": state.config.target_audience or "",
+                    "bibliography": state.references,
+                }
             )
 
             # Step 2: Analyze evidence strength and direction and update recommendations
-            live_reports_analysis_result: EvidenceWeighterResponse = (
-                await evidence_weighter_agent.apply(
-                    {
-                        "full_document": state.file.markdown,
-                        "cited_references": (
-                            chunk.citations.citations if chunk.citations else []
-                        ),
-                        "cited_references_paragraph": [],  # TODO (2025-10-20): Get citations from paragraph
-                        "paragraph": state.get_paragraph(chunk.paragraph_index),
-                        "chunk": chunk.content,
-                        "claim": claim.claim,
-                        "domain_context": state.config.domain or "",
-                        "audience_context": state.config.target_audience or "",
-                        "newer_references": literature_review_result.newer_references,
-                        "evidence_summary": literature_review_result.references_summary,
-                    }
-                )
+            live_reports_analysis_result = await evidence_weighter_agent.ainvoke(
+                {
+                    "full_document": state.file.markdown,
+                    "cited_references": (
+                        chunk.citations.citations if chunk.citations else []
+                    ),
+                    "cited_references_paragraph": [],  # TODO (2025-10-20): Get citations from paragraph
+                    "paragraph": state.get_paragraph(chunk.paragraph_index),
+                    "chunk": chunk.content,
+                    "claim": claim.claim,
+                    "domain_context": state.config.domain or "",
+                    "audience_context": state.config.target_audience or "",
+                    "newer_references": literature_review_result.newer_references,
+                    "evidence_summary": literature_review_result.references_summary,
+                }
             )
 
             live_reports_analysis_results.append(

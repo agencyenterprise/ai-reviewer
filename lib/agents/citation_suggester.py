@@ -1,10 +1,14 @@
-from enum import Enum
 import asyncio
+from enum import Enum
+
+from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
-from langchain_core.prompts import ChatPromptTemplate
-from lib.config.llm import models
-from lib.models.agent import Agent
+
 from lib.agents.literature_review import ReferenceType
+from lib.config.llm_models import gpt_5_model
+from lib.models.agent import AgentProtocol
+from lib.services.openai import ensure_structured_output_response, get_openai_client
 
 
 class RecommendedAction(str, Enum):
@@ -87,7 +91,7 @@ class CitationSuggestionResultWithClaimIndex(CitationSuggestionResponse):
     claim_index: int
 
 
-_citation_suggester_agent_prompt = ChatPromptTemplate.from_template(
+_citation_suggester_agent_prompt = PromptTemplate.from_template(
     """
 # Role
 You are an expert citation suggester tasked with ensuring a paragraph cites the strongest and most current sources available while adhering to RAND Corporation's strict attribution guidelines.
@@ -170,24 +174,44 @@ search for additional references. Use the literature review report as a guide to
 """
 )
 
-citation_suggester_agent = Agent(
-    name="Citation Suggester",
-    description="Review a chunk of text against RAND attribution guidelines to identify missing citations and recommend high-quality sources for proper attribution compliance",
-    model=models["gpt-5"],
-    use_responses_api=True,
-    use_react_agent=False,
-    use_direct_llm_client=True,  # To use open ai tools (openai_web_search, openai_code_interpreter)
-    use_background_mode=False,
-    prompt=_citation_suggester_agent_prompt,
-    tools=["openai_web_search"],
-    mandatory_tools=[],
-    output_schema=CitationSuggestionResponse,
-)
 
+class CitationSuggesterAgent(AgentProtocol):
+    name: str = "Citation Suggester"
+    description: str = (
+        "Review a chunk of text against RAND attribution guidelines to identify missing citations and recommend high-quality sources for proper attribution compliance"
+    )
+
+    def __init__(self):
+        self.client = get_openai_client()
+
+    async def ainvoke(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ) -> CitationSuggestionResponse:
+        prompt = _citation_suggester_agent_prompt.invoke(prompt_kwargs)
+        input = [{"role": "user", "content": prompt.text}]
+
+        response = await self.client.responses.parse(
+            model=gpt_5_model.name,
+            tools=[{"type": "web_search"}],
+            max_tool_calls=20,
+            # reasoning={
+            #     "effort": "low",  # "minimal", "low", "medium", "high"
+            #     "summary": "auto",
+            # },
+            text_format=CitationSuggestionResponse,
+            input=input,
+        )
+
+        return ensure_structured_output_response(response, CitationSuggestionResponse)
+
+
+citation_suggester_agent = CitationSuggesterAgent()
 
 if __name__ == "__main__":
     response = asyncio.run(
-        citation_suggester_agent.apply(
+        citation_suggester_agent.ainvoke(
             {
                 "full_document": """# Some statistics about the office of the US president
 Over the course of the US history, the office of the US president has changed hand dozens of times. Various types of exchanges has happened, ranging from the same president being elected more than twice (i.e., Franklin D. Roosevelt) to the president being removed from office (i.e., Andrew Johnson).
@@ -245,7 +269,7 @@ How to fit this in the document
 - After the sentence about the “never comes back” claim, insert a brief corrective note: “Grover Cleveland is the sole counterexample of a president who served two nonconsecutive terms; he was the 22nd and 24th president (1885–1889 and 1893–1897).” Cite Britannica (turn0search0 or turn3search2) for the factual claim, and optionally include a secondary note with History.com or NPR for public-facing context (turn3search5). ([britannica.com](https://www.britannica.com/biography/Grover-Cleveland?utm_source=openai))
 
 
-Topic 3. Theoretical framing: Skowronek’s presidential leadership in political time 
+Topic 3. Theoretical framing: Skowronek’s presidential leadership in political time
 What’s in the bibliography now
 - Skowronek (2011). Presidential Leadership in Political Time.
 
@@ -278,7 +302,7 @@ Structured recommendations for bibliography edits
 - Preserve core, high-quality items already in the bibliography (Foner 2014; Skowronek 2011) but augment with precise, citable corrections:
   - Add: Britannica. Andrew Johnson (impeached but not removed) – to support impeachment correction. ([britannica.com](https://www.britannica.com/biography/Andrew-Johnson?utm_source=openai))
   - Add: U.S. Senate. Impeachment Trial of Andrew Johnson (official trial record). ([senate.gov](https://www.senate.gov/about/powers-procedures/impeachment/impeachment-johnsonandrew.htm?utm_source=openai))
-  - Add: National Archives. Impeachment (official history context). ([archives.gov](https://www.archives.gov/legislative/features/impeachment?utm_source=openai))  
+  - Add: National Archives. Impeachment (official history context). ([archives.gov](https://www.archives.gov/legislative/features/impeachment?utm_source=openai))
   - Add: Britannica. Grover Cleveland (two-term nonconsecutive) – to ground the Cleveland example. ([britannica.com](https://www.britannica.com/biography/Grover-Cleveland?utm_source=openai))
   - Add: Yale/Bridges to Skowronek (summaries of his theory for accessibility in the text). ([politicalscience.yale.edu](https://politicalscience.yale.edu/publications/presidential-leadership-political-time-reprise-and-reappraisal-third-edition?utm_source=openai))
   - Add: Foner’s Reconstruction updated edition page (publisher info) to ground the discussion in credible scholarship. ([barnesandnoble.com](https://www.barnesandnoble.com/w/reconstruction-updated-edition-eric-foner/1129142102?utm_source=openai))

@@ -73,7 +73,7 @@ async def _suggest_chunk_citations(
             truncate_at_character_count=1000,  # Include only a little bit of the text of the references
         )
 
-        result: CitationSuggestionResponse = await citation_suggester_agent.apply(
+        result = await citation_suggester_agent.ainvoke(
             {
                 "full_document": state.file.markdown,
                 "bibliography": format_bibliography_prompt_section(
