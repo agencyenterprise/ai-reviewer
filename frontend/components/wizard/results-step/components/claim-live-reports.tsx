@@ -53,6 +53,9 @@ export function ClaimLiveReports({ liveReportsAnalysis }: ClaimLiveReportsProps)
           <LabeledValue label="Confidence Level">{liveReportsAnalysis.confidenceLevel}</LabeledValue>
           <LabeledValue label="Newer References Alignment">{liveReportsAnalysis.newerReferencesAlignment}</LabeledValue>
           <LabeledValue label="Rationale">{liveReportsAnalysis.rationale}</LabeledValue>
+          <LabeledValue label="Rewritten Claim">
+            <p className="italic">&quot;{liveReportsAnalysis.rewrittenClaim}&quot;</p>
+          </LabeledValue>
 
           <h3 className="font-medium">Newer References:</h3>
           <div className="space-y-2">
