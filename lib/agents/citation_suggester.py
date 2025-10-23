@@ -1,10 +1,15 @@
-from enum import Enum
 import asyncio
+from enum import Enum
+
+from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import RunnableConfig
+from langfuse.openai import AsyncOpenAI
 from pydantic import BaseModel, Field
-from langchain_core.prompts import ChatPromptTemplate
-from lib.config.llm import models
-from lib.models.agent import Agent
+
 from lib.agents.literature_review import ReferenceType
+from lib.config.llm import models
+from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
+from lib.models.llm import ensure_structured_output_response
 
 
 class RecommendedAction(str, Enum):
@@ -87,7 +92,7 @@ class CitationSuggestionResultWithClaimIndex(CitationSuggestionResponse):
     claim_index: int
 
 
-_citation_suggester_agent_prompt = ChatPromptTemplate.from_template(
+_citation_suggester_agent_prompt = PromptTemplate.from_template(
     """
 # Role
 You are an expert citation suggester tasked with ensuring a paragraph cites the strongest and most current sources available while adhering to RAND Corporation's strict attribution guidelines.
@@ -170,24 +175,45 @@ search for additional references. Use the literature review report as a guide to
 """
 )
 
-citation_suggester_agent = Agent(
-    name="Citation Suggester",
-    description="Review a chunk of text against RAND attribution guidelines to identify missing citations and recommend high-quality sources for proper attribution compliance",
-    model=str(models["gpt-5"]),
-    use_responses_api=True,
-    use_react_agent=False,
-    use_direct_llm_client=True,  # To use open ai tools (openai_web_search, openai_code_interpreter)
-    use_background_mode=False,
-    prompt=_citation_suggester_agent_prompt,
-    tools=["openai_web_search"],
-    mandatory_tools=[],
-    output_schema=CitationSuggestionResponse,
-)
 
+class CitationSuggesterAgent(AgentProtocol):
+    name: str = "Citation Suggester"
+    description: str = (
+        "Review a chunk of text against RAND attribution guidelines to identify missing citations and recommend high-quality sources for proper attribution compliance"
+    )
+
+    def __init__(self):
+        # TODO: allow switching for Azure OpenAI
+        self.client = AsyncOpenAI(timeout=DEFAULT_LLM_TIMEOUT)
+
+    async def ainvoke(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ) -> CitationSuggestionResponse:
+        prompt = _citation_suggester_agent_prompt.invoke(prompt_kwargs)
+        input = [{"role": "user", "content": prompt.text}]
+
+        response = await self.client.responses.parse(
+            model=models["gpt-5"].name,
+            tools=[{"type": "web_search"}],
+            max_tool_calls=20,
+            # reasoning={
+            #     "effort": "low",  # "minimal", "low", "medium", "high"
+            #     "summary": "auto",
+            # },
+            text_format=CitationSuggestionResponse,
+            input=input,
+        )
+
+        return ensure_structured_output_response(response, CitationSuggestionResponse)
+
+
+citation_suggester_agent = CitationSuggesterAgent()
 
 if __name__ == "__main__":
     response = asyncio.run(
-        citation_suggester_agent.apply(
+        citation_suggester_agent.ainvoke(
             {
                 "full_document": """# Some statistics about the office of the US president
 Over the course of the US history, the office of the US president has changed hand dozens of times. Various types of exchanges has happened, ranging from the same president being elected more than twice (i.e., Franklin D. Roosevelt) to the president being removed from office (i.e., Andrew Johnson).

@@ -26,7 +26,7 @@ from __future__ import annotations
 from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
-from lib.models.agent import DEFAULT_LLM_TIMEOUT, Agent, AgentProtocol
+from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
 
 from enum import Enum
 

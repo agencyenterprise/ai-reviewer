@@ -1,12 +1,14 @@
 from enum import Enum
+
+from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import RunnableConfig
+from langfuse.openai import AsyncOpenAI
 from pydantic import BaseModel, Field
-from langchain_core.prompts import ChatPromptTemplate
-from lib.models.agent import Agent
+
+from lib.agents.live_literature_review import ClaimReferenceFactors, QualityLevel
 from lib.config.llm import models
-from lib.agents.live_literature_review import (
-    QualityLevel,
-    ClaimReferenceFactors,
-)
+from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
+from lib.models.llm import ensure_structured_output_response
 
 
 # applies to the claim
@@ -49,7 +51,7 @@ class EvidenceWeighterResponseWithClaimIndex(EvidenceWeighterResponse):
     claim_index: int
 
 
-_evidence_weighter_agent_prompt = ChatPromptTemplate.from_template(
+_evidence_weighter_agent_prompt = PromptTemplate.from_template(
     """
 # Role
 You are an expert research evidence analyst specializing in evaluating the strength, quality, and direction of sources that are relevant to claims in research document.
@@ -151,16 +153,38 @@ Here are the contextual details:
 """
 )
 
-evidence_weighter_agent = Agent(
-    name="Evidence Weighting Analyst",
-    description="Analyze and weight evidence from multiple sources to determine overall direction and strength",
-    model=str(models["gpt-5"]),
-    use_responses_api=True,
-    use_react_agent=False,
-    use_direct_llm_client=True,
-    use_background_mode=False,
-    prompt=_evidence_weighter_agent_prompt,
-    tools=[],
-    mandatory_tools=[],
-    output_schema=EvidenceWeighterResponse,
-)
+
+class EvidenceWeighterAgent(AgentProtocol):
+    name: str = "Evidence Weighter"
+    description: str = (
+        "Analyze and weight evidence from multiple sources to determine overall direction and strength"
+    )
+
+    def __init__(self):
+        # TODO: allow switching for Azure OpenAI
+        self.client = AsyncOpenAI(timeout=DEFAULT_LLM_TIMEOUT)
+
+    async def ainvoke(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ) -> EvidenceWeighterResponse:
+        prompt = _evidence_weighter_agent_prompt.invoke(prompt_kwargs)
+        input = [{"role": "user", "content": prompt.text}]
+
+        response = await self.client.responses.parse(
+            model=models["gpt-5"].name,
+            tools=[{"type": "web_search"}],
+            max_tool_calls=20,
+            # reasoning={
+            #     "effort": "low",  # "minimal", "low", "medium", "high"
+            #     "summary": "auto",
+            # },
+            text_format=EvidenceWeighterResponse,
+            input=input,
+        )
+
+        return ensure_structured_output_response(response, EvidenceWeighterResponse)
+
+
+evidence_weighter_agent = EvidenceWeighterAgent()
