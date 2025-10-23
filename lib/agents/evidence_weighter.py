@@ -2,13 +2,12 @@ from enum import Enum
 
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableConfig
-from langfuse.openai import AsyncOpenAI
 from pydantic import BaseModel, Field
 
 from lib.agents.live_literature_review import ClaimReferenceFactors, QualityLevel
 from lib.config.llm import models
-from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
-from lib.models.llm import ensure_structured_output_response
+from lib.models.agent import AgentProtocol
+from lib.services.openai import ensure_structured_output_response, get_openai_client
 
 
 # applies to the claim
@@ -161,8 +160,7 @@ class EvidenceWeighterAgent(AgentProtocol):
     )
 
     def __init__(self):
-        # TODO: allow switching for Azure OpenAI
-        self.client = AsyncOpenAI(timeout=DEFAULT_LLM_TIMEOUT)
+        self.client = get_openai_client()
 
     async def ainvoke(
         self,

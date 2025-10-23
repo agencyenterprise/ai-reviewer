@@ -3,14 +3,24 @@ from asyncio import sleep
 from time import monotonic
 from typing import TypeVar
 
-from langfuse.openai import AsyncOpenAI
+from langfuse.openai import AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.responses import ParsedResponse
 from pydantic import BaseModel
+
+from lib.config.env import config
+from lib.models.agent import DEFAULT_LLM_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
 
 ResponseFormatT = TypeVar("ResponseFormatT")
+
+
+def get_openai_client() -> AsyncOpenAI:
+    if config.AZURE_OPENAI_API_KEY and config.AZURE_OPENAI_ENDPOINT:
+        return AsyncAzureOpenAI(timeout=DEFAULT_LLM_TIMEOUT)
+    else:
+        return AsyncOpenAI(timeout=DEFAULT_LLM_TIMEOUT)
 
 
 async def wait_for_response(
