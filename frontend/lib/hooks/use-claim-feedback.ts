@@ -16,7 +16,7 @@ export function useClaimFeedback(workflowRunId: string, chunkIndex: number, clai
           chunkIndex,
           claimIndex,
         });
-      } catch (error) {
+      } catch {
         return null;
       }
     },
