@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.ACTION_GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Bump version and push tag
         uses: phips28/gh-action-bump-version@master
@@ -27,5 +27,5 @@ jobs:
           patch-wording: "patch"
           commit-message: "chore: bump version to {{version}}"
         env:
-          GITHUB_TOKEN: ${{ secrets.ACTION_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PACKAGEJSON_DIR: "frontend"
