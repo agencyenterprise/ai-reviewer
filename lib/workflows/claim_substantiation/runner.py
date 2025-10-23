@@ -122,6 +122,7 @@ async def _execute(state: ClaimSubstantiatorState):
         use_toulmin=state.config.use_toulmin,
         run_literature_review=state.config.run_literature_review,
         run_suggest_citations=state.config.run_suggest_citations,
+        use_rag=state.config.use_rag,
         run_live_reports=state.config.run_live_reports,
     )
 

@@ -11,6 +11,9 @@ from lib.workflows.claim_substantiation.nodes.extract_claims_toulmin import (
 from lib.workflows.claim_substantiation.nodes.extract_references import (
     extract_references,
 )
+from lib.workflows.claim_substantiation.nodes.index_supporting_documents import (
+    index_supporting_documents,
+)
 from lib.workflows.claim_substantiation.nodes.prepare_documents import prepare_documents
 from lib.workflows.claim_substantiation.nodes.review_literature import literature_review
 from lib.workflows.claim_substantiation.nodes.split_into_chunks import split_into_chunks
@@ -18,7 +21,10 @@ from lib.workflows.claim_substantiation.nodes.suggest_citations import suggest_c
 from lib.workflows.claim_substantiation.nodes.summarize_supporting_documents import (
     summarize_supporting_documents,
 )
-from lib.workflows.claim_substantiation.nodes.verify_claims import verify_claims
+from lib.workflows.claim_substantiation.nodes.verify_claims import (
+    verify_claims,
+    verify_claims_with_rag,
+)
 from lib.workflows.claim_substantiation.state import ClaimSubstantiatorState
 from lib.workflows.claim_substantiation.nodes.generate_live_reports import (
     generate_live_reports_analysis,
@@ -34,11 +40,25 @@ def build_claim_substantiator_graph(
     use_toulmin: bool = False,
     run_literature_review: bool = True,
     run_suggest_citations: bool = True,
+    use_rag: bool = True,
     run_live_reports: bool = False,
-):
+) -> StateGraph:
+    """
+    Build a LangGraph workflow for claim substantiation analysis.
+
+    Args:
+        use_toulmin: Use Toulmin model for claim extraction
+        run_literature_review: Include literature review node
+        run_suggest_citations: Include citation suggestion nodes
+        use_rag: Use RAG-based claim verification
+
+    Returns:
+        Configured StateGraph for claim substantiation workflow
+    """
+
     graph = StateGraph(ClaimSubstantiatorState)
 
-    # required nodes
+    # Core nodes
     graph.add_node("prepare_documents", prepare_documents)
     graph.add_node("split_into_chunks", split_into_chunks)
     graph.add_node(
@@ -48,9 +68,16 @@ def build_claim_substantiator_graph(
     graph.add_node("extract_references", extract_references)
     graph.add_node("check_claim_needs_substantiation", check_claim_needs_substantiation)
     graph.add_node("categorize_claims", categorize_claims)
-    graph.add_node("verify_claims", verify_claims, defer=True)
 
-    # optional nodes
+    # Conditional verify node based on RAG setting
+    if use_rag:
+        graph.add_node("index_supporting_documents", index_supporting_documents)
+        verify_node = verify_claims_with_rag
+    else:
+        verify_node = verify_claims
+    graph.add_node("verify_claims", verify_node, defer=True)
+
+    # Optional nodes
     if run_literature_review:
         graph.add_node("literature_review", literature_review)
     if run_suggest_citations:
@@ -65,10 +92,10 @@ def build_claim_substantiator_graph(
     if run_suggest_citations and run_live_reports:
         graph.add_node("finalize", finalize)
 
-    # entry point
+    # Entry point
     graph.set_entry_point("prepare_documents")
 
-    # base edges
+    # Core edges - main processing pipeline
     graph.add_edge("prepare_documents", "split_into_chunks")
     graph.add_edge("split_into_chunks", "extract_references")
     graph.add_edge("split_into_chunks", "extract_claims")
@@ -80,6 +107,11 @@ def build_claim_substantiator_graph(
     graph.add_edge("categorize_claims", "check_claim_needs_substantiation")
     graph.add_edge("check_claim_needs_substantiation", "verify_claims")
     graph.add_edge("detect_citations", "verify_claims")
+
+    # RAG indexing edge
+    if use_rag:
+        graph.add_edge("prepare_documents", "index_supporting_documents")
+        graph.add_edge("index_supporting_documents", "verify_claims")
 
     # Literature review (aim 1.a)
     if run_literature_review:

@@ -49,6 +49,7 @@ models/Reference.ts
 models/ReferenceAlignmentLevel.ts
 models/ReferenceDirection.ts
 models/ReferenceType.ts
+models/RetrievedPassageInfo.ts
 models/StartAnalysisResponse.ts
 models/SubstantiationWorkflowConfig.ts
 models/ToulminClaim.ts

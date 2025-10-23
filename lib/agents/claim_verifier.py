@@ -1,5 +1,5 @@
-from enum import StrEnum
-from typing import List
+from enum import IntEnum, StrEnum
+from typing import List, Optional
 
 from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
@@ -29,6 +29,15 @@ class ClaimEvidenceSource(BaseModel):
     )
 
 
+class RetrievedPassageInfo(BaseModel):
+    """Information about a passage retrieved via RAG."""
+
+    content: str = Field(description="The text content of the retrieved passage")
+    source_file: str = Field(description="Name of the source file")
+    similarity_score: float = Field(description="Cosine similarity score (0-1)")
+    chunk_index: int = Field(description="Index of the chunk within the source")
+
+
 class ClaimSubstantiationResult(BaseModel):
     evidence_alignment: EvidenceAlignmentLevel = Field(
         description=f"The degree of evidence that the supporting document(s) provides to support the claim. Possible values: {[e.value for e in EvidenceAlignmentLevel]}"
@@ -41,6 +50,10 @@ class ClaimSubstantiationResult(BaseModel):
     )
     evidence_sources: List[ClaimEvidenceSource] = Field(
         description="The sources that provide the evidence for the claim. If there are multiple sources, include all of them."
+    )
+    retrieved_passages: Optional[List[RetrievedPassageInfo]] = Field(
+        default=None,
+        description="Passages retrieved via RAG that were used for verification",
     )
 
 
@@ -91,10 +104,12 @@ For each claim, output an evidence alignment level based on the following defini
 ## The claim that is inferred from the chunk of text to be substantiated
 {claim}
 
-## The list of references cited in this chunk of text to support the claim and their associated supporting document (if any)
+{evidence_context_explanation}
+
+## Supporting evidence cited in this chunk of text
 {cited_references}
 
-## The list of references cited in outside of this chunk, but still in the same paragraph of text to support the claim and their associated supporting document (if any)
+## Supporting evidence from elsewhere in the same paragraph
 {cited_references_paragraph}
 
 """

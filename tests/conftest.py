@@ -15,6 +15,7 @@ from typing import Optional, Any
 import json
 
 import pytest
+from pydantic import BaseModel
 
 from lib.config.env import config
 from lib.services.file import create_file_document_from_path
@@ -106,15 +107,19 @@ def pytest_runtest_makereport(item, call):
                 eval_result = case._eval_result.model_dump()
 
             def serialize_for_xdist(obj):
-                """Convert enums and sets to serializable types for pytest-xdist.
+                """Convert enums, sets, and Pydantic models to serializable types for pytest-xdist.
 
                 This recursively processes dictionaries, lists, and other structures
-                to convert enums to their string values and sets to lists.
+                to convert enums to their string values, sets to lists, and Pydantic
+                models to dicts.
                 """
                 if isinstance(obj, Enum):
                     return obj.value
                 elif isinstance(obj, set):
                     return list(obj)
+                elif isinstance(obj, BaseModel):
+                    # Handle Pydantic models by converting to dict
+                    return serialize_for_xdist(obj.model_dump())
                 elif isinstance(obj, dict):
                     return {k: serialize_for_xdist(v) for k, v in obj.items()}
                 elif isinstance(obj, (list, tuple)):

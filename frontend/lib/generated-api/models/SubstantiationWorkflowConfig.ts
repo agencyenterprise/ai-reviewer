@@ -38,6 +38,12 @@ export interface SubstantiationWorkflowConfig {
    */
   runSuggestCitations?: boolean;
   /**
+   * Use RAG for claim verification
+   * @type {boolean}
+   * @memberof SubstantiationWorkflowConfig
+   */
+  useRag?: boolean;
+  /**
    * Whether to run the live reports analysis
    * @type {boolean}
    * @memberof SubstantiationWorkflowConfig
@@ -103,6 +109,7 @@ export function SubstantiationWorkflowConfigFromJSONTyped(
     useToulmin: json['use_toulmin'] == null ? undefined : json['use_toulmin'],
     runLiteratureReview: json['run_literature_review'] == null ? undefined : json['run_literature_review'],
     runSuggestCitations: json['run_suggest_citations'] == null ? undefined : json['run_suggest_citations'],
+    useRag: json['use_rag'] == null ? undefined : json['use_rag'],
     runLiveReports: json['run_live_reports'] == null ? undefined : json['run_live_reports'],
     documentPublicationDate:
       json['document_publication_date'] == null ? undefined : new Date(json['document_publication_date']),
@@ -130,6 +137,7 @@ export function SubstantiationWorkflowConfigToJSONTyped(
     use_toulmin: value['useToulmin'],
     run_literature_review: value['runLiteratureReview'],
     run_suggest_citations: value['runSuggestCitations'],
+    use_rag: value['useRag'],
     run_live_reports: value['runLiveReports'],
     document_publication_date:
       value['documentPublicationDate'] === null

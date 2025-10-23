@@ -39,6 +39,10 @@ class SubstantiationWorkflowConfig(BaseModel):
     run_suggest_citations: bool = Field(
         default=False, description="Whether to run the citation suggestions"
     )
+    use_rag: bool = Field(
+        default=True,
+        description="Use RAG for claim verification",
+    )
     run_live_reports: bool = Field(
         default=False, description="Whether to run the live reports analysis"
     )
@@ -172,6 +176,9 @@ class ClaimSubstantiatorState(BaseModel):
     supporting_documents_summaries: Optional[Dict[int, DocumentSummary]] = Field(
         default=None,
         description="Dictionary mapping supporting file indices to their summaries",
+    )
+    live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = Field(
+        default_factory=list, description="Live reports analysis results by chunk index"
     )
     literature_review: Optional[LiteratureReviewResponse] = None
 

@@ -20,6 +20,13 @@ import {
   ClaimEvidenceSourceToJSON,
   ClaimEvidenceSourceToJSONTyped,
 } from './ClaimEvidenceSource';
+import type { RetrievedPassageInfo } from './RetrievedPassageInfo';
+import {
+  RetrievedPassageInfoFromJSON,
+  RetrievedPassageInfoFromJSONTyped,
+  RetrievedPassageInfoToJSON,
+  RetrievedPassageInfoToJSONTyped,
+} from './RetrievedPassageInfo';
 import type { EvidenceAlignmentLevel } from './EvidenceAlignmentLevel';
 import {
   EvidenceAlignmentLevelFromJSON,
@@ -58,6 +65,12 @@ export interface ClaimSubstantiationResultWithClaimIndex {
    * @memberof ClaimSubstantiationResultWithClaimIndex
    */
   evidenceSources: Array<ClaimEvidenceSource>;
+  /**
+   *
+   * @type {Array<RetrievedPassageInfo>}
+   * @memberof ClaimSubstantiationResultWithClaimIndex
+   */
+  retrievedPassages?: Array<RetrievedPassageInfo> | null;
   /**
    *
    * @type {number}
@@ -103,6 +116,10 @@ export function ClaimSubstantiationResultWithClaimIndexFromJSONTyped(
     rationale: json['rationale'],
     feedback: json['feedback'],
     evidenceSources: (json['evidence_sources'] as Array<any>).map(ClaimEvidenceSourceFromJSON),
+    retrievedPassages:
+      json['retrieved_passages'] == null
+        ? undefined
+        : (json['retrieved_passages'] as Array<any>).map(RetrievedPassageInfoFromJSON),
     chunkIndex: json['chunk_index'],
     claimIndex: json['claim_index'],
   };
@@ -125,6 +142,10 @@ export function ClaimSubstantiationResultWithClaimIndexToJSONTyped(
     rationale: value['rationale'],
     feedback: value['feedback'],
     evidence_sources: (value['evidenceSources'] as Array<any>).map(ClaimEvidenceSourceToJSON),
+    retrieved_passages:
+      value['retrievedPassages'] == null
+        ? undefined
+        : (value['retrievedPassages'] as Array<any>).map(RetrievedPassageInfoToJSON),
     chunk_index: value['chunkIndex'],
     claim_index: value['claimIndex'],
   };

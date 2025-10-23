@@ -118,6 +118,23 @@ class AgentResponse(BaseModel):
     id: str
     name: str
     # Only expose what's needed for API
+
+# ALWAYS use Pydantic BaseModel for data models - NOT dataclass
+# BaseModel provides automatic serialization, validation, and follows project conventions
+from pydantic import BaseModel, Field
+
+class DocumentMetadata(BaseModel):
+    title: str = Field(description="Document title")
+    page_count: int = Field(description="Number of pages")
+    created_at: Optional[datetime] = Field(default=None, description="Creation timestamp")
+
+# ❌ AVOID: Don't use dataclass
+from dataclasses import dataclass
+
+@dataclass  # Don't do this
+class DocumentMetadata:
+    title: str
+    page_count: int
 ```
 
 #### Error Handling
@@ -429,6 +446,7 @@ test("file upload handles drag and drop", async () => {
 - Don't mix sync/async code patterns
 - Avoid large functions (>20 lines)
 - Don't use mutable default arguments
+- Don't use `@dataclass` - always use Pydantic `BaseModel` instead
 - Don't split logically cohesive code just to meet line limits
 - Avoid creating tiny files with single functions that belong together
 

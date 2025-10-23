@@ -68,6 +68,7 @@ export function ClaimAnalysisCard({
               substantiation={substantiation}
               references={references}
               supportingFiles={supportingFiles}
+              retrievedPassages={substantiation.retrievedPassages ?? undefined}
             />
           )}
           {citationSuggestion && (

@@ -40,6 +40,7 @@ export interface StartAnalysisApiStartAnalysisPostRequest {
   useToulmin?: boolean;
   runLiteratureReview?: boolean;
   runSuggestCitations?: boolean;
+  useRag?: boolean;
   runLiveReports?: boolean;
   domain?: string | null;
   targetAudience?: string | null;
@@ -157,6 +158,10 @@ export class AnalysisApi extends runtime.BaseAPI {
 
     if (requestParameters['runSuggestCitations'] != null) {
       formParams.append('run_suggest_citations', requestParameters['runSuggestCitations'] as any);
+    }
+
+    if (requestParameters['useRag'] != null) {
+      formParams.append('use_rag', requestParameters['useRag'] as any);
     }
 
     if (requestParameters['runLiveReports'] != null) {

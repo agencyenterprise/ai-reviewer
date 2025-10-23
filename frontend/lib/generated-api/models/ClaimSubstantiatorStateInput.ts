@@ -62,6 +62,13 @@ import {
   DocumentSummaryToJSON,
   DocumentSummaryToJSONTyped,
 } from './DocumentSummary';
+import type { EvidenceWeighterResponseWithClaimIndexInput } from './EvidenceWeighterResponseWithClaimIndexInput';
+import {
+  EvidenceWeighterResponseWithClaimIndexInputFromJSON,
+  EvidenceWeighterResponseWithClaimIndexInputFromJSONTyped,
+  EvidenceWeighterResponseWithClaimIndexInputToJSON,
+  EvidenceWeighterResponseWithClaimIndexInputToJSONTyped,
+} from './EvidenceWeighterResponseWithClaimIndexInput';
 
 /**
  *
@@ -124,6 +131,12 @@ export interface ClaimSubstantiatorStateInput {
    */
   supportingDocumentsSummaries?: { [key: string]: DocumentSummary } | null;
   /**
+   * Live reports analysis results by chunk index
+   * @type {Array<EvidenceWeighterResponseWithClaimIndexInput>}
+   * @memberof ClaimSubstantiatorStateInput
+   */
+  liveReportsAnalysis?: Array<EvidenceWeighterResponseWithClaimIndexInput>;
+  /**
    *
    * @type {LiteratureReviewResponseInput}
    * @memberof ClaimSubstantiatorStateInput
@@ -167,6 +180,10 @@ export function ClaimSubstantiatorStateInputFromJSONTyped(
       json['supporting_documents_summaries'] == null
         ? undefined
         : mapValues(json['supporting_documents_summaries'], DocumentSummaryFromJSON),
+    liveReportsAnalysis:
+      json['live_reports_analysis'] == null
+        ? undefined
+        : (json['live_reports_analysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexInputFromJSON),
     literatureReview:
       json['literature_review'] == null ? undefined : LiteratureReviewResponseInputFromJSON(json['literature_review']),
   };
@@ -199,6 +216,10 @@ export function ClaimSubstantiatorStateInputToJSONTyped(
       value['supportingDocumentsSummaries'] == null
         ? undefined
         : mapValues(value['supportingDocumentsSummaries'], DocumentSummaryToJSON),
+    live_reports_analysis:
+      value['liveReportsAnalysis'] == null
+        ? undefined
+        : (value['liveReportsAnalysis'] as Array<any>).map(EvidenceWeighterResponseWithClaimIndexInputToJSON),
     literature_review: LiteratureReviewResponseInputToJSON(value['literatureReview']),
   };
 }
