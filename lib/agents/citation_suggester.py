@@ -173,7 +173,7 @@ search for additional references. Use the literature review report as a guide to
 citation_suggester_agent = Agent(
     name="Citation Suggester",
     description="Review a chunk of text against RAND attribution guidelines to identify missing citations and recommend high-quality sources for proper attribution compliance",
-    model=models["gpt-5"],
+    model=str(models["gpt-5"]),
     use_responses_api=True,
     use_react_agent=False,
     use_direct_llm_client=True,  # To use open ai tools (openai_web_search, openai_code_interpreter)
@@ -245,7 +245,7 @@ How to fit this in the document
 - After the sentence about the “never comes back” claim, insert a brief corrective note: “Grover Cleveland is the sole counterexample of a president who served two nonconsecutive terms; he was the 22nd and 24th president (1885–1889 and 1893–1897).” Cite Britannica (turn0search0 or turn3search2) for the factual claim, and optionally include a secondary note with History.com or NPR for public-facing context (turn3search5). ([britannica.com](https://www.britannica.com/biography/Grover-Cleveland?utm_source=openai))
 
 
-Topic 3. Theoretical framing: Skowronek’s presidential leadership in political time 
+Topic 3. Theoretical framing: Skowronek’s presidential leadership in political time
 What’s in the bibliography now
 - Skowronek (2011). Presidential Leadership in Political Time.
 
@@ -278,7 +278,7 @@ Structured recommendations for bibliography edits
 - Preserve core, high-quality items already in the bibliography (Foner 2014; Skowronek 2011) but augment with precise, citable corrections:
   - Add: Britannica. Andrew Johnson (impeached but not removed) – to support impeachment correction. ([britannica.com](https://www.britannica.com/biography/Andrew-Johnson?utm_source=openai))
   - Add: U.S. Senate. Impeachment Trial of Andrew Johnson (official trial record). ([senate.gov](https://www.senate.gov/about/powers-procedures/impeachment/impeachment-johnsonandrew.htm?utm_source=openai))
-  - Add: National Archives. Impeachment (official history context). ([archives.gov](https://www.archives.gov/legislative/features/impeachment?utm_source=openai))  
+  - Add: National Archives. Impeachment (official history context). ([archives.gov](https://www.archives.gov/legislative/features/impeachment?utm_source=openai))
   - Add: Britannica. Grover Cleveland (two-term nonconsecutive) – to ground the Cleveland example. ([britannica.com](https://www.britannica.com/biography/Grover-Cleveland?utm_source=openai))
   - Add: Yale/Bridges to Skowronek (summaries of his theory for accessibility in the text). ([politicalscience.yale.edu](https://politicalscience.yale.edu/publications/presidential-leadership-political-time-reprise-and-reappraisal-third-edition?utm_source=openai))
   - Add: Foner’s Reconstruction updated edition page (publisher info) to ground the discussion in credible scholarship. ([barnesandnoble.com](https://www.barnesandnoble.com/w/reconstruction-updated-edition-eric-foner/1129142102?utm_source=openai))

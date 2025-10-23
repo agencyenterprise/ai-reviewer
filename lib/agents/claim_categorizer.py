@@ -194,7 +194,7 @@ class ClaimCategorizerAgent(AgentProtocol):
 
     def __init__(self):
         self.llm = init_chat_model(
-            models["gpt-5"],
+            str(models["gpt-5"]),
             temperature=0.2,
             timeout=DEFAULT_LLM_TIMEOUT,
         ).with_structured_output(ClaimCategorizationResponse)
@@ -211,7 +211,7 @@ claim_categorizer_agent = ClaimCategorizerAgent()
 if __name__ == "__main__":
     import asyncio
     import nest_asyncio
-    from lib.models.react_agent.agent_runner import _ensure_structured_output
+    from lib.models.react_agent.agent_runner import ensure_structured_output
 
     nest_asyncio.apply()
     # Test cases with expected vs inferred categorizations

@@ -26,7 +26,7 @@ async def literature_review(
 
     markdown = state.file.markdown
 
-    literature_review_response = await literature_review_agent.apply(
+    literature_review_response = await literature_review_agent.ainvoke(
         {
             "full_document": markdown,
             "bibliography": state.references,

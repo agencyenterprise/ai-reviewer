@@ -54,7 +54,7 @@ def _filter_tools(
     return [t for t in default_tools if t.name not in disallowed_set]
 
 
-def _ensure_structured_output(output: Any, schema: type[BaseModel]) -> BaseModel:
+def ensure_structured_output(output: Any, schema: type[BaseModel]) -> BaseModel:
     """Validate or coerce the output into the expected Pydantic model.
 
     If the output is already a dict, validate directly. If it's a string, let the

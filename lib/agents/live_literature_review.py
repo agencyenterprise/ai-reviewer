@@ -73,7 +73,7 @@ Given a claim from a document and the document's publication date, find newer li
 
 ## Reference Classification Guidelines
 
-For each piece of evidence 
+For each piece of evidence
 - reference direction
 - quality
 - publication type
@@ -86,13 +86,13 @@ Provide each piece of evidence related to a claim with one of the following dire
 - **Mixed**: Considering the collection of highest quality new and old sources reveals that the most authoritative and highest quality sources provide a MIXED resolution to the claim. Thus the claim needs to be updated with sources and to reflect this mixed perspective.
 - **Contextual Only**: Sources provide context but don't directly support or conflict with the claim.
 
-### Political Leaning of Reference Assessment 
+### Political Leaning of Reference Assessment
 Provide each piece of evidence related to a claim with one of the following political leaning labels:
 - **Conservative**: Sources that support conservative values, policies, or viewpoints
 - **Liberal**: Sources that support liberal values, policies, or viewpoints
 - **Other**: Sources that are neither conservative nor liberal in bias
 
-### Publication Type of Reference Assessment 
+### Publication Type of Reference Assessment
 - peer_reviewed_publication: Articles found in high quality academic journals
 - preprint: Articles found in preprint servers, unpublished theses, working papers
 - book: monographs, edited volumes, chapters, textbooks
@@ -155,7 +155,7 @@ Provide each piece of evidence related to a claim with one of the following qual
 live_literature_review_agent = Agent(
     name="Live Literature Review Researcher",
     description="Find newer literature that could update or contextualize existing claims",
-    model=models["gpt-5"],
+    model=str(models["gpt-5"]),
     use_responses_api=True,
     use_react_agent=False,
     use_direct_llm_client=True,
@@ -170,7 +170,7 @@ live_literature_review_agent = Agent(
 if __name__ == "__main__":
 
     import asyncio
-    from lib.models.react_agent.agent_runner import _ensure_structured_output
+    from lib.models.react_agent.agent_runner import ensure_structured_output
 
     # Fake input payload for live_literature_review_agent.apply(...)
     fake_input = {
@@ -189,6 +189,6 @@ One thing that has never happened, is that a one-term president comes back to of
     }
 
     response = asyncio.run(live_literature_review_agent.apply(fake_input))
-    response = _ensure_structured_output(response, LiveLiteratureReviewResponse)
+    response = ensure_structured_output(response, LiveLiteratureReviewResponse)
     print("Live Literature Review Response:")
     print(response.model_dump_json(indent=2))

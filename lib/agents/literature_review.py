@@ -1,9 +1,18 @@
-from enum import Enum
 import asyncio
+import logging
+from enum import Enum
+
+from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import RunnableConfig
+from langfuse.openai import AsyncOpenAI
 from pydantic import BaseModel, Field
-from langchain_core.prompts import ChatPromptTemplate
+
+from lib.config.langfuse import langfuse_handler
 from lib.config.llm import models
-from lib.models.agent import Agent
+from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
+from lib.models.llm import ensure_structured_output_response, wait_for_response
+
+logger = logging.getLogger(__name__)
 
 
 class LitRecommendedAction(str, Enum):
@@ -105,7 +114,7 @@ class LiteratureReviewResponse(BaseModel):
     )
 
 
-_literature_review_agent_prompt = ChatPromptTemplate.from_template(
+_literature_review_agent_prompt = PromptTemplate.from_template(
     """
 # Role
 You are an expert literature review researcher tasked with ensuring an article cites the highest quality and most current sources available. However, if the document publication date is provided, you are only to look for references that come BEFORE the document publication date.
@@ -160,26 +169,52 @@ Remember:
 )
 
 
-model_choice = models["o4-mini-deep-research"]
+class LiteratureReviewAgent(AgentProtocol):
+    name: str = "Literature Review Researcher"
+    description: str = (
+        "Review a document paragraph against the article bibliography and recent literature to propose citation updates"
+    )
 
-literature_review_agent = Agent(
-    name="Literature Review Researcher",
-    description="Review a document paragraph against the article bibliography and recent literature to propose citation updates",
-    model=models["o4-mini-deep-research"],
-    use_responses_api=True,
-    use_react_agent=False,
-    use_direct_llm_client=True,  # To use open ai tools (openai_web_search, openai_code_interpreter)
-    use_background_mode=True,
-    prompt=_literature_review_agent_prompt,
-    tools=["openai_web_search"],
-    mandatory_tools=[],
-    output_schema=LiteratureReviewResponse,
-)
+    def __init__(self):
+        # TODO: allow switching for Azure OpenAI
+        self.client = AsyncOpenAI(timeout=DEFAULT_LLM_TIMEOUT)
 
+    async def ainvoke(
+        self,
+        prompt_kwargs: dict,
+        config: RunnableConfig = None,
+    ) -> LiteratureReviewResponse:
+        prompt = _literature_review_agent_prompt.invoke(prompt_kwargs)
+        input = [{"role": "user", "content": prompt.text}]
+
+        response = await self.client.responses.parse(
+            model=models["gpt-5"].name,
+            tools=[{"type": "web_search"}],
+            max_tool_calls=20,
+            reasoning={
+                "effort": "low",  # "minimal", "low", "medium", "high"
+                "summary": "auto",
+            },
+            text_format=LiteratureReviewResponse,
+            background=True,
+            input=input,
+        )
+
+        response = await wait_for_response(
+            self.client, response, poll_interval_seconds=10
+        )
+        return ensure_structured_output_response(response, LiteratureReviewResponse)
+
+
+literature_review_agent = LiteratureReviewAgent()
 
 if __name__ == "__main__":
+    from lib.config.logger import setup_logger
+
+    setup_logger()
+
     response = asyncio.run(
-        literature_review_agent.apply(
+        literature_review_agent.ainvoke(
             {
                 "full_document": """# Some statistics about the office of the US president
 Over the course of the US history, the office of the US president has changed hand dozens of times. Various types of exchanges has happened, ranging from the same president being elected more than twice (i.e., Franklin D. Roosevelt) to the president being removed from office (i.e., Andrew Johnson).
@@ -191,8 +226,11 @@ Skowronek, S. (2011). Presidential Leadership in Political Time. Lawrence, KS: U
 """,
                 "paragraph": """One thing that has never happened, is that a one-term president comes back to office in a later term after losing one reelection bid. So surely, based on this track record alone it seems exceedingly unlikely that former president Trump would be able to defeat President Joe Biden in the 2024 election.""",
                 "document_publication_date": "2024-04-01",
-            }
-        )
+            },
+            config={
+                "callbacks": [langfuse_handler],
+            },
+        ),
     )
 
     # convert to json

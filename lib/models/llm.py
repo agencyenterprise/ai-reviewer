@@ -1,9 +1,10 @@
 from abc import abstractmethod
-from typing import Any
+from typing import Any, TypeVar
 from langfuse.openai import AsyncOpenAI
+from openai.types.responses import ParsedResponse
 from pydantic import BaseModel
-from lib.models.react_agent.agent_runner import _ensure_structured_output
-from time import sleep
+from lib.models.react_agent.agent_runner import ensure_structured_output
+from time import sleep, monotonic
 
 import logging
 
@@ -114,7 +115,7 @@ class OpenAIWrapper(LLMClient):
             if used_parse and hasattr(self.resp, "output_parsed"):
                 return self.resp.output_parsed
             try:
-                return _ensure_structured_output(
+                return ensure_structured_output(
                     self.resp.output_text, self.output_schema
                 )
             except Exception as e:
@@ -140,7 +141,7 @@ class OpenAIWrapper(LLMClient):
             if used_parse and hasattr(self.resp, "output_parsed"):
                 return self.resp.output_parsed
             try:
-                return _ensure_structured_output(
+                return ensure_structured_output(
                     self.resp.output_text, self.output_schema
                 )
             except Exception as e:
@@ -157,3 +158,47 @@ class OpenAIWrapper(LLMClient):
             except Exception as e:
                 logger.error("Error canceling response: %s", e)
             self.client.close()
+
+
+ResponseFormatT = TypeVar("ResponseFormatT")
+
+
+async def wait_for_response(
+    client: AsyncOpenAI,
+    response: ParsedResponse[ResponseFormatT],
+    poll_interval_seconds: int = 5,
+) -> ParsedResponse[ResponseFormatT]:
+    start_time = monotonic()
+
+    while response.status in {"queued", "in_progress"}:
+        sleep(poll_interval_seconds)
+        response = await client.responses.retrieve(response.id)
+        elapsed = monotonic() - start_time
+        logger.info(
+            "Call id: %s => Current status: %s... Running for %.1fs. Checking back in %s seconds",
+            response.id,
+            response.status,
+            elapsed,
+            poll_interval_seconds,
+        )
+
+    return response
+
+
+def ensure_structured_output_response(
+    response: ParsedResponse[ResponseFormatT], schema: type[BaseModel]
+) -> BaseModel:
+    """Validate or coerce the output into the expected Pydantic model.
+
+    If the output is already a dict, validate directly. If it's a string, let the
+    schema try to parse JSON. As a last resort, raise and let caller decide fallback.
+    """
+    if hasattr(response, "output_parsed") and isinstance(
+        response.output_parsed, BaseModel
+    ):
+        return response.output_parsed
+
+    if hasattr(response, "output_text") and isinstance(response.output_text, str):
+        return schema.model_validate_json(response.output_text)
+
+    raise ValueError("Response did not include a structured result.")

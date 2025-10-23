@@ -57,7 +57,7 @@ class ReferenceExtractorAgent(AgentProtocol):
 
     def __init__(self):
         self.llm = init_chat_model(
-            models["gpt-5-mini"], temperature=0.0, timeout=DEFAULT_LLM_TIMEOUT
+            str(models["gpt-5-mini"]), temperature=0.0, timeout=DEFAULT_LLM_TIMEOUT
         ).with_structured_output(ReferenceExtractorResponse)
 
     async def ainvoke(

@@ -52,10 +52,10 @@ class EvidenceWeighterResponseWithClaimIndex(EvidenceWeighterResponse):
 _evidence_weighter_agent_prompt = ChatPromptTemplate.from_template(
     """
 # Role
-You are an expert research evidence analyst specializing in evaluating the strength, quality, and direction of sources that are relevant to claims in research document. 
+You are an expert research evidence analyst specializing in evaluating the strength, quality, and direction of sources that are relevant to claims in research document.
 
 # Goal
-You will be given a new literature review report that contains the newer sources that have been found recently for a claim. Analyze this collection of newer sources to determine the overall evidence direction and strength for a specific claim, considering source quality, methodology, and potential biases. Importantly state whether the newer sources override the older ones in supporting, contextualizing, or conflicting with the claim. 
+You will be given a new literature review report that contains the newer sources that have been found recently for a claim. Analyze this collection of newer sources to determine the overall evidence direction and strength for a specific claim, considering source quality, methodology, and potential biases. Importantly state whether the newer sources override the older ones in supporting, contextualizing, or conflicting with the claim.
 
 # Analysis Framework
 
@@ -65,7 +65,7 @@ From the existing sources that are cited to support the claim and the newer sour
 
 For each claim provide the following:
 - evidence factors
-- evidence alignment 
+- evidence alignment
 - recommended action
 - confidence in recommended action
 - rationale for the recommended action
@@ -154,7 +154,7 @@ Here are the contextual details:
 evidence_weighter_agent = Agent(
     name="Evidence Weighting Analyst",
     description="Analyze and weight evidence from multiple sources to determine overall direction and strength",
-    model=models["gpt-5"],
+    model=str(models["gpt-5"]),
     use_responses_api=True,
     use_react_agent=False,
     use_direct_llm_client=True,

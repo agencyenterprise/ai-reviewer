@@ -1,11 +1,23 @@
+from openai import BaseModel
 from lib.config.env import config
 
 
-def get_model(model_name: str) -> str:
+class LLMModel(BaseModel):
+    name: str
+    provider: str
+
+    def model(self) -> str:
+        return f"{self.provider}:{self.name}"
+
+    def __str__(self) -> str:
+        return self.model()
+
+
+def get_model(model_name: str) -> LLMModel:
     if config.AZURE_OPENAI_API_KEY and config.AZURE_OPENAI_ENDPOINT:
-        return f"azure_openai:{model_name}"
+        return LLMModel(provider="azure_openai", name=model_name)
     else:
-        return f"openai:{model_name}"
+        return LLMModel(provider="openai", name=model_name)
 
 
 models = {

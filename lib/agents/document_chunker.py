@@ -72,7 +72,7 @@ class DocumentChunkerAgent(AgentProtocol):
 
     def __init__(self):
         self.llm = init_chat_model(
-            models["gpt-4.1"],
+            str(models["gpt-4.1"]),
             temperature=0.2,
             timeout=DEFAULT_LLM_TIMEOUT,
         ).with_structured_output(DocumentChunkerResponse)
