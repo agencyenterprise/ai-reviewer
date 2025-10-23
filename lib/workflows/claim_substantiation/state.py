@@ -68,14 +68,12 @@ class DocumentChunk(ChunkWithIndex):
     """Independent chunk response object with all processing results"""
 
     claims: Optional[ClaimResponse | ToulminClaimResponse] = None
-    claim_categories: Optional[List[ClaimCategorizationResponseWithClaimIndex]] = None
     citations: Optional[CitationResponse] = None
+    claim_categories: List[ClaimCategorizationResponseWithClaimIndex] = []
     claim_common_knowledge_results: List[ClaimCommonKnowledgeResultWithClaimIndex] = []
     substantiations: List[ClaimSubstantiationResultWithClaimIndex] = []
     citation_suggestions: List[CitationSuggestionResultWithClaimIndex] = []
-    live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = Field(
-        default_factory=list
-    )
+    live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = []
 
 
 def conciliate_chunks(

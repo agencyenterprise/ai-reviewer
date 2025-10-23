@@ -67,7 +67,7 @@ export interface EvidenceWeighterResponseWithClaimIndexInput {
    */
   claimUpdateAction: EvidenceWeighterRecommendedAction;
   /**
-   * Explanation of the claim update
+   * Explanation of the rationale for the claim update action in a maximum of TWO sentences.
    * @type {string}
    * @memberof EvidenceWeighterResponseWithClaimIndexInput
    */
@@ -78,6 +78,12 @@ export interface EvidenceWeighterResponseWithClaimIndexInput {
    * @memberof EvidenceWeighterResponseWithClaimIndexInput
    */
   confidenceLevel: QualityLevel;
+  /**
+   * The rewritten claim that is more clear and accurate according to the recommended action and taking the newer sources into account.
+   * @type {string}
+   * @memberof EvidenceWeighterResponseWithClaimIndexInput
+   */
+  rewrittenClaim: string;
   /**
    *
    * @type {number}
@@ -103,6 +109,7 @@ export function instanceOfEvidenceWeighterResponseWithClaimIndexInput(
   if (!('claimUpdateAction' in value) || value['claimUpdateAction'] === undefined) return false;
   if (!('rationale' in value) || value['rationale'] === undefined) return false;
   if (!('confidenceLevel' in value) || value['confidenceLevel'] === undefined) return false;
+  if (!('rewrittenClaim' in value) || value['rewrittenClaim'] === undefined) return false;
   if (!('chunkIndex' in value) || value['chunkIndex'] === undefined) return false;
   if (!('claimIndex' in value) || value['claimIndex'] === undefined) return false;
   return true;
@@ -127,6 +134,7 @@ export function EvidenceWeighterResponseWithClaimIndexInputFromJSONTyped(
     claimUpdateAction: EvidenceWeighterRecommendedActionFromJSON(json['claim_update_action']),
     rationale: json['rationale'],
     confidenceLevel: QualityLevelFromJSON(json['confidence_level']),
+    rewrittenClaim: json['rewritten_claim'],
     chunkIndex: json['chunk_index'],
     claimIndex: json['claim_index'],
   };
@@ -152,6 +160,7 @@ export function EvidenceWeighterResponseWithClaimIndexInputToJSONTyped(
     claim_update_action: EvidenceWeighterRecommendedActionToJSON(value['claimUpdateAction']),
     rationale: value['rationale'],
     confidence_level: QualityLevelToJSON(value['confidenceLevel']),
+    rewritten_claim: value['rewrittenClaim'],
     chunk_index: value['chunkIndex'],
     claim_index: value['claimIndex'],
   };

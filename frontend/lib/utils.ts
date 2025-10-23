@@ -14,3 +14,7 @@ export async function downloadBlobResponse(apiCall: () => Promise<{ raw: Respons
   const apiResponse = await apiCall();
   return await apiResponse.raw.blob();
 }
+
+export function snakeCaseToTitleCase(s: string): string {
+  return s?.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()) || '';
+}

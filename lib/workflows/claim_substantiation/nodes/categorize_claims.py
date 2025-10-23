@@ -15,6 +15,7 @@ from lib.workflows.claim_substantiation.state import (
     DocumentChunk,
 )
 from lib.workflows.chunk_iterator import iterate_chunks
+from lib.workflows.decorators import handle_chunk_errors
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ async def categorize_claims(
     return results
 
 
+@handle_chunk_errors("Claim categorization")
 async def _categorize_chunk_claims(
     state: ClaimSubstantiatorState, chunk: DocumentChunk
 ) -> DocumentChunk:
@@ -44,32 +46,25 @@ async def _categorize_chunk_claims(
 
     categorization_results = []
     for claim_index, claim in enumerate(chunk.claims.claims):
-        try:
-            result: ClaimCategorizationResponse = await claim_categorizer_agent.apply(
-                {
-                    "full_document": state.file.markdown,
-                    "paragraph": state.get_paragraph(chunk.paragraph_index),
-                    "chunk": chunk.content,
-                    "claim": claim.claim,
-                    "domain_context": format_domain_context(state.config.domain),
-                    "audience_context": format_audience_context(
-                        state.config.target_audience
-                    ),
-                }
+        result: ClaimCategorizationResponse = await claim_categorizer_agent.ainvoke(
+            {
+                "full_document": state.file.markdown,
+                "paragraph": state.get_paragraph(chunk.paragraph_index),
+                "chunk": chunk.content,
+                "claim": claim.claim,
+                "domain_context": format_domain_context(state.config.domain),
+                "audience_context": format_audience_context(
+                    state.config.target_audience
+                ),
+            }
+        )
+        categorization_results.append(
+            ClaimCategorizationResponseWithClaimIndex(
+                chunk_index=chunk.chunk_index,
+                claim_index=claim_index,
+                **result.model_dump(),
             )
-            categorization_results.append(
-                ClaimCategorizationResponseWithClaimIndex(
-                    chunk_index=chunk.chunk_index,
-                    claim_index=claim_index,
-                    **result.model_dump(),
-                )
-            )
-        except Exception:
-            logger.exception(
-                f"categorize_claims: Error categorizing claim {claim_index} in chunk {chunk.chunk_index}"
-            )
-            # Continue with remaining claims even if one fails
-            continue
+        )
 
     return chunk.model_copy(update={"claim_categories": categorization_results})
 
