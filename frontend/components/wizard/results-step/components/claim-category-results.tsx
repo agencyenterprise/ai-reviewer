@@ -49,7 +49,6 @@ export function ClaimCategoryResults({ claimCategory }: ClaimCategoryResultsProp
 
       {isExpanded && (
         <div className="space-y-2">
-          <LabeledValue label="Claim Category">{claimCategory.claimCategory}</LabeledValue>
           <LabeledValue label="Needs External Verification">
             {claimCategory.needsExternalVerification ? 'Yes' : 'No'}
           </LabeledValue>
