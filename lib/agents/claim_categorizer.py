@@ -23,17 +23,16 @@ The categories are:
 
 """
 from __future__ import annotations
-from langchain.chat_models import init_chat_model
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnableConfig
-from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
 
 from enum import Enum
 
-from lib.config.llm import models
-
-
+from langchain.chat_models import init_chat_model
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field, field_validator
+
+from lib.config.llm_models import gpt_5_model
+from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
 
 # =========================
 #  Pydantic data contracts
@@ -194,7 +193,7 @@ class ClaimCategorizerAgent(AgentProtocol):
 
     def __init__(self):
         self.llm = init_chat_model(
-            str(models["gpt-5"]),
+            gpt_5_model.model_name,
             temperature=0.2,
             timeout=DEFAULT_LLM_TIMEOUT,
         ).with_structured_output(ClaimCategorizationResponse)
@@ -210,7 +209,9 @@ claim_categorizer_agent = ClaimCategorizerAgent()
 
 if __name__ == "__main__":
     import asyncio
+
     import nest_asyncio
+
     from lib.models.react_agent.agent_runner import ensure_structured_output
 
     nest_asyncio.apply()

@@ -5,7 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.config.llm import models
+from lib.config.llm_models import gpt_5_model
 from lib.models.agent import DEFAULT_LLM_TIMEOUT, AgentProtocol
 
 
@@ -126,7 +126,7 @@ class ToulminClaimExtractorAgent(AgentProtocol):
 
     def __init__(self):
         self.llm = init_chat_model(
-            str(models["gpt-5"]),
+            gpt_5_model.model_name,
             temperature=0.2,
             timeout=DEFAULT_LLM_TIMEOUT,
         ).with_structured_output(ToulminClaimResponse)
