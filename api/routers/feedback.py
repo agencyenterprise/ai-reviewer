@@ -17,12 +17,19 @@ from lib.services import feedback_service
 router = APIRouter(tags=["feedback"])
 
 
-class ClaimFeedbackRequest(BaseModel):
-    """Request model for claim feedback"""
+class FeedbackRequest(BaseModel):
+    """Generic request model for any entity feedback"""
 
     workflow_run_id: UUID
-    chunk_index: int = Field(ge=0, description="Zero-based chunk index")
-    claim_index: int = Field(ge=0, description="Zero-based claim index within chunk")
+    entity_path: dict = Field(
+        description="JSONB path identifying the entity",
+        examples=[
+            {"chunk_index": 0, "claim_index": 1},  # claim
+            {"chunk_index": 0},  # chunk
+            {"reference_index": 2},  # reference
+            {},  # workflow-level
+        ],
+    )
     feedback_type: str  # Accept as string, convert in endpoint
     feedback_text: Optional[str] = Field(
         default=None,
@@ -55,17 +62,16 @@ class FeedbackResponse(BaseModel):
         )
 
 
-@router.post("/api/feedback/claim", response_model=FeedbackResponse)
-async def submit_claim_feedback(request: ClaimFeedbackRequest) -> FeedbackResponse:
-    """Submit or update feedback for a specific claim"""
+@router.post("/api/feedback", response_model=FeedbackResponse)
+async def submit_feedback(request: FeedbackRequest) -> FeedbackResponse:
+    """Submit or update feedback for any entity"""
     with get_db() as session:
         feedback_type = FeedbackType(request.feedback_type)
 
-        feedback = feedback_service.create_or_update_claim_feedback(
+        feedback = feedback_service.create_or_update_feedback(
             session=session,
             workflow_run_id=request.workflow_run_id,
-            chunk_index=request.chunk_index,
-            claim_index=request.claim_index,
+            entity_path=request.entity_path,
             feedback_type=feedback_type,
             feedback_text=request.feedback_text,
         )
@@ -73,19 +79,24 @@ async def submit_claim_feedback(request: ClaimFeedbackRequest) -> FeedbackRespon
         return FeedbackResponse.from_model(feedback)
 
 
-@router.get("/api/feedback/claim", response_model=Optional[FeedbackResponse])
-async def get_claim_feedback(
+@router.get("/api/feedback", response_model=Optional[FeedbackResponse])
+async def get_feedback(
     workflow_run_id: UUID,
-    chunk_index: int,
-    claim_index: int,
+    entity_path: str,  # JSON string, we'll parse it
 ) -> Optional[FeedbackResponse]:
-    """Get feedback for a specific claim"""
+    """Get feedback for a specific entity
+
+    Example: GET /api/feedback?workflow_run_id=xxx&entity_path={"chunk_index":0,"claim_index":1}
+    """
+    import json
+
     with get_db() as session:
-        feedback = feedback_service.get_claim_feedback(
+        parsed_path = json.loads(entity_path)
+
+        feedback = feedback_service.get_feedback(
             session=session,
             workflow_run_id=workflow_run_id,
-            chunk_index=chunk_index,
-            claim_index=claim_index,
+            entity_path=parsed_path,
         )
 
         if feedback:

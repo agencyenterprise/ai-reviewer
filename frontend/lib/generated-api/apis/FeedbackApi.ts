@@ -13,10 +13,10 @@
  */
 
 import * as runtime from '../runtime';
-import type { ClaimFeedbackRequest, FeedbackResponse, HTTPValidationError } from '../models/index';
+import type { FeedbackRequest, FeedbackResponse, HTTPValidationError } from '../models/index';
 import {
-  ClaimFeedbackRequestFromJSON,
-  ClaimFeedbackRequestToJSON,
+  FeedbackRequestFromJSON,
+  FeedbackRequestToJSON,
   FeedbackResponseFromJSON,
   FeedbackResponseToJSON,
   HTTPValidationErrorFromJSON,
@@ -27,18 +27,17 @@ export interface DeleteFeedbackApiFeedbackFeedbackIdDeleteRequest {
   feedbackId: string;
 }
 
-export interface GetClaimFeedbackApiFeedbackClaimGetRequest {
+export interface GetFeedbackApiFeedbackGetRequest {
   workflowRunId: string;
-  chunkIndex: number;
-  claimIndex: number;
+  entityPath: string;
 }
 
 export interface GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetRequest {
   workflowRunId: string;
 }
 
-export interface SubmitClaimFeedbackApiFeedbackClaimPostRequest {
-  claimFeedbackRequest: ClaimFeedbackRequest;
+export interface SubmitFeedbackApiFeedbackPostRequest {
+  feedbackRequest: FeedbackRequest;
 }
 
 /**
@@ -93,31 +92,24 @@ export class FeedbackApi extends runtime.BaseAPI {
   }
 
   /**
-   * Get feedback for a specific claim
-   * Get Claim Feedback
+   * Get feedback for a specific entity  Example: GET /api/feedback?workflow_run_id=xxx&entity_path={\"chunk_index\":0,\"claim_index\":1}
+   * Get Feedback
    */
-  async getClaimFeedbackApiFeedbackClaimGetRaw(
-    requestParameters: GetClaimFeedbackApiFeedbackClaimGetRequest,
+  async getFeedbackApiFeedbackGetRaw(
+    requestParameters: GetFeedbackApiFeedbackGetRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<runtime.ApiResponse<FeedbackResponse>> {
     if (requestParameters['workflowRunId'] == null) {
       throw new runtime.RequiredError(
         'workflowRunId',
-        'Required parameter "workflowRunId" was null or undefined when calling getClaimFeedbackApiFeedbackClaimGet().',
+        'Required parameter "workflowRunId" was null or undefined when calling getFeedbackApiFeedbackGet().',
       );
     }
 
-    if (requestParameters['chunkIndex'] == null) {
+    if (requestParameters['entityPath'] == null) {
       throw new runtime.RequiredError(
-        'chunkIndex',
-        'Required parameter "chunkIndex" was null or undefined when calling getClaimFeedbackApiFeedbackClaimGet().',
-      );
-    }
-
-    if (requestParameters['claimIndex'] == null) {
-      throw new runtime.RequiredError(
-        'claimIndex',
-        'Required parameter "claimIndex" was null or undefined when calling getClaimFeedbackApiFeedbackClaimGet().',
+        'entityPath',
+        'Required parameter "entityPath" was null or undefined when calling getFeedbackApiFeedbackGet().',
       );
     }
 
@@ -127,17 +119,13 @@ export class FeedbackApi extends runtime.BaseAPI {
       queryParameters['workflow_run_id'] = requestParameters['workflowRunId'];
     }
 
-    if (requestParameters['chunkIndex'] != null) {
-      queryParameters['chunk_index'] = requestParameters['chunkIndex'];
-    }
-
-    if (requestParameters['claimIndex'] != null) {
-      queryParameters['claim_index'] = requestParameters['claimIndex'];
+    if (requestParameters['entityPath'] != null) {
+      queryParameters['entity_path'] = requestParameters['entityPath'];
     }
 
     const headerParameters: runtime.HTTPHeaders = {};
 
-    let urlPath = `/api/feedback/claim`;
+    let urlPath = `/api/feedback`;
 
     const response = await this.request(
       {
@@ -153,14 +141,14 @@ export class FeedbackApi extends runtime.BaseAPI {
   }
 
   /**
-   * Get feedback for a specific claim
-   * Get Claim Feedback
+   * Get feedback for a specific entity  Example: GET /api/feedback?workflow_run_id=xxx&entity_path={\"chunk_index\":0,\"claim_index\":1}
+   * Get Feedback
    */
-  async getClaimFeedbackApiFeedbackClaimGet(
-    requestParameters: GetClaimFeedbackApiFeedbackClaimGetRequest,
+  async getFeedbackApiFeedbackGet(
+    requestParameters: GetFeedbackApiFeedbackGetRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<FeedbackResponse> {
-    const response = await this.getClaimFeedbackApiFeedbackClaimGetRaw(requestParameters, initOverrides);
+    const response = await this.getFeedbackApiFeedbackGetRaw(requestParameters, initOverrides);
     return await response.value();
   }
 
@@ -215,17 +203,17 @@ export class FeedbackApi extends runtime.BaseAPI {
   }
 
   /**
-   * Submit or update feedback for a specific claim
-   * Submit Claim Feedback
+   * Submit or update feedback for any entity
+   * Submit Feedback
    */
-  async submitClaimFeedbackApiFeedbackClaimPostRaw(
-    requestParameters: SubmitClaimFeedbackApiFeedbackClaimPostRequest,
+  async submitFeedbackApiFeedbackPostRaw(
+    requestParameters: SubmitFeedbackApiFeedbackPostRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<runtime.ApiResponse<FeedbackResponse>> {
-    if (requestParameters['claimFeedbackRequest'] == null) {
+    if (requestParameters['feedbackRequest'] == null) {
       throw new runtime.RequiredError(
-        'claimFeedbackRequest',
-        'Required parameter "claimFeedbackRequest" was null or undefined when calling submitClaimFeedbackApiFeedbackClaimPost().',
+        'feedbackRequest',
+        'Required parameter "feedbackRequest" was null or undefined when calling submitFeedbackApiFeedbackPost().',
       );
     }
 
@@ -235,7 +223,7 @@ export class FeedbackApi extends runtime.BaseAPI {
 
     headerParameters['Content-Type'] = 'application/json';
 
-    let urlPath = `/api/feedback/claim`;
+    let urlPath = `/api/feedback`;
 
     const response = await this.request(
       {
@@ -243,7 +231,7 @@ export class FeedbackApi extends runtime.BaseAPI {
         method: 'POST',
         headers: headerParameters,
         query: queryParameters,
-        body: ClaimFeedbackRequestToJSON(requestParameters['claimFeedbackRequest']),
+        body: FeedbackRequestToJSON(requestParameters['feedbackRequest']),
       },
       initOverrides,
     );
@@ -252,14 +240,14 @@ export class FeedbackApi extends runtime.BaseAPI {
   }
 
   /**
-   * Submit or update feedback for a specific claim
-   * Submit Claim Feedback
+   * Submit or update feedback for any entity
+   * Submit Feedback
    */
-  async submitClaimFeedbackApiFeedbackClaimPost(
-    requestParameters: SubmitClaimFeedbackApiFeedbackClaimPostRequest,
+  async submitFeedbackApiFeedbackPost(
+    requestParameters: SubmitFeedbackApiFeedbackPostRequest,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<FeedbackResponse> {
-    const response = await this.submitClaimFeedbackApiFeedbackClaimPostRaw(requestParameters, initOverrides);
+    const response = await this.submitFeedbackApiFeedbackPostRaw(requestParameters, initOverrides);
     return await response.value();
   }
 }

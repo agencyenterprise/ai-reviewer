@@ -10,22 +10,49 @@ import uuid
 from lib.models.feedback import Feedback, FeedbackType
 
 
-def create_or_update_claim_feedback(
+def create_feedback(
     session,
     workflow_run_id: uuid.UUID,
-    chunk_index: int,
-    claim_index: int,
+    entity_path: dict,
     feedback_type: FeedbackType,
     feedback_text: Optional[str] = None,
 ) -> Feedback:
     """
-    Create or update feedback for a specific claim.
+    Create new feedback for any entity.
 
-    If feedback already exists for this claim, it will be updated.
+    Args:
+        entity_path: Dict with entity coordinates, e.g.:
+            - {"chunk_index": 0} for chunk
+            - {"chunk_index": 0, "claim_index": 1} for claim
+            - {"reference_index": 2} for reference
+            - {} for workflow-level feedback
+    """
+    feedback = Feedback(
+        workflow_run_id=workflow_run_id,
+        entity_path=entity_path,
+        feedback_type=feedback_type,
+        feedback_text=feedback_text,
+    )
+
+    session.add(feedback)
+    session.commit()
+    session.refresh(feedback)
+    return feedback
+
+
+def create_or_update_feedback(
+    session,
+    workflow_run_id: uuid.UUID,
+    entity_path: dict,
+    feedback_type: FeedbackType,
+    feedback_text: Optional[str] = None,
+) -> Feedback:
+    """
+    Create or update feedback for any entity.
+
+    If feedback already exists for this entity, it will be updated.
     Otherwise, a new feedback entry is created.
     """
-    entity_path = {"chunk_index": chunk_index, "claim_index": claim_index}
-
     existing_feedback = (
         session.query(Feedback)
         .filter(Feedback.workflow_run_id == workflow_run_id)
@@ -41,26 +68,19 @@ def create_or_update_claim_feedback(
         session.refresh(existing_feedback)
         return existing_feedback
 
-    feedback = Feedback.for_claim(
+    return create_feedback(
+        session=session,
         workflow_run_id=workflow_run_id,
-        chunk_index=chunk_index,
-        claim_index=claim_index,
+        entity_path=entity_path,
         feedback_type=feedback_type,
         feedback_text=feedback_text,
     )
 
-    session.add(feedback)
-    session.commit()
-    session.refresh(feedback)
-    return feedback
 
-
-def get_claim_feedback(
-    session, workflow_run_id: uuid.UUID, chunk_index: int, claim_index: int
+def get_feedback(
+    session, workflow_run_id: uuid.UUID, entity_path: dict
 ) -> Optional[Feedback]:
-    """Get feedback for a specific claim"""
-    entity_path = {"chunk_index": chunk_index, "claim_index": claim_index}
-
+    """Get feedback for a specific entity"""
     return (
         session.query(Feedback)
         .filter(Feedback.workflow_run_id == workflow_run_id)

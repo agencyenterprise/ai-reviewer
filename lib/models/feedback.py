@@ -94,23 +94,5 @@ class Feedback(SQLModel, table=True):
         )
     )
 
-    @classmethod
-    def for_claim(
-        cls,
-        workflow_run_id: uuid.UUID,
-        chunk_index: int,
-        claim_index: int,
-        feedback_type: FeedbackType,
-        feedback_text: Optional[str] = None,
-    ) -> "Feedback":
-        """Factory method for creating claim feedback"""
-        path = ClaimPath(chunk_index=chunk_index, claim_index=claim_index)
-        return cls(
-            workflow_run_id=workflow_run_id,
-            entity_path=path.to_dict(),
-            feedback_type=feedback_type,
-            feedback_text=feedback_text,
-        )
-
     def __repr__(self):
         return f"<Feedback(workflow_run_id={self.workflow_run_id}, entity_path={self.entity_path}, type={self.feedback_type})>"
