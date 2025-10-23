@@ -55,6 +55,8 @@ export function ChunkSidebarContent({
             totalClaims={claims.length}
             references={references}
             supportingFiles={results.supportingFiles || []}
+            workflowRunId={results.workflowRunId ?? undefined}
+            chunkIndex={chunkIndex ?? undefined}
           />
         ))}
       </div>
