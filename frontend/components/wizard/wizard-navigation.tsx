@@ -38,13 +38,13 @@ export function WizardNavigation() {
             supportingDocuments: state.supportingDocuments,
             config: {
               useToulmin: true,
-              runLiteratureReview: state.runLiteratureReview,
-              runSuggestCitations: state.runSuggestCitations,
-              runLiveReports: state.runLiveReports,
-              domain: state.domain || undefined,
-              targetAudience: state.targetAudience || undefined,
-              documentPublicationDate: state.documentPublicationDate
-                ? new Date(state.documentPublicationDate)
+              runLiteratureReview: state.config.runLiteratureReview,
+              runSuggestCitations: state.config.runSuggestCitations,
+              runLiveReports: state.config.runLiveReports,
+              domain: state.config.domain || undefined,
+              targetAudience: state.config.targetAudience || undefined,
+              documentPublicationDate: state.config.documentPublicationDate
+                ? new Date(state.config.documentPublicationDate)
                 : undefined,
               sessionId: state.sessionId || undefined,
             },
