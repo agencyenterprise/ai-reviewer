@@ -37,6 +37,9 @@ IGNORE_TABLES = [
     "checkpoint_blobs",
     "checkpoint_migrations",
     "checkpoints",
+    # Ignore LangChain PGVector RAG tables
+    "langchain_pg_collection",
+    "langchain_pg_embedding",
 ]
 
 

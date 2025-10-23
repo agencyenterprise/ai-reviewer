@@ -28,7 +28,7 @@ async def index_supporting_documents(
     logger.info(f"Indexing {len(state.supporting_files)} supporting documents for RAG")
 
     vector_store = get_vector_store_service()
-    indexed_collections: dict[str, str] = {}
+    indexed_count = 0
     failed_files: list[str] = []
 
     for file_doc in state.supporting_files:
@@ -40,7 +40,7 @@ async def index_supporting_documents(
                 logger.info(
                     f"Collection {collection_id} exists, skipping {file_doc.file_name}"
                 )
-                indexed_collections[file_hash] = collection_id
+                indexed_count += 1
                 continue
 
             num_chunks = await vector_store.index_document(
@@ -49,16 +49,16 @@ async def index_supporting_documents(
                 collection_id=collection_id,
             )
 
-            indexed_collections[file_hash] = collection_id
+            indexed_count += 1
             logger.info(f"Indexed {num_chunks} chunks for {file_doc.file_name}")
 
         except Exception as e:
             logger.error(f"Failed to index {file_doc.file_name}: {e}")
             failed_files.append(file_doc.file_name)
 
-    if indexed_collections:
-        logger.info(f"Successfully indexed {len(indexed_collections)} collections")
+    if indexed_count:
+        logger.info(f"Successfully indexed {indexed_count} collections")
     if failed_files:
         logger.warning(f"Failed to index {len(failed_files)} files: {failed_files}")
 
-    return {"indexed_collections": indexed_collections}
+    return {}

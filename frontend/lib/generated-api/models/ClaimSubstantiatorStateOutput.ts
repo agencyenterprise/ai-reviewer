@@ -131,12 +131,6 @@ export interface ClaimSubstantiatorStateOutput {
    */
   supportingDocumentsSummaries?: { [key: string]: DocumentSummary } | null;
   /**
-   * Maps file hashes to collection IDs for RAG retrieval
-   * @type {{ [key: string]: string; }}
-   * @memberof ClaimSubstantiatorStateOutput
-   */
-  indexedCollections?: { [key: string]: string };
-  /**
    * Live reports analysis results by chunk index
    * @type {Array<EvidenceWeighterResponseWithClaimIndexOutput>}
    * @memberof ClaimSubstantiatorStateOutput
@@ -186,7 +180,6 @@ export function ClaimSubstantiatorStateOutputFromJSONTyped(
       json['supporting_documents_summaries'] == null
         ? undefined
         : mapValues(json['supporting_documents_summaries'], DocumentSummaryFromJSON),
-    indexedCollections: json['indexed_collections'] == null ? undefined : json['indexed_collections'],
     liveReportsAnalysis:
       json['live_reports_analysis'] == null
         ? undefined
@@ -223,7 +216,6 @@ export function ClaimSubstantiatorStateOutputToJSONTyped(
       value['supportingDocumentsSummaries'] == null
         ? undefined
         : mapValues(value['supportingDocumentsSummaries'], DocumentSummaryToJSON),
-    indexed_collections: value['indexedCollections'],
     live_reports_analysis:
       value['liveReportsAnalysis'] == null
         ? undefined

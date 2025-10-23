@@ -179,10 +179,6 @@ class ClaimSubstantiatorState(BaseModel):
         default=None,
         description="Dictionary mapping supporting file indices to their summaries",
     )
-    indexed_collections: Dict[str, str] = Field(
-        default_factory=dict,
-        description="Maps file hashes to collection IDs for RAG retrieval",
-    )
     live_reports_analysis: List[EvidenceWeighterResponseWithClaimIndex] = Field(
         default_factory=list, description="Live reports analysis results by chunk index"
     )
