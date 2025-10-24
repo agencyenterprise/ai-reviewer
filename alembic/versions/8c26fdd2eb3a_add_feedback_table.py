@@ -1,7 +1,7 @@
 """add_feedback_table
 
 Revision ID: 8c26fdd2eb3a
-Revises: e02d6d007602
+Revises: aa82a3711f86
 Create Date: 2025-10-23 19:19:21.063621
 
 """
@@ -15,7 +15,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "8c26fdd2eb3a"
-down_revision: Union[str, None] = "e02d6d007602"
+down_revision: Union[str, None] = "aa82a3711f86"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
