@@ -9,7 +9,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     container: ghcr.io/railwayapp/cli:latest
-    if: "${{ github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'chore: bump version to') }}"
+    if: "${{ github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'chore: bump version to') }}"
     env:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
       PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
