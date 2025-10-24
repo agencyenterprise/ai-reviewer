@@ -1,0 +1,129 @@
+dataset:
+    name: "Claim Categorizer Dataset"
+    description: "Tests the claim categorizer on a paragraph using Britannica/AP/Constitution sources"
+    test_config:
+        strict_fields:
+            - claim
+            - claim_category 
+            - needs_external_verification
+
+    items:
+        - name: "military_personnel_case_1"
+          description: "Test case with established knowledge requiring citation"
+          input:
+            main_document: "data/military_personnel/main_document.md"
+            chunk: "RAND Project AIR FORCE (PAF) has supported the U.S. Air Force's efforts and there is a past history of developing technology to support talent management (Schulker et al., 2022; Snyder, 2022; Yeung et al., 2022)"
+            claim: "RAND Project AIR FORCE (PAF) has supported the U.S. Air Force's efforts and there is a past history of developing technology to support talent management (Schulker et al., 2022; Snyder, 2022; Yeung et al., 2022)"
+          expected_output:
+            claim: "RAND Project AIR FORCE (PAF) has supported the U.S. Air Force's efforts and there is a past history of developing technology to support talent management (Schulker et al., 2022; Snyder, 2022; Yeung et al., 2022)"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: true
+            rationale: ""
+
+        - name: "military_personnel_case_2" 
+          description: "Test case with methodology claim"
+          input:
+            main_document: "data/military_personnel/main_document.md"
+            chunk: "PAF developed a prototype tool, Personnel Records Scoring System (PReSS) by leveraging existing technology and data sources"
+            claim: "PAF developed a prototype tool, Personnel Records Scoring System (PReSS) by leveraging existing technology and data sources"
+          expected_output:
+            claim: "PAF developed a prototype tool, Personnel Records Scoring System (PReSS) by leveraging existing technology and data sources"
+            claim_category: "methodology_procedural"
+            needs_external_verification: false
+            rationale: ""
+
+        - name: "military_personnel_case_3"
+          description: "Test case with results claim"
+          input:
+            main_document: "data/military_personnel/main_document.md"
+            chunk: "PAF tested PReSS with select DTs and found that it was 20 percent more effective in improving the USAF's talent management system than the baseline"
+            claim: "PAF tested PReSS with select DTs and found that it was 20 percent more effective in improving the USAF's talent management system than the baseline"
+          expected_output:
+            claim: "PAF tested PReSS with select DTs and found that it was 20 percent more effective in improving the USAF's talent management system than the baseline"
+            claim_category: "empirical_analytical_results"
+            needs_external_verification: false
+            rationale: ""
+
+        - name: "military_personnel_case_4"
+          description: "Test case with interpretation claim"
+          input:
+            main_document: "data/military_personnel/main_document.md"
+            chunk: "These projects demonstrate that leveraging technology can transform talent management"
+            claim: "These projects demonstrate that leveraging technology can transform talent management"
+          expected_output:
+            claim: "These projects demonstrate that leveraging technology can transform talent management"
+            claim_category: "inferential_interpretive_claims"
+            needs_external_verification: false
+            rationale: ""
+
+        - name: "military_personnel_case_5"
+          description: "Test case with meta claim"
+          input:
+            main_document: "data/military_personnel/main_document.md"
+            chunk: "In this report, we describe improvements to PReSS"
+            claim: "In this report, we describe improvements to PReSS"
+          expected_output:
+            claim: "In this report, we describe improvements to PReSS"
+            claim_category: "meta_structural_evaluative"
+            needs_external_verification: false
+            rationale: ""
+
+        - name: "military_personnel_case_6"
+          description: "Test case with established knowledge requiring citation"
+          input:
+            main_document: "data/military_personnel/main_document.md"
+            chunk: "It has been shown that technology investments (Schulker et al., 2022; Snyder, 2022; Yeung et al., 2022) can transform the USAF's talent management system"
+            claim: "It has been shown that technology investments (Schulker et al., 2022; Snyder, 2022; Yeung et al., 2022) can transform the USAF's talent management system"
+          expected_output:
+            claim: "It has been shown that technology investments (Schulker et al., 2022; Snyder, 2022; Yeung et al., 2022) can transform the USAF's talent management system"
+            claim_category: "established_reported_knowledge"
+            needs_external_verification: true
+            rationale: ""
+
+        - name: "military_personnel_case_7"
+          description: "Test case with methodology claim"
+          input:
+            main_document: "data/military_personnel/main_document.md"
+            chunk: "As additional tests, the method was extended to an eigenvalue analysis in order to explore whether additional factors are important in predicting the effectiveness of the PReSS system"
+            claim: "As additional tests, the method was extended to an eigenvalue analysis in order to explore whether additional factors are important in predicting the effectiveness of the PReSS system"
+          expected_output:
+            claim: "As additional tests, the method was extended to an eigenvalue analysis in order to explore whether additional factors are important in predicting the effectiveness of the PReSS system"
+            claim_category: "methodology_procedural"
+            needs_external_verification: false
+            rationale: ""
+
+        - name: "military_personnel_case_8"
+          description: "Test case with results claim"
+          input:
+            main_document: "data/military_personnel/main_document.md"
+            chunk: "The eigenvalue analysis found that the additional factors were not important in predicting the effectiveness of the PReSS system"
+            claim: "The eigenvalue analysis found that the additional factors were not important in predicting the effectiveness of the PReSS system"
+          expected_output:
+            claim: "The eigenvalue analysis found that the additional factors were not important in predicting the effectiveness of the PReSS system"
+            claim_category: "empirical_analytical_results"
+            needs_external_verification: false
+            rationale: ""
+
+        - name: "military_personnel_case_9"
+          description: "Test case with interpretation claim"
+          input:
+            main_document: "data/military_personnel/main_document.md"
+            chunk: "This suggests that advanced mathematical methods can be used to predict the effectiveness of the PReSS system, but they don't appear to be necessary"
+            claim: "This suggests that advanced mathematical methods can be used to predict the effectiveness of the PReSS system, but they don't appear to be necessary"
+          expected_output:
+            claim: "This suggests that advanced mathematical methods can be used to predict the effectiveness of the PReSS system, but they don't appear to be necessary"
+            claim_category: "inferential_interpretive_claims"
+            needs_external_verification: false
+            rationale: ""
+
+        - name: "military_personnel_case_10"
+          description: "Test case with other claim requiring verification"
+          input:
+            main_document: "data/military_personnel/main_document.md"
+            chunk: "National Institute of Standards and Technology (NIST); Pentagoin (2022); etc."
+            claim: "National Institute of Standards and Technology (NIST); Pentagoin (2022); etc."
+          expected_output:
+            claim: "National Institute of Standards and Technology (NIST); Pentagoin (2022); etc."
+            claim_category: "other"
+            needs_external_verification: true
+            rationale: ""
