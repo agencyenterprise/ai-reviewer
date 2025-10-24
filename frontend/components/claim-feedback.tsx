@@ -26,6 +26,10 @@ export function ClaimFeedback({ workflowRunId, chunkIndex, claimIndex }: ClaimFe
       setSelectedFeedback(feedback.feedbackType);
       setFeedbackText(feedback.feedbackText || '');
       setHasSubmitted(true);
+    } else {
+      setSelectedFeedback(null);
+      setFeedbackText('');
+      setHasSubmitted(false);
     }
   }, [feedback]);
 
