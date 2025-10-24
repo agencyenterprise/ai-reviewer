@@ -3,8 +3,6 @@ name: Security Scan
 on:
   pull_request:
     branches: ["**"]
-  push:
-    branches: [main]
 
 jobs:
   trivy-scan:
