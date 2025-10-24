@@ -87,7 +87,7 @@ CATEGORIES WITH EXAMPLES:
    - Citation exemptions:
         - If the knowledge is universally accepted in the domain, then it does not need to be cited (The chemical composition of water is H2O; The United States is a country; The speed of light is 299,792,458 meters per second)
 
-2. **Methodology / Procedural** -> Often requires citations
+2. **Methodological / Procedural Statements** -> Often requires citations
 
    - Purpose: to describe how something was done — datasets, methods, variables, preprocessing,
      analytic choices, or limitations.
@@ -126,7 +126,7 @@ CATEGORIES WITH EXAMPLES:
        • "Consistent with prior models of turbulent mixing (Kolmogorov, 1941)."
    - Includes explanations, causal reasoning, and theoretical implications.
 
-5. **Meta / Structural / Evaluative** -> Rarely requires citations
+5. **Meta / Structural / Evaluative Claims** -> Rarely requires citations
 
    - Purpose: to manage discourse, describe organization, express novelty or significance.
    - Typical content: section transitions, claims of contribution, limitation statements. Contains phrases like "in the next section" "in the following section"
@@ -211,8 +211,6 @@ if __name__ == "__main__":
     import asyncio
 
     import nest_asyncio
-
-    from lib.models.react_agent.agent_runner import ensure_structured_output
 
     nest_asyncio.apply()
     # Test cases with expected vs inferred categorizations
