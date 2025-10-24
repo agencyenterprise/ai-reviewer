@@ -87,10 +87,10 @@ export function WorkflowRunsList({ className }: WorkflowRunsListProps) {
               key={run.id}
               className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
             >
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1 min-w-0">
                   <h3 className="font-medium truncate">{run.title}</h3>
-                  <StatusIndicator status={run.status} />
+                  <StatusIndicator status={run.status} className="flex-shrink-0 mr-8" />
                 </div>
 
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
