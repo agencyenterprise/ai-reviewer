@@ -48,17 +48,25 @@ async def wait_for_response(
 def ensure_structured_output_response(
     response: ParsedResponse[ResponseFormatT], schema: type[BaseModel]
 ) -> BaseModel:
-    """Validate or coerce the output into the expected Pydantic model.
+    """Return a Pydantic instance from an OpenAI Responses API ParsedResponse.
 
-    If the output is already a dict, validate directly. If it's a string, let the
-    schema try to parse JSON. As a last resort, raise and let caller decide fallback.
+    - If `response.output_parsed` is a Pydantic model, return it.
+    - Else if `response.output_parsed` is a dict, validate via `schema.model_validate`.
+    - Else if `response.output_text` is present, parse JSON via `schema.model_validate_json`.
+    - Else if `response.output` is a dict, validate via `schema.model_validate`.
+    - Otherwise, raise ValueError.
     """
-    if hasattr(response, "output_parsed") and isinstance(
-        response.output_parsed, BaseModel
-    ):
-        return response.output_parsed
+    if hasattr(response, "output_parsed"):
+        op = getattr(response, "output_parsed")
+        if isinstance(op, BaseModel):
+            return op
+        if isinstance(op, dict):
+            return schema.model_validate(op)
 
     if hasattr(response, "output_text") and isinstance(response.output_text, str):
         return schema.model_validate_json(response.output_text)
+
+    if hasattr(response, "output") and isinstance(response.output, dict):
+        return schema.model_validate(response.output)
 
     raise ValueError("Response did not include a structured result.")
