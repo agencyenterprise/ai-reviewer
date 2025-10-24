@@ -1,5 +1,6 @@
 apis/AnalysisApi.ts
 apis/EvaluationApi.ts
+apis/FeedbackApi.ts
 apis/FilesApi.ts
 apis/HealthApi.ts
 apis/WorkflowsApi.ts
@@ -36,6 +37,9 @@ models/EvidenceAlignmentLevel.ts
 models/EvidenceWeighterRecommendedAction.ts
 models/EvidenceWeighterResponseWithClaimIndexInput.ts
 models/EvidenceWeighterResponseWithClaimIndexOutput.ts
+models/FeedbackRequest.ts
+models/FeedbackResponse.ts
+models/FeedbackType.ts
 models/FileDocument.ts
 models/HTTPValidationError.ts
 models/LiteratureReviewResponseInput.ts

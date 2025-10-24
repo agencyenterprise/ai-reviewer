@@ -1,6 +1,7 @@
 'use client';
 
 import { AiGeneratedLabel } from '@/components/ai-generated-label';
+import { ClaimFeedback } from '@/components/claim-feedback';
 import { LabeledValue } from '@/components/labeled-value';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -31,6 +32,8 @@ export interface ClaimAnalysisCardProps {
   supportingFiles: FileDocument[];
   citationSuggestion?: CitationSuggestionResultWithClaimIndexOutput;
   liveReportsAnalysis?: EvidenceWeighterResponseWithClaimIndexOutput;
+  workflowRunId?: string;
+  chunkIndex?: number;
 }
 
 export function ClaimAnalysisCard({
@@ -44,6 +47,8 @@ export function ClaimAnalysisCard({
   totalClaims,
   citationSuggestion,
   liveReportsAnalysis,
+  workflowRunId,
+  chunkIndex,
 }: ClaimAnalysisCardProps) {
   return (
     <Card>
@@ -80,6 +85,10 @@ export function ClaimAnalysisCard({
           )}
           {liveReportsAnalysis && <ClaimLiveReports liveReportsAnalysis={liveReportsAnalysis} />}
         </div>
+
+        {workflowRunId && chunkIndex !== undefined && (
+          <ClaimFeedback workflowRunId={workflowRunId} chunkIndex={chunkIndex} claimIndex={claimIndex} />
+        )}
       </CardContent>
     </Card>
   );
