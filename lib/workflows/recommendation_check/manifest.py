@@ -113,6 +113,6 @@ class RecommendationCheckManifest(SimpleDeepAgentManifest):
         "where the evidence is weak, indirect, or contradictory."
     )
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
-    is_experimental = False
+    is_experimental = True
 
     user_prompt = _USER_PROMPT
