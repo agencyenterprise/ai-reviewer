@@ -108,7 +108,7 @@ class ClaimReferenceValidationV2Manifest(
         "be verified."
     )
     needs_web_search = False
-    is_experimental = True
+    is_experimental = False
     required_dependencies = [
         WorkflowRunType.DOCUMENT_PROCESSING,
         WorkflowRunType.REFERENCE_FILE_MATCHING,
