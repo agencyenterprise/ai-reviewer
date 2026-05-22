@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage
@@ -217,7 +217,7 @@ class MethodologyComparisonAgent(LangChainAgent):
         """
         prompt = _methodology_comparison_agent_prompt.invoke(prompt_kwargs)
 
-        tools: list = [{"type": "web_search"}]
+        tools: list[Any] = [{"type": "web_search"}]
         tavily_tool = get_tavily_tool()
         if tavily_tool is not None:
             tools.append(tavily_tool)

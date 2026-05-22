@@ -1,9 +1,9 @@
 import json
-import logging
 import os
 from typing import Any, Optional
 
 from dotenv import load_dotenv
+from langchain_tavily import TavilySearch
 from pydantic import BaseModel, Field
 
 load_dotenv()
@@ -145,17 +145,8 @@ def get_model_api_key(model_name: str) -> str | None:
     return config.MODEL_API_KEYS.get(model_name)
 
 
-_tavily_logger = logging.getLogger(__name__)
-
-
 def get_tavily_tool() -> Any | None:
     """Return a LangChain TavilySearch tool if TAVILY_API_KEY is configured, else None."""
     if not config.TAVILY_API_KEY:
         return None
-    try:
-        from langchain_tavily import TavilySearch
-
-        return TavilySearch(max_results=5, search_depth="advanced")
-    except Exception:
-        _tavily_logger.warning("Failed to initialise TavilySearch tool; skipping.")
-        return None
+    return TavilySearch(max_results=5, search_depth="advanced")

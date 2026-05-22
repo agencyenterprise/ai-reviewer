@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage
@@ -184,7 +184,7 @@ class LiveLiteratureReviewAgent(LangChainAgent):
     ) -> LiveLiteratureReviewResponse:
         prompt = _live_literature_review_agent_prompt.invoke(prompt_kwargs)
 
-        tools: list = [{"type": "web_search"}]
+        tools: list[Any] = [{"type": "web_search"}]
         tavily_tool = get_tavily_tool()
         if tavily_tool is not None:
             tools.append(tavily_tool)
