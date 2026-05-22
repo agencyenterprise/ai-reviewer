@@ -8,6 +8,7 @@ from langchain_core.prompts import PromptTemplate
 from langgraph.graph.state import RunnableConfig
 from pydantic import BaseModel, ConfigDict, Field
 
+from lib.config.env import get_tavily_tool
 from lib.config.llm_models import gpt_5_4_model
 from lib.models.agent import LangChainAgent
 
@@ -111,9 +112,14 @@ class ReferenceFetcherAgent(LangChainAgent):
     ) -> tuple[ReferenceFetchItem, list[BaseMessage]]:
         system_prompt = _system_prompt.invoke({})
 
+        tools: list = [{"type": "web_search"}, download_file_from_url, read_file_content]
+        tavily_tool = get_tavily_tool()
+        if tavily_tool is not None:
+            tools.append(tavily_tool)
+
         agent = create_agent(
             self.llm,
-            [{"type": "web_search"}, download_file_from_url, read_file_content],
+            tools,
             system_prompt=system_prompt.to_string(),
             context_schema=ContextSchema,
             response_format=ReferenceFetchItem,

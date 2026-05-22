@@ -9,6 +9,7 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
+from lib.config.env import get_tavily_tool
 from lib.config.llm_models import gpt_5_5_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
@@ -101,9 +102,14 @@ class ReferenceValidatorV2Agent(LangChainAgent):
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
     ) -> tuple[BibliographyItemValidationV2, list[BaseMessage]]:
+        tools: list = [{"type": "web_search"}]
+        tavily_tool = get_tavily_tool()
+        if tavily_tool is not None:
+            tools.append(tavily_tool)
+
         deep_agent = create_deep_agent(
             model=self.llm,
-            tools=[{"type": "web_search"}],
+            tools=tools,
             context_schema=ContextSchema,
             response_format=AutoStrategy(BibliographyItemValidationV2),
             skills=["/skills/"],

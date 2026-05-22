@@ -3,6 +3,7 @@ import os
 from typing import Optional
 
 from dotenv import load_dotenv
+from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field
 
 load_dotenv()
@@ -97,6 +98,9 @@ class Config(BaseModel):
         description="Polling interval when the bucket is empty and the caller is blocking",
     )
 
+    # Tavily Search (optional — enables parallel Tavily web search)
+    TAVILY_API_KEY: Optional[str] = None
+
 
 config = Config(
     OPENAI_API_KEY=os.getenv("OPENAI_API_KEY"),
@@ -132,9 +136,23 @@ config = Config(
         os.getenv("RATE_LIMITER_CHECK_EVERY_N_SECONDS", "0.25")
     ),
     MODEL_API_KEYS=json.loads(os.getenv("MODEL_API_KEYS", "{}")),
+    TAVILY_API_KEY=os.getenv("TAVILY_API_KEY"),
 )
 
 
 def get_model_api_key(model_name: str) -> str | None:
     """Return the API key configured for a specific model name, or None."""
     return config.MODEL_API_KEYS.get(model_name)
+
+
+def get_tavily_tool() -> Optional[BaseTool]:
+    """Return a configured TavilySearch tool if TAVILY_API_KEY is set, else None."""
+    if not config.TAVILY_API_KEY:
+        return None
+    from langchain_tavily import TavilySearch
+
+    return TavilySearch(
+        max_results=5,
+        search_depth="advanced",
+        api_key=config.TAVILY_API_KEY,
+    )
