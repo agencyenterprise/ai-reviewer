@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from langchain.agents import create_agent
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
@@ -170,7 +170,7 @@ class ReferenceValidatorAgent(LangChainAgent):
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
     ) -> tuple[BibliographyItemValidation, list[BaseMessage]]:
-        tools: list = [{"type": "web_search"}]
+        tools: list[Any] = [{"type": "web_search"}]
         tavily_tool = get_tavily_tool()
         if tavily_tool is not None:
             tools.append(tavily_tool)

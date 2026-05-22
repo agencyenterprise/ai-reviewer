@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Optional
+from typing import Any, Optional
 
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
@@ -112,7 +112,7 @@ class ReferenceFetcherAgent(LangChainAgent):
     ) -> tuple[ReferenceFetchItem, list[BaseMessage]]:
         system_prompt = _system_prompt.invoke({})
 
-        tools: list = [{"type": "web_search"}, download_file_from_url, read_file_content]
+        tools: list[Any] = [{"type": "web_search"}, download_file_from_url, read_file_content]
         tavily_tool = get_tavily_tool()
         if tavily_tool is not None:
             tools.append(tavily_tool)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from deepagents import create_deep_agent
 from langchain.agents.structured_output import AutoStrategy
@@ -102,7 +102,7 @@ class ReferenceValidatorV2Agent(LangChainAgent):
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
     ) -> tuple[BibliographyItemValidationV2, list[BaseMessage]]:
-        tools: list = [{"type": "web_search"}]
+        tools: list[Any] = [{"type": "web_search"}]
         tavily_tool = get_tavily_tool()
         if tavily_tool is not None:
             tools.append(tavily_tool)

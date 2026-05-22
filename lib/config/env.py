@@ -4,6 +4,7 @@ from typing import Optional
 
 from dotenv import load_dotenv
 from langchain_core.tools import BaseTool
+from langchain_tavily import TavilySearch
 from pydantic import BaseModel, Field
 
 load_dotenv()
@@ -149,8 +150,6 @@ def get_tavily_tool() -> Optional[BaseTool]:
     """Return a configured TavilySearch tool if TAVILY_API_KEY is set, else None."""
     if not config.TAVILY_API_KEY:
         return None
-    from langchain_tavily import TavilySearch
-
     return TavilySearch(
         max_results=5,
         search_depth="advanced",
