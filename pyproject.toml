@@ -10,6 +10,7 @@ dependencies = [
     "langchain>=1.2.15",
     "langchain-text-splitters>=1.1.2",
     "langchain-openai>=1.1.14",
+    "langchain-tavily>=0.1.0",
     "langchain-anthropic>=1.4.0",
     "langchain-google-genai>=4.2.1",
     "langchain-postgres>=0.0.17",
@@ -60,7 +61,7 @@ exclude = [
 ]
 
 [[tool.mypy.overrides]]
-module = ["nltk.*", "nest_asyncio"]
+module = ["nltk.*", "nest_asyncio", "langchain_tavily"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

@@ -12,6 +12,7 @@ from lib.agents.literature_review import (
     ReferenceDirection,
     ReferenceType,
 )
+from lib.config.env import get_tavily_tool
 from lib.config.llm_models import gpt_5_mini_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
@@ -183,9 +184,14 @@ class LiveLiteratureReviewAgent(LangChainAgent):
     ) -> LiveLiteratureReviewResponse:
         prompt = _live_literature_review_agent_prompt.invoke(prompt_kwargs)
 
+        tools: list = [{"type": "web_search"}]
+        tavily_tool = get_tavily_tool()
+        if tavily_tool is not None:
+            tools.append(tavily_tool)
+
         agent = create_agent(
             self.llm,
-            [{"type": "web_search"}],
+            tools,
             context_schema=ContextSchema,
             response_format=LiveLiteratureReviewResponse,
         )
