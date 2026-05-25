@@ -65,7 +65,7 @@ async def _fetch_batch(
     async with get_async_db_session() as session:
         stmt = (
             select(WorkflowRun)
-            .options(undefer(col(WorkflowRun.state_json)))
+            .options(undefer(WorkflowRun.state_json))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
             .order_by(col(WorkflowRun.id))
             .limit(batch_size)
         )
