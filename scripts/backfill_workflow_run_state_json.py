@@ -24,6 +24,7 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sqlalchemy import select  # noqa: E402
+from sqlalchemy.orm import undefer  # noqa: E402
 from sqlmodel import col  # noqa: E402
 
 from lib.config.database import get_async_db_session  # noqa: E402
@@ -62,7 +63,12 @@ async def _fetch_batch(
     after_id, batch_size: int, only_missing: bool
 ) -> list[WorkflowRun]:
     async with get_async_db_session() as session:
-        stmt = select(WorkflowRun).order_by(col(WorkflowRun.id)).limit(batch_size)
+        stmt = (
+            select(WorkflowRun)
+            .options(undefer(WorkflowRun.state_json))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
+            .order_by(col(WorkflowRun.id))
+            .limit(batch_size)
+        )
         if only_missing:
             stmt = stmt.where(col(WorkflowRun.state_json).is_(None))
         if after_id is not None:
