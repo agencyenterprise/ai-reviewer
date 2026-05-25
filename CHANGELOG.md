@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.38] - 2026-05-25
+
+### Changed
+- Updated beta flags so Claim Reference Validation V2 is no longer marked beta and Recommendation Check is marked beta.
+- Bumped flatted from 3.3.3 to 3.4.2 in /frontend.
+- Bumped tar from 7.4.3 to 7.5.15 in /frontend.
+- Bumped defu from 6.1.4 to 6.1.7 in /frontend.
+- Bumped idna from 3.11 to 3.15.
+
+
 ## [v0.5.37] - 2026-05-18
 
 ### Added
