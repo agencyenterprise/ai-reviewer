@@ -16,6 +16,18 @@ logger = logging.getLogger(__name__)
 # Tests can set this directly to bypass the network fetch.
 _MODELS_CACHE: Optional[list[tuple[re.Pattern[str], Any]]] = None
 _MODELS_LOCK = asyncio.Lock()
+_MODELS_FETCH_TIMEOUT_SECONDS = 5.0
+
+
+async def _fetch_all_models(langfuse: Any) -> list:
+    models: list = []
+    page = 1
+    while True:
+        res = await langfuse.async_api.models.list(page=page, limit=100)
+        models.extend(res.data)
+        if len(models) >= res.meta.total_items:
+            return models
+        page += 1
 
 
 async def _ensure_models_loaded() -> list[tuple[re.Pattern[str], Any]]:
@@ -38,14 +50,17 @@ async def _ensure_models_loaded() -> list[tuple[re.Pattern[str], Any]]:
             _MODELS_CACHE = []
             return _MODELS_CACHE
 
-        models: list = []
-        page = 1
-        while True:
-            res = await langfuse.async_api.models.list(page=page, limit=100)
-            models.extend(res.data)
-            if len(models) >= res.meta.total_items:
-                break
-            page += 1
+        try:
+            models = await asyncio.wait_for(
+                _fetch_all_models(langfuse), timeout=_MODELS_FETCH_TIMEOUT_SECONDS
+            )
+        except Exception:
+            # Cache the failure so we don't re-hang on every cost calculation.
+            logger.warning(
+                "Failed to load Langfuse model pricing; disabling cost calc for this process"
+            )
+            _MODELS_CACHE = []
+            return _MODELS_CACHE
 
         compiled: list[tuple[re.Pattern[str], Any]] = []
         for m in models:
