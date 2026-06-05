@@ -25,13 +25,17 @@ def test_context():
     }
 
 
-def create_completed_run(project_id, workflow_type: WorkflowRunType) -> WorkflowRun:
-    """Create a completed workflow run for testing."""
+def create_run(
+    project_id,
+    workflow_type: WorkflowRunType,
+    status: WorkflowRunStatus = WorkflowRunStatus.COMPLETED,
+) -> WorkflowRun:
+    """Create a workflow run with the given status for testing."""
     return WorkflowRun(
         id=uuid4(),
         project_id=project_id,
         type=workflow_type,
-        status=WorkflowRunStatus.COMPLETED,
+        status=status,
         langgraph_thread_id=str(uuid4()),
     )
 
@@ -42,13 +46,16 @@ def create_mock_config(project_id: str, workflow_type: WorkflowRunType):
     return config_type(project_id=project_id)
 
 
-async def run_workflow_with_mocks(test_context, completed_workflows):
+async def run_workflow_with_mocks(test_context, completed_workflows, existing_runs=None):
     """
     Execute workflow runner with mocked dependencies.
 
     Args:
         test_context: Fixture with project_id, user, workflow_type
         completed_workflows: List of WorkflowRunType that should return as completed
+        existing_runs: Optional dict of {WorkflowRunType: WorkflowRunStatus} for
+            workflows that already exist in a non-completed state (e.g. CANCELLED).
+            Lets tests model dependencies that need to be re-run.
 
     Returns:
         Tuple of (mock_create, mock_create_config) for assertions
@@ -60,13 +67,15 @@ async def run_workflow_with_mocks(test_context, completed_workflows):
         openai_api_key="test-api-key",
     )
 
-    completed_runs = {
-        wf_type: create_completed_run(test_context["project_id"], wf_type)
+    runs = {
+        wf_type: create_run(test_context["project_id"], wf_type)
         for wf_type in completed_workflows
     }
+    for wf_type, status in (existing_runs or {}).items():
+        runs[wf_type] = create_run(test_context["project_id"], wf_type, status)
 
     async def mock_get_run(proj_id, workflow_type, **kwargs):
-        return completed_runs.get(workflow_type, None)
+        return runs.get(workflow_type, None)
 
     def mock_config_factory(project, workflow_type, openai_api_key=None):
         return create_mock_config(project_id_str, workflow_type)
@@ -181,3 +190,52 @@ async def test_requested_workflow_is_started_even_if_completed(test_context):
         WorkflowRunType.REFERENCE_VALIDATION,
     }
     assert mock_create_config.call_count == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "extraction_status",
+    [WorkflowRunStatus.CANCELLED, WorkflowRunStatus.FAILED],
+)
+async def test_rerun_extraction_when_dependency_cancelled_or_failed(
+    test_context, extraction_status
+):
+    """A cancelled/failed reference extraction dependency must be re-run.
+
+    Regression test: previously REFERENCE_EXTRACTION was skipped on any
+    existing run regardless of status, so a cancelled extraction left
+    REFERENCE_VALIDATION stuck (it would self-cancel waiting on a dead
+    dependency). It must now be re-created so dependents can proceed.
+    """
+    mock_create, _ = await run_workflow_with_mocks(
+        test_context,
+        [WorkflowRunType.DOCUMENT_PROCESSING],
+        existing_runs={WorkflowRunType.REFERENCE_EXTRACTION: extraction_status},
+    )
+
+    started_types = {call.kwargs["type"] for call in mock_create.call_args_list}
+    assert WorkflowRunType.REFERENCE_EXTRACTION in started_types
+    assert WorkflowRunType.REFERENCE_VALIDATION in started_types
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "extraction_status",
+    [WorkflowRunStatus.PENDING, WorkflowRunStatus.RUNNING],
+)
+async def test_skip_extraction_when_already_in_flight(test_context, extraction_status):
+    """An in-flight reference extraction must not be duplicated.
+
+    Reference extraction runs only once per project. When it's already
+    PENDING/RUNNING, starting a dependent should NOT create a second
+    extraction run — the dependent waits on the existing one.
+    """
+    mock_create, _ = await run_workflow_with_mocks(
+        test_context,
+        [WorkflowRunType.DOCUMENT_PROCESSING],
+        existing_runs={WorkflowRunType.REFERENCE_EXTRACTION: extraction_status},
+    )
+
+    started_types = {call.kwargs["type"] for call in mock_create.call_args_list}
+    assert WorkflowRunType.REFERENCE_EXTRACTION not in started_types
+    assert WorkflowRunType.REFERENCE_VALIDATION in started_types
