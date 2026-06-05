@@ -4,6 +4,7 @@ from typing import List, Type, TypeVar
 from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph, RunnableConfig
 
+from lib.config.env import config as env_config
 from lib.workflows.models import (
     BaseWorkflowConfig,
     BaseWorkflowState,
@@ -54,6 +55,12 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     # Exceeding this transitions the run to FAILED with failure_reason=timeout.
     # Override in subclasses for workflows that legitimately run longer.
     max_duration_seconds: float = 1 * 60 * 60  # 1 hour
+
+    # Maximum number of LangGraph nodes this workflow runs in parallel.
+    # Defaults to the global env_config.LANGGRAPH_MAX_CONCURRENCY. Override in
+    # workflows that fan out heavy per-item LLM calls (e.g. one web-search
+    # agent per reference) to stay under provider rate limits.
+    max_concurrency: int = env_config.LANGGRAPH_MAX_CONCURRENCY
 
     @property
     def is_qa_screener(self) -> bool:
