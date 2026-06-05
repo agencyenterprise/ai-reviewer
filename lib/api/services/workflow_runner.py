@@ -154,8 +154,18 @@ async def _prepare_workflow_items(
             and not manifest.always_run
             and (
                 existing_run.status == WorkflowRunStatus.COMPLETED
-                # Reference extraction should always run only once per project
-                or existing_run.type == WorkflowRunType.REFERENCE_EXTRACTION
+                # Reference extraction is expensive and runs only once per
+                # project, so skip it while it's completed or still in-flight.
+                # But allow a re-run when the prior attempt was cancelled or
+                # failed — otherwise dependents that need its output get stuck.
+                or (
+                    existing_run.type == WorkflowRunType.REFERENCE_EXTRACTION
+                    and existing_run.status
+                    not in (
+                        WorkflowRunStatus.CANCELLED,
+                        WorkflowRunStatus.FAILED,
+                    )
+                )
             )
         ):
             logger.info(
