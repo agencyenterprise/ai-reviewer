@@ -35,6 +35,8 @@ def _make_issue(
     chunk_indices: list[int] | None = None,
     start_line: int | None = None,
     end_line: int | None = None,
+    long_description: str | None = None,
+    suggested_action: str | None = None,
 ) -> Issue:
     """Create an Issue instance for testing without hitting the DB."""
     now = datetime.now(UTC)
@@ -45,6 +47,8 @@ def _make_issue(
         issue_hash=uuid.uuid4().hex[:64],
         title=title,
         description=description,
+        long_description=long_description,
+        suggested_action=suggested_action,
         severity=severity,
         workflow_type=workflow_type,
         chunk_indices=chunk_indices,
@@ -84,6 +88,53 @@ class TestIssueToComment:
         assert "This claim lacks evidence" in comment.comment_text
         assert comment.severity == CommentSeverity.HIGH
         assert comment.get_author() == "🚨 High Priority"
+
+    def test_includes_suggested_action_and_long_description_in_order(self):
+        """Comment carries description, then suggested action, then long_description."""
+        issue = _make_issue(
+            title="Reference has incorrect fields",
+            description="The publication year does not match public sources.",
+            suggested_action="Update the year to 2021.",
+            long_description="### Field validations\n\n- **Year**: 2019 → 2021",
+            severity=SeverityEnum.HIGH,
+            workflow_type=WorkflowRunType.REFERENCE_VALIDATION_V2,
+            start_line=1,
+            end_line=3,
+        )
+        chunks = [_FakeChunk(0, "The reference here", 1, 3)]
+        paragraph_line_ranges = {0: (1, 3)}
+
+        comment = issue_to_comment(issue, chunks, paragraph_line_ranges)
+
+        assert comment is not None
+        text = comment.comment_text
+        assert "Suggested Action: Update the year to 2021." in text
+        assert "### Field validations" in text
+        assert "2019 → 2021" in text
+        # Order: description → suggested action → long_description
+        assert (
+            text.index("does not match public sources")
+            < text.index("Suggested Action:")
+            < text.index("### Field validations")
+        )
+
+    def test_omits_long_description_when_absent(self):
+        """No trailing separator/content when long_description is None."""
+        issue = _make_issue(
+            title="Unsupported Claim",
+            description="This claim lacks evidence",
+            severity=SeverityEnum.HIGH,
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
+            start_line=1,
+            end_line=3,
+        )
+        chunks = [_FakeChunk(0, "The claim content here", 1, 3)]
+        paragraph_line_ranges = {0: (1, 3)}
+
+        comment = issue_to_comment(issue, chunks, paragraph_line_ranges)
+
+        assert comment is not None
+        assert comment.comment_text.endswith("This claim lacks evidence")
 
     def test_falls_back_to_chunk_indices_for_legacy_issue(self):
         """Issues pre-dating the line-range migration only carry chunk_indices."""
