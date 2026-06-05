@@ -177,13 +177,19 @@ async def run_workflow(
     manifest = get_workflow_manifest(workflow_type, raise_exception=False)
     max_duration = manifest.max_duration_seconds if manifest else 1 * 60 * 60
 
+    # Workflows that fan out heavy per-item LLM calls can pin a lower
+    # concurrency than the global default to stay under provider rate limits.
+    max_concurrency = (
+        manifest.max_concurrency if manifest else env_config.LANGGRAPH_MAX_CONCURRENCY
+    )
+
     async with get_checkpointer() as checkpointer:
         app = graph.compile(checkpointer=checkpointer).with_config(
             {
                 "run_name": f"{workflow_type.value}",
                 "callbacks": [langfuse_handler, error_logging_callback],
                 "metadata": {"langfuse_session_id": project_id},
-                "max_concurrency": env_config.LANGGRAPH_MAX_CONCURRENCY,
+                "max_concurrency": max_concurrency,
             }
         )
 
