@@ -213,7 +213,7 @@ export function ResultsVisualization({
               />
             )}
             {readOnly && (
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="h-7 text-xs">
                 Read-only view
               </Badge>
             )}
