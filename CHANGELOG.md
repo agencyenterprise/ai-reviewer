@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.40] - 2026-06-08
+
+### Added
+- Added a per-workflow `max_concurrency` override so individual workflows can cap concurrency independently of the global default.
+- Set Reference Error Checker (`reference_validation_v2`) to use `max_concurrency = 20`.
+
+### Changed
+- Updated DOCX export so Word comments include the suggested action and long description when present, in addition to the existing title and short description.
+- Bumped aiohttp from 3.13.4 to 3.14.0.
+- Bumped starlette from 0.50.0 to 1.0.1.
+
+### Fixed
+- Fixed restarting a cancelled assessment so it re-runs a cancelled/failed Reference Extraction prerequisite instead of silently reverting to cancelled.
+
+
 ## [v0.5.39] - 2026-05-28
 
 ### Fixed
