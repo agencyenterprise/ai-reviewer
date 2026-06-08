@@ -28,6 +28,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { downloadDocxFile, DocxType, useDownloadDocx } from './use-download-docx';
 import { ReplaceMainDocumentDialog } from './replace-main-document-dialog';
+import { RevisionSwitcher } from './revision-switcher';
 
 type ProjectWithDetails = Project & {
   publication_date?: Date | null;
@@ -39,9 +40,17 @@ export interface AnalysisOptionsMenuProps {
   project: ProjectWithDetails;
   results: WorkflowRunDetail[];
   readOnly: boolean;
+  selectedRevision?: number;
+  onRevisionChange?: (revision: number) => void;
 }
 
-export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOptionsMenuProps) {
+export function AnalysisOptionsMenu({
+  project,
+  results,
+  readOnly,
+  selectedRevision,
+  onRevisionChange,
+}: AnalysisOptionsMenuProps) {
   const { filter } = useDocumentExplorerStore();
   const projectId = project.id;
   const share = useShareStatus(projectId, !readOnly);
@@ -145,6 +154,15 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
       <div className="flex items-center gap-1">
         <div className="flex items-center gap-2">
           {!readOnly && <ShareStatusBadge isEnabled={share.isEnabled} onClick={() => share.setIsDialogOpen(true)} />}
+
+          {selectedRevision && onRevisionChange && (
+            <RevisionSwitcher
+              currentRevision={project.current_revision ?? 1}
+              totalRevisions={project.current_revision ?? 1}
+              selectedRevision={selectedRevision}
+              onRevisionChange={onRevisionChange}
+            />
+          )}
 
           <Tooltip>
             <TooltipTrigger asChild>

@@ -15,7 +15,6 @@ import { format } from 'date-fns';
 import { BookOpen, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { AnalysisOptionsMenu } from './components/analysis-options-menu';
-import { RevisionSwitcher } from './components/revision-switcher';
 import { TabType } from './constants';
 import { AnalysesTab, FilesTab, ReferenceReviewTab, SummaryTab } from './tabs';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
@@ -204,20 +203,18 @@ export function ResultsVisualization({
           </Tabs>
 
           <div className="flex items-center gap-2">
-            {selectedRevision && onRevisionChange && (
-              <RevisionSwitcher
-                currentRevision={projectDetail.project.current_revision ?? 1}
-                totalRevisions={projectDetail.project.current_revision ?? 1}
-                selectedRevision={selectedRevision}
-                onRevisionChange={onRevisionChange}
-              />
-            )}
             {readOnly && (
               <Badge variant="secondary" className="h-7 text-xs">
                 Read-only view
               </Badge>
             )}
-            <AnalysisOptionsMenu project={projectDetail.project} results={results} readOnly={readOnly} />
+            <AnalysisOptionsMenu
+              project={projectDetail.project}
+              results={results}
+              readOnly={readOnly}
+              selectedRevision={selectedRevision}
+              onRevisionChange={onRevisionChange}
+            />
           </div>
         </div>
 
