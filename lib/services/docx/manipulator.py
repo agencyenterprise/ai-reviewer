@@ -186,9 +186,20 @@ def issue_to_comment(
     workflow_name = _get_workflow_display_name(issue)
     title = f"{issue.title} ({workflow_name})" if workflow_name else issue.title
 
+    # Include the suggested action and long_description (the "more details" content
+    # shown in the UI) so the Word export carries the full context authors need —
+    # e.g. for Reference Error Checker, which fields are wrong, the suggested action,
+    # and the suggested updated reference.
+    parts = [f"{title}\n\n{issue.description}"]
+    if issue.suggested_action:
+        parts.append(f"Suggested Action: {issue.suggested_action}")
+    if issue.long_description:
+        parts.append(issue.long_description)
+    comment_text = "\n\n".join(parts)
+
     return DocxComment(
         paragraph_index=paragraph_index,
-        comment_text=f"{title}\n\n{issue.description}",
+        comment_text=comment_text,
         severity=_map_severity_enum_to_comment_severity(issue.severity),
         share_link=share_link,
     )

@@ -40,6 +40,9 @@ class ReferenceValidationV2Manifest(
     description = "Are your references accurate? Uses web search to check each citation exists online and that the author, title, publisher, and year match public sources. Useful for catching typos or hallucinated references."
     needs_web_search = True
     required_dependencies = [WorkflowRunType.REFERENCE_EXTRACTION]
+    # Each reference fans out a gpt-5.5 + web_search deep agent; cap how many
+    # run in parallel so large bibliographies don't trip provider 429s.
+    max_concurrency = 20
 
     def get_state_type(self) -> Type[ReferenceValidationV2State]:
         return ReferenceValidationV2State
