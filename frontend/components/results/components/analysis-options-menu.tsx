@@ -142,11 +142,30 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
 
   return (
     <>
-      <div className="flex items-center gap-2">
-        {!readOnly && <ShareStatusBadge isEnabled={share.isEnabled} onClick={() => share.setIsDialogOpen(true)} />}
+      <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          {!readOnly && <ShareStatusBadge isEnabled={share.isEnabled} onClick={() => share.setIsDialogOpen(true)} />}
 
-        <DropdownMenu>
-          {(hasDocx || !readOnly) && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/* Wrapper span so the tooltip still fires while the button is disabled */}
+              <span tabIndex={0}>
+                <Button variant="default" size="xs" onClick={handleDownloadClick} disabled={!hasDocx || isDownloading}>
+                  <Download />
+                  {isDownloading ? 'Downloading...' : 'Download DOCX'}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              {hasDocx
+                ? 'Download the original Word document with the analysis results (issues and suggested edits) added as comments'
+                : 'DOCX export is only available when the source document is a Word file (.docx or .doc)'}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
+        {!readOnly && (
+          <DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
@@ -157,49 +176,34 @@ export function AnalysisOptionsMenu({ project, results, readOnly }: AnalysisOpti
               </TooltipTrigger>
               <TooltipContent>See more options</TooltipContent>
             </Tooltip>
-          )}
 
-          <DropdownMenuContent className="w-56">
-            {hasDocx && (
+            <DropdownMenuContent className="w-56">
               <MenuItemWithTooltip
-                icon={Download}
-                onClick={handleDownloadClick}
-                disabled={isDownloading}
-                tooltip="Download reviewed DOCX"
+                icon={Pencil}
+                onClick={() => setIsEditDialogOpen(true)}
+                tooltip="Edit project title, publication date, domain, and target audience"
               >
-                {isDownloading ? 'Downloading...' : 'Download DOCX'}
+                Edit project details
               </MenuItemWithTooltip>
-            )}
 
-            {!readOnly && (
-              <>
-                <MenuItemWithTooltip
-                  icon={Pencil}
-                  onClick={() => setIsEditDialogOpen(true)}
-                  tooltip="Edit project title, publication date, domain, and target audience"
-                >
-                  Edit project details
-                </MenuItemWithTooltip>
+              <MenuItemWithTooltip
+                icon={RefreshCw}
+                onClick={() => setIsReplaceDialogOpen(true)}
+                tooltip="Upload a new version of the main document and re-run assessments"
+              >
+                Replace main document
+              </MenuItemWithTooltip>
 
-                <MenuItemWithTooltip
-                  icon={RefreshCw}
-                  onClick={() => setIsReplaceDialogOpen(true)}
-                  tooltip="Upload a new version of the main document and re-run assessments"
-                >
-                  Replace main document
-                </MenuItemWithTooltip>
-
-                <MenuItemWithTooltip
-                  icon={Link}
-                  onClick={() => share.setIsDialogOpen(true)}
-                  tooltip={share.isEnabled ? 'View or copy the share link' : 'Create a public link'}
-                >
-                  {share.isEnabled ? 'Manage share link' : 'Share this assessment'}
-                </MenuItemWithTooltip>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <MenuItemWithTooltip
+                icon={Link}
+                onClick={() => share.setIsDialogOpen(true)}
+                tooltip={share.isEnabled ? 'View or copy the share link' : 'Create a public link'}
+              >
+                {share.isEnabled ? 'Manage share link' : 'Share this assessment'}
+              </MenuItemWithTooltip>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       <ShareDialog
