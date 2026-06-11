@@ -31,6 +31,7 @@ from typing import AsyncIterator
 
 from langchain_core.runnables.config import RunnableConfig
 from sqlalchemy import or_, select, text
+from sqlalchemy.orm import undefer
 from sqlmodel import and_, col
 
 from lib.config.database import get_async_db_session
@@ -44,6 +45,7 @@ from lib.services.workflow_runs import (
     fail_workflow_run,
     get_workflow_run_state_by_thread_id,
     persist_workflow_run_state,
+    read_workflow_run_state,
 )
 from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.registry import create_graph, get_workflow_manifest
@@ -119,23 +121,29 @@ async def _find_stuck_runs(
     running_cutoff = now - timedelta(seconds=running_grace_seconds)
     pending_cutoff = now - timedelta(seconds=pending_grace_seconds)
     async with get_async_db_session() as session:
-        stmt = select(WorkflowRun).where(
-            or_(
-                and_(
-                    col(WorkflowRun.status) == WorkflowRunStatus.RUNNING,
-                    or_(
-                        and_(
-                            col(WorkflowRun.heartbeat_at).is_(None),
-                            col(WorkflowRun.started_at) < running_cutoff,
+        stmt = (
+            select(WorkflowRun)
+            .where(
+                or_(
+                    and_(
+                        col(WorkflowRun.status) == WorkflowRunStatus.RUNNING,
+                        or_(
+                            and_(
+                                col(WorkflowRun.heartbeat_at).is_(None),
+                                col(WorkflowRun.started_at) < running_cutoff,
+                            ),
+                            col(WorkflowRun.heartbeat_at) < running_cutoff,
                         ),
-                        col(WorkflowRun.heartbeat_at) < running_cutoff,
                     ),
-                ),
-                and_(
-                    col(WorkflowRun.status) == WorkflowRunStatus.PENDING,
-                    col(WorkflowRun.created_at) < pending_cutoff,
-                ),
+                    and_(
+                        col(WorkflowRun.status) == WorkflowRunStatus.PENDING,
+                        col(WorkflowRun.created_at) < pending_cutoff,
+                    ),
+                )
             )
+            # _run_manifest_on_cancel hydrates state_json off these rows after
+            # the session closes, so load it in-session.
+            .options(undefer(col(WorkflowRun.state_json)))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
         )
         return list((await session.execute(stmt)).scalars().all())
 
@@ -153,9 +161,7 @@ async def _run_manifest_on_cancel(run: WorkflowRun) -> None:
         return
 
     try:
-        state = await get_workflow_run_state_by_thread_id(
-            run.langgraph_thread_id, run.type
-        )
+        state = await read_workflow_run_state(run)
     except Exception as e:
         logger.error(
             f"Reaper: failed to load state for {run.id}: {e}", exc_info=True
