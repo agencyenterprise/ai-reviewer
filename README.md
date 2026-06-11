@@ -1,5 +1,7 @@
 # Draft Detective
 
+[![codecov](https://codecov.io/github/agencyenterprise/draft-detective/graph/badge.svg?token=L84VNGIOEA)](https://codecov.io/github/agencyenterprise/draft-detective)
+
 AI-powered assistant for academic peer review. Built with LangGraph, this tool validates references against claims, flags unsupported assertions, performs literature reviews, and suggests relevant citations — helping reviewers and researchers assess rigor more efficiently.
 
 **Note**: This project is under active development and not yet ready for production use. The authors will continue to update this repository with the latest work and evaluation results.
