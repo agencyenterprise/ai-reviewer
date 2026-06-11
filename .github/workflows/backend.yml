@@ -55,7 +55,7 @@ jobs:
 
       - name: Run tests
         # Run only unit tests to avoid running integration tests which require a database
-        run: uv run pytest tests/unit --tb=short
+        run: uv run pytest tests/unit --tb=short --cov --cov-branch --cov-report=xml
         env:
           PYTHONPATH: ${{ github.workspace }}
           # Database config (test environment)
