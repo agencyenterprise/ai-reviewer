@@ -659,11 +659,11 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
   /**
    * Main Document
    */
-  main_document: Blob | File;
+  main_document: string;
   /**
    * Supporting Documents
    */
-  supporting_documents?: Array<Blob | File> | null;
+  supporting_documents?: Array<string> | null;
   /**
    * Domain
    */
@@ -5426,6 +5426,16 @@ export type ValidationError = {
    * Error Type
    */
   type: string;
+  /**
+   * Input
+   */
+  input?: unknown;
+  /**
+   * Context
+   */
+  ctx?: {
+    [key: string]: unknown;
+  };
 };
 
 /**
