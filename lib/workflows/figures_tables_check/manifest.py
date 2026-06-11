@@ -37,7 +37,7 @@ caption or title string.
 All figures must follow one numbering scheme throughout the document, and
 all tables must follow one numbering scheme throughout the document.
 
-Accepted schemes (either is valid; mixing within the same element type is
+Accepted schemes (any is valid; mixing within the same element type is
 not):
 
 - **Sequential**: Figure 1, Figure 2, Figure 3 … (or Table 1, Table 2 …)
@@ -45,12 +45,22 @@ not):
   or Table S1, S2 …
 - **By chapter**: Figure 4.1, Figure 4.2 … (or Table 4.1, Table 4.2 …
   where the first digit is the chapter number)
+- **By section / appendix prefix**: items carry the prefix of the
+  section or appendix they belong to — e.g. Figure A.1, A.2 … in
+  Appendix A, Figure B.1, B.2 … in Appendix B, or Table 3.1, 3.2 … in
+  Chapter 3. The prefix (a letter for an appendix, a digit for a
+  chapter) just identifies the section; the trailing number is the
+  sequence within it.
 
 Flag the document if:
 - Numbering skips values without explanation (e.g. Figure 1, Figure 3 with
-  no Figure 2 anywhere)
-- Two different schemes are mixed within the same element type (e.g.
-  Figure 1, Figure 2, Figure 3.1)
+  no Figure 2 anywhere; or Figure A.1, A.3 with no A.2 in Appendix A)
+- A genuinely arbitrary mix appears within the same element type and
+  section — e.g. plain sequential Figure 1, Figure 2 interleaved with an
+  unrelated Figure 3.1 in the *same* body section, where 3.1 does not
+  correspond to any chapter or appendix prefix
+- An appendix/section prefix does not match its section (e.g. figures in
+  Appendix B numbered A.1, A.2)
 - A figure or table has no number at all
 
 **If inconsistent numbering is found → issue title:**

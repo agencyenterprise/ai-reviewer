@@ -22,7 +22,7 @@ export function RevisionSwitcher({
     <Tooltip>
       <TooltipTrigger asChild>
         <Select value={String(selectedRevision)} onValueChange={(v) => onRevisionChange(Number(v))}>
-          <SelectTrigger className="h-8 w-auto gap-1 text-xs">
+          <SelectTrigger className="h-7 w-auto gap-1 text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

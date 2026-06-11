@@ -9,8 +9,8 @@ from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.workflow_runs import (
     create_workflow_run,
     get_project_workflow_run_by_type,
-    get_workflow_run_state_by_thread_id,
     persist_workflow_run_state,
+    read_workflow_run_state,
 )
 from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.models import WorkflowRunType
@@ -55,15 +55,15 @@ async def _get_document_processing_workflow_state(project_id: str, revision: int
     from lib.workflows.document_processing.state import DocumentProcessingState
 
     run = await get_project_workflow_run_by_type(
-        project_id, WorkflowRunType.DOCUMENT_PROCESSING, revision=revision
+        project_id,
+        WorkflowRunType.DOCUMENT_PROCESSING,
+        revision=revision,
+        include_state=True,
     )
     if run is None:
         return None
 
-    state = await get_workflow_run_state_by_thread_id(
-        run.langgraph_thread_id, WorkflowRunType.DOCUMENT_PROCESSING
-    )
-    return state
+    return await read_workflow_run_state(run)
 
 
 async def _get_file_matching_workflow_state(
@@ -87,14 +87,15 @@ async def _get_file_matching_workflow_state(
     from lib.workflows.reference_file_matching.state import ReferenceFileMatchingConfig
 
     run = await get_project_workflow_run_by_type(
-        project_id, WorkflowRunType.REFERENCE_FILE_MATCHING, revision=revision
+        project_id,
+        WorkflowRunType.REFERENCE_FILE_MATCHING,
+        revision=revision,
+        include_state=True,
     )
 
     state = None
     if run is not None:
-        state = await get_workflow_run_state_by_thread_id(
-            run.langgraph_thread_id, WorkflowRunType.REFERENCE_FILE_MATCHING
-        )
+        state = await read_workflow_run_state(run)
 
     if state is not None:
         return run, cast(ReferenceFileMatchingState, state)
@@ -168,16 +169,17 @@ async def _get_extraction_workflow_state(
     Get the ReferenceExtraction workflow run and state for a project.
     """
     run = await get_project_workflow_run_by_type(
-        project_id, WorkflowRunType.REFERENCE_EXTRACTION, revision=revision
+        project_id,
+        WorkflowRunType.REFERENCE_EXTRACTION,
+        revision=revision,
+        include_state=True,
     )
 
     if run is None:
         logger.info(f"No ReferenceExtraction workflow found for project {project_id}")
         return None, None
 
-    state = await get_workflow_run_state_by_thread_id(
-        run.langgraph_thread_id, WorkflowRunType.REFERENCE_EXTRACTION
-    )
+    state = await read_workflow_run_state(run)
 
     if state is None:
         logger.info(f"No extraction state found in workflow for project {project_id}")
@@ -253,14 +255,15 @@ async def _get_downloader_workflow_state(
 ) -> Tuple[Optional[WorkflowRun], Optional[ReferenceDownloaderState]]:
     """Get the ReferenceDownloader workflow run and state for a project."""
     run = await get_project_workflow_run_by_type(
-        project_id, WorkflowRunType.REFERENCE_DOWNLOADER, revision=revision
+        project_id,
+        WorkflowRunType.REFERENCE_DOWNLOADER,
+        revision=revision,
+        include_state=True,
     )
     if run is None:
         return None, None
 
-    state = await get_workflow_run_state_by_thread_id(
-        run.langgraph_thread_id, WorkflowRunType.REFERENCE_DOWNLOADER
-    )
+    state = await read_workflow_run_state(run)
     return run, cast(Optional[ReferenceDownloaderState], state)
 
 

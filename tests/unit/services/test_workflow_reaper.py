@@ -72,10 +72,21 @@ async def test_run_manifest_on_cancel_invokes_hook_when_state_present():
         patch.object(
             workflow_reaper, "get_workflow_manifest", return_value=manifest
         ),
+        # Initial read now comes from state_json via read_workflow_run_state.
+        patch.object(
+            workflow_reaper,
+            "read_workflow_run_state",
+            new=AsyncMock(return_value=state),
+        ),
+        # The post-cancel mirror re-reads the checkpointer (on_cancel still
+        # writes there) and persists it back to state_json.
         patch.object(
             workflow_reaper,
             "get_workflow_run_state_by_thread_id",
             new=AsyncMock(return_value=state),
+        ),
+        patch.object(
+            workflow_reaper, "persist_workflow_run_state", new=AsyncMock()
         ),
         patch.object(
             workflow_reaper, "create_graph", return_value=MagicMock()
@@ -106,7 +117,7 @@ async def test_run_manifest_on_cancel_noop_when_manifest_missing():
     with (
         patch.object(workflow_reaper, "get_workflow_manifest", return_value=None),
         patch.object(
-            workflow_reaper, "get_workflow_run_state_by_thread_id", new=state_loader
+            workflow_reaper, "read_workflow_run_state", new=state_loader
         ),
     ):
         await _run_manifest_on_cancel(run)
@@ -127,7 +138,7 @@ async def test_run_manifest_on_cancel_noop_when_state_missing():
         ),
         patch.object(
             workflow_reaper,
-            "get_workflow_run_state_by_thread_id",
+            "read_workflow_run_state",
             new=AsyncMock(return_value=None),
         ),
     ):
@@ -149,7 +160,7 @@ async def test_run_manifest_on_cancel_swallows_hook_exception():
         ),
         patch.object(
             workflow_reaper,
-            "get_workflow_run_state_by_thread_id",
+            "read_workflow_run_state",
             new=AsyncMock(return_value=MagicMock()),
         ),
         patch.object(
@@ -179,7 +190,7 @@ async def test_run_manifest_on_cancel_swallows_state_load_exception():
         ),
         patch.object(
             workflow_reaper,
-            "get_workflow_run_state_by_thread_id",
+            "read_workflow_run_state",
             new=AsyncMock(side_effect=RuntimeError("db down")),
         ),
     ):

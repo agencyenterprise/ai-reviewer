@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from langgraph.types import StateSnapshot
 from pydantic import BaseModel
 from sqlalchemy import case, func, select, update
+from sqlalchemy.orm import undefer
 from sqlmodel import and_, col
 
 from lib.config.database import get_async_db_session
@@ -53,21 +54,6 @@ async def _compute_cost_for_state(
     except Exception as e:  # pragma: no cover — never let cost calc break the response
         logger.warning(f"Failed to compute workflow cost: {e}")
         return None
-
-
-def _canonical_run_ids_per_thread(runs: List[WorkflowRun]) -> set[uuid.UUID]:
-    """Return the set of run IDs that are the most recent owners of their thread_id.
-
-    Multiple WorkflowRun rows can share a langgraph_thread_id (re-runs reuse threads),
-    so older runs see the latest run's state from the checkpointer — their cost would
-    be misleading. Only attribute cost to the latest run per thread.
-    """
-    latest: dict[str, WorkflowRun] = {}
-    for run in runs:
-        existing = latest.get(run.langgraph_thread_id)
-        if existing is None or run.created_at > existing.created_at:
-            latest[run.langgraph_thread_id] = run
-    return {r.id for r in latest.values()}
 
 
 def _convert_state_snapshot(
@@ -128,6 +114,25 @@ def hydrate_workflow_run_state(run: WorkflowRun) -> WorkflowState | None:
         return None
 
 
+async def read_workflow_run_state(run: WorkflowRun) -> WorkflowState | None:
+    """Single read path for a run's workflow state.
+
+    PR 2 (RANDZ-561) reader cutover: state is read from the row's `state_json`
+    (written by the dual-write since PR 1). Writes still go to both `state_json`
+    and the LangGraph checkpointer, so reverting the cutover is a one-line body
+    swap here — no data migration or write-path rollback:
+
+        return await get_workflow_run_state_by_thread_id(
+            run.langgraph_thread_id, run.type
+        )
+
+    `run` must have been loaded with `state_json` undeferred (see the model's
+    deferred-strategy note in lib/models/workflow_run.py) so this stays an
+    in-memory hydrate rather than an illegal async lazy-load on a detached row.
+    """
+    return hydrate_workflow_run_state(run)
+
+
 async def get_workflow_run_state_by_thread_id(
     thread_id: str, type: WorkflowRunType
 ) -> WorkflowState | None:
@@ -155,7 +160,7 @@ async def get_workflow_run_state_by_thread_id(
 
 
 async def get_workflow_run(
-    workflow_run_id: str, user: Optional[User] = None
+    workflow_run_id: str, user: Optional[User] = None, include_state: bool = False
 ) -> WorkflowRun:
     async with get_async_db_session() as session:
         stmt = (
@@ -163,6 +168,10 @@ async def get_workflow_run(
             .outerjoin(Project)
             .where(col(WorkflowRun.id) == workflow_run_id)
         )
+        if include_state:
+            # state_json is deferred by default; load it in-session so callers
+            # can hydrate it after this session closes (no async lazy-load).
+            stmt = stmt.options(undefer(col(WorkflowRun.state_json)))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
         result = (await session.execute(stmt)).one_or_none()
 
     if result is None:
@@ -179,8 +188,8 @@ async def get_workflow_run(
 async def get_workflow_run_state(
     workflow_run_id: str, user: User | None = None
 ) -> WorkflowState | None:
-    run = await get_workflow_run(workflow_run_id, user)
-    return await get_workflow_run_state_by_thread_id(run.langgraph_thread_id, run.type)
+    run = await get_workflow_run(workflow_run_id, user, include_state=True)
+    return await read_workflow_run_state(run)
 
 
 async def create_workflow_run(
@@ -335,12 +344,17 @@ async def get_project_workflow_run_by_type(
     project_id: str,
     type: WorkflowRunType,
     revision: int,
+    include_state: bool = False,
 ) -> Optional[WorkflowRun]:
     """
     Get the most relevant workflow run for a project, type, and revision.
 
     Priority: RUNNING > PENDING > latest COMPLETED
     This ensures UI shows correct status when multiple runs exist.
+
+    Pass `include_state=True` to undefer `state_json` so the returned run can be
+    hydrated via `read_workflow_run_state` after the session closes. Left off by
+    default to keep hot status/cancel paths from loading multi-MB payloads.
     """
 
     async with get_async_db_session() as session:
@@ -365,6 +379,8 @@ async def get_project_workflow_run_by_type(
             )
             .limit(1)
         )
+        if include_state:
+            stmt = stmt.options(undefer(col(WorkflowRun.state_json)))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
         active_run = (await session.execute(stmt)).scalar_one_or_none()
 
         if active_run:
@@ -383,6 +399,8 @@ async def get_project_workflow_run_by_type(
             .order_by(col(WorkflowRun.created_at).desc())
             .limit(1)
         )
+        if include_state:
+            stmt = stmt.options(undefer(col(WorkflowRun.state_json)))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
         return (await session.execute(stmt)).scalar_one_or_none()
 
 
@@ -410,6 +428,7 @@ async def get_project_workflow_runs_by_type(
     project_id: str,
     workflow_type: WorkflowRunType,
     revision: int,
+    include_state: bool = False,
 ) -> List[WorkflowRun]:
     """
     Get all workflow runs of a specific type for a project and revision.
@@ -428,6 +447,8 @@ async def get_project_workflow_runs_by_type(
             )
             .order_by(col(WorkflowRun.created_at).desc())
         )
+        if include_state:
+            stmt = stmt.options(undefer(col(WorkflowRun.state_json)))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
         return list((await session.execute(stmt)).scalars().all())
 
 
@@ -443,20 +464,13 @@ async def get_project_workflow_runs_by_type_with_details(
     Used for displaying workflow run history in the UI with error status.
     """
     runs = await get_project_workflow_runs_by_type(
-        project_id, workflow_type, revision=revision
+        project_id, workflow_type, revision=revision, include_state=True
     )
 
-    # Fetch all workflow states in parallel to avoid N+1 query pattern
-    states = await asyncio.gather(
-        *[
-            get_workflow_run_state_by_thread_id(run.langgraph_thread_id, run.type)
-            for run in runs
-        ]
-    )
-
-    canonical_ids = _canonical_run_ids_per_thread(list(runs))
-    cost_states = [s if r.id in canonical_ids else None for r, s in zip(runs, states)]
-    costs = await asyncio.gather(*[_compute_cost_for_state(s) for s in cost_states])
+    # Each run carries its own state_json, so state (and cost) are read per run
+    # directly — no checkpointer fan-out, and no thread-sharing band-aid needed.
+    states = await asyncio.gather(*[read_workflow_run_state(run) for run in runs])
+    costs = await asyncio.gather(*[_compute_cost_for_state(s) for s in states])
     return [
         WorkflowRunDetail(run=run, state=state, cost=cost)
         for run, state, cost in zip(runs, states, costs)
@@ -508,6 +522,8 @@ async def get_project_workflow_runs(
                 ranked_runs_subquery.c.rn == 1,
             )
         )
+        # Load state_json in-session so read_workflow_run_state can hydrate it.
+        .options(undefer(col(WorkflowRun.state_json)))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
     )
 
     async with get_async_db_session() as session:
@@ -518,12 +534,9 @@ async def get_project_workflow_runs(
         run for run in runs if include_internal or is_user_visible_workflow(run.type)
     ]
 
-    # Fetch all workflow states in parallel to avoid N+1 query pattern
+    # Each run carries its own state_json — read state per run directly.
     states = await asyncio.gather(
-        *[
-            get_workflow_run_state_by_thread_id(run.langgraph_thread_id, run.type)
-            for run in visible_runs
-        ]
+        *[read_workflow_run_state(run) for run in visible_runs]
     )
 
     costs = await asyncio.gather(*[_compute_cost_for_state(s) for s in states])
