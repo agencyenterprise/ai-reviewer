@@ -27,6 +27,7 @@ import {
   MessageSquareWarning,
   ALargeSmall,
   BookOpen,
+  Clock,
   type LucideIcon,
   FileCheckIcon,
   TableIcon,
@@ -35,7 +36,7 @@ import { cn } from '@/lib/utils';
 import { WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
-import { WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS } from './utils';
+import { WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS, formatEstimatedDuration } from './utils';
 
 const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.DocumentProcessing]: FileText,
@@ -82,6 +83,8 @@ interface WorkflowTypeCheckboxProps {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
   disabled?: boolean;
+  /** Median run time in seconds, from historical runs. Hidden when unavailable. */
+  estimatedSeconds?: number | null;
 }
 
 export function WorkflowTypeCheckbox({
@@ -89,9 +92,11 @@ export function WorkflowTypeCheckbox({
   checked,
   onCheckedChange,
   disabled = false,
+  estimatedSeconds,
 }: WorkflowTypeCheckboxProps) {
   const Icon = getWorkflowIcon(workflowType.type);
   const requiresSupportingFiles = needsSupportingFiles(workflowType.type);
+  const estimatedDuration = formatEstimatedDuration(estimatedSeconds);
 
   return (
     <label
@@ -139,11 +144,26 @@ export function WorkflowTypeCheckbox({
 
           <p className="text-sm text-muted-foreground">{workflowType.description}</p>
 
-          {(workflowType.is_experimental ||
+          {(estimatedDuration ||
+            workflowType.is_experimental ||
             workflowType.needs_web_search ||
             requiresSupportingFiles ||
             workflowType.is_qa_screener) && (
             <div className="flex flex-wrap items-center gap-2 pt-1">
+              {estimatedDuration && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                      <Clock className="size-3" />
+                      {estimatedDuration}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    Rough estimate based on how long this assessment has taken on past documents. Actual time varies
+                    with document size and current load.
+                  </TooltipContent>
+                </Tooltip>
+              )}
               {workflowType.is_qa_screener && (
                 <Tooltip>
                   <TooltipTrigger asChild>
