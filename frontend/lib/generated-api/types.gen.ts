@@ -5500,6 +5500,35 @@ export type WorkflowCategoryOrder = {
 };
 
 /**
+ * WorkflowDurationEstimate
+ *
+ * Estimated duration for a single workflow type.
+ */
+export type WorkflowDurationEstimate = {
+  type: WorkflowRunType;
+  /**
+   * Estimated Seconds
+   */
+  estimated_seconds: number | null;
+  /**
+   * Sample Size
+   */
+  sample_size: number;
+};
+
+/**
+ * WorkflowDurationEstimatesResponse
+ *
+ * Duration estimates for every workflow type with historical data.
+ */
+export type WorkflowDurationEstimatesResponse = {
+  /**
+   * Estimates
+   */
+  estimates: Array<WorkflowDurationEstimate>;
+};
+
+/**
  * WorkflowError
  *
  * Error object for the overall workflow or specific chunks.
@@ -6301,6 +6330,38 @@ export type GetWorkflowTypesApiWorkflowTypesGetResponses = {
 
 export type GetWorkflowTypesApiWorkflowTypesGetResponse =
   GetWorkflowTypesApiWorkflowTypesGetResponses[keyof GetWorkflowTypesApiWorkflowTypesGetResponses];
+
+export type GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetData = {
+  body?: never;
+  path?: never;
+  query: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  url: '/api/workflow-types/duration-estimates';
+};
+
+export type GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetError =
+  GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetErrors[keyof GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetErrors];
+
+export type GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: WorkflowDurationEstimatesResponse;
+};
+
+export type GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetResponse =
+  GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetResponses[keyof GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetResponses];
 
 export type DownloadFileApiFilesDownloadFileIdGetData = {
   body?: never;
