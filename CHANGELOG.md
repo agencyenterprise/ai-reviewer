@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.41] - 2026-06-11
+
+### Added
+- Added backend unit test coverage reporting in CI, generating a branch-aware Cobertura XML report and uploading it to Codecov.
+- Added support in the Figures & Tables Check for section/appendix-prefixed numbering schemes (e.g., `A.1`, `3.1`) as consistent formats.
+- Added new eval dataset samples for the Figures & Tables Check to cover the updated numbering rules.
+- Added a regression unit test ensuring per-run workflow state is read from `state_json` even when runs share a `langgraph_thread_id`.
+
+### Changed
+- Changed workflow run state reads to use the per-run `state_json` column while keeping dual-writes unchanged.
+- Changed workflow run query APIs to support opt-in inclusion of state to avoid loading large payloads on hot paths.
+- Changed the results header UI to render the revision switcher inside the analysis options menu and align its height with surrounding controls.
+- Changed the results UI to make “Download DOCX” a permanent button next to the sharing badge and hide the overflow menu for read-only users.
+
+### Fixed
+- Fixed a History UI issue where re-runs sharing a `langgraph_thread_id` could show the same latest thread state by reading per-run state from `state_json`.
+- Fixed a false positive in the Figures & Tables Check that incorrectly flagged appendix/section-prefixed numbering as mixed formats.
+
+
 ## [v0.5.40] - 2026-06-08
 
 ### Added
