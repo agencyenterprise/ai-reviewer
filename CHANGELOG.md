@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.42] - 2026-06-15
+
+### Added
+- Added Tier 1 assessment skills under `skills/` for figures/tables checks, document contents checks, and recommendation checks.
+- Added new `GET /api/workflow-types/duration-estimates?project_id=` endpoint to provide median run-duration estimates per workflow type.
+- Added a frontend duration-estimates hook and UI helpers to display `~X min` / `~X hr` badges in the assessment pickers.
+- Added new skills `skills/reviewer-2/SKILL.md` and `skills/inference-validation/SKILL.md`.
+- Added unit tests for skill prompt loading and manifest prompt resolution.
+
+### Changed
+- Renamed the Claude plugin from `skills` to `draft-detective` and updated marketplace metadata and keywords.
+- Updated Tier 1 assessment workflow manifests to reference skill files as the single source of truth instead of embedding duplicated prompt text.
+- Moved and generalized the skill prompt loader so any agent can source its prompt from a skill.
+- Updated `reviewer_2` to load its system prompt from the new `reviewer-2` skill.
+- Redesigned the inference validation workflow into a single deep agent that fans out to detection sub-agents and consolidates via a separate adjudicator sub-agent, driven by the `inference-validation` skill.
+- Added the `aiotools` dependency and regenerated the generated API client for the new endpoint.
+
+### Removed
+- Removed the embedded `_USER_PROMPT` blocks from the Tier 1 workflow manifests in favor of skill references.
+- Removed the old inference validation v2 multi-node workflow files and reduced `inference_synthesizer` to consolidated data contracts (agent class removed).
+
+
 ## [v0.5.41] - 2026-06-11
 
 ### Added
