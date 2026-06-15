@@ -126,6 +126,7 @@ export function WorkflowConfigDialog({ isOpen, type, projectId, onConfirm, onCan
             {(field) => (
               <WorkflowTypeSelector
                 restrictToType={type}
+                projectId={projectId}
                 selectedTypes={field.state.value}
                 onSelectionChange={field.handleChange}
                 disabledTypes={type ? [type] : undefined}

@@ -1,7 +1,7 @@
 {
-  "name": "skills",
-  "version": "0.1.0",
-  "description": "Document review skills from Draft Detective: validate bibliographic references against authoritative sources, and report document issues in a consistent structured format.",
+  "name": "draft-detective",
+  "version": "0.2.0",
+  "description": "Document review skills from Draft Detective: AI-powered checks that help authors catch issues in their documents before publication.",
   "author": {
     "name": "Draft Detective"
   },
@@ -12,6 +12,10 @@
     "citations",
     "references",
     "fact-checking",
-    "bibliography"
+    "bibliography",
+    "figures",
+    "tables",
+    "document-structure",
+    "recommendations"
   ]
 }

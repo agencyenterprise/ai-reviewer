@@ -3,12 +3,15 @@
 import { useMemo } from 'react';
 import { WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
+import { useWorkflowDurationEstimates } from '@/lib/hooks/use-workflow-duration-estimates';
 import { WorkflowTypeCheckbox } from './workflow-type-checkbox';
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
 
 interface WorkflowTypeSelectorProps {
   /** When set, only this workflow type is listed (e.g. config dialog for a specific analysis). */
   restrictToType?: WorkflowRunType;
+  /** When provided, an estimated run time is shown per assessment. */
+  projectId?: string;
   selectedTypes: WorkflowRunType[];
   onSelectionChange: (types: WorkflowRunType[]) => void;
   disabled?: boolean;
@@ -20,6 +23,7 @@ interface WorkflowTypeSelectorProps {
 
 export function WorkflowTypeSelector({
   restrictToType,
+  projectId,
   selectedTypes,
   onSelectionChange,
   disabled = false,
@@ -29,6 +33,7 @@ export function WorkflowTypeSelector({
   error,
 }: WorkflowTypeSelectorProps) {
   const { workflowTypes: allTypes, categories, isPending: isLoadingWorkflowTypes } = useWorkflowTypes();
+  const { getEstimatedSeconds } = useWorkflowDurationEstimates(projectId);
   const { showExperimentalFeatures } = useExperimentalFeatures();
 
   const workflowTypes = useMemo(() => {
@@ -57,6 +62,7 @@ export function WorkflowTypeSelector({
       checked={selectedTypes.includes(workflowType.type)}
       onCheckedChange={(checked) => handleCheckedChange(workflowType.type, checked === true)}
       disabled={controlsDisabled || disabledTypes.includes(workflowType.type)}
+      estimatedSeconds={getEstimatedSeconds(workflowType.type)}
     />
   );
 

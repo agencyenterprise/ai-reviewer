@@ -40,3 +40,25 @@ export const WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS: WorkflowRunType[] = [
 export function hasSupportingDocumentsRequirement(selectedTypes: WorkflowRunType[]): boolean {
   return selectedTypes.some((type) => WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS.includes(type));
 }
+
+/**
+ * Formats an estimated duration (in seconds) into a short, human-friendly
+ * ballpark label like "~1 min", "~3 min", or "~1.5 hr". Returns null when there
+ * is no estimate to show, so callers can simply skip rendering.
+ *
+ * Sub-minute durations are floored to "~1 min" — showing seconds is noise at
+ * this granularity.
+ */
+export function formatEstimatedDuration(seconds: number | null | undefined): string | null {
+  if (seconds == null || !Number.isFinite(seconds) || seconds <= 0) {
+    return null;
+  }
+  const minutes = seconds / 60;
+  if (minutes < 60) {
+    return `~${Math.max(1, Math.round(minutes))} min`;
+  }
+  const hours = minutes / 60;
+  // One decimal below 10 hours (e.g. "~1.5 hr"), whole numbers above.
+  const rounded = hours < 10 ? Math.round(hours * 10) / 10 : Math.round(hours);
+  return `~${rounded} hr`;
+}

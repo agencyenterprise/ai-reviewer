@@ -74,6 +74,9 @@ import type {
   GetAppConfigApiAppConfigsKeyGetResponses,
   GetCurrentUserInfoApiUsersMeGetData,
   GetCurrentUserInfoApiUsersMeGetResponses,
+  GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetData,
+  GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetErrors,
+  GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetResponses,
   GetFeedbackApiFeedbackGetData,
   GetFeedbackApiFeedbackGetErrors,
   GetFeedbackApiFeedbackGetResponses,
@@ -511,6 +514,31 @@ export const getWorkflowTypesApiWorkflowTypesGet = <ThrowOnError extends boolean
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/workflow-types',
+    ...options,
+  });
+
+/**
+ * Get Duration Estimates
+ *
+ * Estimated run duration for every workflow type, derived from past runs.
+ *
+ * Lets the UI show a ballpark "how long will this take" before a workflow is
+ * started. `project_id` is accepted for future project-specific refinement but
+ * is not yet factored into the estimate. The underlying aggregate is cached, so
+ * the (potentially heavy) history scan runs at most once per hour.
+ */
+export const getDurationEstimatesApiWorkflowTypesDurationEstimatesGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetResponses,
+    GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/workflow-types/duration-estimates',
     ...options,
   });
 

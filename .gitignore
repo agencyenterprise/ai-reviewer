@@ -45,3 +45,7 @@ rand-personal/
 
 # logs
 /logs/
+
+# test coverage
+.coverage
+coverage.xml

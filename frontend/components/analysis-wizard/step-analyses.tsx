@@ -106,6 +106,7 @@ export function StepAnalyses() {
       </div>
 
       <WorkflowTypeSelector
+        projectId={wizard.projectId ?? undefined}
         selectedTypes={selectedWorkflowTypes}
         onSelectionChange={setSelectedWorkflowTypes}
         headerDescription=""
