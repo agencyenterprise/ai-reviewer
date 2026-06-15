@@ -112,10 +112,12 @@ class InferenceValidationAgent(LangChainAgent):
                     SystemMessage(content=load_skill_prompt("inference-validation")),
                     HumanMessage(
                         content=(
-                            "Validate the inferences in the document at `/main.md`. "
-                            "Follow your instructions: run three independent sub-agent "
-                            "detection passes, then return the consolidated, "
-                            "severity-ranked findings."
+                            "The document under review is available in your filesystem "
+                            "at `/main.md`. Validate its inferences following your "
+                            "instructions: spawn three independent detection sub-agents "
+                            "(tell each to read `/main.md`), then an independent "
+                            "adjudicator sub-agent that re-reads `/main.md`, and return "
+                            "the consolidated, severity-ranked findings."
                         )
                     ),
                 ],
