@@ -17,7 +17,7 @@ from lib.workflows.decorators import register_node
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue
 from lib.workflows.simple_deep_agent.agent import SimpleDeepAgent
-from lib.workflows.simple_deep_agent.skill_prompt import load_skill_prompt
+from lib.skills import load_skill_prompt
 from lib.workflows.simple_deep_agent.state import (
     SimpleDeepAgentConfig,
     SimpleDeepAgentState,

@@ -1,14 +1,15 @@
-"""Tests for resolving deep-agent prompts from skill files (source of truth)."""
+"""Tests for SimpleDeepAgentManifest prompt resolution (source of truth).
+
+The shared loader (`lib/skills.py`) is tested in tests/unit/test_skills.py;
+here we cover how SimpleDeepAgentManifest resolves its prompt from a `skill`
+reference or an inline `user_prompt`.
+"""
 
 import pytest
 
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.registry import get_workflow_manifest
 from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifest
-from lib.workflows.simple_deep_agent.skill_prompt import (
-    _strip_frontmatter,
-    load_skill_prompt,
-)
 
 # The Tier 1 workflows whose rules live in a skill file.
 _SKILL_BACKED_WORKFLOWS = [
@@ -16,26 +17,6 @@ _SKILL_BACKED_WORKFLOWS = [
     WorkflowRunType.DOCUMENT_STRUCTURE,
     WorkflowRunType.RECOMMENDATION_CHECK,
 ]
-
-
-def test_strip_frontmatter_removes_leading_yaml_block():
-    content = "---\nname: foo\ndescription: bar\n---\n\n# Title\n\nBody text"
-    assert _strip_frontmatter(content) == "# Title\n\nBody text"
-
-
-def test_strip_frontmatter_no_frontmatter_is_unchanged():
-    content = "# Title\n\nBody text"
-    assert _strip_frontmatter(content) == content
-
-
-def test_strip_frontmatter_unterminated_block_is_unchanged():
-    content = "---\nname: foo\nno closing delimiter"
-    assert _strip_frontmatter(content) == content
-
-
-def test_load_skill_prompt_missing_skill_raises():
-    with pytest.raises(FileNotFoundError):
-        load_skill_prompt("does-not-exist")
 
 
 @pytest.mark.parametrize("workflow_type", _SKILL_BACKED_WORKFLOWS)

@@ -1,22 +1,22 @@
-"""Load a skill's markdown body for use as a deep-agent workflow prompt.
+"""Load a skill's markdown body for use as an agent/workflow prompt.
 
 Skills under the repo-root `skills/` directory are the single source of truth
-for the rules a deep-agent workflow checks. A workflow references a skill by
-name (e.g. ``"figures-tables-check"``) and the rules live only in
-``skills/<name>/SKILL.md`` — never duplicated in the manifest.
+for the prompts and rules used by agents and deep-agent workflows. Code
+references a skill by name (e.g. ``"reviewer-2"``) and loads its body here,
+rather than duplicating the prompt text in Python.
 """
 
 from pathlib import Path
 
-# Repo root: lib/workflows/simple_deep_agent/skill_prompt.py -> parents[3]
-_SKILLS_DIR = Path(__file__).parents[3] / "skills"
+# Repo root: lib/skills.py -> parents[1]
+_SKILLS_DIR = Path(__file__).parents[1] / "skills"
 
 
 def load_skill_prompt(skill_name: str) -> str:
     """Return the markdown body of ``skills/<skill_name>/SKILL.md``.
 
     The YAML frontmatter block is stripped; the remaining markdown is the
-    rules/criteria used as the deep agent's user prompt.
+    prompt/rules used by the caller.
     """
     skill_path = _SKILLS_DIR / skill_name / "SKILL.md"
     if not skill_path.is_file():
