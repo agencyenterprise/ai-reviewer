@@ -36,7 +36,6 @@ def test_load_skill_prompt_missing_skill_raises():
 _SKILL_BACKED_AGENTS = [
     "reviewer-2",
     "inference-validation",
-    "reference-extraction",
     "reference-download",
 ]
 
