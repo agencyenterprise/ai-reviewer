@@ -33,7 +33,11 @@ def test_load_skill_prompt_missing_skill_raises():
 
 # Agents that load their system prompt verbatim from a skill (the single source
 # of truth). Guards against a renamed/missing skill file.
-_SKILL_BACKED_AGENTS = ["reviewer-2", "inference-validation"]
+_SKILL_BACKED_AGENTS = [
+    "reviewer-2",
+    "inference-validation",
+    "reference-download",
+]
 
 
 @pytest.mark.parametrize("skill", _SKILL_BACKED_AGENTS)
