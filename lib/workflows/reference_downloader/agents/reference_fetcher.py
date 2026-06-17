@@ -55,6 +55,27 @@ class ReferenceFetchItem(BaseModel):
     )
 
 
+# Backend-specific addendum appended to the portable `reference-download` skill.
+# The skill itself is tool-agnostic; this maps it onto Draft Detective's concrete
+# tools and the structured `ReferenceFetchItem` output fields.
+_ENV_GUIDANCE = """\
+
+---
+
+## Tools and output in this environment
+
+You have these tools:
+- a web search tool to find candidate URLs;
+- `download_file_from_url`: downloads a file from a URL and returns a **file ID** for the saved file;
+- `read_file_content`: returns the content of a downloaded file given its file ID, so you can verify it.
+
+Map the outcome to your structured result:
+- Set `final_conclusion` to `source_found` (the skill's "found"), `source_found_but_not_accessible` ("found but not accessible"), or `source_not_found` ("not found").
+- On `source_found`, set `file_id` to the confirmed downloaded file's ID and `source_url` to the URL it came from. For any other conclusion, leave `file_id` null.
+- On `source_found_but_not_accessible`, set `inaccessibility_reason` to the one-sentence explanation.
+"""
+
+
 class ReferenceFetcherAgent(LangChainAgent):
     name = "Reference Fetcher"
     description = "Fetch a reference from the internet"
@@ -70,7 +91,7 @@ class ReferenceFetcherAgent(LangChainAgent):
         agent = create_agent(
             self.llm,
             [{"type": "web_search"}, download_file_from_url, read_file_content],
-            system_prompt=load_skill_prompt("reference-download"),
+            system_prompt=load_skill_prompt("reference-download") + _ENV_GUIDANCE,
             context_schema=ContextSchema,
             response_format=ReferenceFetchItem,
         ).with_retry(stop_after_attempt=2)
