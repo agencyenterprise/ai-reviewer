@@ -67,6 +67,7 @@ async def upload_and_start_analysis(
     workflow_types: list[str],
     file_name: str = "document.md",
     supporting_files: list[tuple[str, str]] | None = None,
+    publication_date: str | None = None,
 ) -> str:
     """Upload a document and start analysis workflows.
 
@@ -77,6 +78,9 @@ async def upload_and_start_analysis(
         file_name: Display name for the main document.
         supporting_files: Optional list of (file_name, markdown_content) tuples
             uploaded alongside the main document as multipart `supporting_documents`.
+        publication_date: Optional document publication date (YYYY-MM-DD) passed
+            to the workflow config. Used by date-sensitive workflows such as
+            live reports, which search for sources published after this date.
 
     Returns the project_id.
     """
@@ -114,6 +118,9 @@ async def upload_and_start_analysis(
             data: dict[str, Any] = {}
             for wt in workflow_types:
                 data.setdefault("workflow_types", []).append(wt)
+
+            if publication_date:
+                data["publication_date"] = publication_date
 
             openai_api_key = os.environ.get("EVAL_API_OPENAI_API_KEY")
             if openai_api_key:

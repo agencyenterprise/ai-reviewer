@@ -75,6 +75,7 @@ Also provide an overall **report_markdown** addendum that summarizes the most im
 
 Remember:
 - Only consider sources published AFTER the document publication date ({document_publication_date}).
+- Only analyze substantive empirical, scientific, or factual claims that newer research could realistically update. If the document makes no such claims (for example an internal note, administrative memo, or opinion piece), do not invent updates — return an empty issue list and a short report stating that no newer evidence is warranted.
 - Do not fabricate any references. If no newer evidence warrants a change for a claim, omit it (do not create an issue for it). If nothing warrants an update, return an empty issue list and a short report saying so.
 
 # NOTE:
