@@ -91,6 +91,7 @@ class WorkflowRunType(str, Enum):
     METHODOLOGICAL_ALIGNMENT = "methodological_alignment"
     REFERENCE_DOWNLOADER = "reference_downloader"
     LITERATURE_REVIEW = "literature_review"
+    LITERATURE_REVIEW_V2 = "literature_review_v2"
     LIVE_REPORTS = "live_reports"
     REFERENCE_VALIDATION = "reference_validation"
     REFERENCE_VALIDATION_V2 = "reference_validation_v2"

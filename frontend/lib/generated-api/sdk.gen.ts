@@ -524,8 +524,8 @@ export const getWorkflowTypesApiWorkflowTypesGet = <ThrowOnError extends boolean
  *
  * Lets the UI show a ballpark "how long will this take" before a workflow is
  * started. `project_id` is accepted for future project-specific refinement but
- * is not yet factored into the estimate. The underlying aggregate is cached, so
- * the (potentially heavy) history scan runs at most once per hour.
+ * is not yet factored into the estimate. The response is cached for an hour at
+ * the endpoint layer (see `_cached_duration_estimates`).
  */
 export const getDurationEstimatesApiWorkflowTypesDurationEstimatesGet = <ThrowOnError extends boolean = true>(
   options: Options<GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetData, ThrowOnError>,
