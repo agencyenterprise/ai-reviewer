@@ -64,13 +64,13 @@ Return your findings as a list of `issues` plus an overall `report_markdown`.
 
 Create **one issue per recommended reference**, with:
 - **title**: A short title naming the suggested source and the recommended action (e.g. "Add citation: Smith et al. 2021").
-- **description**: Why this reference should be cited or discussed, including its quality (high, medium, low), direction relative to the document (supporting, conflicting, mixed, contextual), and any political bias (conservative, liberal, other).
+- **description**: Why this reference should be cited or discussed, including its quality (high, medium, low) and direction relative to the document (supporting, conflicting, mixed, contextual).
 - **long_description**: The full details of the recommendation in markdown, including: the authors, publication year, full bibliography citation text, URL or DOI link (if available), the relevant excerpt from the reference, and the relevant excerpt from the main document that relates to it.
 - **suggested_action**: What action to take (add a new citation, cite an existing reference in a new place, replace an existing reference, or discuss the reference) and how to implement it.
 - **severity**: Use "low" for these recommendations unless a missing or conflicting source is clearly significant, in which case use "medium".
 - **start_line** / **end_line**: The 1-indexed line range in `/main.md` of the passage that this reference relates to.
 
-Also provide an overall **report_markdown** summarizing your literature review recommendations (topics of discussion and the references proposed for each).
+Also provide an overall **report_markdown** summarizing your literature review recommendations (topics of discussion and the references proposed for each). For every new source you recommend, include its **full citation / bibliography entry** in the report (authors, year, title, venue/publisher, and a URL or DOI link when available), so the reader can see at a glance how to find each source. A compact way to do this is a "Recommended sources" section listing each source's full bibliography entry as a numbered or bulleted reference.
 
 Remember:
 - If the document publication date is provided, you are only to look for references that come BEFORE the document publication date.
