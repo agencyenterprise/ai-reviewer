@@ -6,6 +6,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.43] - 2026-06-22
+
+### Added
+- Added a v2 Literature Review workflow using the simple deep agent pattern that returns `report_markdown` plus issues and is now the version offered in the workflow picker.
+- Added a v2 Live Reports workflow using the simple deep agent pattern that returns `report_markdown` plus issues and is now the version offered in the workflow picker.
+- Added a standalone, user-invocable `reference-download` skill and broadened the entry-point router skill to surface it.
+- Added new end-to-end Inspect AI evals for `literature_review_v2` and `live_reports_v2`.
+
+### Changed
+- Updated `SimpleDeepAgent` to accept an optional `tools` argument forwarded to `create_deep_agent`.
+- Renamed `skills/assessments/` to `skills/capabilities/` and updated the router to list “Assessments” and “Reference tools”.
+- Regenerated the generated API to include new enum values for `literature_review_v2` and `live_reports_v2`.
+- Updated `upload_and_start_analysis` to accept an optional `publication_date` argument forwarded to `/api/start-analysis`.
+
+### Security
+- Bumped pyjwt from 2.12.0 to 2.13.0.
+- Bumped pydantic-settings from 2.12.0 to 2.14.2.
+- Bumped cryptography from 46.0.7 to 48.0.1.
+
+### Deprecated
+- Hid the deprecated Citation Suggester workflow from the workflow selection picker.
+
+### Removed
+- Removed v1 Literature Review from the workflow picker while keeping it registered for existing runs.
+- Removed v1 Live Reports from the workflow picker while keeping it registered for existing runs.
+
+### Fixed
+- Bumped aiohttp from 3.14.0 to 3.14.1.
+- Bumped starlette from 1.0.1 to 1.3.1.
+- Bumped python-multipart from 0.0.27 to 0.0.31.
+- Bumped langchain from 1.2.15 to 1.3.9.
+- Bumped langchain-anthropic from 1.4.0 to 1.4.6.
+- Bumped langsmith from 0.8.0 to 0.8.18.
+
+
 ## [v0.5.42] - 2026-06-15
 
 ### Added
