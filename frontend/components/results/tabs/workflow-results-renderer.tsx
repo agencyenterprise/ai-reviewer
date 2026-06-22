@@ -106,6 +106,7 @@ function renderWorkflowResults(
     case WorkflowRunType.DocumentStructure:
     case WorkflowRunType.FiguresTablesCheck:
     case WorkflowRunType.RecommendationCheck:
+    case WorkflowRunType.LiteratureReviewV2:
       return (
         <SimpleDeepAgentResults
           project={project}

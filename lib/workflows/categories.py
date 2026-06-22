@@ -62,7 +62,8 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
         slug="research_writing_assistant",
         label="Research & Writing Assistant",
         workflows=[
-            WorkflowRunType.LITERATURE_REVIEW,
+            # WorkflowRunType.LITERATURE_REVIEW,  # legacy v1; kept registered so old projects still load.
+            WorkflowRunType.LITERATURE_REVIEW_V2,
             WorkflowRunType.CITATION_SUGGESTER,
             WorkflowRunType.LIVE_REPORTS,
         ],
