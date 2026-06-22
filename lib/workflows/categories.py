@@ -65,7 +65,8 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
             # WorkflowRunType.LITERATURE_REVIEW,  # legacy v1; kept registered so old projects still load.
             WorkflowRunType.LITERATURE_REVIEW_V2,
             WorkflowRunType.CITATION_SUGGESTER,
-            WorkflowRunType.LIVE_REPORTS,
+            # WorkflowRunType.LIVE_REPORTS,  # legacy v1; kept registered so old projects still load.
+            WorkflowRunType.LIVE_REPORTS_V2,
         ],
     ),
 ]

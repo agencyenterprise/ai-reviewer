@@ -53,6 +53,7 @@ const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.LiteratureReview]: Library,
   [WorkflowRunType.LiteratureReviewV2]: Library,
   [WorkflowRunType.LiveReports]: Newspaper,
+  [WorkflowRunType.LiveReportsV2]: Newspaper,
   [WorkflowRunType.ReferenceValidation]: FileCheck,
   [WorkflowRunType.ReferenceValidationV2]: FileCheck,
   [WorkflowRunType.CitationSuggester]: Lightbulb,

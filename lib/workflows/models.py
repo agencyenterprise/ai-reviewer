@@ -93,6 +93,7 @@ class WorkflowRunType(str, Enum):
     LITERATURE_REVIEW = "literature_review"
     LITERATURE_REVIEW_V2 = "literature_review_v2"
     LIVE_REPORTS = "live_reports"
+    LIVE_REPORTS_V2 = "live_reports_v2"
     REFERENCE_VALIDATION = "reference_validation"
     REFERENCE_VALIDATION_V2 = "reference_validation_v2"
     CITATION_SUGGESTER = "citation_suggester"

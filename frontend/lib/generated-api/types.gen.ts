@@ -5794,6 +5794,7 @@ export const WorkflowRunType = {
   LiteratureReview: 'literature_review',
   LiteratureReviewV2: 'literature_review_v2',
   LiveReports: 'live_reports',
+  LiveReportsV2: 'live_reports_v2',
   ReferenceValidation: 'reference_validation',
   ReferenceValidationV2: 'reference_validation_v2',
   CitationSuggester: 'citation_suggester',
