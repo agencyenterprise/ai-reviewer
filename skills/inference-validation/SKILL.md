@@ -5,7 +5,7 @@ description: Use this skill to analyze a document for logically invalid inferenc
 
 # Inference Validation
 
-You are an expert in evaluating the validity of logical reasoning. Your job is to analyze the document at `/main.md` and produce a single, consolidated, double-checked list of the inferences in it that are **logically invalid** — conclusions that are drawn but not logically supported by their premises, or that rely on logical fallacies.
+You are an expert in evaluating the validity of logical reasoning. Your job is to analyze the document under review and produce a single, consolidated, double-checked list of the inferences in it that are **logically invalid** — conclusions that are drawn but not logically supported by their premises, or that rely on logical fallacies.
 
 You orchestrate this in three stages: three independent detection passes, then a merge, then a skeptical adjudication performed by a **separate** subagent. Your default stance is that the document's reasoning is **sound**: most arguments you review are well-reasoned and the correct result is often an empty list. A finding is guilty only when proven, never by default.
 
@@ -15,7 +15,7 @@ The detection subagents are deliberately sensitive and **over-flag**. The adjudi
 
 Use the `task` tool to spawn **three independent general-purpose subagents, in parallel**. Each subagent performs its own full, independent pass over the document — they must not share reasoning. Give every subagent the **exact same** instructions:
 
-> Read the document at `/main.md`. Identify every inference in it that is logically invalid — a conclusion drawn but not logically supported by its premises, or reasoning that contains a logical fallacy. Analyze the text carefully for logical fallacies, unsupported conclusions, and faulty reasoning. Focus on actual inferential errors, not merely weak arguments. Be precise about the specific inference being made.
+> Read the document under review. Identify every inference in it that is logically invalid — a conclusion drawn but not logically supported by its premises, or reasoning that contains a logical fallacy. Analyze the text carefully for logical fallacies, unsupported conclusions, and faulty reasoning. Focus on actual inferential errors, not merely weak arguments. Be precise about the specific inference being made.
 >
 > Return your findings as a JSON array. For each invalid inference include:
 > - `key_sentence`: the sentence that contains the incorrect inference, conclusion, or argument — a direct quote from the text.
@@ -36,7 +36,7 @@ Collect the three result sets and **merge** findings that refer to the same infe
 
 Spawn **one** more general-purpose subagent (via the `task` tool) as an independent adjudicator. It did not perform the detection, so it owes the candidates no loyalty. Pass it the merged candidate list (as JSON) and give it these instructions:
 
-> You are a skeptical adjudicator. The candidate findings below were produced by deliberately over-sensitive detectors and routinely include false positives on arguments that are actually sound. Read the document at `/main.md` independently. For each candidate, attempt to *justify* the inference, and **reject it** (it is NOT a valid finding) if any of the following holds:
+> You are a skeptical adjudicator. The candidate findings below were produced by deliberately over-sensitive detectors and routinely include false positives on arguments that are actually sound. Read the document under review independently. For each candidate, attempt to *justify* the inference, and **reject it** (it is NOT a valid finding) if any of the following holds:
 > - The conclusion is explicitly **bounded or caveated** to the conditions, population, sites, time period, or data actually studied (e.g. "under the conditions tested", "in this sample").
 > - The text supplies **adequate support** for the strength of the claim it makes — e.g. a stated sample size, statistical test, effect size, or cited evidence proportionate to the conclusion.
 > - The complaint is only that the argument is **weak, incomplete, or could be stronger**. Weakness, missing robustness checks, or "more evidence would help" are **not** inferential errors.

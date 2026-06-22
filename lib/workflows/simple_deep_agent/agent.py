@@ -5,12 +5,13 @@ Callers supply the user prompt (specific rules/criteria) and may optionally
 override the system prompt when the default is not appropriate.
 """
 
-from typing import List, Optional
+from typing import Any, Callable, List, Optional, Sequence, Union
 
 from deepagents import create_deep_agent
 from langchain.agents.structured_output import AutoStrategy
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
+from langchain_core.tools import BaseTool
 
 from lib.config.llm_models import gpt_5_5_model
 from lib.models.agent import LangChainAgent
@@ -53,11 +54,13 @@ class SimpleDeepAgent(LangChainAgent):
         user_prompt: str,
         system_prompt: Optional[str] = None,
         include_supporting_files: bool = False,
+        tools: Optional[Sequence[Union[BaseTool, Callable, dict[str, Any]]]] = None,
     ):
         super().__init__(context)
         self._system_prompt = system_prompt or _SYSTEM_PROMPT
         self._user_prompt = user_prompt
         self._include_supporting_files = include_supporting_files
+        self._tools = tools
 
     async def ainvoke(
         self,
@@ -66,6 +69,7 @@ class SimpleDeepAgent(LangChainAgent):
     ) -> tuple[AgentCheckResult, List[BaseMessage]]:
         deep_agent = create_deep_agent(
             model=self.llm,
+            tools=self._tools,
             context_schema=ContextSchema,
             response_format=AutoStrategy(AgentCheckResult),
             skills=["/skills/"],
