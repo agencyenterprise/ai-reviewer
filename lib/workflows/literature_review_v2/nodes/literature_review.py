@@ -10,10 +10,10 @@ via its tools and returns the standard `AgentCheckResult` output (a list of
 import logging
 from datetime import date
 
-from langchain_core.prompts import PromptTemplate
 from langgraph.runtime import Runtime
 
 from lib.agents.formatting_utils import format_bibliography
+from lib.skills import load_skill_prompt
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.simple_deep_agent.agent import SimpleDeepAgent
@@ -29,6 +29,10 @@ class LiteratureReviewV2Agent(SimpleDeepAgent):
     timeout = 600
 
 
+# The literature-review *procedure* is the portable `literature-review` skill
+# (the single source of truth). This system prompt carries only the
+# Draft-Detective-specific framing: where the document lives and how to map the
+# skill's recommendations onto the standard issues output contract.
 _SYSTEM_PROMPT = """\
 You are an expert literature review researcher reviewing a document.
 
@@ -40,54 +44,42 @@ content as needed. Use web search to find high-quality academic sources.
 ## Reporting
 
 Follow the issue-reporting conventions in the issues skill \
-(`/skills/issues/SKILL.md`). Report each recommended source as one issue and \
-include an overall `report_markdown` summary.\
+(`/skills/issues/SKILL.md`). Report **one issue per recommended source**, mapping \
+your recommendation onto the issue fields:
+- **title**: name the suggested source and the action (e.g. "Add citation: Smith et al. 2021").
+- **description**: why it should be cited or discussed, including its quality \
+(high/medium/low) and direction relative to the document (supporting, \
+conflicting, mixed, contextual).
+- **long_description**: full details in markdown — authors, year, full citation \
+text, URL/DOI, the relevant excerpt from the source, and the related excerpt \
+from the document.
+- **suggested_action**: the action to take (add a new citation, cite an existing \
+reference in a new place, replace one, or discuss it) and how to implement it.
+- **severity**: "low" by default; "medium" only when a missing or conflicting \
+source is clearly significant.
+- **start_line** / **end_line**: the 1-indexed line range in `/main.md` of the \
+passage the source relates to.
+
+Also include an overall `report_markdown` summarizing the review by topic, with \
+the full citation for every recommended source.\
 """
 
 
-_USER_PROMPT = PromptTemplate.from_template(
-    """
-# Role
-You are an expert literature review researcher tasked with ensuring an article cites the highest quality and most current sources available. However, if the document publication date is provided, you are only to look for references that come BEFORE the document publication date.
+# Backend-injected, per-run inputs appended to the portable skill prompt.
+_INPUTS_TEMPLATE = """\
 
-# Goal
-Given the full article (available at `/main.md`) and its extracted bibliography, identify references that should be cited or discussed to improve the article. These may be:
-- Existing references already listed in the bibliography but not cited in some of the places they should be cited in.
-- New, high-quality references found via web research.
+---
 
-# Instructions
-1. Read the full document (`/main.md`) and bibliography carefully to understand the existing arguments and cited sources for each.
-2. Research relevant high quality references about each topic of discussion and how they could fit in the document as citations.
+## Inputs for this run
 
-# Output Format
-Return your findings as a list of `issues` plus an overall `report_markdown`.
-
-Create **one issue per recommended reference**, with:
-- **title**: A short title naming the suggested source and the recommended action (e.g. "Add citation: Smith et al. 2021").
-- **description**: Why this reference should be cited or discussed, including its quality (high, medium, low) and direction relative to the document (supporting, conflicting, mixed, contextual).
-- **long_description**: The full details of the recommendation in markdown, including: the authors, publication year, full bibliography citation text, URL or DOI link (if available), the relevant excerpt from the reference, and the relevant excerpt from the main document that relates to it.
-- **suggested_action**: What action to take (add a new citation, cite an existing reference in a new place, replace an existing reference, or discuss the reference) and how to implement it.
-- **severity**: Use "low" for these recommendations unless a missing or conflicting source is clearly significant, in which case use "medium".
-- **start_line** / **end_line**: The 1-indexed line range in `/main.md` of the passage that this reference relates to.
-
-Also provide an overall **report_markdown** summarizing your literature review recommendations (topics of discussion and the references proposed for each). For every new source you recommend, include its **full citation / bibliography entry** in the report (authors, year, title, venue/publisher, and a URL or DOI link when available), so the reader can see at a glance how to find each source. A compact way to do this is a "Recommended sources" section listing each source's full bibliography entry as a numbered or bulleted reference.
-
-Remember:
-- If the document publication date is provided, you are only to look for references that come BEFORE the document publication date.
-- Do not fabricate any references. If relevance to the claims cannot be found, omit the recommendation (do not create an issue for it).
-
-# NOTE:
-When generating responses, remove or replace all internal citation tokens such as turn1search0, turn2search3, or similar. Do not display raw reference IDs or metadata markers in the final text. Return clean, human-readable output only.
-
-## Document publication date
+### Document publication date
 {document_publication_date}
 
-## Extracted bibliography
+### Extracted bibliography
 ```
 {bibliography}
 ```
 """
-)
 
 
 @register_node("Review literature")
@@ -104,12 +96,10 @@ async def literature_review(
         else date.today().isoformat()
     )
 
-    user_prompt = _USER_PROMPT.invoke(
-        {
-            "bibliography": bibliography,
-            "document_publication_date": document_publication_date,
-        }
-    ).to_string()
+    user_prompt = load_skill_prompt("literature-review") + _INPUTS_TEMPLATE.format(
+        document_publication_date=document_publication_date,
+        bibliography=bibliography,
+    )
 
     agent = LiteratureReviewV2Agent(
         context=runtime.context,

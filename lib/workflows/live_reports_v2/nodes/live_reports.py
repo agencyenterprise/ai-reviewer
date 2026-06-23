@@ -10,10 +10,10 @@ document from `/main.md` via its tools and returns the standard
 import logging
 from datetime import date
 
-from langchain_core.prompts import PromptTemplate
 from langgraph.runtime import Runtime
 
 from lib.agents.formatting_utils import format_bibliography
+from lib.skills import load_skill_prompt
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.simple_deep_agent.agent import SimpleDeepAgent
@@ -29,6 +29,10 @@ class LiveReportsV2Agent(SimpleDeepAgent):
     timeout = 600
 
 
+# The live-report *procedure* is the portable `live-reports` skill (the single
+# source of truth). This system prompt carries only the Draft-Detective-specific
+# framing: where the document lives and how to map the skill's recommendations
+# onto the standard issues output contract.
 _SYSTEM_PROMPT = """\
 You are an expert research analyst producing a "live report" addendum for a document.
 
@@ -41,55 +45,42 @@ challenge the document's claims.
 ## Reporting
 
 Follow the issue-reporting conventions in the issues skill \
-(`/skills/issues/SKILL.md`). Report each claim that newer evidence would update \
-or strengthen as one issue, and include an overall `report_markdown` addendum.\
+(`/skills/issues/SKILL.md`). Report **one issue per claim that newer evidence \
+would update or strengthen**, mapping your recommendation onto the issue fields:
+- **title**: name the affected claim and the action (e.g. "Update claim: X" or "Add citation: Smith et al. 2024").
+- **description**: what the newer evidence shows and its direction relative to \
+the claim (supporting, conflicting, mixed, contextual).
+- **long_description**: full details in markdown — the new source's full citation \
+(authors, year, title, venue/publisher, URL/DOI), the relevant excerpt/finding, \
+and how it relates to the claim.
+- **suggested_action**: what the authors should do (update the claim and how, or \
+add a citation) and how to implement it.
+- **severity**: "medium" for an actionable update or added citation; "low" for \
+purely contextual additions.
+- **start_line** / **end_line**: the 1-indexed line range in `/main.md` of the \
+claim/passage the update relates to.
+
+Also include an overall `report_markdown` addendum summarizing the most important \
+updates, with the full citation for every recommended source. If nothing warrants \
+an update, return an empty issue list and a short report saying so.\
 """
 
 
-_USER_PROMPT = PromptTemplate.from_template(
-    """
-# Role
-You are an expert literature review researcher specializing in finding newer evidence that could update or contextualize existing claims in academic and policy documents.
+# Backend-injected, per-run inputs appended to the portable skill prompt.
+_INPUTS_TEMPLATE = """\
 
-# Goal
-Read the document at `/main.md` and identify its central claims. For those claims, use web search to find high-quality literature published AFTER the document's publication date that supports, conflicts with, updates, or adds important context to the claim. Then produce an addendum report describing what the authors should update and why.
+---
 
-# Instructions
-1. Identify the document's central claims by reading `/main.md`.
-2. For each central claim, search the web for relevant, high-quality sources published AFTER the document publication date ({document_publication_date}). Classify each source's direction relative to the claim: supporting, conflicting, mixed, or contextual.
-3. Prioritize peer-reviewed academic sources, government/NGO reports, and reputable institutions. Prefer meta-analyses, systematic reviews, and large-scale studies. Focus on the highest-quality and most relevant sources.
-4. Do NOT include sources published before the document publication date, and do NOT re-list sources already present in the document's bibliography below.
+## Inputs for this run
 
-# Output Format
-Return your findings as a list of `issues` plus an overall `report_markdown` addendum.
-
-Create **one issue per claim that newer evidence would update or strengthen**, with:
-- **title**: A short title naming the affected claim and the recommended action (e.g. "Update claim: X" or "Add citation: Smith et al. 2024").
-- **description**: What the newer evidence shows and its direction relative to the claim (supporting, conflicting, mixed, contextual).
-- **long_description**: The full details in markdown, including the new source's **full citation** (authors, year, title, venue/publisher, and a URL or DOI link when available), the relevant excerpt or finding, and how it relates to the claim.
-- **suggested_action**: What the authors should do — update the claim (and how), or add a citation — and how to implement it.
-- **severity**: Use "medium" for an actionable update or added citation; use "low" for purely contextual additions.
-- **start_line** / **end_line**: The 1-indexed line range in `/main.md` of the claim/passage this update relates to.
-
-Also provide an overall **report_markdown** addendum that summarizes the most important updates (what to change, how, and why it matters) and includes the **full citation / bibliography entry** for every recommended source (authors, year, title, venue, DOI or URL), so the reader can see at a glance how to find each source.
-
-Remember:
-- Only consider sources published AFTER the document publication date ({document_publication_date}).
-- Only analyze substantive empirical, scientific, or factual claims that newer research could realistically update. If the document makes no such claims (for example an internal note, administrative memo, or opinion piece), do not invent updates — return an empty issue list and a short report stating that no newer evidence is warranted.
-- Do not fabricate any references. If no newer evidence warrants a change for a claim, omit it (do not create an issue for it). If nothing warrants an update, return an empty issue list and a short report saying so.
-
-# NOTE:
-When generating responses, remove or replace all internal citation tokens such as turn1search0, turn2search3, or similar. Do not display raw reference IDs or metadata markers in the final text. Return clean, human-readable output only.
-
-## Document publication date
+### Document publication date
 {document_publication_date}
 
-## Current bibliography from the document (already cited — do not re-list these)
+### Current bibliography from the document (already cited — do not re-list these)
 ```
 {bibliography}
 ```
 """
-)
 
 
 @register_node("Generate live report")
@@ -106,12 +97,10 @@ async def live_reports(
         else date.today().isoformat()
     )
 
-    user_prompt = _USER_PROMPT.invoke(
-        {
-            "bibliography": bibliography,
-            "document_publication_date": document_publication_date,
-        }
-    ).to_string()
+    user_prompt = load_skill_prompt("live-reports") + _INPUTS_TEMPLATE.format(
+        document_publication_date=document_publication_date,
+        bibliography=bibliography,
+    )
 
     agent = LiveReportsV2Agent(
         context=runtime.context,
