@@ -41,6 +41,7 @@ _SKILL_BACKED_AGENTS = [
     "live-reports",
     "methodology-extraction",
     "methodology-comparison",
+    "reproducibility-check",
 ]
 
 
