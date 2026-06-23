@@ -30,6 +30,7 @@ These review the document and flag issues.
 | **Literature Review** | Are there relevant sources you may have missed? Searches the web for academic sources related to your document's claims — both supporting and conflicting — that aren't already cited. (Beta.) | `literature-review` |
 | **Live Reports** | Have your findings been updated or contradicted by newer research? Searches the web for sources published after your document's date and produces an addendum of what to update. (Beta.) | `live-reports` |
 | **Methodological Alignment** | Does your methodology match standard practice in the field? Uses web search to characterize the field baseline, then compares your approach — similarities, differences, missing components, rigor, and suggested improvements. | `methodology-comparison` |
+| **Reproducibility Check** | Could someone reproduce your results from the document alone? Extracts the main results and classifies each by how reproducible it is. (Beta.) | `reproducibility-check` |
 
 ## Tools
 
