@@ -28,6 +28,7 @@ These review the document and flag issues.
 | **Internal Inference Validation** | Does the reasoning hold up? Flags logical leaps, unsupported conclusions, and arguments where the evidence doesn't support the claim. | `inference-validation` |
 | **Reviewer 2** | A rigorous simulated peer review — summary, strengths, weaknesses, and prioritized next steps — plus a separate devil's-advocate rebuttal. (Beta.) | `reviewer-2` |
 | **Literature Review** | Are there relevant sources you may have missed? Searches the web for academic sources related to your document's claims — both supporting and conflicting — that aren't already cited. (Beta.) | `literature-review` |
+| **Live Reports** | Have your findings been updated or contradicted by newer research? Searches the web for sources published after your document's date and produces an addendum of what to update. (Beta.) | `live-reports` |
 
 ## Reference tools
 

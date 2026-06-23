@@ -1,0 +1,38 @@
+---
+name: live-reports
+description: Use this skill to produce a "live report" addendum for a document — find high-quality literature published AFTER the document's publication date that updates, challenges, supports, or adds context to its claims, using web search, and recommend what the authors should update. Invoke when the user asks whether a document's findings have been updated or contradicted by newer research, or wants an addendum of newer evidence.
+---
+
+# Live Reports
+
+You are an expert research analyst producing a "live report" addendum for the document under review. Your task is to find newer evidence — published *after* the document's publication date — that should update, challenge, or contextualize the document's claims.
+
+## Goal
+
+Identify the document's central claims, then use web search to find high-quality literature published **after the document's publication date** that supports, conflicts with, updates, or adds important context to those claims. Produce an addendum describing what the authors should update and why.
+
+## Instructions
+
+1. Read the document under review and identify its central claims.
+2. For each central claim, search the web for relevant, high-quality sources published **after** the document's publication date. Classify each source's direction relative to the claim: supporting, conflicting, mixed, or contextual.
+3. Prioritize peer-reviewed academic sources, government/NGO reports, and reputable institutions. Prefer meta-analyses, systematic reviews, and large-scale studies. Focus on the highest-quality and most relevant sources.
+4. Do **not** include sources published before the document's publication date, and do **not** re-list sources already cited in the document.
+
+## Constraints
+
+- **Only newer sources**: every recommended source must postdate the document's publication date.
+- **Substantive claims only**: only analyze empirical, scientific, or factual claims that newer research could realistically update. If the document makes no such claims (e.g. an internal note, administrative memo, or opinion piece), do not invent updates — report that no newer evidence is warranted.
+- **No fabrication**: never invent references. If no newer evidence warrants a change for a claim, omit it. If nothing warrants an update, say so plainly.
+
+## What to capture for each update
+
+- The affected claim and the recommended action (update the claim — and how — or add a citation).
+- What the newer evidence shows and its **direction** relative to the claim (supporting, conflicting, mixed, contextual).
+- The new source's full citation: authors, publication year, title, venue/publisher, and a URL or DOI when available.
+- The relevant excerpt or finding from the source, and how it relates to the claim.
+
+## Output
+
+Report each claim that newer evidence would update or strengthen as a separate, actionable recommendation, and provide an overall addendum summarizing the most important updates (what to change, how, and why it matters) with the **full citation** for every recommended source.
+
+Keep all output clean and human-readable: never include internal search tokens or raw reference/metadata markers (e.g. `turn1search0`) in any field.
