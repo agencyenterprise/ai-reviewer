@@ -40,6 +40,7 @@ These operate on the document rather than flagging issues.
 |---|---|---|
 | **Download References** | Search the web for a reference and download its full original content (PDF/Markdown), verifying the match. Reports found / found-but-inaccessible / not-found. | `reference-download` |
 | **Extract Methodology** | Extract a structured, reproducible description of the paper's methodology, and classify how reproducible it is. | `methodology-extraction` |
+| **Extract References** | Find and list all bibliographic references from the document's reference/bibliography section. | `reference-extraction` |
 
 ## Notes
 

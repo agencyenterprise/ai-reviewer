@@ -42,6 +42,7 @@ _SKILL_BACKED_AGENTS = [
     "methodology-extraction",
     "methodology-comparison",
     "reproducibility-check",
+    "reference-extraction",
 ]
 
 
