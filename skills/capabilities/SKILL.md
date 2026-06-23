@@ -29,14 +29,16 @@ These review the document and flag issues.
 | **Reviewer 2** | A rigorous simulated peer review — summary, strengths, weaknesses, and prioritized next steps — plus a separate devil's-advocate rebuttal. (Beta.) | `reviewer-2` |
 | **Literature Review** | Are there relevant sources you may have missed? Searches the web for academic sources related to your document's claims — both supporting and conflicting — that aren't already cited. (Beta.) | `literature-review` |
 | **Live Reports** | Have your findings been updated or contradicted by newer research? Searches the web for sources published after your document's date and produces an addendum of what to update. (Beta.) | `live-reports` |
+| **Methodological Alignment** | Does your methodology match standard practice in the field? Uses web search to characterize the field baseline, then compares your approach — similarities, differences, missing components, rigor, and suggested improvements. | `methodology-comparison` |
 
-## Reference tools
+## Tools
 
-These operate on the document's references rather than flagging issues.
+These operate on the document rather than flagging issues.
 
 | Tool | What it does | Skill |
 |---|---|---|
 | **Download References** | Search the web for a reference and download its full original content (PDF/Markdown), verifying the match. Reports found / found-but-inaccessible / not-found. | `reference-download` |
+| **Extract Methodology** | Extract a structured, reproducible description of the paper's methodology, and classify how reproducible it is. | `methodology-extraction` |
 
 ## Notes
 

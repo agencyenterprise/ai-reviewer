@@ -39,6 +39,8 @@ _SKILL_BACKED_AGENTS = [
     "reference-download",
     "literature-review",
     "live-reports",
+    "methodology-extraction",
+    "methodology-comparison",
 ]
 
 
