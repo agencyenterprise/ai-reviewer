@@ -55,7 +55,8 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
         slug="language",
         label="Language",
         workflows=[
-            WorkflowRunType.ADVOCACY_TONE,
+            # WorkflowRunType.ADVOCACY_TONE,  # legacy v1; kept registered so old projects still load.
+            WorkflowRunType.ADVOCACY_TONE_V2,
         ],
     ),
     CategoryConfig(

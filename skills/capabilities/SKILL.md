@@ -26,6 +26,7 @@ These review the document and flag issues.
 | **Document Contents** | Does the document include all required sections — About This, Acknowledgements, Methods, Results, Conclusion, References, and an Appendix when one is referenced? | `document-contents` |
 | **Recommendation Check** | Is each recommendation supported by the document's own findings? Flags recommendations with weak, indirect, missing, or contradictory backing. | `recommendation-check` |
 | **Internal Inference Validation** | Does the reasoning hold up? Flags logical leaps, unsupported conclusions, and arguments where the evidence doesn't support the claim. | `inference-validation` |
+| **Advocacy & Tone** | Does the document use neutral, objective language? Flags trigger words (certainty language without evidence), advocacy language (unsupported recommendations or opinion framing), and subjective tone. (Beta.) | `advocacy-tone` |
 | **Reviewer 2** | A rigorous simulated peer review — summary, strengths, weaknesses, and prioritized next steps — plus a separate devil's-advocate rebuttal. (Beta.) | `reviewer-2` |
 | **Literature Review** | Are there relevant sources you may have missed? Searches the web for academic sources related to your document's claims — both supporting and conflicting — that aren't already cited. (Beta.) | `literature-review` |
 | **Live Reports** | Have your findings been updated or contradicted by newer research? Searches the web for sources published after your document's date and produces an addendum of what to update. (Beta.) | `live-reports` |
