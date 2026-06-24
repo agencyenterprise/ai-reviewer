@@ -5804,6 +5804,7 @@ export const WorkflowRunType = {
   ClaimReferenceValidationV2: 'claim_reference_validation_v2',
   AbbreviationScanV2: 'abbreviation_scan_v2',
   AdvocacyTone: 'advocacy_tone',
+  AdvocacyToneV2: 'advocacy_tone_v2',
   AboutThisGer: 'about_this_ger',
   Reviewer2: 'reviewer_2',
   DocumentStructure: 'document_structure',

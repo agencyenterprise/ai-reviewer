@@ -55,6 +55,7 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.Reviewer2]: Reviewer2State;
   [WorkflowRunType.DocumentStructure]: SimpleDeepAgentState;
   [WorkflowRunType.FiguresTablesCheck]: SimpleDeepAgentState;
+  [WorkflowRunType.AdvocacyToneV2]: SimpleDeepAgentState;
 };
 
 export interface WorkflowRunDetailTyped<T> {

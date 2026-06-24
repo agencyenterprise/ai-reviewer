@@ -63,6 +63,7 @@ const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.ClaimReferenceValidationV2]: ClipboardCheck,
   [WorkflowRunType.AbbreviationScanV2]: ALargeSmall,
   [WorkflowRunType.AdvocacyTone]: MessageSquareWarning,
+  [WorkflowRunType.AdvocacyToneV2]: MessageSquareWarning,
   [WorkflowRunType.AboutThisGer]: BookOpen,
   [WorkflowRunType.Reviewer2]: BookOpen,
   [WorkflowRunType.DocumentStructure]: FileCheckIcon,
