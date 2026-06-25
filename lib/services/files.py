@@ -117,6 +117,7 @@ async def get_cached_summary_for_file(file_id: uuid.UUID | str) -> Optional[dict
             select(File)
             .where(
                 col(File.content_hash) == this_file.content_hash,
+                col(File.role) == this_file.role,
                 col(File.id) != file_id,
                 col(File.summary).is_not(None),
             )
