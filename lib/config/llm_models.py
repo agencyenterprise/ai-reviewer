@@ -53,6 +53,7 @@ class LLMModel(BaseModel):
 gpt_5_mini_model = LLMModel(provider="openai", name="gpt-5.4-mini")
 gpt_5_4_model = LLMModel(provider="openai", name="gpt-5.4")
 gpt_5_5_model = LLMModel(provider="openai", name="gpt-5.5")
+gpt_4_1_model = LLMModel(provider="openai", name="gpt-4.1")
 
 # Anthropic models
 claude_3_5_sonnet_model = LLMModel(
@@ -66,6 +67,7 @@ gemini_2_flash_model = LLMModel(provider="google_genai", name="gemini-2.5-flash-
 # Registry of all available models for testing and comparison
 # Key: model.name, Value: model instance
 ALL_MODELS = {
+    "gpt-4.1": gpt_4_1_model,
     "gpt-5-mini": gpt_5_mini_model,
     "gpt-5.4": gpt_5_4_model,
     "gpt-5.5": gpt_5_5_model,

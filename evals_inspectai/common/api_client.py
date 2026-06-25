@@ -2,10 +2,12 @@
 
 import asyncio
 import logging
+import mimetypes
 import os
 import tempfile
 import time
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -66,7 +68,7 @@ async def upload_and_start_analysis(
     file_content: str,
     workflow_types: list[str],
     file_name: str = "document.md",
-    supporting_files: list[tuple[str, str]] | None = None,
+    supporting_files: list[tuple[str, str | Path]] | None = None,
     publication_date: str | None = None,
 ) -> str:
     """Upload a document and start analysis workflows.
@@ -76,8 +78,11 @@ async def upload_and_start_analysis(
         workflow_types: Workflow types to trigger (dependencies are auto-resolved
             server-side; pass only the leaf workflow).
         file_name: Display name for the main document.
-        supporting_files: Optional list of (file_name, markdown_content) tuples
+        supporting_files: Optional list of (file_name, content_or_path) tuples
             uploaded alongside the main document as multipart `supporting_documents`.
+            The second element can be either:
+              - a markdown string (written to a temp file before upload), or
+              - a `Path` pointing at an existing file (uploaded directly, e.g. a PDF).
         publication_date: Optional document publication date (YYYY-MM-DD) passed
             to the workflow config. Used by date-sensitive workflows such as
             live reports, which search for sources published after this date.
@@ -102,17 +107,24 @@ async def upload_and_start_analysis(
                 ("main_document", (file_name, main_handle, "text/markdown"))
             )
 
-            for sf_name, sf_content in supporting_files or []:
-                with tempfile.NamedTemporaryFile(
-                    suffix=".md", mode="w", delete=False
-                ) as tmp_sf:
-                    tmp_sf.write(sf_content)
-                    sf_path = tmp_sf.name
-                tmp_paths.append(sf_path)
+            for sf_name, sf_value in supporting_files or []:
+                if isinstance(sf_value, Path):
+                    sf_path = str(sf_value)
+                    content_type = (
+                        mimetypes.guess_type(sf_path)[0] or "application/octet-stream"
+                    )
+                else:
+                    with tempfile.NamedTemporaryFile(
+                        suffix=".md", mode="w", delete=False
+                    ) as tmp_sf:
+                        tmp_sf.write(sf_value)
+                        sf_path = tmp_sf.name
+                    tmp_paths.append(sf_path)
+                    content_type = "text/markdown"
                 handle = open(sf_path, "rb")
                 open_handles.append(handle)
                 multipart.append(
-                    ("supporting_documents", (sf_name, handle, "text/markdown"))
+                    ("supporting_documents", (sf_name, handle, content_type))
                 )
 
             data: dict[str, Any] = {}
