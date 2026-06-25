@@ -5069,6 +5069,14 @@ export type SectionVerificationItem = {
    * Error
    */
   error?: string | null;
+  /**
+   * Messages
+   *
+   * LLM conversation messages from the citation-validator agent invocation.
+   */
+  messages?: Array<{
+    [key: string]: unknown;
+  }>;
 };
 
 /**

@@ -3,16 +3,18 @@
 import logging
 from typing import List, Optional
 
+from langchain_core.messages import BaseMessage
 from langgraph.runtime import Runtime
 from langgraph.types import Overwrite, Send
 
-from lib.agents.citation_validator import CitationValidatorAgent
+from lib.agents.citation_validator import CitationAssessment, CitationValidatorAgent
 from lib.agents.formatting_utils import format_audience_context, format_domain_context
 from lib.workflows.claim_reference_validation_v2.citation_mapping import (
     build_reference_file_map,
 )
 from lib.workflows.claim_reference_validation_v2.sections import split_into_sections
 from lib.workflows.claim_reference_validation_v2.state import (
+    CitationIssueItem,
     ClaimReferenceValidationV2State,
     SectionVerificationItem,
     SectionVerificationStatus,
@@ -22,6 +24,21 @@ from lib.workflows.decorators import register_node
 from lib.workflows.models import WorkflowError
 
 logger = logging.getLogger(__name__)
+
+
+def _assessment_to_issue(assessment: CitationAssessment) -> CitationIssueItem:
+    """Convert the agent's output record into the persisted workflow-state
+    record. The deprecated `evidence_alignment` field is left unset (None)."""
+    return CitationIssueItem(
+        quoted_text=assessment.quoted_text,
+        line_start=assessment.line_start,
+        line_end=assessment.line_end,
+        truthfulness_label=assessment.truthfulness_label,
+        rationale=assessment.rationale,
+        feedback=assessment.feedback,
+        evidence_sources=assessment.evidence_sources,
+        citation_to_file_mapping=assessment.citation_to_file_mapping,
+    )
 
 
 @register_node("Prepare sections")
@@ -86,6 +103,7 @@ async def validate_section(state: dict, runtime: Runtime[ContextSchema]):
 
     file_artifacts_service = runtime.context.file_artifacts_service
     issues = []
+    messages: List[BaseMessage] = []
     error: Optional[str] = None
     status = SectionVerificationStatus.COMPLETED
 
@@ -106,7 +124,7 @@ async def validate_section(state: dict, runtime: Runtime[ContextSchema]):
         )
 
         agent = CitationValidatorAgent(runtime.context)
-        result, _ = await agent.ainvoke(
+        result, lc_messages = await agent.ainvoke(
             {
                 "main_file_id": main_file.file_id,
                 "start_line": start_line,
@@ -119,7 +137,8 @@ async def validate_section(state: dict, runtime: Runtime[ContextSchema]):
             }
         )
 
-        issues = result.issues
+        issues = [_assessment_to_issue(a) for a in result.issues]
+        messages = lc_messages
 
     except Exception as e:
         logger.error("Error validating section %d: %s", section_index, e, exc_info=True)
@@ -137,6 +156,7 @@ async def validate_section(state: dict, runtime: Runtime[ContextSchema]):
                 num_citations=len(issues),
                 issues=issues,
                 error=error,
+                messages=messages,
             )
         ]
     }

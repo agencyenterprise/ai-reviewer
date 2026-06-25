@@ -3,10 +3,35 @@
 from enum import Enum
 from typing import Annotated, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from langchain_core.messages import BaseMessage
+from pydantic import BaseModel, Field, field_serializer
 
-from lib.agents.citation_validator import CitationIssueItem
+from lib.agents.citation_validator import TruthfulnessLabel
+from lib.agents.claim_verifier import ClaimEvidenceSource, EvidenceAlignmentLevel
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
+
+
+class CitationIssueItem(BaseModel):
+    """Persisted workflow-state record for one validated citation.
+
+    Built from the agent's `CitationAssessment` in the validate_section node.
+    Unlike the agent output, this keeps the deprecated `evidence_alignment`
+    field for backwards compatibility with workflow state persisted before the
+    RAND taxonomy migration; new runs leave it unset and populate
+    `truthfulness_label`.
+    """
+
+    quoted_text: str
+    line_start: int
+    line_end: int
+    truthfulness_label: Optional[TruthfulnessLabel] = None
+    # Deprecated: retained only so pre-migration persisted state still
+    # deserializes. New runs never populate it.
+    evidence_alignment: Optional[EvidenceAlignmentLevel] = None
+    rationale: str = ""
+    feedback: str = ""
+    evidence_sources: List[ClaimEvidenceSource] = Field(default_factory=list)
+    citation_to_file_mapping: Optional[str] = None
 
 
 class ClaimReferenceValidationV2Config(BaseWorkflowConfig):
@@ -31,6 +56,17 @@ class SectionVerificationItem(BaseModel):
     num_citations: int = 0
     issues: List[CitationIssueItem] = Field(default_factory=list)
     error: Optional[str] = None
+    messages: List[BaseMessage] = Field(
+        default_factory=list,
+        description="LLM conversation messages from the citation-validator agent invocation.",
+    )
+
+    @field_serializer("messages")
+    @classmethod
+    def _serialize_messages(cls, messages: List[BaseMessage]) -> list[dict]:
+        # Checkpointer-hydrated states may contain raw dicts in `messages`
+        # because reducers can append items that bypass model construction.
+        return [m if isinstance(m, dict) else m.model_dump() for m in messages]
 
 
 def merge_section_verifications(

@@ -5,13 +5,14 @@ from typing import List, Optional, Type, cast
 from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph, RunnableConfig
 
-from lib.agents.citation_validator import CitationIssueItem
+from lib.agents.citation_validator import TruthfulnessLabel
 from lib.agents.claim_verifier import EvidenceAlignmentLevel
 from lib.services.file import FileDocument
 from lib.workflows.claim_reference_validation_v2.graph import (
     build_claim_reference_validation_v2_graph,
 )
 from lib.workflows.claim_reference_validation_v2.state import (
+    CitationIssueItem,
     ClaimReferenceValidationV2Config,
     ClaimReferenceValidationV2State,
     SectionVerificationStatus,
@@ -22,14 +23,31 @@ from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.util import get_state_by_type
 from lib.workflows.workflow_types import WorkflowState
 
-_ISSUE_CONFIG = {
-    EvidenceAlignmentLevel.UNSUPPORTED: ("Unsupported Citation", SeverityEnum.HIGH),
-    EvidenceAlignmentLevel.PARTIALLY_SUPPORTED: (
+_ISSUE_CONFIG: dict[TruthfulnessLabel, tuple[str, SeverityEnum]] = {
+    TruthfulnessLabel.TRUE_EXPLICIT: ("Supported Citation", SeverityEnum.NONE),
+    TruthfulnessLabel.TRUE_INFERRED: ("Supported Citation", SeverityEnum.NONE),
+    TruthfulnessLabel.PARTIALLY_TRUE: (
         "Partially Supported Citation",
         SeverityEnum.MEDIUM,
     ),
-    EvidenceAlignmentLevel.UNVERIFIABLE: ("Unverifiable Citation", SeverityEnum.MEDIUM),
-    EvidenceAlignmentLevel.SUPPORTED: ("Supported Citation", SeverityEnum.NONE),
+    TruthfulnessLabel.FALSE_CONTRADICTED: (
+        "Contradicted Citation",
+        SeverityEnum.HIGH,
+    ),
+    TruthfulnessLabel.FALSE_NOT_IN_TEXT: (
+        "Unsupported Citation",
+        SeverityEnum.HIGH,
+    ),
+    TruthfulnessLabel.UNVERIFIABLE: ("Unverifiable Citation", SeverityEnum.MEDIUM),
+}
+
+# Maps legacy `EvidenceAlignmentLevel` values onto the new taxonomy so that
+# workflow state persisted before the migration still renders correctly.
+_LEGACY_ALIGNMENT_TO_LABEL: dict[EvidenceAlignmentLevel, TruthfulnessLabel] = {
+    EvidenceAlignmentLevel.SUPPORTED: TruthfulnessLabel.TRUE_EXPLICIT,
+    EvidenceAlignmentLevel.PARTIALLY_SUPPORTED: TruthfulnessLabel.PARTIALLY_TRUE,
+    EvidenceAlignmentLevel.UNSUPPORTED: TruthfulnessLabel.FALSE_NOT_IN_TEXT,
+    EvidenceAlignmentLevel.UNVERIFIABLE: TruthfulnessLabel.UNVERIFIABLE,
 }
 
 
@@ -58,15 +76,24 @@ def _format_evidence_source(
     return f"- {file_link} - {source.location}\n\n\t> *{source.quote}*"
 
 
+def _resolve_truthfulness_label(item: CitationIssueItem) -> Optional[TruthfulnessLabel]:
+    if item.truthfulness_label is not None:
+        return item.truthfulness_label
+    if item.evidence_alignment is not None:
+        return _LEGACY_ALIGNMENT_TO_LABEL.get(item.evidence_alignment)
+    return None
+
+
 def _build_issue(
     item: CitationIssueItem,
     supporting_files: Optional[List[FileDocument]],
     workflow_type: WorkflowRunType,
 ) -> Optional[DocumentIssue]:
-    if item.evidence_alignment not in _ISSUE_CONFIG:
+    label = _resolve_truthfulness_label(item)
+    if label is None or label not in _ISSUE_CONFIG:
         return None
 
-    title, severity = _ISSUE_CONFIG[item.evidence_alignment]
+    title, severity = _ISSUE_CONFIG[label]
 
     sources_text = (
         "\n".join(
@@ -79,7 +106,7 @@ def _build_issue(
 
     long_description = (
         f"**Cited text:**\n\n> {item.quoted_text}\n\n"
-        f"**Evidence Alignment:** {item.evidence_alignment}\n\n"
+        f"**Truthfulness:** {label.value}\n\n"
         f"### Checked sources\n\n{sources_text}\n\n"
         f"### Citation-to-file mapping\n\n"
         f"{item.citation_to_file_mapping or 'No citation-to-file mapping provided'}"
