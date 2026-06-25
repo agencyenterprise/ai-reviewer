@@ -43,6 +43,7 @@ _SKILL_BACKED_AGENTS = [
     "methodology-comparison",
     "reproducibility-check",
     "reference-extraction",
+    "advocacy-tone",
 ]
 
 
