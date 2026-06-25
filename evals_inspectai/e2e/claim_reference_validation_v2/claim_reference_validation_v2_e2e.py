@@ -16,15 +16,7 @@ from typing import Any
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample, json_dataset
 from inspect_ai.model import ModelOutput
-from inspect_ai.scorer import (
-    CORRECT,
-    INCORRECT,
-    Score,
-    Target,
-    mean,
-    scorer,
-    stderr,
-)
+from inspect_ai.scorer import Score, Target, mean, scorer, stderr
 from inspect_ai.solver import Generate, Solver, TaskState, solver
 
 from evals_inspectai.common.api_client import (
@@ -144,8 +136,8 @@ def _parse_citation_issues(completion: str) -> list[dict[str, Any]]:
     return workflow_state.get("citation_issues", []) or []
 
 
-def _evidence_alignment(issue: dict[str, Any]) -> str:
-    val = issue.get("evidence_alignment")
+def _truthfulness_label(issue: dict[str, Any]) -> str:
+    val = issue.get("truthfulness_label")
     if isinstance(val, dict):
         return val.get("value", "")
     return val or ""
@@ -154,17 +146,17 @@ def _evidence_alignment(issue: dict[str, Any]) -> str:
 @scorer(metrics=[mean(), stderr()])
 def citation_alignment_match():
     """Fraction of expected_issues that match a produced issue by quoted-text
-    substring AND have the expected evidence_alignment value."""
+    substring AND have the expected truthfulness_label value."""
 
     async def score(state: TaskState, target: Target) -> Score:
         try:
             issues = _parse_citation_issues(state.output.completion)
         except Exception as e:  # noqa: BLE001
-            return Score(value=INCORRECT, explanation=f"Parse error: {e}")
+            return Score(value=0, explanation=f"Parse error: {e}")
 
         expected: list[dict[str, Any]] = state.metadata.get("expected_issues", []) or []
         if not expected:
-            return Score(value=CORRECT, explanation="No expected_issues declared")
+            return Score(value=1, explanation="No expected_issues declared")
 
         matches = 0
         notes: list[str] = []
@@ -177,21 +169,20 @@ def citation_alignment_match():
             if not found:
                 notes.append(f"missing citation containing '{exp['quoted_contains']}'")
                 continue
-            actual = _evidence_alignment(found)
-            if actual != exp["alignment"]:
+            actual = _truthfulness_label(found)
+            if actual != exp["truthfulness_label"]:
                 notes.append(
-                    f"'{exp['quoted_contains']}' got {actual}, expected {exp['alignment']}"
+                    f"'{exp['quoted_contains']}' got {actual}, "
+                    f"expected {exp['truthfulness_label']}"
                 )
                 continue
             matches += 1
 
         score_value = matches / len(expected)
         if score_value == 1.0:
-            return Score(
-                value=CORRECT, explanation=f"All {matches} expected issues matched"
-            )
+            return Score(value=1, explanation=f"All {matches} expected issues matched")
         return Score(
-            value=score_value if score_value > 0 else INCORRECT,
+            value=score_value if score_value > 0 else 0,
             explanation="; ".join(notes) or "no expected issues matched",
         )
 
@@ -206,13 +197,13 @@ def citation_count_match():
         try:
             issues = _parse_citation_issues(state.output.completion)
         except Exception as e:  # noqa: BLE001
-            return Score(value=INCORRECT, explanation=f"Parse error: {e}")
+            return Score(value=0, explanation=f"Parse error: {e}")
 
         expected = state.metadata.get("expected_issues", []) or []
         if len(issues) == len(expected):
-            return Score(value=CORRECT, explanation=f"Issue count matches: {len(issues)}")
+            return Score(value=1, explanation=f"Issue count matches: {len(issues)}")
         return Score(
-            value=INCORRECT,
+            value=0,
             explanation=f"Got {len(issues)} issues, expected {len(expected)}",
         )
 

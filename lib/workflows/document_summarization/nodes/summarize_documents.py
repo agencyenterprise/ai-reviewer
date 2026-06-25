@@ -28,7 +28,7 @@ async def _summarize_document(
     role: FileRole,
     runtime: Runtime[ContextSchema],
 ) -> FileSummary:
-    # Return existing summary if already calculated
+    # Return existing summary if already calculated (same project re-run)
     existing = next(
         (s for s in existing_summaries if s.file_id == document.file_id), None
     )
@@ -36,14 +36,35 @@ async def _summarize_document(
         logger.info(f"Using existing summary for file {document.file_id}")
         return existing
 
-    content = (
-        document.markdown
-        if role == FileRole.MAIN
-        else document.markdown[:SUPPORTING_DOC_HEADER_SIZE]
-    )
-    response = await agent.ainvoke({"document": content})
+    # Imported here to match this node's convention of pulling service helpers
+    # in lazily (avoids a circular import at module load).
+    from lib.services.files import get_cached_summary_for_file
 
-    summary = FileSummary(file_id=document.file_id, **response.summary.model_dump())
+    # Cross-project DB cache: reuse a summary already computed for an identical
+    # file (same content_hash) in a previous project.
+    summary: FileSummary | None = None
+    cached = await get_cached_summary_for_file(document.file_id)
+    if cached:
+        try:
+            summary = FileSummary(file_id=document.file_id, **cached)
+            logger.info(
+                "Reusing cached summary for file %s (identical content summarized before)",
+                document.file_id,
+            )
+        except Exception as e:  # noqa: BLE001 — stale/incompatible cache shape: recompute
+            logger.warning(
+                "Cached summary for %s unusable (%s); recomputing", document.file_id, e
+            )
+            summary = None
+
+    if summary is None:
+        content = (
+            document.markdown
+            if role == FileRole.MAIN
+            else document.markdown[:SUPPORTING_DOC_HEADER_SIZE]
+        )
+        response = await agent.ainvoke({"document": content})
+        summary = FileSummary(file_id=document.file_id, **response.summary.model_dump())
 
     if role == FileRole.MAIN:
         from lib.services.projects import update_project_title

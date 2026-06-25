@@ -1,5 +1,6 @@
 """Citation validator agent that reads document sections and validates citations."""
 
+from enum import StrEnum
 from typing import List, Optional
 
 from langchain.agents import create_agent
@@ -7,7 +8,7 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langgraph.graph.state import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.agents.claim_verifier import ClaimEvidenceSource, EvidenceAlignmentLevel
+from lib.agents.claim_verifier import ClaimEvidenceSource
 from lib.agents.tools.read_document import read_document
 from lib.agents.tools.search_document import search_document
 from lib.agents.tools.vector_search import vector_search
@@ -16,8 +17,28 @@ from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 
 
-class CitationIssueItem(BaseModel):
-    """A citation that was identified as problematic or noteworthy."""
+class TruthfulnessLabel(StrEnum):
+    """Truthfulness taxonomy adapted from the RAND policy benchmark
+    (RAND_RRA4269-1, Table 2), plus an `unverifiable` value for citations
+    whose supporting file is missing or inaccessible.
+
+    RAND's `divergent_positions` category is intentionally omitted: the agent
+    never reaches it reliably and the benchmark has too few examples to measure
+    it, so claims that present mixed evidence are routed to `partially_true`."""
+
+    TRUE_EXPLICIT = "true_explicit"
+    TRUE_INFERRED = "true_inferred"
+    PARTIALLY_TRUE = "partially_true"
+    FALSE_CONTRADICTED = "false_contradicted"
+    FALSE_NOT_IN_TEXT = "false_not_in_text"
+    UNVERIFIABLE = "unverifiable"
+
+
+class CitationAssessment(BaseModel):
+    """The agent's output for a single assessed citation — exactly what the LLM
+    must return, and nothing more (no persistence/legacy fields). The
+    validate_section node converts this into the workflow's persisted
+    `CitationIssueItem`, which keeps deprecated fields for retro-compatibility."""
 
     quoted_text: str = Field(
         description="The exact sentence or passage from the main document that contains the citation marker."
@@ -26,8 +47,23 @@ class CitationIssueItem(BaseModel):
         description="1-indexed line number where quoted_text starts."
     )
     line_end: int = Field(description="1-indexed line number where quoted_text ends.")
-    evidence_alignment: EvidenceAlignmentLevel = Field(
-        description="How well the cited source supports the claim being made."
+    addresses_specific_claim: bool = Field(
+        description=(
+            "Gate question, answered independently of the label below. Setting "
+            "the general topic aside, does the source actually state the claim's "
+            "SPECIFIC assertion — its particular numbers, entities, scope, or the "
+            "relationship it asserts? The source merely discussing the broader "
+            "subject WITHOUT stating the claim's specific content does NOT count "
+            "— answer false then. If false, the citation is `false_not_in_text` "
+            "regardless of the label below."
+        )
+    )
+    truthfulness_label: Optional[TruthfulnessLabel] = Field(
+        default=None,
+        description=(
+            "Truthfulness category of the cited claim. Possible values: "
+            f"{[e.value for e in TruthfulnessLabel]}."
+        ),
     )
     rationale: str = Field(
         description="Brief explanation of why the citation is or is not supported."
@@ -51,12 +87,28 @@ class CitationIssueItem(BaseModel):
 
 
 class SectionValidationResult(BaseModel):
-    """Validation results for a single document section."""
+    """The citation-validator agent's output for one document section."""
 
-    issues: List[CitationIssueItem] = Field(
+    issues: List[CitationAssessment] = Field(
         description="All citations identified in this section, with their validation results.",
         default_factory=list,
     )
+
+
+def _apply_addresses_gate(item: CitationAssessment) -> None:
+    """One-way override: if the source does not state the claim's specific
+    assertion (`addresses_specific_claim` is False), force `false_not_in_text`.
+
+    This is the only structured intervention on the model's directly-chosen
+    label. It targets the dominant failure mode (the source discusses the topic
+    but not the claim → over-credited to `partially_true`) without disturbing
+    the model's strong native judgments on the supported/contradicted side.
+    `unverifiable` (source missing) is respected, not overridden.
+    """
+    if item.truthfulness_label == TruthfulnessLabel.UNVERIFIABLE:
+        return
+    if not item.addresses_specific_claim:
+        item.truthfulness_label = TruthfulnessLabel.FALSE_NOT_IN_TEXT
 
 
 _SYSTEM_PROMPT_TEMPLATE = """\
@@ -118,12 +170,44 @@ Lines inside a `## References`, `## Bibliography`, or similar dedicated bibliogr
    d. Evaluate whether the source actually supports the claim.
 4. If you need broader context around the cited text, use `read_document(main_file_id, ...)` to read adjacent lines.
 
-## Evidence Alignment Definitions
+## Truthfulness Label Definitions
 
-- **unverifiable**: The supporting file was not provided or could not be searched.
-- **supported**: The source clearly provides evidence that matches the claim's factual scope and tone.
-- **partially_supported**: The source provides related evidence but doesn't fully substantiate the claim (scope, frequency, or tone mismatch).
-- **unsupported**: The source does not contain evidence for the claim, contradicts it, or the citation is tangential or fabricated.
+For each citation, set `truthfulness_label` to one of the following values:
+
+- **true_explicit**: The claim is directly supported by clear evidence in the source.
+- **true_inferred**: The claim is not stated outright in the source, but can be logically inferred from it.
+- **partially_true**: The claim is partially supported by the source, but some parts are missing, unclear, or only weakly implied. This includes **scope or qualifier overreach** — the core fact or figure is correct, but the claim generalizes it beyond what the source covers (e.g., the source reports a finding for one region, time period, or population, and the claim presents it as worldwide, general, or universal). This **also** covers claims where the source presents **mixed or conflicting evidence** (some supporting, some contradicting) without a clear resolution — treat these as partially supported.
+- **false_contradicted**: The claim is directly contradicted by information in the source. The source must actively assert something incompatible with the claim — e.g., a different value, the opposite direction, or an explicit refutation. Source silence on part of the claim's scope (geography, time period, population) is NOT a contradiction: that maps to `partially_true` when other parts of the claim are supported, or to `false_not_in_text` when nothing is.
+- **false_not_in_text**: The claim is not supported by the source — either the claim is not mentioned or there is no evidence for it. This applies to claims that might be objectively true but are not backed by the cited source.
+- **unverifiable**: The supporting file was not provided or could not be searched, so the citation cannot be evaluated against the source.
+
+### Required gate: `addresses_specific_claim`
+
+In addition to the label, answer the boolean field **`addresses_specific_claim`** for every citation: setting the general topic aside, does the source actually state the claim's **specific** assertion (its particular numbers, entities, scope, or asserted relationship)? The source merely discussing the broader subject — without stating the claim's specific content — does **not** count; answer false then.
+
+This is the most common error to avoid: when a source discusses the same topic but does not assert the claim's specific point, the citation is **`false_not_in_text`**, not `partially_true`. Finding related or background material is not partial support. If you set `addresses_specific_claim` to false, the citation is treated as `false_not_in_text` regardless of the label you choose, so make the two consistent.
+
+### Picking between `partially_true` and `false_contradicted`
+
+If your rationale naturally falls into a "the source supports X, but the claim's Y is not backed by the source" shape, the label is `partially_true`, not `false_contradicted`. Reserve `false_contradicted` for cases where the source asserts something that cannot both be true at the same time as the claim (different number, opposite finding, explicit refutation).
+
+## Worked Examples
+
+Each example shows a cited claim, what the source actually says, and the correct label. Use these to calibrate the boundaries between categories.
+
+1. **true_explicit** — Claim: "The pilot program cut average emergency-room wait times by 30 percent." Source says: "After the pilot launched, average ER wait times fell by 30 percent." → The source states the exact figure and direction outright. Label: `true_explicit`.
+
+2. **true_inferred** — Claim: "The closures fell hardest on rural communities." Source says: "Of the 12 clinics shut down, 10 were located in rural counties." Source never uses the word "disproportionate," but the conclusion follows directly from the stated numbers. Label: `true_inferred`.
+
+3. **partially_true** — Claim: "Microplastics were detected in 93 percent of bottled water samples worldwide." Source says: "93 percent of sampled bottles contained microplastics; all samples were sourced from North American retailers, and we make no claims about other regions." The 93 percent figure is correct, but "worldwide" overreaches the source's North-America-only scope. Label: `partially_true`.
+
+4. **partially_true (mixed evidence)** — Claim: "Remote work increases employee productivity." Source says: "One cited survey reported a 30 percent productivity gain under remote work; a second reported a 15 percent decline. The report presents both and does not reconcile them." The source both supports and contradicts the claim with no resolution, so it is only partially supported. Label: `partially_true`.
+
+5. **false_contradicted** — Claim: "The treaty was ratified in 2019." Source says: "The treaty was signed in 2019 but, as of this writing, has not been ratified by any signatory." The source actively asserts the opposite of the claim. Label: `false_contradicted`.
+
+6. **false_not_in_text** — Claim: "The agency's budget tripled between 2010 and 2020." Source says: discusses the agency's staffing levels and statutory mandate over that period but never mentions budget figures at all. The claim may well be true, but the cited source contains no evidence for it. Label: `false_not_in_text`.
+
+7. **unverifiable** — Claim: "The assay achieves roughly 95 percent sensitivity (Wong, 2021)." The bibliography-to-file mapping has no supporting file for the Wong (2021) reference, so the source cannot be searched. Label: `unverifiable`.
 
 ## Search Efficiency
 
@@ -171,4 +255,8 @@ class CitationValidatorAgent(LangChainAgent):
             context=self.context,
         )
 
-        return result["structured_response"], result["messages"]
+        structured: SectionValidationResult = result["structured_response"]
+        for issue in structured.issues:
+            _apply_addresses_gate(issue)
+
+        return structured, result["messages"]
