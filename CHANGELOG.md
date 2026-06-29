@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.44] - 2026-06-29
+
+### Added
+- Added a richer RAND-aligned truthfulness taxonomy and an `addresses_specific_claim` gate to `claim_reference_validation_v2`.
+- Added a cross-project document-summary cache that reuses prior summaries for identical files by `content_hash`.
+- Added a manual reference-link helper that links the sole reference to the sole supporting file when a project has exactly one of each and they’re unmatched.
+- Added `gpt-4.1` to the model registry.
+- Added deployment-configurable settings for `advocacy_tone_v2` via an `app_configs` text key (`advocacy_tone_v2.config`) editable in the Application Settings UI.
+- Added new portable skills: `advocacy-tone`, `reference-extraction`, `reproducibility-check`, `methodology-extraction`, `methodology-comparison`, `literature-review`, and `live-reports`.
+- Added/updated evals and datasets for `claim_reference_validation_v2` and added an e2e task + dataset for `advocacy_tone_v2`.
+
+### Changed
+- Changed `claim_reference_validation_v2` agent output and persisted state to use `truthfulness_label`, keeping deprecated `evidence_alignment` optional for backward compatibility and rendering legacy runs via a fallback.
+- Changed `claim_verifier` so `evidence_alignment` is optional and shares taxonomy types.
+- Changed `reference_extraction` so `ReferenceExtractorV2Agent` loads its system prompt from the `reference-extraction` skill and appends backend-only environment guidance.
+- Changed `results_extraction` so `ResultsExtractorAgent` loads its prompt from the `reproducibility-check` skill and appends the document as a plain `HumanMessage`.
+- Changed `methodological_alignment` so both agent prompts load from composed skills and append per-run inputs as plain `HumanMessage`.
+- Changed `literature_review_v2` and `live_reports_v2` nodes to load portable skills and append per-run inputs (extracted bibliography and publication date), with backend system prompts owning the output contract.
+- Changed `advocacy_tone` by replacing the old workflow with `advocacy_tone_v2`, a `SimpleDeepAgent` driven by the `advocacy-tone` skill, while keeping v1 registered so old projects still load.
+- Changed the eval client to accept `Path` supporting files and forward an optional `publication_date`.
+- Regenerated frontend API types and wired the new `ADVOCACY_TONE_V2` workflow type in the frontend.
+
+### Fixed
+- Fixed the dominant `claim_reference_validation_v2` labeling error by forcing `false_not_in_text` when a source does not address the claim’s specific assertion.
+
+### Removed
+- Removed legacy `subjectivity_threshold` and `context_k` fields from `advocacy_tone_v2` customization.
+
+
 ## [v0.5.43] - 2026-06-22
 
 ### Added
