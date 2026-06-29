@@ -5,6 +5,11 @@ from contextlib import asynccontextmanager
 from functools import lru_cache
 from typing import List, Optional, Tuple, cast
 
+from sqlalchemy import select
+from sqlmodel import col
+
+from lib.config.database import get_async_db_session
+from lib.models.project import Project
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.workflow_runs import (
     create_workflow_run,
@@ -380,3 +385,68 @@ async def add_file_to_reference(
             f"Linked file {file_id} to reference {reference_id} in project {project_id}"
         )
         return True
+
+
+async def _get_project_current_revision(project_id: str) -> Optional[int]:
+    """Return the project's current (latest) revision, or None if not found."""
+    async with get_async_db_session() as session:
+        project = (
+            await session.execute(
+                select(Project).where(col(Project.id) == uuid.UUID(project_id))
+            )
+        ).scalar_one_or_none()
+        return project.current_revision if project else None
+
+
+async def force_match_single_supporting_file(project_id: str) -> bool:
+    """Link the sole reference to the sole supporting file, bypassing the matcher.
+
+    Only acts when the project has exactly ONE extracted reference and exactly
+    ONE supporting file that are not already matched. In that 1:1 setup a `NONE`
+    from the embedding/LLM auto-matcher is structurally always wrong (there is no
+    other file the reference could cite), so the obvious link is forced via
+    `MatchSource.MANUAL_UPLOAD`.
+
+    Intended for controlled single-source harnesses such as the RAND benchmark.
+    Real analyses (many references and/or files) never satisfy the 1:1 guard and
+    are therefore unaffected.
+
+    Returns True if a link was created, False otherwise.
+    """
+    revision = await _get_project_current_revision(project_id)
+    if revision is None:
+        return False
+
+    _, extraction_state = await _get_extraction_workflow_state(project_id, revision)
+    _, matching_state = await _get_file_matching_workflow_state(project_id, revision)
+    if extraction_state is None or matching_state is None:
+        return False
+
+    reference_ids = [
+        ref.id for ref in extraction_state.extracted_references if ref.id
+    ]
+    supporting_file_ids = list(matching_state.supporting_file_ids or [])
+    if len(reference_ids) != 1 or len(supporting_file_ids) != 1:
+        logger.info(
+            "force_match skipped for project %s: %d reference(s), %d supporting file(s)",
+            project_id,
+            len(reference_ids),
+            len(supporting_file_ids),
+        )
+        return False
+
+    reference_id = reference_ids[0]
+    if reference_id in {m.reference_id for m in matching_state.matches}:
+        logger.info(
+            "force_match skipped for project %s: reference already matched",
+            project_id,
+        )
+        return False
+
+    return await add_file_to_reference(
+        project_id=project_id,
+        file_id=supporting_file_ids[0],
+        reference_id=reference_id,
+        source=MatchSource.MANUAL_UPLOAD,
+        revision=revision,
+    )

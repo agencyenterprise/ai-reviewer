@@ -11,7 +11,7 @@ from lib.workflows.models import WorkflowRunType
 from lib.workflows.registry import get_workflow_manifest
 from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifest
 
-# The Tier 1 workflows whose rules live in a skill file.
+# SimpleDeepAgent workflows whose rules live in a skill file.
 _SKILL_BACKED_WORKFLOWS = [
     WorkflowRunType.FIGURES_TABLES_CHECK,
     WorkflowRunType.DOCUMENT_STRUCTURE,

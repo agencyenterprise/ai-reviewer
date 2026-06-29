@@ -1,0 +1,41 @@
+[
+  {
+    "input": "# Operations Research Report\n\n## Background\n\nThe study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.\n\n## Findings\n\nThe intervention obviously works, so further analysis is unnecessary.\n\n## Methods\n\nA stratified sampling scheme was applied across the three sites.\n",
+    "target_title_counts": {
+      "Trigger Words Detected": 1
+    },
+    "target_answer": "The Findings sentence uses 'obviously' to assert certainty without any cited evidence. The agent should report a 'Trigger Words Detected' issue (severity low) on that sentence. Advocacy and subjective tone are not the primary signal under test."
+  },
+  {
+    "input": "# Operations Research Report\n\n## Background\n\nThe study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.\n\n## Findings\n\nSection 4 of the regulation states that workers must always wear protective equipment when handling hazardous materials.\n\n## Methods\n\nA stratified sampling scheme was applied across the three sites.\n",
+    "target_title_counts": {
+      "Trigger Words Detected": 0,
+      "Advocacy Language Detected": 0,
+      "Subjective Tone Detected": 0
+    },
+    "target_answer": "The Findings sentence contains the trigger word 'always', but only as part of a factual quotation of a regulation in an objective context. Per the false-positive guardrail, simple factual mentions of legal terms should NOT be flagged. The agent should report zero advocacy/tone issues."
+  },
+  {
+    "input": "# Operations Research Report\n\n## Background\n\nThe study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.\n\n## Findings\n\nWe believe stricter enforcement of these regulations would yield better outcomes overall.\n\n## Methods\n\nA stratified sampling scheme was applied across the three sites.\n",
+    "target_title_counts": {
+      "Advocacy Language Detected": 1
+    },
+    "target_answer": "The Findings sentence states the authors' opinion ('We believe ...') and recommends stricter enforcement without citing evidence. The agent should report an 'Advocacy Language Detected' issue (severity medium) on that sentence."
+  },
+  {
+    "input": "# Operations Research Report\n\n## Background\n\nThe study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.\n\n## Findings\n\nThe results are remarkably impressive, and the team's tireless dedication makes this one of the most exciting breakthroughs the field has ever seen.\n\n## Methods\n\nA stratified sampling scheme was applied across the three sites.\n",
+    "target_title_counts": {
+      "Subjective Tone Detected": 1
+    },
+    "target_answer": "The Findings sentence is laden with value judgments and emotional language ('remarkably impressive', 'tireless dedication', 'most exciting breakthroughs') rather than a neutral, evidence-based statement. It contains no listed trigger words or advocacy phrases, so the agent should report a 'Subjective Tone Detected' issue (severity medium)."
+  },
+  {
+    "input": "# Operations Research Report\n\n## Background\n\nThe study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.\n\n## Findings\n\nThe study collected 240 responses from three sites and applied a stratified sampling design.\n\n## Methods\n\nA stratified sampling scheme was applied across the three sites.\n",
+    "target_title_counts": {
+      "Trigger Words Detected": 0,
+      "Advocacy Language Detected": 0,
+      "Subjective Tone Detected": 0
+    },
+    "target_answer": "The Findings sentence is purely factual and contains no trigger words, advocacy phrases, or value-laden language. The agent should report zero advocacy/tone issues."
+  }
+]

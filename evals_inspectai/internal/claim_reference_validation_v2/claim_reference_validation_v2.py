@@ -75,11 +75,11 @@ def _record_to_sample(record: dict[str, Any]) -> Sample:
 
 
 def _grade_alignment(output: SectionValidationResult, state: TaskState) -> Score:
-    """Match each expected issue to a produced one and check evidence_alignment.
+    """Match each expected issue to a produced one and check truthfulness_label.
 
     Matching is by substring of `quoted_text` (case-insensitive). The score is
     the fraction of expected issues that were both found and tagged with the
-    expected alignment level.
+    expected truthfulness label.
     """
     expected: List[dict[str, Any]] = state.metadata.get("expected_issues", []) or []
     if not expected:
@@ -102,10 +102,13 @@ def _grade_alignment(output: SectionValidationResult, state: TaskState) -> Score
         if not found:
             notes.append(f"missing citation containing '{exp['quoted_contains']}'")
             continue
-        if found.evidence_alignment.value != exp["alignment"]:
+        actual_label = (
+            found.truthfulness_label.value if found.truthfulness_label else None
+        )
+        if actual_label != exp["truthfulness_label"]:
             notes.append(
-                f"'{exp['quoted_contains']}' got {found.evidence_alignment.value}, "
-                f"expected {exp['alignment']}"
+                f"'{exp['quoted_contains']}' got {actual_label}, "
+                f"expected {exp['truthfulness_label']}"
             )
             continue
         matches += 1

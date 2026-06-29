@@ -37,6 +37,13 @@ _SKILL_BACKED_AGENTS = [
     "reviewer-2",
     "inference-validation",
     "reference-download",
+    "literature-review",
+    "live-reports",
+    "methodology-extraction",
+    "methodology-comparison",
+    "reproducibility-check",
+    "reference-extraction",
+    "advocacy-tone",
 ]
 
 

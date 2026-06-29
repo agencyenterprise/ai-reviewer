@@ -96,6 +96,38 @@ async def get_file_by_id(file_id: uuid.UUID | str) -> File:
         return file
 
 
+async def get_cached_summary_for_file(file_id: uuid.UUID | str) -> Optional[dict]:
+    """Return a document summary already computed for an identical file in any
+    project, or None.
+
+    Matches by `content_hash` (so the same uploaded bytes are reused regardless
+    of project), excluding the file itself. Lets the summarization workflow skip
+    recomputing a summary it has produced before for the same document.
+    """
+    file_id = ensure_uuid(file_id, "file ID")
+
+    async with get_async_db_session() as session:
+        this_file = (
+            await session.execute(select(File).where(col(File.id) == file_id))
+        ).scalar_one_or_none()
+        if this_file is None or not this_file.content_hash:
+            return None
+
+        stmt = (
+            select(File)
+            .where(
+                col(File.content_hash) == this_file.content_hash,
+                col(File.role) == this_file.role,
+                col(File.id) != file_id,
+                col(File.summary).is_not(None),
+            )
+            .order_by(col(File.created_at).desc())
+            .limit(1)
+        )
+        cached = (await session.execute(stmt)).scalars().first()
+        return cached.summary if cached else None
+
+
 async def assert_project_has_main_file(
     project_id: uuid.UUID | str,
     revision: int,
