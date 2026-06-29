@@ -34,7 +34,7 @@ The document may be long (e.g., 10,000+ words) and may NOT be cleanly structured
 
 ## Results extraction guidelines
 
-Results are sometimes represented as equations, figures, tables, or specific numerical quantities stated within the text. In general, they are defined as the end-points of some quantitative or qualitative analysis. For the results extraction, we want to extract results and put them within the same section according to their natural grouping within the paper. For example, a table could countain dozens of values, but it should represent a single result. Similarly with figures. Each of these particular results should have a reproducibility category.
+Results are sometimes represented as equations, figures, tables, or specific numerical quantities stated within the text. In general, they are defined as the end-points of some quantitative or qualitative analysis. For the results extraction, we want to extract results and put them within the same section according to their natural grouping within the paper. For example, a table could contain dozens of values, but it should represent a single result. Similarly with figures. Each of these particular results should have a reproducibility category.
 
 ## Reproducibility Criteria
 
