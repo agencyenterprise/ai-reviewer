@@ -148,6 +148,16 @@ export type AbbreviationScanV2State = {
 };
 
 /**
+ * AboutContentResponse
+ */
+export type AboutContentResponse = {
+  /**
+   * Value
+   */
+  value: string;
+};
+
+/**
  * AboutThisGerConfig
  *
  * Configuration for the About This (GER) workflow.
@@ -925,53 +935,43 @@ export type CitationDetectionState = {
 /**
  * CitationIssueItem
  *
- * A citation that was identified as problematic or noteworthy.
+ * Persisted workflow-state record for one validated citation.
+ *
+ * Built from the agent's `CitationAssessment` in the validate_section node.
+ * Unlike the agent output, this keeps the deprecated `evidence_alignment`
+ * field for backwards compatibility with workflow state persisted before the
+ * RAND taxonomy migration; new runs leave it unset and populate
+ * `truthfulness_label`.
  */
 export type CitationIssueItem = {
   /**
    * Quoted Text
-   *
-   * The exact sentence or passage from the main document that contains the citation marker.
    */
   quoted_text: string;
   /**
    * Line Start
-   *
-   * 1-indexed line number where quoted_text starts.
    */
   line_start: number;
   /**
    * Line End
-   *
-   * 1-indexed line number where quoted_text ends.
    */
   line_end: number;
-  /**
-   * How well the cited source supports the claim being made.
-   */
-  evidence_alignment: EvidenceAlignmentLevel;
+  truthfulness_label?: TruthfulnessLabel | null;
+  evidence_alignment?: EvidenceAlignmentLevel | null;
   /**
    * Rationale
-   *
-   * Brief explanation of why the citation is or is not supported.
    */
-  rationale: string;
+  rationale?: string;
   /**
    * Feedback
-   *
-   * Actionable suggestion for the author. Return 'No changes needed' if the citation is correct.
    */
-  feedback: string;
+  feedback?: string;
   /**
    * Evidence Sources
-   *
-   * All reference files that were checked when validating this citation.
    */
   evidence_sources?: Array<ClaimEvidenceSource>;
   /**
    * Citation To File Mapping
-   *
-   * Display-friendly summary of which bibliography entry was matched to which supporting file when checking this citation, e.g. 'Smith (2020) → smith_2020.pdf'. Do not include file_id UUIDs in this string; the file_id belongs in each entry of evidence_sources.
    */
   citation_to_file_mapping?: string | null;
 };
@@ -5298,6 +5298,39 @@ export type SummaryAndOutput = {
 };
 
 /**
+ * TruthfulnessLabel
+ *
+ * Truthfulness taxonomy adapted from the RAND policy benchmark
+ * (RAND_RRA4269-1, Table 2), plus an `unverifiable` value for citations
+ * whose supporting file is missing or inaccessible.
+ *
+ * RAND's `divergent_positions` category is intentionally omitted: the agent
+ * never reaches it reliably and the benchmark has too few examples to measure
+ * it, so claims that present mixed evidence are routed to `partially_true`.
+ */
+export const TruthfulnessLabel = {
+  TrueExplicit: 'true_explicit',
+  TrueInferred: 'true_inferred',
+  PartiallyTrue: 'partially_true',
+  FalseContradicted: 'false_contradicted',
+  FalseNotInText: 'false_not_in_text',
+  Unverifiable: 'unverifiable',
+} as const;
+
+/**
+ * TruthfulnessLabel
+ *
+ * Truthfulness taxonomy adapted from the RAND policy benchmark
+ * (RAND_RRA4269-1, Table 2), plus an `unverifiable` value for citations
+ * whose supporting file is missing or inaccessible.
+ *
+ * RAND's `divergent_positions` category is intentionally omitted: the agent
+ * never reaches it reliably and the benchmark has too few examples to measure
+ * it, so claims that present mixed evidence are routed to `partially_true`.
+ */
+export type TruthfulnessLabel = (typeof TruthfulnessLabel)[keyof typeof TruthfulnessLabel];
+
+/**
  * UpdateProjectRequest
  */
 export type UpdateProjectRequest = {
@@ -5950,6 +5983,23 @@ export type ReadHealthApiHealthHeadResponses = {
    */
   200: unknown;
 };
+
+export type GetAboutContentApiAboutGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/about';
+};
+
+export type GetAboutContentApiAboutGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: AboutContentResponse;
+};
+
+export type GetAboutContentApiAboutGetResponse =
+  GetAboutContentApiAboutGetResponses[keyof GetAboutContentApiAboutGetResponses];
 
 export type ListAppConfigsApiAppConfigsGetData = {
   body?: never;

@@ -66,6 +66,8 @@ import type {
   ExtensionTerminationRouteTusUuidDeleteData,
   ExtensionTerminationRouteTusUuidDeleteErrors,
   ExtensionTerminationRouteTusUuidDeleteResponses,
+  GetAboutContentApiAboutGetData,
+  GetAboutContentApiAboutGetResponses,
   GetAdminFeedbacksApiAdminFeedbacksGetData,
   GetAdminFeedbacksApiAdminFeedbacksGetErrors,
   GetAdminFeedbacksApiAdminFeedbacksGetResponses,
@@ -213,6 +215,20 @@ export const readHealthApiHealthHead = <ThrowOnError extends boolean = true>(
   (options?.client ?? client).head<ReadHealthApiHealthHeadResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
     url: '/api/health',
+    ...options,
+  });
+
+/**
+ * Get About Content
+ *
+ * Return the About page markdown content (from the committed ABOUT.md).
+ */
+export const getAboutContentApiAboutGet = <ThrowOnError extends boolean = true>(
+  options?: Options<GetAboutContentApiAboutGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<GetAboutContentApiAboutGetResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    url: '/api/about',
     ...options,
   });
 

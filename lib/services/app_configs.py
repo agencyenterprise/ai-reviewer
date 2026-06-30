@@ -106,10 +106,14 @@ async def ensure_defaults(defaults: List[DefaultConfig]) -> None:
 
 
 def _collect_all_defaults() -> List[DefaultConfig]:
-    """Gather every DefaultConfig list registered across the codebase."""
-    from lib.config_keys.about_page import ABOUT_PAGE_DEFAULTS
+    """Gather every DefaultConfig list registered across the codebase.
 
-    return [*ABOUT_PAGE_DEFAULTS]
+    Currently empty: the About-page content moved to the committed ABOUT.md
+    file (served via /api/about), and workflow customisation moved to skill
+    files. The app_configs table/API remain available for future runtime
+    configs and for any values admins have set manually.
+    """
+    return []
 
 
 async def seed_all_defaults() -> None:
