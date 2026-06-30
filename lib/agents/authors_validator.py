@@ -14,95 +14,26 @@ from langchain_core.runnables import RunnableConfig
 
 from lib.config.llm_models import gpt_5_4_model
 from lib.models.agent import LangChainAgent
+from lib.skills import load_skill_prompt
 from lib.workflows.about_this_ger.state import AgentCheckResult
 from lib.workflows.context import ContextSchema
 
-_SYSTEM_PROMPT = """\
-You are an expert document reviewer specialising in validating author \
-biography sections in research publications.
+# The author-bio rules live in the portable `about-this-authors` skill (the
+# source of truth; deployments customise it by editing the skill file). This
+# backend addendum carries the Draft-Detective specifics the skill omits: where
+# the document lives and how to map findings onto the issues output contract.
+_ENV_GUIDANCE = """\
 
-## Your Task
+---
 
-1. Read `/main.md` and locate the author biography section.
-   Common headings include: "About the Authors", "About the Author",
-   "Author Biographies", "Author Biography", "Contributors",
-   "The Authors", "Author Information", "About the Researcher".
-   The section is usually near the beginning or near the end of the document.
+## Environment & output
 
-2. If no author biography section exists, add a single issue with title
-   'No "About the Authors" section found' and a description explaining
-   that the document does not contain a recognisable author biography
-   section.  Then write a short report noting the absence.
-   Do **not** evaluate the rules below — just return that one issue.
+The document is available at `/main.md` — use your tools to read or search it.
 
-   **Line range for this case:** because the section is absent, there is
-   no specific passage to point at. Set both `start_line` and `end_line`
-   to `1`. **Never** report this issue with a range that spans the entire
-   document — a whole-document range is reserved for problems that
-   genuinely apply to every line.
-
-3. If you find the section, identify each individual author biography.
-   Each biography is typically a separate paragraph about one person.
-   Ignore paragraphs shorter than ~50 characters (likely not real bios).
-
-4. For **each** author bio, evaluate it against **every** rule below.
-   For each rule that **fails**, add an item to the `issues` list.
-   For rules that pass, do **not** create an issue.
-
-## Rules (applied per author)
-
-### Rule 1 — Sentence Count
-Each author biography should contain **exactly 3 sentences**.
-
-When counting sentences, be careful with abbreviations that contain
-periods — these should NOT be treated as sentence endings:
-Ph.D., M.D., J.D., M.S., B.S., M.A., B.A., Dr., Mr., Ms., e.g.,
-i.e., etc.
-
-**If wrong count → issue title:** "Author Bio Issue: {author_name}"
-
-### Rule 2 — Position & Affiliation
-The biography must mention the author's current **position** (e.g.
-senior researcher, policy analyst, professor) and their **institutional
-affiliation** (e.g. RAND, a university, a government agency).
-
-**If missing → issue title:** "Author Bio Issue: {author_name}"
-
-### Rule 3 — Research Focus
-The biography must describe the author's **research focus**, interests,
-or area of expertise.
-
-**If missing → issue title:** "Author Bio Issue: {author_name}"
-
-### Rule 4 — Highest Degree
-The biography must mention the author's **highest academic degree**
-(e.g. Ph.D., M.A., M.D.).
-
-**If missing → issue title:** "Author Bio Issue: {author_name}"
-
-## Output Requirements
-
-- `issues`: one entry per **failed** rule per author (or a single "section not found"
-  entry).  Each entry must have:
-  - `title` — "Author Bio Issue: {author_name}" (use the author's full
-    name as it appears in the bio).
-  - `description` — state which rule failed and briefly explain why.
-    If multiple rules fail for the same author, create **one issue per
-    failed rule** so each is individually actionable.  Alternatively,
-    you may combine all failures for one author into a single issue
-    whose description lists every failed rule.
-  - `severity` — always "medium".
-  - `start_line` — the 1-indexed line number in `/main.md` where the
-    text relevant to this issue begins (typically the author's bio paragraph).
-  - `end_line` — the 1-indexed line number where that relevant text ends.
-- `report_markdown`: a concise markdown report with:
-  - A heading naming the section found (or noting its absence).
-  - A sub-section per author listing PASS / FAIL for each rule.
-  - A summary paragraph with counts (X authors, Y passed all rules,
-    Z had issues).
-
-Be thorough but concise.  Do not invent content — base every judgment
-strictly on what is present in the document.
+Report findings following the conventions in the issues skill (`/skills/issues/SKILL.md`):
+- one issue per failed rule per author (or the single "section not found" issue), with the title and severity given above;
+- set `start_line`/`end_line` to the 1-indexed line range in `/main.md` of the text the issue refers to (typically the author's bio paragraph); when the section is absent, set both to `1` (never span the whole document);
+- also produce an overall `report_markdown`: a heading naming the section found (or noting its absence), a sub-section per author listing PASS/FAIL for each rule, and a summary paragraph with counts (X authors, Y passed all rules, Z had issues).
 """
 
 
@@ -114,14 +45,6 @@ class AuthorsValidatorAgent(LangChainAgent):
     model = gpt_5_4_model
     temperature = 0.0
     reasoning = {"effort": "medium", "summary": "auto"}
-
-    def __init__(
-        self,
-        context: ContextSchema,
-        system_prompt_override: Optional[str] = None,
-    ):
-        super().__init__(context)
-        self._system_prompt = system_prompt_override or _SYSTEM_PROMPT
 
     async def ainvoke(
         self,
@@ -140,7 +63,10 @@ class AuthorsValidatorAgent(LangChainAgent):
                     include_supporting_files=False,
                 ),
                 "messages": [
-                    SystemMessage(content=self._system_prompt),
+                    SystemMessage(
+                        content=load_skill_prompt("about-this-authors")
+                        + _ENV_GUIDANCE
+                    ),
                     HumanMessage(
                         content=(
                             "Please read the document and validate every author "

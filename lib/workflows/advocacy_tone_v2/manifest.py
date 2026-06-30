@@ -1,8 +1,3 @@
-from langgraph.graph import StateGraph
-
-from lib.workflows.advocacy_tone_v2.nodes.advocacy_tone import (
-    build_advocacy_tone_v2_graph,
-)
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifest
 
@@ -10,10 +5,8 @@ from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifes
 class AdvocacyToneV2Manifest(SimpleDeepAgentManifest):
     """Flags advocacy language, trigger words, and subjective tone via a deep agent.
 
-    Reuses the SimpleDeepAgent state/config and issue conversion, but customises
-    the graph so the node can inject the deployment's tunable configuration
-    (the ``advocacy_tone_v2.config`` app setting) into the `advocacy-tone` skill
-    prompt at runtime.
+    Uses the `advocacy-tone` skill as its rules (source of truth). Deployments
+    customize the check by editing that skill file directly in their fork.
     """
 
     type = WorkflowRunType.ADVOCACY_TONE_V2
@@ -25,5 +18,4 @@ class AdvocacyToneV2Manifest(SimpleDeepAgentManifest):
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
     is_experimental = False
 
-    def build_graph(self) -> StateGraph:
-        return build_advocacy_tone_v2_graph()
+    skill = "advocacy-tone"
