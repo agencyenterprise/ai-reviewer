@@ -46,6 +46,8 @@ _SKILL_BACKED_AGENTS = [
     "advocacy-tone",
     "about-this-preface",
     "about-this-authors",
+    "abbreviation-extraction",
+    "abbreviation-scan",
 ]
 
 
