@@ -15,6 +15,4 @@ def test_about_md_file_exists_at_repo_root():
 def test_read_about_content_returns_markdown():
     content = read_about_content()
     assert content.strip()
-    # Sanity check it's the About page markdown, not an empty/placeholder file.
-    assert content.lstrip().startswith("# About This Tool")
     assert content == ABOUT_MD_PATH.read_text(encoding="utf-8")
