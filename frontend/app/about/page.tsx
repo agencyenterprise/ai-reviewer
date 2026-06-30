@@ -1,6 +1,6 @@
 import { Markdown } from '@/components/markdown';
 import { Card, CardContent } from '@/components/ui/card';
-import { getAppConfigApiAppConfigsKeyGet } from '@/lib/generated-api';
+import { getAboutContentApiAboutGet } from '@/lib/generated-api';
 import { createClient, createConfig } from '@/lib/generated-api/client';
 
 const serverClient = createClient(
@@ -11,10 +11,7 @@ export default async function AboutPage() {
   let content: string | null = null;
 
   try {
-    const data = await getAppConfigApiAppConfigsKeyGet({
-      client: serverClient,
-      path: { key: 'about_page.content' },
-    });
+    const data = await getAboutContentApiAboutGet({ client: serverClient });
     content = data.value;
   } catch {
     // content stays null — error fallback rendered below

@@ -18,6 +18,7 @@ from lib.api.mcp.server import mcp_app, mcp_auth
 from lib.api.mcp_middlewares import MCPTrailingSlashMiddleware
 from lib.api.tus_middleware import TusTerminationMiddleware
 from lib.api.routers import (
+    about,
     analysis,
     app_configs,
     feedback,
@@ -103,6 +104,7 @@ app.add_middleware(GZipMiddleware)
 
 # Register routers
 app.include_router(health.router)
+app.include_router(about.router)
 app.include_router(app_configs.router)
 app.include_router(analysis.router)
 app.include_router(workflows.router)
