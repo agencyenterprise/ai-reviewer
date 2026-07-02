@@ -8,7 +8,7 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langgraph.graph.state import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.agents.claim_verifier import ClaimEvidenceSource
+from lib.agents.claim_verifier import ClaimEvidenceSource, EvidenceAlignmentLevel
 from lib.agents.tools.read_document import read_document
 from lib.agents.tools.search_document import search_document
 from lib.agents.tools.vector_search import vector_search
@@ -19,13 +19,13 @@ from lib.workflows.context import ContextSchema
 
 
 class TruthfulnessLabel(StrEnum):
-    """Truthfulness taxonomy adapted from the RAND policy benchmark
-    (RAND_RRA4269-1, Table 2), plus an `unverifiable` value for citations
-    whose supporting file is missing or inaccessible.
+    """LEGACY 6-category truthfulness taxonomy (RAND_RRA4269-1, Table 2).
 
-    RAND's `divergent_positions` category is intentionally omitted: the agent
-    never reaches it reliably and the benchmark has too few examples to measure
-    it, so claims that present mixed evidence are routed to `partially_true`."""
+    The agent no longer emits this — it now outputs the simpler four-value
+    `EvidenceAlignmentLevel` (supported / partially_supported / unsupported /
+    unverifiable). This enum is retained ONLY so workflow state persisted before
+    the migration back to `EvidenceAlignmentLevel` still deserializes; the
+    manifest maps it onto the new taxonomy for rendering."""
 
     TRUE_EXPLICIT = "true_explicit"
     TRUE_INFERRED = "true_inferred"
@@ -48,22 +48,10 @@ class CitationAssessment(BaseModel):
         description="1-indexed line number where quoted_text starts."
     )
     line_end: int = Field(description="1-indexed line number where quoted_text ends.")
-    addresses_specific_claim: bool = Field(
+    evidence_alignment: EvidenceAlignmentLevel = Field(
         description=(
-            "Gate question, answered independently of the label below. Setting "
-            "the general topic aside, does the source actually state the claim's "
-            "SPECIFIC assertion — its particular numbers, entities, scope, or the "
-            "relationship it asserts? The source merely discussing the broader "
-            "subject WITHOUT stating the claim's specific content does NOT count "
-            "— answer false then. If false, the citation is `false_not_in_text` "
-            "regardless of the label below."
-        )
-    )
-    truthfulness_label: Optional[TruthfulnessLabel] = Field(
-        default=None,
-        description=(
-            "Truthfulness category of the cited claim. Possible values: "
-            f"{[e.value for e in TruthfulnessLabel]}."
+            "How well the cited source supports the specific claim. Possible "
+            f"values: {[e.value for e in EvidenceAlignmentLevel]}."
         ),
     )
     rationale: str = Field(
@@ -94,22 +82,6 @@ class SectionValidationResult(BaseModel):
         description="All citations identified in this section, with their validation results.",
         default_factory=list,
     )
-
-
-def _apply_addresses_gate(item: CitationAssessment) -> None:
-    """One-way override: if the source does not state the claim's specific
-    assertion (`addresses_specific_claim` is False), force `false_not_in_text`.
-
-    This is the only structured intervention on the model's directly-chosen
-    label. It targets the dominant failure mode (the source discusses the topic
-    but not the claim → over-credited to `partially_true`) without disturbing
-    the model's strong native judgments on the supported/contradicted side.
-    `unverifiable` (source missing) is respected, not overridden.
-    """
-    if item.truthfulness_label == TruthfulnessLabel.UNVERIFIABLE:
-        return
-    if not item.addresses_specific_claim:
-        item.truthfulness_label = TruthfulnessLabel.FALSE_NOT_IN_TEXT
 
 
 # The citation-substantiation *method* lives in the portable `citation-support`
@@ -153,8 +125,7 @@ This table maps each bibliography entry to its supporting file. Use the file_id 
 Return `issues` — one `CitationAssessment` per citation you validate — each with:
 - `quoted_text`: the exact sentence/passage containing the citation marker;
 - `line_start` / `line_end`: its 1-indexed line range in the main document;
-- `addresses_specific_claim`: the specific-claim gate (boolean). If false, the citation is treated as `false_not_in_text` regardless of the label, so keep the two consistent;
-- `truthfulness_label`: one of `true_explicit`, `true_inferred`, `partially_true`, `false_contradicted`, `false_not_in_text`, `unverifiable`;
+- `evidence_alignment`: one of `supported`, `partially_supported`, `unsupported`, `unverifiable`;
 - `rationale`: a brief explanation of the judgment;
 - `feedback`: an actionable suggestion for the author (`"No changes needed"` if the citation is correct);
 - `evidence_sources`: every reference file you checked for this citation (with a quote, location, and file_id each);
@@ -203,7 +174,4 @@ class CitationValidatorAgent(LangChainAgent):
         )
 
         structured: SectionValidationResult = result["structured_response"]
-        for issue in structured.issues:
-            _apply_addresses_gate(issue)
-
         return structured, result["messages"]

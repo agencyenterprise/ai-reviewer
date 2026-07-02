@@ -15,19 +15,20 @@ class CitationIssueItem(BaseModel):
     """Persisted workflow-state record for one validated citation.
 
     Built from the agent's `CitationAssessment` in the validate_section node.
-    Unlike the agent output, this keeps the deprecated `evidence_alignment`
-    field for backwards compatibility with workflow state persisted before the
-    RAND taxonomy migration; new runs leave it unset and populate
-    `truthfulness_label`.
+    New runs populate `evidence_alignment` (supported / partially_supported /
+    unsupported / unverifiable). The deprecated 6-category `truthfulness_label`
+    is retained only so workflow state persisted before the migration back to
+    `EvidenceAlignmentLevel` still deserializes; the manifest maps it onto the
+    new taxonomy for rendering.
     """
 
     quoted_text: str
     line_start: int
     line_end: int
-    truthfulness_label: Optional[TruthfulnessLabel] = None
+    evidence_alignment: Optional[EvidenceAlignmentLevel] = None
     # Deprecated: retained only so pre-migration persisted state still
     # deserializes. New runs never populate it.
-    evidence_alignment: Optional[EvidenceAlignmentLevel] = None
+    truthfulness_label: Optional[TruthfulnessLabel] = None
     rationale: str = ""
     feedback: str = ""
     evidence_sources: List[ClaimEvidenceSource] = Field(default_factory=list)
