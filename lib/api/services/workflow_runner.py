@@ -18,7 +18,6 @@ from lib.services.workflow_runs import (
     create_workflow_run,
     get_project_workflow_run_by_type,
     has_completed_workflow_run_any_revision,
-    read_workflow_run_state,
 )
 from lib.workflows.config_factory import create_workflow_config
 from lib.workflows.dependency_resolver import resolve_workflow_dependencies
@@ -27,7 +26,7 @@ from lib.workflows.runner import (
     run_workflow_from_config,
     run_workflow_with_dependency_check,
 )
-from lib.workflows.workflow_types import WorkflowConfig, WorkflowState
+from lib.workflows.workflow_types import WorkflowConfig
 
 
 class AutoRunWorkflowItem(BaseModel):
@@ -36,9 +35,6 @@ class AutoRunWorkflowItem(BaseModel):
     config: WorkflowConfig
     thread_id: str
     workflow_run_id: str
-    # Prior same-type run's state, used to seed accumulating workflows now that
-    # each run gets a fresh langgraph_thread_id (no checkpointer carry-over).
-    prior_self_state: WorkflowState | None = None
 
 
 class WorkflowGateRequiredError(Exception):
@@ -153,12 +149,7 @@ async def _prepare_workflow_items(
     for workflow_type in resolved_workflow_types:
         manifest = get_workflow_manifest(workflow_type)
         existing_run = await get_project_workflow_run_by_type(
-            request.project_id,
-            workflow_type,
-            revision=revision,
-            # Load state_json so accumulating workflows can seed from the prior
-            # run; create_initial_state ignores it for the rest.
-            include_state=True,
+            request.project_id, workflow_type, revision=revision
         )
 
         # Skip if workflow is already completed and not explicitly requested
@@ -234,13 +225,9 @@ async def _prepare_workflow_items(
             project, workflow_type, request.openai_api_key
         )
         # Each run gets a fresh thread id; accumulating workflows carry prior
-        # state forward via prior_self_state instead of thread reuse.
+        # state forward via prior_self_state (read at execution time in the
+        # runner) instead of thread reuse.
         thread_id = str(uuid.uuid4())
-        prior_self_state = (
-            await read_workflow_run_state(existing_run)
-            if existing_run is not None
-            else None
-        )
 
         workflow_run_id = await create_workflow_run(
             project_id=request.project_id,
@@ -263,7 +250,6 @@ async def _prepare_workflow_items(
                 config=workflow_config,
                 thread_id=thread_id,
                 workflow_run_id=workflow_run_id,
-                prior_self_state=prior_self_state,
             )
         )
 
@@ -300,23 +286,11 @@ async def start_workflow_run(
     # Workflows always run against the project's current revision; API/MCP
     # clients don't supply a revision when starting workflows.
     revision = project.current_revision
-    existing_run = await get_project_workflow_run_by_type(
-        config.project_id,
-        config.type,
-        revision=revision,
-        # Load state_json so accumulating workflows can seed from the prior run;
-        # create_initial_state ignores it for the rest.
-        include_state=True,
-    )
 
     # Each run gets a fresh thread id; accumulating workflows carry prior state
-    # forward via prior_self_state instead of thread reuse.
+    # forward via prior_self_state (read at execution time in the runner) instead
+    # of thread reuse.
     thread_id = str(uuid.uuid4())
-    prior_self_state = (
-        await read_workflow_run_state(existing_run)
-        if existing_run is not None
-        else None
-    )
 
     # Create new workflow run record
     workflow_run_id = await create_workflow_run(
@@ -334,7 +308,6 @@ async def start_workflow_run(
         workflow_run_id=workflow_run_id,
         user=user,
         revision=revision,
-        prior_self_state=prior_self_state,
     )
 
     return workflow_run_id
@@ -450,7 +423,6 @@ async def run_multiple_workflows_blocking(
             workflow_run_id=item.workflow_run_id,
             user=user,
             revision=revision,
-            prior_self_state=item.prior_self_state,
         )
 
     if pending_human_triggers or pending_web_search:
@@ -495,6 +467,9 @@ async def resume_workflow_run(
         workflow_run_id=str(workflow_run.id),
         user=user,
         revision=workflow_run.revision,
+        # A resumed run continues its own state on its own thread; don't seed it
+        # from another run's state.
+        seed_prior_state=False,
     )
 
     return str(workflow_run.id)
@@ -531,7 +506,6 @@ async def _run_multiple_workflows_concurrently(
             workflow_run_id=item.workflow_run_id,
             user=user,
             revision=revision,
-            prior_self_state=item.prior_self_state,
         )
         for item in items
     ]

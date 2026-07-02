@@ -24,6 +24,7 @@ from lib.services.users import get_user_decrypted_api_key
 from lib.services.vector_store import VectorStoreService
 from lib.services.workflow_runs import (
     fail_workflow_run,
+    get_latest_workflow_run_state_by_type,
     persist_workflow_run_state,
     update_workflow_run_status,
 )
@@ -47,7 +48,7 @@ async def run_workflow_with_dependency_check(
     workflow_run_id: str,
     user: User,
     revision: int,
-    prior_self_state: WorkflowState | None = None,
+    seed_prior_state: bool = True,
 ) -> None:
     """
     Run a workflow after checking and waiting for its dependencies to complete.
@@ -62,9 +63,10 @@ async def run_workflow_with_dependency_check(
         workflow_run_id: The unique ID of this workflow run (for same-type locking)
         user: The user running the workflow
         revision: The project revision this workflow run belongs to
-        prior_self_state: The prior same-type run's state, used to seed
-            accumulating workflows (e.g. reference_downloader) now that threads
-            are no longer reused across runs.
+        seed_prior_state: When True (fresh runs), accumulating workflows seed
+            their initial state from the prior same-type run. Set False when
+            resuming — a resumed run continues its own state and must not adopt
+            another run's. The prior state is read downstream, after the wait.
     """
 
     try:
@@ -80,7 +82,7 @@ async def run_workflow_with_dependency_check(
             workflow_run_id=workflow_run_id,
             user=user,
             revision=revision,
-            prior_self_state=prior_self_state,
+            seed_prior_state=seed_prior_state,
         )
 
     except WorkflowCancelledError:
@@ -119,7 +121,7 @@ async def run_workflow_from_config(
     workflow_run_id: str,
     user: User,
     revision: int,
-    prior_self_state: WorkflowState | None = None,
+    seed_prior_state: bool = True,
 ) -> WorkflowState:
     graph = create_graph(config.type)
     context = create_context(
@@ -128,6 +130,19 @@ async def run_workflow_from_config(
 
     # Redact the OpenAI API key from the config so it doesn't get saved in the state
     config.openai_api_key = "[REDACTED]"
+
+    # Read the prior same-type run's state here — at execution time, after the
+    # same-type wait in run_workflow_with_dependency_check has resolved — so
+    # accumulating workflows seed from the prior run's FINAL state rather than a
+    # snapshot taken while it was still running. Exclude this run (its state_json
+    # is still NULL now anyway). Skipped on resume (seed_prior_state=False).
+    prior_self_state = (
+        await get_latest_workflow_run_state_by_type(
+            config.project_id, config.type, revision, exclude_run_id=workflow_run_id
+        )
+        if seed_prior_state
+        else None
+    )
 
     state = await create_state(
         config, revision=revision, prior_self_state=prior_self_state

@@ -403,6 +403,43 @@ async def get_project_workflow_run_by_type(
         return (await session.execute(stmt)).scalar_one_or_none()
 
 
+async def get_latest_workflow_run_state_by_type(
+    project_id: str,
+    type: WorkflowRunType,
+    revision: int,
+    exclude_run_id: str | None = None,
+) -> WorkflowState | None:
+    """Hydrated state of the most recent run of this type/revision that has one.
+
+    Used to seed accumulating workflows (e.g. reference_downloader) from the
+    prior run's state now that threads are no longer reused. Filters on
+    `state_json IS NOT NULL` (skips runs that never persisted, including the
+    just-created run whose state_json is still NULL at seed time) and optionally
+    excludes a specific run. Call this at execution time — after the same-type
+    wait resolves — so it reflects the prior run's final, not in-flight, state.
+    """
+    async with get_async_db_session() as session:
+        stmt = (
+            select(WorkflowRun)
+            .where(
+                and_(
+                    col(WorkflowRun.project_id) == project_id,
+                    col(WorkflowRun.type) == type,
+                    col(WorkflowRun.revision) == revision,
+                    col(WorkflowRun.state_json).is_not(None),
+                )
+            )
+            .order_by(col(WorkflowRun.created_at).desc())
+            .limit(1)
+            .options(undefer(col(WorkflowRun.state_json)))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
+        )
+        if exclude_run_id is not None:
+            stmt = stmt.where(col(WorkflowRun.id) != exclude_run_id)
+        run = (await session.execute(stmt)).scalar_one_or_none()
+
+    return hydrate_workflow_run_state(run) if run is not None else None
+
+
 async def has_completed_workflow_run_any_revision(
     project_id: str,
     type: WorkflowRunType,
