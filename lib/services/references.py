@@ -141,16 +141,20 @@ async def _get_file_matching_workflow_state(
             revision=revision,
         )
 
-        # Fetch the newly created workflow run
+        # Fetch the newly created workflow run and seed its (empty) state so
+        # reads-without-mutation leave the row consistent with what callers get.
         run = await get_project_workflow_run_by_type(
             project_id, WorkflowRunType.REFERENCE_FILE_MATCHING, revision=revision
         )
+        if run is not None:
+            await persist_workflow_run_state(str(run.id), default_state)
         logger.info(f"Created new file matching workflow run for project {project_id}")
-
-    # Persist the synthesized default state to state_json so reads-without-mutation
-    # leave the row consistent with what callers receive. Covers both a brand-new
-    # run and an existing run whose state_json did not hydrate.
-    if run is not None:
+    elif run.state_json is None:
+        # Existing run whose row has no persisted state yet — seed the default.
+        # Guard on `state_json IS NULL` (loaded via include_state=True above),
+        # NOT on "read_workflow_run_state returned None": the latter is also true
+        # when state_json is present but fails to hydrate (schema drift), and we
+        # must not clobber that existing payload with an empty default.
         await persist_workflow_run_state(str(run.id), default_state)
 
     return run, default_state

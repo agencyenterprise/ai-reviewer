@@ -246,8 +246,8 @@ async def run_workflow(
                 f"Workflow {workflow_type} for project {project_id} was cancelled — running cleanup"
             )
             if manifest:
-                cleaned_state = await manifest.on_cancel(updated_state)
-                await persist_workflow_run_state(workflow_run_id, cleaned_state)
+                updated_state = await manifest.on_cancel(updated_state)
+                await persist_workflow_run_state(workflow_run_id, updated_state)
             # Status is already CANCELLED in DB; CANCELLED-guard in
             # update_workflow_run_status keeps it that way.
 
@@ -259,8 +259,8 @@ async def run_workflow(
             if manifest:
                 # on_cancel is the right place for abnormal-teardown cleanup
                 # (per-item statuses stuck in 'pending' would remain otherwise).
-                cleaned_state = await manifest.on_cancel(updated_state)
-                await persist_workflow_run_state(workflow_run_id, cleaned_state)
+                updated_state = await manifest.on_cancel(updated_state)
+                await persist_workflow_run_state(workflow_run_id, updated_state)
             await fail_workflow_run(
                 workflow_run_id,
                 project_id,
