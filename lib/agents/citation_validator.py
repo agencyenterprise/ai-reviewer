@@ -48,17 +48,6 @@ class CitationAssessment(BaseModel):
         description="1-indexed line number where quoted_text starts."
     )
     line_end: int = Field(description="1-indexed line number where quoted_text ends.")
-    addresses_specific_claim: bool = Field(
-        description=(
-            "Gate question, answered independently of the label below. Setting "
-            "the general topic aside, does the source actually state the claim's "
-            "SPECIFIC assertion — its particular numbers, entities, scope, or the "
-            "relationship it asserts? The source merely discussing the broader "
-            "subject WITHOUT stating the claim's specific content does NOT count "
-            "— answer false then. If false, the citation is `unsupported` "
-            "regardless of the label below."
-        )
-    )
     evidence_alignment: EvidenceAlignmentLevel = Field(
         description=(
             "How well the cited source supports the specific claim. Possible "
@@ -93,22 +82,6 @@ class SectionValidationResult(BaseModel):
         description="All citations identified in this section, with their validation results.",
         default_factory=list,
     )
-
-
-def _apply_addresses_gate(item: CitationAssessment) -> None:
-    """One-way override: if the source does not state the claim's specific
-    assertion (`addresses_specific_claim` is False), force `unsupported`.
-
-    This is the only structured intervention on the model's directly-chosen
-    label. It targets the dominant failure mode (the source discusses the topic
-    but not the claim → over-credited to `partially_supported`) without
-    disturbing the model's strong native judgments on the supported side.
-    `unverifiable` (source missing) is respected, not overridden.
-    """
-    if item.evidence_alignment == EvidenceAlignmentLevel.UNVERIFIABLE:
-        return
-    if not item.addresses_specific_claim:
-        item.evidence_alignment = EvidenceAlignmentLevel.UNSUPPORTED
 
 
 # The citation-substantiation *method* lives in the portable `citation-support`
@@ -152,7 +125,6 @@ This table maps each bibliography entry to its supporting file. Use the file_id 
 Return `issues` — one `CitationAssessment` per citation you validate — each with:
 - `quoted_text`: the exact sentence/passage containing the citation marker;
 - `line_start` / `line_end`: its 1-indexed line range in the main document;
-- `addresses_specific_claim`: the specific-claim gate (boolean). If false, the citation is treated as `unsupported` regardless of the label, so keep the two consistent;
 - `evidence_alignment`: one of `supported`, `partially_supported`, `unsupported`, `unverifiable`;
 - `rationale`: a brief explanation of the judgment;
 - `feedback`: an actionable suggestion for the author (`"No changes needed"` if the citation is correct);
@@ -202,7 +174,4 @@ class CitationValidatorAgent(LangChainAgent):
         )
 
         structured: SectionValidationResult = result["structured_response"]
-        for issue in structured.issues:
-            _apply_addresses_gate(issue)
-
         return structured, result["messages"]

@@ -50,11 +50,7 @@ Assign each citation exactly one level:
 
 - **unverifiable** — The cited source was not provided or could not be searched, so the citation cannot be evaluated.
 
-### The specific-claim gate
-
-Before settling on a level, answer one gate question: **setting the general topic aside, does the source actually state the claim's _specific_ assertion** — its particular numbers, entities, scope, or the relationship it asserts? A source that merely discusses the broader subject _without_ stating the claim's specific content does **not** count.
-
-This is the most common error to avoid: when a source discusses the same topic but does not assert the claim's specific point, the citation is **unsupported** (silent), not partially_supported. Finding related or background material is **not** partial support.
+The most common error to avoid: when a source discusses the same topic but does not assert the claim's specific point, the citation is **unsupported** (silent), not partially_supported. Finding related or background material is **not** partial support.
 
 ## Choosing between adjacent levels
 

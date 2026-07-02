@@ -46,7 +46,7 @@ def test_env_guidance_carries_backend_specifics():
         assert placeholder in _ENV_GUIDANCE
 
     # Output field mapping (the schema fields the skill must not name).
-    for field in ("evidence_alignment", "addresses_specific_claim", "quoted_text"):
+    for field in ("evidence_alignment", "quoted_text"):
         assert field in _ENV_GUIDANCE
 
 
