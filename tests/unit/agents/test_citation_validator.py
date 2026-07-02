@@ -55,7 +55,19 @@ def test_env_guidance_formats_with_validate_section_kwargs():
     # composed system prompt begins with the skill body.
     rendered = _ENV_GUIDANCE.format(**_SAMPLE_KWARGS)
     assert "file-123" in rendered
-    assert "{" not in rendered  # every brace placeholder was substituted
+
+    # Ensure the known placeholders were substituted (without forbidding literal braces
+    # in inserted content such as bibliography strings).
+    for placeholder in (
+        "{main_file_id}",
+        "{start_line}",
+        "{end_line}",
+        "{section_headings}",
+        "{reference_file_map}",
+        "{domain_context}",
+        "{audience_context}",
+    ):
+        assert placeholder not in rendered
 
     composed = load_skill_prompt("citation-support") + rendered
     assert composed.startswith(load_skill_prompt("citation-support"))
