@@ -23,7 +23,11 @@ from lib.workflows.models import (
     DependencyWaitTimeoutError,
     WorkflowCancelledError,
 )
-from lib.workflows.runner import run_workflow, run_workflow_with_dependency_check
+from lib.workflows.runner import (
+    run_workflow,
+    run_workflow_from_config,
+    run_workflow_with_dependency_check,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -373,3 +377,77 @@ async def test_dependency_check_swallows_workflow_cancelled_error():
         )
 
     fail.assert_not_awaited()
+
+
+# ---------------------------------------------------------------------------
+# run_workflow_from_config — prior_self_state seeding
+# ---------------------------------------------------------------------------
+
+
+def _seeding_patches(get_latest, create_state):
+    """Patch run_workflow_from_config's collaborators so only the seeding
+    branch is exercised."""
+    return (
+        patch("lib.workflows.runner.create_graph", return_value=MagicMock()),
+        patch("lib.workflows.runner.create_context", return_value=MagicMock()),
+        patch(
+            "lib.workflows.runner.get_latest_workflow_run_state_by_type", new=get_latest
+        ),
+        patch("lib.workflows.runner.create_state", new=create_state),
+        patch("lib.workflows.runner.run_workflow", new=AsyncMock()),
+        patch("lib.workflows.runner.propagate_attributes"),
+    )
+
+
+@pytest.mark.asyncio
+async def test_run_workflow_from_config_seeds_prior_state_when_enabled():
+    """Fresh runs read the prior same-type run's state (excluding themselves)
+    and pass it to create_state."""
+    config = MagicMock()
+    config.type = WorkflowRunType.REFERENCE_DOWNLOADER
+    config.project_id = "proj-1"
+
+    prior = MagicMock()
+    get_latest = AsyncMock(return_value=prior)
+    create_state = AsyncMock()
+
+    p1, p2, p3, p4, p5, p6 = _seeding_patches(get_latest, create_state)
+    with p1, p2, p3, p4, p5, p6:
+        await run_workflow_from_config(
+            config=config,
+            thread_id=str(uuid4()),
+            workflow_run_id="run-1",
+            user=MagicMock(),
+            revision=3,
+            seed_prior_state=True,
+        )
+
+    get_latest.assert_awaited_once_with(
+        "proj-1", config.type, 3, exclude_run_id="run-1"
+    )
+    assert create_state.await_args.kwargs["prior_self_state"] is prior
+
+
+@pytest.mark.asyncio
+async def test_run_workflow_from_config_skips_seeding_on_resume():
+    """Resumed runs (seed_prior_state=False) must not adopt another run's state."""
+    config = MagicMock()
+    config.type = WorkflowRunType.REFERENCE_DOWNLOADER
+    config.project_id = "proj-1"
+
+    get_latest = AsyncMock()
+    create_state = AsyncMock()
+
+    p1, p2, p3, p4, p5, p6 = _seeding_patches(get_latest, create_state)
+    with p1, p2, p3, p4, p5, p6:
+        await run_workflow_from_config(
+            config=config,
+            thread_id=str(uuid4()),
+            workflow_run_id="run-1",
+            user=MagicMock(),
+            revision=3,
+            seed_prior_state=False,
+        )
+
+    get_latest.assert_not_awaited()
+    assert create_state.await_args.kwargs["prior_self_state"] is None

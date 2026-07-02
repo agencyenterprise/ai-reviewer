@@ -412,9 +412,10 @@ async def get_latest_workflow_run_state_by_type(
     """Hydrated state of the most recent run of this type/revision that has one.
 
     Used to seed accumulating workflows (e.g. reference_downloader) from the
-    prior run's state now that threads are no longer reused. Filters on
-    `state_json IS NOT NULL` (skips runs that never persisted, including the
-    just-created run whose state_json is still NULL at seed time) and optionally
+    prior run's state now that threads are no longer reused. Skips runs that
+    never persisted a state (their state_json is a JSONB ``null``, not just SQL
+    NULL, so we filter on ``jsonb_typeof = 'object'`` — this excludes the
+    just-created run whose state is still empty at seed time) and optionally
     excludes a specific run. Call this at execution time — after the same-type
     wait resolves — so it reflects the prior run's final, not in-flight, state.
     """
@@ -426,7 +427,7 @@ async def get_latest_workflow_run_state_by_type(
                     col(WorkflowRun.project_id) == project_id,
                     col(WorkflowRun.type) == type,
                     col(WorkflowRun.revision) == revision,
-                    col(WorkflowRun.state_json).is_not(None),
+                    func.jsonb_typeof(col(WorkflowRun.state_json)) == "object",
                 )
             )
             .order_by(col(WorkflowRun.created_at).desc())
