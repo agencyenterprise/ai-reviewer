@@ -48,6 +48,7 @@ _SKILL_BACKED_AGENTS = [
     "about-this-authors",
     "abbreviation-extraction",
     "abbreviation-scan",
+    "citation-support",
 ]
 
 
