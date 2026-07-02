@@ -5,7 +5,6 @@ import uuid
 from langchain_core.runnables.config import RunnableConfig
 from langfuse import propagate_attributes
 from langgraph.graph import StateGraph
-from langgraph.graph.state import CompiledStateGraph
 
 from lib.services.workflow_orchestration import wait_for_dependencies
 from lib.config.env import config as env_config
@@ -25,7 +24,6 @@ from lib.services.users import get_user_decrypted_api_key
 from lib.services.vector_store import VectorStoreService
 from lib.services.workflow_runs import (
     fail_workflow_run,
-    get_workflow_run_state_by_thread_id,
     persist_workflow_run_state,
     update_workflow_run_status,
 )
@@ -49,6 +47,7 @@ async def run_workflow_with_dependency_check(
     workflow_run_id: str,
     user: User,
     revision: int,
+    prior_self_state: WorkflowState | None = None,
 ) -> None:
     """
     Run a workflow after checking and waiting for its dependencies to complete.
@@ -63,6 +62,9 @@ async def run_workflow_with_dependency_check(
         workflow_run_id: The unique ID of this workflow run (for same-type locking)
         user: The user running the workflow
         revision: The project revision this workflow run belongs to
+        prior_self_state: The prior same-type run's state, used to seed
+            accumulating workflows (e.g. reference_downloader) now that threads
+            are no longer reused across runs.
     """
 
     try:
@@ -78,6 +80,7 @@ async def run_workflow_with_dependency_check(
             workflow_run_id=workflow_run_id,
             user=user,
             revision=revision,
+            prior_self_state=prior_self_state,
         )
 
     except WorkflowCancelledError:
@@ -116,6 +119,7 @@ async def run_workflow_from_config(
     workflow_run_id: str,
     user: User,
     revision: int,
+    prior_self_state: WorkflowState | None = None,
 ) -> WorkflowState:
     graph = create_graph(config.type)
     context = create_context(
@@ -125,7 +129,9 @@ async def run_workflow_from_config(
     # Redact the OpenAI API key from the config so it doesn't get saved in the state
     config.openai_api_key = "[REDACTED]"
 
-    state = await create_state(config, revision=revision)
+    state = await create_state(
+        config, revision=revision, prior_self_state=prior_self_state
+    )
 
     with propagate_attributes(user_id=context.user_id):
         return await run_workflow(
@@ -240,10 +246,8 @@ async def run_workflow(
                 f"Workflow {workflow_type} for project {project_id} was cancelled — running cleanup"
             )
             if manifest:
-                await manifest.on_cancel(updated_state, app, thread_config)
-                await _mirror_post_cancel_state(
-                    workflow_run_id, thread_id, workflow_type
-                )
+                cleaned_state = await manifest.on_cancel(updated_state)
+                await persist_workflow_run_state(workflow_run_id, cleaned_state)
             # Status is already CANCELLED in DB; CANCELLED-guard in
             # update_workflow_run_status keeps it that way.
 
@@ -255,10 +259,8 @@ async def run_workflow(
             if manifest:
                 # on_cancel is the right place for abnormal-teardown cleanup
                 # (per-item statuses stuck in 'pending' would remain otherwise).
-                await manifest.on_cancel(updated_state, app, thread_config)
-                await _mirror_post_cancel_state(
-                    workflow_run_id, thread_id, workflow_type
-                )
+                cleaned_state = await manifest.on_cancel(updated_state)
+                await persist_workflow_run_state(workflow_run_id, cleaned_state)
             await fail_workflow_run(
                 workflow_run_id,
                 project_id,
@@ -295,30 +297,6 @@ async def run_workflow(
     )
 
     return updated_state
-
-
-async def _mirror_post_cancel_state(
-    workflow_run_id: str,
-    thread_id: str,
-    workflow_type: WorkflowRunType,
-) -> None:
-    """Re-read state from the checkpointer after manifest.on_cancel and mirror
-    it onto state_json so the post-cutover reader sees the cleaned-up state.
-
-    on_cancel currently writes via app.aupdate_state, which only touches the
-    checkpointer. This dual-write keeps state_json in sync during the
-    migration window. PR 2 will refactor on_cancel to return the updated
-    state and remove this re-read.
-    """
-    try:
-        state = await get_workflow_run_state_by_thread_id(thread_id, workflow_type)
-        if state is not None:
-            await persist_workflow_run_state(workflow_run_id, state)
-    except Exception as e:
-        logger.error(
-            f"Failed to mirror post-cancel state for run {workflow_run_id}: {e}",
-            exc_info=True,
-        )
 
 
 def create_context(

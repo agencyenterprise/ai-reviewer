@@ -44,6 +44,7 @@ class FootnoteExtractionManifest(
         config: FootnoteExtractionConfig,
         existing_states: List[WorkflowState],
         revision: int,
+        prior_self_state: FootnoteExtractionState | None = None,
     ) -> FootnoteExtractionState:
         """
         Create initial state from DOCUMENT_PROCESSING dependency.

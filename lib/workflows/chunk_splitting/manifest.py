@@ -44,6 +44,7 @@ class ChunkSplittingManifest(
         config: ChunkSplittingWorkflowConfig,
         existing_states: List[WorkflowState],
         revision: int,
+        prior_self_state: ChunkSplittingState | None = None,
     ) -> ChunkSplittingState:
         """Create initial state from DOCUMENT_PROCESSING dependency."""
         return ChunkSplittingState(

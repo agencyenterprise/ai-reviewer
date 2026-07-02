@@ -25,7 +25,6 @@ from lib.workflows.models import (
 )
 from lib.workflows.runner import run_workflow, run_workflow_with_dependency_check
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -33,18 +32,12 @@ from lib.workflows.runner import run_workflow, run_workflow_with_dependency_chec
 
 @pytest.fixture(autouse=True)
 def _stub_runner_db_helpers():
-    """Stub the DB-touching helpers added for state_json dual-write so unit
-    tests don't try to reach Postgres. Covers the per-yield persist, the
-    error-mirror in the unhandled-exception branch, and the re-read+persist
-    in the cancel/timeout branches' ``_mirror_post_cancel_state``.
+    """Stub the DB-touching persist helper so unit tests don't reach Postgres.
+    Covers the per-yield persist, the error-mirror in the unhandled-exception
+    branch, and the persist of on_cancel's returned state in the cancel/timeout
+    branches.
     """
-    with (
-        patch("lib.workflows.runner.persist_workflow_run_state", new=AsyncMock()),
-        patch(
-            "lib.workflows.runner.get_workflow_run_state_by_thread_id",
-            new=AsyncMock(return_value=None),
-        ),
-    ):
+    with patch("lib.workflows.runner.persist_workflow_run_state", new=AsyncMock()):
         yield
 
 

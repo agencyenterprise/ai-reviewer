@@ -48,6 +48,7 @@ class DocumentProcessingManifest(
         config: DocumentProcessingWorkflowConfig,
         existing_states: List[WorkflowState],
         revision: int,
+        prior_self_state: DocumentProcessingState | None = None,
     ) -> DocumentProcessingState:
         """Create and return the initial state of the workflow."""
 

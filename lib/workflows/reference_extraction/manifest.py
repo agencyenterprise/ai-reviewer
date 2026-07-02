@@ -44,6 +44,7 @@ class ReferenceExtractionManifest(
         config: ReferenceExtractionConfig,
         existing_states: List[WorkflowState],
         revision: int,
+        prior_self_state: ReferenceExtractionState | None = None,
     ) -> ReferenceExtractionState:
         """
         Create initial state from DOCUMENT_PROCESSING dependency.

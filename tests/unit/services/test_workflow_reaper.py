@@ -62,49 +62,30 @@ def _make_run(
 
 @pytest.mark.asyncio
 async def test_run_manifest_on_cancel_invokes_hook_when_state_present():
-    """Hook is awaited with (state, app, thread_config) when both manifest and state exist."""
+    """Hook is awaited with the loaded state and its return is persisted to state_json."""
     run = _make_run(WorkflowRunStatus.RUNNING)
     state = MagicMock()
+    cleaned_state = MagicMock()
     manifest = MagicMock()
-    manifest.on_cancel = AsyncMock()
+    manifest.on_cancel = AsyncMock(return_value=cleaned_state)
+    persist = AsyncMock()
 
     with (
-        patch.object(
-            workflow_reaper, "get_workflow_manifest", return_value=manifest
-        ),
-        # Initial read now comes from state_json via read_workflow_run_state.
+        patch.object(workflow_reaper, "get_workflow_manifest", return_value=manifest),
+        # State is read from state_json via read_workflow_run_state.
         patch.object(
             workflow_reaper,
             "read_workflow_run_state",
             new=AsyncMock(return_value=state),
         ),
-        # The post-cancel mirror re-reads the checkpointer (on_cancel still
-        # writes there) and persists it back to state_json.
-        patch.object(
-            workflow_reaper,
-            "get_workflow_run_state_by_thread_id",
-            new=AsyncMock(return_value=state),
-        ),
-        patch.object(
-            workflow_reaper, "persist_workflow_run_state", new=AsyncMock()
-        ),
-        patch.object(
-            workflow_reaper, "create_graph", return_value=MagicMock()
-        ) as mock_create_graph,
-        patch.object(workflow_reaper, "get_checkpointer") as mock_checkpointer_cm,
+        patch.object(workflow_reaper, "persist_workflow_run_state", new=persist),
     ):
-        mock_checkpointer_cm.return_value.__aenter__ = AsyncMock(
-            return_value=MagicMock()
-        )
-        mock_checkpointer_cm.return_value.__aexit__ = AsyncMock(return_value=False)
-        mock_create_graph.return_value.compile.return_value = MagicMock()
-
         await _run_manifest_on_cancel(run)
 
-    manifest.on_cancel.assert_awaited_once()
-    awaited_state, awaited_app, awaited_config = manifest.on_cancel.await_args.args
-    assert awaited_state is state
-    assert awaited_config["configurable"]["thread_id"] == run.langgraph_thread_id
+    # on_cancel now takes only the state and returns the cleaned-up state, which
+    # is persisted directly — no checkpointer re-read.
+    manifest.on_cancel.assert_awaited_once_with(state)
+    persist.assert_awaited_once_with(str(run.id), cleaned_state)
 
 
 @pytest.mark.asyncio
@@ -116,9 +97,7 @@ async def test_run_manifest_on_cancel_noop_when_manifest_missing():
 
     with (
         patch.object(workflow_reaper, "get_workflow_manifest", return_value=None),
-        patch.object(
-            workflow_reaper, "read_workflow_run_state", new=state_loader
-        ),
+        patch.object(workflow_reaper, "read_workflow_run_state", new=state_loader),
     ):
         await _run_manifest_on_cancel(run)
 
@@ -133,9 +112,7 @@ async def test_run_manifest_on_cancel_noop_when_state_missing():
     manifest.on_cancel = AsyncMock()
 
     with (
-        patch.object(
-            workflow_reaper, "get_workflow_manifest", return_value=manifest
-        ),
+        patch.object(workflow_reaper, "get_workflow_manifest", return_value=manifest),
         patch.object(
             workflow_reaper,
             "read_workflow_run_state",
@@ -155,25 +132,14 @@ async def test_run_manifest_on_cancel_swallows_hook_exception():
     manifest.on_cancel = AsyncMock(side_effect=RuntimeError("boom"))
 
     with (
-        patch.object(
-            workflow_reaper, "get_workflow_manifest", return_value=manifest
-        ),
+        patch.object(workflow_reaper, "get_workflow_manifest", return_value=manifest),
         patch.object(
             workflow_reaper,
             "read_workflow_run_state",
             new=AsyncMock(return_value=MagicMock()),
         ),
-        patch.object(
-            workflow_reaper, "create_graph", return_value=MagicMock()
-        ) as mock_create_graph,
-        patch.object(workflow_reaper, "get_checkpointer") as mock_checkpointer_cm,
+        patch.object(workflow_reaper, "persist_workflow_run_state", new=AsyncMock()),
     ):
-        mock_checkpointer_cm.return_value.__aenter__ = AsyncMock(
-            return_value=MagicMock()
-        )
-        mock_checkpointer_cm.return_value.__aexit__ = AsyncMock(return_value=False)
-        mock_create_graph.return_value.compile.return_value = MagicMock()
-
         await _run_manifest_on_cancel(run)
 
 
@@ -185,9 +151,7 @@ async def test_run_manifest_on_cancel_swallows_state_load_exception():
     manifest.on_cancel = AsyncMock()
 
     with (
-        patch.object(
-            workflow_reaper, "get_workflow_manifest", return_value=manifest
-        ),
+        patch.object(workflow_reaper, "get_workflow_manifest", return_value=manifest),
         patch.object(
             workflow_reaper,
             "read_workflow_run_state",
@@ -310,7 +274,9 @@ async def test_reap_once_calls_on_cancel_before_fail():
             workflow_reaper, "_find_stuck_runs", new=AsyncMock(return_value=[run])
         ),
         patch.object(
-            workflow_reaper, "_run_manifest_on_cancel", new=AsyncMock(side_effect=record_on_cancel)
+            workflow_reaper,
+            "_run_manifest_on_cancel",
+            new=AsyncMock(side_effect=record_on_cancel),
         ),
         patch.object(
             workflow_reaper, "fail_workflow_run", new=AsyncMock(side_effect=record_fail)
@@ -327,9 +293,7 @@ async def test_reap_once_continues_when_one_row_fails():
     bad = _make_run(WorkflowRunStatus.RUNNING)
     good = _make_run(WorkflowRunStatus.RUNNING)
 
-    fail = AsyncMock(
-        side_effect=[RuntimeError("transient"), None]
-    )
+    fail = AsyncMock(side_effect=[RuntimeError("transient"), None])
 
     with (
         patch.object(
@@ -367,8 +331,7 @@ async def test_reap_once_handles_mixed_running_and_pending():
 
     assert fail.await_count == 2
     messages_by_id = {
-        call.args[0]: call.kwargs["failure_message"]
-        for call in fail.await_args_list
+        call.args[0]: call.kwargs["failure_message"] for call in fail.await_args_list
     }
     assert "No heartbeat" in messages_by_id[str(running.id)]
     assert "PENDING for" in messages_by_id[str(pending.id)]

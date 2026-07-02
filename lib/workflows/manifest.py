@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import List, Type, TypeVar
 
 from langgraph.graph import StateGraph
-from langgraph.graph.state import CompiledStateGraph, RunnableConfig
 
 from lib.config.env import config as env_config
 from lib.workflows.models import (
@@ -101,8 +100,16 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
         config: WorkflowConfigType,
         existing_states: List[WorkflowState],
         revision: int,
+        prior_self_state: WorkflowStateType | None = None,
     ) -> WorkflowStateType:
-        """Create and return the initial state of the workflow."""
+        """Create and return the initial state of the workflow.
+
+        ``prior_self_state`` is the same-type prior run's state (or None). Most
+        workflows build fresh from dependency states and ignore it; accumulating
+        workflows (e.g. reference_downloader) seed their carried-forward fields
+        from it, since each run now gets a fresh langgraph_thread_id and the
+        checkpointer no longer carries prior state forward.
+        """
 
         raise NotImplementedError()
 
@@ -114,17 +121,15 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
 
         raise NotImplementedError()
 
-    async def on_cancel(
-        self,
-        state: WorkflowStateType,
-        app: CompiledStateGraph,
-        config: RunnableConfig,
-    ) -> None:
+    async def on_cancel(self, state: WorkflowStateType) -> WorkflowStateType:
         """
-        Called when a workflow run is cancelled. Override to persist state cleanup
-        via app.aupdate_state(config, updates, as_node=<node_name>).
+        Called when a workflow run is cancelled or times out. Override to clean up
+        per-item statuses (e.g. mark PENDING items CANCELLED) and RETURN the
+        updated state; the runner and reaper persist the returned state via
+        persist_workflow_run_state.
 
-        The manifest is responsible for choosing as_node since it owns the graph
-        structure. Override in manifests that have per-item statuses that would
-        otherwise remain stuck in a 'pending' state after cancellation.
+        The default is a no-op that returns the state unchanged. Override in
+        manifests that have per-item statuses that would otherwise remain stuck in
+        a 'pending' state after cancellation.
         """
+        return state

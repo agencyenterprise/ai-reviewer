@@ -1,7 +1,6 @@
 from typing import List, Type, cast
 
 from langgraph.graph import StateGraph
-from langgraph.graph.state import CompiledStateGraph, RunnableConfig
 
 from lib.agents.reference_validator import ReferenceValidationFinalResult
 from lib.workflows.manifest import WorkflowManifest
@@ -15,7 +14,6 @@ from lib.workflows.reference_validation.state import (
 )
 from lib.workflows.workflow_types import WorkflowState
 from lib.workflows.util import get_state_by_type
-
 
 _FINAL_RESULT_SEVERITY: dict[ReferenceValidationFinalResult, SeverityEnum] = {
     ReferenceValidationFinalResult.VALID: SeverityEnum.NONE,
@@ -52,11 +50,8 @@ class ReferenceValidationManifest(
         return build_reference_validation_graph()
 
     async def on_cancel(
-        self,
-        state: ReferenceValidationState,
-        app: CompiledStateGraph,
-        config: RunnableConfig,
-    ) -> None:
+        self, state: ReferenceValidationState
+    ) -> ReferenceValidationState:
         """Mark any pending validation items as cancelled so they don't show as in-progress."""
         updated = [
             (
@@ -66,17 +61,20 @@ class ReferenceValidationManifest(
             )
             for item in state.reference_validations
         ]
-        await app.aupdate_state(
-            config, {"reference_validations": updated}, as_node="finalize_validations"
-        )
+        return state.model_copy(update={"reference_validations": updated})
 
     async def create_initial_state(
         self,
         config: ReferenceValidationWorkflowConfig,
         existing_states: List[WorkflowState],
         revision: int,
+        prior_self_state: ReferenceValidationState | None = None,
     ) -> ReferenceValidationState:
-        """Create and return the initial state of the workflow."""
+        """Create and return the initial state of the workflow.
+
+        Builds a fresh state; the initialize node overwrites reference_validations
+        with the current reference set each run, so no prior state is carried over.
+        """
         return ReferenceValidationState(
             type=WorkflowRunType.REFERENCE_VALIDATION,
             config=config,

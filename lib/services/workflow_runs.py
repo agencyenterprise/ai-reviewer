@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import uuid
 from datetime import datetime
 from typing import List, Optional, Type, cast
 
@@ -544,22 +543,3 @@ async def get_project_workflow_runs(
         WorkflowRunDetail(run=run, state=state, cost=cost)
         for run, state, cost in zip(visible_runs, states, costs)
     ]
-
-
-def get_thread_id_for_workflow_run(workflow_run: WorkflowRun | None) -> str:
-    """
-    Get the thread ID for a workflow run, or create a new one if it doesn't exist.
-
-    Thread IDs are reused across workflow runs of the same type for a project to maintain
-    LangGraph checkpoint continuity. This allows subsequent runs to resume from previously
-    computed state (e.g., already-processed document chunks) rather than starting fresh.
-
-    Args:
-        workflow_run: An existing workflow run to get the thread_id from, or None for new projects
-
-    Returns:
-        The existing thread_id if a run exists, otherwise a new UUID
-    """
-    if workflow_run is not None:
-        return workflow_run.langgraph_thread_id
-    return str(uuid.uuid4())

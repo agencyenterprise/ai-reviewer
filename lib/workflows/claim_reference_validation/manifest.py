@@ -1,8 +1,6 @@
 from typing import List, Optional, Type, cast
 
-from langchain_core.runnables.config import RunnableConfig
 from langgraph.graph import StateGraph
-from langgraph.graph.state import CompiledStateGraph
 
 from lib.agents.claim_verifier import ClaimEvidenceSource
 from lib.services.file import FileDocument
@@ -64,11 +62,8 @@ class ClaimReferenceValidationManifest(
         return build_claim_reference_validation_graph()
 
     async def on_cancel(
-        self,
-        state: ClaimReferenceValidationState,
-        app: CompiledStateGraph,
-        thread_config: RunnableConfig,
-    ) -> None:
+        self, state: ClaimReferenceValidationState
+    ) -> ClaimReferenceValidationState:
         """Mark any pending paragraph verifications as cancelled so they don't show as in-progress."""
         updated = [
             (
@@ -80,17 +75,14 @@ class ClaimReferenceValidationManifest(
             )
             for item in state.paragraph_verifications
         ]
-        await app.aupdate_state(
-            thread_config,
-            {"paragraph_verifications": updated},
-            as_node="finalize_verifications",
-        )
+        return state.model_copy(update={"paragraph_verifications": updated})
 
     async def create_initial_state(
         self,
         config: ClaimReferenceValidationWorkflowConfig,
         existing_states: List[WorkflowState],
         revision: int,
+        prior_self_state: ClaimReferenceValidationState | None = None,
     ) -> ClaimReferenceValidationState:
         """Create and return the initial state of the workflow."""
 
