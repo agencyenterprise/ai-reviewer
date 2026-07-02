@@ -27,7 +27,7 @@ For each cited statement:
 2. **Locate the evidence** in the cited source. You can read line ranges of both the document and each cited source, search them by keyword or regex (good for specific numbers, statistics, names, or exact phrases), and semantically search the sources (good for conceptual or thematic claims where the wording differs). Read surrounding context in the source as needed.
 3. **Judge** whether the source actually supports the specific claim, and assign one of the categories below.
 
-A couple of targeted searches per citation is usually enough. If you cannot find supporting evidence after a few attempts, conclude with the best information you have — bias toward concluding over searching exhaustively.
+A couple of targeted searches per citation are usually enough. If you cannot find supporting evidence after a few attempts, conclude with the best information you have — bias toward concluding over searching exhaustively.
 
 If a cited statement sits near the start or end of the passage you were given and appears to begin or end mid-sentence or mid-block (table, equation), read the adjacent lines first so you evaluate it with full context.
 
