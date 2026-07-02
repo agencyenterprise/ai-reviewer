@@ -24,11 +24,11 @@
     },
     "expected_issues": [
       {
-        "truthfulness_label": "true_explicit",
+        "evidence_alignment": "supported",
         "quoted_contains": "30% increase in self-reported productivity"
       }
     ],
-    "target_answer": "The Smith (2020) citation should be classified as 'true_explicit' because the supporting document directly states that fully remote employees reported a 30% increase in self-reported productivity, matching the claim's scope and magnitude."
+    "target_answer": "The Smith (2020) citation should be classified as 'supported' because the supporting document directly states that fully remote employees reported a 30% increase in self-reported productivity, matching the claim's scope and magnitude."
   },
   {
     "id": "unsupported_contradicts_source",
@@ -55,11 +55,11 @@
     },
     "expected_issues": [
       {
-        "truthfulness_label": "false_contradicted",
+        "evidence_alignment": "unsupported",
         "quoted_contains": "doubles the rate of cross-team collaboration"
       }
     ],
-    "target_answer": "The Doe (2019) citation should be classified as 'false_contradicted' because the supporting document explicitly reports no statistically significant difference in cross-team collaboration between co-located and distributed teams, which contradicts the doubling claim."
+    "target_answer": "The Doe (2019) citation should be classified as 'unsupported' because the supporting document explicitly reports no statistically significant difference in cross-team collaboration between co-located and distributed teams, which contradicts the doubling claim."
   },
   {
     "id": "partially_supported_scope_mismatch",
@@ -86,11 +86,11 @@
     },
     "expected_issues": [
       {
-        "truthfulness_label": "partially_true",
+        "evidence_alignment": "partially_supported",
         "quoted_contains": "93% of bottled water samples worldwide"
       }
     ],
-    "target_answer": "The Patel et al. (2018) citation should be classified as 'partially_true' because the 93% figure matches the source but the document's scope is restricted to North America, not 'worldwide' as the citing claim implies. The rationale should call out the geographic-scope mismatch."
+    "target_answer": "The Patel et al. (2018) citation should be classified as 'partially_supported' because the 93% figure matches the source but the document's scope is restricted to North America, not 'worldwide' as the citing claim implies. The rationale should call out the geographic-scope mismatch."
   },
   {
     "id": "unverifiable_no_supporting_file",
@@ -109,7 +109,7 @@
     },
     "expected_issues": [
       {
-        "truthfulness_label": "unverifiable",
+        "evidence_alignment": "unverifiable",
         "quoted_contains": "95% sensitivity"
       }
     ],
@@ -140,11 +140,11 @@
     },
     "expected_issues": [
       {
-        "truthfulness_label": "true_explicit",
+        "evidence_alignment": "supported",
         "quoted_contains": "32% to 47%"
       }
     ],
-    "target_answer": "The footnote-style citation [1] resolves to Lee (2021). The citing sentence quotes both the 40% average and the 32%-to-47% per-repo speedup range, both of which appear verbatim in the supporting document. Exactly one issue should be reported, with truthfulness_label 'true_explicit'. The agent must successfully resolve the footnote marker through the footnote entry to the correct file."
+    "target_answer": "The footnote-style citation [1] resolves to Lee (2021). The citing sentence quotes both the 40% average and the 32%-to-47% per-repo speedup range, both of which appear verbatim in the supporting document. Exactly one issue should be reported, with evidence_alignment 'supported'. The agent must successfully resolve the footnote marker through the footnote entry to the correct file."
   },
   {
     "id": "footnote_commentary_skipped",
@@ -171,11 +171,11 @@
     },
     "expected_issues": [
       {
-        "truthfulness_label": "true_explicit",
+        "evidence_alignment": "supported",
         "quoted_contains": "1.2 million operations per second"
       }
     ],
-    "target_answer": "Footnote [1] is author commentary (not a bibliographic reference) and must be skipped per the prompt's footnote rules. Footnote [2] is a real citation to Garcia (2022); the supporting document explicitly reports the 1.2M ops/sec Raft throughput figure. Exactly one issue should be reported, for the [2] citation, with truthfulness_label 'true_explicit'."
+    "target_answer": "Footnote [1] is author commentary (not a bibliographic reference) and must be skipped per the prompt's footnote rules. Footnote [2] is a real citation to Garcia (2022); the supporting document explicitly reports the 1.2M ops/sec Raft throughput figure. Exactly one issue should be reported, for the [2] citation, with evidence_alignment 'supported'."
   },
   {
     "id": "section_bounds_excludes_outside",
@@ -214,11 +214,11 @@
     },
     "expected_issues": [
       {
-        "truthfulness_label": "true_explicit",
+        "evidence_alignment": "supported",
         "quoted_contains": "outperforms prior baselines"
       }
     ],
-    "target_answer": "Only the Brown (2021) citation falls within the assigned section (lines 5-10). The Adams (2015) citation on line 3 is outside the section range and must not be reported (per the 'avoid duplicates from adjacent sections' rule). Exactly one issue should be reported, for Brown (2021), with truthfulness_label 'true_explicit'."
+    "target_answer": "Only the Brown (2021) citation falls within the assigned section (lines 5-10). The Adams (2015) citation on line 3 is outside the section range and must not be reported (per the 'avoid duplicates from adjacent sections' rule). Exactly one issue should be reported, for Brown (2021), with evidence_alignment 'supported'."
   },
   {
     "id": "all_branches_combined",
@@ -282,26 +282,26 @@
     },
     "expected_issues": [
       {
-        "truthfulness_label": "true_explicit",
+        "evidence_alignment": "supported",
         "quoted_contains": "30% increase in self-reported productivity"
       },
       {
-        "truthfulness_label": "false_contradicted",
+        "evidence_alignment": "unsupported",
         "quoted_contains": "doubles the rate of cross-team collaboration"
       },
       {
-        "truthfulness_label": "partially_true",
+        "evidence_alignment": "partially_supported",
         "quoted_contains": "93% of bottled water samples worldwide"
       },
       {
-        "truthfulness_label": "unverifiable",
+        "evidence_alignment": "unverifiable",
         "quoted_contains": "95% sensitivity"
       },
       {
-        "truthfulness_label": "true_explicit",
+        "evidence_alignment": "supported",
         "quoted_contains": "32% to 47%"
       }
     ],
-    "target_answer": "This sample exercises every truthfulness label and citation-format branch of the prompt at once. The agent must report exactly five issues: (1) Smith (2020) at line 7 → 'true_explicit' (verbatim 30% productivity match); (2) Doe (2019) at line 9 → 'false_contradicted' (source reports no significant difference, contradicting the doubling claim); (3) Patel et al. (2018) at line 11 → 'partially_true' (93% figure matches but the source's geographic scope is North America, not 'worldwide'); (4) Wong (2021) at line 13 → 'unverifiable' (no supporting file in the bibliography mapping); (5) Lee (2021) via footnote [^1] at line 15 → 'true_explicit' (both 40% average and 32-47% range appear verbatim in the source — agent must resolve the footnote marker through the [^1] entry to the file). The [^2] footnote at line 17 must NOT be reported because its footnote entry is author commentary, not a bibliographic reference."
+    "target_answer": "This sample exercises every evidence-alignment level and citation-format branch of the prompt at once. The agent must report exactly five issues: (1) Smith (2020) at line 7 → 'supported' (verbatim 30% productivity match); (2) Doe (2019) at line 9 → 'unsupported' (source reports no significant difference, contradicting the doubling claim); (3) Patel et al. (2018) at line 11 → 'partially_supported' (93% figure matches but the source's geographic scope is North America, not 'worldwide'); (4) Wong (2021) at line 13 → 'unverifiable' (no supporting file in the bibliography mapping); (5) Lee (2021) via footnote [^1] at line 15 → 'supported' (both 40% average and 32-47% range appear verbatim in the source — agent must resolve the footnote marker through the [^1] entry to the file). The [^2] footnote at line 17 must NOT be reported because its footnote entry is author commentary, not a bibliographic reference."
   }
 ]
