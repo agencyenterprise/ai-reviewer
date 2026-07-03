@@ -19,7 +19,7 @@ from lib.services.workflow_runs import (
     WorkflowRunDetail,
     cancel_workflow_run,
     get_workflow_run,
-    get_workflow_run_state_by_thread_id,
+    read_workflow_run_state,
 )
 from lib.workflows.human_approval.state import HumanApprovalConfig
 from lib.workflows.registry import get_workflow_manifest
@@ -77,8 +77,8 @@ async def get_workflow_state(
 ):
     """Get the state of a workflow"""
 
-    run = await get_workflow_run(workflow_run_id, user=user)
-    state = await get_workflow_run_state_by_thread_id(run.langgraph_thread_id, run.type)
+    run = await get_workflow_run(workflow_run_id, user=user, include_state=True)
+    state = await read_workflow_run_state(run)
     return WorkflowRunDetail(run=run, state=state)
 
 

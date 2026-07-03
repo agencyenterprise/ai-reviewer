@@ -36,7 +36,6 @@ from lib.services.workflow_runs import (
     cancel_workflow_run,
     get_project_workflow_runs,
 )
-from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.models import WorkflowRunType
 
@@ -527,23 +526,5 @@ async def delete_project(project_id: str, user: User) -> None:
 
         await delete_project_files(project_id)
 
-        runs_stmt = select(WorkflowRun).where(col(WorkflowRun.project_id) == project_id)
-        project_workflow_runs = (await session.execute(runs_stmt)).scalars().all()
-        thread_ids = [
-            workflow_run.langgraph_thread_id for workflow_run in project_workflow_runs
-        ]
-
         await session.delete(project)
         await session.commit()
-
-    try:
-        async with get_checkpointer() as checkpointer:
-            for thread_id in thread_ids:
-                await checkpointer.adelete_thread(thread_id)
-    except Exception as e:
-        logger.error(
-            f"Error deleting checkpoints for threads {', '.join(thread_ids)}: {str(e)}"
-        )
-        raise HTTPException(
-            status_code=500, detail=f"Error deleting checkpoint data: {str(e)}"
-        )

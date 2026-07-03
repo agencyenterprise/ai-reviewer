@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import List, Optional, Type, cast
 
 from fastapi import HTTPException
-from langgraph.types import StateSnapshot
 from pydantic import BaseModel
 from sqlalchemy import case, func, select, update
 from sqlalchemy.orm import undefer
@@ -25,10 +24,9 @@ from lib.services.workflow_cost.breakdown import CostBreakdown
 from lib.services.workflow_cost.extractor import walk_state_for_usage
 from lib.services.workflow_cost.pricing import compute_cost
 from lib.services.workflow_progress import cancel_workflow_progress
-from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.dependency_resolver import get_required_dependents
 from lib.workflows.models import is_user_visible_workflow
-from lib.workflows.registry import create_graph, get_state_type, get_workflow_manifest
+from lib.workflows.registry import get_state_type
 from lib.workflows.workflow_types import WorkflowState
 
 logger = logging.getLogger(__name__)
@@ -55,32 +53,14 @@ async def _compute_cost_for_state(
         return None
 
 
-def _convert_state_snapshot(
-    state_snapshot: StateSnapshot,
-    state_type: Type[WorkflowState],
-) -> WorkflowState | None:
-    if not state_snapshot or not state_snapshot.values:
-        return None
-
-    try:
-        return state_type(**state_snapshot.values)
-    except Exception as e:
-        logger.warning(
-            f"Error converting state snapshot for thread {state_snapshot.config['configurable']['thread_id']} (possibly an old state schema version): {e}"
-        )
-        return None
-
-
 async def persist_workflow_run_state(
     workflow_run_id: str, state: WorkflowState
 ) -> None:
     """Snapshot the workflow state onto the WorkflowRun row.
 
     Called after every node yield in the runner so a crashed/cancelled run still
-    has its last-good state inspectable on the row itself, independent of the
-    LangGraph checkpointer. During the migration window we dual-write: this
-    helper persists state_json while the checkpointer continues to record its
-    own checkpoints.
+    has its last-good state inspectable on the row itself. `state_json` is the
+    single source of truth for workflow state.
     """
     payload = sanitize_for_postgres(state.model_dump(mode="json"))
     async with get_async_db_session() as session:
@@ -97,8 +77,7 @@ def hydrate_workflow_run_state(run: WorkflowRun) -> WorkflowState | None:
     """Reconstruct a WorkflowState from the row's persisted state_json.
 
     Returns None when state_json is missing (pre-backfill rows) or when the
-    persisted shape no longer matches the current WorkflowState subclass —
-    callers fall back to the checkpointer during the migration window.
+    persisted shape no longer matches the current WorkflowState subclass.
     """
     if run.state_json is None:
         return None
@@ -114,48 +93,13 @@ def hydrate_workflow_run_state(run: WorkflowRun) -> WorkflowState | None:
 
 
 async def read_workflow_run_state(run: WorkflowRun) -> WorkflowState | None:
-    """Single read path for a run's workflow state.
-
-    PR 2 (RANDZ-561) reader cutover: state is read from the row's `state_json`
-    (written by the dual-write since PR 1). Writes still go to both `state_json`
-    and the LangGraph checkpointer, so reverting the cutover is a one-line body
-    swap here — no data migration or write-path rollback:
-
-        return await get_workflow_run_state_by_thread_id(
-            run.langgraph_thread_id, run.type
-        )
+    """Single read path for a run's workflow state, hydrated from `state_json`.
 
     `run` must have been loaded with `state_json` undeferred (see the model's
     deferred-strategy note in lib/models/workflow_run.py) so this stays an
     in-memory hydrate rather than an illegal async lazy-load on a detached row.
     """
     return hydrate_workflow_run_state(run)
-
-
-async def get_workflow_run_state_by_thread_id(
-    thread_id: str, type: WorkflowRunType
-) -> WorkflowState | None:
-    manifest = get_workflow_manifest(type, raise_exception=False)
-    if manifest is None:
-        return None
-
-    async with get_checkpointer() as checkpointer:
-        graph = create_graph(type)
-        app = graph.compile(checkpointer=checkpointer)
-        try:
-            state_snapshot = await app.aget_state(
-                {"configurable": {"thread_id": thread_id}}
-            )
-        except Exception as e:
-            logger.error(
-                f"Error getting state snapshot for thread {thread_id}: {e}",
-                exc_info=True,
-            )
-            return None
-
-    return _convert_state_snapshot(
-        state_snapshot, cast(Type[WorkflowState], get_state_type(type))
-    )
 
 
 async def get_workflow_run(

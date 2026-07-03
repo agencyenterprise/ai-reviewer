@@ -456,8 +456,8 @@ async def resume_workflow_run(
     Returns:
         The workflow run ID
     """
-    # Resuming continues the same run on its existing thread; no new run is
-    # created, so its checkpointer state is intact and needs no prior-state seed.
+    # Resuming re-runs the same run from a freshly built state; no new run is
+    # created and it must not adopt another run's state, so no prior-state seed.
     thread_id = workflow_run.langgraph_thread_id
 
     background_tasks.add_task(

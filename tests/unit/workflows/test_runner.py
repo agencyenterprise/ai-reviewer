@@ -2,11 +2,11 @@
 
 `run_workflow` has four exit paths: success → COMPLETED, WorkflowCancelledError
 → on_cancel + leave CANCELLED, asyncio.TimeoutError → on_cancel + FAILED+timeout,
-generic Exception → checkpoint append + FAILED+unhandled_exception. The wrapper
-`run_workflow_with_dependency_check` adds a fifth: DependencyWaitTimeoutError
-→ FAILED+dependency_timeout. These tests drive each branch with a mocked
-graph/checkpointer so the behavior contract is locked in even though we don't
-spin up real LangGraph.
+generic Exception → persist error to state_json + FAILED+unhandled_exception. The
+wrapper `run_workflow_with_dependency_check` adds a fifth:
+DependencyWaitTimeoutError → FAILED+dependency_timeout. These tests drive each
+branch with a mocked graph so the behavior contract is locked in even though we
+don't spin up real LangGraph.
 """
 
 import asyncio
@@ -37,7 +37,7 @@ from lib.workflows.runner import (
 @pytest.fixture(autouse=True)
 def _stub_runner_db_helpers():
     """Stub the DB-touching persist helper so unit tests don't reach Postgres.
-    Covers the per-yield persist, the error-mirror in the unhandled-exception
+    Covers the per-yield persist, the error persist in the unhandled-exception
     branch, and the persist of on_cancel's returned state in the cancel/timeout
     branches.
     """
@@ -59,8 +59,6 @@ def _build_app_with_astream(astream_impl) -> MagicMock:
     """Build a mock CompiledStateGraph whose astream uses ``astream_impl``."""
     app = MagicMock()
     app.astream = astream_impl
-    app.aget_state = AsyncMock(return_value=MagicMock(config={"configurable": {}}))
-    app.aupdate_state = AsyncMock()
     return app
 
 
@@ -98,12 +96,7 @@ async def test_run_workflow_success_marks_completed():
     manifest.max_duration_seconds = 60
     manifest.on_cancel = AsyncMock()
 
-    checkpointer_cm = MagicMock()
-    checkpointer_cm.__aenter__ = AsyncMock(return_value=MagicMock())
-    checkpointer_cm.__aexit__ = AsyncMock(return_value=False)
-
     with (
-        patch("lib.workflows.runner.get_checkpointer", return_value=checkpointer_cm),
         patch("lib.workflows.runner.get_workflow_manifest", return_value=manifest),
         patch("lib.workflows.runner.update_workflow_run_status", new=update_status),
         patch("lib.workflows.runner.fail_workflow_run", new=fail),
@@ -144,12 +137,7 @@ async def test_run_workflow_timeout_marks_failed_and_runs_on_cancel():
     manifest.max_duration_seconds = 60
     manifest.on_cancel = AsyncMock()
 
-    checkpointer_cm = MagicMock()
-    checkpointer_cm.__aenter__ = AsyncMock(return_value=MagicMock())
-    checkpointer_cm.__aexit__ = AsyncMock(return_value=False)
-
     with (
-        patch("lib.workflows.runner.get_checkpointer", return_value=checkpointer_cm),
         patch("lib.workflows.runner.get_workflow_manifest", return_value=manifest),
         patch("lib.workflows.runner.update_workflow_run_status", new=AsyncMock()),
         patch("lib.workflows.runner.fail_workflow_run", new=fail),
@@ -174,8 +162,8 @@ async def test_run_workflow_timeout_marks_failed_and_runs_on_cancel():
 
 
 @pytest.mark.asyncio
-async def test_run_workflow_unhandled_exception_marks_failed_and_persists_to_checkpoint():
-    """A bare Exception is captured into the checkpoint and the run becomes FAILED+unhandled_exception."""
+async def test_run_workflow_unhandled_exception_marks_failed_and_persists_error():
+    """A bare Exception is persisted onto state_json and the run becomes FAILED+unhandled_exception."""
     workflow_run_id = str(uuid4())
     project_id = str(uuid4())
 
@@ -186,21 +174,19 @@ async def test_run_workflow_unhandled_exception_marks_failed_and_persists_to_che
     app = _build_app_with_astream(raising_astream)
     graph = _build_graph(app)
     fail = AsyncMock()
+    persist = AsyncMock()
 
     manifest = MagicMock()
     manifest.max_duration_seconds = 60
     manifest.on_cancel = AsyncMock()
 
-    checkpointer_cm = MagicMock()
-    checkpointer_cm.__aenter__ = AsyncMock(return_value=MagicMock())
-    checkpointer_cm.__aexit__ = AsyncMock(return_value=False)
-
     with (
-        patch("lib.workflows.runner.get_checkpointer", return_value=checkpointer_cm),
         patch("lib.workflows.runner.get_workflow_manifest", return_value=manifest),
         patch("lib.workflows.runner.update_workflow_run_status", new=AsyncMock()),
         patch("lib.workflows.runner.fail_workflow_run", new=fail),
         patch("lib.workflows.runner._persist_issues_from_state", new=AsyncMock()),
+        # Override the autouse stub so we can inspect the persisted error state.
+        patch("lib.workflows.runner.persist_workflow_run_state", new=persist),
     ):
         await run_workflow(
             workflow_run_id=workflow_run_id,
@@ -211,14 +197,14 @@ async def test_run_workflow_unhandled_exception_marks_failed_and_persists_to_che
             thread_id=str(uuid4()),
         )
 
-    # Error was appended to LangGraph checkpoint for observability
-    app.aupdate_state.assert_awaited_once()
-    update_args = app.aupdate_state.await_args.args
-    assert "errors" in update_args[1]
-    persisted_errors = update_args[1]["errors"]
-    assert len(persisted_errors) == 1
-    assert persisted_errors[0].error == "boom in node"
-    assert persisted_errors[0].workflow_run_id == workflow_run_id
+    # The error was captured onto state_json (the sole error-persistence path
+    # now that the checkpointer is gone).
+    persist.assert_awaited()
+    persisted_run_id, persisted_state = persist.await_args.args
+    assert persisted_run_id == workflow_run_id
+    assert len(persisted_state.errors) == 1
+    assert persisted_state.errors[0].error == "boom in node"
+    assert persisted_state.errors[0].workflow_run_id == workflow_run_id
 
     fail.assert_awaited_once()
     kwargs = fail.await_args.kwargs
@@ -244,12 +230,7 @@ async def test_run_workflow_cancelled_runs_on_cancel_without_failing():
     manifest.max_duration_seconds = 60
     manifest.on_cancel = AsyncMock()
 
-    checkpointer_cm = MagicMock()
-    checkpointer_cm.__aenter__ = AsyncMock(return_value=MagicMock())
-    checkpointer_cm.__aexit__ = AsyncMock(return_value=False)
-
     with (
-        patch("lib.workflows.runner.get_checkpointer", return_value=checkpointer_cm),
         patch("lib.workflows.runner.get_workflow_manifest", return_value=manifest),
         patch("lib.workflows.runner.update_workflow_run_status", new=AsyncMock()),
         patch("lib.workflows.runner.fail_workflow_run", new=fail),

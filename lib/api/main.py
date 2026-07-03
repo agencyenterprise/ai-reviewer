@@ -44,12 +44,10 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Seed default runtime configs on startup; close shared pools on shutdown."""
-    # `seed_all_defaults` and `close_checkpointer_pool` stay lazy to keep the
-    # import graph simple — they pull in services that don't need to load on
-    # every test that imports main.py.
+    """Seed default runtime configs on startup; stop the reaper on shutdown."""
+    # `seed_all_defaults` stays lazy to keep the import graph simple — it pulls
+    # in services that don't need to load on every test that imports main.py.
     from lib.services.app_configs import seed_all_defaults
-    from lib.workflows.checkpointer import close_checkpointer_pool
 
     await seed_all_defaults()
     reaper_task = asyncio.create_task(run_reaper_loop(), name="workflow-reaper")
@@ -61,7 +59,6 @@ async def lifespan(app: FastAPI):
             await reaper_task
         except asyncio.CancelledError:
             pass
-        await close_checkpointer_pool()
 
 
 app = FastAPI(

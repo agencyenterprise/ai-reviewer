@@ -2,7 +2,6 @@ import asyncio
 import logging
 import uuid
 
-from langchain_core.runnables.config import RunnableConfig
 from langfuse import propagate_attributes
 from langgraph.graph import StateGraph
 
@@ -28,7 +27,6 @@ from lib.services.workflow_runs import (
     persist_workflow_run_state,
     update_workflow_run_status,
 )
-from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.context import ContextSchema
 from lib.workflows.models import (
     BaseWorkflowConfig,
@@ -59,7 +57,7 @@ async def run_workflow_with_dependency_check(
 
     Args:
         config: The workflow config to run
-        thread_id: The LangGraph thread ID for checkpointing
+        thread_id: The run's opaque LangGraph thread id (stored on the run record)
         workflow_run_id: The unique ID of this workflow run (for same-type locking)
         user: The user running the workflow
         revision: The project revision this workflow run belongs to
@@ -176,7 +174,7 @@ async def run_workflow(
         graph: The LangGraph graph to run
         state: The initial state of the workflow
         context: The context of the workflow
-        thread_id: The LangGraph thread ID used by the checkpointer
+        thread_id: The run's opaque LangGraph thread id (stored on the run record)
 
     Returns:
         The updated state of the workflow
@@ -204,108 +202,91 @@ async def run_workflow(
         manifest.max_concurrency if manifest else env_config.LANGGRAPH_MAX_CONCURRENCY
     )
 
-    async with get_checkpointer() as checkpointer:
-        app = graph.compile(checkpointer=checkpointer).with_config(
-            {
-                "run_name": f"{workflow_type.value}",
-                "callbacks": [langfuse_handler, error_logging_callback],
-                "metadata": {"langfuse_session_id": project_id},
-                "max_concurrency": max_concurrency,
-            }
+    app = graph.compile().with_config(
+        {
+            "run_name": f"{workflow_type.value}",
+            "callbacks": [langfuse_handler, error_logging_callback],
+            "metadata": {"langfuse_session_id": project_id},
+            "max_concurrency": max_concurrency,
+        }
+    )
+
+    updated_state = state.model_copy(deep=True, update={"errors": []})
+
+    try:
+        async with asyncio.timeout(max_duration):
+            async for values in app.astream(  # type: ignore[call-overload]
+                updated_state,
+                stream_mode="values",
+                context=context,
+            ):
+                updated_state = updated_state.model_copy(update=values)
+                # state_json is the single source of truth: snapshot the
+                # accumulated state after every node yield.
+                await persist_workflow_run_state(workflow_run_id, updated_state)
+
+        # Persist issues after workflow completion. Per-node errors collected
+        # in updated_state.errors stay surfaced through state — the run still
+        # transitions to COMPLETED ("completed with errors") below.
+        await _persist_issues_from_state(
+            workflow_run_id=workflow_run_id,
+            project_id=project_id,
+            workflow_type=workflow_type,
+            state=updated_state,
+            # The LangGraph checkpointer is retired; no checkpoint id to record.
+            checkpoint_id=None,
+            revision=context.revision,
         )
 
-        checkpoint_id = None
-        updated_state = state.model_copy(deep=True, update={"errors": []})
-        thread_config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
+        await update_workflow_run_status(workflow_run_id, WorkflowRunStatus.COMPLETED)
 
-        try:
-            async with asyncio.timeout(max_duration):
-                async for values in app.astream(  # type: ignore[call-overload]
-                    updated_state,
-                    thread_config,
-                    stream_mode="values",
-                    context=context,
-                ):
-                    updated_state = updated_state.model_copy(update=values)
-                    # Dual-write alongside the checkpointer. After the backfill
-                    # and reader cutover, state_json becomes the source of truth
-                    # and the checkpointer compile is dropped.
-                    await persist_workflow_run_state(workflow_run_id, updated_state)
-
-            # Get checkpoint ID for debugging after successful completion
-            state_snapshot = await app.aget_state(thread_config)
-
-            if state_snapshot and state_snapshot.config:
-                checkpoint_id = state_snapshot.config.get("configurable", {}).get(
-                    "checkpoint_id"
-                )
-
-            # Persist issues after workflow completion. Per-node errors collected
-            # in updated_state.errors stay surfaced through state — the run still
-            # transitions to COMPLETED ("completed with errors") below.
-            await _persist_issues_from_state(
-                workflow_run_id=workflow_run_id,
-                project_id=project_id,
-                workflow_type=workflow_type,
-                state=updated_state,
-                checkpoint_id=checkpoint_id,
-                revision=context.revision,
-            )
-
-            await update_workflow_run_status(
-                workflow_run_id, WorkflowRunStatus.COMPLETED
-            )
-
-        except WorkflowCancelledError:
-            logger.info(
-                f"Workflow {workflow_type} for project {project_id} was cancelled — running cleanup"
-            )
-            if manifest:
-                updated_state = await manifest.on_cancel(updated_state)
-                await persist_workflow_run_state(workflow_run_id, updated_state)
-            # Status is already CANCELLED in DB; CANCELLED-guard in
-            # update_workflow_run_status keeps it that way.
-
-        except asyncio.TimeoutError:
-            logger.error(
-                f"Workflow {workflow_type} for project {project_id} exceeded "
-                f"max_duration={max_duration}s — marking FAILED"
-            )
-            if manifest:
-                # on_cancel is the right place for abnormal-teardown cleanup
-                # (per-item statuses stuck in 'pending' would remain otherwise).
-                updated_state = await manifest.on_cancel(updated_state)
-                await persist_workflow_run_state(workflow_run_id, updated_state)
-            await fail_workflow_run(
-                workflow_run_id,
-                project_id,
-                failure_reason=WorkflowRunFailureReason.TIMEOUT,
-                failure_message=f"Exceeded max_duration of {max_duration}s",
-            )
-
-        except Exception as e:
-            logger.error(f"Error running workflow {workflow_type}: {e}", exc_info=True)
-            error = WorkflowError(
-                task_name="global",
-                error=str(e),
-                workflow_run_id=workflow_run_id,
-            )
-
-            # Persist the error to the LangGraph checkpoint via the `add` reducer
-            # so it remains visible in the workflow state for debugging.
-            await app.aupdate_state(thread_config, {"errors": [error]})
-            # Mirror the error onto state_json so the post-cutover reader path
-            # sees the same information once the checkpointer is retired.
-            updated_state = updated_state.model_copy(
-                update={"errors": [*updated_state.errors, error]}
-            )
+    except WorkflowCancelledError:
+        logger.info(
+            f"Workflow {workflow_type} for project {project_id} was cancelled — running cleanup"
+        )
+        if manifest:
+            updated_state = await manifest.on_cancel(updated_state)
             await persist_workflow_run_state(workflow_run_id, updated_state)
-            await fail_workflow_run(
-                workflow_run_id,
-                project_id,
-                failure_reason=WorkflowRunFailureReason.UNHANDLED_EXCEPTION,
-                failure_message=str(e),
-            )
+        # Status is already CANCELLED in DB; CANCELLED-guard in
+        # update_workflow_run_status keeps it that way.
+
+    except asyncio.TimeoutError:
+        logger.error(
+            f"Workflow {workflow_type} for project {project_id} exceeded "
+            f"max_duration={max_duration}s — marking FAILED"
+        )
+        if manifest:
+            # on_cancel is the right place for abnormal-teardown cleanup
+            # (per-item statuses stuck in 'pending' would remain otherwise).
+            updated_state = await manifest.on_cancel(updated_state)
+            await persist_workflow_run_state(workflow_run_id, updated_state)
+        await fail_workflow_run(
+            workflow_run_id,
+            project_id,
+            failure_reason=WorkflowRunFailureReason.TIMEOUT,
+            failure_message=f"Exceeded max_duration of {max_duration}s",
+        )
+
+    except Exception as e:
+        logger.error(f"Error running workflow {workflow_type}: {e}", exc_info=True)
+        error = WorkflowError(
+            task_name="global",
+            error=str(e),
+            workflow_run_id=workflow_run_id,
+        )
+
+        # Persist the error onto state_json so the reader path surfaces it in
+        # the workflow state for debugging.
+        updated_state = updated_state.model_copy(
+            update={"errors": [*updated_state.errors, error]}
+        )
+        await persist_workflow_run_state(workflow_run_id, updated_state)
+        await fail_workflow_run(
+            workflow_run_id,
+            project_id,
+            failure_reason=WorkflowRunFailureReason.UNHANDLED_EXCEPTION,
+            failure_message=str(e),
+        )
 
     logger.info(
         f"Completed workflow {workflow_type} for project {project_id} with thread {thread_id}"
