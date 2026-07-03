@@ -47,13 +47,22 @@ class DocumentSummarizationManifest(
         revision: int,
         prior_self_state: DocumentSummarizationState | None = None,
     ) -> DocumentSummarizationState:
-        """Create and return the initial state of the workflow."""
+        """Create and return the initial state of the workflow.
 
+        Seeds summaries from the prior run's state so already-computed
+        per-file summaries carry forward (the summarize node reuses them and
+        only summarizes new files). Threads are no longer reused across runs,
+        so this state is no longer inherited via the checkpointer.
+        """
+        summaries = (
+            prior_self_state.summaries if prior_self_state is not None else []
+        )
         return DocumentSummarizationState(
             type=WorkflowRunType.DOCUMENT_SUMMARIZATION,
             main_file_id=get_main_file_id(existing_states),
             supporting_file_ids=get_supporting_file_ids(existing_states),
             config=config,
+            summaries=summaries,
         )
 
     def convert_state_to_issues(
