@@ -94,7 +94,8 @@ async def test_run_workflow_success_marks_completed():
 
     manifest = MagicMock()
     manifest.max_duration_seconds = 60
-    manifest.on_cancel = AsyncMock()
+    # on_cancel returns the cleaned-up state; echo the input state (not a bare mock).
+    manifest.on_cancel = AsyncMock(side_effect=lambda state: state)
 
     with (
         patch("lib.workflows.runner.get_workflow_manifest", return_value=manifest),
@@ -135,7 +136,8 @@ async def test_run_workflow_timeout_marks_failed_and_runs_on_cancel():
 
     manifest = MagicMock()
     manifest.max_duration_seconds = 60
-    manifest.on_cancel = AsyncMock()
+    # on_cancel returns the cleaned-up state; echo the input state (not a bare mock).
+    manifest.on_cancel = AsyncMock(side_effect=lambda state: state)
 
     with (
         patch("lib.workflows.runner.get_workflow_manifest", return_value=manifest),
@@ -178,7 +180,8 @@ async def test_run_workflow_unhandled_exception_marks_failed_and_persists_error(
 
     manifest = MagicMock()
     manifest.max_duration_seconds = 60
-    manifest.on_cancel = AsyncMock()
+    # on_cancel returns the cleaned-up state; echo the input state (not a bare mock).
+    manifest.on_cancel = AsyncMock(side_effect=lambda state: state)
 
     with (
         patch("lib.workflows.runner.get_workflow_manifest", return_value=manifest),
@@ -228,7 +231,8 @@ async def test_run_workflow_cancelled_runs_on_cancel_without_failing():
 
     manifest = MagicMock()
     manifest.max_duration_seconds = 60
-    manifest.on_cancel = AsyncMock()
+    # on_cancel returns the cleaned-up state; echo the input state (not a bare mock).
+    manifest.on_cancel = AsyncMock(side_effect=lambda state: state)
 
     with (
         patch("lib.workflows.runner.get_workflow_manifest", return_value=manifest),

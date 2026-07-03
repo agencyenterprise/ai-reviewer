@@ -357,11 +357,12 @@ async def get_latest_workflow_run_state_by_type(
 
     Used to seed accumulating workflows (e.g. reference_downloader) from the
     prior run's state now that threads are no longer reused. Skips runs that
-    never persisted a state (their state_json is a JSONB ``null``, not just SQL
-    NULL, so we filter on ``jsonb_typeof = 'object'`` — this excludes the
-    just-created run whose state is still empty at seed time) and optionally
-    excludes a specific run. Call this at execution time — after the same-type
-    wait resolves — so it reflects the prior run's final, not in-flight, state.
+    never persisted a state: the ``jsonb_typeof(state_json) = 'object'`` filter
+    matches only rows holding a real state object, excluding SQL NULL (a
+    just-created run leaves state_json unset), JSONB ``null``, and any other
+    non-object value. Optionally excludes a specific run. Call this at execution
+    time — after the same-type wait resolves — so it reflects the prior run's
+    final, not in-flight, state.
     """
     async with get_async_db_session() as session:
         stmt = (
