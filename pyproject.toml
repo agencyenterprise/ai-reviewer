@@ -71,6 +71,11 @@ addopts = [
     "-v",
     "-n",
     "10",
+    # Import test modules by path, not by top-level basename. Required because
+    # tests use implicit namespace packages (no __init__.py), so same-named
+    # files across per-workflow dirs (e.g. */test_manifest.py) would otherwise
+    # collide on import.
+    "--import-mode=importlib",
 ]
 
 [dependency-groups]
