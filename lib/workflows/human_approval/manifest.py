@@ -50,6 +50,7 @@ class HumanApprovalManifest(WorkflowManifest[HumanApprovalState, HumanApprovalCo
         config: HumanApprovalConfig,
         existing_states: List[WorkflowState],
         revision: int,
+        prior_self_state: HumanApprovalState | None = None,
     ) -> HumanApprovalState:
         return HumanApprovalState(
             type=WorkflowRunType.HUMAN_APPROVAL,

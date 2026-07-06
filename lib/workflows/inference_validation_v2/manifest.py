@@ -42,6 +42,7 @@ class InferenceValidationV2Manifest(
         config: InferenceValidationV2WorkflowConfig,
         existing_states: List[WorkflowState],
         revision: int,
+        prior_self_state: InferenceValidationV2State | None = None,
     ) -> InferenceValidationV2State:
         """Create and return the initial state of the workflow."""
 

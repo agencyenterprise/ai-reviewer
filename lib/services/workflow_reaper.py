@@ -29,7 +29,6 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import AsyncIterator
 
-from langchain_core.runnables.config import RunnableConfig
 from sqlalchemy import or_, select, text
 from sqlalchemy.orm import undefer
 from sqlmodel import and_, col
@@ -43,12 +42,10 @@ from lib.models.workflow_run import (
 from lib.services.workflow_orchestration import DEPENDENCY_WAIT_TIMEOUT
 from lib.services.workflow_runs import (
     fail_workflow_run,
-    get_workflow_run_state_by_thread_id,
     persist_workflow_run_state,
     read_workflow_run_state,
 )
-from lib.workflows.checkpointer import get_checkpointer
-from lib.workflows.registry import create_graph, get_workflow_manifest
+from lib.workflows.registry import get_workflow_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -122,8 +119,7 @@ async def _find_stuck_runs(
     pending_cutoff = now - timedelta(seconds=pending_grace_seconds)
     async with get_async_db_session() as session:
         stmt = (
-            select(WorkflowRun)
-            .where(
+            select(WorkflowRun).where(
                 or_(
                     and_(
                         col(WorkflowRun.status) == WorkflowRunStatus.RUNNING,
@@ -163,41 +159,21 @@ async def _run_manifest_on_cancel(run: WorkflowRun) -> None:
     try:
         state = await read_workflow_run_state(run)
     except Exception as e:
-        logger.error(
-            f"Reaper: failed to load state for {run.id}: {e}", exc_info=True
-        )
+        logger.error(f"Reaper: failed to load state for {run.id}: {e}", exc_info=True)
         return
 
     if state is None:
         return
 
-    thread_config: RunnableConfig = {
-        "configurable": {"thread_id": run.langgraph_thread_id}
-    }
+    # on_cancel returns the cleaned-up state; persist it directly onto state_json.
+    # Best-effort: a failure here never blocks the reaper from flipping the run
+    # to FAILED.
     try:
-        async with get_checkpointer() as checkpointer:
-            graph = create_graph(run.type)
-            app = graph.compile(checkpointer=checkpointer)
-            await manifest.on_cancel(state, app, thread_config)
+        cleaned = await manifest.on_cancel(state)
+        await persist_workflow_run_state(str(run.id), cleaned)
     except Exception as e:
         logger.error(
             f"Reaper: on_cancel hook failed for {run.id} ({run.type}): {e}",
-            exc_info=True,
-        )
-        return
-
-    # Mirror the cleaned-up state onto state_json so the post-cutover reader
-    # path matches what the checkpointer holds. Best-effort: a failure here
-    # never blocks the reaper from flipping the run to FAILED.
-    try:
-        cleaned = await get_workflow_run_state_by_thread_id(
-            run.langgraph_thread_id, run.type
-        )
-        if cleaned is not None:
-            await persist_workflow_run_state(str(run.id), cleaned)
-    except Exception as e:
-        logger.error(
-            f"Reaper: failed to mirror post-cancel state for {run.id}: {e}",
             exc_info=True,
         )
 
@@ -214,9 +190,7 @@ async def _reap_once(
     """
     async with _reaper_advisory_lock() as acquired:
         if not acquired:
-            logger.debug(
-                "Reaper: another pod holds the sweep lock; skipping this tick"
-            )
+            logger.debug("Reaper: another pod holds the sweep lock; skipping this tick")
             return 0
         return await _reap_once_locked(running_grace_seconds, pending_grace_seconds)
 

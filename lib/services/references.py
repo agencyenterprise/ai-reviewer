@@ -17,9 +17,7 @@ from lib.services.workflow_runs import (
     persist_workflow_run_state,
     read_workflow_run_state,
 )
-from lib.workflows.checkpointer import get_checkpointer
 from lib.workflows.models import WorkflowRunType
-from langgraph.types import Overwrite
 
 from lib.workflows.reference_downloader.state import ReferenceDownloaderState
 from lib.workflows.reference_extraction.state import ReferenceExtractionState
@@ -28,7 +26,6 @@ from lib.workflows.reference_file_matching.state import (
     ReferenceFileMatch,
     ReferenceFileMatchingState,
 )
-from lib.workflows.registry import create_graph
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +107,9 @@ async def _get_file_matching_workflow_state(
         f"No file matching state found for project {project_id}, constructing default"
     )
 
-    doc_processing_state = await _get_document_processing_workflow_state(project_id, revision)
+    doc_processing_state = await _get_document_processing_workflow_state(
+        project_id, revision
+    )
     if doc_processing_state is None:
         logger.info(
             f"No document processing state found for project {project_id}, "
@@ -142,26 +141,21 @@ async def _get_file_matching_workflow_state(
             revision=revision,
         )
 
-        # Persist the default state to the checkpointer
-        async with get_checkpointer() as checkpointer:
-            graph = create_graph(WorkflowRunType.REFERENCE_FILE_MATCHING)
-            app = graph.compile(checkpointer=checkpointer)
-
-            await app.aupdate_state(
-                {"configurable": {"thread_id": thread_id}},
-                default_state.model_dump(),
-                as_node="match_supporting_docs",
-            )
-
-        # Fetch the newly created workflow run
+        # Fetch the newly created workflow run and seed its (empty) state so
+        # reads-without-mutation leave the row consistent with what callers get.
         run = await get_project_workflow_run_by_type(
             project_id, WorkflowRunType.REFERENCE_FILE_MATCHING, revision=revision
         )
-        # Mirror the bootstrap state to state_json so the post-cutover reader
-        # path matches what the checkpointer holds.
         if run is not None:
             await persist_workflow_run_state(str(run.id), default_state)
         logger.info(f"Created new file matching workflow run for project {project_id}")
+    elif run.state_json is None:
+        # Existing run whose row has no persisted state yet — seed the default.
+        # Guard on `state_json IS NULL` (loaded via include_state=True above),
+        # NOT on "read_workflow_run_state returned None": the latter is also true
+        # when state_json is present but fails to hydrate (schema drift), and we
+        # must not clobber that existing payload with an empty default.
+        await persist_workflow_run_state(str(run.id), default_state)
 
     return run, default_state
 
@@ -193,7 +187,9 @@ async def _get_extraction_workflow_state(
     return run, cast(ReferenceExtractionState, state)
 
 
-async def get_file_reference_matches(project_id: str, revision: int) -> List[ReferenceFileMatch]:
+async def get_file_reference_matches(
+    project_id: str, revision: int
+) -> List[ReferenceFileMatch]:
     """Return the current reference-file matches for a project (empty list if none)."""
     _, state = await _get_file_matching_workflow_state(project_id, revision)
     if state is None:
@@ -201,7 +197,9 @@ async def get_file_reference_matches(project_id: str, revision: int) -> List[Ref
     return list(state.matches)
 
 
-async def remove_file_from_references(project_id: str, file_id: str, revision: int) -> List[str]:
+async def remove_file_from_references(
+    project_id: str, file_id: str, revision: int
+) -> List[str]:
     """
     Remove file_id from any matches in the ReferenceFileMatching workflow state.
 
@@ -233,17 +231,6 @@ async def remove_file_from_references(project_id: str, file_id: str, revision: i
 
         # Filter out matches with this file_id
         updated_matches = [m for m in state.matches if m.file_id != file_id]
-
-        # Update the state using LangGraph
-        async with get_checkpointer() as checkpointer:
-            graph = create_graph(WorkflowRunType.REFERENCE_FILE_MATCHING)
-            app = graph.compile(checkpointer=checkpointer)
-
-            await app.aupdate_state(
-                {"configurable": {"thread_id": run.langgraph_thread_id}},
-                {"matches": updated_matches},
-                as_node="match_supporting_docs",
-            )
 
         await persist_workflow_run_state(
             str(run.id), state.model_copy(update={"matches": updated_matches})
@@ -298,21 +285,8 @@ async def remove_fetch_result_for_file(
         if removed_count == 0:
             return 0
 
-        # Overwrite is required to bypass the merge_fetch_results reducer, which otherwise
-        # upserts-only and would keep the entries we are trying to delete.
-        async with get_checkpointer() as checkpointer:
-            graph = create_graph(WorkflowRunType.REFERENCE_DOWNLOADER)
-            app = graph.compile(checkpointer=checkpointer)
-
-            await app.aupdate_state(
-                {"configurable": {"thread_id": run.langgraph_thread_id}},
-                {"fetched_references": Overwrite(filtered)},
-                as_node="cleanup_failed_resources",
-            )
-
-        # Plain assignment of `filtered` is the Pydantic-level equivalent of
-        # the checkpointer's Overwrite — both bypass the merge_fetch_results
-        # reducer that would otherwise upsert-only.
+        # Plain assignment of `filtered` bypasses the merge_fetch_results reducer
+        # (which upserts-only) so the deleted entries are actually dropped.
         await persist_workflow_run_state(
             str(run.id), state.model_copy(update={"fetched_references": filtered})
         )
@@ -364,19 +338,10 @@ async def add_file_to_reference(
         # Remove any existing match for this reference_id, then add the new one
         updated_matches = [m for m in state.matches if m.reference_id != reference_id]
         updated_matches.append(
-            ReferenceFileMatch(reference_id=reference_id, file_id=file_id, source=source)
-        )
-
-        # Update the state using LangGraph
-        async with get_checkpointer() as checkpointer:
-            graph = create_graph(WorkflowRunType.REFERENCE_FILE_MATCHING)
-            app = graph.compile(checkpointer=checkpointer)
-
-            await app.aupdate_state(
-                {"configurable": {"thread_id": run.langgraph_thread_id}},
-                {"matches": updated_matches},
-                as_node="match_supporting_docs",
+            ReferenceFileMatch(
+                reference_id=reference_id, file_id=file_id, source=source
             )
+        )
 
         await persist_workflow_run_state(
             str(run.id), state.model_copy(update={"matches": updated_matches})
@@ -422,9 +387,7 @@ async def force_match_single_supporting_file(project_id: str) -> bool:
     if extraction_state is None or matching_state is None:
         return False
 
-    reference_ids = [
-        ref.id for ref in extraction_state.extracted_references if ref.id
-    ]
+    reference_ids = [ref.id for ref in extraction_state.extracted_references if ref.id]
     supporting_file_ids = list(matching_state.supporting_file_ids or [])
     if len(reference_ids) != 1 or len(supporting_file_ids) != 1:
         logger.info(

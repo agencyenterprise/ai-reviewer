@@ -159,11 +159,18 @@ def get_state_type(type: WorkflowRunType) -> Type[BaseWorkflowState]:
     return manifest.get_state_type()
 
 
-async def create_state(config: WorkflowConfig, revision: int) -> WorkflowState:
+async def create_state(
+    config: WorkflowConfig,
+    revision: int,
+    prior_self_state: WorkflowState | None = None,
+) -> WorkflowState:
     """
     Create initial state for a workflow from the config.
 
-    Loads all workflow states (including internal ones) to support dependency resolution.
+    Loads all workflow states (including internal ones) to support dependency
+    resolution. ``prior_self_state`` is the same-type prior run's state (or None);
+    it is passed to create_initial_state, which most workflows ignore — only
+    accumulating workflows (e.g. reference_downloader) seed from it.
     """
     from lib.services.workflow_runs import get_project_workflow_runs
 
@@ -175,4 +182,6 @@ async def create_state(config: WorkflowConfig, revision: int) -> WorkflowState:
         run.state for run in workflow_runs if run.state is not None
     ]
     manifest = get_workflow_manifest(config.type)
-    return await manifest.create_initial_state(config, existing_states, revision)
+    return await manifest.create_initial_state(
+        config, existing_states, revision, prior_self_state=prior_self_state
+    )

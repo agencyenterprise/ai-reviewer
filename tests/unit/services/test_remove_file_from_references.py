@@ -1,7 +1,6 @@
 """Unit tests for remove_file_from_references service function."""
 
 import uuid
-from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -28,18 +27,15 @@ def _make_state(matches: list[ReferenceFileMatch]) -> ReferenceFileMatchingState
 
 def _make_run() -> MagicMock:
     run = MagicMock()
+    run.id = str(uuid.uuid4())
     run.langgraph_thread_id = str(uuid.uuid4())
     return run
 
 
-@asynccontextmanager
-async def _fake_checkpointer():
-    yield MagicMock()
-
-
 @pytest.fixture(autouse=True)
 def _stub_persist_state():
-    """Avoid hitting the DB when the references service mirrors state to state_json."""
+    """Capture the state_json write; the checkpointer write was removed in the
+    write-side cutover, so persist_workflow_run_state is now the only write."""
     with patch(
         "lib.services.references.persist_workflow_run_state", new=AsyncMock()
     ) as m:
@@ -47,7 +43,7 @@ def _stub_persist_state():
 
 
 @pytest.mark.asyncio
-async def test_returns_empty_when_no_workflow_run():
+async def test_returns_empty_when_no_workflow_run(_stub_persist_state):
     with patch(
         "lib.services.references._get_file_matching_workflow_state",
         new=AsyncMock(return_value=(None, None)),
@@ -57,10 +53,11 @@ async def test_returns_empty_when_no_workflow_run():
         )
 
     assert removed == []
+    _stub_persist_state.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_returns_empty_when_no_state():
+async def test_returns_empty_when_no_state(_stub_persist_state):
     with patch(
         "lib.services.references._get_file_matching_workflow_state",
         new=AsyncMock(return_value=(_make_run(), None)),
@@ -70,10 +67,11 @@ async def test_returns_empty_when_no_state():
         )
 
     assert removed == []
+    _stub_persist_state.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_returns_empty_when_no_match_for_file_id():
+async def test_returns_empty_when_no_match_for_file_id(_stub_persist_state):
     other_file_id = str(uuid.uuid4())
     state = _make_state(
         [
@@ -85,30 +83,20 @@ async def test_returns_empty_when_no_match_for_file_id():
         ]
     )
 
-    aupdate_mock = AsyncMock()
-    graph_app = MagicMock()
-    graph_app.aupdate_state = aupdate_mock
-    graph = MagicMock()
-    graph.compile.return_value = graph_app
-
-    with (
-        patch(
-            "lib.services.references._get_file_matching_workflow_state",
-            new=AsyncMock(return_value=(_make_run(), state)),
-        ),
-        patch("lib.services.references.get_checkpointer", _fake_checkpointer),
-        patch("lib.services.references.create_graph", return_value=graph),
+    with patch(
+        "lib.services.references._get_file_matching_workflow_state",
+        new=AsyncMock(return_value=(_make_run(), state)),
     ):
         removed = await remove_file_from_references(
             str(uuid.uuid4()), str(uuid.uuid4()), revision=1
         )
 
     assert removed == []
-    aupdate_mock.assert_not_awaited()
+    _stub_persist_state.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_removes_single_match_and_preserves_others():
+async def test_removes_single_match_and_preserves_others(_stub_persist_state):
     target_file_id = str(uuid.uuid4())
     other_file_id = str(uuid.uuid4())
     keep = ReferenceFileMatch(
@@ -120,37 +108,23 @@ async def test_removes_single_match_and_preserves_others():
     state = _make_state([keep, drop])
     run = _make_run()
 
-    aupdate_mock = AsyncMock()
-    graph_app = MagicMock()
-    graph_app.aupdate_state = aupdate_mock
-    graph = MagicMock()
-    graph.compile.return_value = graph_app
-
-    with (
-        patch(
-            "lib.services.references._get_file_matching_workflow_state",
-            new=AsyncMock(return_value=(run, state)),
-        ),
-        patch("lib.services.references.get_checkpointer", _fake_checkpointer),
-        patch(
-            "lib.services.references.create_graph", return_value=graph
-        ) as create_graph_mock,
+    with patch(
+        "lib.services.references._get_file_matching_workflow_state",
+        new=AsyncMock(return_value=(run, state)),
     ):
         removed = await remove_file_from_references(
             str(uuid.uuid4()), target_file_id, revision=1
         )
 
     assert removed == ["r_drop"]
-    create_graph_mock.assert_called_once_with(WorkflowRunType.REFERENCE_FILE_MATCHING)
-    aupdate_mock.assert_awaited_once()
-    call_args = aupdate_mock.await_args
-    assert call_args.args[0] == {"configurable": {"thread_id": run.langgraph_thread_id}}
-    assert call_args.args[1] == {"matches": [keep]}
-    assert call_args.kwargs["as_node"] == "match_supporting_docs"
+    _stub_persist_state.assert_awaited_once()
+    run_id_arg, persisted_state = _stub_persist_state.await_args.args
+    assert run_id_arg == str(run.id)
+    assert persisted_state.matches == [keep]
 
 
 @pytest.mark.asyncio
-async def test_removes_multiple_matches_pointing_at_same_file():
+async def test_removes_multiple_matches_pointing_at_same_file(_stub_persist_state):
     target_file_id = str(uuid.uuid4())
     dup_a = ReferenceFileMatch(
         reference_id="ra", file_id=target_file_id, source=MatchSource.AUTO_MATCHED
@@ -160,23 +134,14 @@ async def test_removes_multiple_matches_pointing_at_same_file():
     )
     state = _make_state([dup_a, dup_b])
 
-    aupdate_mock = AsyncMock()
-    graph_app = MagicMock()
-    graph_app.aupdate_state = aupdate_mock
-    graph = MagicMock()
-    graph.compile.return_value = graph_app
-
-    with (
-        patch(
-            "lib.services.references._get_file_matching_workflow_state",
-            new=AsyncMock(return_value=(_make_run(), state)),
-        ),
-        patch("lib.services.references.get_checkpointer", _fake_checkpointer),
-        patch("lib.services.references.create_graph", return_value=graph),
+    with patch(
+        "lib.services.references._get_file_matching_workflow_state",
+        new=AsyncMock(return_value=(_make_run(), state)),
     ):
         removed = await remove_file_from_references(
             str(uuid.uuid4()), target_file_id, revision=1
         )
 
     assert sorted(removed) == ["ra", "rb"]
-    assert aupdate_mock.await_args.args[1] == {"matches": []}
+    persisted_state = _stub_persist_state.await_args.args[1]
+    assert persisted_state.matches == []

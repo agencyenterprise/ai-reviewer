@@ -14,7 +14,7 @@ class Reviewer2Manifest(WorkflowManifest[Reviewer2State, Reviewer2Config]):
     type = WorkflowRunType.REVIEWER_2
     name = "Reviewer 2"
     description = "Simulates a full peer review with a one-shot prompt, returning a structured critique with strengths, weaknesses, actionable next steps, and a devil's-advocate rebuttal. This assessment is in beta and has not been evaluated for accuracy or consistency."
-    
+
     needs_web_search = False
     is_experimental = True
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
@@ -33,6 +33,7 @@ class Reviewer2Manifest(WorkflowManifest[Reviewer2State, Reviewer2Config]):
         config: Reviewer2Config,
         existing_states: List[WorkflowState],
         revision: int,
+        prior_self_state: Reviewer2State | None = None,
     ) -> Reviewer2State:
         return Reviewer2State(
             type=WorkflowRunType.REVIEWER_2,
