@@ -136,8 +136,8 @@ def _parse_citation_issues(completion: str) -> list[dict[str, Any]]:
     return workflow_state.get("citation_issues", []) or []
 
 
-def _truthfulness_label(issue: dict[str, Any]) -> str:
-    val = issue.get("truthfulness_label")
+def _evidence_alignment(issue: dict[str, Any]) -> str:
+    val = issue.get("evidence_alignment")
     if isinstance(val, dict):
         return val.get("value", "")
     return val or ""
@@ -146,7 +146,7 @@ def _truthfulness_label(issue: dict[str, Any]) -> str:
 @scorer(metrics=[mean(), stderr()])
 def citation_alignment_match():
     """Fraction of expected_issues that match a produced issue by quoted-text
-    substring AND have the expected truthfulness_label value."""
+    substring AND have the expected evidence_alignment value."""
 
     async def score(state: TaskState, target: Target) -> Score:
         try:
@@ -169,11 +169,11 @@ def citation_alignment_match():
             if not found:
                 notes.append(f"missing citation containing '{exp['quoted_contains']}'")
                 continue
-            actual = _truthfulness_label(found)
-            if actual != exp["truthfulness_label"]:
+            actual = _evidence_alignment(found)
+            if actual != exp["evidence_alignment"]:
                 notes.append(
                     f"'{exp['quoted_contains']}' got {actual}, "
-                    f"expected {exp['truthfulness_label']}"
+                    f"expected {exp['evidence_alignment']}"
                 )
                 continue
             matches += 1

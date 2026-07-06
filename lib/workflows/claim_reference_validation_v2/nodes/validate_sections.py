@@ -28,12 +28,12 @@ logger = logging.getLogger(__name__)
 
 def _assessment_to_issue(assessment: CitationAssessment) -> CitationIssueItem:
     """Convert the agent's output record into the persisted workflow-state
-    record. The deprecated `evidence_alignment` field is left unset (None)."""
+    record. The deprecated `truthfulness_label` field is left unset (None)."""
     return CitationIssueItem(
         quoted_text=assessment.quoted_text,
         line_start=assessment.line_start,
         line_end=assessment.line_end,
-        truthfulness_label=assessment.truthfulness_label,
+        evidence_alignment=assessment.evidence_alignment,
         rationale=assessment.rationale,
         feedback=assessment.feedback,
         evidence_sources=assessment.evidence_sources,

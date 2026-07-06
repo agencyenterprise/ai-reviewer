@@ -23,31 +23,32 @@ from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.util import get_state_by_type
 from lib.workflows.workflow_types import WorkflowState
 
-_ISSUE_CONFIG: dict[TruthfulnessLabel, tuple[str, SeverityEnum]] = {
-    TruthfulnessLabel.TRUE_EXPLICIT: ("Supported Citation", SeverityEnum.NONE),
-    TruthfulnessLabel.TRUE_INFERRED: ("Supported Citation", SeverityEnum.NONE),
-    TruthfulnessLabel.PARTIALLY_TRUE: (
+_ISSUE_CONFIG: dict[EvidenceAlignmentLevel, tuple[str, SeverityEnum]] = {
+    EvidenceAlignmentLevel.SUPPORTED: ("Supported Citation", SeverityEnum.NONE),
+    EvidenceAlignmentLevel.PARTIALLY_SUPPORTED: (
         "Partially Supported Citation",
         SeverityEnum.MEDIUM,
     ),
-    TruthfulnessLabel.FALSE_CONTRADICTED: (
-        "Contradicted Citation",
-        SeverityEnum.HIGH,
-    ),
-    TruthfulnessLabel.FALSE_NOT_IN_TEXT: (
+    EvidenceAlignmentLevel.UNSUPPORTED: (
         "Unsupported Citation",
         SeverityEnum.HIGH,
     ),
-    TruthfulnessLabel.UNVERIFIABLE: ("Unverifiable Citation", SeverityEnum.MEDIUM),
+    EvidenceAlignmentLevel.UNVERIFIABLE: (
+        "Unverifiable Citation",
+        SeverityEnum.MEDIUM,
+    ),
 }
 
-# Maps legacy `EvidenceAlignmentLevel` values onto the new taxonomy so that
-# workflow state persisted before the migration still renders correctly.
-_LEGACY_ALIGNMENT_TO_LABEL: dict[EvidenceAlignmentLevel, TruthfulnessLabel] = {
-    EvidenceAlignmentLevel.SUPPORTED: TruthfulnessLabel.TRUE_EXPLICIT,
-    EvidenceAlignmentLevel.PARTIALLY_SUPPORTED: TruthfulnessLabel.PARTIALLY_TRUE,
-    EvidenceAlignmentLevel.UNSUPPORTED: TruthfulnessLabel.FALSE_NOT_IN_TEXT,
-    EvidenceAlignmentLevel.UNVERIFIABLE: TruthfulnessLabel.UNVERIFIABLE,
+# Maps the legacy 6-category `TruthfulnessLabel` onto the current
+# `EvidenceAlignmentLevel` taxonomy so that workflow state persisted before the
+# migration back to `EvidenceAlignmentLevel` still renders correctly.
+_LEGACY_LABEL_TO_ALIGNMENT: dict[TruthfulnessLabel, EvidenceAlignmentLevel] = {
+    TruthfulnessLabel.TRUE_EXPLICIT: EvidenceAlignmentLevel.SUPPORTED,
+    TruthfulnessLabel.TRUE_INFERRED: EvidenceAlignmentLevel.SUPPORTED,
+    TruthfulnessLabel.PARTIALLY_TRUE: EvidenceAlignmentLevel.PARTIALLY_SUPPORTED,
+    TruthfulnessLabel.FALSE_CONTRADICTED: EvidenceAlignmentLevel.UNSUPPORTED,
+    TruthfulnessLabel.FALSE_NOT_IN_TEXT: EvidenceAlignmentLevel.UNSUPPORTED,
+    TruthfulnessLabel.UNVERIFIABLE: EvidenceAlignmentLevel.UNVERIFIABLE,
 }
 
 
@@ -76,11 +77,11 @@ def _format_evidence_source(
     return f"- {file_link} - {source.location}\n\n\t> *{source.quote}*"
 
 
-def _resolve_truthfulness_label(item: CitationIssueItem) -> Optional[TruthfulnessLabel]:
-    if item.truthfulness_label is not None:
-        return item.truthfulness_label
+def _resolve_alignment(item: CitationIssueItem) -> Optional[EvidenceAlignmentLevel]:
     if item.evidence_alignment is not None:
-        return _LEGACY_ALIGNMENT_TO_LABEL.get(item.evidence_alignment)
+        return item.evidence_alignment
+    if item.truthfulness_label is not None:
+        return _LEGACY_LABEL_TO_ALIGNMENT.get(item.truthfulness_label)
     return None
 
 
@@ -89,11 +90,11 @@ def _build_issue(
     supporting_files: Optional[List[FileDocument]],
     workflow_type: WorkflowRunType,
 ) -> Optional[DocumentIssue]:
-    label = _resolve_truthfulness_label(item)
-    if label is None or label not in _ISSUE_CONFIG:
+    alignment = _resolve_alignment(item)
+    if alignment is None or alignment not in _ISSUE_CONFIG:
         return None
 
-    title, severity = _ISSUE_CONFIG[label]
+    title, severity = _ISSUE_CONFIG[alignment]
 
     sources_text = (
         "\n".join(
@@ -106,7 +107,7 @@ def _build_issue(
 
     long_description = (
         f"**Cited text:**\n\n> {item.quoted_text}\n\n"
-        f"**Truthfulness:** {label.value}\n\n"
+        f"**Evidence alignment:** {alignment.value}\n\n"
         f"### Checked sources\n\n{sources_text}\n\n"
         f"### Citation-to-file mapping\n\n"
         f"{item.citation_to_file_mapping or 'No citation-to-file mapping provided'}"

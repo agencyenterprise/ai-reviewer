@@ -44,6 +44,11 @@ _SKILL_BACKED_AGENTS = [
     "reproducibility-check",
     "reference-extraction",
     "advocacy-tone",
+    "about-this-preface",
+    "about-this-authors",
+    "abbreviation-extraction",
+    "abbreviation-scan",
+    "citation-support",
 ]
 
 

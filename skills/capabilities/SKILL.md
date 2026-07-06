@@ -23,9 +23,12 @@ These review the document and flag issues.
 |---|---|---|
 | **Reference Error Checker** | Are your references accurate? Uses web search to confirm each citation exists and that the author, title, publisher, and year match public sources — catching typos and hallucinated references. | `reference-validation` |
 | **Figures & Tables Check** | Are all figures and tables properly titled, consistently numbered, cited in the body text, and do all body-text references resolve to a real figure or table? | `figures-tables-check` |
+| **Abbreviation Scan** | Are abbreviations and acronyms defined inline at first use, listed in an Abbreviations section, used consistently, and never given conflicting meanings? | `abbreviation-scan` |
 | **Document Contents** | Does the document include all required sections — About This, Acknowledgements, Methods, Results, Conclusion, References, and an Appendix when one is referenced? | `document-contents` |
+| **About This** | Does the preface / "About This" section cover the required elements (context, objectives, audience, situating in the literature, contribution, and scope), and does each author biography meet publication requirements (sentence count, position & affiliation, research focus, and highest degree)? | `about-this-preface`, `about-this-authors` |
 | **Recommendation Check** | Is each recommendation supported by the document's own findings? Flags recommendations with weak, indirect, missing, or contradictory backing. | `recommendation-check` |
 | **Internal Inference Validation** | Does the reasoning hold up? Flags logical leaps, unsupported conclusions, and arguments where the evidence doesn't support the claim. | `inference-validation` |
+| **Claim Reference Validation** | Does each cited source actually back the claim it's attached to? Judges every citation as supported, partially supported, contradicted, unsupported, or unverifiable against the cited source. (Full-text references needed; the app fetches or you upload the sources.) | `citation-support` |
 | **Advocacy & Tone** | Does the document use neutral, objective language? Flags trigger words (certainty language without evidence), advocacy language (unsupported recommendations or opinion framing), and subjective tone. (Beta.) | `advocacy-tone` |
 | **Reviewer 2** | A rigorous simulated peer review — summary, strengths, weaknesses, and prioritized next steps — plus a separate devil's-advocate rebuttal. (Beta.) | `reviewer-2` |
 | **Literature Review** | Are there relevant sources you may have missed? Searches the web for academic sources related to your document's claims — both supporting and conflicting — that aren't already cited. (Beta.) | `literature-review` |
@@ -42,6 +45,7 @@ These operate on the document rather than flagging issues.
 | **Download References** | Search the web for a reference and download its full original content (PDF/Markdown), verifying the match. Reports found / found-but-inaccessible / not-found. | `reference-download` |
 | **Extract Methodology** | Extract a structured, reproducible description of the paper's methodology, and classify how reproducible it is. | `methodology-extraction` |
 | **Extract References** | Find and list all bibliographic references from the document's reference/bibliography section. | `reference-extraction` |
+| **Extract Abbreviations** | Find and catalogue every abbreviation/acronym occurrence — with its inline definition, occurrence count, location, Abbreviations-section entry, and exempt-class status. | `abbreviation-extraction` |
 
 ## Notes
 
