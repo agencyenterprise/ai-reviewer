@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.45] - 2026-07-06
+
+### Added
+- Added a committed `ABOUT.md` file and a new public `GET /api/about` endpoint to serve About-page content.
+- Added new skills: `citation-support`, `abbreviation-extraction`, `abbreviation-scan`, `about-this-preface`, and `about-this-authors`.
+- Added new evaluation samples for `advocacy_tone_v2` and updated citation-validation eval datasets/scorers to use the new evidence-alignment labels.
+- Added unit tests covering About-page content reading and new/updated skill-based agents and skill loading.
+
+### Changed
+- Updated the Advocacy & Tone check to flag standalone imperative/normative words (Urgent, Requires, Must, Critical, Essential, Ensure/ensuring) under the existing “Advocacy Language Detected” title with in-context carve-outs.
+- Migrated `claim_reference_validation_v2` citation validation from the 6-category `TruthfulnessLabel` taxonomy to the four-value `EvidenceAlignmentLevel` taxonomy.
+- Converted `claim_reference_validation_v2` substantiation judgment into the `citation-support` skill and updated the citation validator to load its prompt from the skill plus environment guidance.
+- Converted `abbreviation_scan_v2` into two portable skills while keeping the backend deterministic compliance engine intact, and updated the abbreviation checker to load its extraction prompt from the new skill.
+- Moved About-page content from `app_configs` to `ABOUT.md`, and updated the frontend About page to fetch from the new API endpoint.
+- Stopped customizing `about_this_ger` and `advocacy_tone_v2` via `app_configs` and switched them to use skill files as the single source of truth.
+
+### Removed
+- Removed the admin “App Settings” (`/settings`) nav link from the profile dropdown (desktop and mobile).
+- Deleted `lib/config_keys/about_page.py` after moving its content to `ABOUT.md`.
+- Deleted the `advocacy_tone_v2` custom config-injection node and related config keys, and removed the `about_this_ger` config keys.
+- Deleted the `advocacy_tone_v2` node/config unit test after removing the node/config.
+
+
 ## [v0.5.44] - 2026-06-29
 
 ### Added
