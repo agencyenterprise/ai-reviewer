@@ -125,7 +125,7 @@ Tests are organized by type:
 uv run pytest
 
 # Run evaluations (see evals_inspectai/ for available eval suites)
-uv run inspect eval evals_inspectai/e2e/reference_validation/reference_validation_e2e.py
+uv run inspect eval evals_inspectai/e2e/reference_validation_v2/reference_validation_v2_e2e.py
 ```
 
 ## License

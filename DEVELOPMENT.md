@@ -276,7 +276,7 @@ Each workflow has its own eval directory with a dataset file (`dataset.json` or 
 
 ```bash
 # Run a full eval suite for a workflow
-uv run inspect eval evals_inspectai/e2e/reference_validation/reference_validation_e2e.py
+uv run inspect eval evals_inspectai/e2e/reference_validation_v2/reference_validation_v2_e2e.py
 
 # Run a specific sample by ID (1-indexed)
 uv run inspect eval evals_inspectai/e2e/figures_tables_check/figures_tables_check_e2e.py --sample-id=1
@@ -285,7 +285,7 @@ uv run inspect eval evals_inspectai/e2e/figures_tables_check/figures_tables_chec
 uv run inspect eval evals_inspectai/e2e/figures_tables_check/figures_tables_check_e2e.py --sample-id=1 --epochs=3
 
 # Run a range of samples
-uv run inspect eval evals_inspectai/e2e/reference_validation/reference_validation_e2e.py --limit=5-10
+uv run inspect eval evals_inspectai/e2e/reference_validation_v2/reference_validation_v2_e2e.py --limit=5-10
 
 # View eval results in the Inspect AI dashboard
 uv run inspect view

@@ -14,9 +14,9 @@ from lib.agents.reference_validator_v2 import (
 
 
 @task
-def reference_validation():
+def reference_validation_v2():
     dataset = json_dataset(
-        "../../e2e/reference_validation/dataset.json",
+        "../../e2e/reference_validation_v2/dataset.json",
         FieldSpec(target="target_final_result", metadata=["target_answer"]),
     )
 

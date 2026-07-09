@@ -11,7 +11,7 @@ evals_inspectai/
 │   ├── abbreviation_checker/
 │   ├── claim_reference_validation_v2/
 │   ├── reference_text_extractor/
-│   └── reference_validation/
+│   └── reference_validation_v2/
 └── e2e/                               # Evals that call the API end-to-end
     ├── abbreviation_checker/
     ├── about_this_ger/
@@ -27,7 +27,7 @@ evals_inspectai/
     ├── recommendation_check/
     ├── reference_downloader/
     ├── reference_text_extractor/
-    ├── reference_validation/
+    ├── reference_validation_v2/
     ├── results_extraction/
     └── reviewer_2/
 ```
@@ -50,7 +50,7 @@ Each eval directory contains a task module (e.g. `<name>.py` for internal, `<nam
 | `internal/abbreviation_checker` | Detects abbreviation compliance issues (missing inline definitions, abbreviations not in the Abbreviations section). |
 | `internal/claim_reference_validation_v2` | Judges whether each cited source supports the claim attached to it (supported / partially supported / unsupported / unverifiable). |
 | `internal/reference_text_extractor` | Extracts bibliographic reference entries from document reference/bibliography sections. |
-| `internal/reference_validation` | Classifies bibliography items as `valid`, `not_found`, or `found_with_inconsistencies`. |
+| `internal/reference_validation_v2` | Classifies bibliography items as `valid`, `not_found`, or `found_with_inconsistencies`. |
 
 ### E2E
 
@@ -72,7 +72,7 @@ Each e2e eval runs the corresponding workflow end-to-end through the API.
 | `e2e/recommendation_check` | Checks whether each recommendation is backed by the document's own findings. |
 | `e2e/reference_downloader` | Searches for and downloads the full text of a reference. |
 | `e2e/reference_text_extractor` | Extracts bibliographic reference entries, run via the full workflow. |
-| `e2e/reference_validation` | Reference Error Checker — verifies each citation exists online and matches public sources. |
+| `e2e/reference_validation_v2` | Reference Error Checker — verifies each citation exists online and matches public sources. |
 | `e2e/results_extraction` | Reproducibility Check — extracts main results and classifies each by reproducibility. |
 | `e2e/reviewer_2` | Produces a senior-reviewer-style critique and a devil's-advocate rebuttal. |
 
@@ -84,13 +84,13 @@ All commands should be run from the project root.
 
 ```bash
 # Run a specific eval
-uv run inspect eval evals_inspectai/internal/reference_validation/reference_validation.py
+uv run inspect eval evals_inspectai/internal/reference_validation_v2/reference_validation_v2.py
 
 # Choose models
 uv run inspect eval evals_inspectai/internal/abbreviation_checker/abbreviation_checker.py --model openai/gpt-5.4
 
 # Multiple epochs and sample limit
-uv run inspect eval evals_inspectai/internal/reference_validation/reference_validation.py --epochs=2 --limit=5
+uv run inspect eval evals_inspectai/internal/reference_validation_v2/reference_validation_v2.py --epochs=2 --limit=5
 ```
 
 ### E2E evals

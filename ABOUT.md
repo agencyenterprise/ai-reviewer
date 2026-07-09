@@ -38,7 +38,7 @@ Each check is listed below, organized by category and shown in the order it appe
 
 | Analysis Type | Description | Eval |
 |:---|:---|:---:|
-| **Reference Error Checker** | Uses web search to check whether each reference is findable online and whether the author, title, year, and publisher match public sources — useful for catching reference typos or hallucinated citations. `#web_search` | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/reference_validation) |
+| **Reference Error Checker** | Uses web search to check whether each reference is findable online and whether the author, title, year, and publisher match public sources — useful for catching reference typos or hallucinated citations. `#web_search` | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/reference_validation_v2) |
 
 ### Substantive Review
 
