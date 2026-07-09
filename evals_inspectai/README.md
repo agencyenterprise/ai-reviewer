@@ -7,11 +7,6 @@ LLM evaluation tasks built with [Inspect AI](https://inspect.ai-safety-institute
 ```
 evals_inspectai/
 ├── common/                            # Shared utilities (scorers, comparers, API client, solver)
-├── internal/                          # Evals that import agents directly from lib/
-│   ├── abbreviation_checker/
-│   ├── claim_reference_validation_v2/
-│   ├── reference_text_extractor/
-│   └── reference_validation_v2/
 └── e2e/                               # Evals that call the API end-to-end
     ├── abbreviation_checker/
     ├── about_this_ger/
@@ -32,29 +27,14 @@ evals_inspectai/
     └── reviewer_2/
 ```
 
-**Internal evals** invoke agents directly via Python imports. They require the full
-codebase and its dependencies.
-
-**E2E evals** trigger workflows through the HTTP API. They only depend on
+**E2E evals** trigger workflows through the HTTP API, exercising the full
+pipeline exactly as real users do. They only depend on
 `evals_inspectai/common/`, making them portable to a standalone repository in
 the future.
 
 ## Available Evals
 
-Each eval directory contains a task module (e.g. `<name>.py` for internal, `<name>_e2e.py` for e2e) and its dataset.
-
-### Internal
-
-| Eval | Description |
-|------|-------------|
-| `internal/abbreviation_checker` | Detects abbreviation compliance issues (missing inline definitions, abbreviations not in the Abbreviations section). |
-| `internal/claim_reference_validation_v2` | Judges whether each cited source supports the claim attached to it (supported / partially supported / unsupported / unverifiable). |
-| `internal/reference_text_extractor` | Extracts bibliographic reference entries from document reference/bibliography sections. |
-| `internal/reference_validation_v2` | Classifies bibliography items as `valid`, `not_found`, or `found_with_inconsistencies`. |
-
-### E2E
-
-Each e2e eval runs the corresponding workflow end-to-end through the API.
+Each eval directory contains a task module (`<name>_e2e.py`) and its dataset. Each eval runs the corresponding workflow end-to-end through the API.
 
 | Eval | Description |
 |------|-------------|
@@ -79,21 +59,6 @@ Each e2e eval runs the corresponding workflow end-to-end through the API.
 ## Running Evals
 
 All commands should be run from the project root.
-
-### Internal evals
-
-```bash
-# Run a specific eval
-uv run inspect eval evals_inspectai/internal/reference_validation_v2/reference_validation_v2.py
-
-# Choose models
-uv run inspect eval evals_inspectai/internal/abbreviation_checker/abbreviation_checker.py --model openai/gpt-5.4
-
-# Multiple epochs and sample limit
-uv run inspect eval evals_inspectai/internal/reference_validation_v2/reference_validation_v2.py --epochs=2 --limit=5
-```
-
-### E2E evals
 
 E2E evals require a running API server. Configure the following environment
 variables before running:
