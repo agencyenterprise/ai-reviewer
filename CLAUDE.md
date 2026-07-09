@@ -413,10 +413,7 @@ def mock_llm():
 
 ### Evaluations (Inspect AI)
 
-This project uses [Inspect AI](https://inspect.ai-safety-institute.org.uk/) for LLM agent evaluations. Eval tasks live under `evals_inspectai/` in two flavors:
-
-- **`evals_inspectai/e2e/`** — End-to-end evals that hit the running API server (backend must be running).
-- **`evals_inspectai/internal/`** — Internal evals that import and invoke agents directly (no server needed).
+This project uses [Inspect AI](https://inspect.ai-safety-institute.org.uk/) for LLM agent evaluations. Eval tasks live under `evals_inspectai/e2e/` and run each workflow end-to-end against a running API server (backend must be running), mirroring the full pipeline that real users trigger.
 
 Each workflow has its own eval directory with a dataset file (`dataset.json` or `dataset.jsonl`) and a task definition module.
 
