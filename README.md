@@ -52,7 +52,7 @@ The full-featured way to use the tool. Upload a draft (`.docx` recommended, PDF 
 
 - **Export to Word** as tracked comments.
 - **Share a project** with colleagues via a read-only link.
-- Fetch or upload the full text of references for the checks that need it (Claim Reference Validation, Citation Suggester).
+- Fetch or upload the full text of references for the checks that need it (Claim Reference Validation).
 
 There is also an experimental **Microsoft Word add-in** that surfaces the same reviews inside Word — see [`addin/README.md`](addin/README.md).
 

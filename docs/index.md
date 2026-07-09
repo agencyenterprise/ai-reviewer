@@ -33,10 +33,10 @@ The system addresses these primary research questions:
 6. **Literature Review**: Is there any other related published work that could be referenced to strengthen or counter the arguments presented?
 7. **Live Reports** (for past published documents): Is there any newer related work that supports, strengthens, contradicts, or brings newer information that should be considered to expand the document's arguments?
 8. **Methodological Alignment**: Does the methodology used align with typical methods in the field?
-9. **Results Reproducibility**: What are the main results of the document, and are they reproducible?
-10. **Recommendation Support**: Are the document's recommendations backed by its own findings?
+9. **Results Reproducibility** (Reproducibility Check): What are the main results of the document, and are they reproducible?
+10. **Recommendation Support** (Recommendation Check): Are the document's recommendations backed by its own findings?
 11. **Advocacy & Tone**: Does the document use neutral, objective language, free of advocacy patterns, trigger words, and subjective tone?
-12. **Peer Review Simulation**: How would a rigorous senior reviewer assess the document's strengths, weaknesses, and next steps?
+12. **Peer Review Simulation** (Reviewer 2): How would a rigorous senior reviewer assess the document's strengths, weaknesses, and next steps?
 13. **Editorial & Structural Compliance**: Does the document meet editorial and structural requirements — required sections and preface elements, author biographies, defined abbreviations, and properly titled, numbered, and referenced figures and tables?
 
 ## Methodology
@@ -106,7 +106,7 @@ The system processes documents through a multi-stage pipeline implemented using 
 
 12. **Methodological Alignment**: Analyzes the methodology used in the document against typical methods used in the field, using web search to find field methods context.
 
-13. **Results Extraction**: Extracts main results from the document and classifies each by how reproducibly it could be recreated from the document alone.
+13. **Reproducibility Check**: Extracts the main results from the document and classifies each by how reproducibly it could be recreated from the document alone.
 
 14. **Recommendation Check**: Evaluates whether each recommendation is supported by the document's own findings, flagging recommendations whose backing is weak, indirect, missing, or contradictory.
 
