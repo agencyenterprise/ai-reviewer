@@ -23,10 +23,13 @@ evals_inspectai/
     ├── inference_validation_v2/
     ├── literature_review_v2/
     ├── live_reports_v2/
+    ├── methodological_alignment/
     ├── recommendation_check/
     ├── reference_downloader/
     ├── reference_text_extractor/
-    └── reference_validation/
+    ├── reference_validation/
+    ├── results_extraction/
+    └── reviewer_2/
 ```
 
 **Internal evals** invoke agents directly via Python imports. They require the full
@@ -65,10 +68,13 @@ Each e2e eval runs the corresponding workflow end-to-end through the API.
 | `e2e/inference_validation_v2` | Flags invalid inferences, logical fallacies, and unsupported conclusions. |
 | `e2e/literature_review_v2` | Finds relevant academic sources — supporting and conflicting — that aren't already cited. |
 | `e2e/live_reports_v2` | Finds sources published after the document's date that may update or contradict its claims. |
+| `e2e/methodological_alignment` | Compares the document's methodology against standard field practice (uses web search). |
 | `e2e/recommendation_check` | Checks whether each recommendation is backed by the document's own findings. |
 | `e2e/reference_downloader` | Searches for and downloads the full text of a reference. |
 | `e2e/reference_text_extractor` | Extracts bibliographic reference entries, run via the full workflow. |
 | `e2e/reference_validation` | Reference Error Checker — verifies each citation exists online and matches public sources. |
+| `e2e/results_extraction` | Reproducibility Check — extracts main results and classifies each by reproducibility. |
+| `e2e/reviewer_2` | Produces a senior-reviewer-style critique and a devil's-advocate rebuttal. |
 
 ## Running Evals
 
