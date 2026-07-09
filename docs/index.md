@@ -33,15 +33,11 @@ The system addresses these primary research questions:
 6. **Literature Review**: Is there any other related published work that could be referenced to strengthen or counter the arguments presented?
 7. **Live Reports** (for past published documents): Is there any newer related work that supports, strengthens, contradicts, or brings newer information that should be considered to expand the document's arguments?
 8. **Methodological Alignment**: Does the methodology used align with typical methods in the field?
-9. **Results Extraction**: What are the main results of the document, and are they reproducible?
-
-### QA Screener (Experimental)
-
-For organizational quality assurance workflows, the system also includes experimental analyses:
-
-10. **Advocacy & Tone Detection**: Does the document contain subjective language, unsupported recommendations, or advocacy patterns that may indicate bias?
-11. **Preface/Introduction Validation**: Does the preface section contain required elements (context, objectives, audience, funding statements)?
-12. **Author Biography Validation**: Are author biographies consistent, complete, and compliant with organizational style guidelines?
+9. **Results Reproducibility**: What are the main results of the document, and are they reproducible?
+10. **Recommendation Support**: Are the document's recommendations backed by its own findings?
+11. **Advocacy & Tone**: Does the document use neutral, objective language, free of advocacy patterns, trigger words, and subjective tone?
+12. **Peer Review Simulation**: How would a rigorous senior reviewer assess the document's strengths, weaknesses, and next steps?
+13. **Editorial & Structural Compliance**: Does the document meet editorial and structural requirements — required sections and preface elements, author biographies, defined abbreviations, and properly titled, numbered, and referenced figures and tables?
 
 ## Methodology
 
@@ -106,45 +102,30 @@ The system processes documents through a multi-stage pipeline implemented using 
     - Searching external sources for supporting or conflicting evidence
     - Identifying newer publications relevant to the claims
     - Evaluating reference quality and source credibility
-    - Recommending citation additions, replacements, or discussions
+    - Recommending citation additions, replacements, or discussions for claims that would benefit from stronger support
 
-12. **Citation Suggestion**: For claims lacking citations, the system suggests relevant references from the document's bibliography or external sources, considering:
+12. **Methodological Alignment**: Analyzes the methodology used in the document against typical methods used in the field, using web search to find field methods context.
 
-    - Relevance to the claim
-    - Source quality and credibility
-    - Publication recency
-    - Domain appropriateness
+13. **Results Extraction**: Extracts main results from the document and classifies each by how reproducibly it could be recreated from the document alone.
 
-13. **Methodological Alignment**: Analyzes the methodology used in the document against typical methods used in the field, using web search to find field methods context.
+14. **Recommendation Check**: Evaluates whether each recommendation is supported by the document's own findings, flagging recommendations whose backing is weak, indirect, missing, or contradictory.
 
-14. **Results Extraction**: Extracts main results from the document and assesses their reproducibility.
+15. **Peer Review Simulation (Reviewer 2)**: Produces an integrated, senior-reviewer-style critique of the document as a whole — strengths, weaknesses, actionable next steps, and a devil's-advocate rebuttal.
 
-### QA Screener Analyses (Experimental)
+16. **Advocacy & Tone Detection**: Flags trigger words, advocacy language, and subjective tone that departs from a neutral, objective voice, combining fast procedural checks with LLM verification.
 
-For organizational compliance and quality assurance:
+17. **Preface & Author Biography Validation ("About This")**: Validates the preface/introduction and author biographies against configurable publication requirements:
 
-15. **Advocacy & Tone Detection**: Uses a two-layer detection approach:
+    - Context, objectives, audience, and scope
+    - Relationship to existing literature and contribution statement
+    - Boilerplate and funding statement presence
+    - Author biography completeness (sentence count, position and affiliation, research focus, style consistency)
 
-    - Fast procedural checks (regex patterns) for trigger words and advocacy language
-    - LLM verification to confirm and contextualize flagged content
-    - Detects subjective tone using TextBlob subjectivity analysis
+18. **Document Contents**: Checks that required sections are present (About This, Acknowledgements, Methods, Results, Conclusion, References, and Appendix when referenced).
 
-16. **Preface Validation**: Validates preface/introduction sections against configurable requirements:
+19. **Figures & Tables Check**: Verifies that every figure and table is titled, consistently numbered, and referenced in the body text, and that every body-text reference resolves to an actual figure or table.
 
-    - Context establishment
-    - Objectives explanation
-    - Audience identification
-    - Relationship to existing literature
-    - Contribution statement
-    - Scope definition
-    - Boilerplate text verification
-    - Funding statement presence
-
-17. **Author Biography Validation**: Validates author biographies for:
-    - Sentence count compliance
-    - Position and affiliation presence
-    - Research focus inclusion
-    - Style consistency
+20. **Abbreviation Scan**: Verifies that each abbreviation is defined at first use and listed in an Abbreviations section, and that usage is consistent throughout.
 
 ### Technical Architecture
 
@@ -177,7 +158,7 @@ For organizational compliance and quality assurance:
 
 ### LLM Configuration
 
-The system uses GPT-5 (via LangChain) for all agent operations, configured with:
+The system uses GPT-5-family models (e.g. GPT-5.4/GPT-5.5, via LangChain) for all agent operations, configured with:
 
 - Temperature: 0.0-0.5 (depending on task determinism requirements)
 - Structured output enforcement via Pydantic models
@@ -237,7 +218,7 @@ The following example demonstrates the system's capability to validate inferenti
 
 ### Literature Review & Citation Recommendation
 
-The images below show examples of output for the citation suggestion and literature review agents.
+The images below show example output from the literature review, including the citation recommendations it produces for claims that would benefit from stronger support.
 
 ![Citation Suggestion - Example 1](./citation-suggestion-ex1.png)
 
@@ -265,6 +246,6 @@ The following example demonstrates the system's "live reports" capabilities for 
 
 7. **Web Search Dependency**: Literature review, reference validation, and methodological alignment analyses require web search access. Results depend on search engine availability and the indexed web content.
 
-8. **QA Screener Customization**: The experimental QA screener workflows (advocacy tone, preface validation, author bios) are configurable via YAML but require tuning for different organizational requirements.
+8. **Editorial Check Customization**: The editorial and compliance checks (advocacy & tone, preface and author-biography validation, document contents) are configurable but may require tuning to match a given publication's or organization's style requirements.
 
 ## References
