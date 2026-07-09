@@ -177,7 +177,6 @@ export function ResultsVisualization({
           >
             <TabsList>
               <TabsTrigger value="document-explorer">Document Explorer</TabsTrigger>
-              <TabsTrigger value="summary">Summary</TabsTrigger>
               <TabsTrigger value="references" className="relative">
                 References{' '}
                 <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
