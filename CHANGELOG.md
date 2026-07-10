@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.46] - 2026-07-10
+
+### Added
+- Added InspectAI end-to-end eval suites for Methodological Alignment, Reproducibility Check (`results_extraction`), and Reviewer 2.
+- Added `docs/eval-scores.md` to track current Inspect AI eval numbers for every end-to-end eval and link to raw run logs.
+- Added 18 raw Inspect log files under `docs/evals/*.eval` linked from the eval scores report.
+- Updated `README.md` with a “Three ways to use Draft Detective” section covering Claude Code plugin/skills, MCP server, and web app usage.
+- Expanded `README.md` “What it checks” with short descriptions per check in the app’s display order.
+- Updated `ABOUT.md` to include Recommendation Check and About This.
+- Updated `docs/index.md` to include missing current analyses: Recommendation Check, Reviewer 2, Document Contents, Figures & Tables Check, and Abbreviation Scan.
+
+### Changed
+- Completed migration of workflow state off the LangGraph checkpointer onto `workflow_runs.state_json`, making `state_json` the single source of truth.
+- Changed workflow run creation so each new run gets a fresh thread id and can seed prior state via `prior_self_state`.
+- Updated `evals_inspectai/README.md`, `DEVELOPMENT.md`, and `CLAUDE.md` to reflect an e2e-only eval layout and remove internal-eval documentation.
+- Refreshed `README.md`, `ABOUT.md`, and `docs/index.md` to remove the obsolete “QA Screener vs regular workflow” separation and align with current workflows.
+
+### Fixed
+- Fixed the History thread-reuse bug by replacing cross-run thread reuse with a fresh thread id per run plus explicit prior-state seeding.
+- Fixed a stale-read issue where cancelled/edited runs showed pre-cleanup state via the checkpointer by migrating remaining readers to `read_workflow_run_state` loaded with `include_state=True`.
+- Corrected the Reviewer 2 eval rubric `target_answer` to match `skills/reviewer-2/SKILL.md`.
+
+### Security
+- Scanned the added eval logs for secrets (including `.env` values, model API keys, JWTs, and `Authorization` headers) and found zero matches.
+
+### Removed
+- Removed the `evals_inspectai/internal/` eval tree in favor of e2e-only coverage.
+- Removed the LangGraph checkpointer entirely (code and infrastructure) after completing the `state_json` cutover.
+- Removed the deprecated Citation Suggester from `ABOUT.md`.
+
+
 ## [v0.5.45] - 2026-07-06
 
 ### Added
