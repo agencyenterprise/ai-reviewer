@@ -58,6 +58,9 @@ docker-compose*.yml
 *.md
 docs/
 
+# ...but keep ABOUT.md — it is read at runtime by the About page endpoint
+!ABOUT.md
+
 # Ignore test files and coverage reports
 .pytest_cache/
 .coverage

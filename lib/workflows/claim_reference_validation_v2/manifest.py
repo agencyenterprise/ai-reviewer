@@ -3,7 +3,6 @@
 from typing import List, Optional, Type, cast
 
 from langgraph.graph import StateGraph
-from langgraph.graph.state import CompiledStateGraph, RunnableConfig
 
 from lib.agents.citation_validator import TruthfulnessLabel
 from lib.agents.claim_verifier import EvidenceAlignmentLevel
@@ -156,11 +155,8 @@ class ClaimReferenceValidationV2Manifest(
         return build_claim_reference_validation_v2_graph()
 
     async def on_cancel(
-        self,
-        state: ClaimReferenceValidationV2State,
-        app: CompiledStateGraph,
-        config: RunnableConfig,
-    ) -> None:
+        self, state: ClaimReferenceValidationV2State
+    ) -> ClaimReferenceValidationV2State:
         updated = [
             (
                 item.model_copy(update={"status": SectionVerificationStatus.CANCELLED})
@@ -169,17 +165,14 @@ class ClaimReferenceValidationV2Manifest(
             )
             for item in state.section_verifications
         ]
-        await app.aupdate_state(
-            config,
-            {"section_verifications": updated},
-            as_node="finalize_results",
-        )
+        return state.model_copy(update={"section_verifications": updated})
 
     async def create_initial_state(
         self,
         config: ClaimReferenceValidationV2Config,
         existing_states: List[WorkflowState],
         revision: int,
+        prior_self_state: ClaimReferenceValidationV2State | None = None,
     ) -> ClaimReferenceValidationV2State:
         return ClaimReferenceValidationV2State(
             type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,

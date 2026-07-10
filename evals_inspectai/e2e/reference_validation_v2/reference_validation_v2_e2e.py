@@ -61,7 +61,7 @@ def _record_to_sample(record: dict) -> Sample:
 
 
 @task
-def reference_validation_e2e():
+def reference_validation_v2_e2e():
     dataset = json_dataset(
         str(Path(__file__).parent / "dataset.json"),
         _record_to_sample,

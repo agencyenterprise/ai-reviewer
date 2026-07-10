@@ -1,8 +1,6 @@
 from typing import List, Type
 
-from langchain_core.runnables.config import RunnableConfig
 from langgraph.graph import StateGraph
-from langgraph.graph.state import CompiledStateGraph
 
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
@@ -44,29 +42,40 @@ class ReferenceDownloaderManifest(
         """Build and return the graph of the workflow."""
         return build_reference_downloader_graph()
 
-    async def on_cancel(self, state: ReferenceDownloaderState, app: CompiledStateGraph, thread_config: RunnableConfig) -> None:
+    async def on_cancel(
+        self, state: ReferenceDownloaderState
+    ) -> ReferenceDownloaderState:
         """Mark any pending reference fetches as cancelled so they don't show as in-progress."""
         updated = [
-            item.model_copy(update={"status": ReferenceFetchStatus.CANCELLED})
-            if item.status == ReferenceFetchStatus.PENDING
-            else item
+            (
+                item.model_copy(update={"status": ReferenceFetchStatus.CANCELLED})
+                if item.status == ReferenceFetchStatus.PENDING
+                else item
+            )
             for item in state.fetched_references
         ]
-        await app.aupdate_state(
-            thread_config,
-            {"fetched_references": updated},
-            as_node="cleanup_failed_resources",
-        )
+        return state.model_copy(update={"fetched_references": updated})
 
     async def create_initial_state(
         self,
         config: ReferenceDownloaderWorkflowConfig,
         existing_states: List[WorkflowState],
         revision: int,
+        prior_self_state: ReferenceDownloaderState | None = None,
     ) -> ReferenceDownloaderState:
-        """Create and return the initial state of the workflow."""
+        """Create and return the initial state of the workflow.
+
+        Seeds fetched_references from the prior run's state so already-fetched
+        references carry forward. Threads are no longer reused across runs, so
+        this state is no longer inherited via the checkpointer.
+        """
+        fetched_references = (
+            prior_self_state.fetched_references if prior_self_state is not None else []
+        )
         return ReferenceDownloaderState(
-            type=WorkflowRunType.REFERENCE_DOWNLOADER, config=config
+            type=WorkflowRunType.REFERENCE_DOWNLOADER,
+            config=config,
+            fetched_references=fetched_references,
         )
 
     def convert_state_to_issues(

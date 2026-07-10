@@ -75,7 +75,6 @@ AUTH_SECRET=<same-value-as-backend>
 ```
 NEXT_PUBLIC_POSTHOG_KEY=<posthog-project-key>
 NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
-NEXT_PUBLIC_SHOW_EXPERIMENTAL_FEATURES=true
 ```
 
 ### 4. Deploy

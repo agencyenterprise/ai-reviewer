@@ -39,6 +39,7 @@ class AboutThisGerManifest(WorkflowManifest[AboutThisGerState, AboutThisGerConfi
         config: AboutThisGerConfig,
         existing_states: List[WorkflowState],
         revision: int,
+        prior_self_state: AboutThisGerState | None = None,
     ) -> AboutThisGerState:
         return AboutThisGerState(
             type=WorkflowRunType.ABOUT_THIS_GER,

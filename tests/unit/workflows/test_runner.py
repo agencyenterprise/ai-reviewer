@@ -2,11 +2,11 @@
 
 `run_workflow` has four exit paths: success → COMPLETED, WorkflowCancelledError
 → on_cancel + leave CANCELLED, asyncio.TimeoutError → on_cancel + FAILED+timeout,
-generic Exception → checkpoint append + FAILED+unhandled_exception. The wrapper
-`run_workflow_with_dependency_check` adds a fifth: DependencyWaitTimeoutError
-→ FAILED+dependency_timeout. These tests drive each branch with a mocked
-graph/checkpointer so the behavior contract is locked in even though we don't
-spin up real LangGraph.
+generic Exception → persist error to state_json + FAILED+unhandled_exception. The
+wrapper `run_workflow_with_dependency_check` adds a fifth:
+DependencyWaitTimeoutError → FAILED+dependency_timeout. These tests drive each
+branch with a mocked graph so the behavior contract is locked in even though we
+don't spin up real LangGraph.
 """
 
 import asyncio
@@ -23,8 +23,11 @@ from lib.workflows.models import (
     DependencyWaitTimeoutError,
     WorkflowCancelledError,
 )
-from lib.workflows.runner import run_workflow, run_workflow_with_dependency_check
-
+from lib.workflows.runner import (
+    run_workflow,
+    run_workflow_from_config,
+    run_workflow_with_dependency_check,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -33,18 +36,12 @@ from lib.workflows.runner import run_workflow, run_workflow_with_dependency_chec
 
 @pytest.fixture(autouse=True)
 def _stub_runner_db_helpers():
-    """Stub the DB-touching helpers added for state_json dual-write so unit
-    tests don't try to reach Postgres. Covers the per-yield persist, the
-    error-mirror in the unhandled-exception branch, and the re-read+persist
-    in the cancel/timeout branches' ``_mirror_post_cancel_state``.
+    """Stub the DB-touching persist helper so unit tests don't reach Postgres.
+    Covers the per-yield persist, the error persist in the unhandled-exception
+    branch, and the persist of on_cancel's returned state in the cancel/timeout
+    branches.
     """
-    with (
-        patch("lib.workflows.runner.persist_workflow_run_state", new=AsyncMock()),
-        patch(
-            "lib.workflows.runner.get_workflow_run_state_by_thread_id",
-            new=AsyncMock(return_value=None),
-        ),
-    ):
+    with patch("lib.workflows.runner.persist_workflow_run_state", new=AsyncMock()):
         yield
 
 
@@ -62,8 +59,6 @@ def _build_app_with_astream(astream_impl) -> MagicMock:
     """Build a mock CompiledStateGraph whose astream uses ``astream_impl``."""
     app = MagicMock()
     app.astream = astream_impl
-    app.aget_state = AsyncMock(return_value=MagicMock(config={"configurable": {}}))
-    app.aupdate_state = AsyncMock()
     return app
 
 
@@ -99,14 +94,10 @@ async def test_run_workflow_success_marks_completed():
 
     manifest = MagicMock()
     manifest.max_duration_seconds = 60
-    manifest.on_cancel = AsyncMock()
-
-    checkpointer_cm = MagicMock()
-    checkpointer_cm.__aenter__ = AsyncMock(return_value=MagicMock())
-    checkpointer_cm.__aexit__ = AsyncMock(return_value=False)
+    # on_cancel returns the cleaned-up state; echo the input state (not a bare mock).
+    manifest.on_cancel = AsyncMock(side_effect=lambda state: state)
 
     with (
-        patch("lib.workflows.runner.get_checkpointer", return_value=checkpointer_cm),
         patch("lib.workflows.runner.get_workflow_manifest", return_value=manifest),
         patch("lib.workflows.runner.update_workflow_run_status", new=update_status),
         patch("lib.workflows.runner.fail_workflow_run", new=fail),
@@ -145,14 +136,10 @@ async def test_run_workflow_timeout_marks_failed_and_runs_on_cancel():
 
     manifest = MagicMock()
     manifest.max_duration_seconds = 60
-    manifest.on_cancel = AsyncMock()
-
-    checkpointer_cm = MagicMock()
-    checkpointer_cm.__aenter__ = AsyncMock(return_value=MagicMock())
-    checkpointer_cm.__aexit__ = AsyncMock(return_value=False)
+    # on_cancel returns the cleaned-up state; echo the input state (not a bare mock).
+    manifest.on_cancel = AsyncMock(side_effect=lambda state: state)
 
     with (
-        patch("lib.workflows.runner.get_checkpointer", return_value=checkpointer_cm),
         patch("lib.workflows.runner.get_workflow_manifest", return_value=manifest),
         patch("lib.workflows.runner.update_workflow_run_status", new=AsyncMock()),
         patch("lib.workflows.runner.fail_workflow_run", new=fail),
@@ -177,8 +164,8 @@ async def test_run_workflow_timeout_marks_failed_and_runs_on_cancel():
 
 
 @pytest.mark.asyncio
-async def test_run_workflow_unhandled_exception_marks_failed_and_persists_to_checkpoint():
-    """A bare Exception is captured into the checkpoint and the run becomes FAILED+unhandled_exception."""
+async def test_run_workflow_unhandled_exception_marks_failed_and_persists_error():
+    """A bare Exception is persisted onto state_json and the run becomes FAILED+unhandled_exception."""
     workflow_run_id = str(uuid4())
     project_id = str(uuid4())
 
@@ -189,21 +176,20 @@ async def test_run_workflow_unhandled_exception_marks_failed_and_persists_to_che
     app = _build_app_with_astream(raising_astream)
     graph = _build_graph(app)
     fail = AsyncMock()
+    persist = AsyncMock()
 
     manifest = MagicMock()
     manifest.max_duration_seconds = 60
-    manifest.on_cancel = AsyncMock()
-
-    checkpointer_cm = MagicMock()
-    checkpointer_cm.__aenter__ = AsyncMock(return_value=MagicMock())
-    checkpointer_cm.__aexit__ = AsyncMock(return_value=False)
+    # on_cancel returns the cleaned-up state; echo the input state (not a bare mock).
+    manifest.on_cancel = AsyncMock(side_effect=lambda state: state)
 
     with (
-        patch("lib.workflows.runner.get_checkpointer", return_value=checkpointer_cm),
         patch("lib.workflows.runner.get_workflow_manifest", return_value=manifest),
         patch("lib.workflows.runner.update_workflow_run_status", new=AsyncMock()),
         patch("lib.workflows.runner.fail_workflow_run", new=fail),
         patch("lib.workflows.runner._persist_issues_from_state", new=AsyncMock()),
+        # Override the autouse stub so we can inspect the persisted error state.
+        patch("lib.workflows.runner.persist_workflow_run_state", new=persist),
     ):
         await run_workflow(
             workflow_run_id=workflow_run_id,
@@ -214,14 +200,14 @@ async def test_run_workflow_unhandled_exception_marks_failed_and_persists_to_che
             thread_id=str(uuid4()),
         )
 
-    # Error was appended to LangGraph checkpoint for observability
-    app.aupdate_state.assert_awaited_once()
-    update_args = app.aupdate_state.await_args.args
-    assert "errors" in update_args[1]
-    persisted_errors = update_args[1]["errors"]
-    assert len(persisted_errors) == 1
-    assert persisted_errors[0].error == "boom in node"
-    assert persisted_errors[0].workflow_run_id == workflow_run_id
+    # The error was captured onto state_json (the sole error-persistence path
+    # now that the checkpointer is gone).
+    persist.assert_awaited()
+    persisted_run_id, persisted_state = persist.await_args.args
+    assert persisted_run_id == workflow_run_id
+    assert len(persisted_state.errors) == 1
+    assert persisted_state.errors[0].error == "boom in node"
+    assert persisted_state.errors[0].workflow_run_id == workflow_run_id
 
     fail.assert_awaited_once()
     kwargs = fail.await_args.kwargs
@@ -245,14 +231,10 @@ async def test_run_workflow_cancelled_runs_on_cancel_without_failing():
 
     manifest = MagicMock()
     manifest.max_duration_seconds = 60
-    manifest.on_cancel = AsyncMock()
-
-    checkpointer_cm = MagicMock()
-    checkpointer_cm.__aenter__ = AsyncMock(return_value=MagicMock())
-    checkpointer_cm.__aexit__ = AsyncMock(return_value=False)
+    # on_cancel returns the cleaned-up state; echo the input state (not a bare mock).
+    manifest.on_cancel = AsyncMock(side_effect=lambda state: state)
 
     with (
-        patch("lib.workflows.runner.get_checkpointer", return_value=checkpointer_cm),
         patch("lib.workflows.runner.get_workflow_manifest", return_value=manifest),
         patch("lib.workflows.runner.update_workflow_run_status", new=AsyncMock()),
         patch("lib.workflows.runner.fail_workflow_run", new=fail),
@@ -380,3 +362,77 @@ async def test_dependency_check_swallows_workflow_cancelled_error():
         )
 
     fail.assert_not_awaited()
+
+
+# ---------------------------------------------------------------------------
+# run_workflow_from_config — prior_self_state seeding
+# ---------------------------------------------------------------------------
+
+
+def _seeding_patches(get_latest, create_state):
+    """Patch run_workflow_from_config's collaborators so only the seeding
+    branch is exercised."""
+    return (
+        patch("lib.workflows.runner.create_graph", return_value=MagicMock()),
+        patch("lib.workflows.runner.create_context", return_value=MagicMock()),
+        patch(
+            "lib.workflows.runner.get_latest_workflow_run_state_by_type", new=get_latest
+        ),
+        patch("lib.workflows.runner.create_state", new=create_state),
+        patch("lib.workflows.runner.run_workflow", new=AsyncMock()),
+        patch("lib.workflows.runner.propagate_attributes"),
+    )
+
+
+@pytest.mark.asyncio
+async def test_run_workflow_from_config_seeds_prior_state_when_enabled():
+    """Fresh runs read the prior same-type run's state (excluding themselves)
+    and pass it to create_state."""
+    config = MagicMock()
+    config.type = WorkflowRunType.REFERENCE_DOWNLOADER
+    config.project_id = "proj-1"
+
+    prior = MagicMock()
+    get_latest = AsyncMock(return_value=prior)
+    create_state = AsyncMock()
+
+    p1, p2, p3, p4, p5, p6 = _seeding_patches(get_latest, create_state)
+    with p1, p2, p3, p4, p5, p6:
+        await run_workflow_from_config(
+            config=config,
+            thread_id=str(uuid4()),
+            workflow_run_id="run-1",
+            user=MagicMock(),
+            revision=3,
+            seed_prior_state=True,
+        )
+
+    get_latest.assert_awaited_once_with(
+        "proj-1", config.type, 3, exclude_run_id="run-1"
+    )
+    assert create_state.await_args.kwargs["prior_self_state"] is prior
+
+
+@pytest.mark.asyncio
+async def test_run_workflow_from_config_skips_seeding_on_resume():
+    """Resumed runs (seed_prior_state=False) must not adopt another run's state."""
+    config = MagicMock()
+    config.type = WorkflowRunType.REFERENCE_DOWNLOADER
+    config.project_id = "proj-1"
+
+    get_latest = AsyncMock()
+    create_state = AsyncMock()
+
+    p1, p2, p3, p4, p5, p6 = _seeding_patches(get_latest, create_state)
+    with p1, p2, p3, p4, p5, p6:
+        await run_workflow_from_config(
+            config=config,
+            thread_id=str(uuid4()),
+            workflow_run_id="run-1",
+            user=MagicMock(),
+            revision=3,
+            seed_prior_state=False,
+        )
+
+    get_latest.assert_not_awaited()
+    assert create_state.await_args.kwargs["prior_self_state"] is None

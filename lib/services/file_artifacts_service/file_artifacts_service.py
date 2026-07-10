@@ -39,7 +39,7 @@ class FileArtifactsService(FileArtifactsServiceType):
     """Accesses file artifacts produced by workflow runs for a given project.
 
     Loads artifacts from the database cache when available and falls back to
-    workflow checkpointer state when not.
+    the workflow run's persisted state (state_json) when not.
     """
 
     def __init__(self, project_id: str, revision: int) -> None:
@@ -71,11 +71,11 @@ class FileArtifactsService(FileArtifactsServiceType):
         """
         from lib.services.workflow_runs import (
             get_project_workflow_run_by_type,
-            get_workflow_run_state_by_thread_id,
+            read_workflow_run_state,
         )
 
         workflow_run = await get_project_workflow_run_by_type(
-            self.project_id, run_type, revision=self.revision
+            self.project_id, run_type, revision=self.revision, include_state=True
         )
         if not workflow_run:
             if raise_exception:
@@ -84,9 +84,7 @@ class FileArtifactsService(FileArtifactsServiceType):
                 )
             return None
 
-        state = await get_workflow_run_state_by_thread_id(
-            workflow_run.langgraph_thread_id, run_type
-        )
+        state = await read_workflow_run_state(workflow_run)
         if not state and raise_exception:
             raise ValueError(
                 f"No state found for type {run_type} and project {self.project_id}"

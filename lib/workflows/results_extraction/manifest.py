@@ -18,9 +18,7 @@ class ResultsExtractionManifest(
 ):
     type = WorkflowRunType.RESULTS_EXTRACTION
     name = "Reproducibility Check"
-    description = (
-        "Could someone reproduce your results from the document alone? Extracts main results and classifies each by how reproducible it is based on whether the data is present and the methodology is described."
-    )
+    description = "Could someone reproduce your results from the document alone? Extracts main results and classifies each by how reproducible it is based on whether the data is present and the methodology is described."
     needs_web_search = False
     is_experimental = True
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
@@ -39,6 +37,7 @@ class ResultsExtractionManifest(
         config: ResultsExtractionWorkflowConfig,
         existing_states: List[WorkflowState],
         revision: int,
+        prior_self_state: ResultsExtractionState | None = None,
     ) -> ResultsExtractionState:
         return ResultsExtractionState(
             type=WorkflowRunType.RESULTS_EXTRACTION,

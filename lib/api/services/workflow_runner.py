@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import uuid
 from typing import List
 
 from fastapi import BackgroundTasks, HTTPException
@@ -16,7 +17,6 @@ from lib.services.users import get_user_decrypted_api_key
 from lib.services.workflow_runs import (
     create_workflow_run,
     get_project_workflow_run_by_type,
-    get_thread_id_for_workflow_run,
     has_completed_workflow_run_any_revision,
 )
 from lib.workflows.config_factory import create_workflow_config
@@ -70,11 +70,15 @@ class WorkflowGateRequiredError(Exception):
 logger = logging.getLogger(__name__)
 
 
-def _assert_api_key_available(user: User, request_key: str | None, requires_key: bool) -> None:
+def _assert_api_key_available(
+    user: User, request_key: str | None, requires_key: bool
+) -> None:
     """Raise HTTP 422 when a workflow needs an API key but none is configured."""
     if not requires_key:
         return
-    has_api_key = bool(request_key or get_user_decrypted_api_key(user) or env_config.OPENAI_API_KEY)
+    has_api_key = bool(
+        request_key or get_user_decrypted_api_key(user) or env_config.OPENAI_API_KEY
+    )
     if not has_api_key:
         raise HTTPException(
             status_code=422,
@@ -126,7 +130,9 @@ async def _prepare_workflow_items(
     )
 
     # Workflows that don't use LLMs (requires_api_key() == False) are exempt.
-    any_requires_key = any(get_config_type(wt).requires_api_key() for wt in resolved_workflow_types)
+    any_requires_key = any(
+        get_config_type(wt).requires_api_key() for wt in resolved_workflow_types
+    )
     _assert_api_key_available(user, request.openai_api_key, any_requires_key)
 
     workflow_run_ids: List[str] = []
@@ -218,7 +224,10 @@ async def _prepare_workflow_items(
         workflow_config = create_workflow_config(
             project, workflow_type, request.openai_api_key
         )
-        thread_id = get_thread_id_for_workflow_run(existing_run)
+        # Each run gets a fresh thread id; accumulating workflows carry prior
+        # state forward via prior_self_state (read at execution time in the
+        # runner) instead of thread reuse.
+        thread_id = str(uuid.uuid4())
 
         workflow_run_id = await create_workflow_run(
             project_id=request.project_id,
@@ -277,14 +286,11 @@ async def start_workflow_run(
     # Workflows always run against the project's current revision; API/MCP
     # clients don't supply a revision when starting workflows.
     revision = project.current_revision
-    existing_run = await get_project_workflow_run_by_type(
-        config.project_id, config.type, revision=revision
-    )
 
-    # Reuse thread_id from previous runs to maintain LangGraph checkpoint continuity.
-    # This allows workflows to resume from previously computed state (e.g., document
-    # chunks already processed) rather than starting from scratch.
-    thread_id = get_thread_id_for_workflow_run(existing_run)
+    # Each run gets a fresh thread id; accumulating workflows carry prior state
+    # forward via prior_self_state (read at execution time in the runner) instead
+    # of thread reuse.
+    thread_id = str(uuid.uuid4())
 
     # Create new workflow run record
     workflow_run_id = await create_workflow_run(
@@ -450,7 +456,9 @@ async def resume_workflow_run(
     Returns:
         The workflow run ID
     """
-    thread_id = get_thread_id_for_workflow_run(workflow_run)
+    # Resuming re-runs the same run from a freshly built state; no new run is
+    # created and it must not adopt another run's state, so no prior-state seed.
+    thread_id = workflow_run.langgraph_thread_id
 
     background_tasks.add_task(
         run_workflow_with_dependency_check,
@@ -459,6 +467,9 @@ async def resume_workflow_run(
         workflow_run_id=str(workflow_run.id),
         user=user,
         revision=workflow_run.revision,
+        # A resumed run continues its own state on its own thread; don't seed it
+        # from another run's state.
+        seed_prior_state=False,
     )
 
     return str(workflow_run.id)

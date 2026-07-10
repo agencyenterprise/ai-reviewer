@@ -25,52 +25,53 @@ This is an AI-powered document review tool that runs a suite of targeted checks 
 ## Tips
 
 - **Experimental analysis types are hidden by default.** To enable them, click your profile picture in the top right corner and toggle on "Experimental Features". Once enabled, experimental analysis types will appear as an expandable section in the analysis selection step.
-- **Most checks only need your document.** A few require uploading or fetching the full text of your references: *Claim Reference Validation* and *Citation Suggester*. The app will prompt you when these are needed.
+- **Most checks only need your document.** *Claim Reference Validation* requires uploading or fetching the full text of your references. The app will prompt you when this is needed.
 - **You can upload just a section** of your document if you prefer — for example, references only for citation checks.
 
 ---
 
 ## Analysis Types
 
-Each check is listed below, organized by category. Evaluation coverage is in active development — see the [evals folder on GitHub](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai) for details.
+Each check is listed below, organized by category and shown in the order it appears in the app. Evaluation coverage is in active development — see the [evals folder on GitHub](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai) for details.
 
-### Language
+### Citation Check
 
 | Analysis Type | Description | Eval |
 |:---|:---|:---:|
-| **Advocacy & Tone** | Checks for trigger words, advocacy language, and subjective tone using a two-layer approach — first fast pattern-matching, then LLM verification. Flags language that departs from a neutral, objective tone. | |
+| **Reference Error Checker** | Uses web search to check whether each reference is findable online and whether the author, title, year, and publisher match public sources — useful for catching reference typos or hallucinated citations. `#web_search` | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/reference_validation_v2) |
+
+### Substantive Review
+
+| Analysis Type | Description | Eval |
+|:---|:---|:---:|
+| **Claim Reference Validation** | Checks every citation against its referenced source using retrieval-augmented generation (RAG), returning a verdict for each claim: supported, partially supported, unsupported, or unverifiable. Requires the full text of your references — the app fetches them or you upload them. `#full_text_refs` | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/claim_reference_validation_v2) |
+| **Internal Inference Validation** | Analyzes the full document for invalid inferences, identifying logical fallacies, unsupported conclusions, and faulty reasoning. Each finding includes the key sentence, an analysis of the argument, and a suggested correction. | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/inference_validation_v2) |
+| **Methodological Alignment** | Uses web search to characterize standard methods in the field, then compares the document's methodology against them — highlighting similarities, gaps, and risks. `#web_search` | |
+| **Reproducibility Check** | Extracts the document's main results and classifies each by how reproducible it is, based on whether the underlying data is present and the methodology is described. `#experimental` | |
+| **Reviewer 2** | Simulates a full peer review of the kind a senior researcher would write — producing a structured review with strengths, weaknesses, actionable next steps, and a devil's-advocate rebuttal. Unlike the other checks, which each target a specific issue, Reviewer 2 gives an integrated evaluation of the document as a whole. `#experimental` | |
+| **Recommendation Check** | Checks whether each recommendation is supported by the document's own findings, flagging recommendations whose backing is weak, indirect, missing, or contradictory. `#experimental` | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/recommendation_check) |
 
 ### Editorial and Style Review
 
 | Analysis Type | Description | Eval |
 |:---|:---|:---:|
 | **Abbreviation Scan** | Scans the document for abbreviations and acronyms, verifies each is defined inline at its first occurrence, and checks that all abbreviations appear in an Abbreviations section. | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/abbreviation_checker) |
-| **Document Contents** | Checks that key content is present: Acknowledgements, Methods, Results, Conclusion, References, and Appendix (if referenced in text). `#experimental` | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/document_structure) |
-| **Figures & Tables Check** | Verifies that every figure and table has a title, is consistently numbered, is referenced in the body text, and that every body-text reference resolves to an actual figure or table in the document. `#experimental` | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/figures_tables_check) |
+| **About This (GER)** | Checks that the preface / "About This" section meets publication requirements — publication context, objectives, audience, funding, and author biographies. Tailored to RAND GER publications; available to RAND and admin accounts. | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/about_this_ger) |
+| **Document Contents** | Checks that key content is present: About This, Acknowledgements, Methods, Results, Conclusion, References, and Appendix (if referenced in text). | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/document_structure) |
+| **Figures & Tables Check** | Verifies that every figure and table has a title, is consistently numbered, is referenced in the body text, and that every body-text reference resolves to an actual figure or table in the document. | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/figures_tables_check) |
 
-### Citation Check
-
-| Analysis Type | Description | Eval |
-|:---|:---|:---:|
-| **Reference Error Checker** | Uses web search to check whether each reference is findable online and whether the author, title, year, and publisher match public sources — useful for catching reference typos or hallucinated citations. `#web_search` | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/reference_validation) |
-
-### Substantive Review
+### Language
 
 | Analysis Type | Description | Eval |
 |:---|:---|:---:|
-| **Claim Reference Validation** | Validates claims against supporting documents using retrieval-augmented generation (RAG). Retrieves relevant passages from uploaded reference PDFs and returns a verdict for each claim: supported, partially supported, unsupported, or unverifiable. `#full_text_refs` | [evals](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai) |
-| **Internal Inference Validation** | Analyzes the full document for invalid inferences, identifying logical fallacies, unsupported conclusions, and faulty reasoning. Each finding includes the key sentence, an analysis of the argument, and a suggested correction. | |
-| **Methodological Alignment** | Compares the methodology used in the document against typical methods in the field, using web search to gather field context and highlight gaps or risks. `#web_search` | |
-| **Reproducibility Check** | Extracts the document's main results and assesses their reproducibility — returning a structured list of findings (figures, tables, equations, key text) each with a reproducibility classification and rationale. | |
-| **Reviewer 2** | Simulates a full peer review of the kind a senior researcher would write — producing a structured review with strengths, weaknesses, actionable next steps, and a devil's-advocate rebuttal. Unlike the other checks, which each target a specific issue, Reviewer 2 gives an integrated evaluation of the document as a whole. `#experimental` | |
+| **Advocacy & Tone** | Flags trigger words, advocacy language, and subjective tone — language that departs from a neutral, objective voice. | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/advocacy_tone_v2) |
 
 ### Research & Writing Assistant
 
 | Analysis Type | Description | Eval |
 |:---|:---|:---:|
-| **Literature Review** | Searches the web for relevant academic sources related to your document's claims that you may not have cited, noting for each whether it supports or conflicts with your work. `#experimental` `#web_search` | |
-| **Citation Suggester** | Identifies claims that would benefit from additional citations and recommends specific references from your uploaded supporting documents. Can be paired with Literature Review to suggest newly discovered sources. `#experimental` `#web_search` `#full_text_refs` | [evals](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai) |
-| **Live Reports** | Analyzes claims against sources published after the document's date, identifying findings that may need updating in light of newer evidence and generating a consolidated addendum. `#experimental` `#web_search` | |
+| **Literature Review** | Searches the web for relevant academic sources related to your document's claims that you may not have cited, noting for each whether it supports or conflicts with your work. `#experimental` `#web_search` | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/literature_review_v2) |
+| **Live Reports** | Analyzes claims against sources published after the document's date, identifying findings that may need updating in light of newer evidence and generating a consolidated addendum. `#experimental` `#web_search` | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/live_reports_v2) |
 
 ---
 

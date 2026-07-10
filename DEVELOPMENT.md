@@ -267,16 +267,13 @@ uv run pytest tests/ -k "test_name"
 
 ### Evaluations (Inspect AI)
 
-LLM agent evaluations use [Inspect AI](https://inspect.ai-safety-institute.org.uk/) and live under `evals_inspectai/` in two flavors:
-
-- **`evals_inspectai/e2e/`** — End-to-end evals that hit the running API server (backend must be running).
-- **`evals_inspectai/internal/`** — Internal evals that import and invoke agents directly (no server needed).
+LLM agent evaluations use [Inspect AI](https://inspect.ai-safety-institute.org.uk/) and live under `evals_inspectai/e2e/`. These are end-to-end evals that trigger each workflow through the running API server (backend must be running), mirroring the full pipeline that real users trigger.
 
 Each workflow has its own eval directory with a dataset file (`dataset.json` or `dataset.jsonl`) and a task definition module.
 
 ```bash
 # Run a full eval suite for a workflow
-uv run inspect eval evals_inspectai/e2e/reference_validation/reference_validation_e2e.py
+uv run inspect eval evals_inspectai/e2e/reference_validation_v2/reference_validation_v2_e2e.py
 
 # Run a specific sample by ID (1-indexed)
 uv run inspect eval evals_inspectai/e2e/figures_tables_check/figures_tables_check_e2e.py --sample-id=1
@@ -285,7 +282,7 @@ uv run inspect eval evals_inspectai/e2e/figures_tables_check/figures_tables_chec
 uv run inspect eval evals_inspectai/e2e/figures_tables_check/figures_tables_check_e2e.py --sample-id=1 --epochs=3
 
 # Run a range of samples
-uv run inspect eval evals_inspectai/e2e/reference_validation/reference_validation_e2e.py --limit=5-10
+uv run inspect eval evals_inspectai/e2e/reference_validation_v2/reference_validation_v2_e2e.py --limit=5-10
 
 # View eval results in the Inspect AI dashboard
 uv run inspect view

@@ -1,7 +1,6 @@
 from typing import List, Type, cast
 
 from langgraph.graph import StateGraph
-from langgraph.graph.state import CompiledStateGraph, RunnableConfig
 
 from lib.agents.reference_validator_v2 import ReferenceValidationFinalResultV2
 from lib.workflows.manifest import WorkflowManifest
@@ -17,7 +16,6 @@ from lib.workflows.reference_validation_v2.state import (
 )
 from lib.workflows.workflow_types import WorkflowState
 from lib.workflows.util import get_state_by_type
-
 
 _FINAL_RESULT_SEVERITY: dict[ReferenceValidationFinalResultV2, SeverityEnum] = {
     ReferenceValidationFinalResultV2.CORRECT: SeverityEnum.NONE,
@@ -54,11 +52,8 @@ class ReferenceValidationV2Manifest(
         return build_reference_validation_v2_graph()
 
     async def on_cancel(
-        self,
-        state: ReferenceValidationV2State,
-        app: CompiledStateGraph,
-        config: RunnableConfig,
-    ) -> None:
+        self, state: ReferenceValidationV2State
+    ) -> ReferenceValidationV2State:
         """Mark any pending validation items as cancelled so they don't show as in-progress."""
         updated = [
             (
@@ -70,15 +65,14 @@ class ReferenceValidationV2Manifest(
             )
             for item in state.reference_validations
         ]
-        await app.aupdate_state(
-            config, {"reference_validations": updated}, as_node="finalize_validations"
-        )
+        return state.model_copy(update={"reference_validations": updated})
 
     async def create_initial_state(
         self,
         config: ReferenceValidationV2WorkflowConfig,
         existing_states: List[WorkflowState],
         revision: int,
+        prior_self_state: ReferenceValidationV2State | None = None,
     ) -> ReferenceValidationV2State:
         return ReferenceValidationV2State(
             type=WorkflowRunType.REFERENCE_VALIDATION_V2,
