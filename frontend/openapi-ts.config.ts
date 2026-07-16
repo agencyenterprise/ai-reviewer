@@ -4,10 +4,8 @@ export default defineConfig({
   input: 'http://localhost:8000/openapi.json',
   output: {
     path: 'lib/generated-api',
-    format: 'prettier',
-    lint: 'eslint',
+    postProcess: ['prettier'],
   },
-  prettier: true,
   plugins: [
     {
       name: '@hey-api/typescript',

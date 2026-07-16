@@ -495,27 +495,7 @@ export type BaseMessage = {
    * Id
    */
   id?: string | null;
-  [key: string]:
-    | unknown
-    | string
-    | Array<
-        | string
-        | {
-            [key: string]: unknown;
-          }
-      >
-    | {
-        [key: string]: unknown;
-      }
-    | {
-        [key: string]: unknown;
-      }
-    | string
-    | string
-    | null
-    | string
-    | null
-    | undefined;
+  [key: string]: unknown;
 };
 
 /**
@@ -669,11 +649,11 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
   /**
    * Main Document
    */
-  main_document: string;
+  main_document: Blob | File;
   /**
    * Supporting Documents
    */
-  supporting_documents?: Array<string> | null;
+  supporting_documents?: Array<Blob | File> | null;
   /**
    * Domain
    */
@@ -938,10 +918,11 @@ export type CitationDetectionState = {
  * Persisted workflow-state record for one validated citation.
  *
  * Built from the agent's `CitationAssessment` in the validate_section node.
- * Unlike the agent output, this keeps the deprecated `evidence_alignment`
- * field for backwards compatibility with workflow state persisted before the
- * RAND taxonomy migration; new runs leave it unset and populate
- * `truthfulness_label`.
+ * New runs populate `evidence_alignment` (supported / partially_supported /
+ * unsupported / unverifiable). The deprecated 6-category `truthfulness_label`
+ * is retained only so workflow state persisted before the migration back to
+ * `EvidenceAlignmentLevel` still deserializes; the manifest maps it onto the
+ * new taxonomy for rendering.
  */
 export type CitationIssueItem = {
   /**
@@ -956,8 +937,8 @@ export type CitationIssueItem = {
    * Line End
    */
   line_end: number;
-  truthfulness_label?: TruthfulnessLabel | null;
   evidence_alignment?: EvidenceAlignmentLevel | null;
+  truthfulness_label?: TruthfulnessLabel | null;
   /**
    * Rationale
    */
@@ -5300,13 +5281,13 @@ export type SummaryAndOutput = {
 /**
  * TruthfulnessLabel
  *
- * Truthfulness taxonomy adapted from the RAND policy benchmark
- * (RAND_RRA4269-1, Table 2), plus an `unverifiable` value for citations
- * whose supporting file is missing or inaccessible.
+ * LEGACY 6-category truthfulness taxonomy (RAND_RRA4269-1, Table 2).
  *
- * RAND's `divergent_positions` category is intentionally omitted: the agent
- * never reaches it reliably and the benchmark has too few examples to measure
- * it, so claims that present mixed evidence are routed to `partially_true`.
+ * The agent no longer emits this — it now outputs the simpler four-value
+ * `EvidenceAlignmentLevel` (supported / partially_supported / unsupported /
+ * unverifiable). This enum is retained ONLY so workflow state persisted before
+ * the migration back to `EvidenceAlignmentLevel` still deserializes; the
+ * manifest maps it onto the new taxonomy for rendering.
  */
 export const TruthfulnessLabel = {
   TrueExplicit: 'true_explicit',
@@ -5320,13 +5301,13 @@ export const TruthfulnessLabel = {
 /**
  * TruthfulnessLabel
  *
- * Truthfulness taxonomy adapted from the RAND policy benchmark
- * (RAND_RRA4269-1, Table 2), plus an `unverifiable` value for citations
- * whose supporting file is missing or inaccessible.
+ * LEGACY 6-category truthfulness taxonomy (RAND_RRA4269-1, Table 2).
  *
- * RAND's `divergent_positions` category is intentionally omitted: the agent
- * never reaches it reliably and the benchmark has too few examples to measure
- * it, so claims that present mixed evidence are routed to `partially_true`.
+ * The agent no longer emits this — it now outputs the simpler four-value
+ * `EvidenceAlignmentLevel` (supported / partially_supported / unsupported /
+ * unverifiable). This enum is retained ONLY so workflow state persisted before
+ * the migration back to `EvidenceAlignmentLevel` still deserializes; the
+ * manifest maps it onto the new taxonomy for rendering.
  */
 export type TruthfulnessLabel = (typeof TruthfulnessLabel)[keyof typeof TruthfulnessLabel];
 
