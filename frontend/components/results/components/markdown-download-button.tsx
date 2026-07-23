@@ -66,10 +66,21 @@ export function MarkdownDownloadButton({ markdown, fileName }: MarkdownDownloadB
       })
       .join('\n');
 
-    printWindow.document.write(`<!DOCTYPE html>
-<html><head><title>${fileName}</title><style>${styles}</style></head>
-<body class="p-8 text-sm">${contentRef.current.innerHTML}</body></html>`);
-    printWindow.document.close();
+    // Build the print document via the DOM rather than an interpolated HTML
+    // string, so neither `fileName` nor the rendered content can inject markup.
+    const printDoc = printWindow.document;
+    printDoc.title = fileName;
+
+    const styleEl = printDoc.createElement('style');
+    styleEl.textContent = styles;
+    printDoc.head.appendChild(styleEl);
+
+    printDoc.body.className = 'p-8 text-sm';
+    // Clone the rendered markdown nodes (dropping the off-screen wrapper).
+    for (const child of Array.from(contentRef.current.childNodes)) {
+      printDoc.body.appendChild(printDoc.importNode(child, true));
+    }
+
     printWindow.addEventListener('afterprint', () => printWindow.close());
     printWindow.print();
   };
