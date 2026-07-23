@@ -30,8 +30,10 @@ export const FileListItem = ({ file, type, onRemove }: FileListItemProps) => {
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <FileText className={`w-4 h-4 flex-shrink-0 ${iconClass}`} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium truncate">{file.name}</p>
+          <div className="flex items-center gap-2 min-w-0">
+            <p className="text-sm font-medium truncate min-w-0" title={file.name}>
+              {file.name}
+            </p>
             {isOversized && <AlertTriangle className="w-3.5 h-3.5 text-destructive flex-shrink-0" />}
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -46,7 +48,7 @@ export const FileListItem = ({ file, type, onRemove }: FileListItemProps) => {
         variant="ghost"
         size="icon"
         onClick={onRemove}
-        className="h-6 w-6 text-muted-foreground hover:text-destructive"
+        className="h-6 w-6 flex-shrink-0 text-muted-foreground hover:text-destructive"
       >
         <X className="w-3 h-3" />
       </Button>

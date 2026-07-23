@@ -160,7 +160,7 @@ export function ReplaceMainDocumentDialog({ isOpen, projectId, onClose }: Replac
             <span className="text-sm text-muted-foreground">{stageMessage}</span>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0">
             <div className="space-y-2">
               <Label>New document</Label>
               <FileUpload
