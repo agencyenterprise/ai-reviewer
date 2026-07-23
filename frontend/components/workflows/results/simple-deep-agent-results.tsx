@@ -3,6 +3,7 @@
 import { ReadonlyThread } from '@/components/assistant-ui/readonly-thread';
 import { Markdown } from '@/components/markdown';
 import { DocumentIssueCard } from '@/components/results/components/document-issue-card';
+import { MarkdownDownloadButton } from '@/components/results/components/markdown-download-button';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -86,6 +87,20 @@ function IssuesList({
   );
 }
 
+function ReportCard({ reportMarkdown }: { reportMarkdown: string }) {
+  return (
+    <Card className="gap-2">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-sm">Report</CardTitle>
+        <MarkdownDownloadButton markdown={reportMarkdown} fileName="report" />
+      </CardHeader>
+      <CardContent className="text-sm">
+        <Markdown>{reportMarkdown}</Markdown>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function SimpleDeepAgentResults({
   project,
   workflowDetail,
@@ -163,16 +178,7 @@ export function SimpleDeepAgentResults({
       </TabsList>
 
       <TabsContent value="results" className="space-y-4">
-        {result.report_markdown && (
-          <Card className="gap-2">
-            <CardHeader>
-              <CardTitle className="text-sm">Report</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm">
-              <Markdown>{result.report_markdown}</Markdown>
-            </CardContent>
-          </Card>
-        )}
+        {result.report_markdown && <ReportCard reportMarkdown={result.report_markdown} />}
 
         <IssuesList issues={issues} onNavigateToDocumentExplorer={onNavigateToDocumentExplorer} />
       </TabsContent>

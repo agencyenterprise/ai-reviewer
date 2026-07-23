@@ -1,0 +1,35 @@
+diff --git a/dist/helpers.js b/dist/helpers.js
+index 04824c147ff8f5082f56f6b812643e4f143fb16c..126c25b1e3364b07eff770e7c5e24a422deffa4a 100644
+--- a/dist/helpers.js
++++ b/dist/helpers.js
+@@ -454,17 +454,20 @@ export function processBlockquote(text, style) {
+                 alignment = undefined;
+         }
+     }
++    // Preserve newlines inside the blockquote: Word ignores "\n" within a
++    // single run, so emit one run per line and insert a break before each
++    // line after the first.
++    const lines = text.split("\n");
+     return new Paragraph({
+-        children: [
+-            new TextRun({
+-                text: text,
+-                italics: true,
+-                color: "000000",
+-                size: style.blockquoteSize || 24, // Use custom blockquote size if provided
+-                font: fontFamily,
+-                rightToLeft: style.direction === "RTL",
+-            }),
+-        ],
++        children: lines.map((line, index) => new TextRun({
++            text: line,
++            break: index > 0 ? 1 : undefined,
++            italics: true,
++            color: "000000",
++            size: style.blockquoteSize || 24, // Use custom blockquote size if provided
++            font: fontFamily,
++            rightToLeft: style.direction === "RTL",
++        })),
+         indent: {
+             left: 720, // 0.5 inch indent
+         },
