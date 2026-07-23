@@ -91,15 +91,31 @@ function FileNameLink({ file }: { file: FileListItem }) {
   );
 }
 
+function RoleBadge({ label, variant }: { label: string; variant: 'main' | 'muted' | 'support' }) {
+  const variantClass =
+    variant === 'main'
+      ? 'bg-primary/10 text-primary'
+      : variant === 'muted'
+        ? 'bg-muted text-muted-foreground'
+        : 'bg-secondary';
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${variantClass}`}>
+      {label}
+    </span>
+  );
+}
+
 interface FileTableRowProps {
   file: FileListItem;
   projectId: string;
+  currentRevision: number;
   matchedReference?: ComposedReference;
   onReplaceMain?: () => void;
 }
 
-function FileTableRow({ file, projectId, matchedReference, onReplaceMain }: FileTableRowProps) {
+function FileTableRow({ file, projectId, currentRevision, matchedReference, onReplaceMain }: FileTableRowProps) {
   const isMain = file.role === FileRole.Main;
+  const isCurrentMain = isMain && file.revision === currentRevision;
   const removeFileMutation = useRemoveFileMutation(projectId, file.id);
   const isRemoving = removeFileMutation.isPending;
 
@@ -109,13 +125,14 @@ function FileTableRow({ file, projectId, matchedReference, onReplaceMain }: File
         <FileNameLink file={file} />
       </TableCell>
       <TableCell className="">
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-            isMain ? 'bg-primary/10 text-primary' : 'bg-secondary'
-          }`}
-        >
-          {isMain ? 'Main' : 'Supporting'}
-        </span>
+        {isMain ? (
+          <RoleBadge
+            label={isCurrentMain ? 'Main · Current' : `Main · Revision ${file.revision ?? '?'}`}
+            variant={isCurrentMain ? 'main' : 'muted'}
+          />
+        ) : (
+          <RoleBadge label="Supporting" variant="support" />
+        )}
       </TableCell>
       <TableCell className="text-xs whitespace-normal">
         {file.description ? (
@@ -133,44 +150,46 @@ function FileTableRow({ file, projectId, matchedReference, onReplaceMain }: File
       </TableCell>
       <TableCell className="text-xs text-right">{formatFileSize(file.file_size)}</TableCell>
       <TableCell>
-        <AlertDialog>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-8" disabled={isRemoving}>
-                {isRemoving ? <Loader2 className="size-4 animate-spin" /> : <MoreVerticalIcon className="size-4" />}
-                <span className="sr-only">Open menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {isMain && onReplaceMain ? (
-                <DropdownMenuItem onClick={onReplaceMain}>
-                  <RefreshCw className="size-4" />
-                  Replace document
-                </DropdownMenuItem>
-              ) : (
-                <AlertDialogTrigger asChild>
-                  <DropdownMenuItem disabled={isMain} variant="destructive">
-                    <Trash2 className="size-4" />
-                    Remove file
+        {isMain && !isCurrentMain ? null : (
+          <AlertDialog>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-8" disabled={isRemoving}>
+                  {isRemoving ? <Loader2 className="size-4 animate-spin" /> : <MoreVerticalIcon className="size-4" />}
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {isCurrentMain && onReplaceMain ? (
+                  <DropdownMenuItem onClick={onReplaceMain}>
+                    <RefreshCw className="size-4" />
+                    Replace document
                   </DropdownMenuItem>
-                </AlertDialogTrigger>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Remove file?</AlertDialogTitle>
-              <AlertDialogDescription className="break-all">
-                Are you sure you want to remove &quot;{file.file_name}&quot; from this project? This action cannot be
-                undone. The associated reference (if any) will become unmatched.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => removeFileMutation.mutate()}>Remove</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+                ) : (
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem disabled={isMain} variant="destructive">
+                      <Trash2 className="size-4" />
+                      Remove file
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Remove file?</AlertDialogTitle>
+                <AlertDialogDescription className="break-all">
+                  Are you sure you want to remove &quot;{file.file_name}&quot; from this project? This action cannot be
+                  undone. The associated reference (if any) will become unmatched.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => removeFileMutation.mutate()}>Remove</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </TableCell>
     </TableRow>
   );
@@ -178,6 +197,7 @@ function FileTableRow({ file, projectId, matchedReference, onReplaceMain }: File
 
 export function FilesTab({ projectDetail, readOnly = false }: FilesTabProps) {
   const projectId = projectDetail.project.id;
+  const currentRevision = projectDetail.project.current_revision ?? 1;
   const files = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -198,12 +218,16 @@ export function FilesTab({ projectDetail, readOnly = false }: FilesTabProps) {
   // Build a map of file_id to matched references once
   const matchedReferencesMap = useMemo(() => buildReferenceByFileIdMap(composedReferences), [composedReferences]);
 
-  // Sort files: main file first, then other files sorted alphabetically by name
+  // Sort files: main documents first (current revision, then older revisions
+  // newest-first), then supporting files alphabetically by name.
   const sortedFiles = useMemo(
     () =>
       [...(files || [])].sort((a, b) => {
-        if (a.role === FileRole.Main) return -1;
-        if (b.role === FileRole.Main) return 1;
+        const aMain = a.role === FileRole.Main;
+        const bMain = b.role === FileRole.Main;
+        if (aMain && bMain) return (b.revision ?? 0) - (a.revision ?? 0);
+        if (aMain) return -1;
+        if (bMain) return 1;
         return (a.file_name || '').localeCompare(b.file_name || '');
       }),
     [files],
@@ -299,6 +323,7 @@ export function FilesTab({ projectDetail, readOnly = false }: FilesTabProps) {
                 key={file.id}
                 file={file}
                 projectId={projectId}
+                currentRevision={currentRevision}
                 matchedReference={file.id ? matchedReferencesMap.get(file.id) : undefined}
                 onReplaceMain={readOnly ? undefined : () => setIsReplaceDialogOpen(true)}
               />

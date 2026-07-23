@@ -178,6 +178,11 @@ async def get_project_detailed_from_project(
     """
     Get detailed project information with workflow runs.
 
+    The files list always includes every revision (each main-document revision
+    plus shared supporting files); the current main is the one whose revision
+    matches project.current_revision. Issues, workflow runs, and markdown stay
+    scoped to the resolved revision.
+
     Args:
         project: The project to get details for
         access_level: The access level of the current user
@@ -243,9 +248,7 @@ async def get_project_detailed_from_project(
         access_level=access_level,
         workflow_runs=workflow_runs,
         issues=list(issues),
-        files=await get_project_files_list_items(
-            project.id, revision=resolved_revision
-        ),
+        files=await get_project_files_list_items(project.id),
         feedbacks=feedbacks,
         revision=resolved_revision,
         main_document_markdown=main_document_markdown,

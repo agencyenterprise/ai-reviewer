@@ -12,6 +12,7 @@ from lib.models.file import File, FileRole
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
 from lib.services.docx_workflow_service import DocxManipulatorType, generate_docx
+from lib.services.files import get_files_by_project_id
 from lib.services.project_zip import create_project_files_zip
 from lib.services.projects import (
     ProjectDetailed,
@@ -341,8 +342,6 @@ async def list_revisions_endpoint(
     ),
 ):
     """List all revisions for a project with their main file info."""
-    from lib.services.files import get_files_by_project_id
-
     project, _ = await get_project_access(project_id, current_user, share_token)
 
     # Get all MAIN files to build revision list
