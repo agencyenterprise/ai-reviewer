@@ -87,8 +87,11 @@ async def list_project_files(
     Returns a JSON array where each entry contains:
       file_id, file_name, file_size, file_type, role, revision, reference_id (null if unmatched).
 
-    revision: optional revision number. Defaults to the latest revision.
-    Returns the revision's MAIN file plus all shared supporting files.
+    Returns all files for the project: every MAIN document revision plus the shared
+    supporting files. The current main document is the MAIN file whose `revision`
+    equals the project's latest revision; MAIN files with a lower `revision` are
+    previous versions. Reference associations are scoped to the `revision`
+    argument (defaults to the latest revision).
 
     Use get_project to retrieve available reference IDs from the workflow state
     (look inside workflow_runs for type "reference_extraction" → state.extracted_references).
@@ -99,7 +102,7 @@ async def list_project_files(
     )
 
     resolved_revision = revision if revision is not None else project.current_revision
-    files = await get_project_files_list_items(project.id, revision=resolved_revision)
+    files = await get_project_files_list_items(project.id)
     matches = await get_file_reference_matches(project_id, revision=resolved_revision)
     file_to_reference = {m.file_id: m.reference_id for m in matches}
 
