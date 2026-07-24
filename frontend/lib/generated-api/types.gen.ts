@@ -1802,6 +1802,10 @@ export type DocumentProcessingState = {
    * Supporting Files
    */
   supporting_files?: Array<FileDocument> | null;
+  /**
+   * Reviewer Memo Files
+   */
+  reviewer_memo_files?: Array<FileDocument> | null;
 };
 
 /**
@@ -2605,6 +2609,7 @@ export const FileRole = {
   Main: 'main',
   Support: 'support',
   SupportingCandidate: 'supporting_candidate',
+  ReviewerMemo: 'reviewer_memo',
 } as const;
 
 /**
@@ -5924,6 +5929,7 @@ export const WorkflowRunType = {
   DocumentStructure: 'document_structure',
   FiguresTablesCheck: 'figures_tables_check',
   RecommendationCheck: 'recommendation_check',
+  RevisionPlanningSummary: 'revision_planning_summary',
 } as const;
 
 /**

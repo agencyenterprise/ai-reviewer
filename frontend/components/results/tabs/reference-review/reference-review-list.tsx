@@ -107,7 +107,7 @@ export function ReferenceReviewList({
   return (
     <div>
       {/* Header Row */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
         <div>
           <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
             <span>
@@ -157,7 +157,12 @@ export function ReferenceReviewList({
           <div className="flex flex-wrap items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" disabled={isFetchingAllFromWeb || disableActions} onClick={onFetchAll}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isFetchingAllFromWeb || disableActions}
+                  onClick={onFetchAll}
+                >
                   {isFetchingAllFromWeb ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
                   Fetch from web
                 </Button>
@@ -168,7 +173,12 @@ export function ReferenceReviewList({
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" disabled={isBatchUploading || disableActions} onClick={onBatchUpload}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isBatchUploading || disableActions}
+                  onClick={onBatchUpload}
+                >
                   {isBatchUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                   {isBatchUploading ? 'Uploading...' : 'Upload sources'}
                 </Button>
@@ -180,7 +190,7 @@ export function ReferenceReviewList({
             </Tooltip>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
+                <Button variant="outline" size="sm">
                   <MoreVerticalIcon className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>

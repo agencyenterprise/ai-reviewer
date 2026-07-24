@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { UploadSection } from '@/components/analysis-form/upload-section';
+import { FileRole } from '@/lib/generated-api';
 import { AlertCircle, Check, Loader2, Rocket, AlertTriangle } from 'lucide-react';
 import { useStepUpload } from './use-step-upload';
 import { PreflightStatus } from './wizard-context';
@@ -41,7 +42,7 @@ export function StepUpload({ onComplete }: StepUploadProps) {
         onFilesChange={handleDocumentChange}
         multiple={false}
         files={mainDocument ? [mainDocument] : []}
-        fileType="main"
+        fileType={FileRole.Main}
         onRemoveFile={() => handleDocumentChange([])}
       />
 

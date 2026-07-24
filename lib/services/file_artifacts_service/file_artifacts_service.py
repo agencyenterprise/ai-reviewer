@@ -1,18 +1,20 @@
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, cast, Callable, Awaitable, Any
-import asyncio
+from typing import TYPE_CHECKING, Optional, Sequence, cast, Callable, Awaitable, Any
 
 from deepagents.backends.utils import create_file_data
 
 from lib.models.file import FileRole
-from lib.services.file import FileDocument
+from lib.services.file import FileDocument, create_file_document_from_path
 from lib.services.files import (
     get_file_by_id,
     get_files_by_project_id,
     load_file_document,
 )
-from lib.services.file_artifacts_service.file_artifacts_service_type import FileArtifactsServiceType
+from lib.services.file_artifacts_service.file_artifacts_service_type import (
+    DEEPAGENT_ROLE_MOUNT_DIRS,
+    FileArtifactsServiceType,
+)
 from lib.workflows.models import WorkflowRunType
 
 if TYPE_CHECKING:
@@ -179,34 +181,46 @@ class FileArtifactsService(FileArtifactsServiceType):
         )
         return state.file
 
-    async def get_supporting_files(self) -> list[FileDocument]:
-        """Return the project's supporting files.
+    async def get_project_files(
+        self, roles: list[FileRole]
+    ) -> list[FileDocument]:
+        """Return the project's files for the given roles, with markdown content.
 
-        Prefers DB cached markdown artifacts when *all* supporting files are cached;
-        otherwise falls back to workflow state.
+        Files are scoped to the current revision (revision-scoped files for this
+        revision plus shared files). Prefers DB cached markdown and converts a
+        file's markdown on demand when it has not been cached yet (e.g. reviewer
+        memos, which are not processed by the document pipeline).
         """
-        project_files = await self._load_project_files()
-        if project_files:
-            supporting = [f for f in project_files if f.role == FileRole.SUPPORT]
-            if supporting and all(f.has_cached_markdown for f in supporting):
-                logger.debug(
-                    "Loaded %d supporting files from DB cache for project %s",
-                    len(supporting),
-                    self.project_id,
-                )
-
-                return await asyncio.gather(
-                    *[
-                        load_file_document(f, use_cached_artifacts=True)
-                        for f in supporting
-                    ]
-                )
-
-        state = cast(
-            "DocumentProcessingState",
-            await self._get_state_by_type(WorkflowRunType.DOCUMENT_PROCESSING),
+        role_labels = ", ".join(r.value for r in roles)
+        files = await self._try_load(
+            f"project files ({role_labels}) for {self.project_id}",
+            lambda: get_files_by_project_id(
+                self.project_id,
+                roles=roles,
+                revision=self.revision,
+            ),
         )
-        return state.supporting_files or []
+        if not files:
+            return []
+
+        documents: list[FileDocument] = []
+        for file in files:
+            if file.markdown is not None:
+                documents.append(
+                    await load_file_document(file, use_cached_artifacts=True)
+                )
+            else:
+                documents.append(
+                    await create_file_document_from_path(
+                        file_path=file.file_path,
+                        file_id=str(file.id),
+                        file_type=file.file_type,
+                        original_file_name=file.file_name,
+                        original_file_path=file.original_file_path,
+                        markdown_convert=True,
+                    )
+                )
+        return documents
 
     async def get_file_summary(self, file_id: str) -> "FileSummary":
         """Retrieve the file summary for a file by its ID.
@@ -321,7 +335,7 @@ class FileArtifactsService(FileArtifactsServiceType):
                 ref_to_file[match.reference_id] = match.file_id
 
             # Load file names for matched files
-            supporting_files = await self.get_supporting_files()
+            supporting_files = await self.get_project_files([FileRole.SUPPORT])
             for idx, f in enumerate(supporting_files):
                 file_names[f.file_id] = f.file_name
                 file_indices[f.file_id] = idx + 1  # 1-based index
@@ -394,23 +408,22 @@ class FileArtifactsService(FileArtifactsServiceType):
 
     async def get_deepagent_backend_files(
         self,
-        include_supporting_files: bool = True,
+        roles: Sequence[FileRole] = (FileRole.SUPPORT,),
         include_skills: bool = True,
     ) -> dict[str, Any]:
-        """Return the files in a format suitable for the DeepAgent backend."""
+        """Return the files in a format suitable for the DeepAgent backend.
 
+        The main file is always mounted at ``/main.md``. Files for each role in
+        ``roles`` (default: supporting files) are mounted under the role's
+        directory (see ``DEEPAGENT_ROLE_MOUNT_DIRS``).
+        """
         main_file = await self.get_main_file()
-        supporting_files = (
-            await self.get_supporting_files() if include_supporting_files else []
-        )
+        files: dict[str, Any] = {"/main.md": create_file_data(main_file.markdown)}
 
-        files: dict[str, Any] = {
-            "/main.md": create_file_data(main_file.markdown),
-            **{
-                f"/supporting/{f.file_id}.md": create_file_data(f.markdown)
-                for f in supporting_files
-            },
-        }
+        for role in roles:
+            mount_dir = DEEPAGENT_ROLE_MOUNT_DIRS[role]
+            for f in await self.get_project_files([role]):
+                files[f"/{mount_dir}/{f.file_id}.md"] = create_file_data(f.markdown)
 
         if include_skills:
             project_root = Path(__file__).parents[3]

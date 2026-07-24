@@ -1,12 +1,14 @@
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 from deepagents.backends.utils import create_file_data
 
 from lib.models.bibliography_item import BibliographyItem
+from lib.models.file import FileRole
 from lib.models.footnote_item import FootnoteItem
 from lib.services.file import FileDocument
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
+    DEEPAGENT_ROLE_MOUNT_DIRS,
     FileArtifactsServiceType,
 )
 from lib.workflows.chunk_utils import AnalyzedChunk
@@ -38,11 +40,13 @@ class MockFileArtifactsService(FileArtifactsServiceType):
         supporting_files: Optional[list[FileDocument]] = None,
         extracted_references: Optional[list[ExtractedReference]] = None,
         references: Optional[list[BibliographyItem]] = None,
+        reviewer_memo_files: Optional[list[FileDocument]] = None,
     ):
         self._main_file = main_file
         self._supporting_files = supporting_files or []
         self._extracted_references = extracted_references or []
         self._references = references or []
+        self._reviewer_memo_files = reviewer_memo_files or []
 
     async def get_file_document(self, file_id: str) -> FileDocument:
         # Check if file matches main_file or any supporting file
@@ -58,10 +62,13 @@ class MockFileArtifactsService(FileArtifactsServiceType):
             return self._main_file
         return _empty_file_document("main_file_id")
 
-    async def get_supporting_files(self) -> list[FileDocument]:
-        if self._supporting_files:
-            return self._supporting_files
-        return []
+    async def get_project_files(self, roles: list[FileRole]) -> list[FileDocument]:
+        documents: list[FileDocument] = []
+        if FileRole.SUPPORT in roles:
+            documents.extend(self._supporting_files)
+        if FileRole.REVIEWER_MEMO in roles:
+            documents.extend(self._reviewer_memo_files)
+        return documents
 
     async def get_file_summary(self, file_id: str) -> FileSummary:
         return FileSummary(
@@ -87,18 +94,16 @@ class MockFileArtifactsService(FileArtifactsServiceType):
 
     async def get_deepagent_backend_files(
         self,
-        include_supporting_files: bool = True,
+        roles: Sequence[FileRole] = (FileRole.SUPPORT,),
         include_skills: bool = True,
     ) -> dict[str, Any]:
         main_markdown = self._main_file.markdown if self._main_file else ""
         files: dict[str, Any] = {"/main.md": create_file_data(main_markdown)}
-        if include_supporting_files:
-            files.update(
-                {
-                    f"/supporting/{f.file_id}.md": create_file_data(f.markdown)
-                    for f in self._supporting_files
-                }
-            )
+
+        for role in roles:
+            mount_dir = DEEPAGENT_ROLE_MOUNT_DIRS[role]
+            for f in await self.get_project_files([role]):
+                files[f"/{mount_dir}/{f.file_id}.md"] = create_file_data(f.markdown)
         if include_skills:
             project_root = Path(__file__).parents[3]
             skills_dir = project_root / "skills"

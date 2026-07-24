@@ -60,6 +60,13 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
         ],
     ),
     CategoryConfig(
+        slug="peer_review_assistant",
+        label="Peer Review Assistant",
+        workflows=[
+            WorkflowRunType.REVISION_PLANNING_SUMMARY,
+        ],
+    ),
+    CategoryConfig(
         slug="research_writing_assistant",
         label="Research & Writing Assistant",
         workflows=[

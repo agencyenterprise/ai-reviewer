@@ -123,11 +123,11 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
         if status == ReferenceFetchStatus.COMPLETED and result and result.file_id:
             # Promote file immediately (from SUPPORTING_CANDIDATE to SUPPORT)
             await update_files_role([result.file_id], FileRole.SUPPORT)
-            # Convert and cache markdown so file_artifacts_service.get_supporting_files()
-            # serves the new file via the live-DB path. Without this,
-            # claim_reference_validation_v2 falls back to the stale
-            # DocumentProcessingState (which predates this download) and
-            # reports every claim as "unverifiable".
+            # Convert and cache markdown now so
+            # file_artifacts_service.get_project_files() serves the new file
+            # from the DB cache. Without this, consumers such as
+            # claim_reference_validation_v2 would have to convert the file's
+            # markdown on demand on every read.
             try:
                 await convert_and_cache_file_markdown(result.file_id)
             except Exception as exc:

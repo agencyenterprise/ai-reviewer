@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { FileUpload } from '@/components/ui/file-upload';
+import { RadioGroup, RadioGroupItemWithDescription } from '@/components/ui/radio-group-with-description';
 import { FileListItem } from '@/components/analysis-form/file-list-item';
 import { UploadProgressList } from '@/components/ui/upload-progress-list';
 import { useUpload } from '@/lib/hooks/upload';
@@ -27,6 +28,15 @@ export interface FileUploadDialogProps {
   multiple?: boolean;
   submitLabel?: string;
   projectId: string;
+  /** Role assigned to the uploaded files. Defaults to supporting documents. */
+  fileRole?: FileRole;
+  /**
+   * Let the user choose the file role (supporting document vs reviewer memo)
+   * inside the dialog. When enabled, the chosen role drives both the upload
+   * role and whether reference matching runs afterwards, overriding `fileRole`.
+   * Not compatible with `referenceId`.
+   */
+  allowRoleSelection?: boolean;
   /** When set, force-matches the uploaded file to this reference instead of triggering the matching workflow. */
   referenceId?: string;
   onCancel: () => void;
@@ -40,19 +50,38 @@ export function FileUploadDialog({
   multiple = false,
   submitLabel,
   projectId,
+  fileRole = FileRole.Support,
+  allowRoleSelection = false,
   referenceId,
   onCancel,
   onComplete,
 }: FileUploadDialogProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [selectedRole, setSelectedRole] = useState<FileRole>(fileRole);
   const [isStartingWorkflow, setIsStartingWorkflow] = useState(false);
   const queryClient = useQueryClient();
   const resetRef = useRef<(() => void) | null>(null);
+
+  // When the user picks the role in-dialog, the selection drives the upload
+  // role; otherwise the caller's `fileRole` prop is used.
+  const activeRole = allowRoleSelection ? selectedRole : fileRole;
+  const isMemoUpload = activeRole === FileRole.ReviewerMemo;
+  // Reference matching only applies to supporting documents (that aren't
+  // already tied to a specific reference); other roles skip it.
+  const activeSkipMatching = activeRole !== FileRole.Support;
+  const activeSuccessMessage = isMemoUpload ? 'Reviewer memos uploaded.' : 'Files uploaded. Matching workflow started.';
 
   const handleAllComplete = useCallback(async () => {
     if (referenceId) {
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
       toast.success('File uploaded and matched to reference.');
+      onComplete?.();
+      return;
+    }
+
+    if (activeSkipMatching) {
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      toast.success(activeSuccessMessage);
       onComplete?.();
       return;
     }
@@ -66,18 +95,18 @@ export function FileUploadDialog({
         },
       });
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-      toast.success('Sources uploaded. Matching workflow started.');
+      toast.success(activeSuccessMessage);
     } catch (error) {
       toast.error(getErrorMessage(error, 'Failed to start file matching workflow'));
     } finally {
       setIsStartingWorkflow(false);
       onComplete?.();
     }
-  }, [referenceId, projectId, queryClient, onComplete]);
+  }, [referenceId, activeSkipMatching, activeSuccessMessage, projectId, queryClient, onComplete]);
 
   const uploadHook = useUpload({
     projectId,
-    fileRole: FileRole.Support,
+    fileRole: activeRole,
     referenceId,
     onAllComplete: handleAllComplete,
   });
@@ -89,10 +118,11 @@ export function FileUploadDialog({
   useEffect(() => {
     if (isOpen) {
       setSelectedFiles([]);
+      setSelectedRole(fileRole);
       setIsStartingWorkflow(false);
       resetRef.current?.();
     }
-  }, [isOpen]);
+  }, [isOpen, fileRole]);
 
   const handleFilesChange = (newFiles: File[]) => {
     setSelectedFiles(multiple ? newFiles : newFiles.slice(-1));
@@ -118,97 +148,138 @@ export function FileUploadDialog({
   const getSubmitLabel = () => {
     if (submitLabel) return submitLabel;
     if (multiple) {
-      return `Upload ${selectedFiles.length} source${selectedFiles.length !== 1 ? 's' : ''}`;
+      return `Upload ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}`;
     }
     return 'Upload';
   };
 
   const isUploading = uploadHook.isUploading || isStartingWorkflow;
   const allCompleted = uploadHook.completedCount > 0 && uploadHook.completedCount === uploadHook.totalCount;
-
-  if (uploadHook.files.length > 0 && isOpen) {
-    return (
-      <Dialog open={isOpen} onOpenChange={() => {}}>
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" showCloseButton={false}>
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle>{isStartingWorkflow ? 'Starting file matching...' : 'Uploading sources'}</DialogTitle>
-            <DialogDescription>
-              {isStartingWorkflow
-                ? 'Starting the file matching workflow to match uploaded sources to references.'
-                : 'Your sources are being uploaded. You can cancel at any time.'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <UploadProgressList
-            files={uploadHook.files}
-            overallProgress={uploadHook.overallProgress}
-            completedCount={uploadHook.completedCount}
-            totalCount={uploadHook.totalCount}
-            onCancelFile={uploadHook.removeFile}
-            onPauseFile={uploadHook.pauseFile}
-            onResumeFile={uploadHook.resumeFile}
-            onCancelAll={() => {
-              uploadHook.cancelAll();
-              handleClose();
-            }}
-            onPauseAll={uploadHook.pauseAll}
-            onResumeAll={uploadHook.resumeAll}
-            className="flex-1 min-h-0"
-          />
-
-          {allCompleted && !isStartingWorkflow && (
-            <DialogFooter className="flex-shrink-0">
-              <Button onClick={handleClose}>Done</Button>
-            </DialogFooter>
-          )}
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  // Once files have been handed to the uploader we switch from the file-picker
+  // view to the progress view. Both share the same dialog shell.
+  const showProgress = uploadHook.files.length > 0;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && !isUploading && handleClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        // The progress view can't be dismissed by clicking outside or pressing
+        // Escape; use its own controls (Cancel all / Done) instead.
+        if (!open && !showProgress && !isUploading) handleClose();
+      }}
+    >
+      <DialogContent
+        className="sm:max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
+        showCloseButton={!showProgress}
+      >
+        {showProgress ? (
+          <>
+            <DialogHeader className="flex-shrink-0">
+              <DialogTitle>{isStartingWorkflow ? 'Starting file matching...' : 'Uploading files'}</DialogTitle>
+              <DialogDescription>
+                {isStartingWorkflow
+                  ? 'Starting the file matching workflow to match uploaded files to references.'
+                  : 'Your files are being uploaded. You can cancel at any time.'}
+              </DialogDescription>
+            </DialogHeader>
 
-        <div className="space-y-4 flex-1 overflow-y-auto min-h-0">
-          <div className="space-y-2">
-            <Label>{multiple ? 'Select Source Files' : 'Select Source File'}</Label>
-            <FileUpload
-              files={selectedFiles}
-              onFilesChange={handleFilesChange}
-              accept=".pdf,.doc,.docx,.txt,.md"
-              multiple={multiple}
-              maxSize={500}
-              className="h-36"
-              disabled={isUploading}
-              compact
+            <UploadProgressList
+              files={uploadHook.files}
+              overallProgress={uploadHook.overallProgress}
+              completedCount={uploadHook.completedCount}
+              totalCount={uploadHook.totalCount}
+              onCancelFile={uploadHook.removeFile}
+              onPauseFile={uploadHook.pauseFile}
+              onResumeFile={uploadHook.resumeFile}
+              onCancelAll={() => {
+                uploadHook.cancelAll();
+                handleClose();
+              }}
+              onPauseAll={uploadHook.pauseAll}
+              onResumeAll={uploadHook.resumeAll}
+              className="flex-1 min-h-0"
             />
-          </div>
 
-          {selectedFiles.length > 0 && (
-            <div className="space-y-2">
-              <Label>{multiple ? `Selected Source Files (${selectedFiles.length})` : 'Selected Source File'}</Label>
-              <div className="space-y-1">
-                {selectedFiles.map((file, index) => (
-                  <FileListItem key={index} file={file} type="supporting" onRemove={() => handleRemoveFile(index)} />
-                ))}
+            {allCompleted && !isStartingWorkflow && (
+              <DialogFooter className="flex-shrink-0">
+                <Button onClick={handleClose}>Done</Button>
+              </DialogFooter>
+            )}
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>{title}</DialogTitle>
+              <DialogDescription>{description}</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 flex-1 overflow-y-auto min-h-0">
+              {allowRoleSelection && (
+                <div className="space-y-2">
+                  <Label>File type</Label>
+                  <RadioGroup
+                    value={selectedRole}
+                    onValueChange={(v) => setSelectedRole(v as FileRole)}
+                    className="grid grid-cols-2 gap-3"
+                  >
+                    <RadioGroupItemWithDescription
+                      id={FileRole.Support}
+                      value={selectedRole}
+                      label="Supporting document"
+                      description="Reference material cited by the document. Supporting files are matched against the document's references."
+                      disabled={isUploading}
+                    />
+                    <RadioGroupItemWithDescription
+                      id={FileRole.ReviewerMemo}
+                      value={selectedRole}
+                      label="Reviewer memo"
+                      description="Peer-review feedback on the document. Used by the Revision-Planning Summary assessment to plan revisions."
+                      disabled={isUploading}
+                    />
+                  </RadioGroup>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label>{multiple ? 'Select Source Files' : 'Select Source File'}</Label>
+                <FileUpload
+                  files={selectedFiles}
+                  onFilesChange={handleFilesChange}
+                  accept=".pdf,.doc,.docx,.txt,.md"
+                  multiple={multiple}
+                  maxSize={500}
+                  className="h-36"
+                  disabled={isUploading}
+                  compact
+                />
               </div>
-            </div>
-          )}
-        </div>
 
-        <DialogFooter className="flex-shrink-0">
-          <Button variant="outline" onClick={handleClose} disabled={isUploading}>
-            Cancel
-          </Button>
-          <Button onClick={handleConfirm} disabled={!canSubmit || isUploading}>
-            {getSubmitLabel()}
-          </Button>
-        </DialogFooter>
+              {selectedFiles.length > 0 && (
+                <div className="space-y-2">
+                  <Label>{multiple ? `Selected Files (${selectedFiles.length})` : 'Selected File'}</Label>
+                  <div className="space-y-1">
+                    {selectedFiles.map((file, index) => (
+                      <FileListItem
+                        key={index}
+                        file={file}
+                        type={activeRole}
+                        onRemove={() => handleRemoveFile(index)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="flex-shrink-0">
+              <Button variant="outline" onClick={handleClose} disabled={isUploading}>
+                Cancel
+              </Button>
+              <Button onClick={handleConfirm} disabled={!canSubmit || isUploading}>
+                {getSubmitLabel()}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

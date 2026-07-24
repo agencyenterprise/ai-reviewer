@@ -220,12 +220,12 @@ class TestVectorSearch:
         mock_runtime = MagicMock()
 
         if side_effect:
-            mock_runtime.context.file_artifacts_service.get_supporting_files = (
-                AsyncMock(side_effect=side_effect)
+            mock_runtime.context.file_artifacts_service.get_project_files = AsyncMock(
+                side_effect=side_effect
             )
         else:
-            mock_runtime.context.file_artifacts_service.get_supporting_files = (
-                AsyncMock(return_value=supporting_files or [])
+            mock_runtime.context.file_artifacts_service.get_project_files = AsyncMock(
+                return_value=supporting_files or []
             )
 
         mock_runtime.context.vector_store = vector_store

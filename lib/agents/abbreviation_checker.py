@@ -73,7 +73,7 @@ class AbbreviationCheckerAgent(LangChainAgent):
         result = await deep_agent.ainvoke(
             {
                 "files": await self.context.file_artifacts_service.get_deepagent_backend_files(
-                    include_supporting_files=False
+                    roles=[]
                 ),
                 "messages": [
                     SystemMessage(

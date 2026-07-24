@@ -4,6 +4,7 @@ from typing import List, Type
 from langgraph.graph import StateGraph
 
 from lib.models.file import FileRole
+from lib.services.file import FileDocument
 from lib.workflows.document_processing.graph import build_document_processing_graph
 from lib.workflows.document_processing.state import (
     DocumentProcessingState,
@@ -64,26 +65,38 @@ class DocumentProcessingManifest(
         supporting_files = [
             file for file in project_files if file.role == FileRole.SUPPORT
         ]
+        reviewer_memo_files = [
+            file for file in project_files if file.role == FileRole.REVIEWER_MEMO
+        ]
         assert main_file is not None, "No main file found for project"
         main_file_document = await load_file_document(main_file)
         assert main_file_document is not None, "Failed to load main file"
 
-        supporting_file_documents = []
-        for file in supporting_files:
-            try:
-                supporting_file_documents.append(await load_file_document(file))
-            except Exception as exc:
-                logger.warning(
-                    "Skipping supporting file %s (%s) — failed to load: %s",
-                    file.file_name,
-                    file.id,
-                    exc,
-                )
+        # Supporting docs and reviewer memos are loaded tolerantly: a file that
+        # fails to load is skipped and logged rather than aborting the workflow.
+        supporting_file_documents: list[FileDocument] = []
+        reviewer_memo_documents: list[FileDocument] = []
+        for files, label, target in (
+            (supporting_files, "supporting file", supporting_file_documents),
+            (reviewer_memo_files, "reviewer memo", reviewer_memo_documents),
+        ):
+            for file in files:
+                try:
+                    target.append(await load_file_document(file))
+                except Exception as exc:
+                    logger.warning(
+                        "Skipping %s %s (%s) — failed to load: %s",
+                        label,
+                        file.file_name,
+                        file.id,
+                        exc,
+                    )
 
         return DocumentProcessingState(
             type=WorkflowRunType.DOCUMENT_PROCESSING,
             file=main_file_document,
             supporting_files=supporting_file_documents,
+            reviewer_memo_files=reviewer_memo_documents,
             config=config,
         )
 

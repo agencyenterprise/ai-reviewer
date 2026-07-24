@@ -14,6 +14,7 @@ class FileRole(str, Enum):
     MAIN = "main"
     SUPPORT = "support"
     SUPPORTING_CANDIDATE = "supporting_candidate"
+    REVIEWER_MEMO = "reviewer_memo"
 
 
 class File(SQLModel, table=True):

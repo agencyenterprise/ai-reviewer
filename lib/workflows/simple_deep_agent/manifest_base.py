@@ -12,6 +12,7 @@ from langgraph.graph import START, StateGraph
 from langgraph.graph.state import END
 from langgraph.runtime import Runtime
 
+from lib.models.file import FileRole
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.manifest import WorkflowManifest
@@ -46,14 +47,16 @@ class SimpleDeepAgentManifest(
 
     Optional overrides:
         system_prompt: str  — overrides the default generic system prompt
-        include_supporting_files: bool = False
+        file_roles: list[FileRole] = []  — extra file roles to mount for the
+            agent beyond the always-present main file (e.g. [FileRole.SUPPORT]
+            or [FileRole.REVIEWER_MEMO])
         (plus any WorkflowManifest fields: required_dependencies, order, etc.)
     """
 
     skill: ClassVar[Optional[str]] = None
     user_prompt: ClassVar[Optional[str]] = None
     system_prompt: ClassVar[Optional[str]] = None
-    include_supporting_files: ClassVar[bool] = False
+    file_roles: ClassVar[list[FileRole]] = []
 
     def resolve_user_prompt(self) -> str:
         """Resolve the rules/criteria used as the deep agent's user prompt.
@@ -85,7 +88,7 @@ class SimpleDeepAgentManifest(
                 context=runtime.context,
                 system_prompt=manifest.system_prompt,
                 user_prompt=manifest.resolve_user_prompt(),
-                include_supporting_files=manifest.include_supporting_files,
+                file_roles=list(manifest.file_roles),
             )
             result, messages = await agent.ainvoke({})
             return {"result": result, "messages": messages}

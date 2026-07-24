@@ -62,11 +62,14 @@ def _get_completion_hook(
             project_id, user=current_user, required_level=AccessLevel.WRITE
         )
 
-        # Determine revision for the file: MAIN files get the current revision, others get None (shared)
+        # Determine revision for the file. MAIN and REVIEWER_MEMO files are
+        # scoped to the current revision (a memo reviews a specific draft);
+        # other roles (e.g. supporting docs) are shared across revisions (None).
         revision: int | None = None
-        if role == FileRole.MAIN:
+        if role in (FileRole.MAIN, FileRole.REVIEWER_MEMO):
             revision = project.current_revision
 
+        if role == FileRole.MAIN:
             # Validate: only one MAIN file per revision
             existing_main = await get_files_by_project_id(
                 uuid.UUID(project_id), roles=[FileRole.MAIN], revision=revision

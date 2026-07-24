@@ -176,7 +176,7 @@ export function ReplaceMainDocumentDialog({ isOpen, projectId, onClose }: Replac
 
             {selectedFile && (
               <div className="space-y-2">
-                <FileListItem file={selectedFile} type="main" onRemove={() => setSelectedFile(null)} />
+                <FileListItem file={selectedFile} type={FileRole.Main} onRemove={() => setSelectedFile(null)} />
               </div>
             )}
 
