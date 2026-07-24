@@ -5930,6 +5930,7 @@ export const WorkflowRunType = {
   FiguresTablesCheck: 'figures_tables_check',
   RecommendationCheck: 'recommendation_check',
   RevisionPlanningSummary: 'revision_planning_summary',
+  ReviewerResponseMemos: 'reviewer_response_memos',
 } as const;
 
 /**

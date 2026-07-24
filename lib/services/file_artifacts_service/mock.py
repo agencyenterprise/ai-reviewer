@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Optional, Sequence
+from typing import Any, Optional
 
 from deepagents.backends.utils import create_file_data
 
@@ -8,7 +8,6 @@ from lib.models.file import FileRole
 from lib.models.footnote_item import FootnoteItem
 from lib.services.file import FileDocument
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
-    DEEPAGENT_ROLE_MOUNT_DIRS,
     FileArtifactsServiceType,
 )
 from lib.workflows.chunk_utils import AnalyzedChunk
@@ -57,18 +56,23 @@ class MockFileArtifactsService(FileArtifactsServiceType):
                 return f
         return _empty_file_document(file_id)
 
-    async def get_main_file(self) -> FileDocument:
+    async def get_main_file(self, revision: int | None = None) -> FileDocument:
         if self._main_file:
             return self._main_file
         return _empty_file_document("main_file_id")
 
-    async def get_project_files(self, roles: list[FileRole]) -> list[FileDocument]:
+    async def get_project_files(
+        self, roles: list[FileRole], revision: int | None = None
+    ) -> list[FileDocument]:
         documents: list[FileDocument] = []
         if FileRole.SUPPORT in roles:
             documents.extend(self._supporting_files)
         if FileRole.REVIEWER_MEMO in roles:
             documents.extend(self._reviewer_memo_files)
         return documents
+
+    async def get_latest_reviewer_memo_revision(self) -> int | None:
+        return 1 if self._reviewer_memo_files else None
 
     async def get_file_summary(self, file_id: str) -> FileSummary:
         return FileSummary(
@@ -94,16 +98,23 @@ class MockFileArtifactsService(FileArtifactsServiceType):
 
     async def get_deepagent_backend_files(
         self,
-        roles: Sequence[FileRole] = (FileRole.SUPPORT,),
         include_skills: bool = True,
     ) -> dict[str, Any]:
         main_markdown = self._main_file.markdown if self._main_file else ""
         files: dict[str, Any] = {"/main.md": create_file_data(main_markdown)}
 
-        for role in roles:
-            mount_dir = DEEPAGENT_ROLE_MOUNT_DIRS[role]
-            for f in await self.get_project_files([role]):
-                files[f"/{mount_dir}/{f.file_id}.md"] = create_file_data(f.markdown)
+        for f in self._supporting_files:
+            files[f"/supporting/{f.file_id}.md"] = create_file_data(f.markdown)
+
+        # The mock has no revision metadata; place the main and any memos under
+        # a single synthetic revision so the tree shape matches production.
+        if self._main_file:
+            files["/revisions/1/main.md"] = create_file_data(self._main_file.markdown)
+        for f in self._reviewer_memo_files:
+            files[f"/revisions/1/reviewer-memos/{f.file_id}.md"] = create_file_data(
+                f.markdown
+            )
+
         if include_skills:
             project_root = Path(__file__).parents[3]
             skills_dir = project_root / "skills"

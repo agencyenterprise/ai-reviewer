@@ -1,10 +1,10 @@
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Sequence, cast, Callable, Awaitable, Any
+from typing import TYPE_CHECKING, Optional, cast, Callable, Awaitable, Any
 
 from deepagents.backends.utils import create_file_data
 
-from lib.models.file import FileRole
+from lib.models.file import File, FileRole
 from lib.services.file import FileDocument, create_file_document_from_path
 from lib.services.files import (
     get_file_by_id,
@@ -12,7 +12,6 @@ from lib.services.files import (
     load_file_document,
 )
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
-    DEEPAGENT_ROLE_MOUNT_DIRS,
     FileArtifactsServiceType,
 )
 from lib.workflows.models import WorkflowRunType
@@ -152,28 +151,63 @@ class FileArtifactsService(FileArtifactsServiceType):
             f"No file document found with id {file_id} for project {self.project_id}"
         )
 
-    async def _load_project_files(self):
-        """Return all project files from DB (or None if DB read fails)."""
+    async def _load_project_files(self, revision: int | None = None):
+        """Return all project files from DB (or None if DB read fails).
+
+        Defaults to the service's own revision; pass ``revision`` to read a
+        different (e.g. earlier) revision's files.
+        """
+        rev = revision if revision is not None else self.revision
         return await self._try_load(
             f"project files for {self.project_id}",
-            lambda: get_files_by_project_id(self.project_id, revision=self.revision),
+            lambda: get_files_by_project_id(self.project_id, revision=rev),
         )
 
-    async def get_main_file(self) -> FileDocument:
+    async def _load_file_document_with_markdown(self, file: File) -> FileDocument:
+        """Load a File row into a FileDocument, converting markdown on demand.
+
+        Uses cached markdown when present, otherwise converts from disk.
+        """
+        if file.markdown is not None:
+            return await load_file_document(file, use_cached_artifacts=True)
+        return await create_file_document_from_path(
+            file_path=file.file_path,
+            file_id=str(file.id),
+            file_type=file.file_type,
+            original_file_name=file.file_name,
+            original_file_path=file.original_file_path,
+            markdown_convert=True,
+        )
+
+    async def get_main_file(self, revision: int | None = None) -> FileDocument:
         """Return the project's main file.
 
-        Prefers DB cached markdown artifacts and falls back to workflow state.
+        Defaults to the service's revision and falls back to the document
+        processing state. When an explicit ``revision`` is given (e.g. an
+        earlier reviewed revision), the file is read from the DB and its
+        markdown converted on demand — the state fallback only applies to the
+        current revision.
         """
-        project_files = await self._load_project_files()
-        if project_files:
-            main_file = next(
-                (f for f in project_files if f.role == FileRole.MAIN), None
-            )
-            if main_file and main_file.has_cached_markdown:
-                logger.debug(
-                    "Loaded main file from DB cache for project %s", self.project_id
+        rev = revision if revision is not None else self.revision
+        project_files = await self._load_project_files(rev)
+        main_file = (
+            next((f for f in project_files if f.role == FileRole.MAIN), None)
+            if project_files
+            else None
+        )
+
+        if revision is not None:
+            if main_file is None:
+                raise ValueError(
+                    f"No main file found for revision {rev} in project {self.project_id}"
                 )
-                return await load_file_document(main_file, use_cached_artifacts=True)
+            return await self._load_file_document_with_markdown(main_file)
+
+        if main_file and main_file.has_cached_markdown:
+            logger.debug(
+                "Loaded main file from DB cache for project %s", self.project_id
+            )
+            return await load_file_document(main_file, use_cached_artifacts=True)
 
         state = cast(
             "DocumentProcessingState",
@@ -182,22 +216,23 @@ class FileArtifactsService(FileArtifactsServiceType):
         return state.file
 
     async def get_project_files(
-        self, roles: list[FileRole]
+        self, roles: list[FileRole], revision: int | None = None
     ) -> list[FileDocument]:
         """Return the project's files for the given roles, with markdown content.
 
-        Files are scoped to the current revision (revision-scoped files for this
-        revision plus shared files). Prefers DB cached markdown and converts a
+        Defaults to the service's revision; pass ``revision`` to read a
+        different revision's files. Prefers DB cached markdown and converts a
         file's markdown on demand when it has not been cached yet (e.g. reviewer
         memos, which are not processed by the document pipeline).
         """
+        rev = revision if revision is not None else self.revision
         role_labels = ", ".join(r.value for r in roles)
         files = await self._try_load(
             f"project files ({role_labels}) for {self.project_id}",
             lambda: get_files_by_project_id(
                 self.project_id,
                 roles=roles,
-                revision=self.revision,
+                revision=rev,
             ),
         )
         if not files:
@@ -205,22 +240,25 @@ class FileArtifactsService(FileArtifactsServiceType):
 
         documents: list[FileDocument] = []
         for file in files:
-            if file.markdown is not None:
-                documents.append(
-                    await load_file_document(file, use_cached_artifacts=True)
-                )
-            else:
-                documents.append(
-                    await create_file_document_from_path(
-                        file_path=file.file_path,
-                        file_id=str(file.id),
-                        file_type=file.file_type,
-                        original_file_name=file.file_name,
-                        original_file_path=file.original_file_path,
-                        markdown_convert=True,
-                    )
-                )
+            documents.append(await self._load_file_document_with_markdown(file))
         return documents
+
+    async def get_latest_reviewer_memo_revision(self) -> int | None:
+        """Return the highest revision that has reviewer memos, or None.
+
+        Reviewer memos are scoped to the revision they reviewed; this resolves
+        the "reviewed revision" the review workflows operate on.
+        """
+        files = await self._try_load(
+            f"reviewer memo revisions for {self.project_id}",
+            lambda: get_files_by_project_id(
+                self.project_id, roles=[FileRole.REVIEWER_MEMO]
+            ),
+        )
+        if not files:
+            return None
+        revisions = [f.revision for f in files if f.revision is not None]
+        return max(revisions) if revisions else None
 
     async def get_file_summary(self, file_id: str) -> "FileSummary":
         """Retrieve the file summary for a file by its ID.
@@ -408,22 +446,42 @@ class FileArtifactsService(FileArtifactsServiceType):
 
     async def get_deepagent_backend_files(
         self,
-        roles: Sequence[FileRole] = (FileRole.SUPPORT,),
         include_skills: bool = True,
     ) -> dict[str, Any]:
-        """Return the files in a format suitable for the DeepAgent backend.
+        """Return the full project file tree for the DeepAgent backend.
 
-        The main file is always mounted at ``/main.md``. Files for each role in
-        ``roles`` (default: supporting files) are mounted under the role's
-        directory (see ``DEEPAGENT_ROLE_MOUNT_DIRS``).
+        Layout (always the same shape):
+
+        - ``/main.md`` — the current revision's main document
+        - ``/supporting/<id>.md`` — supporting documents (shared across revisions)
+        - ``/revisions/<n>/main.md`` — the main document of every revision
+        - ``/revisions/<n>/reviewer-memos/<id>.md`` — reviewer memos, always
+          grouped under the revision they reviewed
+
+        Reviewer memos live only under ``/revisions/<n>/reviewer-memos/``. The
+        agent navigates this tree; workflows tell it which paths to read.
         """
         main_file = await self.get_main_file()
         files: dict[str, Any] = {"/main.md": create_file_data(main_file.markdown)}
 
-        for role in roles:
-            mount_dir = DEEPAGENT_ROLE_MOUNT_DIRS[role]
-            for f in await self.get_project_files([role]):
-                files[f"/{mount_dir}/{f.file_id}.md"] = create_file_data(f.markdown)
+        all_files = await self._try_load(
+            f"all files for {self.project_id}",
+            lambda: get_files_by_project_id(self.project_id),
+        )
+        for file in all_files or []:
+            if file.role == FileRole.SUPPORT:
+                doc = await self._load_file_document_with_markdown(file)
+                files[f"/supporting/{doc.file_id}.md"] = create_file_data(doc.markdown)
+            elif file.role == FileRole.MAIN and file.revision is not None:
+                doc = await self._load_file_document_with_markdown(file)
+                files[f"/revisions/{file.revision}/main.md"] = create_file_data(
+                    doc.markdown
+                )
+            elif file.role == FileRole.REVIEWER_MEMO and file.revision is not None:
+                doc = await self._load_file_document_with_markdown(file)
+                files[
+                    f"/revisions/{file.revision}/reviewer-memos/{doc.file_id}.md"
+                ] = create_file_data(doc.markdown)
 
         if include_skills:
             project_root = Path(__file__).parents[3]

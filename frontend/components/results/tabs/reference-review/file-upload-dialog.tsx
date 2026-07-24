@@ -233,7 +233,7 @@ export function FileUploadDialog({
                       id={FileRole.ReviewerMemo}
                       value={selectedRole}
                       label="Reviewer memo"
-                      description="Peer-review feedback on the document. Used by the Revision-Planning Summary assessment to plan revisions."
+                      description="Peer-review feedback attached to the current revision. Used by the Peer Review Assistant assessments."
                       disabled={isUploading}
                     />
                   </RadioGroup>

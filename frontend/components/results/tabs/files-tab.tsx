@@ -35,6 +35,7 @@ import { FileUploadDialog } from './reference-review/file-upload-dialog';
 interface FilesTabProps {
   projectDetail: ProjectDetailed;
   readOnly?: boolean;
+  onRevisionCreated?: () => void;
 }
 
 function FileTypeIcon({ fileType }: { fileType?: string | null }) {
@@ -188,7 +189,7 @@ function FileTableRow({ file, projectId, currentRevision, matchedReference, onRe
   );
 }
 
-export function FilesTab({ projectDetail, readOnly = false }: FilesTabProps) {
+export function FilesTab({ projectDetail, readOnly = false, onRevisionCreated }: FilesTabProps) {
   const projectId = projectDetail.project.id;
   const currentRevision = projectDetail.project.current_revision ?? 1;
   const files = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
@@ -324,6 +325,7 @@ export function FilesTab({ projectDetail, readOnly = false }: FilesTabProps) {
         isOpen={isReplaceDialogOpen}
         projectId={projectId}
         onClose={() => setIsReplaceDialogOpen(false)}
+        onRevisionCreated={onRevisionCreated}
       />
 
       <FileUploadDialog

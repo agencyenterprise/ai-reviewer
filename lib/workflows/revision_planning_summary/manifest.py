@@ -1,6 +1,6 @@
 """Manifest for the Revision-Planning Summary workflow.
 
-Runs the `review-assistant` skill against the original draft plus the uploaded
+Runs the `review-assistant` skill against the reviewed draft plus the uploaded
 reviewer memos to produce a revision-planning summary: the reviewer memos
 reproduced verbatim, each point labeled with a stable ID, and a compact planning
 note under each point (where it lives in the draft, its scope, and a short
@@ -10,23 +10,37 @@ This is the first of the three `review-assistant` outputs. The skill body
 (`skills/review-assistant/SKILL.md`) is the single source of truth for how the
 summary is produced; it is loaded as the agent's user prompt and is also mounted
 read-only into the agent filesystem along with its voice-and-tone reference.
+
+It operates on the *reviewed revision*: the latest revision under `/revisions/`
+that has reviewer memos attached. The agent finds it from the mounted file tree.
 """
 
-from lib.models.file import FileRole
+from typing import TYPE_CHECKING, Optional
+
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifest
 
+if TYPE_CHECKING:
+    from lib.services.file_artifacts_service.file_artifacts_service_type import (
+        FileArtifactsServiceType,
+    )
+
 _SYSTEM_PROMPT = """\
-You are running the review-assistant skill to produce a RAND revision-planning \
+You are running the review-assistant skill to produce a revision-planning \
 summary. Read the skill instructions at `/skills/review-assistant/SKILL.md` and \
 its tone reference at `/skills/review-assistant/references/voice-and-tone.md` \
 and follow them exactly.
 
 ## Inputs
 
-- The original draft under review is at `/main.md`.
-- The reviewer memos are at `/reviewer-memos/*.md` (one file per memo). Read \
-every memo in full.
+The project's revisions are mounted under `/revisions/<n>/`. Find the \
+**reviewed revision**: the highest-numbered revision folder that contains a \
+`reviewer-memos/` directory. Ignore reviewer memos in any earlier revision.
+
+- The draft under review is that revision's main document, \
+`/revisions/<reviewed>/main.md`.
+- The reviewer memos are the files under \
+`/revisions/<reviewed>/reviewer-memos/`. Read every memo in full.
 
 ## Task
 
@@ -41,17 +55,12 @@ skill.
 Write the complete revision-planning summary as Markdown into the \
 `report_markdown` field of your structured response. Do NOT populate the \
 `issues` field; this workflow produces a document deliverable, not a list of \
-issues.
-
-If there are no reviewer memos at `/reviewer-memos/`, do not invent content: set \
-`report_markdown` to a short note stating that no reviewer memos were found and \
-that one or more memos must be uploaded before a planning summary can be \
-generated.\
+issues.\
 """
 
 
 class RevisionPlanningSummaryManifest(SimpleDeepAgentManifest):
-    """Generates a RAND revision-planning summary from reviewer memos."""
+    """Generates a revision-planning summary from reviewer memos."""
 
     type = WorkflowRunType.REVISION_PLANNING_SUMMARY
     name = "Revision-Planning Summary"
@@ -66,4 +75,11 @@ class RevisionPlanningSummaryManifest(SimpleDeepAgentManifest):
 
     skill = "review-assistant"
     system_prompt = _SYSTEM_PROMPT
-    file_roles = [FileRole.REVIEWER_MEMO]
+
+    async def precheck(self, service: "FileArtifactsServiceType") -> Optional[str]:
+        if await service.get_latest_reviewer_memo_revision() is None:
+            return (
+                "No reviewer memos were found for this project. Upload one or "
+                "more reviewer memos, then re-run this assessment."
+            )
+        return None

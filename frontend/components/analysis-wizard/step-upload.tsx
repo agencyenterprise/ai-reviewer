@@ -32,6 +32,8 @@ export function StepUpload({ onComplete }: StepUploadProps) {
         <h1 className="text-2xl font-bold">Let&apos;s start with your draft</h1>
         <p className="text-muted-foreground">
           Upload the document you&apos;d like us to review. We&apos;ll extract its content and prepare it for analysis.
+          This becomes <strong>revision 1</strong> of the main document. You can add new revisions later as your draft
+          evolves.
         </p>
       </div>
 

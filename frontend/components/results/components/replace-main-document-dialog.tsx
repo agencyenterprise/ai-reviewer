@@ -39,9 +39,17 @@ export interface ReplaceMainDocumentDialogProps {
   isOpen: boolean;
   projectId: string;
   onClose: () => void;
+  /** Called after a new revision is successfully created, so the caller can
+   *  switch the view to the newly created (now current) revision. */
+  onRevisionCreated?: () => void;
 }
 
-export function ReplaceMainDocumentDialog({ isOpen, projectId, onClose }: ReplaceMainDocumentDialogProps) {
+export function ReplaceMainDocumentDialog({
+  isOpen,
+  projectId,
+  onClose,
+  onRevisionCreated,
+}: ReplaceMainDocumentDialogProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [rerunAnalyses, setRerunAnalyses] = useState(true);
   const [stage, setStage] = useState<Stage>('select');
@@ -104,12 +112,15 @@ export function ReplaceMainDocumentDialog({ isOpen, projectId, onClose }: Replac
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-      toast.success('Main document replaced. Assessment started.');
+      // Follow the newly created revision so the view doesn't stay pinned to
+      // the previous one.
+      onRevisionCreated?.();
+      toast.success(rerunAnalyses ? 'New revision created. Assessments started.' : 'New revision created.');
       onClose();
     },
     onError: (error) => {
       setStage('select');
-      toast.error(getErrorMessage(error, 'Failed to replace document'));
+      toast.error(getErrorMessage(error, 'Failed to create revision'));
     },
   });
 
@@ -147,10 +158,10 @@ export function ReplaceMainDocumentDialog({ isOpen, projectId, onClose }: Replac
     <Dialog open={isOpen} onOpenChange={(open) => !open && !isProcessing && handleClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Replace main document</DialogTitle>
+          <DialogTitle>Create a new revision</DialogTitle>
           <DialogDescription>
-            Upload a new version of the main document. Previous assessment results will be archived (not deleted).
-            Supporting documents will be preserved.
+            A revision is a version of the main document. Uploading a new version here creates a new revision and makes
+            it the current one. Your previous revisions, with all their related results, are kept and stay available..
           </DialogDescription>
         </DialogHeader>
 
@@ -162,7 +173,7 @@ export function ReplaceMainDocumentDialog({ isOpen, projectId, onClose }: Replac
         ) : (
           <div className="space-y-4 min-w-0">
             <div className="space-y-2">
-              <Label>New document</Label>
+              <Label>New version of the main document</Label>
               <FileUpload
                 files={selectedFile ? [selectedFile] : []}
                 onFilesChange={handleFilesChange}
@@ -188,12 +199,12 @@ export function ReplaceMainDocumentDialog({ isOpen, projectId, onClose }: Replac
                   onCheckedChange={(checked) => setRerunAnalyses(checked === true)}
                 />
                 <Label htmlFor="rerun-analyses" className="text-sm font-normal cursor-pointer">
-                  Re-run previous assessments
+                  Re-run previous assessments on this revision
                 </Label>
               </div>
               <p className="text-xs text-muted-foreground pl-6">
-                Automatically run the same assessment workflows that were previously executed on the old document. If
-                unchecked, only document processing will run and you can manually start assessments later.
+                Automatically run the same assessments on the new revision that were run on the previous one. If
+                unchecked, you can still start assessments manually later.
               </p>
             </div>
           </div>
@@ -204,7 +215,7 @@ export function ReplaceMainDocumentDialog({ isOpen, projectId, onClose }: Replac
             Cancel
           </Button>
           <Button onClick={() => replaceMutation.mutate()} disabled={!isValid || isProcessing}>
-            Replace &amp; analyze
+            Create revision
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -70,6 +70,7 @@ const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.FiguresTablesCheck]: TableIcon,
   [WorkflowRunType.RecommendationCheck]: ClipboardCheck,
   [WorkflowRunType.RevisionPlanningSummary]: ClipboardCheck,
+  [WorkflowRunType.ReviewerResponseMemos]: MessageSquareWarning,
 };
 
 const DEFAULT_ICON = FileText;

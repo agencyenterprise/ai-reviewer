@@ -106,6 +106,9 @@ def register_all_workflow_manifests():
     from lib.workflows.revision_planning_summary.manifest import (
         RevisionPlanningSummaryManifest,
     )
+    from lib.workflows.reviewer_response_memos.manifest import (
+        ReviewerResponseMemosManifest,
+    )
 
     manifests = [
         DocumentProcessingManifest(),
@@ -139,6 +142,7 @@ def register_all_workflow_manifests():
         FiguresTablesCheckManifest(),
         RecommendationCheckManifest(),
         RevisionPlanningSummaryManifest(),
+        ReviewerResponseMemosManifest(),
     ]
 
     for manifest in manifests:

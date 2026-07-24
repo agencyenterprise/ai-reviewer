@@ -15,7 +15,6 @@ from langchain_core.tools import BaseTool
 
 from lib.config.llm_models import gpt_5_5_model
 from lib.models.agent import LangChainAgent
-from lib.models.file import FileRole
 from lib.workflows.context import ContextSchema
 from lib.workflows.simple_deep_agent.agent_types import AgentCheckResult
 
@@ -54,15 +53,11 @@ class SimpleDeepAgent(LangChainAgent):
         context: ContextSchema,
         user_prompt: str,
         system_prompt: Optional[str] = None,
-        file_roles: Optional[list[FileRole]] = None,
         tools: Optional[Sequence[Union[BaseTool, Callable, dict[str, Any]]]] = None,
     ):
         super().__init__(context)
         self._system_prompt = system_prompt or _SYSTEM_PROMPT
         self._user_prompt = user_prompt
-        # Extra file roles to mount for the agent (beyond the always-present
-        # main file). Defaults to none — the generic reviewer only reads /main.md.
-        self._file_roles: list[FileRole] = file_roles if file_roles is not None else []
         self._tools = tools
 
     async def ainvoke(
@@ -81,7 +76,6 @@ class SimpleDeepAgent(LangChainAgent):
         result = await deep_agent.ainvoke(
             {
                 "files": await self.context.file_artifacts_service.get_deepagent_backend_files(
-                    roles=self._file_roles,
                     include_skills=True,
                 ),
                 "messages": [

@@ -64,6 +64,7 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
         label="Peer Review Assistant",
         workflows=[
             WorkflowRunType.REVISION_PLANNING_SUMMARY,
+            WorkflowRunType.REVIEWER_RESPONSE_MEMOS,
         ],
     ),
     CategoryConfig(

@@ -61,9 +61,7 @@ class PrefaceValidatorAgent(LangChainAgent):
 
         result = await deep_agent.ainvoke(
             {
-                "files": await self.context.file_artifacts_service.get_deepagent_backend_files(
-                    roles=[],
-                ),
+                "files": await self.context.file_artifacts_service.get_deepagent_backend_files(),
                 "messages": [
                     SystemMessage(
                         content=load_skill_prompt("about-this-preface")

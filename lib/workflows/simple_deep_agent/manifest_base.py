@@ -12,7 +12,6 @@ from langgraph.graph import START, StateGraph
 from langgraph.graph.state import END
 from langgraph.runtime import Runtime
 
-from lib.models.file import FileRole
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.manifest import WorkflowManifest
@@ -23,9 +22,15 @@ from lib.workflows.simple_deep_agent.state import (
     SimpleDeepAgentConfig,
     SimpleDeepAgentState,
 )
-from lib.workflows.simple_deep_agent.agent_types import issues_from_agent_result
+from lib.workflows.simple_deep_agent.agent_types import (
+    AgentCheckResult,
+    issues_from_agent_result,
+)
 
 if TYPE_CHECKING:
+    from lib.services.file_artifacts_service.file_artifacts_service_type import (
+        FileArtifactsServiceType,
+    )
     from lib.workflows.workflow_types import WorkflowState
 
 
@@ -47,16 +52,17 @@ class SimpleDeepAgentManifest(
 
     Optional overrides:
         system_prompt: str  — overrides the default generic system prompt
-        file_roles: list[FileRole] = []  — extra file roles to mount for the
-            agent beyond the always-present main file (e.g. [FileRole.SUPPORT]
-            or [FileRole.REVIEWER_MEMO])
         (plus any WorkflowManifest fields: required_dependencies, order, etc.)
+
+    The agent's backend always exposes the full project file tree (current main,
+    supporting docs, and a /revisions/<n>/ tree with each revision's main and
+    reviewer memos); workflows point the agent at the paths they need via the
+    system prompt rather than by selecting files here.
     """
 
     skill: ClassVar[Optional[str]] = None
     user_prompt: ClassVar[Optional[str]] = None
     system_prompt: ClassVar[Optional[str]] = None
-    file_roles: ClassVar[list[FileRole]] = []
 
     def resolve_user_prompt(self) -> str:
         """Resolve the rules/criteria used as the deep agent's user prompt.
@@ -72,6 +78,17 @@ class SimpleDeepAgentManifest(
             f"{type(self).__name__} must define either `skill` or `user_prompt`"
         )
 
+    async def precheck(
+        self, service: "FileArtifactsServiceType"
+    ) -> Optional[str]:
+        """Optional guard run before the agent.
+
+        Return a message to short-circuit: the agent is skipped and the message
+        is surfaced as the run's ``report_markdown``. Return None to proceed.
+        Default: no guard.
+        """
+        return None
+
     def get_state_type(self) -> Type[SimpleDeepAgentState]:
         return SimpleDeepAgentState
 
@@ -84,11 +101,21 @@ class SimpleDeepAgentManifest(
         async def run_agent(
             state: SimpleDeepAgentState, runtime: Runtime[ContextSchema]
         ) -> dict:
+            service = runtime.context.file_artifacts_service
+
+            guard_message = await manifest.precheck(service)
+            if guard_message is not None:
+                return {
+                    "result": AgentCheckResult(
+                        issues=[], report_markdown=guard_message
+                    ),
+                    "messages": [],
+                }
+
             agent = SimpleDeepAgent(
                 context=runtime.context,
                 system_prompt=manifest.system_prompt,
                 user_prompt=manifest.resolve_user_prompt(),
-                file_roles=list(manifest.file_roles),
             )
             result, messages = await agent.ainvoke({})
             return {"result": result, "messages": messages}

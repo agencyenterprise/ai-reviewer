@@ -105,7 +105,6 @@ class InferenceValidationAgent(LangChainAgent):
         result = await deep_agent.ainvoke(
             {
                 "files": await self.context.file_artifacts_service.get_deepagent_backend_files(
-                    roles=[],
                     include_skills=False,
                 ),
                 "messages": [

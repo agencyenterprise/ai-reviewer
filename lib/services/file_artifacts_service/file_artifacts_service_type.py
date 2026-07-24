@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, List, Sequence
+from typing import TYPE_CHECKING, Any, List
 
 from lib.models.file import FileRole
 
@@ -12,26 +12,20 @@ if TYPE_CHECKING:
     from lib.workflows.reference_extraction.state import ExtractedReference
 
 
-# Virtual-filesystem mount directory for each file role in the deep-agent
-# backend. Files of a mounted role are placed at ``/<dir>/<file_id>.md``. The
-# main file is always mounted at ``/main.md`` and is not listed here.
-DEEPAGENT_ROLE_MOUNT_DIRS: dict[FileRole, str] = {
-    FileRole.SUPPORT: "supporting",
-    FileRole.REVIEWER_MEMO: "reviewer-memos",
-}
-
-
 class FileArtifactsServiceType(ABC):
     @abstractmethod
     async def get_file_document(self, file_id: str) -> "FileDocument": ...
 
     @abstractmethod
-    async def get_main_file(self) -> "FileDocument": ...
+    async def get_main_file(self, revision: int | None = None) -> "FileDocument": ...
 
     @abstractmethod
     async def get_project_files(
-        self, roles: list[FileRole]
+        self, roles: list[FileRole], revision: int | None = None
     ) -> list["FileDocument"]: ...
+
+    @abstractmethod
+    async def get_latest_reviewer_memo_revision(self) -> int | None: ...
 
     @abstractmethod
     async def get_file_summary(self, file_id: str) -> "FileSummary": ...
@@ -51,7 +45,6 @@ class FileArtifactsServiceType(ABC):
     @abstractmethod
     async def get_deepagent_backend_files(
         self,
-        roles: Sequence[FileRole] = (FileRole.SUPPORT,),
         include_skills: bool = True,
     ) -> dict[str, Any]: ...
 

@@ -35,6 +35,8 @@ interface ResultsVisualizationProps {
   selectedRevision?: number;
   /** Callback when user switches revision */
   onRevisionChange?: (revision: number) => void;
+  /** Callback after a new revision is created, to follow it in the view */
+  onRevisionCreated?: () => void;
 }
 
 export function ResultsVisualization({
@@ -45,6 +47,7 @@ export function ResultsVisualization({
   needsReferenceReview = false,
   selectedRevision,
   onRevisionChange,
+  onRevisionCreated,
 }: ResultsVisualizationProps) {
   const results = projectDetail.workflow_runs ?? [];
 
@@ -80,13 +83,15 @@ export function ResultsVisualization({
           />
         );
       case 'files':
-        return <FilesTab projectDetail={projectDetail} readOnly={readOnly} />;
+        return <FilesTab projectDetail={projectDetail} readOnly={readOnly} onRevisionCreated={onRevisionCreated} />;
       case 'document-explorer':
         return (
           <DocumentExplorerTab
             projectDetail={projectDetail}
             readOnly={readOnly}
             onNavigateToAnalyses={() => setActiveTab('analyses')}
+            selectedRevision={selectedRevision}
+            onRevisionChange={onRevisionChange}
           />
         );
       case 'references':
@@ -213,6 +218,7 @@ export function ResultsVisualization({
               readOnly={readOnly}
               selectedRevision={selectedRevision}
               onRevisionChange={onRevisionChange}
+              onRevisionCreated={onRevisionCreated}
             />
           </div>
         </div>
