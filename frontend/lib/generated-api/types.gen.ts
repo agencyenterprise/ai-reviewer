@@ -5931,6 +5931,7 @@ export const WorkflowRunType = {
   RecommendationCheck: 'recommendation_check',
   RevisionPlanningSummary: 'revision_planning_summary',
   ReviewerResponseMemos: 'reviewer_response_memos',
+  ReviewerCoverageReport: 'reviewer_coverage_report',
 } as const;
 
 /**
