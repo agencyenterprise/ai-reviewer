@@ -11,6 +11,7 @@ import { MobileProfileMenu, ProfileDropdown } from './profile-dropdown';
 
 const navigation = [
   { name: 'Projects', href: '/projects' },
+  { name: 'Chat', href: '/chat' },
   { name: 'About', href: '/about' },
 ];
 
