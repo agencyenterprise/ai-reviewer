@@ -8,8 +8,8 @@ import { dbThreadListAdapter } from '@/components/chat/db-thread-list-adapter';
 import { DevToolsModal } from '@assistant-ui/react-devtools';
 import { DEFAULT_MODEL_ID } from '@/lib/chat-models';
 import {
-  appendMessageChatThreadsThreadIdMessagesPost,
-  listMessagesChatThreadsThreadIdMessagesGet,
+  appendMessageApiChatThreadsThreadIdMessagesPost,
+  listMessagesApiChatThreadsThreadIdMessagesGet,
 } from '@/lib/generated-api';
 import {
   AssistantRuntimeProvider,
@@ -38,13 +38,13 @@ function createHistoryAdapter(aui: ReturnType<typeof useAui>): ThreadHistoryAdap
     async load() {
       const remoteId = aui.threadListItem().getState().remoteId;
       if (!remoteId) return { messages: [] };
-      const rows = await listMessagesChatThreadsThreadIdMessagesGet({ path: { thread_id: remoteId } });
+      const rows = await listMessagesApiChatThreadsThreadIdMessagesGet({ path: { thread_id: remoteId } });
       // Each row's `content` is the ExportedMessageRepositoryItem we stored.
       return { messages: rows.map((row) => row.content) } as HistoryLoadResult;
     },
     async append(item) {
       const { remoteId } = await aui.threadListItem().initialize();
-      await appendMessageChatThreadsThreadIdMessagesPost({
+      await appendMessageApiChatThreadsThreadIdMessagesPost({
         path: { thread_id: remoteId },
         body: {
           message_id: item.message.id,

@@ -10,9 +10,9 @@ import {
 } from './client';
 import { client } from './client.gen';
 import type {
-  AppendMessageChatThreadsThreadIdMessagesPostData,
-  AppendMessageChatThreadsThreadIdMessagesPostErrors,
-  AppendMessageChatThreadsThreadIdMessagesPostResponses,
+  AppendMessageApiChatThreadsThreadIdMessagesPostData,
+  AppendMessageApiChatThreadsThreadIdMessagesPostErrors,
+  AppendMessageApiChatThreadsThreadIdMessagesPostResponses,
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData,
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors,
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses,
@@ -37,9 +37,9 @@ import type {
   CreateRevisionEndpointApiProjectProjectIdRevisionsPostData,
   CreateRevisionEndpointApiProjectProjectIdRevisionsPostErrors,
   CreateRevisionEndpointApiProjectProjectIdRevisionsPostResponses,
-  CreateThreadChatThreadsPostData,
-  CreateThreadChatThreadsPostErrors,
-  CreateThreadChatThreadsPostResponses,
+  CreateThreadApiChatThreadsPostData,
+  CreateThreadApiChatThreadsPostErrors,
+  CreateThreadApiChatThreadsPostResponses,
   DeleteFeedbackApiFeedbackFeedbackIdDeleteData,
   DeleteFeedbackApiFeedbackFeedbackIdDeleteErrors,
   DeleteFeedbackApiFeedbackFeedbackIdDeleteResponses,
@@ -49,9 +49,9 @@ import type {
   DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteData,
   DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteErrors,
   DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteResponses,
-  DeleteThreadChatThreadsThreadIdDeleteData,
-  DeleteThreadChatThreadsThreadIdDeleteErrors,
-  DeleteThreadChatThreadsThreadIdDeleteResponses,
+  DeleteThreadApiChatThreadsThreadIdDeleteData,
+  DeleteThreadApiChatThreadsThreadIdDeleteErrors,
+  DeleteThreadApiChatThreadsThreadIdDeleteResponses,
   DisableProjectSharingApiProjectsProjectIdShareDisablePostData,
   DisableProjectSharingApiProjectsProjectIdShareDisablePostErrors,
   DisableProjectSharingApiProjectsProjectIdShareDisablePostResponses,
@@ -131,9 +131,9 @@ import type {
   ListAppConfigsApiAppConfigsGetResponses,
   ListLogsApiAdminLogsGetData,
   ListLogsApiAdminLogsGetResponses,
-  ListMessagesChatThreadsThreadIdMessagesGetData,
-  ListMessagesChatThreadsThreadIdMessagesGetErrors,
-  ListMessagesChatThreadsThreadIdMessagesGetResponses,
+  ListMessagesApiChatThreadsThreadIdMessagesGetData,
+  ListMessagesApiChatThreadsThreadIdMessagesGetErrors,
+  ListMessagesApiChatThreadsThreadIdMessagesGetResponses,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetData,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetErrors,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses,
@@ -142,8 +142,8 @@ import type {
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetData,
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetErrors,
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponses,
-  ListThreadsChatThreadsGetData,
-  ListThreadsChatThreadsGetResponses,
+  ListThreadsApiChatThreadsGetData,
+  ListThreadsApiChatThreadsGetResponses,
   ListUsersApiUsersGetData,
   ListUsersApiUsersGetErrors,
   ListUsersApiUsersGetResponses,
@@ -192,9 +192,9 @@ import type {
   UpdateRoleApiUsersUserIdRolePatchData,
   UpdateRoleApiUsersUserIdRolePatchErrors,
   UpdateRoleApiUsersUserIdRolePatchResponses,
-  UpdateThreadChatThreadsThreadIdPatchData,
-  UpdateThreadChatThreadsThreadIdPatchErrors,
-  UpdateThreadChatThreadsThreadIdPatchResponses,
+  UpdateThreadApiChatThreadsThreadIdPatchData,
+  UpdateThreadApiChatThreadsThreadIdPatchErrors,
+  UpdateThreadApiChatThreadsThreadIdPatchResponses,
 } from './types.gen';
 
 export type Options<
@@ -353,31 +353,31 @@ export const updateAppConfigApiAppConfigsKeyPut = <ThrowOnError extends boolean 
 /**
  * List Threads
  */
-export const listThreadsChatThreadsGet = <ThrowOnError extends boolean = true>(
-  options?: Options<ListThreadsChatThreadsGetData, ThrowOnError>,
-): RequestResult<ListThreadsChatThreadsGetResponses, unknown, ThrowOnError, 'data'> =>
-  (options?.client ?? client).get<ListThreadsChatThreadsGetResponses, unknown, ThrowOnError, 'data'>({
+export const listThreadsApiChatThreadsGet = <ThrowOnError extends boolean = true>(
+  options?: Options<ListThreadsApiChatThreadsGetData, ThrowOnError>,
+): RequestResult<ListThreadsApiChatThreadsGetResponses, unknown, ThrowOnError, 'data'> =>
+  (options?.client ?? client).get<ListThreadsApiChatThreadsGetResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/chat/threads',
+    url: '/api/chat/threads',
     ...options,
   });
 
 /**
  * Create Thread
  */
-export const createThreadChatThreadsPost = <ThrowOnError extends boolean = true>(
-  options: Options<CreateThreadChatThreadsPostData, ThrowOnError>,
-): RequestResult<CreateThreadChatThreadsPostResponses, CreateThreadChatThreadsPostErrors, ThrowOnError, 'data'> =>
+export const createThreadApiChatThreadsPost = <ThrowOnError extends boolean = true>(
+  options: Options<CreateThreadApiChatThreadsPostData, ThrowOnError>,
+): RequestResult<CreateThreadApiChatThreadsPostResponses, CreateThreadApiChatThreadsPostErrors, ThrowOnError, 'data'> =>
   (options.client ?? client).post<
-    CreateThreadChatThreadsPostResponses,
-    CreateThreadChatThreadsPostErrors,
+    CreateThreadApiChatThreadsPostResponses,
+    CreateThreadApiChatThreadsPostErrors,
     ThrowOnError,
     'data'
   >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/chat/threads',
+    url: '/api/chat/threads',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -388,46 +388,46 @@ export const createThreadChatThreadsPost = <ThrowOnError extends boolean = true>
 /**
  * Delete Thread
  */
-export const deleteThreadChatThreadsThreadIdDelete = <ThrowOnError extends boolean = true>(
-  options: Options<DeleteThreadChatThreadsThreadIdDeleteData, ThrowOnError>,
+export const deleteThreadApiChatThreadsThreadIdDelete = <ThrowOnError extends boolean = true>(
+  options: Options<DeleteThreadApiChatThreadsThreadIdDeleteData, ThrowOnError>,
 ): RequestResult<
-  DeleteThreadChatThreadsThreadIdDeleteResponses,
-  DeleteThreadChatThreadsThreadIdDeleteErrors,
+  DeleteThreadApiChatThreadsThreadIdDeleteResponses,
+  DeleteThreadApiChatThreadsThreadIdDeleteErrors,
   ThrowOnError,
   'data'
 > =>
   (options.client ?? client).delete<
-    DeleteThreadChatThreadsThreadIdDeleteResponses,
-    DeleteThreadChatThreadsThreadIdDeleteErrors,
+    DeleteThreadApiChatThreadsThreadIdDeleteResponses,
+    DeleteThreadApiChatThreadsThreadIdDeleteErrors,
     ThrowOnError,
     'data'
   >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/chat/threads/{thread_id}',
+    url: '/api/chat/threads/{thread_id}',
     ...options,
   });
 
 /**
  * Update Thread
  */
-export const updateThreadChatThreadsThreadIdPatch = <ThrowOnError extends boolean = true>(
-  options: Options<UpdateThreadChatThreadsThreadIdPatchData, ThrowOnError>,
+export const updateThreadApiChatThreadsThreadIdPatch = <ThrowOnError extends boolean = true>(
+  options: Options<UpdateThreadApiChatThreadsThreadIdPatchData, ThrowOnError>,
 ): RequestResult<
-  UpdateThreadChatThreadsThreadIdPatchResponses,
-  UpdateThreadChatThreadsThreadIdPatchErrors,
+  UpdateThreadApiChatThreadsThreadIdPatchResponses,
+  UpdateThreadApiChatThreadsThreadIdPatchErrors,
   ThrowOnError,
   'data'
 > =>
   (options.client ?? client).patch<
-    UpdateThreadChatThreadsThreadIdPatchResponses,
-    UpdateThreadChatThreadsThreadIdPatchErrors,
+    UpdateThreadApiChatThreadsThreadIdPatchResponses,
+    UpdateThreadApiChatThreadsThreadIdPatchErrors,
     ThrowOnError,
     'data'
   >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/chat/threads/{thread_id}',
+    url: '/api/chat/threads/{thread_id}',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -438,46 +438,46 @@ export const updateThreadChatThreadsThreadIdPatch = <ThrowOnError extends boolea
 /**
  * List Messages
  */
-export const listMessagesChatThreadsThreadIdMessagesGet = <ThrowOnError extends boolean = true>(
-  options: Options<ListMessagesChatThreadsThreadIdMessagesGetData, ThrowOnError>,
+export const listMessagesApiChatThreadsThreadIdMessagesGet = <ThrowOnError extends boolean = true>(
+  options: Options<ListMessagesApiChatThreadsThreadIdMessagesGetData, ThrowOnError>,
 ): RequestResult<
-  ListMessagesChatThreadsThreadIdMessagesGetResponses,
-  ListMessagesChatThreadsThreadIdMessagesGetErrors,
+  ListMessagesApiChatThreadsThreadIdMessagesGetResponses,
+  ListMessagesApiChatThreadsThreadIdMessagesGetErrors,
   ThrowOnError,
   'data'
 > =>
   (options.client ?? client).get<
-    ListMessagesChatThreadsThreadIdMessagesGetResponses,
-    ListMessagesChatThreadsThreadIdMessagesGetErrors,
+    ListMessagesApiChatThreadsThreadIdMessagesGetResponses,
+    ListMessagesApiChatThreadsThreadIdMessagesGetErrors,
     ThrowOnError,
     'data'
   >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/chat/threads/{thread_id}/messages',
+    url: '/api/chat/threads/{thread_id}/messages',
     ...options,
   });
 
 /**
  * Append Message
  */
-export const appendMessageChatThreadsThreadIdMessagesPost = <ThrowOnError extends boolean = true>(
-  options: Options<AppendMessageChatThreadsThreadIdMessagesPostData, ThrowOnError>,
+export const appendMessageApiChatThreadsThreadIdMessagesPost = <ThrowOnError extends boolean = true>(
+  options: Options<AppendMessageApiChatThreadsThreadIdMessagesPostData, ThrowOnError>,
 ): RequestResult<
-  AppendMessageChatThreadsThreadIdMessagesPostResponses,
-  AppendMessageChatThreadsThreadIdMessagesPostErrors,
+  AppendMessageApiChatThreadsThreadIdMessagesPostResponses,
+  AppendMessageApiChatThreadsThreadIdMessagesPostErrors,
   ThrowOnError,
   'data'
 > =>
   (options.client ?? client).post<
-    AppendMessageChatThreadsThreadIdMessagesPostResponses,
-    AppendMessageChatThreadsThreadIdMessagesPostErrors,
+    AppendMessageApiChatThreadsThreadIdMessagesPostResponses,
+    AppendMessageApiChatThreadsThreadIdMessagesPostErrors,
     ThrowOnError,
     'data'
   >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/chat/threads/{thread_id}/messages',
+    url: '/api/chat/threads/{thread_id}/messages',
     ...options,
     headers: {
       'Content-Type': 'application/json',

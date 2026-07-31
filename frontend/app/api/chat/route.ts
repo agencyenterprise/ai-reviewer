@@ -1,5 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { jsonSchema, stepCountIs, streamText, tool, type ModelMessage } from 'ai';
+import { auth } from '@/auth';
 import { DEFAULT_MODEL_ID, getChatModel } from '@/lib/chat-models';
 import { SKILLS } from '@/lib/generated-skills';
 
@@ -54,6 +55,11 @@ interface ChatRequestBody {
 }
 
 export async function POST(req: Request): Promise<Response> {
+  const session = await auth();
+  if (!session?.user) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
   const { messages, model }: ChatRequestBody = await req.json();
 
   // Resolve the model against the allowlist. Falls back to the default when the

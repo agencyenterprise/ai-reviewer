@@ -6189,53 +6189,53 @@ export type UpdateAppConfigApiAppConfigsKeyPutResponses = {
 export type UpdateAppConfigApiAppConfigsKeyPutResponse =
   UpdateAppConfigApiAppConfigsKeyPutResponses[keyof UpdateAppConfigApiAppConfigsKeyPutResponses];
 
-export type ListThreadsChatThreadsGetData = {
+export type ListThreadsApiChatThreadsGetData = {
   body?: never;
   path?: never;
   query?: never;
-  url: '/chat/threads';
+  url: '/api/chat/threads';
 };
 
-export type ListThreadsChatThreadsGetResponses = {
+export type ListThreadsApiChatThreadsGetResponses = {
   /**
-   * Response List Threads Chat Threads Get
+   * Response List Threads Api Chat Threads Get
    *
    * Successful Response
    */
   200: Array<ChatThreadResponse>;
 };
 
-export type ListThreadsChatThreadsGetResponse =
-  ListThreadsChatThreadsGetResponses[keyof ListThreadsChatThreadsGetResponses];
+export type ListThreadsApiChatThreadsGetResponse =
+  ListThreadsApiChatThreadsGetResponses[keyof ListThreadsApiChatThreadsGetResponses];
 
-export type CreateThreadChatThreadsPostData = {
+export type CreateThreadApiChatThreadsPostData = {
   body: CreateThreadRequest;
   path?: never;
   query?: never;
-  url: '/chat/threads';
+  url: '/api/chat/threads';
 };
 
-export type CreateThreadChatThreadsPostErrors = {
+export type CreateThreadApiChatThreadsPostErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type CreateThreadChatThreadsPostError =
-  CreateThreadChatThreadsPostErrors[keyof CreateThreadChatThreadsPostErrors];
+export type CreateThreadApiChatThreadsPostError =
+  CreateThreadApiChatThreadsPostErrors[keyof CreateThreadApiChatThreadsPostErrors];
 
-export type CreateThreadChatThreadsPostResponses = {
+export type CreateThreadApiChatThreadsPostResponses = {
   /**
    * Successful Response
    */
   200: ChatThreadResponse;
 };
 
-export type CreateThreadChatThreadsPostResponse =
-  CreateThreadChatThreadsPostResponses[keyof CreateThreadChatThreadsPostResponses];
+export type CreateThreadApiChatThreadsPostResponse =
+  CreateThreadApiChatThreadsPostResponses[keyof CreateThreadApiChatThreadsPostResponses];
 
-export type DeleteThreadChatThreadsThreadIdDeleteData = {
+export type DeleteThreadApiChatThreadsThreadIdDeleteData = {
   body?: never;
   path: {
     /**
@@ -6244,30 +6244,30 @@ export type DeleteThreadChatThreadsThreadIdDeleteData = {
     thread_id: string;
   };
   query?: never;
-  url: '/chat/threads/{thread_id}';
+  url: '/api/chat/threads/{thread_id}';
 };
 
-export type DeleteThreadChatThreadsThreadIdDeleteErrors = {
+export type DeleteThreadApiChatThreadsThreadIdDeleteErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type DeleteThreadChatThreadsThreadIdDeleteError =
-  DeleteThreadChatThreadsThreadIdDeleteErrors[keyof DeleteThreadChatThreadsThreadIdDeleteErrors];
+export type DeleteThreadApiChatThreadsThreadIdDeleteError =
+  DeleteThreadApiChatThreadsThreadIdDeleteErrors[keyof DeleteThreadApiChatThreadsThreadIdDeleteErrors];
 
-export type DeleteThreadChatThreadsThreadIdDeleteResponses = {
+export type DeleteThreadApiChatThreadsThreadIdDeleteResponses = {
   /**
    * Successful Response
    */
   204: void;
 };
 
-export type DeleteThreadChatThreadsThreadIdDeleteResponse =
-  DeleteThreadChatThreadsThreadIdDeleteResponses[keyof DeleteThreadChatThreadsThreadIdDeleteResponses];
+export type DeleteThreadApiChatThreadsThreadIdDeleteResponse =
+  DeleteThreadApiChatThreadsThreadIdDeleteResponses[keyof DeleteThreadApiChatThreadsThreadIdDeleteResponses];
 
-export type UpdateThreadChatThreadsThreadIdPatchData = {
+export type UpdateThreadApiChatThreadsThreadIdPatchData = {
   body: UpdateThreadRequest;
   path: {
     /**
@@ -6276,30 +6276,30 @@ export type UpdateThreadChatThreadsThreadIdPatchData = {
     thread_id: string;
   };
   query?: never;
-  url: '/chat/threads/{thread_id}';
+  url: '/api/chat/threads/{thread_id}';
 };
 
-export type UpdateThreadChatThreadsThreadIdPatchErrors = {
+export type UpdateThreadApiChatThreadsThreadIdPatchErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type UpdateThreadChatThreadsThreadIdPatchError =
-  UpdateThreadChatThreadsThreadIdPatchErrors[keyof UpdateThreadChatThreadsThreadIdPatchErrors];
+export type UpdateThreadApiChatThreadsThreadIdPatchError =
+  UpdateThreadApiChatThreadsThreadIdPatchErrors[keyof UpdateThreadApiChatThreadsThreadIdPatchErrors];
 
-export type UpdateThreadChatThreadsThreadIdPatchResponses = {
+export type UpdateThreadApiChatThreadsThreadIdPatchResponses = {
   /**
    * Successful Response
    */
   200: ChatThreadResponse;
 };
 
-export type UpdateThreadChatThreadsThreadIdPatchResponse =
-  UpdateThreadChatThreadsThreadIdPatchResponses[keyof UpdateThreadChatThreadsThreadIdPatchResponses];
+export type UpdateThreadApiChatThreadsThreadIdPatchResponse =
+  UpdateThreadApiChatThreadsThreadIdPatchResponses[keyof UpdateThreadApiChatThreadsThreadIdPatchResponses];
 
-export type ListMessagesChatThreadsThreadIdMessagesGetData = {
+export type ListMessagesApiChatThreadsThreadIdMessagesGetData = {
   body?: never;
   path: {
     /**
@@ -6308,32 +6308,32 @@ export type ListMessagesChatThreadsThreadIdMessagesGetData = {
     thread_id: string;
   };
   query?: never;
-  url: '/chat/threads/{thread_id}/messages';
+  url: '/api/chat/threads/{thread_id}/messages';
 };
 
-export type ListMessagesChatThreadsThreadIdMessagesGetErrors = {
+export type ListMessagesApiChatThreadsThreadIdMessagesGetErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type ListMessagesChatThreadsThreadIdMessagesGetError =
-  ListMessagesChatThreadsThreadIdMessagesGetErrors[keyof ListMessagesChatThreadsThreadIdMessagesGetErrors];
+export type ListMessagesApiChatThreadsThreadIdMessagesGetError =
+  ListMessagesApiChatThreadsThreadIdMessagesGetErrors[keyof ListMessagesApiChatThreadsThreadIdMessagesGetErrors];
 
-export type ListMessagesChatThreadsThreadIdMessagesGetResponses = {
+export type ListMessagesApiChatThreadsThreadIdMessagesGetResponses = {
   /**
-   * Response List Messages Chat Threads  Thread Id  Messages Get
+   * Response List Messages Api Chat Threads  Thread Id  Messages Get
    *
    * Successful Response
    */
   200: Array<ChatMessageResponse>;
 };
 
-export type ListMessagesChatThreadsThreadIdMessagesGetResponse =
-  ListMessagesChatThreadsThreadIdMessagesGetResponses[keyof ListMessagesChatThreadsThreadIdMessagesGetResponses];
+export type ListMessagesApiChatThreadsThreadIdMessagesGetResponse =
+  ListMessagesApiChatThreadsThreadIdMessagesGetResponses[keyof ListMessagesApiChatThreadsThreadIdMessagesGetResponses];
 
-export type AppendMessageChatThreadsThreadIdMessagesPostData = {
+export type AppendMessageApiChatThreadsThreadIdMessagesPostData = {
   body: AppendMessageRequest;
   path: {
     /**
@@ -6342,28 +6342,28 @@ export type AppendMessageChatThreadsThreadIdMessagesPostData = {
     thread_id: string;
   };
   query?: never;
-  url: '/chat/threads/{thread_id}/messages';
+  url: '/api/chat/threads/{thread_id}/messages';
 };
 
-export type AppendMessageChatThreadsThreadIdMessagesPostErrors = {
+export type AppendMessageApiChatThreadsThreadIdMessagesPostErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type AppendMessageChatThreadsThreadIdMessagesPostError =
-  AppendMessageChatThreadsThreadIdMessagesPostErrors[keyof AppendMessageChatThreadsThreadIdMessagesPostErrors];
+export type AppendMessageApiChatThreadsThreadIdMessagesPostError =
+  AppendMessageApiChatThreadsThreadIdMessagesPostErrors[keyof AppendMessageApiChatThreadsThreadIdMessagesPostErrors];
 
-export type AppendMessageChatThreadsThreadIdMessagesPostResponses = {
+export type AppendMessageApiChatThreadsThreadIdMessagesPostResponses = {
   /**
    * Successful Response
    */
   200: ChatMessageResponse;
 };
 
-export type AppendMessageChatThreadsThreadIdMessagesPostResponse =
-  AppendMessageChatThreadsThreadIdMessagesPostResponses[keyof AppendMessageChatThreadsThreadIdMessagesPostResponses];
+export type AppendMessageApiChatThreadsThreadIdMessagesPostResponse =
+  AppendMessageApiChatThreadsThreadIdMessagesPostResponses[keyof AppendMessageApiChatThreadsThreadIdMessagesPostResponses];
 
 export type StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostData = {
   body: AnalysisFormConfig;

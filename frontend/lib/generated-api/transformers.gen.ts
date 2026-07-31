@@ -2,7 +2,7 @@
 
 import type {
   CreateProjectEndpointApiProjectsPostResponse,
-  CreateThreadChatThreadsPostResponse,
+  CreateThreadApiChatThreadsPostResponse,
   GetAdminFeedbacksApiAdminFeedbacksGetResponse,
   GetProjectEndpointApiProjectProjectIdGetResponse,
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponse,
@@ -14,10 +14,10 @@ import type {
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse,
   ListProjectsEndpointApiProjectsGetResponse,
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponse,
-  ListThreadsChatThreadsGetResponse,
+  ListThreadsApiChatThreadsGetResponse,
   UpdateAppConfigApiAppConfigsKeyPutResponse,
   UpdateProjectEndpointApiProjectProjectIdPatchResponse,
-  UpdateThreadChatThreadsThreadIdPatchResponse,
+  UpdateThreadApiChatThreadsThreadIdPatchResponse,
 } from './types.gen';
 
 const appConfigResponseSchemaResponseTransformer = (data: any) => {
@@ -45,23 +45,23 @@ const chatThreadResponseSchemaResponseTransformer = (data: any) => {
   return data;
 };
 
-export const listThreadsChatThreadsGetResponseTransformer = async (
+export const listThreadsApiChatThreadsGetResponseTransformer = async (
   data: any,
-): Promise<ListThreadsChatThreadsGetResponse> => {
+): Promise<ListThreadsApiChatThreadsGetResponse> => {
   data = data.map((item: any) => chatThreadResponseSchemaResponseTransformer(item));
   return data;
 };
 
-export const createThreadChatThreadsPostResponseTransformer = async (
+export const createThreadApiChatThreadsPostResponseTransformer = async (
   data: any,
-): Promise<CreateThreadChatThreadsPostResponse> => {
+): Promise<CreateThreadApiChatThreadsPostResponse> => {
   data = chatThreadResponseSchemaResponseTransformer(data);
   return data;
 };
 
-export const updateThreadChatThreadsThreadIdPatchResponseTransformer = async (
+export const updateThreadApiChatThreadsThreadIdPatchResponseTransformer = async (
   data: any,
-): Promise<UpdateThreadChatThreadsThreadIdPatchResponse> => {
+): Promise<UpdateThreadApiChatThreadsThreadIdPatchResponse> => {
   data = chatThreadResponseSchemaResponseTransformer(data);
   return data;
 };

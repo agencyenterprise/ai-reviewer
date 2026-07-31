@@ -1,8 +1,8 @@
 import {
-  createThreadChatThreadsPost,
-  deleteThreadChatThreadsThreadIdDelete,
-  listThreadsChatThreadsGet,
-  updateThreadChatThreadsThreadIdPatch,
+  createThreadApiChatThreadsPost,
+  deleteThreadApiChatThreadsThreadIdDelete,
+  listThreadsApiChatThreadsGet,
+  updateThreadApiChatThreadsThreadIdPatch,
   type ChatThreadResponse,
 } from '@/lib/generated-api';
 import { type RemoteThreadListAdapter } from '@assistant-ui/react';
@@ -26,24 +26,24 @@ function toMetadata(thread: ChatThreadResponse) {
  */
 export const dbThreadListAdapter: RemoteThreadListAdapter = {
   list: async () => {
-    const threads = await listThreadsChatThreadsGet();
+    const threads = await listThreadsApiChatThreadsGet();
     return { threads: threads.map(toMetadata) };
   },
   initialize: async () => {
-    const thread = await createThreadChatThreadsPost({ body: { title: null } });
+    const thread = await createThreadApiChatThreadsPost({ body: { title: null } });
     return { remoteId: thread.id, externalId: undefined };
   },
   rename: async (remoteId, newTitle) => {
-    await updateThreadChatThreadsThreadIdPatch({ path: { thread_id: remoteId }, body: { title: newTitle } });
+    await updateThreadApiChatThreadsThreadIdPatch({ path: { thread_id: remoteId }, body: { title: newTitle } });
   },
   archive: async (remoteId) => {
-    await updateThreadChatThreadsThreadIdPatch({ path: { thread_id: remoteId }, body: { is_archived: true } });
+    await updateThreadApiChatThreadsThreadIdPatch({ path: { thread_id: remoteId }, body: { is_archived: true } });
   },
   unarchive: async (remoteId) => {
-    await updateThreadChatThreadsThreadIdPatch({ path: { thread_id: remoteId }, body: { is_archived: false } });
+    await updateThreadApiChatThreadsThreadIdPatch({ path: { thread_id: remoteId }, body: { is_archived: false } });
   },
   delete: async (remoteId) => {
-    await deleteThreadChatThreadsThreadIdDelete({ path: { thread_id: remoteId } });
+    await deleteThreadApiChatThreadsThreadIdDelete({ path: { thread_id: remoteId } });
   },
   generateTitle: async (remoteId, messages) => {
     const simpleMessages = messages
@@ -66,7 +66,7 @@ export const dbThreadListAdapter: RemoteThreadListAdapter = {
     }
     // Persist the generated title so it survives reloads.
     try {
-      await updateThreadChatThreadsThreadIdPatch({ path: { thread_id: remoteId }, body: { title } });
+      await updateThreadApiChatThreadsThreadIdPatch({ path: { thread_id: remoteId }, body: { title } });
     } catch {
       // non-fatal
     }
@@ -75,7 +75,7 @@ export const dbThreadListAdapter: RemoteThreadListAdapter = {
     });
   },
   fetch: async (remoteId) => {
-    const threads = await listThreadsChatThreadsGet();
+    const threads = await listThreadsApiChatThreadsGet();
     const thread = threads.find((row) => row.id === remoteId);
     if (!thread) throw new Error('Thread not found');
     return toMetadata(thread);

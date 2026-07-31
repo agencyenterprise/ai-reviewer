@@ -16,7 +16,7 @@ from lib.models.chat_thread import ChatMessage, ChatThread
 from lib.models.user import User
 from lib.services import chat_thread_service
 
-router = APIRouter(prefix="/chat", tags=["chat"])
+router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 
 class ChatThreadResponse(BaseModel):

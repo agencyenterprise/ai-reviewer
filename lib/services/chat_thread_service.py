@@ -9,7 +9,6 @@ from datetime import datetime
 from typing import Any, Optional, Sequence
 
 from fastapi import HTTPException
-from sqlalchemy import delete as sql_delete
 from sqlalchemy import select
 from sqlmodel import col
 

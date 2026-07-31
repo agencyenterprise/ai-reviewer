@@ -1,5 +1,6 @@
 import mammoth from 'mammoth';
 import { extractText, getDocumentProxy } from 'unpdf';
+import { auth } from '@/auth';
 
 // mammoth/unpdf are Node-only; keep this route on the Node.js runtime.
 export const runtime = 'nodejs';
@@ -10,6 +11,11 @@ const DOCX_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingm
 
 /** Extract plain text from an uploaded PDF or DOCX file. */
 export async function POST(req: Request): Promise<Response> {
+  const session = await auth();
+  if (!session?.user) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
   const form = await req.formData();
   const file = form.get('file');
 

@@ -1,5 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText, type ModelMessage } from 'ai';
+import { auth } from '@/auth';
 
 export const maxDuration = 15;
 
@@ -9,6 +10,11 @@ interface TitleRequest {
 
 /** Generate a short thread title from the opening messages. */
 export async function POST(req: Request): Promise<Response> {
+  const session = await auth();
+  if (!session?.user) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
   const { messages }: TitleRequest = await req.json();
 
   if (!process.env.OPENAI_API_KEY) {
