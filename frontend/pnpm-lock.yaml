@@ -22,6 +22,9 @@ importers:
       '@assistant-ui/react':
         specifier: ^0.12.28
         version: 0.12.28(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))
+      '@assistant-ui/react-devtools':
+        specifier: 1.0.6
+        version: 1.0.6(@assistant-ui/react@0.12.28(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3)))(@assistant-ui/tap@0.5.16(@types/react@19.1.12)(react@19.2.3))(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@assistant-ui/react-langgraph':
         specifier: ^0.13.5
         version: 0.13.5(@assistant-ui/tap@0.5.16(@types/react@19.1.12)(react@19.2.3))(@types/react@19.1.12)(react@19.2.3)(zustand@5.0.11(@types/react@19.1.12)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3)))
@@ -115,6 +118,9 @@ importers:
       ai:
         specifier: ^6.0.238
         version: 6.0.238(zod@4.3.6)
+      assistant-stream:
+        specifier: 0.3.6
+        version: 0.3.6
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -313,6 +319,21 @@ packages:
       react:
         optional: true
       zustand:
+        optional: true
+
+  '@assistant-ui/react-devtools@1.0.6':
+    resolution: {integrity: sha512-ahUSjAaK8uxwkU8YpkrNSiyIwXJ1b5NrW/pwBXaHjRHEWwKHWRSIPtKN1wYQv27Fgl1eKiAln1xh2aRIlU7oNw==}
+    peerDependencies:
+      '@assistant-ui/react': ^0.12.25
+      '@assistant-ui/tap': ^0.5.8
+      '@types/react': '*'
+      '@types/react-dom': '*'
+      react: ^18 || ^19
+      react-dom: ^18 || ^19
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      '@types/react-dom':
         optional: true
 
   '@assistant-ui/react-langgraph@0.13.5':
@@ -4370,26 +4391,42 @@ snapshots:
     dependencies:
       '@assistant-ui/store': 0.2.13(@assistant-ui/tap@0.5.16(@types/react@19.1.12)(react@19.2.3))(@types/react@19.1.12)(react@19.2.3)
       '@assistant-ui/tap': 0.5.16(@types/react@19.1.12)(react@19.2.3)
-      assistant-stream: 0.3.6
-      nanoid: 5.1.6
+      assistant-stream: 0.3.31
+      nanoid: 5.1.16
     optionalDependencies:
       '@types/react': 19.1.12
       assistant-cloud: 0.1.22
       react: 19.2.3
       zustand: 5.0.11(@types/react@19.1.12)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))
+    transitivePeerDependencies:
+      - ioredis
+      - redis
+
+  '@assistant-ui/react-devtools@1.0.6(@assistant-ui/react@0.12.28(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3)))(@assistant-ui/tap@0.5.16(@types/react@19.1.12)(react@19.2.3))(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      '@assistant-ui/react': 0.12.28(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))
+      '@assistant-ui/tap': 0.5.16(@types/react@19.1.12)(react@19.2.3)
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+      zod: 4.3.6
+    optionalDependencies:
+      '@types/react': 19.1.12
+      '@types/react-dom': 19.1.9(@types/react@19.1.12)
 
   '@assistant-ui/react-langgraph@0.13.5(@assistant-ui/tap@0.5.16(@types/react@19.1.12)(react@19.2.3))(@types/react@19.1.12)(react@19.2.3)(zustand@5.0.11(@types/react@19.1.12)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3)))':
     dependencies:
       '@assistant-ui/core': 0.1.7(@assistant-ui/store@0.2.13(@assistant-ui/tap@0.5.16(@types/react@19.1.12)(react@19.2.3))(@types/react@19.1.12)(react@19.2.3))(@assistant-ui/tap@0.5.16(@types/react@19.1.12)(react@19.2.3))(@types/react@19.1.12)(assistant-cloud@0.1.22)(react@19.2.3)(zustand@5.0.11(@types/react@19.1.12)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3)))
       '@assistant-ui/store': 0.2.13(@assistant-ui/tap@0.5.16(@types/react@19.1.12)(react@19.2.3))(@types/react@19.1.12)(react@19.2.3)
       assistant-cloud: 0.1.22
-      assistant-stream: 0.3.6
+      assistant-stream: 0.3.31
       react: 19.2.3
       uuid: 13.0.0
     optionalDependencies:
       '@types/react': 19.1.12
     transitivePeerDependencies:
       - '@assistant-ui/tap'
+      - ioredis
+      - redis
       - zustand
 
   '@assistant-ui/react-markdown@0.12.6(@assistant-ui/react@0.12.28(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3)))(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
@@ -6177,7 +6214,10 @@ snapshots:
 
   assistant-cloud@0.1.22:
     dependencies:
-      assistant-stream: 0.3.6
+      assistant-stream: 0.3.31
+    transitivePeerDependencies:
+      - ioredis
+      - redis
 
   assistant-cloud@0.1.37:
     dependencies:
@@ -6195,7 +6235,7 @@ snapshots:
   assistant-stream@0.3.6:
     dependencies:
       '@standard-schema/spec': 1.1.0
-      nanoid: 5.1.6
+      nanoid: 5.1.16
       secure-json-parse: 4.1.0
 
   ast-types-flow@0.0.8: {}

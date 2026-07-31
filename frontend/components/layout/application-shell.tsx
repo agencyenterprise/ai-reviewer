@@ -34,6 +34,9 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
     return <>{children}</>;
   }
 
+  // Chat uses the full page width (no centered max-width container or padding).
+  const isFullBleed = pathname.startsWith('/chat');
+
   return (
     <div className="min-h-full">
       <Disclosure as="nav" className="border-b border-border bg-background">
@@ -138,9 +141,7 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
         </DisclosurePanel>
       </Disclosure>
 
-      <main>
-        <div className="mx-auto max-w-7xl p-4 sm:px-6 lg:px-8">{children}</div>
-      </main>
+      <main>{isFullBleed ? children : <div className="mx-auto max-w-7xl p-4 sm:px-6 lg:px-8">{children}</div>}</main>
     </div>
   );
 }

@@ -1,16 +1,56 @@
 'use client';
 
 import { Thread } from '@/components/assistant-ui/thread';
+import { ThreadList } from '@/components/assistant-ui/thread-list';
 import { DocumentAttachmentAdapter } from '@/components/chat/document-attachment-adapter';
+import { useDbThreadListAdapter } from '@/components/chat/db-thread-list-adapter';
+import { DevToolsModal } from '@assistant-ui/react-devtools';
 import { DEFAULT_MODEL_ID } from '@/lib/chat-models';
+import { chatThreadsApi } from '@/lib/chat-threads-api';
 import {
   AssistantRuntimeProvider,
+  useAui,
   useLocalRuntime,
+  useRemoteThreadListRuntime,
   type ChatModelAdapter,
   type ChatModelRunResult,
+  type ThreadHistoryAdapter,
   type ThreadMessage,
 } from '@assistant-ui/react';
-import { useMemo } from 'react';
+import { useSession } from 'next-auth/react';
+import { useMemo, useRef } from 'react';
+
+// Stateless; one shared instance is fine.
+const attachmentAdapter = new DocumentAttachmentAdapter();
+
+type HistoryLoadResult = Awaited<ReturnType<ThreadHistoryAdapter['load']>>;
+
+/**
+ * Per-thread message history backed by chat_messages. Bound to the active
+ * thread via `aui.threadListItem()` and authenticated with the current token.
+ */
+function createHistoryAdapter(
+  aui: ReturnType<typeof useAui>,
+  getToken: () => string | undefined,
+): ThreadHistoryAdapter {
+  return {
+    async load() {
+      const remoteId = aui.threadListItem().getState().remoteId;
+      if (!remoteId) return { messages: [] };
+      const rows = await chatThreadsApi.listMessages(getToken(), remoteId);
+      // Each row's `content` is the ExportedMessageRepositoryItem we stored.
+      return { messages: rows.map((row) => row.content) } as HistoryLoadResult;
+    },
+    async append(item) {
+      const { remoteId } = await aui.threadListItem().initialize();
+      await chatThreadsApi.appendMessage(getToken(), remoteId, {
+        message_id: item.message.id,
+        parent_id: item.parentId,
+        content: item,
+      });
+    },
+  };
+}
 
 // Mutable parts we accumulate while streaming; yielded as assistant-ui content.
 type StreamPart =
@@ -33,9 +73,6 @@ type StreamEvent =
   | { t: 'tool'; id: string; name: string; args?: Record<string, unknown> }
   | { t: 'tool_result'; id: string; result: unknown; isError?: boolean }
   | { t: 'error'; v: string };
-
-// Stateless adapter; a single shared instance is fine.
-const attachmentAdapter = new DocumentAttachmentAdapter();
 
 /**
  * Flatten an assistant-ui message into plain text for the API, including the
@@ -142,16 +179,42 @@ const chatAdapter: ChatModelAdapter = {
   },
 };
 
-export function ChatAssistant() {
-  const runtime = useLocalRuntime(
-    chatAdapter,
-    useMemo(() => ({ adapters: { attachments: attachmentAdapter } }), []),
+// Per-thread runtime. History + attachments are attached here (not via the
+// adapter's unstable_Provider) because the remote-thread-list runtime invokes
+// this hook outside that provider, so context adapters wouldn't reach it.
+function useChatThreadRuntime() {
+  const aui = useAui();
+  const session = useSession();
+  const tokenRef = useRef<string | undefined>(undefined);
+  tokenRef.current = session.data?.accessToken;
+
+  const adapters = useMemo(
+    () => ({ history: createHistoryAdapter(aui, () => tokenRef.current), attachments: attachmentAdapter }),
+    [aui],
   );
 
+  return useLocalRuntime(chatAdapter, { adapters });
+}
+
+export function ChatAssistant() {
+  const threadListAdapter = useDbThreadListAdapter();
+  const runtime = useRemoteThreadListRuntime({
+    runtimeHook: useChatThreadRuntime,
+    adapter: threadListAdapter,
+  });
+
   return (
-    <div className="h-[calc(100dvh-6.5rem)] overflow-hidden rounded-lg border bg-background">
+    // Full-bleed: fills the width and the viewport height below the nav (h-15 = 3.75rem).
+    <div className="flex h-[calc(100dvh-3.75rem)] w-full overflow-hidden bg-background">
       <AssistantRuntimeProvider runtime={runtime}>
-        <Thread />
+        {/* Dev-only inspector launcher (stripped from production builds). */}
+        <DevToolsModal />
+        <aside className="hidden w-64 shrink-0 flex-col border-r p-2 sm:flex">
+          <ThreadList />
+        </aside>
+        <div className="min-w-0 flex-1">
+          <Thread />
+        </div>
       </AssistantRuntimeProvider>
     </div>
   );

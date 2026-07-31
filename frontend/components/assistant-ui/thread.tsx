@@ -45,7 +45,7 @@ export const Thread: FC = () => {
     <ThreadPrimitive.Root
       className="aui-root aui-thread-root @container flex h-full flex-col bg-background"
       style={{
-        ['--thread-max-width' as string]: '44rem',
+        ['--thread-max-width' as string]: '56rem',
         ['--composer-radius' as string]: '24px',
         ['--composer-padding' as string]: '10px',
       }}
@@ -110,29 +110,30 @@ const ThreadWelcome: FC = () => {
   );
 };
 
-// Draft Detective starter prompts shown on the empty thread. Those that need a
-// document use `send={false}` so clicking pre-fills the composer and the user
-// can paste their draft before sending; the last one sends immediately.
+// Draft Detective starter prompts shown on the empty thread. Clicking one
+// pre-fills the composer (send=false) so the user can attach their document
+// (or tweak the wording) before sending; skills prompt for an upload if none
+// is attached.
 const WELCOME_SUGGESTIONS: { label: string; prompt: string; send: boolean }[] = [
   {
+    label: 'What checks can you run?',
+    prompt: 'What checks can you run on my document?',
+    send: false,
+  },
+  {
+    label: 'Validate the document’s references',
+    prompt: 'Validate the references in my document against their real published sources.',
+    send: false,
+  },
+  {
     label: 'Peer-review my draft as “Reviewer 2”',
-    prompt: 'Act as Reviewer 2 and give a rigorous peer review of my draft. Here it is:\n\n',
+    prompt: 'Act as Reviewer 2 and give a rigorous peer review of my document.',
     send: false,
   },
   {
     label: 'Check my claims against their citations',
-    prompt: 'Check whether the claims in the following text are supported by their cited sources:\n\n',
+    prompt: 'Check whether the claims in my document are supported by their cited sources.',
     send: false,
-  },
-  {
-    label: 'Validate a reference',
-    prompt: 'Validate this reference against the real published source:\n\n',
-    send: false,
-  },
-  {
-    label: 'What checks can you run?',
-    prompt: 'What kinds of peer-review checks can you run on my paper or policy report?',
-    send: true,
   },
 ];
 
@@ -319,7 +320,7 @@ const AssistantMessage: FC = () => {
       className="aui-assistant-message-root fade-in slide-in-from-bottom-1 relative mx-auto w-full max-w-(--thread-max-width) animate-in py-3 duration-150"
       data-role="assistant"
     >
-      <div className="aui-assistant-message-content wrap-break-word px-2 text-foreground leading-relaxed">
+      <div className="aui-assistant-message-content wrap-break-word px-2 text-foreground text-sm leading-relaxed">
         <MessagePrimitive.Unstable_PartsGrouped
           groupingFunction={groupChainOfThought}
           components={{
@@ -394,7 +395,7 @@ const UserMessage: FC = () => {
       <UserMessageAttachments />
 
       <div className="aui-user-message-content-wrapper relative col-start-2 min-w-0">
-        <div className="aui-user-message-content wrap-break-word rounded-2xl bg-muted px-4 py-2.5 text-foreground">
+        <div className="aui-user-message-content wrap-break-word rounded-2xl bg-muted px-4 py-2.5 text-foreground text-sm">
           <MessagePrimitive.Parts />
         </div>
         <div className="aui-user-action-bar-wrapper absolute top-1/2 left-0 -translate-x-full -translate-y-1/2 pr-2">
