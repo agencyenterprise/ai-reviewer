@@ -3,6 +3,7 @@
 import { Thread } from '@/components/assistant-ui/thread';
 import { ThreadList } from '@/components/assistant-ui/thread-list';
 import { DocumentAttachmentAdapter } from '@/components/chat/document-attachment-adapter';
+import { DocumentPanel } from '@/components/chat/document-panel';
 import { useDbThreadListAdapter } from '@/components/chat/db-thread-list-adapter';
 import { DevToolsModal } from '@assistant-ui/react-devtools';
 import { DEFAULT_MODEL_ID } from '@/lib/chat-models';
@@ -215,6 +216,9 @@ export function ChatAssistant() {
         <div className="min-w-0 flex-1">
           <Thread />
         </div>
+        <aside className="hidden w-96 shrink-0 flex-col border-l lg:flex">
+          <DocumentPanel />
+        </aside>
       </AssistantRuntimeProvider>
     </div>
   );

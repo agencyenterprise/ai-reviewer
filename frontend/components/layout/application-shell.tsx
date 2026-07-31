@@ -11,7 +11,7 @@ import { MobileProfileMenu, ProfileDropdown } from './profile-dropdown';
 
 const navigation = [
   { name: 'Projects', href: '/projects' },
-  { name: 'Chat', href: '/chat' },
+  // Chat is intentionally hidden from the nav but the /chat route stays available.
   { name: 'About', href: '/about' },
 ];
 
