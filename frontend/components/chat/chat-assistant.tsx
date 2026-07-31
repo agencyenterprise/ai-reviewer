@@ -4,10 +4,13 @@ import { Thread } from '@/components/assistant-ui/thread';
 import { ThreadList } from '@/components/assistant-ui/thread-list';
 import { DocumentAttachmentAdapter } from '@/components/chat/document-attachment-adapter';
 import { DocumentPanel } from '@/components/chat/document-panel';
-import { useDbThreadListAdapter } from '@/components/chat/db-thread-list-adapter';
+import { dbThreadListAdapter } from '@/components/chat/db-thread-list-adapter';
 import { DevToolsModal } from '@assistant-ui/react-devtools';
 import { DEFAULT_MODEL_ID } from '@/lib/chat-models';
-import { chatThreadsApi } from '@/lib/chat-threads-api';
+import {
+  appendMessageChatThreadsThreadIdMessagesPost,
+  listMessagesChatThreadsThreadIdMessagesGet,
+} from '@/lib/generated-api';
 import {
   AssistantRuntimeProvider,
   useAui,
@@ -18,8 +21,7 @@ import {
   type ThreadHistoryAdapter,
   type ThreadMessage,
 } from '@assistant-ui/react';
-import { useSession } from 'next-auth/react';
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 
 // Stateless; one shared instance is fine.
 const attachmentAdapter = new DocumentAttachmentAdapter();
@@ -27,27 +29,28 @@ const attachmentAdapter = new DocumentAttachmentAdapter();
 type HistoryLoadResult = Awaited<ReturnType<ThreadHistoryAdapter['load']>>;
 
 /**
- * Per-thread message history backed by chat_messages. Bound to the active
- * thread via `aui.threadListItem()` and authenticated with the current token.
+ * Per-thread message history backed by chat_messages (via the generated `/chat`
+ * SDK). Bound to the active thread via `aui.threadListItem()`; requests are
+ * authenticated by the shared generated client configured in `ApiConfig`.
  */
-function createHistoryAdapter(
-  aui: ReturnType<typeof useAui>,
-  getToken: () => string | undefined,
-): ThreadHistoryAdapter {
+function createHistoryAdapter(aui: ReturnType<typeof useAui>): ThreadHistoryAdapter {
   return {
     async load() {
       const remoteId = aui.threadListItem().getState().remoteId;
       if (!remoteId) return { messages: [] };
-      const rows = await chatThreadsApi.listMessages(getToken(), remoteId);
+      const rows = await listMessagesChatThreadsThreadIdMessagesGet({ path: { thread_id: remoteId } });
       // Each row's `content` is the ExportedMessageRepositoryItem we stored.
       return { messages: rows.map((row) => row.content) } as HistoryLoadResult;
     },
     async append(item) {
       const { remoteId } = await aui.threadListItem().initialize();
-      await chatThreadsApi.appendMessage(getToken(), remoteId, {
-        message_id: item.message.id,
-        parent_id: item.parentId,
-        content: item,
+      await appendMessageChatThreadsThreadIdMessagesPost({
+        path: { thread_id: remoteId },
+        body: {
+          message_id: item.message.id,
+          parent_id: item.parentId,
+          content: item as unknown as { [key: string]: unknown },
+        },
       });
     },
   };
@@ -185,23 +188,16 @@ const chatAdapter: ChatModelAdapter = {
 // this hook outside that provider, so context adapters wouldn't reach it.
 function useChatThreadRuntime() {
   const aui = useAui();
-  const session = useSession();
-  const tokenRef = useRef<string | undefined>(undefined);
-  tokenRef.current = session.data?.accessToken;
 
-  const adapters = useMemo(
-    () => ({ history: createHistoryAdapter(aui, () => tokenRef.current), attachments: attachmentAdapter }),
-    [aui],
-  );
+  const adapters = useMemo(() => ({ history: createHistoryAdapter(aui), attachments: attachmentAdapter }), [aui]);
 
   return useLocalRuntime(chatAdapter, { adapters });
 }
 
 export function ChatAssistant() {
-  const threadListAdapter = useDbThreadListAdapter();
   const runtime = useRemoteThreadListRuntime({
     runtimeHook: useChatThreadRuntime,
-    adapter: threadListAdapter,
+    adapter: dbThreadListAdapter,
   });
 
   return (
