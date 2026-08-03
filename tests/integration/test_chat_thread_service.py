@@ -7,6 +7,7 @@ message ordering, and the append-message upsert (same message_id updates the
 existing row in place instead of duplicating).
 """
 
+import asyncio
 import uuid
 
 import pytest
@@ -172,6 +173,27 @@ async def test_append_message_upserts_by_message_id(user):
     assert updated.id == first.id  # same row updated in place
     assert messages[0].content == {"v": "second"}
     assert messages[0].parent_id == "p"
+
+
+@pytest.mark.asyncio
+async def test_append_message_concurrent_same_id_is_atomic(user):
+    """Concurrent appends of the same message_id must not race the unique index.
+
+    Each append opens its own session/connection, so this exercises the
+    ON CONFLICT upsert; the pre-upsert select-then-insert would have raised an
+    IntegrityError here.
+    """
+    thread = await svc.create_thread(user)
+
+    results = await asyncio.gather(
+        svc.append_message(thread.id, user, message_id="dup", parent_id=None, content={"v": 1}),
+        svc.append_message(thread.id, user, message_id="dup", parent_id=None, content={"v": 2}),
+    )
+
+    messages = await svc.list_messages(thread.id, user)
+    assert len(messages) == 1  # exactly one row, no duplicate / IntegrityError
+    assert messages[0].message_id == "dup"
+    assert results[0].id == results[1].id  # both calls resolved to the same row
 
 
 @pytest.mark.asyncio

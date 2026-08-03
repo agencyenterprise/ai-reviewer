@@ -10,6 +10,7 @@ from typing import Any, Optional, Sequence
 
 from fastapi import HTTPException
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
@@ -101,32 +102,36 @@ async def append_message(
     parent_id: Optional[str],
     content: dict[str, Any],
 ) -> ChatMessage:
-    """Insert a message, or update it in place if the id already exists."""
+    """Insert a message, or update it in place if the id already exists.
+
+    Uses a single-statement Postgres upsert (`INSERT ... ON CONFLICT DO UPDATE`
+    on the unique `(thread_id, message_id)` index) so concurrent appends of the
+    same message can't race into an IntegrityError.
+    """
     async with get_async_db_session() as session:
         thread = await _get_owned_thread(session, thread_id, user)
+
+        upsert = pg_insert(ChatMessage).values(
+            thread_id=thread_id,
+            message_id=message_id,
+            parent_id=parent_id,
+            content=content,
+        )
+        upsert = upsert.on_conflict_do_update(
+            index_elements=["thread_id", "message_id"],
+            set_={
+                "parent_id": upsert.excluded.parent_id,
+                "content": upsert.excluded.content,
+            },
+        )
+        await session.execute(upsert)
+
+        thread.last_updated_at = datetime.utcnow()
+        session.add(thread)
+        await session.commit()
 
         stmt = select(ChatMessage).where(
             col(ChatMessage.thread_id) == thread_id,
             col(ChatMessage.message_id) == message_id,
         )
-        message = (await session.execute(stmt)).scalar_one_or_none()
-
-        if message is None:
-            message = ChatMessage(
-                thread_id=thread_id,
-                message_id=message_id,
-                parent_id=parent_id,
-                content=content,
-            )
-            session.add(message)
-        else:
-            message.parent_id = parent_id
-            message.content = content
-            session.add(message)
-
-        thread.last_updated_at = datetime.utcnow()
-        session.add(thread)
-
-        await session.commit()
-        await session.refresh(message)
-        return message
+        return (await session.execute(stmt)).scalar_one()
