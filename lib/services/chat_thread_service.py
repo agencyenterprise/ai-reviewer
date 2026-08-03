@@ -10,6 +10,7 @@ from typing import Any, Optional, Sequence
 
 from fastapi import HTTPException
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
@@ -37,7 +38,7 @@ async def create_thread(user: User, title: Optional[str] = None) -> ChatThread:
 
 
 async def _get_owned_thread(
-    session: Any, thread_id: uuid.UUID, user: User
+    session: AsyncSession, thread_id: uuid.UUID, user: User
 ) -> ChatThread:
     stmt = select(ChatThread).where(
         col(ChatThread.id) == thread_id, col(ChatThread.user_id) == user.id
