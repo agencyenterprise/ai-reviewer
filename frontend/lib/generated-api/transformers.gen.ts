@@ -2,6 +2,7 @@
 
 import type {
   CreateProjectEndpointApiProjectsPostResponse,
+  CreateThreadApiChatThreadsPostResponse,
   GetAdminFeedbacksApiAdminFeedbacksGetResponse,
   GetProjectEndpointApiProjectProjectIdGetResponse,
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponse,
@@ -13,8 +14,10 @@ import type {
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse,
   ListProjectsEndpointApiProjectsGetResponse,
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponse,
+  ListThreadsApiChatThreadsGetResponse,
   UpdateAppConfigApiAppConfigsKeyPutResponse,
   UpdateProjectEndpointApiProjectProjectIdPatchResponse,
+  UpdateThreadApiChatThreadsThreadIdPatchResponse,
 } from './types.gen';
 
 const appConfigResponseSchemaResponseTransformer = (data: any) => {
@@ -33,6 +36,33 @@ export const updateAppConfigApiAppConfigsKeyPutResponseTransformer = async (
   data: any,
 ): Promise<UpdateAppConfigApiAppConfigsKeyPutResponse> => {
   data = appConfigResponseSchemaResponseTransformer(data);
+  return data;
+};
+
+const chatThreadResponseSchemaResponseTransformer = (data: any) => {
+  data.created_at = new Date(data.created_at);
+  data.last_updated_at = new Date(data.last_updated_at);
+  return data;
+};
+
+export const listThreadsApiChatThreadsGetResponseTransformer = async (
+  data: any,
+): Promise<ListThreadsApiChatThreadsGetResponse> => {
+  data = data.map((item: any) => chatThreadResponseSchemaResponseTransformer(item));
+  return data;
+};
+
+export const createThreadApiChatThreadsPostResponseTransformer = async (
+  data: any,
+): Promise<CreateThreadApiChatThreadsPostResponse> => {
+  data = chatThreadResponseSchemaResponseTransformer(data);
+  return data;
+};
+
+export const updateThreadApiChatThreadsThreadIdPatchResponseTransformer = async (
+  data: any,
+): Promise<UpdateThreadApiChatThreadsThreadIdPatchResponse> => {
+  data = chatThreadResponseSchemaResponseTransformer(data);
   return data;
 };
 

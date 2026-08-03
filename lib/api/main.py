@@ -21,6 +21,7 @@ from lib.api.routers import (
     about,
     analysis,
     app_configs,
+    chat,
     feedback,
     files,
     health,
@@ -103,6 +104,7 @@ app.add_middleware(GZipMiddleware)
 app.include_router(health.router)
 app.include_router(about.router)
 app.include_router(app_configs.router)
+app.include_router(chat.router)
 app.include_router(analysis.router)
 app.include_router(workflows.router)
 app.include_router(workflow_types.router)

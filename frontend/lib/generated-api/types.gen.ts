@@ -433,6 +433,28 @@ export type AppConfigValueResponse = {
 };
 
 /**
+ * AppendMessageRequest
+ */
+export type AppendMessageRequest = {
+  /**
+   * Message Id
+   */
+  message_id: string;
+  /**
+   * Parent Id
+   */
+  parent_id?: string | null;
+  /**
+   * Content
+   *
+   * The assistant-ui ExportedMessageRepositoryItem JSON
+   */
+  content: {
+    [key: string]: unknown;
+  };
+};
+
+/**
  * ApproveWorkflowResponse
  *
  * Response for workflow approval.
@@ -690,6 +712,52 @@ export type CancelWorkflowResponse = {
    * Workflow Run Id
    */
   workflow_run_id: string;
+};
+
+/**
+ * ChatMessageResponse
+ */
+export type ChatMessageResponse = {
+  /**
+   * Message Id
+   */
+  message_id: string;
+  /**
+   * Parent Id
+   */
+  parent_id: string | null;
+  /**
+   * Content
+   */
+  content: {
+    [key: string]: unknown;
+  };
+};
+
+/**
+ * ChatThreadResponse
+ */
+export type ChatThreadResponse = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Title
+   */
+  title: string | null;
+  /**
+   * Is Archived
+   */
+  is_archived: boolean;
+  /**
+   * Created At
+   */
+  created_at: Date;
+  /**
+   * Last Updated At
+   */
+  last_updated_at: Date;
 };
 
 /**
@@ -1662,6 +1730,16 @@ export type CreateRevisionResponse = {
    * Previous Workflow Types
    */
   previous_workflow_types: Array<WorkflowRunType>;
+};
+
+/**
+ * CreateThreadRequest
+ */
+export type CreateThreadRequest = {
+  /**
+   * Title
+   */
+  title?: string | null;
 };
 
 /**
@@ -5335,6 +5413,20 @@ export type UpdateProjectRequest = {
 };
 
 /**
+ * UpdateThreadRequest
+ */
+export type UpdateThreadRequest = {
+  /**
+   * Title
+   */
+  title?: string | null;
+  /**
+   * Is Archived
+   */
+  is_archived?: boolean | null;
+};
+
+/**
  * UpdateType
  *
  * Defines the classification and metadata for a report update.
@@ -6096,6 +6188,182 @@ export type UpdateAppConfigApiAppConfigsKeyPutResponses = {
 
 export type UpdateAppConfigApiAppConfigsKeyPutResponse =
   UpdateAppConfigApiAppConfigsKeyPutResponses[keyof UpdateAppConfigApiAppConfigsKeyPutResponses];
+
+export type ListThreadsApiChatThreadsGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/chat/threads';
+};
+
+export type ListThreadsApiChatThreadsGetResponses = {
+  /**
+   * Response List Threads Api Chat Threads Get
+   *
+   * Successful Response
+   */
+  200: Array<ChatThreadResponse>;
+};
+
+export type ListThreadsApiChatThreadsGetResponse =
+  ListThreadsApiChatThreadsGetResponses[keyof ListThreadsApiChatThreadsGetResponses];
+
+export type CreateThreadApiChatThreadsPostData = {
+  body: CreateThreadRequest;
+  path?: never;
+  query?: never;
+  url: '/api/chat/threads';
+};
+
+export type CreateThreadApiChatThreadsPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CreateThreadApiChatThreadsPostError =
+  CreateThreadApiChatThreadsPostErrors[keyof CreateThreadApiChatThreadsPostErrors];
+
+export type CreateThreadApiChatThreadsPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: ChatThreadResponse;
+};
+
+export type CreateThreadApiChatThreadsPostResponse =
+  CreateThreadApiChatThreadsPostResponses[keyof CreateThreadApiChatThreadsPostResponses];
+
+export type DeleteThreadApiChatThreadsThreadIdDeleteData = {
+  body?: never;
+  path: {
+    /**
+     * Thread Id
+     */
+    thread_id: string;
+  };
+  query?: never;
+  url: '/api/chat/threads/{thread_id}';
+};
+
+export type DeleteThreadApiChatThreadsThreadIdDeleteErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type DeleteThreadApiChatThreadsThreadIdDeleteError =
+  DeleteThreadApiChatThreadsThreadIdDeleteErrors[keyof DeleteThreadApiChatThreadsThreadIdDeleteErrors];
+
+export type DeleteThreadApiChatThreadsThreadIdDeleteResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type DeleteThreadApiChatThreadsThreadIdDeleteResponse =
+  DeleteThreadApiChatThreadsThreadIdDeleteResponses[keyof DeleteThreadApiChatThreadsThreadIdDeleteResponses];
+
+export type UpdateThreadApiChatThreadsThreadIdPatchData = {
+  body: UpdateThreadRequest;
+  path: {
+    /**
+     * Thread Id
+     */
+    thread_id: string;
+  };
+  query?: never;
+  url: '/api/chat/threads/{thread_id}';
+};
+
+export type UpdateThreadApiChatThreadsThreadIdPatchErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type UpdateThreadApiChatThreadsThreadIdPatchError =
+  UpdateThreadApiChatThreadsThreadIdPatchErrors[keyof UpdateThreadApiChatThreadsThreadIdPatchErrors];
+
+export type UpdateThreadApiChatThreadsThreadIdPatchResponses = {
+  /**
+   * Successful Response
+   */
+  200: ChatThreadResponse;
+};
+
+export type UpdateThreadApiChatThreadsThreadIdPatchResponse =
+  UpdateThreadApiChatThreadsThreadIdPatchResponses[keyof UpdateThreadApiChatThreadsThreadIdPatchResponses];
+
+export type ListMessagesApiChatThreadsThreadIdMessagesGetData = {
+  body?: never;
+  path: {
+    /**
+     * Thread Id
+     */
+    thread_id: string;
+  };
+  query?: never;
+  url: '/api/chat/threads/{thread_id}/messages';
+};
+
+export type ListMessagesApiChatThreadsThreadIdMessagesGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ListMessagesApiChatThreadsThreadIdMessagesGetError =
+  ListMessagesApiChatThreadsThreadIdMessagesGetErrors[keyof ListMessagesApiChatThreadsThreadIdMessagesGetErrors];
+
+export type ListMessagesApiChatThreadsThreadIdMessagesGetResponses = {
+  /**
+   * Response List Messages Api Chat Threads  Thread Id  Messages Get
+   *
+   * Successful Response
+   */
+  200: Array<ChatMessageResponse>;
+};
+
+export type ListMessagesApiChatThreadsThreadIdMessagesGetResponse =
+  ListMessagesApiChatThreadsThreadIdMessagesGetResponses[keyof ListMessagesApiChatThreadsThreadIdMessagesGetResponses];
+
+export type AppendMessageApiChatThreadsThreadIdMessagesPostData = {
+  body: AppendMessageRequest;
+  path: {
+    /**
+     * Thread Id
+     */
+    thread_id: string;
+  };
+  query?: never;
+  url: '/api/chat/threads/{thread_id}/messages';
+};
+
+export type AppendMessageApiChatThreadsThreadIdMessagesPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type AppendMessageApiChatThreadsThreadIdMessagesPostError =
+  AppendMessageApiChatThreadsThreadIdMessagesPostErrors[keyof AppendMessageApiChatThreadsThreadIdMessagesPostErrors];
+
+export type AppendMessageApiChatThreadsThreadIdMessagesPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: ChatMessageResponse;
+};
+
+export type AppendMessageApiChatThreadsThreadIdMessagesPostResponse =
+  AppendMessageApiChatThreadsThreadIdMessagesPostResponses[keyof AppendMessageApiChatThreadsThreadIdMessagesPostResponses];
 
 export type StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostData = {
   body: AnalysisFormConfig;
