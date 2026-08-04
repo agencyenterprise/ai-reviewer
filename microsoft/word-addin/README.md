@@ -1,3 +1,8 @@
+# Word add-in
+
+One of the Microsoft integrations — see [`../README.md`](../README.md) for how this
+one differs from the Teams bot, and why only this path can change a document.
+
 ## Office Add-in (local dev)
 
 ### Prereqs
@@ -16,9 +21,9 @@ Use any tunnel provider. Two common options:
 
 #### Ngrok
 
-1. Copy `addin/ngrok.yaml` to a new file (for example, `addin/ngrok-dev.yaml`).
+1. Copy `microsoft/word-addin/ngrok.yaml` to a new file (for example, `microsoft/word-addin/ngrok-dev.yaml`).
 2. Update the new file with your ngrok token.
-3. From `addin/`, run `ngrok start --config ngrok-dev.yaml --all`.
+3. From `microsoft/word-addin/`, run `ngrok start --config ngrok-dev.yaml --all`.
 
 #### Port Forward
 
@@ -28,9 +33,9 @@ Use the generated public HTTPS URLs in the steps below.
 
 ### Prepare the manifest
 
-1. Copy `addin/manifest-template.xml` to a new file (for example, `addin/manifest-dev.local.xml`).
+1. Copy `microsoft/word-addin/manifest-template.xml` to a new file (for example, `microsoft/word-addin/manifest-dev.local.xml`).
 2. Replace `{FRONTEND_URL}` with your public frontend URL (the 3000 tunnel).
-   - Example: `sed -i "" "s|{FRONTEND_URL}|https://<your-frontend-url>|g" addin/manifest-dev.local.xml`
+   - Example: `sed -i "" "s|{FRONTEND_URL}|https://<your-frontend-url>|g" microsoft/word-addin/manifest-dev.local.xml`
 
 ### Frontend API URL
 
@@ -56,7 +61,7 @@ To test the add-in locally on MacOS, inside installed word (Microsoft 365):
 https://learn.microsoft.com/en-us/office/dev/add-ins/testing/sideload-an-office-add-in-on-mac
 
 ```bash
-cp addin/manifest-dev.local.xml ~/Library/Containers/com.microsoft.Word/Data/Documents/wef
+cp microsoft/word-addin/manifest-dev.local.xml ~/Library/Containers/com.microsoft.Word/Data/Documents/wef
 ```
 
 Requires re-opening Word every time manifest changes.
@@ -77,6 +82,6 @@ https://learn.microsoft.com/en-us/microsoft-365/admin/manage/office-addins?view=
 
 In step 3, choose **Add-in only manifest** and provide the manifest URL.
 
-Manifest URL from this repo: `https://raw.githubusercontent.com/agencyenterprise/draft-detective/refs/heads/dev/addin/manifest.xml`
+Manifest URL from this repo: `https://raw.githubusercontent.com/agencyenterprise/draft-detective/refs/heads/dev/microsoft/word-addin/manifest.xml`
 
 Reference video (older, but still useful): https://www.youtube.com/watch?v=p3aeO9muEI8&t=181s
