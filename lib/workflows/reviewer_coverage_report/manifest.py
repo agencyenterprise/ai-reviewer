@@ -18,7 +18,7 @@ the QAM); the author's response memos are not required.
 from typing import TYPE_CHECKING, Optional
 
 from lib.workflows.models import WorkflowRunType
-from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifest
+from lib.workflows.simple_deep_agent.manifest_base import HtmlReportDeepAgentManifest
 
 if TYPE_CHECKING:
     from lib.services.file_artifacts_service.file_artifacts_service_type import (
@@ -62,13 +62,17 @@ between reviewers by point ID instead of double-counting.
 
 ## Output
 
-Write the complete coverage report as Markdown into the `report_markdown` field \
-of your structured response. Do NOT populate the `issues` field; this workflow \
-produces a document deliverable, not a list of issues.\
+Produce a single, complete, self-contained HTML document for the coverage \
+report and write it into the `report_html` field of your structured response. \
+Give it its own inline `<style>` block with a clean, readable layout — include \
+a real styled table for the summary verdict counts and clearly distinguish each \
+verdict. The document must be fully self-contained: no external stylesheets, \
+fonts, scripts, or images, and no `<script>` of any kind; embed any images as \
+`data:` URIs.\
 """
 
 
-class ReviewerCoverageReportManifest(SimpleDeepAgentManifest):
+class ReviewerCoverageReportManifest(HtmlReportDeepAgentManifest):
     """Generates a consolidated reviewer coverage report for a QA manager."""
 
     type = WorkflowRunType.REVIEWER_COVERAGE_REPORT

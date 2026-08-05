@@ -18,7 +18,7 @@ that has reviewer memos attached. The agent finds it from the mounted file tree.
 from typing import TYPE_CHECKING, Optional
 
 from lib.workflows.models import WorkflowRunType
-from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifest
+from lib.workflows.simple_deep_agent.manifest_base import HtmlReportDeepAgentManifest
 
 if TYPE_CHECKING:
     from lib.services.file_artifacts_service.file_artifacts_service_type import (
@@ -52,14 +52,16 @@ skill.
 
 ## Output
 
-Write the complete revision-planning summary as Markdown into the \
-`report_markdown` field of your structured response. Do NOT populate the \
-`issues` field; this workflow produces a document deliverable, not a list of \
-issues.\
+Produce a single, complete, self-contained HTML document for the revision-\
+planning summary and write it into the `report_html` field of your structured \
+response. Give it its own inline `<style>` block with a clean, readable report \
+layout. The document must be fully self-contained: no external stylesheets, \
+fonts, scripts, or images, and no `<script>` of any kind; embed any images as \
+`data:` URIs.\
 """
 
 
-class RevisionPlanningSummaryManifest(SimpleDeepAgentManifest):
+class RevisionPlanningSummaryManifest(HtmlReportDeepAgentManifest):
     """Generates a revision-planning summary from reviewer memos."""
 
     type = WorkflowRunType.REVISION_PLANNING_SUMMARY

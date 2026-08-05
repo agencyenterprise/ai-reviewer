@@ -5,13 +5,14 @@ Callers supply the user prompt (specific rules/criteria) and may optionally
 override the system prompt when the default is not appropriate.
 """
 
-from typing import Any, Callable, List, Optional, Sequence, Union
+from typing import Any, Callable, List, Optional, Sequence, Type, Union
 
 from deepagents import create_deep_agent
 from langchain.agents.structured_output import AutoStrategy
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
+from pydantic import BaseModel
 
 from lib.config.llm_models import gpt_5_5_model
 from lib.models.agent import LangChainAgent
@@ -53,23 +54,27 @@ class SimpleDeepAgent(LangChainAgent):
         context: ContextSchema,
         user_prompt: str,
         system_prompt: Optional[str] = None,
+        response_model: Type[BaseModel] = AgentCheckResult,
         tools: Optional[Sequence[Union[BaseTool, Callable, dict[str, Any]]]] = None,
     ):
         super().__init__(context)
         self._system_prompt = system_prompt or _SYSTEM_PROMPT
         self._user_prompt = user_prompt
+        # Structured-output model the agent fills. Defaults to AgentCheckResult
+        # (issues + markdown report); the HTML-report variant passes AgentHtmlReport.
+        self._response_model = response_model
         self._tools = tools
 
     async def ainvoke(
         self,
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
-    ) -> tuple[AgentCheckResult, List[BaseMessage]]:
+    ) -> tuple[BaseModel, List[BaseMessage]]:
         deep_agent = create_deep_agent(
             model=self.llm,
             tools=self._tools,
             context_schema=ContextSchema,
-            response_format=AutoStrategy(AgentCheckResult),
+            response_format=AutoStrategy(self._response_model),
             skills=["/skills/"],
         )
 

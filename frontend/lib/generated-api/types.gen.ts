@@ -347,7 +347,7 @@ export type AdvocacyToneWorkflowConfig = {
 /**
  * AgentCheckResult
  *
- * Result from a single deep-agent validation pass.
+ * LLM output for a validation pass: issues plus a markdown report.
  */
 export type AgentCheckResult = {
   /**
@@ -1740,6 +1740,31 @@ export type CreateThreadRequest = {
    * Title
    */
   title?: string | null;
+};
+
+/**
+ * DeepAgentResult
+ *
+ * Unified result stored in the workflow state.
+ *
+ * Holds the superset of what the deep-agent variants produce. Exactly one
+ * report field is populated per run (markdown workflows fill
+ * ``report_markdown``; HTML workflows fill ``report_html``); the UI renders
+ * whichever is present. ``issues`` is populated by the markdown variant only.
+ */
+export type DeepAgentResult = {
+  /**
+   * Issues
+   */
+  issues?: Array<IssueItem>;
+  /**
+   * Report Markdown
+   */
+  report_markdown?: string;
+  /**
+   * Report Html
+   */
+  report_html?: string;
 };
 
 /**
@@ -5274,7 +5299,10 @@ export type SimpleDeepAgentConfig = {
 /**
  * SimpleDeepAgentState
  *
- * Shared state for all simple deep-agent workflows.
+ * Shared state for all single-node deep-agent workflows.
+ *
+ * ``result`` is the unified DeepAgentResult; markdown variants fill its
+ * ``report_markdown`` (+ ``issues``), HTML variants fill its ``report_html``.
  */
 export type SimpleDeepAgentState = {
   /**
@@ -5289,9 +5317,9 @@ export type SimpleDeepAgentState = {
   type: WorkflowRunType;
   config: SimpleDeepAgentConfig;
   /**
-   * Result from the deep agent validation pass
+   * Result from the deep agent pass (markdown/issues or HTML report)
    */
-  result?: AgentCheckResult | null;
+  result?: DeepAgentResult | null;
   /**
    * Messages
    *

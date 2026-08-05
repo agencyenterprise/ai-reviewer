@@ -18,7 +18,7 @@ document"); there is no separate upload for it.
 from typing import TYPE_CHECKING, Optional
 
 from lib.workflows.models import WorkflowRunType
-from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifest
+from lib.workflows.simple_deep_agent.manifest_base import HtmlReportDeepAgentManifest
 
 if TYPE_CHECKING:
     from lib.services.file_artifacts_service.file_artifacts_service_type import (
@@ -55,13 +55,17 @@ partially addressed, or not changed with a reason).
 
 ## Output
 
-Write the complete set of response memos as Markdown into the `report_markdown` \
-field of your structured response. Do NOT populate the `issues` field; this \
-workflow produces a document deliverable, not a list of issues.\
+Produce a single, complete, self-contained HTML document containing all the \
+response memos and write it into the `report_html` field of your structured \
+response. Give it its own inline `<style>` block with a clean, readable layout \
+that clearly distinguishes each reviewer's verbatim text from the author's \
+reply. The document must be fully self-contained: no external stylesheets, \
+fonts, scripts, or images, and no `<script>` of any kind; embed any images as \
+`data:` URIs.\
 """
 
 
-class ReviewerResponseMemosManifest(SimpleDeepAgentManifest):
+class ReviewerResponseMemosManifest(HtmlReportDeepAgentManifest):
     """Generates one reviewer response memo per reviewer, comparing revisions."""
 
     type = WorkflowRunType.REVIEWER_RESPONSE_MEMOS
