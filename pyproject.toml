@@ -50,7 +50,7 @@ dependencies = [
     "openai>=2.26.0",
     "deepagents>=0.4.8",
     "fastmcp[tasks]>=3.2.0",
-    "cryptography>=48.0.1",
+    "cryptography>=50.0.0",
     "pytest-cov>=7.1.0",
     "aiotools>=2.2.3",
 ]
