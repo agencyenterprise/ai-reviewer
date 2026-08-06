@@ -18,7 +18,7 @@ Subclasses declare class-level attributes (type, name, description, and either
 """
 
 import html as html_lib
-from typing import TYPE_CHECKING, ClassVar, List, Optional, Type
+from typing import TYPE_CHECKING, ClassVar, List, Literal, Optional, Type
 
 from langgraph.graph import START, StateGraph
 from langgraph.graph.state import END
@@ -72,6 +72,10 @@ class _BaseDeepAgentManifest(
 
     # Structured-output schema the LLM must fill for this variant.
     result_model: ClassVar[Type[BaseModel]] = AgentCheckResult
+
+    # Per-workflow reasoning effort. None keeps SimpleDeepAgent's default;
+    # set it on workflows whose task warrants more deliberation.
+    reasoning_effort: ClassVar[Optional[Literal["low", "medium", "high"]]] = None
 
     def resolve_user_prompt(self) -> str:
         """Resolve the rules/criteria used as the deep agent's user prompt.
@@ -132,6 +136,7 @@ class _BaseDeepAgentManifest(
                 system_prompt=manifest.system_prompt,
                 user_prompt=manifest.resolve_user_prompt(),
                 response_model=manifest.result_model,
+                reasoning_effort=manifest.reasoning_effort,
             )
             output, messages = await agent.ainvoke({})
             return {

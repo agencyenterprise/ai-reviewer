@@ -5,7 +5,7 @@ Callers supply the user prompt (specific rules/criteria) and may optionally
 override the system prompt when the default is not appropriate.
 """
 
-from typing import Any, Callable, List, Optional, Sequence, Type, Union
+from typing import Any, Callable, List, Literal, Optional, Sequence, Type, Union
 
 from deepagents import create_deep_agent
 from langchain.agents.structured_output import AutoStrategy
@@ -15,7 +15,7 @@ from langchain_core.tools import BaseTool
 from pydantic import BaseModel
 
 from lib.config.llm_models import gpt_5_5_model
-from lib.models.agent import LangChainAgent
+from lib.models.agent import LangChainAgent, ReasoningDict
 from lib.workflows.context import ContextSchema
 from lib.workflows.simple_deep_agent.agent_types import AgentCheckResult
 
@@ -56,6 +56,7 @@ class SimpleDeepAgent(LangChainAgent):
         system_prompt: Optional[str] = None,
         response_model: Type[BaseModel] = AgentCheckResult,
         tools: Optional[Sequence[Union[BaseTool, Callable, dict[str, Any]]]] = None,
+        reasoning_effort: Optional[Literal["low", "medium", "high"]] = None,
     ):
         super().__init__(context)
         self._system_prompt = system_prompt or _SYSTEM_PROMPT
@@ -64,6 +65,11 @@ class SimpleDeepAgent(LangChainAgent):
         # (issues + markdown report); the HTML-report variant passes AgentHtmlReport.
         self._response_model = response_model
         self._tools = tools
+        # Shadows the class-level `reasoning` for this instance only, so one
+        # workflow can ask for more reasoning without affecting the others that
+        # share this agent.
+        if reasoning_effort is not None:
+            self.reasoning = ReasoningDict(effort=reasoning_effort, summary="auto")
 
     async def ainvoke(
         self,

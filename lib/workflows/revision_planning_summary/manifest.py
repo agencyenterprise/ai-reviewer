@@ -77,6 +77,7 @@ class RevisionPlanningSummaryManifest(HtmlReportDeepAgentManifest):
 
     skill = "review-assistant"
     system_prompt = _SYSTEM_PROMPT
+    reasoning_effort = "high"
 
     async def precheck(self, service: "FileArtifactsServiceType") -> Optional[str]:
         if await service.get_latest_reviewer_memo_revision() is None:
