@@ -103,21 +103,20 @@ function ReportCard({ reportMarkdown }: { reportMarkdown: string }) {
   );
 }
 
+// No Card wrapper here: the report document already renders inside its own
+// bordered frame, so an outer card would just nest a box in a box.
 function HtmlReportCard({ reportHtml }: { reportHtml: string }) {
   const frameRef = useRef<HtmlReportFrameHandle>(null);
   return (
-    <Card className="gap-2">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-sm">Report</CardTitle>
+    <div className="space-y-2">
+      <div className="flex justify-end">
         <Button variant="outline" size="sm" onClick={() => frameRef.current?.print()}>
           <Download className="size-4" />
           Download PDF
         </Button>
-      </CardHeader>
-      <CardContent>
-        <HtmlReportFrame ref={frameRef} html={reportHtml} title="Report" />
-      </CardContent>
-    </Card>
+      </div>
+      <HtmlReportFrame ref={frameRef} html={reportHtml} title="Report" />
+    </div>
   );
 }
 
