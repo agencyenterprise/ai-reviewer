@@ -195,12 +195,15 @@ text, opinions owned in the first person, critiques framed as suggestions or
 questions, and declines given with a clear reason rather than an apology or
 reflexive agreement.
 
-Before drafting any prose output, read `references/voice-and-tone.md` and
-follow it. It has separate guidance for the reviewer voice and the
-author-response voice, phrase banks, and a list of generic-AI tells to avoid
-(sycophancy, hype, empty hedging, exclamation marks, em dashes, emoji).
-The response memos in particular use the author-response voice; the coverage
-report and revision plan stay neutral and evidence-anchored.
+Before drafting any prose output, load the `voice-and-tone` skill and follow it.
+It has separate guidance for the critique voice and the author voice, phrase
+banks, and a list of generic-AI tells to avoid (sycophancy, hype, empty hedging,
+exclamation marks, em dashes, emoji).
+
+Which voice applies depends on who is speaking in the output. The response memos
+are written as the author, so they use the author voice. The revision-planning
+summary and the coverage report are your own assessment, so they use the
+critique voice and stay neutral and evidence-anchored.
 
 ## Revision-planning summary
 
@@ -339,7 +342,7 @@ the one the medium you were asked for actually supports.
   appears.
 - **Describe locations by content, not by number**, for the reasons in step 2.
 
-## References
+## Related skills
 
-- `references/voice-and-tone.md`: how to sound like an experienced research
-  colleague. Read it before writing any prose output (see "Tone and voice" above).
+- `voice-and-tone`: how to sound like an experienced research colleague. Load it
+  before writing any prose output (see "Tone and voice" above).

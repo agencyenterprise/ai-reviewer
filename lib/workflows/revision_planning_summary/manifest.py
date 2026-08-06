@@ -9,7 +9,7 @@ suggestion for addressing it).
 This is the first of the three `review-assistant` outputs. The skill body
 (`skills/review-assistant/SKILL.md`) is the single source of truth for how the
 summary is produced; it is loaded as the agent's user prompt and is also mounted
-read-only into the agent filesystem along with its voice-and-tone reference.
+read-only into the agent filesystem alongside the `voice-and-tone` skill.
 
 It operates on the *reviewed revision*: the latest revision under `/revisions/`
 that has reviewer memos attached. The agent finds it from the mounted file tree.
@@ -28,8 +28,8 @@ if TYPE_CHECKING:
 _SYSTEM_PROMPT = """\
 You are running the review-assistant skill to produce a revision-planning \
 summary. Read the skill instructions at `/skills/review-assistant/SKILL.md` and \
-its tone reference at `/skills/review-assistant/references/voice-and-tone.md` \
-and follow them exactly.
+the companion tone skill at `/skills/voice-and-tone/SKILL.md` and follow them \
+exactly.
 
 ## Inputs
 

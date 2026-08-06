@@ -28,8 +28,8 @@ if TYPE_CHECKING:
 _SYSTEM_PROMPT = """\
 You are running the review-assistant skill to produce a reviewer coverage \
 report for a QA manager. Read the skill instructions at \
-`/skills/review-assistant/SKILL.md` and its tone reference at \
-`/skills/review-assistant/references/voice-and-tone.md` and follow them exactly.
+`/skills/review-assistant/SKILL.md` and the companion tone skill at \
+`/skills/voice-and-tone/SKILL.md` and follow them exactly.
 
 ## Inputs
 
