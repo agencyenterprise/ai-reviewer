@@ -31,6 +31,15 @@ const REPORT_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:
 const REPORT_CONTAINMENT_CSS = `
 *, *::before, *::after { box-sizing: border-box; }
 html, body { width: auto !important; height: auto !important; min-height: 0 !important; }
+/* The frame is sized to its content, so the report never needs to scroll
+   itself. Undo a report that asks for its own scrollbar (\`overflow-y: scroll\`
+   forces the track to render even with nothing to scroll), then hide the root
+   scrollbar chrome outright. Hiding the chrome rather than setting
+   \`overflow: hidden\` keeps the content scrollable by wheel or keyboard, so a
+   measurement that ever came up short cannot make anything unreachable. */
+html, body { overflow: visible !important; }
+html { scrollbar-width: none; }
+html::-webkit-scrollbar { width: 0; height: 0; }
 body { overflow-wrap: break-word; }
 body * { max-width: 100%; }
 img, svg, video, canvas { height: auto; }

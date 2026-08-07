@@ -19,7 +19,7 @@ import {
 import { AssistantRuntimeProvider, ThreadMessageLike, useExternalStoreRuntime } from '@assistant-ui/react';
 import { convertLangChainMessages, LangChainMessage } from '@assistant-ui/react-langgraph';
 import { Ban, CheckCircle2, ClipboardList, Download, Loader2, MessageSquare, XCircle } from 'lucide-react';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 interface SimpleDeepAgentResultsProps {
   project: ProjectDetailed;
@@ -103,23 +103,6 @@ function ReportCard({ reportMarkdown }: { reportMarkdown: string }) {
   );
 }
 
-// No Card wrapper here: the report document already renders inside its own
-// bordered frame, so an outer card would just nest a box in a box.
-function HtmlReportCard({ reportHtml }: { reportHtml: string }) {
-  const frameRef = useRef<HtmlReportFrameHandle>(null);
-  return (
-    <div className="space-y-2">
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={() => frameRef.current?.print()}>
-          <Download className="size-4" />
-          Download PDF
-        </Button>
-      </div>
-      <HtmlReportFrame ref={frameRef} html={reportHtml} title="Report" />
-    </div>
-  );
-}
-
 export function SimpleDeepAgentResults({
   project,
   workflowDetail,
@@ -141,6 +124,12 @@ export function SimpleDeepAgentResults({
     isRunning: false,
     onNew: async () => {},
   });
+
+  // Declared above the early returns below, so the hook order stays stable.
+  // The tab is controlled because the Download PDF button sits in the tab row
+  // and only applies to the Results tab.
+  const [activeTab, setActiveTab] = useState('results');
+  const frameRef = useRef<HtmlReportFrameHandle>(null);
 
   if (isWorkflowProcessing(workflowDetail)) {
     return (
@@ -184,22 +173,33 @@ export function SimpleDeepAgentResults({
   const { result } = state;
 
   return (
-    <Tabs defaultValue="results">
-      <TabsList>
-        <TabsTrigger value="results" className="gap-1.5">
-          <ClipboardList className="h-3.5 w-3.5" />
-          Results
-        </TabsTrigger>
-        <TabsTrigger value="messages" className="gap-1.5">
-          <MessageSquare className="h-3.5 w-3.5" />
-          Messages
-        </TabsTrigger>
-      </TabsList>
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <div className="flex items-center justify-between gap-2">
+        <TabsList>
+          <TabsTrigger value="results" className="gap-1.5">
+            <ClipboardList className="h-3.5 w-3.5" />
+            Results
+          </TabsTrigger>
+          <TabsTrigger value="messages" className="gap-1.5">
+            <MessageSquare className="h-3.5 w-3.5" />
+            Messages
+          </TabsTrigger>
+        </TabsList>
+        {/* Only on the Results tab: the other tab unmounts the frame, which
+            would leave this printing nothing. */}
+        {result.report_html && activeTab === 'results' && (
+          <Button variant="outline" size="sm" onClick={() => frameRef.current?.print()}>
+            <Download className="size-4" />
+            Download PDF
+          </Button>
+        )}
+      </div>
 
       <TabsContent value="results" className="space-y-4">
         {result.report_html ? (
           // HTML-report workflows produce a document deliverable, not a checklist.
-          <HtmlReportCard reportHtml={result.report_html} />
+          // No Card wrapper: the report renders in its own bordered frame already.
+          <HtmlReportFrame ref={frameRef} html={result.report_html} title="Report" />
         ) : (
           <>
             {result.report_markdown && <ReportCard reportMarkdown={result.report_markdown} />}
@@ -208,9 +208,11 @@ export function SimpleDeepAgentResults({
         )}
       </TabsContent>
 
-      <TabsContent value="messages" className="mt-4">
+      {/* No top margin: the Tabs root already spaces panels from the tab list,
+          and the thread's own viewport padding is dropped for the same reason. */}
+      <TabsContent value="messages">
         <AssistantRuntimeProvider runtime={runtime}>
-          <ReadonlyThread />
+          <ReadonlyThread viewportClassName="pt-0" />
         </AssistantRuntimeProvider>
       </TabsContent>
     </Tabs>

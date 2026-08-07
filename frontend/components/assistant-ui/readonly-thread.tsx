@@ -13,7 +13,15 @@ import type { FC } from 'react';
  * without any interactive features (no composer, no edit, no reload).
  * Useful for displaying conversation history from external sources.
  */
-export const ReadonlyThread: FC = () => {
+interface ReadonlyThreadProps {
+  /**
+   * Extra classes for the scroll viewport. Callers that already provide spacing
+   * above the thread pass `pt-0` here so the padding does not stack.
+   */
+  viewportClassName?: string;
+}
+
+export const ReadonlyThread: FC<ReadonlyThreadProps> = ({ viewportClassName }) => {
   return (
     <ThreadPrimitive.Root
       className="aui-root aui-thread-root @container flex h-full flex-col bg-background"
@@ -23,7 +31,10 @@ export const ReadonlyThread: FC = () => {
     >
       <ThreadPrimitive.Viewport
         turnAnchor="top"
-        className="aui-thread-viewport relative flex flex-1 flex-col overflow-x-auto overflow-y-scroll scroll-smooth px-4 pt-4"
+        className={cn(
+          'aui-thread-viewport relative flex flex-1 flex-col overflow-x-auto overflow-y-scroll scroll-smooth px-4 pt-4',
+          viewportClassName,
+        )}
       >
         <ThreadPrimitive.Messages
           components={{
