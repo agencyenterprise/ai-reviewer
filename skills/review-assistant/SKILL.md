@@ -4,19 +4,17 @@ description: >-
   Helps authors work through a peer-review cycle: making sense of what the
   reviewers asked for, planning the revision, and writing the paperwork that
   closes the loop with the reviewers and the quality-assurance manager. Use it
-  whenever someone has a draft together with one or more reviewer memos (also
-  called review reports, referee reports, or reviewer comments) and needs to act
-  on them: to understand or organize the feedback, plan revisions from it,
-  respond to the reviewers point by point, or check whether a revised draft
-  actually addresses what was raised. It produces three artifacts, singly or
-  together: a revision-planning summary, one reviewer response memo per
-  reviewer, and a consolidated reviewer coverage report for a QA manager.
-  Trigger even when the user does not say "skill" or name an output, for
-  example: "respond to these reviewer comments", "draft a response memo to the
-  reviewer", "did my revision address the review", "what does this reviewer want
-  me to change", "summarize the revisions the reviewers asked for", "check my
-  responses cover everything the reviewers raised", "help me deal with this
-  referee report".
+  whenever someone has a draft plus one or more reviewer memos (also called
+  review reports, referee reports, or reviewer comments) and needs to act on
+  them: to understand or organize the feedback, plan revisions from it, respond
+  point by point, or check whether a revised draft addresses what was raised.
+  Produces, singly or together: a revision-planning summary, one response memo
+  per reviewer, and a consolidated reviewer coverage report for a QA manager.
+  Trigger even when the user does not say "skill" or name an output: "respond to
+  these reviewer comments", "draft a response memo to the reviewer", "did my
+  revision address the review", "what does this reviewer want me to change",
+  "check my responses cover everything the reviewers raised", "help me deal with
+  this referee report".
 ---
 
 # Review Assistant
