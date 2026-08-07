@@ -45,7 +45,10 @@ def _resolve_file_revision(metadata: dict, role: FileRole, project: Project) -> 
     raw = metadata.get("revision")
     has_explicit_revision = raw is not None and str(raw).strip() != ""
 
-    if role == FileRole.SUPPORT:
+    # Only MAIN and REVIEWER_MEMO are revision-scoped. Everything else is shared
+    # across revisions — including SUPPORTING_CANDIDATE, the temporary role the
+    # reference downloader uses before promoting a file to SUPPORT.
+    if role not in (FileRole.MAIN, FileRole.REVIEWER_MEMO):
         return None
 
     if role == FileRole.MAIN:

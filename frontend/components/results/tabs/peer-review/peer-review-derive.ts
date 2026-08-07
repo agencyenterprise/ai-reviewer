@@ -99,25 +99,40 @@ export function derivePeerReviewFacts(projectDetail: ProjectDetailed): PeerRevie
 
   const noMemos = reviewedRevision === null;
 
-  const planBlockedReason = noMemos
-    ? 'Upload at least one reviewer memo to generate a revision-planning summary.'
-    : !documentProcessingReady
-      ? 'Waiting for the document to finish processing.'
-      : null;
+  // Runs always execute at the current revision, but `workflow_runs` above is
+  // scoped to the revision on screen — so while an older one is being viewed we
+  // cannot know whether the current revision is ready, and every readiness
+  // signal here would be about the wrong revision. Block outright and say so
+  // rather than report a status that is not about the draft a run would use.
+  // (Viewing an older revision also forces readOnly, so no action is offered
+  // either way; this keeps the derived state from lying about it.)
+  const staleRevisionReason = isViewingOldRevision
+    ? `You are viewing revision ${viewedRevision}. These assessments always run against revision ${currentRevision} — switch to it to run them.`
+    : null;
 
-  const reviseBlockedReason = noMemos ? 'Waiting on reviewer memos.' : null;
+  const planBlockedReason =
+    staleRevisionReason ??
+    (noMemos
+      ? 'Upload at least one reviewer memo to generate a revision-planning summary.'
+      : !documentProcessingReady
+        ? 'Waiting for the document to finish processing.'
+        : null);
 
-  const comparisonBlockedReason = noMemos
-    ? 'Upload at least one reviewer memo first.'
-    : // Not a precheck mirror but a crash guard: get_main_file(revision=R) raises
-      // ValueError when the revision has no main, failing the run outright.
-      !reviewedMain
-      ? `Revision ${reviewedRevision} has no main document on record, so there is nothing to compare against.`
-      : !hasRevisedDraft
-        ? `Your memos are attached to revision ${reviewedRevision}, which is still the current draft. Upload your revised draft as a new revision in step 2 — or, if the memos reviewed an earlier draft, re-upload them targeting that revision.`
-        : !documentProcessingReady
-          ? 'Waiting for the revised draft to finish processing.'
-          : null;
+  const reviseBlockedReason = staleRevisionReason ?? (noMemos ? 'Waiting on reviewer memos.' : null);
+
+  const comparisonBlockedReason =
+    staleRevisionReason ??
+    (noMemos
+      ? 'Upload at least one reviewer memo first.'
+      : // Not a precheck mirror but a crash guard: get_main_file(revision=R) raises
+        // ValueError when the revision has no main, failing the run outright.
+        !reviewedMain
+        ? `Revision ${reviewedRevision} has no main document on record, so there is nothing to compare against.`
+        : !hasRevisedDraft
+          ? `Your memos are attached to revision ${reviewedRevision}, which is still the current draft. Upload your revised draft as a new revision in step 2 — or, if the memos reviewed an earlier draft, re-upload them targeting that revision.`
+          : !documentProcessingReady
+            ? 'Waiting for the revised draft to finish processing.'
+            : null);
 
   return {
     currentRevision,

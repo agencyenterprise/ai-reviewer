@@ -44,8 +44,11 @@ export interface FileUploadDialogProps {
    */
   targetRevision?: number;
   /**
-   * Let the user pick which draft the memos reviewed. Requires `currentRevision`
-   * and only renders once the project has more than one revision.
+   * Show which draft the memos are attached to, and let the user change it.
+   * Requires `currentRevision`. The control renders for every reviewer-memo
+   * upload — memos are always bound to a draft, and seeing that up front is
+   * what stops a later batch going to the wrong one — but it is disabled while
+   * the project has only one revision, since there is nothing to choose.
    */
   allowRevisionSelection?: boolean;
   /** The project's current revision, used to build the revision options. */

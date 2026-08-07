@@ -77,6 +77,20 @@ class TestOtherRoles:
             is None
         )
 
+    def test_supporting_candidates_are_shared_across_revisions(self):
+        # The reference downloader's temporary role. Only MAIN and REVIEWER_MEMO
+        # are revision-scoped; anything else must stay NULL.
+        assert (
+            _resolve_file_revision({}, FileRole.SUPPORTING_CANDIDATE, _project(3))
+            is None
+        )
+        assert (
+            _resolve_file_revision(
+                {"revision": "2"}, FileRole.SUPPORTING_CANDIDATE, _project(3)
+            )
+            is None
+        )
+
     def test_main_uses_current_revision(self):
         assert _resolve_file_revision({}, FileRole.MAIN, _project(3)) == 3
 
