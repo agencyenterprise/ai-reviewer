@@ -53,6 +53,9 @@ dependencies = [
     "cryptography>=50.0.0",
     "pytest-cov>=7.1.0",
     "aiotools>=2.2.3",
+    "docx-editor>=0.7.1",
+    "microsoft-agents-hosting-core>=1.3.0",
+    "microsoft-agents-authentication-msal>=1.3.0",
 ]
 
 [tool.mypy]
@@ -64,6 +67,20 @@ exclude = [
 [[tool.mypy.overrides]]
 module = ["nltk.*", "nest_asyncio"]
 ignore_missing_imports = true
+
+# docx-editor is annotated throughout but ships no py.typed marker, so mypy
+# declines to look at it by default. Following it anyway keeps real types at the
+# seam -- Document, ParagraphInfo and the exceptions all check -- rather than
+# degrading them to Any, which is what ignoring the import alone would do.
+[[tool.mypy.overrides]]
+module = ["docx_editor", "docx_editor.*"]
+follow_untyped_imports = true
+
+# The Agents SDK ships no py.typed either. Following it keeps real types at the
+# seam rather than degrading the adapter and activity models to Any.
+[[tool.mypy.overrides]]
+module = ["microsoft_agents", "microsoft_agents.*"]
+follow_untyped_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -57,6 +57,45 @@ class Config(BaseModel):
         description="Whether to enable CIMD for MCP OAuth providers. Disable if clients are behind VPNs that cannot reach the CIMD endpoint.",
     )
 
+    # Reading SharePoint documents with the service's own identity, for requests
+    # that arrive without a Word session to borrow (a Teams message, say).
+    AZURE_CLIENT_ID: Optional[str] = None
+    AZURE_TENANT_ID: Optional[str] = None
+    AZURE_CLIENT_SECRET: Optional[str] = None
+    GRAPH_ALLOWED_HOSTS: Optional[str] = Field(
+        default=None,
+        description=(
+            "Comma-separated SharePoint hosts this service may read from. Required "
+            "before any document can be loaded: the app-only grant is tenant-wide "
+            "unless narrowed to Sites.Selected, and without a limit here the service "
+            "could read files the person asking cannot open themselves."
+        ),
+    )
+    GRAPH_ALLOWED_SITE_PATHS: Optional[str] = Field(
+        default=None,
+        description=(
+            "Comma-separated URL path prefixes to narrow further, e.g. "
+            "'/sites/Reviews'. Checked against the path Graph resolves a document "
+            "to, not against the pasted link, because a sharing link carries an "
+            "opaque identifier instead of a path. Empty allows any path on an "
+            "allowed host."
+        ),
+    )
+
+    # The Teams bot. Its own app registration, separate from the Graph one: a
+    # different purpose, a different secret to rotate, and a different blast radius
+    # if either leaks.
+    TEAMS_BOT_APP_ID: Optional[str] = None
+    TEAMS_BOT_APP_PASSWORD: Optional[str] = None
+    TEAMS_BOT_TENANT_ID: Optional[str] = Field(
+        default=None,
+        description=(
+            "Set for a single-tenant bot; leave unset for a multi-tenant one. It "
+            "must match how the Azure Bot resource was created or tokens will be "
+            "issued for the wrong authority."
+        ),
+    )
+
     # File uploads
     FILE_UPLOADS_MOUNT_PATH: str
 
@@ -132,6 +171,14 @@ config = Config(
         os.getenv("RATE_LIMITER_CHECK_EVERY_N_SECONDS", "0.25")
     ),
     MODEL_API_KEYS=json.loads(os.getenv("MODEL_API_KEYS", "{}")),
+    AZURE_CLIENT_ID=os.getenv("AZURE_CLIENT_ID"),
+    AZURE_TENANT_ID=os.getenv("AZURE_TENANT_ID"),
+    AZURE_CLIENT_SECRET=os.getenv("AZURE_CLIENT_SECRET"),
+    GRAPH_ALLOWED_HOSTS=os.getenv("GRAPH_ALLOWED_HOSTS"),
+    GRAPH_ALLOWED_SITE_PATHS=os.getenv("GRAPH_ALLOWED_SITE_PATHS"),
+    TEAMS_BOT_APP_ID=os.getenv("TEAMS_BOT_APP_ID"),
+    TEAMS_BOT_APP_PASSWORD=os.getenv("TEAMS_BOT_APP_PASSWORD"),
+    TEAMS_BOT_TENANT_ID=os.getenv("TEAMS_BOT_TENANT_ID"),
 )
 
 

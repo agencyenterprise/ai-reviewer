@@ -831,6 +831,18 @@ wheels = [
 ]
 
 [[package]]
+name = "docx-editor"
+version = "0.7.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "defusedxml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/30/51/d2dd444cc5d1cf62e679d61f621ae3040a4ce2f4fd1ee4ed3e0974f2dd78/docx_editor-0.7.1.tar.gz", hash = "sha256:ef4389fab0b4efae6b73577bce32f28fced7df57850be9f83b12b8012005663e", size = 750117, upload-time = "2026-07-24T15:08:23.004Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/47/23/71257896c1bf5d85b035966dcc7d90e39494ca625056bc0f459537d059d0/docx_editor-0.7.1-py3-none-any.whl", hash = "sha256:da7e11d8a4f5dc0fddcdd183e42b36ec01de7f626f3c445782cc5548a947d520", size = 138365, upload-time = "2026-07-24T15:08:21.425Z" },
+]
+
+[[package]]
 name = "dotenv"
 version = "0.9.9"
 source = { registry = "https://pypi.org/simple" }
@@ -854,6 +866,7 @@ dependencies = [
     { name = "cryptography" },
     { name = "deepagents" },
     { name = "deepdiff", extra = ["optimize"] },
+    { name = "docx-editor" },
     { name = "dotenv" },
     { name = "fastapi", extra = ["standard"] },
     { name = "fastmcp", extra = ["tasks"] },
@@ -869,6 +882,8 @@ dependencies = [
     { name = "langgraph" },
     { name = "langgraph-checkpoint-postgres" },
     { name = "markitdown", extra = ["docx", "pdf", "pptx", "xls", "xlsx"] },
+    { name = "microsoft-agents-authentication-msal" },
+    { name = "microsoft-agents-hosting-core" },
     { name = "mypy" },
     { name = "nest-asyncio" },
     { name = "nltk" },
@@ -914,6 +929,7 @@ requires-dist = [
     { name = "cryptography", specifier = ">=50.0.0" },
     { name = "deepagents", specifier = ">=0.4.8" },
     { name = "deepdiff", extras = ["optimize"], specifier = ">=8.6.1" },
+    { name = "docx-editor", specifier = ">=0.7.1" },
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.120.2" },
     { name = "fastmcp", extras = ["tasks"], specifier = ">=3.2.0" },
@@ -929,6 +945,8 @@ requires-dist = [
     { name = "langgraph", specifier = ">=1.1.6" },
     { name = "langgraph-checkpoint-postgres", specifier = ">=3.1.1" },
     { name = "markitdown", extras = ["docx", "pdf", "pptx", "xls", "xlsx"], specifier = ">=0.1.5" },
+    { name = "microsoft-agents-authentication-msal", specifier = ">=1.3.0" },
+    { name = "microsoft-agents-hosting-core", specifier = ">=1.3.0" },
     { name = "mypy", specifier = ">=1.19.1" },
     { name = "nest-asyncio", specifier = ">=1.6.0" },
     { name = "nltk", specifier = ">=3.10.0" },
@@ -1576,6 +1594,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ee/2e/31f4267793a15fd6c9d1eb527c4465db7249869b54b5445dd5f95d9ce71a/inspect_ai-0.3.200.tar.gz", hash = "sha256:ebca749f350edf26a85437c3782ec8be6355c8b34039139667ef0951a8801b13", size = 45359847, upload-time = "2026-03-20T22:37:33.196Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2b/26/397ef9b24ee7a5f2e2b34febe907e8e2227dcb3ab0449a96c2022f513079/inspect_ai-0.3.200-py3-none-any.whl", hash = "sha256:a8925702e1fdc21a77f1c47006790b90ada4931c2105178d6519ef94e63e3e96", size = 36355115, upload-time = "2026-03-20T22:37:29.014Z" },
+]
+
+[[package]]
+name = "isodate"
+version = "0.7.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/54/4d/e940025e2ce31a8ce1202635910747e5a87cc3a6a6bb2d00973375014749/isodate-0.7.2.tar.gz", hash = "sha256:4cd1aa0f43ca76f4a6c6c0292a85f40b35ec2e43e315b59f06e6d32171a953e6", size = 29705, upload-time = "2024-10-08T23:04:11.5Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/15/aa/0aca39a37d3c7eb941ba736ede56d689e7be91cab5d9ca846bde3999eba6/isodate-0.7.2-py3-none-any.whl", hash = "sha256:28009937d8031054830160fce6d409ed342816b543597cece116d966c6d99e15", size = 22320, upload-time = "2024-10-08T23:04:09.501Z" },
 ]
 
 [[package]]
@@ -2422,6 +2449,49 @@ wheels = [
 ]
 
 [[package]]
+name = "microsoft-agents-activity"
+version = "1.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ef/37/c6d132590089b52508c17768bfc63fc049380b8735b639eb3f6cfe52b729/microsoft_agents_activity-1.3.0.tar.gz", hash = "sha256:b62f51710343548ca90d5b192ba9a27a31fc9868ed1ccd79a09d5442e74e8690", size = 71931, upload-time = "2026-07-30T23:06:35.25Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fc/bf/44438f443e391a081555387ef94077e53775c5b9cb87367d604866b42fdc/microsoft_agents_activity-1.3.0-py3-none-any.whl", hash = "sha256:4c1fe382aa182ba5489d8b72a6d2ba4cc56aa3d17331ef59c86f38f137135d28", size = 146238, upload-time = "2026-07-30T23:06:49.663Z" },
+]
+
+[[package]]
+name = "microsoft-agents-authentication-msal"
+version = "1.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "microsoft-agents-hosting-core" },
+    { name = "msal" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/fe/e1/9a6b77c5e2524814e3a91cece17b3203e905f1cca5142484202723a64ebd/microsoft_agents_authentication_msal-1.3.0.tar.gz", hash = "sha256:b86d1d7d850b1cd51eec12daea6c76ac2836b381d50599942ba714136f800647", size = 13704, upload-time = "2026-07-30T23:06:37.724Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/39/e7/8fe2f8e0ecc61b0cfffac2536b57350dc9815dc5c776c835a9f462525c54/microsoft_agents_authentication_msal-1.3.0-py3-none-any.whl", hash = "sha256:751bd3ca861387809137b37c23e04f7f6774f2b291061b483320fabf60e0fa12", size = 12310, upload-time = "2026-07-30T23:06:51.878Z" },
+]
+
+[[package]]
+name = "microsoft-agents-hosting-core"
+version = "1.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "isodate" },
+    { name = "microsoft-agents-activity" },
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-sdk" },
+    { name = "pyjwt" },
+    { name = "python-dotenv" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ba/ab/6f937cdbf7fdcfb6f38008a753613b992db44deeb8c129bffd48537d06f6/microsoft_agents_hosting_core-1.3.0.tar.gz", hash = "sha256:1be7c5c9a7233ebc2a0a2d59c409dd39bc223eea89515e870ec1517bd3c2d815", size = 140706, upload-time = "2026-07-30T23:06:40.852Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/55/35/efd3ca12e5acb8019b9a6d2e156e08771f44fbd3c908f64d65111950a937/microsoft_agents_hosting_core-1.3.0-py3-none-any.whl", hash = "sha256:03bb15624ef33da8ea1f317d1214b88d996240c8f199a6dc8c26c9b3c8a35971", size = 209481, upload-time = "2026-07-30T23:06:55.075Z" },
+]
+
+[[package]]
 name = "mmh3"
 version = "5.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2501,6 +2571,20 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/e0/47/dd32fa426cc72114383ac549964eecb20ecfd886d1e5ccf5340b55b02f57/mpmath-1.3.0.tar.gz", hash = "sha256:7a28eb2a9774d00c7bc92411c19a89209d5da7c4c9a9e227be8330a23a25b91f", size = 508106, upload-time = "2023-03-07T16:47:11.061Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/43/e3/7d92a15f894aa0c9c4b49b8ee9ac9850d6e63b03c9c32c0367a13ae62209/mpmath-1.3.0-py3-none-any.whl", hash = "sha256:a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c", size = 536198, upload-time = "2023-03-07T16:47:09.197Z" },
+]
+
+[[package]]
+name = "msal"
+version = "1.37.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cryptography" },
+    { name = "pyjwt", extra = ["crypto"] },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9a/99/d840198ecf6e8057bbc937f129ae940404485d736cda73253bbff9537f01/msal-1.37.0.tar.gz", hash = "sha256:1b1672a33ee467c1d70b341bb16cafd51bb3c817147a95b93263794b03971bec", size = 182444, upload-time = "2026-05-29T19:49:05.561Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/94/b0/d807279f4b55d16d1f120d5ac4344c6e39b56732e2a224d40bded7fd67ad/msal-1.37.0-py3-none-any.whl", hash = "sha256:dd17e95a7c71bce75e8108113438ba7c4a086b3bcad4f57a8c09b7af3d753c2d", size = 123725, upload-time = "2026-05-29T19:49:04.335Z" },
 ]
 
 [[package]]

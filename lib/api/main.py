@@ -34,6 +34,7 @@ from lib.api.routers import (
     workflow_types,
     workflows,
 )
+from lib.api.routers.microsoft import routes as microsoft_routes
 from lib.api.routers.tus_upload import tus_router
 from lib.config.logger import setup_logger
 from lib.services.workflow_reaper import run_reaper_loop
@@ -117,3 +118,4 @@ app.include_router(share.router)
 app.include_router(public.router)
 app.include_router(tus_router)
 app.include_router(users.router)
+app.include_router(microsoft_routes.router)
