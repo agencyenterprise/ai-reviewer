@@ -16,8 +16,9 @@ import { BookOpen, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { AnalysisOptionsMenu } from './components/analysis-options-menu';
 import { TabType } from './constants';
-import { AnalysesTab, FilesTab, ReferenceReviewTab, SummaryTab } from './tabs';
+import { AnalysesTab, FilesTab, PeerReviewTab, ReferenceReviewTab, SummaryTab } from './tabs';
 import { DocumentExplorerTab } from './tabs/document-explorer-tab';
+import { derivePeerReviewFacts, peerReviewNeedsAttention } from './tabs/peer-review/peer-review-derive';
 import { UnmatchedReferencesApproveDialog } from './tabs/reference-review/unmatched-references-approve-dialog';
 import { useReferenceApprovalFlow } from './tabs/reference-review/use-reference-approval-flow';
 
@@ -72,6 +73,19 @@ export function ResultsVisualization({
     setActiveTab('document-explorer');
   };
 
+  const navigateToDocumentExplorer = (lineRange?: [number, number]) => {
+    if (lineRange) {
+      const [start, end] = lineRange;
+      const hash = start === end ? `#L${start}` : `#L${start}-${end}`;
+      window.history.pushState(null, '', hash);
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    }
+    setActiveTab('document-explorer');
+  };
+
+  const peerReviewFacts = derivePeerReviewFacts(projectDetail);
+  const peerReviewAttention = peerReviewNeedsAttention(peerReviewFacts, readOnly);
+
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'summary':
@@ -101,16 +115,19 @@ export function ResultsVisualization({
           <AnalysesTab
             projectDetail={projectDetail}
             readOnly={readOnly}
-            onNavigateToDocumentExplorer={(lineRange?: [number, number]) => {
-              if (lineRange) {
-                const [start, end] = lineRange;
-                const hash = start === end ? `#L${start}` : `#L${start}-${end}`;
-                window.history.pushState(null, '', hash);
-                window.dispatchEvent(new HashChangeEvent('hashchange'));
-              }
-              setActiveTab('document-explorer');
-            }}
+            onNavigateToDocumentExplorer={navigateToDocumentExplorer}
             onNavigateToReferences={() => setActiveTab('references')}
+            onNavigateToPeerReview={() => setActiveTab('peer-review')}
+          />
+        );
+      case 'peer-review':
+        return (
+          <PeerReviewTab
+            projectDetail={projectDetail}
+            readOnly={readOnly}
+            onRevisionChange={onRevisionChange}
+            onRevisionCreated={onRevisionCreated}
+            onNavigateToDocumentExplorer={navigateToDocumentExplorer}
           />
         );
     }
@@ -202,6 +219,17 @@ export function ResultsVisualization({
                 <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
                   {results.filter((r) => isWorkflowTypeVisible(r.run.type)).length}
                 </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="peer-review" className="relative">
+                Peer Review
+                {peerReviewFacts.memos.length > 0 && (
+                  <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
+                    {peerReviewFacts.memos.length}
+                  </Badge>
+                )}
+                {peerReviewAttention && (
+                  <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-background" />
+                )}
               </TabsTrigger>
             </TabsList>
           </Tabs>

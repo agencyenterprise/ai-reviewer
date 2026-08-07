@@ -44,8 +44,27 @@ export function WorkflowTypeSelector({
   }, [allTypes, restrictToType]);
 
   const experimentalVisible = showExperimentalFeatures;
+  const typeMap = useMemo(() => new Map(workflowTypes.map((wt) => [wt.type, wt])), [workflowTypes]);
 
-  const visibleCount = workflowTypes.filter((wt) => !wt.is_experimental || experimentalVisible).length;
+  // Category membership is what decides whether a workflow is on offer here:
+  // anything absent from every category (the peer-review workflows, which are
+  // started from their own tab) is not shown and not counted.
+  const visibleGroups = useMemo(() => {
+    if (restrictToType) return [];
+    return categories
+      .map((category) => ({
+        category,
+        workflows: category.workflows
+          .map((type) => typeMap.get(type as WorkflowRunType))
+          .filter((wt): wt is WorkflowTypeDescription => wt !== undefined)
+          .filter((wt) => experimentalVisible || !wt.is_experimental),
+      }))
+      .filter((group) => group.workflows.length > 0);
+  }, [categories, typeMap, experimentalVisible, restrictToType]);
+
+  const visibleCount = restrictToType
+    ? workflowTypes.filter((wt) => !wt.is_experimental || experimentalVisible).length
+    : visibleGroups.reduce((total, group) => total + group.workflows.length, 0);
 
   const handleCheckedChange = (type: WorkflowRunType, checked: boolean) => {
     if (checked) {
@@ -66,7 +85,6 @@ export function WorkflowTypeSelector({
     />
   );
 
-  const typeMap = new Map(workflowTypes.map((wt) => [wt.type, wt]));
   const controlsDisabled = disabled || isLoadingWorkflowTypes;
 
   return (
@@ -97,21 +115,12 @@ export function WorkflowTypeSelector({
             <p className="text-sm text-muted-foreground">This workflow type is not available for your account.</p>
           )
         ) : (
-          categories.map((category) => {
-            const categoryWorkflows = category.workflows
-              .map((type) => typeMap.get(type as WorkflowRunType))
-              .filter((wt): wt is WorkflowTypeDescription => wt !== undefined)
-              .filter((wt) => experimentalVisible || !wt.is_experimental);
-
-            if (categoryWorkflows.length === 0) return null;
-
-            return (
-              <div key={category.slug} className="space-y-2">
-                <h3 className="text-sm font-semibold text-foreground pt-2">{category.label}</h3>
-                {categoryWorkflows.map(renderCheckbox)}
-              </div>
-            );
-          })
+          visibleGroups.map(({ category, workflows }) => (
+            <div key={category.slug} className="space-y-2">
+              <h3 className="text-sm font-semibold text-foreground pt-2">{category.label}</h3>
+              {workflows.map(renderCheckbox)}
+            </div>
+          ))
         )}
 
         {error && <p className="text-sm text-destructive">{error}</p>}

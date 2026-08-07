@@ -14,6 +14,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { FileUpload } from '@/components/ui/file-upload';
 import { RadioGroup, RadioGroupItemWithDescription } from '@/components/ui/radio-group-with-description';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileListItem } from '@/components/analysis-form/file-list-item';
 import { UploadProgressList } from '@/components/ui/upload-progress-list';
 import { useUpload } from '@/lib/hooks/upload';
@@ -37,6 +38,21 @@ export interface FileUploadDialogProps {
    * Not compatible with `referenceId`.
    */
   allowRoleSelection?: boolean;
+  /**
+   * Revision reviewer memos are attached to. Defaults to the current revision.
+   * Only meaningful for the reviewer-memo role.
+   */
+  targetRevision?: number;
+  /**
+   * Show which draft the memos are attached to, and let the user change it.
+   * Requires `currentRevision`. The control renders for every reviewer-memo
+   * upload — memos are always bound to a draft, and seeing that up front is
+   * what stops a later batch going to the wrong one — but it is disabled while
+   * the project has only one revision, since there is nothing to choose.
+   */
+  allowRevisionSelection?: boolean;
+  /** The project's current revision, used to build the revision options. */
+  currentRevision?: number;
   /** When set, force-matches the uploaded file to this reference instead of triggering the matching workflow. */
   referenceId?: string;
   onCancel: () => void;
@@ -52,12 +68,16 @@ export function FileUploadDialog({
   projectId,
   fileRole = FileRole.Support,
   allowRoleSelection = false,
+  targetRevision,
+  allowRevisionSelection = false,
+  currentRevision,
   referenceId,
   onCancel,
   onComplete,
 }: FileUploadDialogProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedRole, setSelectedRole] = useState<FileRole>(fileRole);
+  const [selectedRevision, setSelectedRevision] = useState<number | undefined>(targetRevision);
   const [isStartingWorkflow, setIsStartingWorkflow] = useState(false);
   const queryClient = useQueryClient();
   const resetRef = useRef<(() => void) | null>(null);
@@ -70,6 +90,14 @@ export function FileUploadDialog({
   // already tied to a specific reference); other roles skip it.
   const activeSkipMatching = activeRole !== FileRole.Support;
   const activeSuccessMessage = isMemoUpload ? 'Reviewer memos uploaded.' : 'Files uploaded. Matching workflow started.';
+  // Only memos carry a revision; sending one for any other role is a 400.
+  const activeRevision = isMemoUpload ? selectedRevision : undefined;
+  // Shown even when there is only one revision: memos are always bound to a
+  // specific draft, and seeing that up front is what stops people from
+  // attaching a later batch to the wrong one.
+  const showRevisionPicker = isMemoUpload && allowRevisionSelection;
+  const revisionCount = currentRevision ?? 1;
+  const revisionOptions = Array.from({ length: revisionCount }, (_, i) => revisionCount - i);
 
   const handleAllComplete = useCallback(async () => {
     if (referenceId) {
@@ -108,6 +136,7 @@ export function FileUploadDialog({
     projectId,
     fileRole: activeRole,
     referenceId,
+    targetRevision: activeRevision,
     onAllComplete: handleAllComplete,
   });
 
@@ -119,10 +148,11 @@ export function FileUploadDialog({
     if (isOpen) {
       setSelectedFiles([]);
       setSelectedRole(fileRole);
+      setSelectedRevision(targetRevision);
       setIsStartingWorkflow(false);
       resetRef.current?.();
     }
-  }, [isOpen, fileRole]);
+  }, [isOpen, fileRole, targetRevision]);
 
   const handleFilesChange = (newFiles: File[]) => {
     setSelectedFiles(multiple ? newFiles : newFiles.slice(-1));
@@ -233,10 +263,38 @@ export function FileUploadDialog({
                       id={FileRole.ReviewerMemo}
                       value={selectedRole}
                       label="Reviewer memo"
-                      description="Peer-review feedback attached to the current revision. Used by the Peer Review Assistant assessments."
+                      description="Peer-review feedback on a specific draft. Used by the Peer Review assessments."
                       disabled={isUploading}
                     />
                   </RadioGroup>
+                </div>
+              )}
+
+              {showRevisionPicker && (
+                <div className="space-y-2">
+                  <Label htmlFor="memo-revision">Which draft did these reviewers read?</Label>
+                  <Select
+                    value={String(selectedRevision ?? revisionCount)}
+                    onValueChange={(v) => setSelectedRevision(Number(v))}
+                    disabled={isUploading || revisionCount === 1}
+                  >
+                    <SelectTrigger id="memo-revision" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {revisionOptions.map((rev) => (
+                        <SelectItem key={rev} value={String(rev)}>
+                          Revision {rev}
+                          {rev === revisionCount ? ' (current)' : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {revisionCount === 1
+                      ? 'Memos are attached to the draft they reviewed. This project has one revision, so they attach to revision 1 — once you upload a revised draft, the assessments compare the two.'
+                      : 'The assessments compare that draft against the current one. Pick the draft the reviewers actually saw, which is not always the latest.'}
+                  </p>
                 </div>
               )}
               <div className="space-y-2">

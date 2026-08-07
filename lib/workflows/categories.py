@@ -59,15 +59,13 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
             WorkflowRunType.ADVOCACY_TONE_V2,
         ],
     ),
-    CategoryConfig(
-        slug="peer_review_assistant",
-        label="Peer Review Assistant",
-        workflows=[
-            WorkflowRunType.REVISION_PLANNING_SUMMARY,
-            WorkflowRunType.REVIEWER_RESPONSE_MEMOS,
-            WorkflowRunType.REVIEWER_COVERAGE_REPORT,
-        ],
-    ),
+    # The peer-review workflows (REVISION_PLANNING_SUMMARY,
+    # REVIEWER_RESPONSE_MEMOS, REVIEWER_COVERAGE_REPORT) are deliberately absent.
+    # They are started only from the Peer Review tab, which sequences their
+    # prerequisites — memos first, then the revised draft — and starting them out
+    # of order returns a guard message instead of a report. Leaving them out of
+    # every category is what keeps them out of the assessment picker; they stay
+    # registered, so existing runs still list and render normally.
     CategoryConfig(
         slug="research_writing_assistant",
         label="Research & Writing Assistant",

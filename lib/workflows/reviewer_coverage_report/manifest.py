@@ -86,6 +86,9 @@ class ReviewerCoverageReportManifest(HtmlReportDeepAgentManifest):
     )
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
     is_experimental = True
+    # Started only from the Peer Review tab, which sequences the prerequisites.
+    # Creating a revision must not fire these off on its own.
+    auto_rerun_on_new_revision = False
 
     skill = "review-assistant"
     system_prompt = _SYSTEM_PROMPT

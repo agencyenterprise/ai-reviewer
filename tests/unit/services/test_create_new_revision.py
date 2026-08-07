@@ -193,6 +193,44 @@ async def test_create_new_revision_returns_previous_workflow_types():
 
 
 @pytest.mark.asyncio
+async def test_create_new_revision_excludes_workflows_opted_out_of_auto_rerun():
+    """Workflows with auto_rerun_on_new_revision=False are not offered for re-run.
+
+    The peer-review workflows read the *reviewed* revision against the current
+    draft, so re-running them the moment a revision is created would waste an
+    expensive run or return a guard message.
+    """
+    project = _make_project(current_revision=1)
+
+    previous_types = [
+        (WorkflowRunType.CLAIM_EXTRACTION,),
+        (WorkflowRunType.REVISION_PLANNING_SUMMARY,),
+        (WorkflowRunType.REVIEWER_RESPONSE_MEMOS,),
+        (WorkflowRunType.REVIEWER_COVERAGE_REPORT,),
+    ]
+
+    sessions = [
+        _FakeSession(scalars_result=[]),
+        _FakeSession(all_result=previous_types),
+    ]
+    session_iter = iter(sessions)
+
+    with (
+        patch(
+            "lib.services.projects.get_project_access",
+            new=AsyncMock(return_value=(project, AccessLevel.WRITE)),
+        ),
+        patch(
+            "lib.services.projects.get_async_db_session",
+            side_effect=lambda: next(session_iter),
+        ),
+    ):
+        _, returned_types = await create_new_revision(str(project.id), MagicMock())
+
+    assert returned_types == [WorkflowRunType.CLAIM_EXTRACTION]
+
+
+@pytest.mark.asyncio
 async def test_create_new_revision_requires_write_access():
     """Should raise when user lacks WRITE access."""
     from fastapi import HTTPException

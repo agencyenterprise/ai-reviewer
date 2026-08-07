@@ -42,6 +42,13 @@ export interface ReplaceMainDocumentDialogProps {
   /** Called after a new revision is successfully created, so the caller can
    *  switch the view to the newly created (now current) revision. */
   onRevisionCreated?: () => void;
+  /**
+   * Hides the "re-run previous assessments" choice. The Peer Review tab sets
+   * this: there, uploading a revised draft is one step of a sequence whose next
+   * steps the user starts deliberately, so an extra toggle about unrelated
+   * assessments is noise. Document processing still runs either way.
+   */
+  hideRerunOption?: boolean;
 }
 
 export function ReplaceMainDocumentDialog({
@@ -49,9 +56,13 @@ export function ReplaceMainDocumentDialog({
   projectId,
   onClose,
   onRevisionCreated,
+  hideRerunOption = false,
 }: ReplaceMainDocumentDialogProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [rerunAnalyses, setRerunAnalyses] = useState(true);
+  // Hiding the control also disables the behaviour: only document processing
+  // and the other initial workflows run.
+  const shouldRerunAnalyses = rerunAnalyses && !hideRerunOption;
   const [stage, setStage] = useState<Stage>('select');
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const queryClient = useQueryClient();
@@ -90,7 +101,7 @@ export function ReplaceMainDocumentDialog({
       if (abortRef.current) return;
 
       // Step 3: Start workflows if requested
-      if (rerunAnalyses && previous_workflow_types.length > 0) {
+      if (shouldRerunAnalyses && previous_workflow_types.length > 0) {
         setStage('starting-workflows');
         const initialSet = new Set<string>(INITIAL_WORKFLOWS);
         const workflowTypes = [
@@ -115,7 +126,7 @@ export function ReplaceMainDocumentDialog({
       // Follow the newly created revision so the view doesn't stay pinned to
       // the previous one.
       onRevisionCreated?.();
-      toast.success(rerunAnalyses ? 'New revision created. Assessments started.' : 'New revision created.');
+      toast.success(shouldRerunAnalyses ? 'New revision created. Assessments started.' : 'New revision created.');
       onClose();
     },
     onError: (error) => {
@@ -191,22 +202,24 @@ export function ReplaceMainDocumentDialog({
               </div>
             )}
 
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="rerun-analyses"
-                  checked={rerunAnalyses}
-                  onCheckedChange={(checked) => setRerunAnalyses(checked === true)}
-                />
-                <Label htmlFor="rerun-analyses" className="text-sm font-normal cursor-pointer">
-                  Re-run previous assessments on this revision
-                </Label>
+            {!hideRerunOption && (
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="rerun-analyses"
+                    checked={rerunAnalyses}
+                    onCheckedChange={(checked) => setRerunAnalyses(checked === true)}
+                  />
+                  <Label htmlFor="rerun-analyses" className="text-sm font-normal cursor-pointer">
+                    Re-run previous assessments on this revision
+                  </Label>
+                </div>
+                <p className="text-xs text-muted-foreground pl-6">
+                  Automatically run the same assessments on the new revision that were run on the previous one. If
+                  unchecked, you can still start assessments manually later.
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground pl-6">
-                Automatically run the same assessments on the new revision that were run on the previous one. If
-                unchecked, you can still start assessments manually later.
-              </p>
-            </div>
+            )}
           </div>
         )}
 
