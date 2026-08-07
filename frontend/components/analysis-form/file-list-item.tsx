@@ -4,15 +4,23 @@ import { FileText, X, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatFileSize } from './utils';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
+import { FileRole } from '@/lib/generated-api';
+
+const ROLE_LABELS: Record<FileRole, string> = {
+  [FileRole.Main]: 'Main',
+  [FileRole.Support]: 'Supporting',
+  [FileRole.SupportingCandidate]: 'Supporting',
+  [FileRole.ReviewerMemo]: 'Reviewer memo',
+};
 
 export interface FileListItemProps {
   file: File;
-  type: 'main' | 'supporting';
+  type: FileRole;
   onRemove: () => void;
 }
 
 export const FileListItem = ({ file, type, onRemove }: FileListItemProps) => {
-  const isMain = type === 'main';
+  const isMain = type === FileRole.Main;
   const isOversized = file.size > MAX_FILE_SIZE_BYTES;
 
   const bgClass = isOversized
@@ -37,7 +45,7 @@ export const FileListItem = ({ file, type, onRemove }: FileListItemProps) => {
             {isOversized && <AlertTriangle className="w-3.5 h-3.5 text-destructive flex-shrink-0" />}
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className={`px-1.5 py-0.5 rounded ${tagClass}`}>{isMain ? 'Main' : 'Supporting'}</span>
+            <span className={`px-1.5 py-0.5 rounded ${tagClass}`}>{ROLE_LABELS[type]}</span>
             <span className={isOversized ? 'text-destructive font-medium' : ''}>{formatFileSize(file.size)}</span>
             {isOversized && <span className="text-destructive text-[10px]">(Max: {MAX_FILE_SIZE_MB} MB)</span>}
           </div>

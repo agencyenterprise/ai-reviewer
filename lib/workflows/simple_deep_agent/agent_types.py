@@ -46,8 +46,14 @@ class IssueItem(BaseModel):
     )
 
 
+# --- LLM structured-output models ---------------------------------------
+# Each deep-agent variant forces one of these as the model's response schema,
+# so the LLM sees only the fields it should populate. They are mapped into the
+# unified DeepAgentResult that the workflow state stores.
+
+
 class AgentCheckResult(BaseModel):
-    """Result from a single deep-agent validation pass."""
+    """LLM output for a validation pass: issues plus a markdown report."""
 
     issues: List[IssueItem] = Field(
         default_factory=list,
@@ -59,6 +65,40 @@ class AgentCheckResult(BaseModel):
     )
 
 
+class AgentHtmlReport(BaseModel):
+    """LLM output for a pass that produces an HTML report deliverable."""
+
+    issues: List[IssueItem] = Field(
+        default_factory=list,
+        description="Optional issues found while producing the report",
+    )
+    report_html: str = Field(
+        default="",
+        description=(
+            "A complete, self-contained HTML document for the report: its own "
+            "inline <style>, no external resources (fonts/images/scripts), and "
+            "images only as data: URIs."
+        ),
+    )
+
+
+# --- Unified state result ------------------------------------------------
+
+
+class DeepAgentResult(BaseModel):
+    """Unified result stored in the workflow state.
+
+    Holds the superset of what the deep-agent variants produce. Exactly one
+    report field is populated per run (markdown workflows fill
+    ``report_markdown``; HTML workflows fill ``report_html``); the UI renders
+    whichever is present. ``issues`` is populated by the markdown variant only.
+    """
+
+    issues: List[IssueItem] = Field(default_factory=list)
+    report_markdown: str = Field(default="")
+    report_html: str = Field(default="")
+
+
 _SEVERITY_MAP = {
     "none": SeverityEnum.NONE,
     "low": SeverityEnum.LOW,
@@ -68,10 +108,10 @@ _SEVERITY_MAP = {
 
 
 def issues_from_agent_result(
-    result: AgentCheckResult,
+    result: AgentCheckResult | DeepAgentResult,
     workflow_type: WorkflowRunType,
 ) -> List[DocumentIssue]:
-    """Convert an AgentCheckResult into DocumentIssue objects.
+    """Convert a result's issues into DocumentIssue objects.
 
     Emits line ranges only; ``chunk_indices`` is left unset and derived at
     persistence time from the line range.

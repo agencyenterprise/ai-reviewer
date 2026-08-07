@@ -3,7 +3,9 @@
 import { ReadonlyThread } from '@/components/assistant-ui/readonly-thread';
 import { Markdown } from '@/components/markdown';
 import { DocumentIssueCard } from '@/components/results/components/document-issue-card';
+import { HtmlReportFrame, HtmlReportFrameHandle } from '@/components/results/components/html-report-frame';
 import { MarkdownDownloadButton } from '@/components/results/components/markdown-download-button';
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,8 +18,8 @@ import {
 } from '@/lib/workflow-state';
 import { AssistantRuntimeProvider, ThreadMessageLike, useExternalStoreRuntime } from '@assistant-ui/react';
 import { convertLangChainMessages, LangChainMessage } from '@assistant-ui/react-langgraph';
-import { Ban, CheckCircle2, ClipboardList, Loader2, MessageSquare, XCircle } from 'lucide-react';
-import { useMemo } from 'react';
+import { Ban, CheckCircle2, ClipboardList, Download, Loader2, MessageSquare, XCircle } from 'lucide-react';
+import { useMemo, useRef } from 'react';
 
 interface SimpleDeepAgentResultsProps {
   project: ProjectDetailed;
@@ -101,6 +103,23 @@ function ReportCard({ reportMarkdown }: { reportMarkdown: string }) {
   );
 }
 
+// No Card wrapper here: the report document already renders inside its own
+// bordered frame, so an outer card would just nest a box in a box.
+function HtmlReportCard({ reportHtml }: { reportHtml: string }) {
+  const frameRef = useRef<HtmlReportFrameHandle>(null);
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => frameRef.current?.print()}>
+          <Download className="size-4" />
+          Download PDF
+        </Button>
+      </div>
+      <HtmlReportFrame ref={frameRef} html={reportHtml} title="Report" />
+    </div>
+  );
+}
+
 export function SimpleDeepAgentResults({
   project,
   workflowDetail,
@@ -178,9 +197,15 @@ export function SimpleDeepAgentResults({
       </TabsList>
 
       <TabsContent value="results" className="space-y-4">
-        {result.report_markdown && <ReportCard reportMarkdown={result.report_markdown} />}
-
-        <IssuesList issues={issues} onNavigateToDocumentExplorer={onNavigateToDocumentExplorer} />
+        {result.report_html ? (
+          // HTML-report workflows produce a document deliverable, not a checklist.
+          <HtmlReportCard reportHtml={result.report_html} />
+        ) : (
+          <>
+            {result.report_markdown && <ReportCard reportMarkdown={result.report_markdown} />}
+            <IssuesList issues={issues} onNavigateToDocumentExplorer={onNavigateToDocumentExplorer} />
+          </>
+        )}
       </TabsContent>
 
       <TabsContent value="messages" className="mt-4">

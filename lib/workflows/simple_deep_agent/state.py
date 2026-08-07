@@ -12,7 +12,7 @@ from langchain_core.messages import BaseMessage
 from pydantic import Field, field_serializer
 
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
-from lib.workflows.simple_deep_agent.agent_types import AgentCheckResult
+from lib.workflows.simple_deep_agent.agent_types import DeepAgentResult
 
 
 class SimpleDeepAgentConfig(BaseWorkflowConfig):
@@ -24,15 +24,19 @@ class SimpleDeepAgentConfig(BaseWorkflowConfig):
 
 
 class SimpleDeepAgentState(BaseWorkflowState):
-    """Shared state for all simple deep-agent workflows."""
+    """Shared state for all single-node deep-agent workflows.
+
+    ``result`` is the unified DeepAgentResult; markdown variants fill its
+    ``report_markdown`` (+ ``issues``), HTML variants fill its ``report_html``.
+    """
 
     type: WorkflowRunType = Field(
         description="The workflow type, set per-manifest at runtime"
     )
     config: SimpleDeepAgentConfig
-    result: Optional[AgentCheckResult] = Field(
+    result: Optional[DeepAgentResult] = Field(
         default=None,
-        description="Result from the deep agent validation pass",
+        description="Result from the deep agent pass (markdown/issues or HTML report)",
     )
     messages: List[BaseMessage] = Field(
         default_factory=list,

@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, List
 
+from lib.models.file import FileRole
+
 if TYPE_CHECKING:
     from lib.workflows.chunk_utils import AnalyzedChunk
     from lib.models.bibliography_item import BibliographyItem
@@ -15,10 +17,15 @@ class FileArtifactsServiceType(ABC):
     async def get_file_document(self, file_id: str) -> "FileDocument": ...
 
     @abstractmethod
-    async def get_main_file(self) -> "FileDocument": ...
+    async def get_main_file(self, revision: int | None = None) -> "FileDocument": ...
 
     @abstractmethod
-    async def get_supporting_files(self) -> list["FileDocument"]: ...
+    async def get_project_files(
+        self, roles: list[FileRole], revision: int | None = None
+    ) -> list["FileDocument"]: ...
+
+    @abstractmethod
+    async def get_latest_reviewer_memo_revision(self) -> int | None: ...
 
     @abstractmethod
     async def get_file_summary(self, file_id: str) -> "FileSummary": ...
@@ -38,7 +45,6 @@ class FileArtifactsServiceType(ABC):
     @abstractmethod
     async def get_deepagent_backend_files(
         self,
-        include_supporting_files: bool = True,
         include_skills: bool = True,
     ) -> dict[str, Any]: ...
 

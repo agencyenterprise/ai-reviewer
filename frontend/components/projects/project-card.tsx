@@ -75,16 +75,16 @@ export function ProjectCard({ item }: ProjectCardProps) {
 
         <p className="text-sm text-muted-foreground mt-1">
           Created {formatDistanceToNow(project.created_at, { addSuffix: true })}
-          {project.current_revision && project.current_revision > 1 && (
+          {project.current_revision && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="ml-2 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium cursor-default">
-                  Rev {project.current_revision}
+                  Revision {project.current_revision}
                 </span>
               </TooltipTrigger>
               <TooltipContent>
-                The main document has been replaced {project.current_revision - 1} time
-                {project.current_revision > 2 ? 's' : ''}. Currently analyzing revision {project.current_revision}.
+                This project has {project.current_revision} revisions of the main document. Revision{' '}
+                {project.current_revision} is the current one.
               </TooltipContent>
             </Tooltip>
           )}

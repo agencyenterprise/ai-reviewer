@@ -21,21 +21,21 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { FileDownloadLink } from '@/components/ui/file-download-link';
 import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
 import { buildReferenceByFileIdMap, composeReferences, ComposedReference } from '@/lib/composed-references';
 import { FileListItem, FileRole, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
-import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
-import { Download, FileText, HelpCircle, Loader2, MoreVerticalIcon, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { Download, FileText, Loader2, MoreVerticalIcon, RefreshCw, Search, Trash2, Upload } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useRemoveFileMutation } from './reference-review/mutations';
 import { ReplaceMainDocumentDialog } from '../components/replace-main-document-dialog';
+import { FileUploadDialog } from './reference-review/file-upload-dialog';
 
 interface FilesTabProps {
   projectDetail: ProjectDetailed;
   readOnly?: boolean;
+  onRevisionCreated?: () => void;
 }
 
 function FileTypeIcon({ fileType }: { fileType?: string | null }) {
@@ -57,22 +57,6 @@ function FileTypeIcon({ fileType }: { fileType?: string | null }) {
   return <FileText className="flex-shrink-0 size-4 text-muted-foreground" />;
 }
 
-function ExpandableCell({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className="relative">
-      <div
-        className={cn(
-          'line-clamp-2',
-          'hover:absolute hover:z-10 hover:line-clamp-none hover:bg-background hover:shadow-lg hover:rounded-lg hover:p-3 hover:-my-7 hover:-mx-3 hover:min-w-full hover:w-max hover:max-w-md',
-          className,
-        )}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
 function FileNameLink({ file }: { file: FileListItem }) {
   if (!file.id) {
     return (
@@ -91,16 +75,27 @@ function FileNameLink({ file }: { file: FileListItem }) {
   );
 }
 
-function RoleBadge({ label, variant }: { label: string; variant: 'main' | 'muted' | 'support' }) {
+function RoleTag({
+  role,
+  detail,
+  variant,
+}: {
+  role: string;
+  detail?: string;
+  variant: 'main' | 'muted' | 'support' | 'memo';
+}) {
   const variantClass =
     variant === 'main'
       ? 'bg-primary/10 text-primary'
       : variant === 'muted'
         ? 'bg-muted text-muted-foreground'
-        : 'bg-secondary';
+        : variant === 'memo'
+          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200'
+          : 'bg-secondary text-secondary-foreground';
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${variantClass}`}>
-      {label}
+    <span className={`inline-flex flex-col items-start rounded-md px-2.5 py-1 leading-tight ${variantClass}`}>
+      <span className="text-xs font-semibold">{role}</span>
+      {detail && <span className="text-[10px] font-medium opacity-70">{detail}</span>}
     </span>
   );
 }
@@ -121,34 +116,33 @@ function FileTableRow({ file, projectId, currentRevision, matchedReference, onRe
 
   return (
     <TableRow key={file.id}>
-      <TableCell className="whitespace-normal break-all">
+      <TableCell className="whitespace-normal break-all align-middle">
         <FileNameLink file={file} />
+        {matchedReference && (
+          <p className="mt-1 ml-6 text-xs text-muted-foreground line-clamp-2" title={matchedReference.text}>
+            <span className="font-medium">Matched reference: </span>
+            <span className="italic">{matchedReference.text}</span>
+          </p>
+        )}
       </TableCell>
-      <TableCell className="">
+      <TableCell className="align-middle">
         {isMain ? (
-          <RoleBadge
-            label={isCurrentMain ? 'Main · Current' : `Main · Revision ${file.revision ?? '?'}`}
+          <RoleTag
+            role="Main"
+            detail={isCurrentMain ? 'Current revision' : `Revision ${file.revision ?? '?'}`}
             variant={isCurrentMain ? 'main' : 'muted'}
           />
+        ) : file.role === FileRole.ReviewerMemo ? (
+          <RoleTag
+            role="Reviewer memo"
+            detail={file.revision != null ? `Revision ${file.revision}` : undefined}
+            variant="memo"
+          />
         ) : (
-          <RoleBadge label="Supporting" variant="support" />
+          <RoleTag role="Supporting" variant="support" />
         )}
       </TableCell>
-      <TableCell className="text-xs whitespace-normal">
-        {file.description ? (
-          <ExpandableCell>{file.description}</ExpandableCell>
-        ) : (
-          <span className="text-muted-foreground/60">-</span>
-        )}
-      </TableCell>
-      <TableCell className="text-xs whitespace-normal">
-        {matchedReference ? (
-          <ExpandableCell className="italic">{matchedReference.text}</ExpandableCell>
-        ) : (
-          <span className="text-muted-foreground/60">-</span>
-        )}
-      </TableCell>
-      <TableCell className="text-xs text-right">{formatFileSize(file.file_size)}</TableCell>
+      <TableCell className="text-xs text-right align-middle">{formatFileSize(file.file_size)}</TableCell>
       <TableCell>
         {isMain && !isCurrentMain ? null : (
           <AlertDialog>
@@ -195,13 +189,14 @@ function FileTableRow({ file, projectId, currentRevision, matchedReference, onRe
   );
 }
 
-export function FilesTab({ projectDetail, readOnly = false }: FilesTabProps) {
+export function FilesTab({ projectDetail, readOnly = false, onRevisionCreated }: FilesTabProps) {
   const projectId = projectDetail.project.id;
   const currentRevision = projectDetail.project.current_revision ?? 1;
   const files = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
 
   const referenceExtraction = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction);
   const referenceFileMatching = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching);
@@ -219,15 +214,17 @@ export function FilesTab({ projectDetail, readOnly = false }: FilesTabProps) {
   const matchedReferencesMap = useMemo(() => buildReferenceByFileIdMap(composedReferences), [composedReferences]);
 
   // Sort files: main documents first (current revision, then older revisions
-  // newest-first), then supporting files alphabetically by name.
+  // newest-first), then reviewer memos, then supporting files alphabetically.
+  const roleRank = (role: FileListItem['role']) =>
+    role === FileRole.Main ? 0 : role === FileRole.ReviewerMemo ? 1 : 2;
   const sortedFiles = useMemo(
     () =>
       [...(files || [])].sort((a, b) => {
-        const aMain = a.role === FileRole.Main;
-        const bMain = b.role === FileRole.Main;
-        if (aMain && bMain) return (b.revision ?? 0) - (a.revision ?? 0);
-        if (aMain) return -1;
-        if (bMain) return 1;
+        const rankDiff = roleRank(a.role) - roleRank(b.role);
+        if (rankDiff !== 0) return rankDiff;
+        if (a.role === FileRole.Main && b.role === FileRole.Main) {
+          return (b.revision ?? 0) - (a.revision ?? 0);
+        }
         return (a.file_name || '').localeCompare(b.file_name || '');
       }),
     [files],
@@ -254,21 +251,29 @@ export function FilesTab({ projectDetail, readOnly = false }: FilesTabProps) {
           Project Files ({filteredFiles.length}
           {searchQuery ? ` of ${sortedFiles.length}` : ''})
         </h2>
-        {sortedFiles.length > 0 && (
-          <Button onClick={downloadAll} disabled={isDownloading} variant="outline" size="sm">
-            {isDownloading ? (
-              <>
-                <Loader2 className="size-4 animate-spin" />
-                Downloading...
-              </>
-            ) : (
-              <>
-                <Download className="size-4" />
-                Download all files (.zip)
-              </>
-            )}
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {!readOnly && (
+            <Button onClick={() => setIsUploadOpen(true)} variant="outline" size="sm">
+              <Upload className="size-4" />
+              Upload files
+            </Button>
+          )}
+          {sortedFiles.length > 0 && (
+            <Button onClick={downloadAll} disabled={isDownloading} variant="outline" size="sm">
+              {isDownloading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Downloading...
+                </>
+              ) : (
+                <>
+                  <Download className="size-4" />
+                  Download all files (.zip)
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
 
       {sortedFiles.length > 0 && (
@@ -288,10 +293,8 @@ export function FilesTab({ projectDetail, readOnly = false }: FilesTabProps) {
       ) : (
         <Table className="table-fixed w-full overflow-x-visible">
           <colgroup>
-            <col className="w-[45%]" />
+            <col className="w-[75%]" />
             <col className="w-[10%]" />
-            <col className="w-[20%]" />
-            <col className="w-[20%]" />
             <col className="w-[10%]" />
             <col className="w-[5%]" />
           </colgroup>
@@ -299,20 +302,6 @@ export function FilesTab({ projectDetail, readOnly = false }: FilesTabProps) {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Role</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>
-                <div className="flex items-center gap-1">
-                  Matched reference
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle className="size-3.5 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      The reference item from the main document that was matched to this supporting file.
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              </TableHead>
               <TableHead className="text-right">Size</TableHead>
               <TableHead className="w-8"></TableHead>
             </TableRow>
@@ -336,6 +325,18 @@ export function FilesTab({ projectDetail, readOnly = false }: FilesTabProps) {
         isOpen={isReplaceDialogOpen}
         projectId={projectId}
         onClose={() => setIsReplaceDialogOpen(false)}
+        onRevisionCreated={onRevisionCreated}
+      />
+
+      <FileUploadDialog
+        isOpen={isUploadOpen}
+        projectId={projectId}
+        title="Upload files"
+        description="Add supporting documents or reviewer memos to this project."
+        multiple
+        allowRoleSelection
+        onCancel={() => setIsUploadOpen(false)}
+        onComplete={() => setIsUploadOpen(false)}
       />
     </div>
   );

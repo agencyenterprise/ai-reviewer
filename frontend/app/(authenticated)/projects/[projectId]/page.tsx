@@ -30,6 +30,13 @@ export default function ResultsPage() {
     setSelectedRevision(rev);
   }, []);
 
+  // After a new revision is created, drop back to "follow latest" so the view
+  // and switcher move to the newly created (now current) revision instead of
+  // staying pinned to the previously selected one.
+  const handleRevisionCreated = useCallback(() => {
+    setSelectedRevision(null);
+  }, []);
+
   const isProcessing = isAnyWorkflowProcessing(workflowDetails);
   const awaitingHumanApproval = needsHumanApproval(workflowDetails);
   // HumanApproval stays Pending/Running until the user approves, which keeps isProcessing true even though
@@ -129,6 +136,7 @@ export default function ResultsPage() {
       needsReferenceReview={!isReadOnly && !isViewingOldRevision && needsHumanApproval(workflowDetails)}
       selectedRevision={effectiveRevision}
       onRevisionChange={handleRevisionChange}
+      onRevisionCreated={handleRevisionCreated}
     />
   );
 }

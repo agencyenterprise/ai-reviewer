@@ -174,6 +174,7 @@ export {
   type CreateThreadApiChatThreadsPostResponse,
   type CreateThreadApiChatThreadsPostResponses,
   type CreateThreadRequest,
+  type DeepAgentResult,
   type DeleteFeedbackApiFeedbackFeedbackIdDeleteData,
   type DeleteFeedbackApiFeedbackFeedbackIdDeleteError,
   type DeleteFeedbackApiFeedbackFeedbackIdDeleteErrors,

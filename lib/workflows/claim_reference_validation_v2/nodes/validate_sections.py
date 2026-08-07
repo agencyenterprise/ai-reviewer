@@ -9,6 +9,7 @@ from langgraph.types import Overwrite, Send
 
 from lib.agents.citation_validator import CitationAssessment, CitationValidatorAgent
 from lib.agents.formatting_utils import format_audience_context, format_domain_context
+from lib.models.file import FileRole
 from lib.workflows.claim_reference_validation_v2.citation_mapping import (
     build_reference_file_map,
 )
@@ -110,7 +111,9 @@ async def validate_section(state: dict, runtime: Runtime[ContextSchema]):
     try:
         main_file = await file_artifacts_service.get_main_file()
         references = await file_artifacts_service.get_references()
-        supporting_files = await file_artifacts_service.get_supporting_files()
+        supporting_files = await file_artifacts_service.get_project_files(
+            [FileRole.SUPPORT]
+        )
 
         reference_file_map = build_reference_file_map(references, supporting_files)
 

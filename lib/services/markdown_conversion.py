@@ -27,14 +27,17 @@ logger = logging.getLogger(__name__)
 def _converter_for(file_path: str, role: FileRole) -> str:
     """Pick the converter backend based on file role and extension.
 
-    The main document goes through markitdown for higher-fidelity output
-    (tables, headings, etc.) since downstream agents depend on that
-    structure. Supporting PDFs go through pypdfium2 — text-only but with
-    a near-flat memory profile, which is what we need to convert academic
-    reference batches without OOMing the worker. Non-PDF supporting files
-    fall back to markitdown so .docx / .html / .csv etc. still work.
+    The main document and reviewer memos go through markitdown for
+    higher-fidelity output (tables, headings, bold/highlight, etc.). Downstream
+    agents depend on that structure for the main document, and reviewer memos
+    rely on formatting cues (e.g. the reviewer's rating marked by bold or
+    highlight); memos are also few and small, so the memory trade-off does not
+    apply. Supporting PDFs go through pypdfium2 — text-only but with a near-flat
+    memory profile, which is what we need to convert academic reference batches
+    without OOMing the worker. Non-PDF supporting files fall back to markitdown
+    so .docx / .html / .csv etc. still work.
     """
-    if role == FileRole.MAIN:
+    if role in (FileRole.MAIN, FileRole.REVIEWER_MEMO):
         return "markitdown"
     if file_path.lower().endswith(".pdf"):
         return "pypdfium"
@@ -93,9 +96,8 @@ async def convert_and_cache_file_markdown(file_id: str) -> None:
 
     Loads the file by id, runs markdown conversion when ``has_cached_markdown``
     is False, and writes the result back via ``update_file_artifacts`` so
-    consumers reading via ``file_artifacts_service.get_supporting_files()``
-    take the live-DB path instead of the stale ``DocumentProcessingState``
-    fallback.
+    consumers reading via ``file_artifacts_service.get_project_files()`` serve
+    it from the DB cache instead of converting the markdown on demand.
     """
     file = await get_file_by_id(file_id)
     if file.has_cached_markdown:

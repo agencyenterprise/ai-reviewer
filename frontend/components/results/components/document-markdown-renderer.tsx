@@ -25,6 +25,8 @@ interface DocumentMarkdownRendererProps {
   issues: Issue[];
   selectedLineRange: [number, number] | null;
   onIssueSelect: (issue: Issue | null) => void;
+  /** Optional content rendered inside the scroll area, above the document. */
+  header?: React.ReactNode;
 }
 
 const SEVERITY_BG: Record<string, string> = {
@@ -105,6 +107,7 @@ export function DocumentMarkdownRenderer({
   issues,
   selectedLineRange,
   onIssueSelect,
+  header,
 }: DocumentMarkdownRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -194,6 +197,7 @@ export function DocumentMarkdownRenderer({
       ref={containerRef}
       className="relative h-full overflow-y-auto overflow-x-hidden break-words py-4 px-4 leading-relaxed text-sm"
     >
+      {header}
       {renderedMarkdown}
     </div>
   );
