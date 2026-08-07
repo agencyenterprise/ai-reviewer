@@ -21,9 +21,10 @@ import { getErrorMessage } from '@/lib/api-error';
 import { WorkflowDuration } from './workflow-duration';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { getDisplayStatus } from '@/lib/workflow-state';
+import { isPeerReviewWorkflowType } from '@/lib/peer-review';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
-import { InfoIcon, PlusIcon } from 'lucide-react';
+import { ArrowRight, InfoIcon, PlusIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useWorkflowSelection } from './use-workflow-selection';
@@ -35,6 +36,8 @@ interface AnalysesTabProps {
   readOnly?: boolean;
   onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void;
   onNavigateToReferences: () => void;
+  /** Sends the user to the tab that owns the peer-review assessments. */
+  onNavigateToPeerReview?: () => void;
 }
 
 export function AnalysesTab({
@@ -42,6 +45,7 @@ export function AnalysesTab({
   readOnly,
   onNavigateToDocumentExplorer,
   onNavigateToReferences,
+  onNavigateToPeerReview,
 }: AnalysesTabProps) {
   const projectId = projectDetail.project.id;
   const workflowDetails = projectDetail.workflow_runs ?? [];
@@ -121,21 +125,32 @@ export function AnalysesTab({
                     onSelectRun={handleSelectRun}
                     historyData={historyData}
                   />
-                  {!readOnly && (
-                    <StartWorkflowButton
-                      type={selectedWorkflowRun.run.type}
-                      projectId={projectId}
-                      workflow={selectedWorkflowRun.run}
-                      onConfirm={async () => {
-                        return await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
-                          body: {
-                            project_id: projectId,
-                            workflow_types: [selectedWorkflowRun.run.type],
-                          },
-                        });
-                      }}
-                    />
-                  )}
+                  {!readOnly &&
+                    // Peer-review assessments are started from the Peer Review
+                    // tab, which sequences their prerequisites; re-running one
+                    // from here could produce a guard report instead of a result.
+                    (isPeerReviewWorkflowType(selectedWorkflowRun.run.type) ? (
+                      onNavigateToPeerReview && (
+                        <Button variant="outline" size="sm" onClick={onNavigateToPeerReview}>
+                          Manage in Peer Review
+                          <ArrowRight className="size-4" />
+                        </Button>
+                      )
+                    ) : (
+                      <StartWorkflowButton
+                        type={selectedWorkflowRun.run.type}
+                        projectId={projectId}
+                        workflow={selectedWorkflowRun.run}
+                        onConfirm={async () => {
+                          return await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
+                            body: {
+                              project_id: projectId,
+                              workflow_types: [selectedWorkflowRun.run.type],
+                            },
+                          });
+                        }}
+                      />
+                    ))}
                 </div>
               </div>
               <div className="flex items-center gap-4 text-sm text-muted-foreground">

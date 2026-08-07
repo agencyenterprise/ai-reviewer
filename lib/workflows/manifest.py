@@ -46,6 +46,12 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     # If True, workflow stays PENDING until explicitly triggered via API
     requires_human_trigger: bool = False
 
+    # Whether creating a new revision may re-run this workflow automatically,
+    # as part of "re-run previous assessments". Set False for workflows whose
+    # inputs are not simply "the current draft" — re-running them the moment a
+    # revision appears would either waste a run or produce a guard message.
+    auto_rerun_on_new_revision: bool = True
+
     # If True, workflow always runs even if already completed (when included as dependency)
     # The workflows needs to be idempotent, meaning it can be run multiple times without changing the result and typical execute only "new" content that was not processed in a previous run, reusing cached results from previous runs, like summarization, document conversion, etc (should process only new files in subsequent runs).
     always_run: bool = False

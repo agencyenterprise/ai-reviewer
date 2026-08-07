@@ -38,6 +38,7 @@ from lib.services.workflow_runs import (
 )
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.models import WorkflowRunType
+from lib.workflows.registry import get_all_manifests
 
 logger = logging.getLogger(__name__)
 
@@ -498,9 +499,22 @@ async def create_new_revision(
             .distinct()
         )
         result = await session.execute(types_stmt)
-        previous_workflow_types = [
+        ran_before = [
             WorkflowRunType(row[0]) if isinstance(row[0], str) else row[0]
             for row in result.all()
+        ]
+        # Workflows can opt out of being re-run automatically. The peer-review
+        # ones do: they read the *reviewed* revision against the current draft,
+        # so firing them the moment a revision is created either wastes an
+        # expensive run or returns a guard message. The user starts them from
+        # the Peer Review tab once the new draft is in place.
+        manifests = get_all_manifests()
+        previous_workflow_types = [
+            workflow_type
+            for workflow_type in ran_before
+            if getattr(
+                manifests.get(workflow_type), "auto_rerun_on_new_revision", True
+            )
         ]
 
         # Increment project revision
