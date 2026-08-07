@@ -1,6 +1,7 @@
 'use client';
 
 import { formatFileSize } from '@/components/analysis-form/utils';
+import { FileTypeIcon } from '@/components/shared/file-type-icon';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +27,7 @@ import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-fil
 import { buildReferenceByFileIdMap, composeReferences, ComposedReference } from '@/lib/composed-references';
 import { FileListItem, FileRole, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
-import { Download, FileText, Loader2, MoreVerticalIcon, RefreshCw, Search, Trash2, Upload } from 'lucide-react';
+import { Download, Loader2, MoreVerticalIcon, RefreshCw, Search, Trash2, Upload } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useRemoveFileMutation } from './reference-review/mutations';
 import { ReplaceMainDocumentDialog } from '../components/replace-main-document-dialog';
@@ -36,25 +37,6 @@ interface FilesTabProps {
   projectDetail: ProjectDetailed;
   readOnly?: boolean;
   onRevisionCreated?: () => void;
-}
-
-function FileTypeIcon({ fileType }: { fileType?: string | null }) {
-  const normalizedType = fileType?.toLowerCase() || '';
-
-  if (normalizedType.includes('pdf') || normalizedType === 'application/pdf') {
-    return <FileText className="flex-shrink-0 size-4 text-red-700" />;
-  }
-
-  if (
-    normalizedType.includes('docx') ||
-    normalizedType.includes('doc') ||
-    normalizedType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-    normalizedType === 'application/msword'
-  ) {
-    return <FileText className="flex-shrink-0 size-4 text-blue-700" />;
-  }
-
-  return <FileText className="flex-shrink-0 size-4 text-muted-foreground" />;
 }
 
 function FileNameLink({ file }: { file: FileListItem }) {
@@ -335,6 +317,8 @@ export function FilesTab({ projectDetail, readOnly = false, onRevisionCreated }:
         description="Add supporting documents or reviewer memos to this project."
         multiple
         allowRoleSelection
+        allowRevisionSelection
+        currentRevision={currentRevision}
         onCancel={() => setIsUploadOpen(false)}
         onComplete={() => setIsUploadOpen(false)}
       />
