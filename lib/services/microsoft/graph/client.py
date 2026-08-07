@@ -69,15 +69,53 @@ def _allowed_site_paths() -> list[str]:
 
 
 def _site_relative_path(url: str) -> str:
-    """A URL's path with any sharing prefix stripped, lowercased for comparison.
+    """A URL's path with any sharing prefix stripped.
 
     "Copy link" in Word and Teams produces ``/:w:/r/sites/X/...`` rather than the
     plain ``/sites/X/...``. Same site, same document; only the prefix differs, and
     comparing without removing it would refuse the very link someone pasted from
     Word itself.
+
+    Case is preserved, because this is also used to address Graph and a document
+    library's name is not case-insensitive there. Callers comparing against the
+    allowlist lower it themselves.
     """
 
-    return _SHARING_PREFIX.sub("/", urlparse(url).path).lower()
+    return _SHARING_PREFIX.sub("/", urlparse(url).path)
+
+
+def redacted(url: str) -> str:
+    """A SharePoint URL with the part that grants access removed, for logging.
+
+    A sharing link is a bearer credential rather than merely an address: an "anyone
+    with the link" URL is openable by whoever holds it, and what makes that work is
+    the ``?e=`` token in the query string together with the opaque id in a
+    ``/:w:/s/Site/EWabc...`` path.
+
+    That matters for logs specifically because logs *widen* the audience. The link was
+    already visible to one Teams channel; a log record reaches ops dashboards and
+    whatever aggregator ships them, none of whom were in that channel.
+
+    So the query string always goes. A path is kept when it is an ordinary
+    site-relative one, since that is the part worth having when a read is refused and
+    it names no secret. An opaque sharing path is reduced to its shape:
+
+    >>> redacted("https://x.sharepoint.com/:w:/r/sites/Reviews/Drafts/a.docx?e=1")
+    'https://x.sharepoint.com/:w:/r/sites/Reviews/Drafts/a.docx'
+    >>> redacted("https://x.sharepoint.com/:w:/s/Reviews/EWabc123?e=xyz")
+    'https://x.sharepoint.com/:w:/s/[redacted]'
+    """
+
+    parsed = urlparse(url)
+    if not parsed.netloc:
+        return "[unparseable url]"
+
+    prefix = _SHARING_PREFIX.match(parsed.path)
+    remainder = _SHARING_PREFIX.sub("", parsed.path).lstrip("/")
+    if prefix and not remainder.lower().startswith(("sites/", "personal/")):
+        # Nothing here is a path -- it is the share id itself.
+        return f"{parsed.scheme}://{parsed.netloc}{prefix.group(0)}[redacted]"
+    return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
 
 
 def check_host(url: str) -> None:
@@ -119,7 +157,7 @@ def check_site(url: str) -> None:
     if not paths:
         return
 
-    path = _site_relative_path(url)
+    path = _site_relative_path(url).lower()
     if not any(path.startswith(p) for p in paths):
         raise DocumentNotAllowed(
             f"{urlparse(url).path} is outside the site paths this service may read"
@@ -196,7 +234,7 @@ async def resolve(url: str) -> dict[str, Any]:
         item = await _resolve_item(client, url)
 
     canonical = str(item.get("webUrl") or url)
-    logger.info("resolved %s to %s", url, canonical)
+    logger.info("resolved %s to %s", redacted(url), redacted(canonical))
     check_host(canonical)
     check_site(canonical)
     return item
@@ -208,11 +246,18 @@ async def _resolve_item(client: httpx.AsyncClient, url: str) -> dict[str, Any]:
     shared = await client.get(f"{GRAPH}/shares/{_share_id(url)}/driveItem")
     if shared.status_code == 200:
         return dict(shared.json())
-    logger.info("/shares did not resolve %s (%s)", url, shared.status_code)
+    logger.info(
+        "/shares did not resolve %s (%s)", redacted(url), shared.status_code
+    )
 
     parsed = urlparse(url)
-    parts = [unquote(p) for p in parsed.path.split("/") if p]
-    if len(parts) < 4 or parts[0] != "sites":
+    # The sharing prefix has to go before the path is read as a path: "Copy link"
+    # produces ``/:w:/r/sites/X/...``, whose first segment is ``:w:`` rather than
+    # ``sites``, so this branch used to refuse a link the other branch handles fine.
+    # An opaque ``/:w:/s/Site/EWabc...`` link is still beyond it -- there is no path
+    # in one to walk -- and that is what ``/shares`` above is for.
+    parts = [unquote(p) for p in _site_relative_path(url).split("/") if p]
+    if len(parts) < 4 or parts[0].lower() != "sites":
         raise GraphError(f"cannot read a site and path out of {parsed.path}")
 
     site = await client.get(f"{GRAPH}/sites/{parsed.netloc}:/{parts[0]}/{parts[1]}")

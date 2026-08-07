@@ -30,6 +30,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request, Response
 
 from lib.agents.teams_agent import answer_question
+from lib.services.microsoft.graph.client import redacted
 from lib.services.microsoft.teams import bot
 
 logger = logging.getLogger(__name__)
@@ -120,7 +121,7 @@ async def bot_messages(
             "Teams bot question from %s: %r (document: %s)",
             author,
             question[:120],
-            document_url or "none found",
+            redacted(document_url) if document_url else "none found",
         )
         if not document_url and ".doc" in question.lower():
             # Someone named a document but no href was found anywhere in the activity.
@@ -156,6 +157,14 @@ async def bot_messages(
     except PermissionError as error:
         logger.warning("a bot request failed token validation: %s", error)
         raise HTTPException(status_code=401, detail="Unauthorized") from error
+    except bot.InvalidActivity as error:
+        # 400 rather than 500 on purpose: the Connector retries a 5xx, and a payload
+        # this SDK will not parse will not parse on the retry either. Logged at error
+        # because the cost of the correct answer is that the message is dropped -- most
+        # likely from schema drift between the Bot service and our pinned SDK, which
+        # would otherwise be invisible.
+        logger.error("could not parse a bot activity: %s", error)
+        raise HTTPException(status_code=400, detail="Malformed activity") from error
     except Exception as error:  # noqa: BLE001 - the Connector retries on a 5xx
         logger.exception("could not process a bot activity")
         raise HTTPException(status_code=500, detail="Could not process") from error

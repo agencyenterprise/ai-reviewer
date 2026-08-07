@@ -37,6 +37,7 @@ from microsoft_agents.hosting.core import (
     RestChannelServiceClientFactory,
     TurnContext,
 )
+from pydantic import ValidationError
 
 from lib.config.env import config
 
@@ -57,6 +58,18 @@ _NOT_A_DOCUMENT = ("getpreview.ashx", "thumbnail.ashx", "/_api/", "/_vti_")
 
 class NotConfigured(Exception):
     """Raised when the bot's credentials are absent, so it cannot be trusted."""
+
+
+class InvalidActivity(Exception):
+    """Raised when the body is not an activity this SDK will parse.
+
+    Its own type so the route can answer 400 rather than 500, and that distinction is
+    the same one that already matters for a bad token: the Bot Connector retries a 5xx
+    and gives up on a 4xx. A payload we cannot parse will not parse on the retry
+    either, so a 500 here turns one malformed -- or merely newer -- activity into
+    sustained load. ``Activity`` is strict enough for that to be a live risk: it once
+    rejected all thirty fields of an activity this codebase built itself.
+    """
 
 
 def _auth_configuration() -> AgentAuthConfiguration:
@@ -247,7 +260,12 @@ async def handle(
     """
 
     claims = await bot.claims_for(authorization)
-    activity = Activity.model_validate(body)
+    try:
+        activity = Activity.model_validate(body)
+    except ValidationError as error:
+        # Distinguished from a server fault so the route can answer 400. Retrying an
+        # unparseable payload cannot help, and the Connector retries a 5xx.
+        raise InvalidActivity(str(error)) from error
 
     async def turn(context: TurnContext) -> None:
         if activity.type != ActivityTypes.message:

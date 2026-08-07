@@ -29,7 +29,11 @@ from langgraph.types import Command
 
 from lib.agents.deep_agent_setup import number_paragraphs
 from lib.services.microsoft.graph import documents
-from lib.services.microsoft.graph.client import DocumentNotAllowed, GraphError
+from lib.services.microsoft.graph.client import (
+    DocumentNotAllowed,
+    GraphError,
+    redacted,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -63,10 +67,10 @@ async def open_document(
     except DocumentNotAllowed as error:
         return f"I am not allowed to read that document: {error}"
     except GraphError as error:
-        logger.error("could not open %s: %s", url, error)
+        logger.error("could not open %s: %s", redacted(url), error)
         return f"I could not open that document: {error}"
     except Exception as error:  # noqa: BLE001 - the model decides what to do next
-        logger.exception("could not open %s", url)
+        logger.exception("could not open %s", redacted(url))
         return f"I could not open that document: {error}"
 
     files: dict[str, Any] = {

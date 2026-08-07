@@ -11,6 +11,7 @@ manual probe against the tunnel showed it.
 """
 
 from typing import Optional
+from unittest.mock import AsyncMock
 
 import pytest
 from microsoft_agents.activity import Activity, ActivityTypes, Attachment
@@ -283,3 +284,37 @@ class TestFindingTheDocument:
         )
 
         assert bot.document_url_in(activity) == "https://x.sharepoint.com/sites/X/typed.docx"
+
+
+class TestAMalformedActivity:
+    """A payload this SDK will not parse must be a 4xx, for the same reason a bad
+    token is: the Bot Connector retries a 5xx and gives up on a 4xx. Retrying an
+    unparseable body cannot succeed, so a 500 would turn one bad -- or merely newer --
+    activity into sustained load. ``Activity`` is strict enough for that to be live:
+    it once rejected all thirty fields of an activity built in this codebase."""
+
+    @pytest.mark.asyncio
+    async def test_a_body_that_is_not_an_activity_is_its_own_error(
+        self, configured: None, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from microsoft_agents.hosting.core import ClaimsIdentity
+
+        # Past authentication, so the failure can only be the payload.
+        monkeypatch.setattr(
+            bot.bot,
+            "claims_for",
+            AsyncMock(return_value=ClaimsIdentity(claims={}, is_authenticated=True)),
+        )
+
+        with pytest.raises(bot.InvalidActivity):
+            await bot.handle("Bearer ok", {"type": {"not": "a string"}}, AsyncMock())
+
+    @pytest.mark.asyncio
+    async def test_it_is_not_a_permission_error_or_a_bare_exception(
+        self, configured: None, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The route maps by type, so the type is what decides 400 over 401 or 500."""
+
+        assert issubclass(bot.InvalidActivity, Exception)
+        assert not issubclass(bot.InvalidActivity, PermissionError)
+        assert not issubclass(bot.InvalidActivity, bot.NotConfigured)
