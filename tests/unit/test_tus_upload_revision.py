@@ -5,6 +5,8 @@ than the current one. These cover the resolution rules in isolation — no DB, n
 HTTP.
 """
 
+import uuid
+
 import pytest
 from fastapi import HTTPException
 
@@ -14,7 +16,12 @@ from lib.models.project import Project
 
 
 def _project(current_revision: int = 3) -> Project:
-    return Project(name="Test project", current_revision=current_revision)
+    return Project(
+        id=uuid.uuid4(),
+        title="Test Project",
+        user_id=uuid.uuid4(),
+        current_revision=current_revision,
+    )
 
 
 class TestParseRole:
