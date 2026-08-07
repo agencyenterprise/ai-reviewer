@@ -19,6 +19,7 @@ shape which put the site check back on the pasted link.
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 
 from lib.services.microsoft.graph import client
@@ -203,9 +204,18 @@ class TestRedactingALinkForLogs:
         assert redacted(
             "https://contoso.sharepoint.com/:w:/s/Reviews/EWabc123?e=xyz"
         ) == "https://contoso.sharepoint.com/:w:/s/[redacted]"
+
+    def test_a_onedrive_share_id_is_masked_despite_looking_like_a_path(self) -> None:
+        """The bug this file once asserted the opposite of.
+
+        ``/:w:/g/personal/<user>/EWabc...`` is a share link whose id sits *after* two
+        ordinary-looking segments, so exempting anything starting ``personal/`` handed
+        the credential straight back.
+        """
+
         assert redacted(
-            "https://contoso.sharepoint.com/:w:/g/personal/x/EWabc123?e=xyz"
-        ).endswith("/personal/x/EWabc123")
+            "https://contoso-my.sharepoint.com/:w:/g/personal/x/EWabc123?e=xyz"
+        ) == "https://contoso-my.sharepoint.com/:w:/g/[redacted]"
 
     def test_an_ordinary_path_is_kept(self) -> None:
         """The diagnostically useful case, and it names no secret."""
@@ -219,16 +229,65 @@ class TestRedactingALinkForLogs:
     def test_nothing_recognisable_reveals_nothing(self) -> None:
         assert redacted("not a url") == "[unparseable url]"
 
-    def test_no_share_id_survives_any_form(self) -> None:
-        """The property that matters, over the shapes Word and Teams actually emit."""
+    @pytest.mark.parametrize(
+        "form", ["s", "g", "p", "u", "b", "f", "t", "v", "w", "z"]
+    )
+    def test_no_share_id_survives_any_non_resource_form(self, form: str) -> None:
+        """Every form but ``r``, including ones not yet seen, must mask.
+
+        This test previously passed by omission -- it asserted the property over three
+        URLs that happened to exclude the form that leaked. Enumerating the forms is
+        what makes it mean anything, and an unknown letter is included on purpose:
+        a form Microsoft adds later has to fail safe rather than pass through.
+        """
+
+        secret = "EWsecret123"
+        for document_type in (":w:", ":x:", ":p:", ":u:", ":f:"):
+            url = f"https://contoso.sharepoint.com/{document_type}/{form}/A/B/{secret}"
+            assert secret not in redacted(url), url
+
+    def test_a_secret_in_the_query_never_survives(self) -> None:
+        """Whatever the path form, the query string is where tokens live."""
 
         secret = "EWsecret123"
         for url in (
-            f"https://contoso.sharepoint.com/:w:/s/Reviews/{secret}?e=tok",
-            f"https://contoso.sharepoint.com/:x:/s/Reviews/{secret}",
             f"https://contoso.sharepoint.com/sites/Reviews/a.docx?sourcedoc={secret}",
+            f"https://contoso.sharepoint.com/:w:/r/sites/R/a.docx?e={secret}",
+            f"https://contoso.sharepoint.com/_layouts/15/Doc.aspx?sourcedoc={secret}",
         ):
             assert secret not in redacted(url), url
+
+    def test_the_resource_form_is_the_only_one_kept(self) -> None:
+        """Case-insensitively, since Teams is not consistent about it."""
+
+        for url in (
+            "https://contoso.sharepoint.com/:w:/r/sites/Reviews/Drafts/a.docx",
+            "https://contoso.sharepoint.com/:W:/R/sites/Reviews/Drafts/a.docx",
+        ):
+            assert redacted(url).endswith("/sites/Reviews/Drafts/a.docx"), url
+
+    def test_a_onedrive_resource_path_is_kept(self) -> None:
+        """``/:w:/r/personal/...`` is a real path, so masking it would lose the site."""
+
+        assert redacted(
+            "https://contoso-my.sharepoint.com/:w:/r/personal/carlos/Documents/a.docx"
+        ).endswith("/personal/carlos/Documents/a.docx")
+
+    def test_a_fragment_goes_too(self) -> None:
+        assert redacted(
+            "https://contoso.sharepoint.com/sites/Reviews/a.docx#EWsecret123"
+        ) == "https://contoso.sharepoint.com/sites/Reviews/a.docx"
+
+    def test_userinfo_is_dropped(self) -> None:
+        """Cannot arrive from Teams, but a log is the last place for a stray password."""
+
+        assert redacted(
+            "https://user:pw@contoso.sharepoint.com/sites/Reviews/a.docx"
+        ) == "https://contoso.sharepoint.com/sites/Reviews/a.docx"
+
+    def test_a_url_with_no_query_is_unchanged(self) -> None:
+        plain = "https://contoso.sharepoint.com/sites/Reviews/a.docx"
+        assert redacted(plain) == plain
 
 
 class TestTheFallbackResolver:
@@ -274,3 +333,126 @@ class TestTheFallbackResolver:
             await client._resolve_item(
                 transport, "https://contoso.sharepoint.com/:w:/s/Reviews/EWabc123"
             )
+
+
+class TestSegmentsThatCannotBeAddressed:
+    """A path segment is decoded *after* the split, so ``%2F`` smuggles separators in.
+
+    ``Drafts%2F..%2FSecret.docx`` is one segment when split and three once decoded, and
+    interpolated into a Graph URL it addresses a document the link did not name. The
+    site check still runs on whatever comes back, so the reach is bounded to an already
+    allowed site -- but that is a bound, not a reason to allow it.
+    """
+
+    def graph(self) -> Any:
+        """A transport that fails ``/shares``, forcing the fallback branch."""
+
+        transport = MagicMock()
+        transport.get = AsyncMock(return_value=MagicMock(status_code=404))
+        return transport
+
+    @pytest.mark.parametrize(
+        "tail",
+        [
+            "Drafts%2F..%2F..%2FSecret.docx",  # the reported case
+            "Drafts%2FSecret.docx",  # a separator alone is enough
+            "..",  # a literal dot-segment
+            ".",
+            "%2e%2e",  # encoded dot-segment
+            "Drafts%5C..%5CSecret.docx",  # backslash, for a Windows-flavoured path
+            "a%00b.docx",  # a null byte
+            "a%0Ab.docx",  # a newline, which would forge a log line
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_it_is_refused(self, tail: str) -> None:
+        with pytest.raises(client.GraphError, match="cannot be addressed safely"):
+            await client._resolve_item(
+                self.graph(),
+                f"https://contoso.sharepoint.com/sites/Reviews/Lib/{tail}",
+            )
+
+    @pytest.mark.asyncio
+    async def test_the_refusal_does_not_echo_the_segment(self) -> None:
+        """It is attacker-controlled text; the message goes back to a chat."""
+
+        with pytest.raises(client.GraphError) as raised:
+            await client._resolve_item(
+                self.graph(),
+                "https://contoso.sharepoint.com/sites/Reviews/Lib/a%2F..%2Fb.docx",
+            )
+
+        assert ".." not in str(raised.value)
+
+
+class TestBuildingTheGraphPath:
+    """What reaches Graph must be the document the link named, exactly.
+
+    Segments are re-encoded rather than interpolated raw: httpx reads a decoded ``#``
+    as a fragment and ``?`` as a query, either of which silently truncates the path and
+    addresses something else.
+    """
+
+    async def resolved_urls(self, url: str) -> list[str]:
+        """Every URL the resolver asked Graph for, in order."""
+
+        site = MagicMock(status_code=200)
+        site.json.return_value = {"id": "site-1"}
+        item = MagicMock(status_code=200)
+        item.json.return_value = {"name": "a.docx"}
+
+        calls: list[str] = []
+
+        async def get(requested: str, **_: Any) -> Any:
+            calls.append(requested)
+            if "/shares/" in requested:
+                return MagicMock(status_code=404)
+            return site if requested.endswith(("Reviews", "Reviews/")) else item
+
+        transport = MagicMock()
+        transport.get = get
+        await client._resolve_item(transport, url)
+        return calls
+
+    @pytest.mark.asyncio
+    async def test_a_hash_in_a_file_name_cannot_end_the_path(self) -> None:
+        urls = await self.resolved_urls(
+            "https://contoso.sharepoint.com/sites/Reviews/Lib/Draft%232.docx"
+        )
+
+        assert "%23" in urls[-1], "the hash must be sent encoded"
+        addressed = httpx.URL(urls[-1])
+        assert addressed.fragment == "", "a fragment means the path was truncated"
+        # Decoded, it is exactly the name the link gave -- nothing lost, nothing moved.
+        assert addressed.path.endswith("/Draft#2.docx")
+
+    @pytest.mark.asyncio
+    async def test_a_question_mark_cannot_start_a_query(self) -> None:
+        urls = await self.resolved_urls(
+            "https://contoso.sharepoint.com/sites/Reviews/Lib/Is%20this%20it%3F.docx"
+        )
+
+        assert "%3F" in urls[-1], "the question mark must be sent encoded"
+        addressed = httpx.URL(urls[-1])
+        assert addressed.query == b"", "a query means the path was truncated"
+        assert addressed.path.endswith("/Is this it?.docx")
+
+    @pytest.mark.asyncio
+    async def test_an_ordinary_name_with_a_space_still_resolves(self) -> None:
+        """The common case, and the one an over-eager guard would break."""
+
+        urls = await self.resolved_urls(
+            "https://contoso.sharepoint.com/sites/Reviews/Lib/My%20Draft.docx"
+        )
+
+        assert httpx.URL(urls[-1]).path.endswith("/My Draft.docx")
+
+    @pytest.mark.asyncio
+    async def test_a_copy_link_url_reaches_the_same_document(self) -> None:
+        """The fix from the previous round, now asserted end to end."""
+
+        urls = await self.resolved_urls(
+            "https://contoso.sharepoint.com/:w:/r/sites/Reviews/Lib/a.docx?e=1"
+        )
+
+        assert httpx.URL(urls[-1]).path.endswith("/a.docx")

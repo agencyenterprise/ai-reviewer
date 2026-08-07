@@ -28,7 +28,7 @@ import logging
 import re
 import time
 from typing import Any, Optional
-from urllib.parse import unquote, urlparse
+from urllib.parse import quote, unquote, urlparse
 
 import httpx
 
@@ -39,8 +39,14 @@ logger = logging.getLogger(__name__)
 GRAPH = "https://graph.microsoft.com/v1.0"
 _TOKEN_MARGIN_SECONDS = 120
 
-# The ``/:w:/r/`` that "Copy link" puts in front of an otherwise ordinary path.
-_SHARING_PREFIX = re.compile(r"^/:[a-z]:/[a-z]/", re.I)
+# The ``/:w:/r/`` that "Copy link" puts in front of an otherwise ordinary path. The
+# second letter is the *form*, and it decides whether what follows is a path at all.
+_SHARING_PREFIX = re.compile(r"^/:[a-z]:/(?P<form>[a-z])/", re.I)
+
+# Of the forms Microsoft emits, only ``r`` ("resource") embeds the document's real
+# path. ``s``, ``g``, ``p`` and ``u`` carry an opaque share id in its place. Anything
+# unrecognised is treated as opaque as well, so a form added later fails safe.
+_PATH_BEARING_FORM = "r"
 
 _cached_token: Optional[tuple[str, float]] = None
 
@@ -96,26 +102,55 @@ def redacted(url: str) -> str:
     already visible to one Teams channel; a log record reaches ops dashboards and
     whatever aggregator ships them, none of whom were in that channel.
 
-    So the query string always goes. A path is kept when it is an ordinary
-    site-relative one, since that is the part worth having when a read is refused and
-    it names no secret. An opaque sharing path is reduced to its shape:
+    So the query string always goes. What survives is decided by the sharing *form*
+    rather than by what the path looks like: only ``r`` embeds a real path, which is
+    worth keeping because it is the part that tells you where a refused read pointed
+    and it names no secret. Every other form is reduced to its shape.
+
+    Keying on the form matters. An earlier version exempted any path beginning
+    ``sites/`` or ``personal/``, which handed back the share id in
+    ``/:w:/g/personal/<user>/EWabc...`` -- an OneDrive share link, where those segments
+    precede the credential rather than replacing it.
 
     >>> redacted("https://x.sharepoint.com/:w:/r/sites/Reviews/Drafts/a.docx?e=1")
     'https://x.sharepoint.com/:w:/r/sites/Reviews/Drafts/a.docx'
-    >>> redacted("https://x.sharepoint.com/:w:/s/Reviews/EWabc123?e=xyz")
-    'https://x.sharepoint.com/:w:/s/[redacted]'
+    >>> redacted("https://x.sharepoint.com/:w:/g/personal/carlos/EWabc123?e=xyz")
+    'https://x.sharepoint.com/:w:/g/[redacted]'
     """
 
     parsed = urlparse(url)
     if not parsed.netloc:
         return "[unparseable url]"
 
+    # Any userinfo goes with it. A SharePoint link never carries one, but a log record
+    # is the last place a stray credential should turn up.
+    host = parsed.netloc.rsplit("@", 1)[-1]
+
     prefix = _SHARING_PREFIX.match(parsed.path)
-    remainder = _SHARING_PREFIX.sub("", parsed.path).lstrip("/")
-    if prefix and not remainder.lower().startswith(("sites/", "personal/")):
-        # Nothing here is a path -- it is the share id itself.
-        return f"{parsed.scheme}://{parsed.netloc}{prefix.group(0)}[redacted]"
-    return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+    if prefix and prefix.group("form").lower() != _PATH_BEARING_FORM:
+        # What follows the prefix is the share id, whatever it happens to look like.
+        return f"{parsed.scheme}://{host}{prefix.group(0)}[redacted]"
+    return f"{parsed.scheme}://{host}{parsed.path}"
+
+
+def _is_addressable(segment: str) -> bool:
+    """Whether a decoded path segment names one thing rather than moving the path.
+
+    Read after ``unquote``, which is the point: ``%2F`` and ``%5C`` become separators
+    only once decoded, so a segment written as ``Drafts%2F..%2FSecret.docx`` arrives
+    here as three. Interpolated into a Graph URL it would address a document the link
+    did not name.
+
+    Refused rather than repaired. SharePoint permits neither a separator nor a
+    bare dot-segment in a name, so a link that needs one is not a link to a document.
+    Control characters go too -- a newline in a log record is its own problem.
+    """
+
+    if segment in (".", ".."):
+        return False
+    if "/" in segment or "\\" in segment:
+        return False
+    return not any(ord(character) < 0x20 for character in segment)
 
 
 def check_host(url: str) -> None:
@@ -260,15 +295,27 @@ async def _resolve_item(client: httpx.AsyncClient, url: str) -> dict[str, Any]:
     if len(parts) < 4 or parts[0].lower() != "sites":
         raise GraphError(f"cannot read a site and path out of {parsed.path}")
 
-    site = await client.get(f"{GRAPH}/sites/{parsed.netloc}:/{parts[0]}/{parts[1]}")
+    unaddressable = [part for part in parts if not _is_addressable(part)]
+    if unaddressable:
+        # ``repr`` rather than the raw value: this is attacker-controlled text on its
+        # way into a log, and a control character in one is how a log gets forged.
+        logger.warning("refusing a link with unaddressable segments: %r", unaddressable)
+        raise GraphError("that link's path cannot be addressed safely")
+
+    site = await client.get(
+        f"{GRAPH}/sites/{parsed.netloc}:/{quote(parts[0])}/{quote(parts[1])}"
+    )
     if site.status_code != 200:
         raise GraphError(
             f"could not resolve the site: {site.status_code} {site.text[:200]}"
         )
     site_id = site.json()["id"]
 
-    # parts[2] is the document library; the rest is the path inside its drive.
-    within = "/".join(parts[3:])
+    # parts[2] is the document library; the rest is the path inside its drive. Each
+    # segment is re-encoded rather than interpolated raw, because a decoded ``#`` or
+    # ``?`` in a file name ends the path component and would silently address
+    # something else -- httpx reads them as a fragment and a query respectively.
+    within = "/".join(quote(part, safe="") for part in parts[3:])
     item = await client.get(f"{GRAPH}/sites/{site_id}/drive/root:/{within}")
     if item.status_code != 200:
         raise GraphError(f"could not find {within!r}: {item.status_code}")
