@@ -43,6 +43,31 @@ router = APIRouter(prefix="/teams", tags=["microsoft", "teams"])
 # answer can be garbage collected mid-flight.
 _running: set[asyncio.Task[None]] = set()
 
+APOLOGY = "I could not work that one out, sorry."
+
+
+def _finished(task: "asyncio.Task[None]") -> None:
+    """Retire a detached task, and make sure a failure in one cannot vanish.
+
+    Discarding the reference without reading the result is what asyncio calls an
+    unretrieved exception: it surfaces as a warning at interpreter shutdown, if at all,
+    while the person who was told "I will follow up here shortly" waits forever.
+
+    This is a backstop rather than the handler. ``_answer_into_thread`` catches its own
+    failures, because that is where the conversation is still reachable and something
+    can be said. Reaching here means the failure was outside even that -- a
+    ``BaseException``, or a fault in the apology itself.
+    """
+
+    _running.discard(task)
+    try:
+        task.result()
+    except asyncio.CancelledError:
+        # Shutdown cancelling in-flight work is not a fault.
+        pass
+    except Exception:  # noqa: BLE001 - a lost answer must not also be a silent one
+        logger.exception("a detached answer task failed after the turn ended")
+
 
 async def _graph_token(context: Any) -> str:
     """The identity this turn's document reading is done with.
@@ -76,22 +101,32 @@ async def _answer_into_thread(
 
     Detached from the request, so nothing here can return an error to a caller. A
     failure is posted into the conversation instead: leaving someone waiting for a
-    reply that never arrives is worse than telling them it went wrong.
+    reply that never arrives is worse than telling them it went wrong. The person has
+    already been told an answer is coming, so *every* way out of this function ends in
+    something being said -- which is why the raise is handled here, where the
+    conversation is still in reach, rather than only in the task's done callback.
     """
 
-    answer = await answer_question(
-        question=question,
-        graph_token=graph_token,
-        document_hint=document_hint,
-        asked_by=author,
-        thread_id=conversation,
-        user_id=author,
-    )
+    try:
+        answer = await answer_question(
+            question=question,
+            graph_token=graph_token,
+            document_hint=document_hint,
+            asked_by=author,
+            thread_id=conversation,
+            user_id=author,
+        )
+    except Exception:  # noqa: BLE001 - nobody upstream to hand this to
+        # ``answer_question`` reports a failure rather than raising, so arriving here
+        # means something outside its own guard broke. Truncated like the request log:
+        # a question can quote the document, and what is reviewed here is confidential.
+        logger.exception("could not answer %r", question[:120])
+        await bot.post_later(reference, APOLOGY)
+        return
+
     if answer.failed:
-        # Truncated like the request log: a question can quote the document, and
-        # what is reviewed here is confidential.
         logger.error("could not answer %r: %s", question[:120], answer.error)
-        await bot.post_later(reference, "I could not work that one out, sorry.")
+        await bot.post_later(reference, APOLOGY)
         return
 
     await bot.post_later(reference, answer.text)
@@ -178,7 +213,7 @@ async def _on_question(context: Any, state: Any) -> None:
         )
     )
     _running.add(task)
-    task.add_done_callback(_running.discard)
+    task.add_done_callback(_finished)
 
 
 @router.post("/messages")
