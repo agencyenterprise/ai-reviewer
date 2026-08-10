@@ -24,18 +24,39 @@ flow to post answers and could only reply in a separate message. A transport-neu
 ``/ask`` endpoint outlived its purpose once the bot was the only caller.
 """
 
+import asyncio
 import logging
 from typing import Any, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request, Response
+from fastapi import APIRouter, Header, HTTPException, Request, Response
 
 from lib.agents.teams_agent import answer_question
+from lib.services.microsoft.graph import client as graph
 from lib.services.microsoft.graph.client import redacted
 from lib.services.microsoft.teams import bot
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/teams", tags=["microsoft", "teams"])
+
+# A detached task is only weakly referenced by the event loop, so without this the
+# answer can be garbage collected mid-flight.
+_running: set[asyncio.Task[None]] = set()
+
+
+async def _graph_token(context: Any) -> str:
+    """The identity this turn's document reading is done with.
+
+    The one place the choice is made, so it can be read in one go. Under a configured
+    user-auth connection the token is the asker's, obtained by the SDK before the
+    handler ran; otherwise it is the service's own, which is wider than any one user.
+    There is deliberately no fallback from the first to the second: a missing user
+    token is an error, not a reason to read as the service.
+    """
+
+    if bot.reads_as_the_user():
+        return await bot.user_token(context)
+    return await graph.access_token()
 
 
 async def _answer_into_thread(
@@ -44,21 +65,23 @@ async def _answer_into_thread(
     author: str,
     conversation: str,
     document_hint: Optional[str],
+    graph_token: str,
 ) -> None:
     """Ask, and post the answer back into the thread the question came from.
 
     The document is not loaded here. The link is part of the question, so the agent
-    opens it through its own tool -- which also means a document that is missing or
-    not allowed comes back as something the agent can explain, rather than as an
-    exception this function has to translate.
+    opens it through its own tool -- which also means a document that is missing, not
+    allowed, or not readable *by the person asking* comes back as something the agent
+    can explain, rather than as an exception this function has to translate.
 
-    A background task, so nothing here can return an error to a caller. A failure is
-    posted into the conversation instead: leaving someone waiting for a reply that
-    never arrives is worse than telling them it went wrong.
+    Detached from the request, so nothing here can return an error to a caller. A
+    failure is posted into the conversation instead: leaving someone waiting for a
+    reply that never arrives is worse than telling them it went wrong.
     """
 
     answer = await answer_question(
         question=question,
+        graph_token=graph_token,
         document_hint=document_hint,
         asked_by=author,
         thread_id=conversation,
@@ -74,10 +97,93 @@ async def _answer_into_thread(
     await bot.post_later(reference, answer.text)
 
 
+@bot.on_question
+async def _on_question(context: Any, state: Any) -> None:
+    """Acknowledge a question and hand the answering off.
+
+    Registered on the bot's application at import rather than per request, so it must
+    close over nothing belonging to one request. By the time this runs the SDK has
+    already obtained a user token if one is required, which is why asking for it here
+    cannot block.
+    """
+
+    question = bot.question_from(context)
+    author = (
+        context.activity.from_property.name
+        if context.activity.from_property
+        else "someone"
+    )
+    conversation = (
+        context.activity.conversation.id if context.activity.conversation else ""
+    )
+
+    if not question:
+        await context.send_activity(
+            "Mention me with a question about the document and I will take a look."
+        )
+        return
+
+    await bot.send_typing(context)
+    await context.send_activity("Looking at that now — I will follow up here shortly.")
+
+    # From the activity, not the question: Teams shows a pasted link as a
+    # hyperlink and keeps the href out of the text entirely.
+    document_url = bot.document_url_in(context.activity)
+    logger.info(
+        "Teams bot question from %s: %r (document: %s, reading as %s)",
+        author,
+        question[:120],
+        redacted(document_url) if document_url else "none found",
+        "the asker" if bot.reads_as_the_user() else "the service",
+    )
+    if not document_url and ".doc" in question.lower():
+        # Someone named a document but no href was found anywhere in the activity.
+        # Teams keeps a rendered hyperlink's href in an attachment rather than in
+        # the text, and which attachment depends on how the link was shared, so
+        # what is logged is the shapes that were present. Deliberately not the
+        # payload: it carries the message body and the sender's ids, and the
+        # documents discussed here are confidential.
+        logger.warning(
+            "a message named a document but carried no link; attachments were: %s",
+            [
+                attachment.content_type
+                for attachment in context.activity.attachments or []
+            ],
+        )
+
+    # Fetched inside the turn, while the context that carries the signed-in user is
+    # still available, and handed to the detached task rather than looked up there.
+    try:
+        graph_token = await _graph_token(context)
+    except bot.NotSignedIn as error:
+        logger.error("no user token for %s: %s", author, error)
+        await context.send_activity(
+            "I could not confirm your access to SharePoint, so I have not read "
+            "anything. Try signing in again, or ask an admin to check the bot's "
+            "sign-in connection."
+        )
+        return
+
+    # Detached rather than a FastAPI background task: the answer is posted
+    # proactively, so it does not belong to this request's lifecycle, and the handler
+    # must not depend on anything the request owns.
+    task = asyncio.create_task(
+        _answer_into_thread(
+            bot.reference_for(context.activity),
+            question,
+            author,
+            conversation,
+            document_url,
+            graph_token,
+        )
+    )
+    _running.add(task)
+    task.add_done_callback(_running.discard)
+
+
 @router.post("/messages")
 async def bot_messages(
     request: Request,
-    background: BackgroundTasks,
     authorization: Optional[str] = Header(default=None),
 ) -> Response:
     """The bot's messaging endpoint, called by the Bot Connector.
@@ -92,63 +198,8 @@ async def bot_messages(
 
     body = await request.json()
 
-    async def on_message(context: Any) -> None:
-        question = bot.question_from(context)
-        author = (
-            context.activity.from_property.name
-            if context.activity.from_property
-            else "someone"
-        )
-        conversation = (
-            context.activity.conversation.id if context.activity.conversation else ""
-        )
-
-        if not question:
-            await context.send_activity(
-                "Mention me with a question about the document and I will take a look."
-            )
-            return
-
-        await bot.send_typing(context)
-        await context.send_activity(
-            "Looking at that now — I will follow up here shortly."
-        )
-
-        # From the activity, not the question: Teams shows a pasted link as a
-        # hyperlink and keeps the href out of the text entirely.
-        document_url = bot.document_url_in(context.activity)
-        logger.info(
-            "Teams bot question from %s: %r (document: %s)",
-            author,
-            question[:120],
-            redacted(document_url) if document_url else "none found",
-        )
-        if not document_url and ".doc" in question.lower():
-            # Someone named a document but no href was found anywhere in the activity.
-            # Teams keeps a rendered hyperlink's href in an attachment rather than in
-            # the text, and which attachment depends on how the link was shared, so
-            # what is logged is the shapes that were present. Deliberately not the
-            # payload: it carries the message body and the sender's ids, and the
-            # documents discussed here are confidential.
-            logger.warning(
-                "a message named a document but carried no link; attachments were: %s",
-                [
-                    attachment.content_type
-                    for attachment in context.activity.attachments or []
-                ],
-            )
-
-        background.add_task(
-            _answer_into_thread,
-            bot.reference_for(context.activity),
-            question,
-            author,
-            conversation,
-            document_url,
-        )
-
     try:
-        await bot.handle(authorization, body, on_message)
+        await bot.handle(authorization, body)
     except bot.NotConfigured as error:
         logger.error("the Teams bot is not configured: %s", error)
         raise HTTPException(

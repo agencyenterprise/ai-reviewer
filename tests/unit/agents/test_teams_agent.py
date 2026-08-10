@@ -16,6 +16,9 @@ import pytest
 
 from lib.agents.teams_agent import QuestionReply, answer_question
 
+# Every run reads as somebody; the tests do not care who.
+TOKEN = "a-user-token"
+
 
 def agent_returning(answer: str) -> MagicMock:
     """A deep agent that produces one structured answer."""
@@ -39,7 +42,7 @@ class TestWhatTheAgentIsGiven:
             "lib.agents.teams_agent.create_deep_agent",
             return_value=agent_returning("an answer"),
         ) as build:
-            await answer_question("does this overclaim?")
+            await answer_question("does this overclaim?", graph_token=TOKEN)
 
         tools = build.call_args.kwargs["tools"]
         assert {tool.name for tool in tools} == {"open_document"}
@@ -52,7 +55,7 @@ class TestWhatTheAgentIsGiven:
         with patch("lib.agents.teams_agent.build_llm"), patch(
             "lib.agents.teams_agent.create_deep_agent", return_value=agent
         ):
-            await answer_question("does this overclaim?")
+            await answer_question("does this overclaim?", graph_token=TOKEN)
 
         files = agent.ainvoke.call_args[0][0]["files"]
         assert "/main.md" not in files, "the agent opens its own document"
@@ -67,7 +70,7 @@ class TestWhatTheAgentIsGiven:
         with patch("lib.agents.teams_agent.build_llm"), patch(
             "lib.agents.teams_agent.create_deep_agent", return_value=agent
         ):
-            await answer_question("is this right?", document_hint=url)
+            await answer_question("is this right?", graph_token=TOKEN, document_hint=url)
 
         prompt = agent.ainvoke.call_args[0][0]["messages"][1].content
         assert url in prompt
@@ -78,7 +81,7 @@ class TestWhatTheAgentIsGiven:
         with patch("lib.agents.teams_agent.build_llm"), patch(
             "lib.agents.teams_agent.create_deep_agent", return_value=agent
         ):
-            await answer_question("check the CERN paper")
+            await answer_question("check the CERN paper", graph_token=TOKEN)
 
         prompt = agent.ainvoke.call_args[0][0]["messages"][1].content
         assert "They linked to this document" not in prompt
@@ -89,7 +92,7 @@ class TestWhatTheAgentIsGiven:
         with patch("lib.agents.teams_agent.build_llm"), patch(
             "lib.agents.teams_agent.create_deep_agent", return_value=agent
         ):
-            await answer_question("hello?", asked_by="Carlos Bonetti")
+            await answer_question("hello?", graph_token=TOKEN, asked_by="Carlos Bonetti")
 
         assert "Carlos Bonetti" in agent.ainvoke.call_args[0][0]["messages"][1].content
 
@@ -101,7 +104,7 @@ class TestTheAnswer:
             "lib.agents.teams_agent.create_deep_agent",
             return_value=agent_returning("It overclaims in two places."),
         ):
-            answer = await answer_question("does this overclaim?")
+            answer = await answer_question("does this overclaim?", graph_token=TOKEN)
 
         assert answer.failed is False
         assert answer.text == "It overclaims in two places."
@@ -112,7 +115,7 @@ class TestTheAnswer:
             "lib.agents.teams_agent.create_deep_agent",
             return_value=agent_returning("   "),
         ):
-            answer = await answer_question("does this overclaim?")
+            answer = await answer_question("does this overclaim?", graph_token=TOKEN)
 
         assert answer.failed is True and answer.text == ""
 
@@ -125,7 +128,7 @@ class TestTheAnswer:
         with patch("lib.agents.teams_agent.build_llm"), patch(
             "lib.agents.teams_agent.create_deep_agent", return_value=broken
         ):
-            answer = await answer_question("does this overclaim?")
+            answer = await answer_question("does this overclaim?", graph_token=TOKEN)
 
         assert answer.failed is True and "upstream timeout" in (answer.error or "")
 

@@ -137,7 +137,7 @@ class TestResolvingASharingLink:
         with patch.object(client, "access_token", AsyncMock(return_value="t")), patch(
             "httpx.AsyncClient", return_value=graph
         ):
-            item = await client.resolve(self.SHARING_LINK)
+            item = await client.resolve(self.SHARING_LINK, token="t")
 
         assert item["name"] == "a.docx"
 
@@ -154,7 +154,7 @@ class TestResolvingASharingLink:
             "httpx.AsyncClient", return_value=graph
         ):
             with pytest.raises(DocumentNotAllowed, match="outside the site paths"):
-                await client.resolve(self.SHARING_LINK)
+                await client.resolve(self.SHARING_LINK, token="t")
 
     @pytest.mark.asyncio
     async def test_a_disallowed_host_never_reaches_graph(self, allowlist: None) -> None:
@@ -165,7 +165,7 @@ class TestResolvingASharingLink:
             "httpx.AsyncClient", return_value=graph
         ):
             with pytest.raises(DocumentNotAllowed, match="not an allowed"):
-                await client.resolve("https://elsewhere.sharepoint.com/:w:/s/X/EW1")
+                await client.resolve("https://elsewhere.sharepoint.com/:w:/s/X/EW1", token="t")
 
         graph.get.assert_not_called()
 
@@ -180,7 +180,57 @@ class TestResolvingASharingLink:
             "httpx.AsyncClient", return_value=graph
         ):
             with pytest.raises(DocumentNotAllowed, match="not an allowed"):
-                await client.resolve(self.SHARING_LINK)
+                await client.resolve(self.SHARING_LINK, token="t")
+
+
+class TestWhoseIdentityReads:
+    """Graph is what enforces a user's own permissions, so it must get their token.
+
+    ``resolve`` and ``download`` take one rather than reaching for the service's,
+    because a default would let a call site lose the user's identity by omission --
+    and losing it fails open: the service can read more, not less.
+    """
+
+    def test_neither_call_can_be_made_without_saying_whose_it_is(self) -> None:
+        """A keyword-only, non-defaulted token is the whole guard. Pin it."""
+
+        import inspect
+
+        for function in (client.resolve, client.download):
+            token = inspect.signature(function).parameters["token"]
+            assert token.kind is inspect.Parameter.KEYWORD_ONLY, function.__name__
+            assert token.default is inspect.Parameter.empty, (
+                f"{function.__name__} must not default its identity to the service's"
+            )
+
+    @pytest.mark.asyncio
+    async def test_the_given_token_is_what_graph_is_called_with(
+        self, allowlist: None
+    ) -> None:
+        response = MagicMock(status_code=200)
+        response.json.return_value = {
+            "name": "a.docx",
+            "webUrl": "https://contoso.sharepoint.com/sites/Reviews/a.docx",
+        }
+        transport = MagicMock()
+        transport.get = AsyncMock(return_value=response)
+        transport.__aenter__ = AsyncMock(return_value=transport)
+        transport.__aexit__ = AsyncMock(return_value=False)
+
+        seen: dict[str, Any] = {}
+
+        def record(*args: Any, **kwargs: Any) -> Any:
+            seen.update(kwargs)
+            return transport
+
+        # No access_token patch: reaching for one would be the bug this catches.
+        with patch("httpx.AsyncClient", side_effect=record):
+            await client.resolve(
+                "https://contoso.sharepoint.com/sites/Reviews/a.docx",
+                token="carlos-token",
+            )
+
+        assert seen["headers"]["Authorization"] == "Bearer carlos-token"
 
 
 class TestRedactingALinkForLogs:

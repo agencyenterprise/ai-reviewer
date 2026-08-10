@@ -95,6 +95,23 @@ class Config(BaseModel):
             "issued for the wrong authority."
         ),
     )
+    TEAMS_USER_AUTH_CONNECTION: Optional[str] = Field(
+        default=None,
+        description=(
+            "Name of the OAuth connection configured on the Azure Bot resource. When "
+            "set, the bot reads a document as the person who asked, so it can reach "
+            "nothing they could not. When unset it reads with the service's own "
+            "app-only identity, which is wider than any one user and bounded only by "
+            "GRAPH_ALLOWED_HOSTS and GRAPH_ALLOWED_SITE_PATHS."
+        ),
+    )
+    TEAMS_USER_AUTH_SCOPES: str = Field(
+        default="Files.Read.All",
+        description=(
+            "Comma-separated delegated Graph scopes to request for the user. Read "
+            "scopes only: this path never writes to a document."
+        ),
+    )
 
     # File uploads
     FILE_UPLOADS_MOUNT_PATH: str
@@ -179,6 +196,8 @@ config = Config(
     TEAMS_BOT_APP_ID=os.getenv("TEAMS_BOT_APP_ID"),
     TEAMS_BOT_APP_PASSWORD=os.getenv("TEAMS_BOT_APP_PASSWORD"),
     TEAMS_BOT_TENANT_ID=os.getenv("TEAMS_BOT_TENANT_ID"),
+    TEAMS_USER_AUTH_CONNECTION=os.getenv("TEAMS_USER_AUTH_CONNECTION"),
+    TEAMS_USER_AUTH_SCOPES=os.getenv("TEAMS_USER_AUTH_SCOPES", "Files.Read.All"),
 )
 
 

@@ -1,10 +1,13 @@
 """Tests for the tool that opens a SharePoint document from a link.
 
-Two things carry weight here. The document must be *mounted* at ``/main.md`` rather
+Three things carry weight here. The document must be *mounted* at ``/main.md`` rather
 than returned, because a tool result over roughly 80,000 characters is evicted to a
 machine-named file and every skill's line numbers are defined against ``/main.md``.
-And a link must remain the only way in: there is deliberately no lookup by name, so
-a name cannot reach a document the person asking could not already open.
+A link must remain the only way in: there is deliberately no lookup by name, so a name
+cannot reach a document the person asking could not already open. And the tool must
+carry the identity it was built with all the way to Graph -- that token is what makes
+the bot no more privileged than the asker, so losing it is a security regression
+rather than a bug in a feature.
 """
 
 from typing import Any, Optional
@@ -14,8 +17,17 @@ import pytest
 from langgraph.types import Command
 
 from lib.agents.tools import sharepoint
-from lib.services.microsoft.graph.client import DocumentNotAllowed
+from lib.services.microsoft.graph.client import DocumentNotAllowed, GraphError
 from lib.services.microsoft.graph.documents import LoadedDocument
+
+
+TOKEN = "a-user-token"
+
+
+def opener(token: str = TOKEN) -> Any:
+    """The tool as a run gets it: built for one identity."""
+
+    return sharepoint.open_document_for(token)
 
 
 async def call(tool: Any, *args: Any) -> Any:
@@ -82,7 +94,7 @@ class TestOpeningADocument:
             sharepoint.documents, "load", AsyncMock(return_value=document())
         ):
             result = await call(
-                sharepoint.open_document, "https://x.sharepoint.com/sites/X/a.docx", runtime()
+                opener(), "https://x.sharepoint.com/sites/X/a.docx", runtime()
             )
 
         assert "/main.md" in mounted(result)
@@ -94,7 +106,7 @@ class TestOpeningADocument:
             "load",
             AsyncMock(return_value=document(["Alpha.", "Beta."])),
         ):
-            result = await call(sharepoint.open_document, "https://x/a.docx", runtime())
+            result = await call(opener(), "https://x/a.docx", runtime())
 
         body = body_of(mounted(result), "/main.md")
         assert "[0] Alpha." in body and "[1] Beta." in body
@@ -108,7 +120,7 @@ class TestOpeningADocument:
             "load",
             AsyncMock(return_value=document(["A distinctive sentence."])),
         ):
-            result = await call(sharepoint.open_document, "https://x/a.docx", runtime())
+            result = await call(opener(), "https://x/a.docx", runtime())
 
         message = message_of(result)
         assert "distinctive sentence" not in message
@@ -123,7 +135,7 @@ class TestOpeningADocument:
                 return_value=document(comments=[("Carlos", "is this right?")])
             ),
         ):
-            result = await call(sharepoint.open_document, "https://x/a.docx", runtime())
+            result = await call(opener(), "https://x/a.docx", runtime())
 
         files = mounted(result)
         assert "/comments.md" in files
@@ -134,7 +146,7 @@ class TestOpeningADocument:
         with patch.object(
             sharepoint.documents, "load", AsyncMock(return_value=document())
         ):
-            result = await call(sharepoint.open_document, "https://x/a.docx", runtime())
+            result = await call(opener(), "https://x/a.docx", runtime())
 
         assert "/comments.md" not in mounted(result)
 
@@ -148,7 +160,7 @@ class TestOpeningADocument:
             AsyncMock(side_effect=DocumentNotAllowed("evil.com is not allowed")),
         ):
             result = await call(
-                sharepoint.open_document, "https://evil.com/a.docx", runtime()
+                opener(), "https://evil.com/a.docx", runtime()
             )
 
         assert isinstance(result, str)
@@ -159,7 +171,7 @@ class TestOpeningADocument:
         with patch.object(
             sharepoint.documents, "load", AsyncMock(side_effect=RuntimeError("boom"))
         ):
-            result = await call(sharepoint.open_document, "https://x/a.docx", runtime())
+            result = await call(opener(), "https://x/a.docx", runtime())
 
         assert isinstance(result, str) and "boom" in result
 
@@ -178,18 +190,72 @@ class TestALinkIsTheOnlyWayIn:
         """Otherwise the model invents a URL when it is only given a name."""
 
         assert "no way to look a document up by name" in (
-            sharepoint.open_document.description or ""
+            opener().description or ""
         )
 
 
-class TestTheToolSchema:
-    def test_the_runtime_is_hidden_from_the_model(self) -> None:
-        """It is injected by LangChain; exposing it would invite the model to guess."""
+class TestWhoseAccessIsUsed:
+    """The token the tool was built with is what limits what a run can read.
 
-        assert list(sharepoint.open_document.args) == ["url"]
+    Under Teams SSO it is the asker's, so Graph refuses a document they cannot open.
+    If it were dropped anywhere between the tool and Graph, every read would silently
+    become the service's -- which is the privilege this whole arrangement removes, and
+    it would fail open rather than closed.
+    """
+
+    @pytest.mark.asyncio
+    async def test_the_token_reaches_the_loader(self) -> None:
+        load = AsyncMock(return_value=document())
+        with patch.object(sharepoint.documents, "load", load):
+            await call(opener("carlos-token"), "https://x/a.docx", runtime())
+
+        assert load.await_args is not None
+        assert load.await_args.kwargs["token"] == "carlos-token"
+
+    @pytest.mark.asyncio
+    async def test_two_tools_do_not_share_an_identity(self) -> None:
+        """One process serves many askers, so the binding has to be per tool."""
+
+        load = AsyncMock(return_value=document())
+        with patch.object(sharepoint.documents, "load", load):
+            await call(opener("first-user"), "https://x/a.docx", runtime())
+            await call(opener("second-user"), "https://x/a.docx", runtime())
+
+        used = [call_.kwargs["token"] for call_ in load.await_args_list]
+        assert used == ["first-user", "second-user"]
+
+    @pytest.mark.asyncio
+    async def test_a_refusal_for_this_user_is_explained_not_retried(self) -> None:
+        """Graph answers 403 when the asker cannot open it. That is the check working."""
+
+        with patch.object(
+            sharepoint.documents,
+            "load",
+            AsyncMock(side_effect=GraphError("could not download a.docx: 403")),
+        ):
+            result = await call(opener(), "https://x/a.docx", runtime())
+
+        assert isinstance(result, str) and "403" in result
+
+    def test_the_model_is_told_it_reads_as_the_asker(self) -> None:
+        """So a refusal is reported rather than worked around."""
+
+        assert "as the person who asked" in (opener().description or "")
+
+
+class TestTheToolSchema:
+    def test_the_runtime_and_the_token_are_hidden_from_the_model(self) -> None:
+        """The runtime is injected by LangChain; the token is closed over.
+
+        Neither belongs in the schema. A token the model could see is a token it could
+        put in an answer.
+        """
+
+        assert list(opener().args) == ["url"]
 
     def test_the_tool_documents_itself(self) -> None:
         """The model picks a tool from its description, so an empty one is a bug."""
 
-        description = sharepoint.open_document.description
+        description = opener().description
         assert description and len(description) > 80
+        assert TOKEN not in description
