@@ -147,3 +147,97 @@ class TestRetiringADetachedTask:
 
         assert "failed" not in caplog.text
         assert task not in teams._running
+
+
+class TestAnsweringAnInvoke:
+    """A `signin/*` invoke's reply is protocol, not a formality.
+
+    The endpoint used to return an empty 200 for every activity. For an ordinary
+    message that is right. For an invoke it discards what the SDK produced -- and a
+    token exchange that needs consent comes back as 412 with a
+    TokenExchangeInvokeResponse, which is how Teams learns to fall back to the sign-in
+    card. Reporting 200 instead tells Teams the exchange worked, and sign-in stalls.
+    """
+
+    def response_for(self, status: int, body: Any) -> Any:
+        from microsoft_agents.activity.invoke_response import InvokeResponse
+
+        return InvokeResponse(status=status, body=body)
+
+    def test_a_consent_required_exchange_keeps_its_412_and_body(self) -> None:
+        body = {
+            "id": "x",
+            "connectionName": "graph-user",
+            "failureDetail": "Proceed with regular login.",
+        }
+        response = teams._invoke_response(self.response_for(412, body))
+
+        assert response.status_code == 412
+        assert b"Proceed with regular login." in response.body
+        assert response.media_type == "application/json"
+
+    def test_a_successful_exchange_keeps_its_status_and_needs_no_body(self) -> None:
+        response = teams._invoke_response(self.response_for(200, None))
+
+        assert response.status_code == 200
+        assert not response.body
+
+    def test_a_model_body_is_serialised_rather_than_crashing(self) -> None:
+        """``body`` is typed ``object``; a 500 here would hide the status it carries."""
+
+        from microsoft_agents.activity import TokenExchangeInvokeResponse
+
+        response = teams._invoke_response(
+            self.response_for(
+                412,
+                TokenExchangeInvokeResponse(
+                    id="x", connection_name="graph-user", failure_detail="nope"
+                ),
+            )
+        )
+
+        assert response.status_code == 412
+        assert b"nope" in response.body
+
+    def client(self) -> Any:
+        """Just this router, not the whole application.
+
+        Importing ``lib.api.main`` here builds every route and reads module-level
+        config, which made this test depend on which other test had run first.
+        """
+
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+
+        app = FastAPI()
+        app.include_router(teams.router, prefix="/api/microsoft")
+        return TestClient(app, raise_server_exceptions=False)
+
+    def test_an_ordinary_message_still_gets_an_empty_200(self) -> None:
+        """The Connector treats a body on a normal activity as a payload."""
+
+        with patch.object(teams.bot, "handle", AsyncMock(return_value=None)):
+            result = self.client().post(
+                "/api/microsoft/teams/messages",
+                json={"type": "message", "text": "hi", "conversation": {"id": "19:x"}},
+                headers={"Authorization": "Bearer ok"},
+            )
+
+        assert result.status_code == 200
+        assert result.content == b""
+
+    def test_an_invoke_reply_reaches_the_channel_over_http(self) -> None:
+        """End to end through the route, since the discarded value was the bug."""
+
+        from microsoft_agents.activity.invoke_response import InvokeResponse
+
+        refused = InvokeResponse(status=412, body={"failureDetail": "needs consent"})
+        with patch.object(teams.bot, "handle", AsyncMock(return_value=refused)):
+            result = self.client().post(
+                "/api/microsoft/teams/messages",
+                json={"type": "invoke", "name": "signin/tokenExchange"},
+                headers={"Authorization": "Bearer ok"},
+            )
+
+        assert result.status_code == 412
+        assert result.json()["failureDetail"] == "needs consent"

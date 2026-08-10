@@ -25,6 +25,7 @@ flow to post answers and could only reply in a separate message. A transport-neu
 """
 
 import asyncio
+import json
 import logging
 from typing import Any, Optional
 
@@ -67,6 +68,28 @@ def _finished(task: "asyncio.Task[None]") -> None:
         pass
     except Exception:  # noqa: BLE001 - a lost answer must not also be a silent one
         logger.exception("a detached answer task failed after the turn ended")
+
+
+def _invoke_response(invoked: Any) -> Response:
+    """An invoke's reply, as the channel expects to read it.
+
+    ``InvokeResponse.body`` is typed ``object``, so it is serialised defensively: the
+    SDK hands back a plain dict today, having round-tripped its own model through
+    ``model_dump``, but a model or anything else must not become a 500 on a path whose
+    whole job is to report a status accurately.
+    """
+
+    if invoked.body is None:
+        return Response(status_code=invoked.status)
+
+    body = invoked.body
+    if hasattr(body, "model_dump"):
+        body = body.model_dump(exclude_unset=True)
+    return Response(
+        content=json.dumps(body, default=str),
+        status_code=invoked.status,
+        media_type="application/json",
+    )
 
 
 async def _graph_token(context: Any) -> str:
@@ -234,7 +257,7 @@ async def bot_messages(
     body = await request.json()
 
     try:
-        await bot.handle(authorization, body)
+        invoked = await bot.handle(authorization, body)
     except bot.NotConfigured as error:
         logger.error("the Teams bot is not configured: %s", error)
         raise HTTPException(
@@ -255,5 +278,15 @@ async def bot_messages(
         logger.exception("could not process a bot activity")
         raise HTTPException(status_code=500, detail="Could not process") from error
 
-    # The Connector wants an empty 200; anything else it treats as a payload.
+    if invoked is not None:
+        # An invoke -- a `signin/*` among them -- is answered with the status and body
+        # the SDK produced, not with a blanket 200. That reply is part of the protocol:
+        # a token exchange that needs consent comes back as 412 carrying a
+        # TokenExchangeInvokeResponse, which Teams reads as "fall back to the sign-in
+        # card". Swallowing it would tell Teams the exchange succeeded, and sign-in
+        # would stall with nothing to show for it.
+        return _invoke_response(invoked)
+
+    # For everything else the Connector wants an empty 200; a body it would treat as
+    # a payload.
     return Response(status_code=200)

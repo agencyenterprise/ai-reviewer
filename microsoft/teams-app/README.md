@@ -125,6 +125,26 @@ failure, because the refusal happens entirely inside Teams.
 scope, with the same misleading error. `build_package.py` sets it; the comment there
 explains why it is not empty despite this app having no tabs.
 
+### It needs a database table
+
+Sign-in spans two requests — the message that posts the card, and the `signin/*` invoke
+that completes it — so the flow state cannot live in process memory. Production runs
+Uvicorn with `--workers 4`, so the two requests usually land on different processes and
+an in-memory store would lose the parked question about three times in four. A
+single-process dev server never shows this.
+
+The state lives in `microsoft_teams_signin_state`, so **the migration has to be applied before
+user auth will work**:
+
+```bash
+uv run alembic revision --autogenerate -m "teams sign-in state"
+uv run alembic upgrade head
+```
+
+No tokens are stored there — the refresh token stays in the Bot Framework token
+service. Only flow bookkeeping and the activity waiting to be replayed, both short
+lived.
+
 ### Two more things to know before relying on it
 
 - **This is a per-user onboarding step, and it cannot be removed for channels.** Teams

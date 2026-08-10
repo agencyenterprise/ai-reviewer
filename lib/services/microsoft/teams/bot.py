@@ -50,13 +50,13 @@ from microsoft_agents.hosting.core import (
     ChannelServiceAdapter,
     ClaimsIdentity,
     JwtTokenValidator,
-    MemoryStorage,
     RestChannelServiceClientFactory,
     TurnContext,
 )
 from pydantic import ValidationError
 
 from lib.config.env import config
+from lib.services.microsoft.teams.storage import sign_in_storage
 
 logger = logging.getLogger(__name__)
 
@@ -207,10 +207,14 @@ class _Bot:
         self._validator = JwtTokenValidator(auth)
 
         # Sign-in bookkeeping only, and only for the length of a flow: the refresh
-        # token itself is held by the Bot Framework token service, never by us. In
-        # process memory it is lost on restart, which costs a user mid-sign-in one
-        # more click and costs a signed-in user nothing.
-        storage = MemoryStorage()
+        # token itself is held by the Bot Framework token service, never by us.
+        #
+        # Shared rather than in memory, because a sign-in spans two requests -- the
+        # message that posts the card, and the invoke that completes it -- and
+        # production runs `--workers 4`, so those usually land on different processes.
+        # The SDK's MemoryStorage would lose the parked question about three times in
+        # four, and only once deployed.
+        storage = sign_in_storage()
         self._authorization = Authorization(
             storage=storage,
             connection_manager=connections,
