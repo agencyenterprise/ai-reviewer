@@ -21,10 +21,14 @@ Two reasons, and the second is the one that decides it:
   middleware to ``/large_tool_results/{tool_call_id}``. Real documents here run to
   that size, so returning the body would scatter it to a machine-generated path
   instead of the one the skills expect.
+
+A mount outlives its turn once a conversation is checkpointed, so the link is written
+beside it at ``DOCUMENT_SOURCE``: that is how a later turn knows what to re-read, and as
+whom.
 """
 
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from deepagents.backends.utils import create_file_data
 from deepagents.middleware.filesystem import FilesystemState
@@ -44,6 +48,10 @@ logger = logging.getLogger(__name__)
 
 MAIN_DOCUMENT = "/main.md"
 COMMENTS_DOCUMENT = "/comments.md"
+
+# Which document is at MAIN_DOCUMENT, written beside it rather than in a table that could
+# drift out of step with what is actually mounted.
+DOCUMENT_SOURCE = "/main.source"
 
 
 def open_document_for(token: str) -> BaseTool:
@@ -91,20 +99,12 @@ def open_document_for(token: str) -> BaseTool:
             logger.exception("could not open %s", redacted(url))
             return f"I could not open that document: {error}"
 
-        files: dict[str, Any] = {
-            MAIN_DOCUMENT: create_file_data(number_paragraphs(document.paragraphs))
-        }
-        if document.comments:
-            files[COMMENTS_DOCUMENT] = create_file_data(
-                format_comments(document.comments)
-            )
-
         # A Command is how a tool writes into the agent's filesystem; the built-in
         # write_file does the same. The files key merges, so this adds rather than
         # replaces, and mounting the same path twice overwrites it.
         return Command(
             update={
-                "files": files,
+                "files": document_files(document, url),
                 "messages": [
                     ToolMessage(
                         content=describe(document),
@@ -115,6 +115,55 @@ def open_document_for(token: str) -> BaseTool:
         )
 
     return open_document
+
+
+def document_files(document: documents.LoadedDocument, url: str) -> dict[str, Any]:
+    """A document as the agent's filesystem holds it.
+
+    Shared by the tool and by the per-turn re-read, so the two cannot mount a document
+    differently -- what needs clearing is not obvious from either call site alone.
+    """
+
+    return {
+        MAIN_DOCUMENT: create_file_data(number_paragraphs(document.paragraphs)),
+        # Written with the document, never separately, so that a later turn can name what
+        # it is holding and re-read it as whoever is asking then.
+        DOCUMENT_SOURCE: create_file_data(url),
+        # Comments are cleared when there are none rather than left out: a thread that
+        # opens a second document would otherwise keep answering from the first one's.
+        COMMENTS_DOCUMENT: (
+            create_file_data(format_comments(document.comments))
+            if document.comments
+            else None
+        ),
+    }
+
+
+def evict_document() -> dict[str, None]:
+    """Deletion markers for every file a document mounts.
+
+    ``None`` is how the filesystem reducer spells a delete. The source goes with the
+    body, or it would name a document that is no longer there.
+    """
+
+    return {MAIN_DOCUMENT: None, COMMENTS_DOCUMENT: None, DOCUMENT_SOURCE: None}
+
+
+def mounted_document(files: Optional[dict[str, Any]]) -> Optional[str]:
+    """The URL of the document currently mounted at ``MAIN_DOCUMENT``, if any.
+
+    Read from ``DOCUMENT_SOURCE`` rather than from the newest ``open_document`` call: a
+    refused open writes nothing, so the newest call can name a document that was never
+    loaded while the previous one is still mounted.
+    """
+
+    if not files:
+        return None
+    source = files.get(DOCUMENT_SOURCE)
+    if not source or MAIN_DOCUMENT not in files:
+        return None
+    url = "\n".join(source.get("content") or []).strip()
+    return url or None
 
 
 def format_comments(comments: list[tuple[str, str]]) -> str:

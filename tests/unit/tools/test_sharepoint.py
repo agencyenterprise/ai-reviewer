@@ -142,13 +142,19 @@ class TestOpeningADocument:
         assert "Carlos: is this right?" in body_of(files, "/comments.md")
 
     @pytest.mark.asyncio
-    async def test_no_comments_means_no_comments_file(self) -> None:
+    async def test_no_comments_clears_any_previous_ones(self) -> None:
+        """A ``None`` is the reducer's delete, not an oversight.
+
+        A conversation persists, so a second document opened in the same thread would
+        otherwise inherit the first one's comments and be answered about from them.
+        """
+
         with patch.object(
             sharepoint.documents, "load", AsyncMock(return_value=document())
         ):
             result = await call(opener(), "https://x/a.docx", runtime())
 
-        assert "/comments.md" not in mounted(result)
+        assert mounted(result)["/comments.md"] is None
 
     @pytest.mark.asyncio
     async def test_a_document_outside_the_allowlist_is_refused_in_words(self) -> None:
@@ -174,6 +180,117 @@ class TestOpeningADocument:
             result = await call(opener(), "https://x/a.docx", runtime())
 
         assert isinstance(result, str) and "boom" in result
+
+
+class TestRememberingWhichDocumentIsOpen:
+    """A mount outlives its turn, so a later turn has to know what it is looking at.
+
+    That is what re-authorises a persisted conversation: the next question may come from
+    someone else, and the document has to be re-checked against *them*. The URL is
+    written with the document rather than anywhere else, so the two cannot disagree.
+    """
+
+    @pytest.mark.asyncio
+    async def test_the_link_is_written_beside_the_document(self) -> None:
+        url = "https://x.sharepoint.com/sites/X/a.docx"
+        with patch.object(
+            sharepoint.documents, "load", AsyncMock(return_value=document())
+        ):
+            result = await call(opener(), url, runtime())
+
+        assert body_of(mounted(result), sharepoint.DOCUMENT_SOURCE) == url
+
+    @pytest.mark.asyncio
+    async def test_it_is_read_back_from_the_state_it_was_written_to(self) -> None:
+        url = "https://x.sharepoint.com/sites/X/a.docx"
+        with patch.object(
+            sharepoint.documents, "load", AsyncMock(return_value=document())
+        ):
+            result = await call(opener(), url, runtime())
+
+        assert sharepoint.mounted_document(mounted(result)) == url
+
+    def test_nothing_open_means_nothing_to_re_check(self) -> None:
+        assert sharepoint.mounted_document(None) is None
+        assert sharepoint.mounted_document({}) is None
+
+    def test_a_source_without_a_document_does_not_count(self) -> None:
+        """Whatever produced that state, there is no mounted document to authorise."""
+
+        files = {sharepoint.DOCUMENT_SOURCE: {"content": ["https://x/a.docx"]}}
+
+        assert sharepoint.mounted_document(files) is None
+
+    def test_a_document_without_a_source_does_not_count(self) -> None:
+        """Fails closed: unable to name the document, so unable to re-check it.
+
+        Reachable only from state written before the source file existed. Returning the
+        URL-less document as readable would skip the check entirely, so it reads as
+        "nothing mounted" and the agent opens it again from the link.
+        """
+
+        files = {"/main.md": {"content": ["[0] A."]}}
+
+        assert sharepoint.mounted_document(files) is None
+
+    @pytest.mark.asyncio
+    async def test_a_refused_open_leaves_the_previous_document_named(self) -> None:
+        """The reason the URL is not taken from the newest tool call.
+
+        A refused open mounts nothing, so the document still loaded is the earlier one.
+        Trusting the newest call would re-check a document that was never there and
+        leave the mounted one unauthorised.
+        """
+
+        first = "https://x.sharepoint.com/sites/X/first.docx"
+        with patch.object(
+            sharepoint.documents, "load", AsyncMock(return_value=document())
+        ):
+            opened = mounted(await call(opener(), first, runtime()))
+
+        with patch.object(
+            sharepoint.documents,
+            "load",
+            AsyncMock(side_effect=GraphError("could not download second.docx: 403")),
+        ):
+            refused = await call(
+                opener(), "https://x.sharepoint.com/sites/X/second.docx", runtime()
+            )
+
+        assert isinstance(refused, str), "a refusal mounts nothing"
+        assert sharepoint.mounted_document(opened) == first
+
+
+class TestMountingAndUnmounting:
+    """The tool and the per-turn re-read share these, so they cannot mount differently.
+
+    Which matters most for what gets *cleared*: a thread that moves to another document,
+    or gives one up, must not keep a file belonging to the previous one.
+    """
+
+    def test_a_document_without_comments_clears_a_previous_one(self) -> None:
+        files = sharepoint.document_files(document(), "https://x/a.docx")
+
+        assert files[sharepoint.COMMENTS_DOCUMENT] is None
+
+    def test_giving_up_a_document_removes_its_source_too(self) -> None:
+        """A source left behind would name a document that is no longer mounted."""
+
+        evicted = sharepoint.evict_document()
+
+        assert set(evicted) == {
+            sharepoint.MAIN_DOCUMENT,
+            sharepoint.COMMENTS_DOCUMENT,
+            sharepoint.DOCUMENT_SOURCE,
+        }
+        assert all(value is None for value in evicted.values())
+
+    def test_everything_a_mount_writes_can_be_unwritten(self) -> None:
+        """The two have to stay in step, or a stale file survives being evicted."""
+
+        mounted_paths = set(sharepoint.document_files(document(), "https://x/a.docx"))
+
+        assert mounted_paths == set(sharepoint.evict_document())
 
 
 class TestALinkIsTheOnlyWayIn:

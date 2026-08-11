@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastmcp.utilities.lifespan import combine_lifespans
 
+from lib.agents.checkpointer import close_checkpointer_pool
 from lib.api.mcp.server import mcp_app, mcp_auth
 from lib.api.mcp_middlewares import MCPTrailingSlashMiddleware
 from lib.api.tus_middleware import TusTerminationMiddleware
@@ -61,6 +62,10 @@ async def lifespan(app: FastAPI):
             await reaper_task
         except asyncio.CancelledError:
             pass
+        # The agent checkpointer holds its own psycopg pool, opened lazily by the first
+        # run that asks for one. Closing it here is what stops a reload from leaking
+        # connections; a process that never opened it has nothing to close.
+        await close_checkpointer_pool()
 
 
 app = FastAPI(

@@ -139,9 +139,13 @@ async def _answer_into_thread(
         answer = await answer_question(
             question=question,
             graph_token=graph_token,
+            # The Teams conversation *is* the agent's thread, which is what makes a
+            # follow-up here a follow-up there. In a channel this id already carries a
+            # ``;messageid=`` suffix per reply chain, so separate chains are separate
+            # conversations without anything having to parse it.
+            thread_id=conversation,
             document_hint=document_hint,
             asked_by=author,
-            thread_id=conversation,
             user_id=author,
         )
     except Exception:  # noqa: BLE001 - nobody upstream to hand this to
