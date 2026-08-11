@@ -10,6 +10,7 @@ token validation lives.
 """
 
 import asyncio
+import json
 import logging
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -198,6 +199,31 @@ class TestAnsweringAnInvoke:
 
         assert response.status_code == 412
         assert b"nope" in response.body
+
+    def test_a_model_body_is_serialised_under_the_names_the_protocol_uses(self) -> None:
+        """Field names are not wire names, and asserting the value would not notice.
+
+        The SDK's models carry a camelCase alias generator and do not serialise by
+        alias, so a plain ``model_dump`` emits ``connection_name`` -- which carries the
+        right value under a key the channel does not read.
+        """
+
+        from microsoft_agents.activity import TokenExchangeInvokeResponse
+
+        response = teams._invoke_response(
+            self.response_for(
+                412,
+                TokenExchangeInvokeResponse(
+                    id="x", connection_name="graph-user", failure_detail="nope"
+                ),
+            )
+        )
+
+        assert json.loads(response.body) == {
+            "id": "x",
+            "connectionName": "graph-user",
+            "failureDetail": "nope",
+        }
 
     def client(self) -> Any:
         """Just this router, not the whole application.

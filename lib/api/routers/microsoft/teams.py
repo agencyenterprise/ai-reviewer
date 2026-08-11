@@ -77,6 +77,11 @@ def _invoke_response(invoked: Any) -> Response:
     SDK hands back a plain dict today, having round-tripped its own model through
     ``model_dump``, but a model or anything else must not become a 500 on a path whose
     whole job is to report a status accurately.
+
+    ``by_alias`` is what makes that branch protocol-correct rather than merely
+    non-crashing. The SDK's models carry a camelCase alias generator and do not
+    serialise by alias, so a plain dump would emit ``connection_name`` where the wire
+    format says ``connectionName``.
     """
 
     if invoked.body is None:
@@ -84,7 +89,7 @@ def _invoke_response(invoked: Any) -> Response:
 
     body = invoked.body
     if hasattr(body, "model_dump"):
-        body = body.model_dump(exclude_unset=True)
+        body = body.model_dump(exclude_unset=True, by_alias=True)
     return Response(
         content=json.dumps(body, default=str),
         status_code=invoked.status,
