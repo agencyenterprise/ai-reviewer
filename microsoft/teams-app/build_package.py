@@ -56,7 +56,10 @@ MANIFEST_VERSION = "1.17"
 
 BRAND = (15, 108, 189)  # the blue used on the cards this bot posts
 
-DEFAULT_VERSION = "1.0.1"
+# The last version built, so running with no argument does not silently reproduce a
+# version already in the org catalog -- which Teams refuses on update. Bump it here
+# when you bump it in the catalog, or pass the version as an argument.
+DEFAULT_VERSION = "1.2.1"
 
 
 def manifest(app_id: str, bot_id: str, version: str) -> dict:
@@ -116,8 +119,12 @@ def manifest(app_id: str, bot_id: str, version: str) -> dict:
         # conversation is documented as unsupported, and the follow-up answer is
         # sent proactively, so it is the part most likely to be refused.
         "supportedChannelTypes": ["privateChannels", "sharedChannels"],
-        # No tabs or embedded content, so there is no domain to trust.
-        "validDomains": [],
+        # There are no tabs or embedded content here, so this looks like it should be
+        # empty -- and it was, which broke sign-in. The OAuthCard's button opens a link
+        # on the Bot Framework token service, and Teams will not open a domain the
+        # manifest has not declared. The failure names neither: it reads "this action
+        # can't be performed since the app does not exist or has been uninstalled".
+        "validDomains": ["token.botframework.com"],
     }
 
 

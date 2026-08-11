@@ -11,11 +11,15 @@ What does not differ is the construction, which is shared through
 with numbered paragraphs, the skills are available, and there is no internet.
 
 The document is not chosen for the agent. A question from Teams may paste a link or
-not, so opening one is the agent's job via ``open_document`` in
+not, so opening one is the agent's job via ``open_document_for`` in
 ``lib/agents/tools/sharepoint.py``. A link is the only way in -- there is no lookup
 by name -- so a question that names a document without linking to it gets a request
 for the link. Skills are still mounted up front, because the skills middleware reads
 them once before the run and a tool cannot add them later.
+
+``graph_token`` is whose reading this run does. The tool is built from it per run, so
+the agent inherits the asker's own access rather than the service's: a document they
+cannot open is refused by Graph and the agent says so.
 
 Nothing here writes to the document. That is the point of this path -- a question
 answered in chat needs no document access at all, which sidesteps both the 423 a
@@ -40,7 +44,7 @@ from lib.agents.deep_agent_setup import (
     build_skill_files,
     tool_names,
 )
-from lib.agents.tools.sharepoint import open_document
+from lib.agents.tools.sharepoint import open_document_for
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
 from lib.config.llm_models import LLMModel
@@ -152,6 +156,7 @@ class QuestionAnswer(BaseModel):
 
 async def answer_question(
     question: str,
+    graph_token: str,
     document_hint: Optional[str] = None,
     asked_by: str = "Someone",
     model: LLMModel = DEFAULT_MODEL,
@@ -160,6 +165,10 @@ async def answer_question(
     user_id: Optional[str] = None,
 ) -> QuestionAnswer:
     """Answer a question about a document the agent opens for itself.
+
+    ``graph_token`` is the identity the document is read with -- the asker's own,
+    under Teams SSO. Required rather than optional: the alternative would be reading
+    as the service, which is exactly the privilege this path is meant not to have.
 
     ``document_hint`` is a link found in the message, when there was one. Without it
     the agent has no way to reach a document and will ask for the link, so this is
@@ -196,7 +205,7 @@ async def answer_question(
     try:
         agent = create_deep_agent(
             model=build_llm(model, api_key),
-            tools=[open_document],
+            tools=[open_document_for(graph_token)],
             response_format=AutoStrategy(QuestionReply),
             skills=["/skills/"],
         )

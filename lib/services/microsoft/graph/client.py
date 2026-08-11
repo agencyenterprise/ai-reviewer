@@ -1,20 +1,34 @@
-"""Reading SharePoint documents with the service's own identity.
+"""Reading SharePoint documents through Graph.
 
 Draft Detective is asked about documents from places that have no Word session to
-borrow -- a Teams channel, most of all -- so the backend has to load them itself.
-This is the app-only half of that: a client-credentials token, resolving a
-SharePoint URL to a drive item, and downloading its bytes.
+borrow -- a Teams channel, most of all -- so the backend has to load them itself:
+resolving a SharePoint URL to a drive item, and downloading its bytes.
+
+**Whose identity does the reading is the caller's decision, and it is not optional.**
+``resolve`` and ``download`` take a bearer token rather than reaching for one, so a
+call site cannot fall back to the service's own identity by forgetting to say. Two
+tokens are possible and they are not equivalent:
+
+- A **user** token, obtained through Teams SSO. Graph then applies that person's own
+  permissions, so a document they cannot open comes back 403 or 404. This is the only
+  arrangement in which the bot is not a more privileged reader than the person asking.
+- The **app-only** token from ``access_token()``. Tenant-wide unless narrowed to
+  ``Sites.Selected``, so it can read documents the asker could not, which is why the
+  allowlist below exists at all.
 
 Which documents may be read is decided by ``GRAPH_ALLOWED_HOSTS`` and
 ``GRAPH_ALLOWED_SITE_PATHS``, and the order the two are applied in matters: see
 ``resolve``. A sharing link has no path to check, only an opaque identifier, so the
 site is checked against what Graph resolves rather than against what was pasted.
+These stay in force under a user token too -- narrower than the user's own access,
+and defence in depth rather than the only boundary.
 
 Two things were established by probing a real tenant rather than from documentation:
 
-- A delegated token is refused when Conditional Access requires a compliant device
-  (AADSTS530035). A server has no device identity, so app-only is not a shortcut
-  here, it is the only option.
+- A delegated token acquired *from the server* is refused when Conditional Access
+  requires a compliant device (AADSTS530035), because a server has no device
+  identity. A token acquired through Teams SSO comes from the user's own client, so
+  it is not the same case -- see ``lib/services/microsoft/teams/bot.py``.
 - Graph serves whatever SharePoint last persisted. Under AutoSave that trails a
   live edit by about half a second, but with nobody editing it is simply current.
 
@@ -243,12 +257,17 @@ def _share_id(url: str) -> str:
     return "u!" + encoded.rstrip("=").replace("/", "_").replace("+", "-")
 
 
-async def resolve(url: str) -> dict[str, Any]:
-    """The drive item for a SharePoint URL, if this service may read it.
+async def resolve(url: str, *, token: str) -> dict[str, Any]:
+    """The drive item for a SharePoint URL, if this identity may read it.
 
-    ``/shares`` is the documented shortcut and works app-only; walking site then
-    path is the fallback, because a URL that has been through a chat message does
-    not always decode back to the exact stored name.
+    ``token`` is whose reading this is, and it is required rather than defaulted:
+    under a user token Graph refuses a document that person cannot open, which is the
+    real permission check, and a call site that could silently fall back to app-only
+    would lose it.
+
+    ``/shares`` is the documented shortcut and works with either identity; walking
+    site then path is the fallback, because a URL that has been through a chat message
+    does not always decode back to the exact stored name.
 
     The two allowlist checks straddle the resolve, deliberately. The host is checked
     first, before any call. The *site* is checked afterwards, against the item's own
@@ -262,7 +281,6 @@ async def resolve(url: str) -> dict[str, Any]:
     """
 
     check_host(url)
-    token = await access_token()
     headers = {"Authorization": f"Bearer {token}"}
 
     async with httpx.AsyncClient(timeout=60, headers=headers) as client:
@@ -322,15 +340,17 @@ async def _resolve_item(client: httpx.AsyncClient, url: str) -> dict[str, Any]:
     return dict(item.json())
 
 
-async def download(item: dict[str, Any]) -> bytes:
+async def download(item: dict[str, Any], *, token: str) -> bytes:
     """The document's bytes as SharePoint last persisted them.
+
+    Takes the same identity that resolved the item, so a user token is still the one
+    fetching the content rather than only the metadata.
 
     ``/content`` answers 302 with a short-lived pre-authenticated URL. That URL is
     fetched without our bearer token: it carries its own authorisation, and sending
     ours to a storage host would put it somewhere other than Graph.
     """
 
-    token = await access_token()
     url = item.get("@microsoft.graph.downloadUrl")
 
     async with httpx.AsyncClient(timeout=180) as client:

@@ -59,15 +59,20 @@ def _read(path: Path, work: Path) -> tuple[list[str], list[tuple[str, str]]]:
     return paragraphs, comments
 
 
-async def load(url: str) -> LoadedDocument:
-    """Load a document by its SharePoint URL.
+async def load(url: str, *, token: str) -> LoadedDocument:
+    """Load a document by its SharePoint URL, as whoever ``token`` belongs to.
+
+    The identity is required rather than defaulted. Under a user token Graph refuses a
+    document that person cannot open, and that refusal *is* the permission check --
+    a default would quietly turn it back into the service reading on their behalf.
 
     Raises ``client.DocumentNotAllowed`` when the URL is outside the configured
-    sites, and ``client.GraphError`` when Graph will not serve it.
+    sites, and ``client.GraphError`` when Graph will not serve it -- including when it
+    will not serve it *to this person*.
     """
 
-    item = await client.resolve(url)
-    payload = await client.download(item)
+    item = await client.resolve(url, token=token)
+    payload = await client.download(item, token=token)
     logger.info(
         "loaded %s (%s bytes, modified %s)",
         item.get("name"),
