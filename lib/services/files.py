@@ -181,13 +181,15 @@ async def get_files_by_project_id(
 
 async def get_project_files_list_items(
     project_id: uuid.UUID | str,
-    revision: int | None = None,
 ) -> List[FileListItem]:
     """
     Get files for a project as lightweight list items (excludes markdown and summary).
 
-    When revision is set, returns files belonging to that revision plus
-    shared files (revision IS NULL, e.g. supporting documents).
+    Returns all files across every revision: each main-document revision plus the
+    shared supporting files (revision IS NULL). The latest revision — i.e. the one
+    matching Project.current_revision — is the current main document; older MAIN
+    files are previous revisions. Callers distinguish them by comparing each
+    File.revision to Project.current_revision.
     Excludes SUPPORTING_CANDIDATE files (temporary during reference downloading).
     """
     project_id = ensure_uuid(project_id, "project ID")
@@ -196,10 +198,6 @@ async def get_project_files_list_items(
             col(File.project_id) == project_id,
             col(File.role) != FileRole.SUPPORTING_CANDIDATE,
         )
-        if revision is not None:
-            stmt = stmt.where(
-                or_(col(File.revision) == revision, col(File.revision).is_(None))
-            )
         result = await session.execute(stmt)
         files = result.scalars().all()
         return [FileListItem.model_validate(f, from_attributes=True) for f in files]

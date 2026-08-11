@@ -3,3 +3,4 @@ export { ReferenceReviewTab } from './reference-review/reference-review-tab';
 export { FilesTab } from './files-tab';
 export { DocumentExplorerTab } from './document-explorer-tab';
 export { AnalysesTab } from './analyses-tab';
+export { PeerReviewTab } from './peer-review/peer-review-tab';

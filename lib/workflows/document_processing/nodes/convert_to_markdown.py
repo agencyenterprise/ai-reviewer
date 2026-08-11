@@ -21,6 +21,7 @@ async def convert_to_markdown(
 ):
     main_file = state.file
     supporting = state.supporting_files or []
+    reviewer_memos = state.reviewer_memo_files or []
 
     # Main file first (sequentially) — the rest of the pipeline can't proceed
     # without it, so a failure here must abort the workflow.
@@ -33,20 +34,50 @@ async def convert_to_markdown(
         raise main_result
     converted_main = main_result
 
-    # Supporting files run with bounded concurrency. Failures are reported
-    # per-file via WorkflowError but do not abort the workflow — downstream
-    # nodes work from whichever supporting files converted successfully.
+    workflow_run_id = runtime.context.workflow_run_id
+
+    # Supporting files and reviewer memos run with bounded concurrency.
+    # Failures are reported per-file via WorkflowError but do not abort the
+    # workflow — downstream consumers work from whichever files converted.
+    converted_supporting, supporting_errors = await _convert_batch(
+        supporting, FileRole.SUPPORT, "supporting file", workflow_run_id
+    )
+    converted_memos, memo_errors = await _convert_batch(
+        reviewer_memos, FileRole.REVIEWER_MEMO, "reviewer memo", workflow_run_id
+    )
+
+    return {
+        "file": converted_main,
+        "supporting_files": converted_supporting,
+        "reviewer_memo_files": converted_memos,
+        "errors": supporting_errors + memo_errors,
+    }
+
+
+async def _convert_batch(
+    files: list[FileDocument],
+    role: FileRole,
+    label: str,
+    workflow_run_id: str | None,
+) -> tuple[list[FileDocument], list[WorkflowError]]:
+    """Convert a batch of files with bounded concurrency, tolerating failures.
+
+    Returns the successfully converted documents and a per-file WorkflowError
+    for each failure. A failure never aborts the batch.
+    """
+    if not files:
+        return [], []
+
     results, errors = await run_tasks(
-        [_convert_and_persist(f, role=FileRole.SUPPORT) for f in supporting],
-        desc="Converting supporting documents",
+        [_convert_and_persist(f, role=role) for f in files],
+        desc=f"Converting {label}s",
         max_concurrent=8,
     )
 
-    converted_supporting: list[FileDocument] = []
+    converted: list[FileDocument] = []
     workflow_errors: list[WorkflowError] = []
-    workflow_run_id = runtime.context.workflow_run_id
 
-    for original, result, error in zip(supporting, results, errors):
+    for original, result, error in zip(files, results, errors):
         # `_convert_and_persist` never raises — it returns the exception so
         # `run_tasks` produces a result, never an entry in `errors`. We still
         # check `error` defensively in case run_tasks itself produced one.
@@ -54,14 +85,14 @@ async def convert_to_markdown(
         if isinstance(result, Exception):
             failure = result
         elif isinstance(result, FileDocument):
-            converted_supporting.append(result)
+            converted.append(result)
 
         if failure is not None:
             workflow_errors.append(
                 WorkflowError(
                     task_name="convert_to_markdown",
                     error=(
-                        f"Failed to convert supporting file {original.file_name} "
+                        f"Failed to convert {label} {original.file_name} "
                         f"(file_id={original.file_id}): {failure}"
                     ),
                     workflow_run_id=workflow_run_id,
@@ -70,16 +101,11 @@ async def convert_to_markdown(
 
     if workflow_errors:
         logger.warning(
-            f"{len(workflow_errors)}/{len(supporting)} supporting documents "
-            f"failed to convert; continuing with {len(converted_supporting)} "
-            f"successful conversions"
+            f"{len(workflow_errors)}/{len(files)} {label}s failed to convert; "
+            f"continuing with {len(converted)} successful conversions"
         )
 
-    return {
-        "file": converted_main,
-        "supporting_files": converted_supporting,
-        "errors": workflow_errors,
-    }
+    return converted, workflow_errors
 
 
 async def _convert_and_persist(

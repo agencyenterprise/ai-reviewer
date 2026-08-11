@@ -3,6 +3,9 @@
 import { ReadonlyThread } from '@/components/assistant-ui/readonly-thread';
 import { Markdown } from '@/components/markdown';
 import { DocumentIssueCard } from '@/components/results/components/document-issue-card';
+import { HtmlReportFrame, HtmlReportFrameHandle } from '@/components/results/components/html-report-frame';
+import { MarkdownDownloadButton } from '@/components/results/components/markdown-download-button';
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,8 +18,8 @@ import {
 } from '@/lib/workflow-state';
 import { AssistantRuntimeProvider, ThreadMessageLike, useExternalStoreRuntime } from '@assistant-ui/react';
 import { convertLangChainMessages, LangChainMessage } from '@assistant-ui/react-langgraph';
-import { Ban, CheckCircle2, ClipboardList, Loader2, MessageSquare, XCircle } from 'lucide-react';
-import { useMemo } from 'react';
+import { Ban, CheckCircle2, ClipboardList, Download, Loader2, MessageSquare, XCircle } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
 
 interface SimpleDeepAgentResultsProps {
   project: ProjectDetailed;
@@ -86,6 +89,20 @@ function IssuesList({
   );
 }
 
+function ReportCard({ reportMarkdown }: { reportMarkdown: string }) {
+  return (
+    <Card className="gap-2">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-sm">Report</CardTitle>
+        <MarkdownDownloadButton markdown={reportMarkdown} fileName="report" />
+      </CardHeader>
+      <CardContent className="text-sm">
+        <Markdown>{reportMarkdown}</Markdown>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function SimpleDeepAgentResults({
   project,
   workflowDetail,
@@ -107,6 +124,12 @@ export function SimpleDeepAgentResults({
     isRunning: false,
     onNew: async () => {},
   });
+
+  // Declared above the early returns below, so the hook order stays stable.
+  // The tab is controlled because the Download PDF button sits in the tab row
+  // and only applies to the Results tab.
+  const [activeTab, setActiveTab] = useState('results');
+  const frameRef = useRef<HtmlReportFrameHandle>(null);
 
   if (isWorkflowProcessing(workflowDetail)) {
     return (
@@ -150,36 +173,46 @@ export function SimpleDeepAgentResults({
   const { result } = state;
 
   return (
-    <Tabs defaultValue="results">
-      <TabsList>
-        <TabsTrigger value="results" className="gap-1.5">
-          <ClipboardList className="h-3.5 w-3.5" />
-          Results
-        </TabsTrigger>
-        <TabsTrigger value="messages" className="gap-1.5">
-          <MessageSquare className="h-3.5 w-3.5" />
-          Messages
-        </TabsTrigger>
-      </TabsList>
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <div className="flex items-center justify-between gap-2">
+        <TabsList>
+          <TabsTrigger value="results" className="gap-1.5">
+            <ClipboardList className="h-3.5 w-3.5" />
+            Results
+          </TabsTrigger>
+          <TabsTrigger value="messages" className="gap-1.5">
+            <MessageSquare className="h-3.5 w-3.5" />
+            Messages
+          </TabsTrigger>
+        </TabsList>
+        {/* Only on the Results tab: the other tab unmounts the frame, which
+            would leave this printing nothing. */}
+        {result.report_html && activeTab === 'results' && (
+          <Button variant="outline" size="sm" onClick={() => frameRef.current?.print()}>
+            <Download className="size-4" />
+            Download PDF
+          </Button>
+        )}
+      </div>
 
       <TabsContent value="results" className="space-y-4">
-        {result.report_markdown && (
-          <Card className="gap-2">
-            <CardHeader>
-              <CardTitle className="text-sm">Report</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm">
-              <Markdown>{result.report_markdown}</Markdown>
-            </CardContent>
-          </Card>
+        {result.report_html ? (
+          // HTML-report workflows produce a document deliverable, not a checklist.
+          // No Card wrapper: the report renders in its own bordered frame already.
+          <HtmlReportFrame ref={frameRef} html={result.report_html} title="Report" />
+        ) : (
+          <>
+            {result.report_markdown && <ReportCard reportMarkdown={result.report_markdown} />}
+            <IssuesList issues={issues} onNavigateToDocumentExplorer={onNavigateToDocumentExplorer} />
+          </>
         )}
-
-        <IssuesList issues={issues} onNavigateToDocumentExplorer={onNavigateToDocumentExplorer} />
       </TabsContent>
 
-      <TabsContent value="messages" className="mt-4">
+      {/* No top margin: the Tabs root already spaces panels from the tab list,
+          and the thread's own viewport padding is dropped for the same reason. */}
+      <TabsContent value="messages">
         <AssistantRuntimeProvider runtime={runtime}>
-          <ReadonlyThread />
+          <ReadonlyThread viewportClassName="pt-0" />
         </AssistantRuntimeProvider>
       </TabsContent>
     </Tabs>

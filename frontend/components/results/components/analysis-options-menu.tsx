@@ -23,7 +23,7 @@ import { useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { getErrorMessage } from '@/lib/api-error';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Download, EllipsisVerticalIcon, Link, Pencil, RefreshCw } from 'lucide-react';
+import { Download, EllipsisVerticalIcon, Link, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { downloadDocxFile, DocxType, useDownloadDocx } from './use-download-docx';
@@ -42,6 +42,7 @@ export interface AnalysisOptionsMenuProps {
   readOnly: boolean;
   selectedRevision?: number;
   onRevisionChange?: (revision: number) => void;
+  onRevisionCreated?: () => void;
 }
 
 export function AnalysisOptionsMenu({
@@ -50,6 +51,7 @@ export function AnalysisOptionsMenu({
   readOnly,
   selectedRevision,
   onRevisionChange,
+  onRevisionCreated,
 }: AnalysisOptionsMenuProps) {
   const { filter } = useDocumentExplorerStore();
   const projectId = project.id;
@@ -161,6 +163,7 @@ export function AnalysisOptionsMenu({
               totalRevisions={project.current_revision ?? 1}
               selectedRevision={selectedRevision}
               onRevisionChange={onRevisionChange}
+              onCreateRevision={readOnly ? undefined : () => setIsReplaceDialogOpen(true)}
             />
           )}
 
@@ -205,11 +208,11 @@ export function AnalysisOptionsMenu({
               </MenuItemWithTooltip>
 
               <MenuItemWithTooltip
-                icon={RefreshCw}
+                icon={Plus}
                 onClick={() => setIsReplaceDialogOpen(true)}
-                tooltip="Upload a new version of the main document and re-run assessments"
+                tooltip="Upload a new version of the main document as a new revision. Previous revisions, their reviewer memos, and results are kept."
               >
-                Replace main document
+                Create new revision
               </MenuItemWithTooltip>
 
               <MenuItemWithTooltip
@@ -270,6 +273,7 @@ export function AnalysisOptionsMenu({
         isOpen={isReplaceDialogOpen}
         projectId={projectId}
         onClose={() => setIsReplaceDialogOpen(false)}
+        onRevisionCreated={onRevisionCreated}
       />
     </>
   );

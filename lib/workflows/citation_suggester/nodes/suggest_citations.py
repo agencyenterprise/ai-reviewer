@@ -12,6 +12,7 @@ from lib.agents.formatting_utils import (
     format_cited_references,
 )
 from lib.models.bibliography_item import BibliographyItem
+from lib.models.file import FileRole
 from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
 from lib.services.file import FileDocument
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
@@ -37,7 +38,9 @@ async def suggest_citations(
     chunks = await file_artifacts_service.get_chunks()
     file = await file_artifacts_service.get_main_file()
     references = await file_artifacts_service.get_references()
-    supporting_files = await file_artifacts_service.get_supporting_files()
+    supporting_files = await file_artifacts_service.get_project_files(
+        [FileRole.SUPPORT]
+    )
     summaries = [
         await file_artifacts_service.get_file_summary(f.file_id)
         for f in supporting_files

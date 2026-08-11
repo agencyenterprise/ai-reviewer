@@ -1,16 +1,29 @@
-"""Base manifest for simple single-node deep-agent workflows.
+"""Base manifests for single-node deep-agent workflows.
 
-Subclasses only need to declare class-level attributes (type, name, description,
-and either `skill` or `user_prompt`) and the usual WorkflowManifest metadata
-fields. The graph, node, state construction, and issue conversion are all
-handled here.
+Two variants share one base and one state (``SimpleDeepAgentState`` with a
+unified ``DeepAgentResult``):
+
+- ``SimpleDeepAgentManifest`` — the LLM fills ``AgentCheckResult`` (issues + a
+  markdown report).
+- ``HtmlReportDeepAgentManifest`` — the LLM fills ``AgentHtmlReport`` (a single
+  self-contained HTML document), no issues.
+
+The LLM sees only the fields of its variant's output model (so it knows exactly
+which to populate); the node maps that output into the shared
+``DeepAgentResult`` stored in state, and the UI renders whichever report field
+is present.
+
+Subclasses declare class-level attributes (type, name, description, and either
+`skill` or `user_prompt`) and the usual WorkflowManifest metadata fields.
 """
 
-from typing import TYPE_CHECKING, ClassVar, List, Optional, Type
+import html as html_lib
+from typing import TYPE_CHECKING, ClassVar, List, Literal, Optional, Type
 
 from langgraph.graph import START, StateGraph
 from langgraph.graph.state import END
 from langgraph.runtime import Runtime
+from pydantic import BaseModel
 
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
@@ -22,38 +35,47 @@ from lib.workflows.simple_deep_agent.state import (
     SimpleDeepAgentConfig,
     SimpleDeepAgentState,
 )
-from lib.workflows.simple_deep_agent.agent_types import issues_from_agent_result
+from lib.workflows.simple_deep_agent.agent_types import (
+    AgentCheckResult,
+    AgentHtmlReport,
+    DeepAgentResult,
+    IssueItem,
+    issues_from_agent_result,
+)
 
 if TYPE_CHECKING:
+    from lib.services.file_artifacts_service.file_artifacts_service_type import (
+        FileArtifactsServiceType,
+    )
     from lib.workflows.workflow_types import WorkflowState
 
 
-class SimpleDeepAgentManifest(
+class _BaseDeepAgentManifest(
     WorkflowManifest[SimpleDeepAgentState, SimpleDeepAgentConfig]
 ):
-    """Base manifest for workflows with a single deep-agent node.
+    """Shared machinery for single-node deep-agent workflows.
 
-    Subclasses must define:
-        type: WorkflowRunType
-        name: str
-        description: str
-        and exactly one prompt source:
-            skill: str         — name of the skill under `skills/` whose
-                                 SKILL.md body holds the rules/criteria
-                                 (the single source of truth, preferred), OR
-            user_prompt: str   — the rules/criteria inline (used as the human
-                                 message)
+    Subclasses set ``result_model`` (the LLM's structured-output schema),
+    implement ``_guard_result`` (how a ``precheck`` message is surfaced), and
+    ``convert_state_to_issues``. State, graph, prompt resolution, and the
+    LLM-output → ``DeepAgentResult`` mapping are shared.
 
-    Optional overrides:
-        system_prompt: str  — overrides the default generic system prompt
-        include_supporting_files: bool = False
-        (plus any WorkflowManifest fields: required_dependencies, order, etc.)
+    The agent's backend always exposes the full project file tree (current main,
+    supporting docs, and a /revisions/<n>/ tree with each revision's main and
+    reviewer memos); workflows point the agent at the paths they need via the
+    system prompt rather than by selecting files here.
     """
 
     skill: ClassVar[Optional[str]] = None
     user_prompt: ClassVar[Optional[str]] = None
     system_prompt: ClassVar[Optional[str]] = None
-    include_supporting_files: ClassVar[bool] = False
+
+    # Structured-output schema the LLM must fill for this variant.
+    result_model: ClassVar[Type[BaseModel]] = AgentCheckResult
+
+    # Per-workflow reasoning effort. None keeps SimpleDeepAgent's default;
+    # set it on workflows whose task warrants more deliberation.
+    reasoning_effort: ClassVar[Optional[Literal["low", "medium", "high"]]] = None
 
     def resolve_user_prompt(self) -> str:
         """Resolve the rules/criteria used as the deep agent's user prompt.
@@ -69,6 +91,28 @@ class SimpleDeepAgentManifest(
             f"{type(self).__name__} must define either `skill` or `user_prompt`"
         )
 
+    async def precheck(self, service: "FileArtifactsServiceType") -> Optional[str]:
+        """Optional guard run before the agent.
+
+        Return a message to short-circuit: the agent is skipped and the message
+        is surfaced as the run's report. Return None to proceed. Default: no guard.
+        """
+        return None
+
+    def _guard_result(self, message: str) -> DeepAgentResult:
+        """Build the state result carrying a precheck guard message."""
+        raise NotImplementedError
+
+    @staticmethod
+    def _to_state_result(output: BaseModel) -> DeepAgentResult:
+        """Map a variant's LLM output into the unified DeepAgentResult."""
+        issues = getattr(output, "issues", None) or []
+        return DeepAgentResult(
+            issues=[i for i in issues if isinstance(i, IssueItem)],
+            report_markdown=getattr(output, "report_markdown", "") or "",
+            report_html=getattr(output, "report_html", "") or "",
+        )
+
     def get_state_type(self) -> Type[SimpleDeepAgentState]:
         return SimpleDeepAgentState
 
@@ -81,14 +125,24 @@ class SimpleDeepAgentManifest(
         async def run_agent(
             state: SimpleDeepAgentState, runtime: Runtime[ContextSchema]
         ) -> dict:
+            service = runtime.context.file_artifacts_service
+
+            guard_message = await manifest.precheck(service)
+            if guard_message is not None:
+                return {"result": manifest._guard_result(guard_message), "messages": []}
+
             agent = SimpleDeepAgent(
                 context=runtime.context,
                 system_prompt=manifest.system_prompt,
                 user_prompt=manifest.resolve_user_prompt(),
-                include_supporting_files=manifest.include_supporting_files,
+                response_model=manifest.result_model,
+                reasoning_effort=manifest.reasoning_effort,
             )
-            result, messages = await agent.ainvoke({})
-            return {"result": result, "messages": messages}
+            output, messages = await agent.ainvoke({})
+            return {
+                "result": manifest._to_state_result(output),
+                "messages": messages,
+            }
 
         decorated = register_node(self.name)(run_agent)
 
@@ -112,6 +166,32 @@ class SimpleDeepAgentManifest(
         state: SimpleDeepAgentState,
         other_states: List["WorkflowState"],
     ) -> List[DocumentIssue]:
+        # Both variants may carry issues in the unified result (the HTML variant
+        # can populate them too); convert whatever is present.
         if state.result is None:
             return []
         return issues_from_agent_result(state.result, self.type)
+
+
+class SimpleDeepAgentManifest(_BaseDeepAgentManifest):
+    """Deep-agent workflow whose LLM fills issues plus a markdown report."""
+
+    result_model: ClassVar[Type[BaseModel]] = AgentCheckResult
+
+    def _guard_result(self, message: str) -> DeepAgentResult:
+        return DeepAgentResult(report_markdown=message)
+
+
+class HtmlReportDeepAgentManifest(_BaseDeepAgentManifest):
+    """Deep-agent workflow whose LLM fills a single self-contained HTML report."""
+
+    result_model: ClassVar[Type[BaseModel]] = AgentHtmlReport
+
+    def _guard_result(self, message: str) -> DeepAgentResult:
+        safe = html_lib.escape(message)
+        return DeepAgentResult(
+            report_html=(
+                '<!doctype html><html><head><meta charset="utf-8"></head>'
+                f"<body><p>{safe}</p></body></html>"
+            )
+        )

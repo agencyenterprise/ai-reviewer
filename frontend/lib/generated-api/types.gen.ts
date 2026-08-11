@@ -347,7 +347,7 @@ export type AdvocacyToneWorkflowConfig = {
 /**
  * AgentCheckResult
  *
- * Result from a single deep-agent validation pass.
+ * LLM output for a validation pass: issues plus a markdown report.
  */
 export type AgentCheckResult = {
   /**
@@ -433,6 +433,28 @@ export type AppConfigValueResponse = {
 };
 
 /**
+ * AppendMessageRequest
+ */
+export type AppendMessageRequest = {
+  /**
+   * Message Id
+   */
+  message_id: string;
+  /**
+   * Parent Id
+   */
+  parent_id?: string | null;
+  /**
+   * Content
+   *
+   * The assistant-ui ExportedMessageRepositoryItem JSON
+   */
+  content: {
+    [key: string]: unknown;
+  };
+};
+
+/**
  * ApproveWorkflowResponse
  *
  * Response for workflow approval.
@@ -495,27 +517,7 @@ export type BaseMessage = {
    * Id
    */
   id?: string | null;
-  [key: string]:
-    | unknown
-    | string
-    | Array<
-        | string
-        | {
-            [key: string]: unknown;
-          }
-      >
-    | {
-        [key: string]: unknown;
-      }
-    | {
-        [key: string]: unknown;
-      }
-    | string
-    | string
-    | null
-    | string
-    | null
-    | undefined;
+  [key: string]: unknown;
 };
 
 /**
@@ -669,11 +671,11 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
   /**
    * Main Document
    */
-  main_document: string;
+  main_document: Blob | File;
   /**
    * Supporting Documents
    */
-  supporting_documents?: Array<string> | null;
+  supporting_documents?: Array<Blob | File> | null;
   /**
    * Domain
    */
@@ -710,6 +712,52 @@ export type CancelWorkflowResponse = {
    * Workflow Run Id
    */
   workflow_run_id: string;
+};
+
+/**
+ * ChatMessageResponse
+ */
+export type ChatMessageResponse = {
+  /**
+   * Message Id
+   */
+  message_id: string;
+  /**
+   * Parent Id
+   */
+  parent_id: string | null;
+  /**
+   * Content
+   */
+  content: {
+    [key: string]: unknown;
+  };
+};
+
+/**
+ * ChatThreadResponse
+ */
+export type ChatThreadResponse = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Title
+   */
+  title: string | null;
+  /**
+   * Is Archived
+   */
+  is_archived: boolean;
+  /**
+   * Created At
+   */
+  created_at: Date;
+  /**
+   * Last Updated At
+   */
+  last_updated_at: Date;
 };
 
 /**
@@ -938,10 +986,11 @@ export type CitationDetectionState = {
  * Persisted workflow-state record for one validated citation.
  *
  * Built from the agent's `CitationAssessment` in the validate_section node.
- * Unlike the agent output, this keeps the deprecated `evidence_alignment`
- * field for backwards compatibility with workflow state persisted before the
- * RAND taxonomy migration; new runs leave it unset and populate
- * `truthfulness_label`.
+ * New runs populate `evidence_alignment` (supported / partially_supported /
+ * unsupported / unverifiable). The deprecated 6-category `truthfulness_label`
+ * is retained only so workflow state persisted before the migration back to
+ * `EvidenceAlignmentLevel` still deserializes; the manifest maps it onto the
+ * new taxonomy for rendering.
  */
 export type CitationIssueItem = {
   /**
@@ -956,8 +1005,8 @@ export type CitationIssueItem = {
    * Line End
    */
   line_end: number;
-  truthfulness_label?: TruthfulnessLabel | null;
   evidence_alignment?: EvidenceAlignmentLevel | null;
+  truthfulness_label?: TruthfulnessLabel | null;
   /**
    * Rationale
    */
@@ -1684,6 +1733,41 @@ export type CreateRevisionResponse = {
 };
 
 /**
+ * CreateThreadRequest
+ */
+export type CreateThreadRequest = {
+  /**
+   * Title
+   */
+  title?: string | null;
+};
+
+/**
+ * DeepAgentResult
+ *
+ * Unified result stored in the workflow state.
+ *
+ * Holds the superset of what the deep-agent variants produce. Exactly one
+ * report field is populated per run (markdown workflows fill
+ * ``report_markdown``; HTML workflows fill ``report_html``); the UI renders
+ * whichever is present. ``issues`` is populated by the markdown variant only.
+ */
+export type DeepAgentResult = {
+  /**
+   * Issues
+   */
+  issues?: Array<IssueItem>;
+  /**
+   * Report Markdown
+   */
+  report_markdown?: string;
+  /**
+   * Report Html
+   */
+  report_html?: string;
+};
+
+/**
  * DocumentChunk
  *
  * Raw document chunk without analysis results.
@@ -1743,6 +1827,10 @@ export type DocumentProcessingState = {
    * Supporting Files
    */
   supporting_files?: Array<FileDocument> | null;
+  /**
+   * Reviewer Memo Files
+   */
+  reviewer_memo_files?: Array<FileDocument> | null;
 };
 
 /**
@@ -2546,6 +2634,7 @@ export const FileRole = {
   Main: 'main',
   Support: 'support',
   SupportingCandidate: 'supporting_candidate',
+  ReviewerMemo: 'reviewer_memo',
 } as const;
 
 /**
@@ -5210,7 +5299,10 @@ export type SimpleDeepAgentConfig = {
 /**
  * SimpleDeepAgentState
  *
- * Shared state for all simple deep-agent workflows.
+ * Shared state for all single-node deep-agent workflows.
+ *
+ * ``result`` is the unified DeepAgentResult; markdown variants fill its
+ * ``report_markdown`` (+ ``issues``), HTML variants fill its ``report_html``.
  */
 export type SimpleDeepAgentState = {
   /**
@@ -5225,9 +5317,9 @@ export type SimpleDeepAgentState = {
   type: WorkflowRunType;
   config: SimpleDeepAgentConfig;
   /**
-   * Result from the deep agent validation pass
+   * Result from the deep agent pass (markdown/issues or HTML report)
    */
-  result?: AgentCheckResult | null;
+  result?: DeepAgentResult | null;
   /**
    * Messages
    *
@@ -5300,13 +5392,13 @@ export type SummaryAndOutput = {
 /**
  * TruthfulnessLabel
  *
- * Truthfulness taxonomy adapted from the RAND policy benchmark
- * (RAND_RRA4269-1, Table 2), plus an `unverifiable` value for citations
- * whose supporting file is missing or inaccessible.
+ * LEGACY 6-category truthfulness taxonomy (RAND_RRA4269-1, Table 2).
  *
- * RAND's `divergent_positions` category is intentionally omitted: the agent
- * never reaches it reliably and the benchmark has too few examples to measure
- * it, so claims that present mixed evidence are routed to `partially_true`.
+ * The agent no longer emits this — it now outputs the simpler four-value
+ * `EvidenceAlignmentLevel` (supported / partially_supported / unsupported /
+ * unverifiable). This enum is retained ONLY so workflow state persisted before
+ * the migration back to `EvidenceAlignmentLevel` still deserializes; the
+ * manifest maps it onto the new taxonomy for rendering.
  */
 export const TruthfulnessLabel = {
   TrueExplicit: 'true_explicit',
@@ -5320,13 +5412,13 @@ export const TruthfulnessLabel = {
 /**
  * TruthfulnessLabel
  *
- * Truthfulness taxonomy adapted from the RAND policy benchmark
- * (RAND_RRA4269-1, Table 2), plus an `unverifiable` value for citations
- * whose supporting file is missing or inaccessible.
+ * LEGACY 6-category truthfulness taxonomy (RAND_RRA4269-1, Table 2).
  *
- * RAND's `divergent_positions` category is intentionally omitted: the agent
- * never reaches it reliably and the benchmark has too few examples to measure
- * it, so claims that present mixed evidence are routed to `partially_true`.
+ * The agent no longer emits this — it now outputs the simpler four-value
+ * `EvidenceAlignmentLevel` (supported / partially_supported / unsupported /
+ * unverifiable). This enum is retained ONLY so workflow state persisted before
+ * the migration back to `EvidenceAlignmentLevel` still deserializes; the
+ * manifest maps it onto the new taxonomy for rendering.
  */
 export type TruthfulnessLabel = (typeof TruthfulnessLabel)[keyof typeof TruthfulnessLabel];
 
@@ -5351,6 +5443,20 @@ export type UpdateProjectRequest = {
    */
   target_audience?: string | null;
   feedback_visibility?: FeedbackVisibility | null;
+};
+
+/**
+ * UpdateThreadRequest
+ */
+export type UpdateThreadRequest = {
+  /**
+   * Title
+   */
+  title?: string | null;
+  /**
+   * Is Archived
+   */
+  is_archived?: boolean | null;
 };
 
 /**
@@ -5851,6 +5957,9 @@ export const WorkflowRunType = {
   DocumentStructure: 'document_structure',
   FiguresTablesCheck: 'figures_tables_check',
   RecommendationCheck: 'recommendation_check',
+  RevisionPlanningSummary: 'revision_planning_summary',
+  ReviewerResponseMemos: 'reviewer_response_memos',
+  ReviewerCoverageReport: 'reviewer_coverage_report',
 } as const;
 
 /**
@@ -6115,6 +6224,182 @@ export type UpdateAppConfigApiAppConfigsKeyPutResponses = {
 
 export type UpdateAppConfigApiAppConfigsKeyPutResponse =
   UpdateAppConfigApiAppConfigsKeyPutResponses[keyof UpdateAppConfigApiAppConfigsKeyPutResponses];
+
+export type ListThreadsApiChatThreadsGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/chat/threads';
+};
+
+export type ListThreadsApiChatThreadsGetResponses = {
+  /**
+   * Response List Threads Api Chat Threads Get
+   *
+   * Successful Response
+   */
+  200: Array<ChatThreadResponse>;
+};
+
+export type ListThreadsApiChatThreadsGetResponse =
+  ListThreadsApiChatThreadsGetResponses[keyof ListThreadsApiChatThreadsGetResponses];
+
+export type CreateThreadApiChatThreadsPostData = {
+  body: CreateThreadRequest;
+  path?: never;
+  query?: never;
+  url: '/api/chat/threads';
+};
+
+export type CreateThreadApiChatThreadsPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CreateThreadApiChatThreadsPostError =
+  CreateThreadApiChatThreadsPostErrors[keyof CreateThreadApiChatThreadsPostErrors];
+
+export type CreateThreadApiChatThreadsPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: ChatThreadResponse;
+};
+
+export type CreateThreadApiChatThreadsPostResponse =
+  CreateThreadApiChatThreadsPostResponses[keyof CreateThreadApiChatThreadsPostResponses];
+
+export type DeleteThreadApiChatThreadsThreadIdDeleteData = {
+  body?: never;
+  path: {
+    /**
+     * Thread Id
+     */
+    thread_id: string;
+  };
+  query?: never;
+  url: '/api/chat/threads/{thread_id}';
+};
+
+export type DeleteThreadApiChatThreadsThreadIdDeleteErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type DeleteThreadApiChatThreadsThreadIdDeleteError =
+  DeleteThreadApiChatThreadsThreadIdDeleteErrors[keyof DeleteThreadApiChatThreadsThreadIdDeleteErrors];
+
+export type DeleteThreadApiChatThreadsThreadIdDeleteResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type DeleteThreadApiChatThreadsThreadIdDeleteResponse =
+  DeleteThreadApiChatThreadsThreadIdDeleteResponses[keyof DeleteThreadApiChatThreadsThreadIdDeleteResponses];
+
+export type UpdateThreadApiChatThreadsThreadIdPatchData = {
+  body: UpdateThreadRequest;
+  path: {
+    /**
+     * Thread Id
+     */
+    thread_id: string;
+  };
+  query?: never;
+  url: '/api/chat/threads/{thread_id}';
+};
+
+export type UpdateThreadApiChatThreadsThreadIdPatchErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type UpdateThreadApiChatThreadsThreadIdPatchError =
+  UpdateThreadApiChatThreadsThreadIdPatchErrors[keyof UpdateThreadApiChatThreadsThreadIdPatchErrors];
+
+export type UpdateThreadApiChatThreadsThreadIdPatchResponses = {
+  /**
+   * Successful Response
+   */
+  200: ChatThreadResponse;
+};
+
+export type UpdateThreadApiChatThreadsThreadIdPatchResponse =
+  UpdateThreadApiChatThreadsThreadIdPatchResponses[keyof UpdateThreadApiChatThreadsThreadIdPatchResponses];
+
+export type ListMessagesApiChatThreadsThreadIdMessagesGetData = {
+  body?: never;
+  path: {
+    /**
+     * Thread Id
+     */
+    thread_id: string;
+  };
+  query?: never;
+  url: '/api/chat/threads/{thread_id}/messages';
+};
+
+export type ListMessagesApiChatThreadsThreadIdMessagesGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ListMessagesApiChatThreadsThreadIdMessagesGetError =
+  ListMessagesApiChatThreadsThreadIdMessagesGetErrors[keyof ListMessagesApiChatThreadsThreadIdMessagesGetErrors];
+
+export type ListMessagesApiChatThreadsThreadIdMessagesGetResponses = {
+  /**
+   * Response List Messages Api Chat Threads  Thread Id  Messages Get
+   *
+   * Successful Response
+   */
+  200: Array<ChatMessageResponse>;
+};
+
+export type ListMessagesApiChatThreadsThreadIdMessagesGetResponse =
+  ListMessagesApiChatThreadsThreadIdMessagesGetResponses[keyof ListMessagesApiChatThreadsThreadIdMessagesGetResponses];
+
+export type AppendMessageApiChatThreadsThreadIdMessagesPostData = {
+  body: AppendMessageRequest;
+  path: {
+    /**
+     * Thread Id
+     */
+    thread_id: string;
+  };
+  query?: never;
+  url: '/api/chat/threads/{thread_id}/messages';
+};
+
+export type AppendMessageApiChatThreadsThreadIdMessagesPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type AppendMessageApiChatThreadsThreadIdMessagesPostError =
+  AppendMessageApiChatThreadsThreadIdMessagesPostErrors[keyof AppendMessageApiChatThreadsThreadIdMessagesPostErrors];
+
+export type AppendMessageApiChatThreadsThreadIdMessagesPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: ChatMessageResponse;
+};
+
+export type AppendMessageApiChatThreadsThreadIdMessagesPostResponse =
+  AppendMessageApiChatThreadsThreadIdMessagesPostResponses[keyof AppendMessageApiChatThreadsThreadIdMessagesPostResponses];
 
 export type StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostData = {
   body: AnalysisFormConfig;

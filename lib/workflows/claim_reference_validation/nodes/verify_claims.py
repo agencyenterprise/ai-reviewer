@@ -16,6 +16,7 @@ from lib.models.bibliography_item import (
     BibliographyItem,
     get_associated_supporting_file,
 )
+from lib.models.file import FileRole
 from lib.services.file import FileDocument
 from lib.workflows.chunk_utils import AnalyzedChunk
 from lib.workflows.claim_reference_validation.state import (
@@ -250,7 +251,9 @@ async def verify_single_paragraph(state: dict, runtime: Runtime[ContextSchema]):
     try:
         # Fetch shared data
         target_chunks = await file_artifacts_service.get_chunks()
-        supporting_files = await file_artifacts_service.get_supporting_files()
+        supporting_files = await file_artifacts_service.get_project_files(
+            [FileRole.SUPPORT]
+        )
         references = await file_artifacts_service.get_references()
 
         # Get chunks for this paragraph

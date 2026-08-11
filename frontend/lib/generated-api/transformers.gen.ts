@@ -2,6 +2,7 @@
 
 import type {
   CreateProjectEndpointApiProjectsPostResponse,
+  CreateThreadApiChatThreadsPostResponse,
   GetAdminFeedbacksApiAdminFeedbacksGetResponse,
   GetProjectEndpointApiProjectProjectIdGetResponse,
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponse,
@@ -13,8 +14,10 @@ import type {
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse,
   ListProjectsEndpointApiProjectsGetResponse,
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponse,
+  ListThreadsApiChatThreadsGetResponse,
   UpdateAppConfigApiAppConfigsKeyPutResponse,
   UpdateProjectEndpointApiProjectProjectIdPatchResponse,
+  UpdateThreadApiChatThreadsThreadIdPatchResponse,
 } from './types.gen';
 
 const appConfigResponseSchemaResponseTransformer = (data: any) => {
@@ -36,8 +39,30 @@ export const updateAppConfigApiAppConfigsKeyPutResponseTransformer = async (
   return data;
 };
 
-const workflowRunDetailSchemaResponseTransformer = (data: any) => {
-  data.run = workflowRunSchemaResponseTransformer(data.run);
+const chatThreadResponseSchemaResponseTransformer = (data: any) => {
+  data.created_at = new Date(data.created_at);
+  data.last_updated_at = new Date(data.last_updated_at);
+  return data;
+};
+
+export const listThreadsApiChatThreadsGetResponseTransformer = async (
+  data: any,
+): Promise<ListThreadsApiChatThreadsGetResponse> => {
+  data = data.map((item: any) => chatThreadResponseSchemaResponseTransformer(item));
+  return data;
+};
+
+export const createThreadApiChatThreadsPostResponseTransformer = async (
+  data: any,
+): Promise<CreateThreadApiChatThreadsPostResponse> => {
+  data = chatThreadResponseSchemaResponseTransformer(data);
+  return data;
+};
+
+export const updateThreadApiChatThreadsThreadIdPatchResponseTransformer = async (
+  data: any,
+): Promise<UpdateThreadApiChatThreadsThreadIdPatchResponse> => {
+  data = chatThreadResponseSchemaResponseTransformer(data);
   return data;
 };
 
@@ -56,15 +81,15 @@ const workflowRunSchemaResponseTransformer = (data: any) => {
   return data;
 };
 
+const workflowRunDetailSchemaResponseTransformer = (data: any) => {
+  data.run = workflowRunSchemaResponseTransformer(data.run);
+  return data;
+};
+
 export const getWorkflowStateApiWorkflowsWorkflowRunIdGetResponseTransformer = async (
   data: any,
 ): Promise<GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponse> => {
   data = workflowRunDetailSchemaResponseTransformer(data);
-  return data;
-};
-
-const adminFeedbackItemSchemaResponseTransformer = (data: any) => {
-  data.issue = issueSchemaResponseTransformer(data.issue);
   return data;
 };
 
@@ -74,6 +99,11 @@ const issueSchemaResponseTransformer = (data: any) => {
   }
   data.created_at = new Date(data.created_at);
   data.updated_at = new Date(data.updated_at);
+  return data;
+};
+
+const adminFeedbackItemSchemaResponseTransformer = (data: any) => {
+  data.issue = issueSchemaResponseTransformer(data.issue);
   return data;
 };
 
@@ -96,6 +126,13 @@ export const listLogsApiAdminLogsGetResponseTransformer = async (
   return data;
 };
 
+const projectSchemaResponseTransformer = (data: any) => {
+  data.created_at = new Date(data.created_at);
+  data.last_updated_at = new Date(data.last_updated_at);
+  data.publication_date = new Date(data.publication_date);
+  return data;
+};
+
 const projectListItemSchemaResponseTransformer = (data: any) => {
   data.project = projectSchemaResponseTransformer(data.project);
   if (data.workflow_runs) {
@@ -104,17 +141,15 @@ const projectListItemSchemaResponseTransformer = (data: any) => {
   return data;
 };
 
-const projectSchemaResponseTransformer = (data: any) => {
-  data.created_at = new Date(data.created_at);
-  data.last_updated_at = new Date(data.last_updated_at);
-  data.publication_date = new Date(data.publication_date);
-  return data;
-};
-
 export const listProjectsEndpointApiProjectsGetResponseTransformer = async (
   data: any,
 ): Promise<ListProjectsEndpointApiProjectsGetResponse> => {
   data = data.map((item: any) => projectListItemSchemaResponseTransformer(item));
+  return data;
+};
+
+const fileListItemSchemaResponseTransformer = (data: any) => {
+  data.created_at = new Date(data.created_at);
   return data;
 };
 
@@ -129,11 +164,6 @@ const projectDetailedSchemaResponseTransformer = (data: any) => {
   if (data.files) {
     data.files = data.files.map((item: any) => fileListItemSchemaResponseTransformer(item));
   }
-  return data;
-};
-
-const fileListItemSchemaResponseTransformer = (data: any) => {
-  data.created_at = new Date(data.created_at);
   return data;
 };
 

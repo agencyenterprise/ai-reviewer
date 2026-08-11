@@ -14,6 +14,7 @@ import {
   hasPublicationDateRequirement,
   hasSupportingDocumentsRequirement,
 } from '../workflows/utils';
+import { FileRole } from '@/lib/generated-api';
 import { AnalysisFormData, AnalysisFormValues } from './types';
 import { UploadSection } from './upload-section';
 import { validateAnalysisForm } from './validation';
@@ -98,7 +99,7 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
               onFilesChange={(files) => field.handleChange(files[0] || null)}
               multiple={false}
               files={field.state.value ? [field.state.value] : []}
-              fileType="main"
+              fileType={FileRole.Main}
               onRemoveFile={() => removeFile('main')}
             />
             {!field.state.meta.isValid && field.state.meta.errors.length > 0 && (
@@ -181,7 +182,7 @@ export function AnalysisForm({ onSubmit, isPending = false, error }: AnalysisFor
                     onFilesChange={(files) => field.handleChange(files)}
                     multiple={true}
                     files={field.state.value}
-                    fileType="supporting"
+                    fileType={FileRole.Support}
                     onRemoveFile={(index) => removeFile('supporting', index)}
                   />
                   {!field.state.meta.isValid && field.state.meta.errors.length > 0 && (

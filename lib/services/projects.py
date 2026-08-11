@@ -38,6 +38,7 @@ from lib.services.workflow_runs import (
 )
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.models import WorkflowRunType
+from lib.workflows.registry import get_all_manifests
 
 logger = logging.getLogger(__name__)
 
@@ -178,6 +179,11 @@ async def get_project_detailed_from_project(
     """
     Get detailed project information with workflow runs.
 
+    The files list always includes every revision (each main-document revision
+    plus shared supporting files); the current main is the one whose revision
+    matches project.current_revision. Issues, workflow runs, and markdown stay
+    scoped to the resolved revision.
+
     Args:
         project: The project to get details for
         access_level: The access level of the current user
@@ -243,9 +249,7 @@ async def get_project_detailed_from_project(
         access_level=access_level,
         workflow_runs=workflow_runs,
         issues=list(issues),
-        files=await get_project_files_list_items(
-            project.id, revision=resolved_revision
-        ),
+        files=await get_project_files_list_items(project.id),
         feedbacks=feedbacks,
         revision=resolved_revision,
         main_document_markdown=main_document_markdown,
@@ -495,9 +499,22 @@ async def create_new_revision(
             .distinct()
         )
         result = await session.execute(types_stmt)
-        previous_workflow_types = [
+        ran_before = [
             WorkflowRunType(row[0]) if isinstance(row[0], str) else row[0]
             for row in result.all()
+        ]
+        # Workflows can opt out of being re-run automatically. The peer-review
+        # ones do: they read the *reviewed* revision against the current draft,
+        # so firing them the moment a revision is created either wastes an
+        # expensive run or returns a guard message. The user starts them from
+        # the Peer Review tab once the new draft is in place.
+        manifests = get_all_manifests()
+        previous_workflow_types = [
+            workflow_type
+            for workflow_type in ran_before
+            if getattr(
+                manifests.get(workflow_type), "auto_rerun_on_new_revision", True
+            )
         ]
 
         # Increment project revision

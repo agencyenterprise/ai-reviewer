@@ -36,6 +36,14 @@ These review the document and flag issues.
 | **Methodological Alignment** | Does your methodology match standard practice in the field? Uses web search to characterize the field baseline, then compares your approach — similarities, differences, missing components, rigor, and suggested improvements. | `methodology-comparison` |
 | **Reproducibility Check** | Could someone reproduce your results from the document alone? Extracts the main results and classifies each by how reproducible it is. (Beta.) | `reproducibility-check` |
 
+## Peer review response
+
+This helps you respond to peer reviewers rather than analyzing a single document. It works from a draft (and optionally a revised draft) plus one or more reviewer memos.
+
+| Capability | What it does | Skill |
+|---|---|---|
+| **Review Assistant** | Generate the artifacts of a peer-review response cycle: a revision-planning summary, one reviewer response memo per reviewer, and a consolidated reviewer coverage report for a QA manager. Reproduces each reviewer memo verbatim and states how the revision addressed every point. | `review-assistant` |
+
 ## Tools
 
 These operate on the document rather than flagging issues.

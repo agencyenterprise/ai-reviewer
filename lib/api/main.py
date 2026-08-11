@@ -21,6 +21,7 @@ from lib.api.routers import (
     about,
     analysis,
     app_configs,
+    chat,
     feedback,
     files,
     health,
@@ -33,6 +34,7 @@ from lib.api.routers import (
     workflow_types,
     workflows,
 )
+from lib.api.routers.microsoft import routes as microsoft_routes
 from lib.api.routers.tus_upload import tus_router
 from lib.config.logger import setup_logger
 from lib.services.workflow_reaper import run_reaper_loop
@@ -103,6 +105,7 @@ app.add_middleware(GZipMiddleware)
 app.include_router(health.router)
 app.include_router(about.router)
 app.include_router(app_configs.router)
+app.include_router(chat.router)
 app.include_router(analysis.router)
 app.include_router(workflows.router)
 app.include_router(workflow_types.router)
@@ -115,3 +118,4 @@ app.include_router(share.router)
 app.include_router(public.router)
 app.include_router(tus_router)
 app.include_router(users.router)
+app.include_router(microsoft_routes.router)

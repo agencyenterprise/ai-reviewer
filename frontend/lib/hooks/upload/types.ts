@@ -27,6 +27,12 @@ export interface UseUploadOptions {
   fileRole?: FileRole;
   /** When set, the backend will force-match the uploaded file to this reference. */
   referenceId?: string;
+  /**
+   * Revision the uploaded file belongs to. Only meaningful for reviewer memos,
+   * which review a specific draft that is not always the current one. Omit to
+   * attach to the project's current revision.
+   */
+  targetRevision?: number;
   /** Callback when a file is completed. */
   onFileComplete?: (file: File, uppyFile: UppyFile<Meta, AnyBody>) => void;
   /** Callback when all files are completed. */

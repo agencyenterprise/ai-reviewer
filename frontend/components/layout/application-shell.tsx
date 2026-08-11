@@ -11,6 +11,7 @@ import { MobileProfileMenu, ProfileDropdown } from './profile-dropdown';
 
 const navigation = [
   { name: 'Projects', href: '/projects' },
+  // Chat is intentionally hidden from the nav but the /chat route stays available.
   { name: 'About', href: '/about' },
 ];
 
@@ -32,6 +33,9 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
   if (pathname.startsWith('/addin')) {
     return <>{children}</>;
   }
+
+  // Chat uses the full page width (no centered max-width container or padding).
+  const isFullBleed = pathname.startsWith('/chat');
 
   return (
     <div className="min-h-full">
@@ -137,9 +141,7 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
         </DisclosurePanel>
       </Disclosure>
 
-      <main>
-        <div className="mx-auto max-w-7xl p-4 sm:px-6 lg:px-8">{children}</div>
-      </main>
+      <main>{isFullBleed ? children : <div className="mx-auto max-w-7xl p-4 sm:px-6 lg:px-8">{children}</div>}</main>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { FileUpload } from '@/components/ui/file-upload';
 import { FileListItem } from './file-list-item';
+import { FileRole } from '@/lib/generated-api';
 
 export interface UploadSectionProps {
   title: string;
@@ -9,7 +10,7 @@ export interface UploadSectionProps {
   onFilesChange: (files: File[]) => void;
   multiple: boolean;
   files: File[];
-  fileType: 'main' | 'supporting';
+  fileType: FileRole;
   required: boolean;
   onRemoveFile: (index?: number) => void;
 }

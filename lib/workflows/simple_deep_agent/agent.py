@@ -5,16 +5,17 @@ Callers supply the user prompt (specific rules/criteria) and may optionally
 override the system prompt when the default is not appropriate.
 """
 
-from typing import Any, Callable, List, Optional, Sequence, Union
+from typing import Any, Callable, List, Literal, Optional, Sequence, Type, Union
 
 from deepagents import create_deep_agent
 from langchain.agents.structured_output import AutoStrategy
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
+from pydantic import BaseModel
 
 from lib.config.llm_models import gpt_5_5_model
-from lib.models.agent import LangChainAgent
+from lib.models.agent import LangChainAgent, ReasoningDict
 from lib.workflows.context import ContextSchema
 from lib.workflows.simple_deep_agent.agent_types import AgentCheckResult
 
@@ -53,32 +54,39 @@ class SimpleDeepAgent(LangChainAgent):
         context: ContextSchema,
         user_prompt: str,
         system_prompt: Optional[str] = None,
-        include_supporting_files: bool = False,
+        response_model: Type[BaseModel] = AgentCheckResult,
         tools: Optional[Sequence[Union[BaseTool, Callable, dict[str, Any]]]] = None,
+        reasoning_effort: Optional[Literal["low", "medium", "high"]] = None,
     ):
         super().__init__(context)
         self._system_prompt = system_prompt or _SYSTEM_PROMPT
         self._user_prompt = user_prompt
-        self._include_supporting_files = include_supporting_files
+        # Structured-output model the agent fills. Defaults to AgentCheckResult
+        # (issues + markdown report); the HTML-report variant passes AgentHtmlReport.
+        self._response_model = response_model
         self._tools = tools
+        # Shadows the class-level `reasoning` for this instance only, so one
+        # workflow can ask for more reasoning without affecting the others that
+        # share this agent.
+        if reasoning_effort is not None:
+            self.reasoning = ReasoningDict(effort=reasoning_effort, summary="auto")
 
     async def ainvoke(
         self,
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
-    ) -> tuple[AgentCheckResult, List[BaseMessage]]:
+    ) -> tuple[BaseModel, List[BaseMessage]]:
         deep_agent = create_deep_agent(
             model=self.llm,
             tools=self._tools,
             context_schema=ContextSchema,
-            response_format=AutoStrategy(AgentCheckResult),
+            response_format=AutoStrategy(self._response_model),
             skills=["/skills/"],
         )
 
         result = await deep_agent.ainvoke(
             {
                 "files": await self.context.file_artifacts_service.get_deepagent_backend_files(
-                    include_supporting_files=self._include_supporting_files,
                     include_skills=True,
                 ),
                 "messages": [
