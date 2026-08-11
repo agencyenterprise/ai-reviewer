@@ -9,21 +9,27 @@ sign-in would fail about three times in four, and only once deployed: a single-p
 dev server never shows it.
 
 One short transaction per operation, no locks. Concurrent writes to the same key are
-serialised by the primary key via ``ON CONFLICT DO UPDATE``. Volume is a few rows per
-sign-in, so there is no sweeper -- the SDK expires a flow after about a minute and
-deletes its own entries as the flow completes.
+serialised by the primary key via ``ON CONFLICT DO UPDATE``.
+
+**Rows are swept, because a sign-in nobody finishes never deletes its own.** The SDK
+removes an entry when a flow completes or fails, so the rows that linger are the ones
+where somebody saw the Sign in card and closed it -- and one of the two things stored is
+the message that was parked to be replayed, meaning its text and its sender. Left alone,
+that is confidential content retained indefinitely in a table whose lifetime is
+otherwise measured in seconds. Every write therefore drops rows older than
+``ABANDONED_AFTER``, which costs an indexed range delete and needs no scheduler.
 
 No tokens pass through here. The refresh token stays in the Bot Framework token
 service; what is stored is flow bookkeeping and the pending activity.
 """
 
 import logging
-from datetime import datetime, timezone
-from typing import Any
+from datetime import datetime, timedelta, timezone
+from typing import Any, cast
 
 from microsoft_agents.hosting.core import Storage
 from microsoft_agents.hosting.core.storage import AsyncStorageBase, StoreItem
-from sqlalchemy import delete, select
+from sqlalchemy import CursorResult, delete, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlmodel import col
 
@@ -31,6 +37,12 @@ from lib.config.database import AsyncSessionLocal
 from lib.models.microsoft_teams_signin_state import MicrosoftTeamsSignInState
 
 logger = logging.getLogger(__name__)
+
+# Generous next to the thing being measured: the SDK's own flow lasts about a minute,
+# so a row untouched for an hour belongs to a sign-in that was abandoned rather than one
+# still in progress. Long enough that a slow sign-in is never swept out from under
+# someone, short enough that a parked message is not kept for days.
+ABANDONED_AFTER = timedelta(hours=1)
 
 
 class PostgresSignInStorage(AsyncStorageBase):
@@ -70,7 +82,25 @@ class PostgresSignInStorage(AsyncStorageBase):
         )
         async with AsyncSessionLocal() as session:
             await session.execute(statement)
+            # Same transaction as the write, so a sweep cannot be the thing that fails
+            # on its own and leaves the caller thinking nothing happened.
+            # A DELETE really does come back as a CursorResult, which carries
+            # rowcount; the stubs only promise the narrower Result.
+            swept = cast(
+                CursorResult[Any],
+                await session.execute(
+                    delete(MicrosoftTeamsSignInState).where(
+                        col(MicrosoftTeamsSignInState.updated_at)
+                        < now - ABANDONED_AFTER
+                    )
+                ),
+            )
             await session.commit()
+
+        if swept.rowcount:
+            logger.info(
+                "swept %s abandoned Teams sign-in row(s)", swept.rowcount
+            )
 
     async def _delete_item(self, key: str) -> None:
         async with AsyncSessionLocal() as session:

@@ -11,8 +11,11 @@ sign-in failing perhaps three times in four, and only once deployed. Same shape 
 bug as the one ``mcp_oauth_kv`` exists for, and a separate table because this is a
 different subsystem with a different lifetime.
 
-Rows are short lived by nature: the SDK's flow expires after about a minute, and
-entries are deleted as the flow completes.
+Rows are short lived when a sign-in finishes -- the SDK deletes its own entries as the
+flow completes or fails. A sign-in nobody finishes deletes nothing, so
+``lib/services/microsoft/teams/storage.py`` sweeps rows left untouched for an hour on
+every write. That matters because one of the two things stored is the parked message,
+text and sender included, and this table is not the place for it to accumulate.
 """
 
 from datetime import datetime
@@ -43,7 +46,7 @@ class MicrosoftTeamsSignInState(SQLModel, table=True):
     updated_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), nullable=False, index=True),
         description=(
-            "When this row was last written. Indexed so abandoned flows can be swept; "
-            "nothing reads it, since the SDK expires a flow on its own timing."
+            "When this row was last written. Indexed because the sweep filters on it: "
+            "a write deletes rows left untouched past the abandonment window."
         ),
     )

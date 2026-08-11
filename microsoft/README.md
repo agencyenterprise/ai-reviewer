@@ -45,14 +45,17 @@ means searching somewhere, and anything the service can search is wider than wha
 person asking may be allowed to read, whereas a link is something they already had.
 
 Because the backend loads the document itself here, whose access it reads with is a
-real decision. With `TEAMS_USER_AUTH_CONNECTION` configured it holds a token for the
-person who asked, obtained through Teams SSO, so it can reach nothing they could not.
+real decision. With `TEAMS_USER_AUTH_CONNECTION` configured it holds a delegated token
+for the person who asked, so it can reach nothing they could not.
 Without it the service reads app-only — a tenant-wide grant, which means anyone who can
 mention the bot could have it open a document they have no access to.
 
 `GRAPH_ALLOWED_HOSTS` and `GRAPH_ALLOWED_SITE_PATHS` bound it either way and fail
 closed: unset means nothing is readable. Under a user token they are defence in depth
 rather than the only boundary.
+
+Each person signs in once, from a 1:1 chat with the bot — Teams cannot acquire a token in
+a channel at all. One click, once, and never again.
 
 Worth knowing that gating the read does not gate the audience: the answer goes into the
 channel the question came from, visible to everyone there regardless of who can open

@@ -59,7 +59,7 @@ BRAND = (15, 108, 189)  # the blue used on the cards this bot posts
 # The last version built, so running with no argument does not silently reproduce a
 # version already in the org catalog -- which Teams refuses on update. Bump it here
 # when you bump it in the catalog, or pass the version as an argument.
-DEFAULT_VERSION = "1.1.1"
+DEFAULT_VERSION = "1.2.1"
 
 
 def manifest(app_id: str, bot_id: str, version: str) -> dict:

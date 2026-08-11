@@ -10,7 +10,7 @@ either, which is why the property asserted here is *where* the state lives rathe
 that a round trip works.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -34,11 +34,12 @@ class Item(StoreItem):
         return Item(json_data)
 
 
-def session_returning(row: Any) -> Any:
-    """An async session whose one query yields ``row``."""
+def session_returning(row: Any, swept: int = 0) -> Any:
+    """An async session whose queries yield ``row``, and report ``swept`` deletions."""
 
     result = MagicMock()
     result.scalar_one_or_none.return_value = row
+    result.rowcount = swept
 
     session = MagicMock()
     session.execute = AsyncMock(return_value=result)
@@ -46,6 +47,12 @@ def session_returning(row: Any) -> Any:
     session.__aenter__ = AsyncMock(return_value=session)
     session.__aexit__ = AsyncMock(return_value=False)
     return session
+
+
+def statements(session: Any) -> list[str]:
+    """Every statement the session was asked to run, lowercased."""
+
+    return [str(call[0][0]).lower() for call in session.execute.await_args_list]
 
 
 class TestWhereSignInStateLives:
@@ -114,10 +121,10 @@ class TestReadingAndWriting:
                 "conv/user", Item({"parked": "the question"})
             )
 
-        session.execute.assert_awaited_once()
         session.commit.assert_awaited_once()
-        statement = str(session.execute.await_args[0][0]).lower()
-        assert "on conflict" in statement, "a retried turn would otherwise raise"
+        assert any(
+            "on conflict" in statement for statement in statements(session)
+        ), "a retried turn would otherwise raise"
 
     @pytest.mark.asyncio
     async def test_writing_stamps_a_time_for_sweeping_abandoned_flows(self) -> None:
@@ -127,7 +134,7 @@ class TestReadingAndWriting:
                 "conv/user", Item({"parked": "q"})
             )
 
-        values = session.execute.await_args[0][0].compile().params
+        values = session.execute.await_args_list[0][0][0].compile().params
         assert isinstance(values["updated_at"], datetime)
 
     @pytest.mark.asyncio
@@ -136,7 +143,7 @@ class TestReadingAndWriting:
         with patch.object(signin_storage, "AsyncSessionLocal", lambda: session):
             await signin_storage.PostgresSignInStorage()._delete_item("conv/user")
 
-        assert "delete" in str(session.execute.await_args[0][0]).lower()
+        assert "delete" in statements(session)[0]
         session.commit.assert_awaited_once()
 
     @pytest.mark.asyncio
@@ -151,3 +158,74 @@ class TestReadingAndWriting:
             found = await store.read(["one", "two"], target_cls=Item)
 
         assert set(found) == {"one", "two"}
+
+
+class TestSweepingAbandonedSignIns:
+    """A sign-in nobody finishes never deletes its own row.
+
+    The SDK removes an entry when a flow completes or fails, so what lingers is the case
+    where somebody saw the Sign in card and closed it. Those rows hold the parked
+    message -- its text and its sender -- so leaving them is retaining confidential
+    content indefinitely in a table documented as short lived.
+    """
+
+    @pytest.mark.asyncio
+    async def test_a_write_also_deletes_stale_rows(self) -> None:
+        session = session_returning(None)
+        with patch.object(signin_storage, "AsyncSessionLocal", lambda: session):
+            await signin_storage.PostgresSignInStorage()._write_item(
+                "conv/user", Item({"parked": "q"})
+            )
+
+        ran = statements(session)
+        assert any("on conflict" in statement for statement in ran), "the write itself"
+        assert any(
+            statement.startswith("delete") for statement in ran
+        ), "nothing sweeps, so an abandoned sign-in is kept forever"
+
+    @pytest.mark.asyncio
+    async def test_the_sweep_shares_the_write_transaction(self) -> None:
+        """One commit: a sweep that failed alone would look like a failed write."""
+
+        session = session_returning(None)
+        with patch.object(signin_storage, "AsyncSessionLocal", lambda: session):
+            await signin_storage.PostgresSignInStorage()._write_item(
+                "conv/user", Item({"parked": "q"})
+            )
+
+        session.commit.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_the_window_is_generous_next_to_a_flow(self) -> None:
+        """The SDK's flow lasts about a minute, so an hour cannot cut one short."""
+
+        assert signin_storage.ABANDONED_AFTER >= timedelta(minutes=30)
+        assert signin_storage.ABANDONED_AFTER <= timedelta(days=1)
+
+    @pytest.mark.asyncio
+    async def test_the_sweep_filters_on_the_indexed_column(self) -> None:
+        """A sweep on an unindexed column would scan the table on every write."""
+
+        session = session_returning(None)
+        with patch.object(signin_storage, "AsyncSessionLocal", lambda: session):
+            await signin_storage.PostgresSignInStorage()._write_item(
+                "conv/user", Item({"parked": "q"})
+            )
+
+        sweep = next(s for s in statements(session) if s.startswith("delete"))
+        assert "updated_at" in sweep
+
+    @pytest.mark.asyncio
+    async def test_a_sweep_that_removed_rows_says_so(self) -> None:
+        """Silent deletion of message-bearing rows is not something to do unlogged."""
+
+        session = session_returning(None, swept=3)
+        with patch.object(
+            signin_storage, "AsyncSessionLocal", lambda: session
+        ), patch.object(signin_storage.logger, "info") as logged:
+            await signin_storage.PostgresSignInStorage()._write_item(
+                "conv/user", Item({"parked": "q"})
+            )
+
+        assert logged.called
+        assert logged.call_args[0][1] == 3

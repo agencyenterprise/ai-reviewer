@@ -8,11 +8,11 @@ why that division exists.
 Setting this up means creating **three** things in Azure, which is the part that
 surprises people:
 
-| What                            | Why                                                       |
-| ------------------------------- | --------------------------------------------------------- |
-| An **Azure Bot** resource       | Gives Teams somewhere to deliver messages, and an identity |
-| An **app registration** for Graph | Lets the backend read documents from SharePoint          |
-| A **Teams app package** (this directory) | Installs the bot in the tenant                    |
+| What                                     | Why                                                        |
+| ---------------------------------------- | ---------------------------------------------------------- |
+| An **Azure Bot** resource                | Gives Teams somewhere to deliver messages, and an identity |
+| An **app registration** for Graph        | Lets the backend read documents from SharePoint            |
+| A **Teams app package** (this directory) | Installs the bot in the tenant                             |
 
 The bot's identity and the Graph identity are deliberately separate registrations.
 They have different purposes, different secrets to rotate, and different blast radii
@@ -23,7 +23,10 @@ credential can read documents.
 
 ## 1. The Azure Bot resource
 
-1. In the Azure portal, create a resource of type **Azure Bot**.
+→ [**Azure Bot resources**](https://portal.azure.com/#browse/Microsoft.BotService%2FbotServices)
+in the Azure portal.
+
+1. Select **+ Create** and choose the **Azure Bot** resource type.
 2. Choose **Multi-tenant** or **Single-tenant**. Whichever you pick has to match
    `TEAMS_BOT_TENANT_ID` below — set it for single-tenant, leave it unset for
    multi-tenant. Mismatched, tokens are issued for the wrong authority and every
@@ -47,7 +50,10 @@ credential can read documents.
 
 The backend loads the document itself for this path, so it needs its own credentials.
 
-1. Register a new application (App registrations > New registration).
+→ [**App registrations**](https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade)
+in Microsoft Entra ID.
+
+1. Select **New registration** and give it a name.
 2. Under **API permissions**, add the Microsoft Graph **application** permission
    **`Files.Read.All`**, then grant admin consent. Application, not delegated — see
    the note below.
@@ -72,21 +78,28 @@ That gives you `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_CLIENT_SECRET`.
 
 Without this the bot reads documents with the service's own identity, which is
 tenant-wide: anyone who can mention the bot could have it open a document they have no
-access to. With it, the bot holds a token for the *asker*, so Graph refuses anything
+access to. With it, the bot holds a token for the _asker_, so Graph refuses anything
 they could not open themselves.
 
-1. On the **Azure Bot** resource, go to **Configuration → Add OAuth Connection
-   Settings**.
+Each person clicks a Sign in card once, from a 1:1 chat with the bot, and never again.
+It has to be a 1:1 chat: Teams cannot acquire a token in a channel at all — see
+[below](#each-person-must-sign-in-from-a-11-chat-first).
+
+→ your bot under [**Azure Bot resources**](https://portal.azure.com/#browse/Microsoft.BotService%2FbotServices).
+
+1. Go to **Configuration → Add OAuth Connection Settings**.
 2. Name it (for example `graph-user`) and choose the **Azure Active Directory v2**
    service provider.
 3. Give it the client id and secret of an app registration with the **delegated**
-   Graph scope `Files.Read.All`, and set the token exchange URL / scopes accordingly.
-   This registration's secret lives in Azure, not in this service's environment.
+   Graph scope `Files.Read.All`, and that app's tenant id. Put `Files.Read.All` in
+   **Scopes**, and **leave Token Exchange URL blank** — that field is only used for
+   silent SSO, which this setup deliberately does not use. Use the _Graph_ registration
+   here, not the bot's: the two are separate so that a leak of one is not a leak of
+   both. This registration's secret lives in Azure, not in this service's environment.
 4. Set `TEAMS_USER_AUTH_CONNECTION` to the connection's name.
-5. **Grant admin consent for the delegated scopes.** Not strictly required, but
-   without it the first question from each person produces a visible sign-in card in
-   the channel; with it the SDK's silent `signin/tokenExchange` completes and nobody
-   sees a prompt.
+5. **Grant admin consent for the delegated scopes.** Without it each person also
+   sees Entra's consent screen the first time they sign in. With it they still see the
+   Sign in card either way: consent and the card are separate steps.
 
 What the user experiences: nothing, once signed in. If there is no token, the bot
 posts a Sign in card, parks the question, and answers it automatically after sign-in
@@ -125,7 +138,7 @@ failure, because the refusal happens entirely inside Teams.
 scope, with the same misleading error. `build_package.py` sets it; the comment there
 explains why it is not empty despite this app having no tabs.
 
-### It needs a database table
+### Where the sign-in state lives
 
 Sign-in spans two requests — the message that posts the card, and the `signin/*` invoke
 that completes it — so the flow state cannot live in process memory. Production runs
@@ -133,38 +146,31 @@ Uvicorn with `--workers 4`, so the two requests usually land on different proces
 an in-memory store would lose the parked question about three times in four. A
 single-process dev server never shows this.
 
-The state lives in `microsoft_teams_signin_state`, so **the migration has to be applied before
-user auth will work**:
+It is kept in the `microsoft_teams_signin_state` table instead, which any server running
+current migrations already has. Rows are written when a sign-in starts and deleted when
+it finishes; a sign-in nobody finishes is swept an hour later, because the parked message
+is in there.
 
-```bash
-uv run alembic revision --autogenerate -m "teams sign-in state"
-uv run alembic upgrade head
-```
+No tokens are stored — the refresh token stays in the Bot Framework token service. Only
+flow bookkeeping and the activity waiting to be replayed.
 
-No tokens are stored there — the refresh token stays in the Bot Framework token
-service. Only flow bookkeeping and the activity waiting to be replayed, both short
-lived.
+### Why there is no way around the click
 
-### Two more things to know before relying on it
+The only way to avoid sign-in entirely **and** keep per-user access control is to stop
+needing a user token: read with the app identity, but first ask SharePoint whether the
+asker may read that item (`GetUserEffectivePermissions`, keyed on the `aadObjectId` that
+arrives on every activity). That was investigated and rejected — it needs SharePoint
+`Sites.FullControl.All`, so it would make the app strictly more powerful in order to
+restrict it.
 
-- **This is a per-user onboarding step, and it cannot be removed for channels.** Teams
-  SSO — the silent `signin/tokenExchange` that `webApplicationInfo` enables — is
-  ["supported in one-on-one and group chat scope, and not supported in channel
-  scope"](https://learn.microsoft.com/en-us/microsoftteams/platform/bots/how-to/authentication/bot-sso-overview).
-  A token can only ever be *acquired* outside a channel. Once acquired it is usable
-  from a channel, because the bot fetches it from the token store by user id and the
-  store does not care which scope asks — which is exactly why signing in via a 1:1 chat
-  makes channel questions work afterwards.
+Teams SSO, which replaces the card with a silent token exchange, was also implemented and
+removed: it needs an Application ID URI, an exposed scope and the Teams client ids
+pre-authorised on a third app registration, and it still cannot acquire a token in a
+channel — so it removes one click, once per person, for a permanent increase in setup
+complexity.
 
-  What SSO would buy is a quieter first step: with `webApplicationInfo` configured and
-  admin consent granted, the 1:1 sign-in becomes "send the bot one message" with no card
-  to click. The step itself remains. Not yet implemented.
+### One more thing to know before relying on it
 
-  The only way to have *no* sign-in at all **and** per-user access control is to stop
-  needing a user token: read with the app identity, but first ask SharePoint whether the
-  asker may read that item (`GetUserEffectivePermissions`, keyed on the `aadObjectId`
-  that already arrives on every activity). That trades inherited authorization for a
-  check of our own — weaker, but invisible. Also not implemented.
 - **Conditional Access may refuse.** A delegated token acquired from a server is
   refused when a compliant device is required (`AADSTS530035`). Teams SSO starts from
   the token the user's own client already holds, which is a better position — and it
@@ -189,6 +195,7 @@ TEAMS_BOT_TENANT_ID=<tenant id, single-tenant bots only>
 TEAMS_USER_AUTH_CONNECTION=graph-user
 TEAMS_USER_AUTH_SCOPES=Files.Read.All
 
+
 # Reading documents from SharePoint
 AZURE_CLIENT_ID=00000000-0000-0000-0000-000000000000
 AZURE_TENANT_ID=<tenant id>
@@ -208,7 +215,9 @@ uv run python microsoft/teams-app/build_package.py
 ```
 
 This writes `draft-detective-teams.zip` next to the script — generated rather than
-committed, because the manifest carries your tenant's ids. Then in the Teams client:
+committed, because the manifest carries your tenant's ids.
+
+→ [**Teams**](https://teams.microsoft.com/), then:
 
 **Apps → Manage your apps → Upload a custom app** (`Fazer upload de um aplicativo
 personalizado`). The tenant has to permit custom app uploads; if the option is absent,
@@ -224,17 +233,18 @@ Teams identifies an app by the `id` in its manifest, so re-uploading the same id
 refused with **"This app has already been submitted in your org"**. To change an
 installed app:
 
+→ [**Teams admin centre → Manage apps**](https://admin.teams.microsoft.com/policies/manage-apps).
+
 1. Raise the version: `uv run python microsoft/teams-app/build_package.py 1.0.2`
-2. Update it from the **Teams admin centre** (Teams apps → Manage apps), not from
-   *Manage your apps* in the client — there the only actions offered are *View
-   details* and *Copy link*.
+2. Find the app there and use its update action — not _Manage your apps_ in the Teams
+   client, where the only actions offered are _View details_ and _Copy link_.
 
 Two ids are easy to confuse, and the admin centre shows the wrong one first:
 
 - **External app ID** (`ID do aplicativo externo`) — this is `manifest.id`, and the
   one that must match on an update.
 - **App ID** (`ID do Aplicativo`) — Teams' own catalog id, read-only. Putting it in
-  the manifest fails with a bare *"cannot upload the app, try again"*.
+  the manifest fails with a bare _"cannot upload the app, try again"_.
 
 If a catalog entry is in the way and removing it is more trouble than it is worth,
 `--new-app-id` mints a fresh id and installs a second app alongside the old one.
@@ -249,7 +259,9 @@ uv run dev.py                                    # the backend on :8000
 # then expose :8000 and use the resulting host
 ```
 
-Put the tunnel host in the Azure Bot's **Messaging endpoint** (step 1.4). The host
+Put the tunnel host in the **Messaging endpoint** of your bot under
+[Azure Bot resources](https://portal.azure.com/#browse/Microsoft.BotService%2FbotServices)
+(step 1.4). The host
 changes each time the tunnel restarts unless it is a reserved one, and a stale
 endpoint fails silently from the Teams side — the message simply never arrives.
 
