@@ -6,6 +6,49 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.5.47] - 2026-08-11
+
+### Added
+- Added a Teams bot that can answer questions about a Word document when mentioned in a channel or chat, loading the document from SharePoint read-only.
+- Added Teams SSO delegated document reading so the Teams bot reads documents as the requesting user and refuses documents the user cannot open.
+- Added a Peer Review Assistant with reviewer memos, response memos, and a consolidated coverage report rendered as HTML reports with a Download PDF button.
+- Added a Peer Review tab that runs the full review-assistant cycle in four steps and allows attaching reviewer memos to the specific draft they reviewed.
+- Added a standalone authenticated chat page at `/chat` with DB-persisted threads, attachments (PDF/DOCX), slash-command access to repo skills, a chain-of-thought UI, and a read-only document panel.
+- Added DOCX/PDF export for the SimpleDeepAgent “Report” output via a reusable Markdown download component.
+- Added support in the Files tab to list and download every main-document revision, with the latest marked as current.
+
+### Changed
+- Changed the Teams bot sign-in flow to use the SDK’s `AgentApplication` + `Authorization`, with new Teams user auth configuration options.
+- Changed the Teams bot packaging to include `token.botframework.com` in `validDomains`.
+- Changed peer-review workflows so they no longer auto-rerun on new revision creation.
+- Changed the workflow picker behavior so peer-review workflows are kept out of the assessment picker while remaining registered for historical runs.
+- Changed the MCP `list_files` tool to return all files including every main-document revision.
+- Updated `@hey-api/openapi-ts` to 0.99.0, regenerated the frontend API client, and adapted the config to the new API.
+- Updated dependencies: `dompurify` to 3.4.13, `langgraph-checkpoint-postgres` to 3.1.1, `cryptography` to 50.0.0, `aiohttp` to 3.14.3, `next-auth` to 5.0.0-beta.32, `next` to 15.5.21, `pyasn1` to 0.6.4, `pillow` to 12.3.0, `nltk` to 3.10.0, `soupsieve` to 2.8.4, and `minimatch` to 9.0.9.
+- Updated documentation by removing the legacy `advocacy_tone` (v1) row from the eval scores table and reconciling derived figures.
+
+### Fixed
+- Fixed a trap where reviewer memos could be attached to the wrong revision, which could silently break comparison workflows.
+- Fixed a bug where blocked peer-review runs could appear as successful results due to an indistinguishable guard message.
+- Fixed a SimpleDeepAgent DOCX export issue where multi-line blockquotes lost line breaks.
+- Fixed a Replace main document dialog overflow issue caused by long filenames.
+- Fixed a workflow selector count bug where workflows absent from every category inflated the selected count.
+
+### Security
+- Improved Teams bot document access by supporting delegated reading via Teams SSO so Graph applies the requesting user’s permissions.
+- Updated `next` to 15.5.21, which includes multiple security fixes.
+- Updated `next-auth` to 5.0.0-beta.32, which picks up `@auth/core` security fixes and fixes auth checks failing open on provider configuration errors.
+- Updated `cryptography` to 50.0.0, which includes a security issue fix (CVE-2026-69247).
+- Updated `pyasn1` to 0.6.4, a security release addressing multiple CVEs (CVE-2026-59884, CVE-2026-59885, CVE-2026-59886).
+
+### Deprecated
+- Deprecated the MCP WebSocket transport and the experimental tasks API by updating `mcp` to 1.28.1.
+
+### Removed
+- Removed the legacy `advocacy_tone` (v1) entry from `docs/eval-scores.md`.
+- Removed the `peer_review_assistant` workflow category.
+
+
 ## [v0.5.46] - 2026-07-10
 
 ### Added
