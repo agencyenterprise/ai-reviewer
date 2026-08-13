@@ -1,13 +1,20 @@
-"""Tests for the tool that opens a SharePoint document from a link.
+"""Tests for the tools that open and check SharePoint documents.
 
-Three things carry weight here. The document must be *mounted* at ``/main.md`` rather
-than returned, because a tool result over roughly 80,000 characters is evicted to a
-machine-named file and every skill's line numbers are defined against ``/main.md``.
+Four things carry weight here.
+
+A document must be *mounted* rather than returned, because a tool result over roughly
+80,000 characters is evicted to a machine-named file, and real documents run to that size.
+
+The agent chooses the path, so the path must be **validated**: ``files`` is one namespace
+shared with ``/skills/``, and a path of ``/skills/issues/SKILL.md`` would overwrite the
+instructions the agent is following.
+
 A link must remain the only way in: there is deliberately no lookup by name, so a name
-cannot reach a document the person asking could not already open. And the tool must
-carry the identity it was built with all the way to Graph -- that token is what makes
-the bot no more privileged than the asker, so losing it is a security regression
-rather than a bug in a feature.
+cannot reach a document the person asking could not already open.
+
+And both tools must carry the identity they were built with all the way to Graph -- that
+token is what makes the bot no more privileged than the asker, so losing it is a security
+regression rather than a bug in a feature.
 """
 
 from typing import Any, Optional
@@ -20,14 +27,18 @@ from lib.agents.tools import sharepoint
 from lib.services.microsoft.graph.client import DocumentNotAllowed, GraphError
 from lib.services.microsoft.graph.documents import LoadedDocument
 
-
 TOKEN = "a-user-token"
+PATH = "/documents/v2-cern-for-ai.md"
 
 
 def opener(token: str = TOKEN) -> Any:
     """The tool as a run gets it: built for one identity."""
 
     return sharepoint.open_document_for(token)
+
+
+def checker(token: str = TOKEN) -> Any:
+    return sharepoint.check_document_for(token)
 
 
 async def call(tool: Any, *args: Any) -> Any:
@@ -44,7 +55,9 @@ async def call(tool: Any, *args: Any) -> Any:
 def mounted(result: Any) -> dict[str, Any]:
     """The files a Command mounts, having checked it is a Command that mounts some."""
 
-    assert isinstance(result, Command), f"expected a Command, got {type(result).__name__}"
+    assert isinstance(
+        result, Command
+    ), f"expected a Command, got {type(result).__name__}: {result}"
     assert result.update is not None, "a Command that updates nothing mounts nothing"
     return dict(result.update["files"])
 
@@ -87,234 +100,255 @@ def document(
     )
 
 
+def loading(document_or_error: Any) -> Any:
+    """Patch ``documents.load`` with a result or a failure."""
+
+    if isinstance(document_or_error, BaseException):
+        return patch.object(
+            sharepoint.documents, "load", AsyncMock(side_effect=document_or_error)
+        )
+    return patch.object(
+        sharepoint.documents, "load", AsyncMock(return_value=document_or_error)
+    )
+
+
 class TestOpeningADocument:
     @pytest.mark.asyncio
-    async def test_the_document_is_mounted_at_main_md(self) -> None:
-        """Where every other agent and every skill expects to find it."""
+    async def test_the_document_is_mounted_where_the_agent_asked(self) -> None:
+        with loading(document()):
+            result = await call(opener(), "https://x/a.docx", PATH, runtime())
 
-        with patch.object(
-            sharepoint.documents, "load", AsyncMock(return_value=document())
-        ):
-            result = await call(
-                opener(), "https://x.sharepoint.com/sites/X/a.docx", runtime()
-            )
-
-        assert "/main.md" in mounted(result)
+        assert PATH in mounted(result)
 
     @pytest.mark.asyncio
     async def test_the_mounted_text_keeps_the_document_structure(self) -> None:
         """Markdown, not a flat list of paragraphs.
 
-        Headings and tables are how the agent navigates and how a skill tells one part
-        of a document from another, so losing them to a paragraph-by-paragraph read is
-        the regression this guards.
+        Headings and tables are how the agent navigates and how a skill tells one part of
+        a document from another, so losing them is the regression this guards.
         """
 
         markdown = (
             "## Abbreviations\n\n| AI | artificial intelligence |\n\nBody **text**."
         )
-        with patch.object(
-            sharepoint.documents, "load", AsyncMock(return_value=document(markdown))
-        ):
-            result = await call(opener(), "https://x/a.docx", runtime())
+        with loading(document(markdown)):
+            result = await call(opener(), "https://x/a.docx", PATH, runtime())
 
-        body = body_of(mounted(result), "/main.md")
-        assert body == markdown, "mounted verbatim, with nothing numbered into it"
+        assert body_of(mounted(result), PATH) == markdown
 
     @pytest.mark.asyncio
     async def test_nothing_is_prefixed_onto_the_lines(self) -> None:
         """The read tool numbers lines itself, so a second scheme only competes."""
 
-        with patch.object(
-            sharepoint.documents,
-            "load",
-            AsyncMock(return_value=document("Alpha.\n\nBeta.")),
-        ):
-            result = await call(opener(), "https://x/a.docx", runtime())
+        with loading(document("Alpha.\n\nBeta.")):
+            result = await call(opener(), "https://x/a.docx", PATH, runtime())
 
-        body = body_of(mounted(result), "/main.md")
+        body = body_of(mounted(result), PATH)
         assert "[0]" not in body and "[1]" not in body
 
     @pytest.mark.asyncio
     async def test_the_body_is_not_in_the_tool_message(self) -> None:
         """A result carrying the body would be evicted to a machine-named file."""
 
-        with patch.object(
-            sharepoint.documents,
-            "load",
-            AsyncMock(return_value=document("A distinctive sentence.")),
-        ):
-            result = await call(opener(), "https://x/a.docx", runtime())
+        with loading(document("A distinctive sentence.")):
+            result = await call(opener(), "https://x/a.docx", PATH, runtime())
 
         message = message_of(result)
         assert "distinctive sentence" not in message
-        assert "1 lines" in message and "/main.md" in message
+        assert "1 lines" in message and PATH in message
 
     @pytest.mark.asyncio
-    async def test_comments_are_mounted_separately_when_present(self) -> None:
-        with patch.object(
-            sharepoint.documents,
-            "load",
-            AsyncMock(
-                return_value=document(comments=[("Carlos", "is this right?")])
-            ),
-        ):
-            result = await call(opener(), "https://x/a.docx", runtime())
+    async def test_the_modified_time_is_reported_so_it_can_be_compared_later(
+        self,
+    ) -> None:
+        """``check_document`` is only useful against a time the agent already has."""
+
+        with loading(document()):
+            result = await call(opener(), "https://x/a.docx", PATH, runtime())
+
+        assert "2026-08-04T13:31:28Z" in message_of(result)
+
+    @pytest.mark.asyncio
+    async def test_comments_are_mounted_beside_the_document(self) -> None:
+        with loading(document(comments=[("Carlos", "is this right?")])):
+            result = await call(opener(), "https://x/a.docx", PATH, runtime())
 
         files = mounted(result)
-        assert "/comments.md" in files
-        assert "Carlos: is this right?" in body_of(files, "/comments.md")
+        beside = "/documents/v2-cern-for-ai.comments.md"
+        assert beside in files
+        assert "Carlos: is this right?" in body_of(files, beside)
+
+    @pytest.mark.asyncio
+    async def test_each_document_gets_its_own_comments_file(self) -> None:
+        """One shared comments file would answer about one document from another's."""
+
+        with loading(document(comments=[("Carlos", "on v2")])):
+            first = mounted(await call(opener(), "https://x/v2.docx", PATH, runtime()))
+        with loading(document(comments=[("Ana", "on v3")])):
+            second = mounted(
+                await call(opener(), "https://x/v3.docx", "/documents/v3.md", runtime())
+            )
+
+        assert set(first) & set(second) == set(), "no path is shared between the two"
 
     @pytest.mark.asyncio
     async def test_no_comments_clears_any_previous_ones(self) -> None:
         """A ``None`` is the reducer's delete, not an oversight.
 
-        A conversation persists, so a second document opened in the same thread would
-        otherwise inherit the first one's comments and be answered about from them.
+        Re-opening a document whose comments have been resolved must not keep answering
+        from the ones it had before.
         """
 
-        with patch.object(
-            sharepoint.documents, "load", AsyncMock(return_value=document())
-        ):
-            result = await call(opener(), "https://x/a.docx", runtime())
+        with loading(document()):
+            result = await call(opener(), "https://x/a.docx", PATH, runtime())
 
-        assert mounted(result)["/comments.md"] is None
+        assert mounted(result)["/documents/v2-cern-for-ai.comments.md"] is None
 
     @pytest.mark.asyncio
     async def test_a_document_outside_the_allowlist_is_refused_in_words(self) -> None:
         """The model has to be able to explain the refusal, so it gets a string."""
 
-        with patch.object(
-            sharepoint.documents,
-            "load",
-            AsyncMock(side_effect=DocumentNotAllowed("evil.com is not allowed")),
-        ):
-            result = await call(
-                opener(), "https://evil.com/a.docx", runtime()
-            )
+        with loading(DocumentNotAllowed("evil.com is not allowed")):
+            result = await call(opener(), "https://evil.com/a.docx", PATH, runtime())
 
         assert isinstance(result, str)
         assert "not allowed" in result
 
     @pytest.mark.asyncio
     async def test_an_unexpected_failure_is_reported_not_raised(self) -> None:
-        with patch.object(
-            sharepoint.documents, "load", AsyncMock(side_effect=RuntimeError("boom"))
-        ):
-            result = await call(opener(), "https://x/a.docx", runtime())
+        with loading(RuntimeError("boom")):
+            result = await call(opener(), "https://x/a.docx", PATH, runtime())
 
         assert isinstance(result, str) and "boom" in result
 
 
-class TestRememberingWhichDocumentIsOpen:
-    """A mount outlives its turn, so a later turn has to know what it is looking at.
+class TestChoosingWhereItGoes:
+    """The path comes from the model, so it is validated rather than trusted.
 
-    That is what re-authorises a persisted conversation: the next question may come from
-    someone else, and the document has to be re-checked against *them*. The URL is
-    written with the document rather than anywhere else, so the two cannot disagree.
+    ``files`` is a single namespace holding the skills as well as the documents, so an
+    unchecked path is a way for the agent to overwrite its own instructions.
     """
 
-    @pytest.mark.asyncio
-    async def test_the_link_is_written_beside_the_document(self) -> None:
-        url = "https://x.sharepoint.com/sites/X/a.docx"
-        with patch.object(
-            sharepoint.documents, "load", AsyncMock(return_value=document())
-        ):
-            result = await call(opener(), url, runtime())
+    def test_a_bare_name_is_placed_under_the_documents_prefix(self) -> None:
+        assert sharepoint.document_path("v3.md") == "/documents/v3.md"
 
-        assert body_of(mounted(result), sharepoint.DOCUMENT_SOURCE) == url
+    def test_a_path_that_is_already_right_is_left_alone(self) -> None:
+        assert sharepoint.document_path("/documents/v3.md") == "/documents/v3.md"
 
-    @pytest.mark.asyncio
-    async def test_it_is_read_back_from_the_state_it_was_written_to(self) -> None:
-        url = "https://x.sharepoint.com/sites/X/a.docx"
-        with patch.object(
-            sharepoint.documents, "load", AsyncMock(return_value=document())
-        ):
-            result = await call(opener(), url, runtime())
+    def test_spaces_and_brackets_in_a_document_name_are_allowed(self) -> None:
+        """Real file names have them, and refusing would be a nuisance for no gain."""
 
-        assert sharepoint.mounted_document(mounted(result)) == url
+        assert sharepoint.document_path("/documents/v3-cern (final).md") == (
+            "/documents/v3-cern (final).md"
+        )
 
-    def test_nothing_open_means_nothing_to_re_check(self) -> None:
-        assert sharepoint.mounted_document(None) is None
-        assert sharepoint.mounted_document({}) is None
-
-    def test_a_source_without_a_document_does_not_count(self) -> None:
-        """Whatever produced that state, there is no mounted document to authorise."""
-
-        files = {sharepoint.DOCUMENT_SOURCE: {"content": ["https://x/a.docx"]}}
-
-        assert sharepoint.mounted_document(files) is None
-
-    def test_a_document_without_a_source_does_not_count(self) -> None:
-        """Fails closed: unable to name the document, so unable to re-check it.
-
-        Reachable only from state written before the source file existed. Returning the
-        URL-less document as readable would skip the check entirely, so it reads as
-        "nothing mounted" and the agent opens it again from the link.
-        """
-
-        files = {"/main.md": {"content": ["[0] A."]}}
-
-        assert sharepoint.mounted_document(files) is None
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "/skills/issues/SKILL.md",
+            "/main.md",
+            "/documents/sub/x.md",
+            "../../etc/passwd.md",
+            "/documents/x.txt",
+            "/documents/.hidden.md",
+        ],
+        ids=[
+            "over a skill",
+            "outside the prefix",
+            "nested",
+            "traversal",
+            "not markdown",
+            "a dotfile",
+        ],
+    )
+    def test_anything_that_would_land_elsewhere_is_refused(self, path: str) -> None:
+        with pytest.raises(ValueError):
+            sharepoint.document_path(path)
 
     @pytest.mark.asyncio
-    async def test_a_refused_open_leaves_the_previous_document_named(self) -> None:
-        """The reason the URL is not taken from the newest tool call.
+    async def test_a_bad_path_is_explained_rather_than_raised(self) -> None:
+        """The model can correct itself from the message; an exception ends the run."""
 
-        A refused open mounts nothing, so the document still loaded is the earlier one.
-        Trusting the newest call would re-check a document that was never there and
-        leave the mounted one unauthorised.
-        """
-
-        first = "https://x.sharepoint.com/sites/X/first.docx"
-        with patch.object(
-            sharepoint.documents, "load", AsyncMock(return_value=document())
-        ):
-            opened = mounted(await call(opener(), first, runtime()))
-
-        with patch.object(
-            sharepoint.documents,
-            "load",
-            AsyncMock(side_effect=GraphError("could not download second.docx: 403")),
-        ):
-            refused = await call(
-                opener(), "https://x.sharepoint.com/sites/X/second.docx", runtime()
+        load = AsyncMock(return_value=document())
+        with patch.object(sharepoint.documents, "load", load):
+            result = await call(
+                opener(), "https://x/a.docx", "/skills/issues/SKILL.md", runtime()
             )
 
-        assert isinstance(refused, str), "a refusal mounts nothing"
-        assert sharepoint.mounted_document(opened) == first
+        assert isinstance(result, str)
+        assert "/documents/" in result
+        assert load.await_count == 0, "refused before anything was downloaded"
 
 
-class TestMountingAndUnmounting:
-    """The tool and the per-turn re-read share these, so they cannot mount differently.
+class TestCheckingADocument:
+    """The cheap counterpart: has it changed, and may this person still read it.
 
-    Which matters most for what gets *cleared*: a thread that moves to another document,
-    or gives one up, must not keep a file belonging to the previous one.
+    Both questions matter because a conversation persists -- a mounted document may have
+    been edited since, and may have been opened for somebody else in the thread.
     """
 
-    def test_a_document_without_comments_clears_a_previous_one(self) -> None:
-        files = sharepoint.document_files(document(), "https://x/a.docx")
+    def resolving(self, item_or_error: Any) -> Any:
+        if isinstance(item_or_error, BaseException):
+            return patch.object(
+                sharepoint.client, "resolve", AsyncMock(side_effect=item_or_error)
+            )
+        return patch.object(
+            sharepoint.client, "resolve", AsyncMock(return_value=item_or_error)
+        )
 
-        assert files[sharepoint.COMMENTS_DOCUMENT] is None
+    @pytest.mark.asyncio
+    async def test_it_reports_the_name_and_when_it_changed(self) -> None:
+        with self.resolving(
+            {"name": "v3.docx", "lastModifiedDateTime": "2026-08-13T09:00:00Z"}
+        ):
+            result = await call(checker(), "https://x/v3.docx")
 
-    def test_giving_up_a_document_removes_its_source_too(self) -> None:
-        """A source left behind would name a document that is no longer mounted."""
+        assert "v3.docx" in result and "2026-08-13T09:00:00Z" in result
 
-        evicted = sharepoint.evict_document()
+    @pytest.mark.asyncio
+    async def test_it_does_not_download_the_document(self) -> None:
+        """The whole point: metadata only, so it is cheap enough to call every turn."""
 
-        assert set(evicted) == {
-            sharepoint.MAIN_DOCUMENT,
-            sharepoint.COMMENTS_DOCUMENT,
-            sharepoint.DOCUMENT_SOURCE,
-        }
-        assert all(value is None for value in evicted.values())
+        load = AsyncMock()
+        with self.resolving({"name": "v3.docx", "lastModifiedDateTime": "x"}):
+            with patch.object(sharepoint.documents, "load", load):
+                await call(checker(), "https://x/v3.docx")
 
-    def test_everything_a_mount_writes_can_be_unwritten(self) -> None:
-        """The two have to stay in step, or a stale file survives being evicted."""
+        assert load.await_count == 0
 
-        mounted_paths = set(sharepoint.document_files(document(), "https://x/a.docx"))
+    @pytest.mark.asyncio
+    async def test_it_asks_as_the_person_who_asked(self) -> None:
+        """Which is what makes a refusal here mean something about *their* access."""
 
-        assert mounted_paths == set(sharepoint.evict_document())
+        resolve = AsyncMock(return_value={"name": "v3.docx"})
+        with patch.object(sharepoint.client, "resolve", resolve):
+            await call(checker("carlos-token"), "https://x/v3.docx")
+
+        assert resolve.await_args is not None
+        assert resolve.await_args.kwargs["token"] == "carlos-token"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "failure",
+        [
+            GraphError("could not find v3.docx: 403"),
+            DocumentNotAllowed("outside the site paths this service may read"),
+        ],
+        ids=["graph refuses this person", "outside the allowlist"],
+    )
+    async def test_a_refusal_comes_back_as_words(self, failure: Exception) -> None:
+        with self.resolving(failure):
+            result = await call(checker(), "https://x/v3.docx")
+
+        assert isinstance(result, str)
+        assert "not allowed" in result or "could not check" in result
+
+    @pytest.mark.asyncio
+    async def test_a_document_with_no_edit_time_still_confirms_access(self) -> None:
+        with self.resolving({"name": "v3.docx"}):
+            result = await call(checker(), "https://x/v3.docx")
+
+        assert "you can read it" in result
 
 
 class TestALinkIsTheOnlyWayIn:
@@ -330,25 +364,23 @@ class TestALinkIsTheOnlyWayIn:
     def test_the_tool_tells_the_model_a_link_is_required(self) -> None:
         """Otherwise the model invents a URL when it is only given a name."""
 
-        assert "no way to look a document up by name" in (
-            opener().description or ""
-        )
+        assert "no way to look a document up by name" in (opener().description or "")
 
 
 class TestWhoseAccessIsUsed:
-    """The token the tool was built with is what limits what a run can read.
+    """The token a tool was built with is what limits what a run can read.
 
-    Under Teams SSO it is the asker's, so Graph refuses a document they cannot open.
-    If it were dropped anywhere between the tool and Graph, every read would silently
-    become the service's -- which is the privilege this whole arrangement removes, and
-    it would fail open rather than closed.
+    Under Teams SSO it is the asker's, so Graph refuses a document they cannot open. If
+    it were dropped anywhere between the tool and Graph, every read would silently become
+    the service's -- which is the privilege this whole arrangement removes, and it would
+    fail open rather than closed.
     """
 
     @pytest.mark.asyncio
     async def test_the_token_reaches_the_loader(self) -> None:
         load = AsyncMock(return_value=document())
         with patch.object(sharepoint.documents, "load", load):
-            await call(opener("carlos-token"), "https://x/a.docx", runtime())
+            await call(opener("carlos-token"), "https://x/a.docx", PATH, runtime())
 
         assert load.await_args is not None
         assert load.await_args.kwargs["token"] == "carlos-token"
@@ -359,8 +391,8 @@ class TestWhoseAccessIsUsed:
 
         load = AsyncMock(return_value=document())
         with patch.object(sharepoint.documents, "load", load):
-            await call(opener("first-user"), "https://x/a.docx", runtime())
-            await call(opener("second-user"), "https://x/a.docx", runtime())
+            await call(opener("first-user"), "https://x/a.docx", PATH, runtime())
+            await call(opener("second-user"), "https://x/a.docx", PATH, runtime())
 
         used = [call_.kwargs["token"] for call_ in load.await_args_list]
         assert used == ["first-user", "second-user"]
@@ -369,12 +401,8 @@ class TestWhoseAccessIsUsed:
     async def test_a_refusal_for_this_user_is_explained_not_retried(self) -> None:
         """Graph answers 403 when the asker cannot open it. That is the check working."""
 
-        with patch.object(
-            sharepoint.documents,
-            "load",
-            AsyncMock(side_effect=GraphError("could not download a.docx: 403")),
-        ):
-            result = await call(opener(), "https://x/a.docx", runtime())
+        with loading(GraphError("could not download a.docx: 403")):
+            result = await call(opener(), "https://x/a.docx", PATH, runtime())
 
         assert isinstance(result, str) and "403" in result
 
@@ -383,8 +411,13 @@ class TestWhoseAccessIsUsed:
 
         assert "as the person who asked" in (opener().description or "")
 
+    def test_the_checker_is_told_a_refusal_is_about_the_asker(self) -> None:
+        """Or a refused check reads as a broken tool rather than an answer."""
 
-class TestTheToolSchema:
+        assert "cannot read it" in (checker().description or "")
+
+
+class TestTheToolSchemas:
     def test_the_runtime_and_the_token_are_hidden_from_the_model(self) -> None:
         """The runtime is injected by LangChain; the token is closed over.
 
@@ -392,11 +425,13 @@ class TestTheToolSchema:
         put in an answer.
         """
 
-        assert list(opener().args) == ["url"]
+        assert list(opener().args) == ["url", "path"]
+        assert list(checker().args) == ["url"]
 
-    def test_the_tool_documents_itself(self) -> None:
+    def test_both_tools_document_themselves(self) -> None:
         """The model picks a tool from its description, so an empty one is a bug."""
 
-        description = opener().description
-        assert description and len(description) > 80
-        assert TOKEN not in description
+        for tool in (opener(), checker()):
+            description = tool.description
+            assert description and len(description) > 80
+            assert TOKEN not in description

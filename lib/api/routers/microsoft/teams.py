@@ -14,10 +14,11 @@ One way in: ``/messages``, the bot's endpoint. It authenticates with the token t
 Bot Connector presents, acknowledges immediately, and posts the answer into the same
 thread about a minute later.
 
-Which document to read is not decided here. A link in the message is passed along as
-a hint and the agent opens it itself. A link is the only way in: naming a document
-without linking to it gets a request for the link, because searching on someone's
-behalf could reach documents they cannot open.
+Which document to read is not decided here. Every link in the message is passed along as
+a candidate and the agent opens what it needs, because which one is meant depends on what
+was asked. A link is the only way in: naming a document without linking to it gets a
+request for the link, because searching on someone's behalf could reach documents they
+cannot open.
 
 Two other transports were tried and removed. An outgoing webhook needed a Workflows
 flow to post answers and could only reply in a separate message. A transport-neutral
@@ -117,15 +118,16 @@ async def _answer_into_thread(
     question: str,
     author: str,
     conversation: str,
-    document_hint: Optional[str],
+    document_urls: list[str],
     graph_token: str,
 ) -> None:
     """Ask, and post the answer back into the thread the question came from.
 
-    The document is not loaded here. The link is part of the question, so the agent
-    opens it through its own tool -- which also means a document that is missing, not
-    allowed, or not readable *by the person asking* comes back as something the agent
-    can explain, rather than as an exception this function has to translate.
+    No document is loaded here, and none is chosen. The links found in the message go
+    along as candidates and the agent opens what it needs -- which also means a document
+    that is missing, not allowed, or not readable *by the person asking* comes back as
+    something the agent can explain, rather than as an exception this function has to
+    translate.
 
     Detached from the request, so nothing here can return an error to a caller. A
     failure is posted into the conversation instead: leaving someone waiting for a
@@ -144,7 +146,7 @@ async def _answer_into_thread(
             # ``;messageid=`` suffix per reply chain, so separate chains are separate
             # conversations without anything having to parse it.
             thread_id=conversation,
-            document_hint=document_hint,
+            document_urls=document_urls,
             asked_by=author,
             user_id=author,
         )
@@ -194,16 +196,17 @@ async def _on_question(context: Any, state: Any) -> None:
     await context.send_activity("Looking at that now — I will follow up here shortly.")
 
     # From the activity, not the question: Teams shows a pasted link as a
-    # hyperlink and keeps the href out of the text entirely.
-    document_url = bot.document_url_in(context.activity)
+    # hyperlink and keeps the href out of the text entirely. All of them, because
+    # choosing between them is the agent's job.
+    document_urls = bot.document_urls_in(context.activity)
     logger.info(
-        "Teams bot question from %s: %r (document: %s, reading as %s)",
+        "Teams bot question from %s: %r (links: %s, reading as %s)",
         author,
         question[:120],
-        redacted(document_url) if document_url else "none found",
+        ", ".join(redacted(url) for url in document_urls) or "none found",
         "the asker" if bot.reads_as_the_user() else "the service",
     )
-    if not document_url and ".doc" in question.lower():
+    if not document_urls and ".doc" in question.lower():
         # Someone named a document but no href was found anywhere in the activity.
         # Teams keeps a rendered hyperlink's href in an attachment rather than in
         # the text, and which attachment depends on how the link was shared, so
@@ -240,7 +243,7 @@ async def _on_question(context: Any, state: Any) -> None:
             question,
             author,
             conversation,
-            document_url,
+            document_urls,
             graph_token,
         )
     )

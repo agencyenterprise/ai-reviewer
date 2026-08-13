@@ -7,25 +7,25 @@ rather than three sentences. So the reply guidance differs enough to warrant its
 prompt.
 
 What does not differ is the construction, which is shared through
-``lib/agents/deep_agent_setup.py``: once a document is open it is markdown at
-``/main.md``, the skills are available, and there is no internet.
+``lib/agents/deep_agent_setup.py``: the skills are available, and there is no internet.
 
-The document is not chosen for the agent. A question from Teams may paste a link or
-not, so opening one is the agent's job via ``open_document_for`` in
-``lib/agents/tools/sharepoint.py``. A link is the only way in -- there is no lookup
-by name -- so a question that names a document without linking to it gets a request
-for the link. Skills are still mounted up front, because the skills middleware reads
-them once before the run and a tool cannot add them later.
+**No document is chosen for the agent, and nor is where to put it.** The links found in
+the message are handed over as candidates and the agent opens what it needs, via the
+tools in ``lib/agents/tools/sharepoint.py``. Which link is meant is a question about the
+conversation -- "compare these two", "the second one" -- so it belongs to the agent
+rather than to a regex. A link is still the only way in: there is no lookup by name, so a
+question naming a document without linking to it gets a request for the link.
 
-``graph_token`` is whose reading this run does. The tool is built from it per run, so
+``graph_token`` is whose reading this run does. Both tools are built from it per run, so
 the agent inherits the asker's own access rather than the service's: a document they
 cannot open is refused by Graph and the agent says so.
 
 One Teams thread is one LangGraph thread, so a follow-up arrives with the earlier turns
-in view. Its document does not: only the link persists, and every turn re-reads it as
-whoever is asking then. Two reasons, either sufficient -- the document may have been
-edited since, and a shared thread's next question may come from someone who cannot open
-it. Re-reading is itself the permission check, since Graph applies that person's access.
+*and the documents opened in them* still in view. Two things follow, and the agent is
+told about both: a mounted document may have been edited since it was read, and in a
+shared thread it may have been loaded for somebody else. ``check_document`` answers both
+in one cheap call -- it reports the edit time, and it fails when the person asking now
+cannot reach the document.
 
 Nothing here writes to the document. That is the point of this path -- a question
 answered in chat needs no document access at all, which sidesteps both the 423 a
@@ -51,17 +51,10 @@ from lib.agents.deep_agent_setup import (
     build_skill_files,
     tool_names,
 )
-from lib.agents.tools.sharepoint import (
-    document_files,
-    evict_document,
-    mounted_document,
-    open_document_for,
-)
+from lib.agents.tools.sharepoint import check_document_for, open_document_for
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
 from lib.config.llm_models import LLMModel
-from lib.services.microsoft.graph import documents
-from lib.services.microsoft.graph.client import redacted
 
 logger = logging.getLogger(__name__)
 
@@ -71,28 +64,44 @@ question about a Word document from a chat, and you are answering them there.
 
 ## The conversation so far
 
-You may be part-way through a conversation. Earlier questions and your own earlier \
-answers are above, and any document this conversation is about is open and freshly \
-re-read — so check what you already have before asking for something again. Because it \
-is re-read every time, it may have changed since you last looked.
+You may be part-way through a conversation. Earlier questions, your own earlier answers, \
+and any documents you opened in them are all still here — so look at what you already \
+have with `ls` before asking for anything again.
 
-More than one person may be in this thread. Each question says who asked it; answer \
-the person asking now, and do not assume they are the person who asked before.
+More than one person may be in this thread. Each question says who asked it; answer the \
+person asking now, and do not assume they are the person who asked before.
 
-## Getting the document
+**A document you opened in an earlier turn is a copy, and two things may have changed \
+since.** It may have been edited in Word. And it may have been opened for somebody else \
+in this thread, who has access the person asking now does not. `check_document(url)` \
+settles both cheaply, without downloading anything: it tells you when the document was \
+last modified, so you can compare that with the time reported when you opened it, and it \
+fails outright if the person asking cannot reach the document.
 
-`open_document(url)` opens a document from a SharePoint link: it becomes available at \
-`/main.md`, and any comments already on it at `/comments.md`. Read or search those \
-files with your usual tools; the tool does not hand you the text.
+So before answering from a copy you did not open this turn: check it. If it has been \
+edited, open it again to replace it. If the check is refused, say you cannot read that \
+document as them — do not answer from the copy you still have, and do not describe its \
+contents.
 
-Check whether a document is already open before asking for a link — on a follow-up \
-there usually is one, and asking again for what you have is worse than useless.
+## Getting a document
+
+`open_document(url, path)` opens a document from a SharePoint link and saves it as \
+markdown at the path you choose, with any comments beside it. Read or search those files \
+with your usual tools; the tool does not hand you the text.
+
+Choose the path, under `/documents/`, and name it after the document — for example, \
+`/documents/v3-cern-for-ai.md`. Two documents, or two revisions of one, means two \
+different paths, so you can hold both open and tell them apart. Re-opening at the same \
+path replaces what is there, which is how you refresh a stale copy.
 
 **A link is the only way to reach a document.** You cannot look one up by name or \
 title, and you must not guess at a URL. If someone asks about a document without \
 linking to it, say you need the link and ask them to paste it — even when the name \
 they used sounds unambiguous. This is deliberate: a link is something they already \
 had access to, and searching on their behalf could reach documents they cannot open.
+
+When a message carries links, they are listed for you. Which one is meant is yours to \
+work out from what was asked; when it is genuinely unclear, ask rather than guess.
 
 Open a document before answering anything about one. Never answer from a name or a \
 file title alone, and never describe content you have not read.
@@ -102,9 +111,9 @@ those directly rather than asking for a link you do not need.
 
 ## Reading it
 
-`/main.md` is markdown, so the document's structure is visible: `##` headings, tables, \
-and bold or highlighted text. Use it to navigate — searching for `"## "` gives you the \
-outline before you read anything in full.
+A document is markdown, so its structure is visible: `##` headings, tables, and bold or \
+highlighted text. Use it to navigate — searching for `"## "` gives you the outline \
+before you read anything in full.
 
 Your search tool matches **literal text, not regular expressions**, so `^#` finds \
 nothing and `## ` finds every heading. Your read tool numbers the lines it shows you; \
@@ -162,21 +171,29 @@ REQUEST_PROMPT = """\
 {who} asked:
 
 {question}
-{hint}"""
+{links}"""
 
-HINT_PREAMBLE = """
-They linked to this document, so open it:
+# Every link found, not one chosen for the agent: which is meant is a question about the
+# conversation, and only the agent has that.
+ONE_LINK = """
+They linked to this document:
 
-{hint}"""
+{links}"""
 
-# In the request rather than the system prompt: it is about this turn. Worded without
-# asserting why -- a refusal and a timeout arrive the same way here, so claiming they lack
-# access would sometimes be a confident falsehood about someone's permissions.
-LOST_DOCUMENT_NOTICE = """
-The document this conversation was about could not be opened for the person asking now, \
-so it is no longer available to you. Do not answer from what was said about it earlier, \
-and do not describe its contents. Say plainly that you could not open it as them -- they \
-may not have access, or it may have moved -- and ask for a link they can open."""
+MANY_LINKS = """
+They linked to these documents:
+
+{links}"""
+
+
+def links_in(question_urls: Sequence[str]) -> str:
+    """The links from the message, as a block for the request prompt."""
+
+    if not question_urls:
+        return ""
+    listed = "\n".join(f"- {url}" for url in question_urls)
+    template = ONE_LINK if len(question_urls) == 1 else MANY_LINKS
+    return template.format(links=listed)
 
 
 def answer_text(messages: Sequence[BaseMessage]) -> str:
@@ -211,51 +228,11 @@ class QuestionAnswer(BaseModel):
     error: Optional[str] = None
 
 
-async def _document_for_this_turn(
-    agent: Any,
-    run_config: RunnableConfig,
-    *,
-    graph_token: str,
-    document_hint: Optional[str],
-) -> tuple[dict[str, Any], bool]:
-    """Re-read the document this thread is about, as the person asking now.
-
-    Returns the turn's ``files`` update and whether the document had to be given up;
-    empty on a thread with nothing open. A re-read rather than a check on the cached copy
-    because the document may have been edited, and because re-reading *is* the permission
-    check -- Graph applies this person's own access.
-
-    Any failure gives the document up. Fail-closed on purpose: a 403 and a timeout are
-    indistinguishable from here, and the wrong guess costs someone else's confidentiality
-    in one direction and a re-paste in the other.
-    """
-
-    snapshot = await agent.aget_state(run_config)
-    url = mounted_document(snapshot.values.get("files"))
-    if not url:
-        return {}, False
-
-    if document_hint and document_hint != url:
-        # They linked to something else, so the agent will open that instead. The old
-        # document goes now rather than lingering as a copy nobody re-read.
-        logger.info("this turn links elsewhere, so %s is closed", redacted(url))
-        return evict_document(), False
-
-    try:
-        document = await documents.load(url, token=graph_token)
-    except Exception as error:  # noqa: BLE001 - every failure ends the same way
-        logger.info("could not re-open %s for the asker: %s", redacted(url), error)
-        return evict_document(), True
-
-    logger.info("re-opened %s as the asker for this turn", redacted(url))
-    return document_files(document, url), False
-
-
 async def answer_question(
     question: str,
     graph_token: str,
     thread_id: str,
-    document_hint: Optional[str] = None,
+    document_urls: Optional[Sequence[str]] = None,
     asked_by: str = "Someone",
     model: LLMModel = DEFAULT_MODEL,
     api_key: Optional[str] = None,
@@ -263,17 +240,17 @@ async def answer_question(
 ) -> QuestionAnswer:
     """Answer a question about a document the agent opens for itself.
 
-    ``graph_token`` is the identity the document is read with -- the asker's own,
-    under Teams SSO. Required rather than optional: the alternative would be reading
-    as the service, which is exactly the privilege this path is meant not to have.
+    ``graph_token`` is the identity documents are read with -- the asker's own, under
+    Teams SSO. Required rather than optional: the alternative would be reading as the
+    service, which is exactly the privilege this path is meant not to have.
 
     ``thread_id`` keys both the checkpoint and the Langfuse session, deliberately under
     one name so a conversation is findable in the trace view under what it is stored as.
-    Required: a caller with nothing to continue passes a fresh id rather than opting out,
-    which would be a second path where the document is never re-read.
+    Required: a caller with nothing to continue passes a fresh id rather than opting out.
 
-    ``document_hint`` is a link found in the message, when there was one. Without it the
-    agent falls back on whatever the conversation already has open.
+    ``document_urls`` are the links found in the message, all of them. Candidates rather
+    than a decision: which one is meant, and whether to open it at all, depends on what
+    was asked and on what the conversation already has open.
 
     Never raises: a failure comes back as ``failed`` so the caller can decide whether to
     say anything.
@@ -281,9 +258,10 @@ async def answer_question(
 
     # Langfuse discards propagated metadata that is not a string, so these are
     # stringified rather than silently going missing from the trace.
+    urls = list(document_urls or [])
     metadata: dict[str, Any] = {
         "langfuse_tags": ["teams-agent", "document-question"],
-        "had_link": str(bool(document_hint)),
+        "links_found": str(len(urls)),
         # The same id the checkpoint is keyed by, so a conversation can be found in the
         # trace view under what it is stored as.
         "langfuse_session_id": thread_id,
@@ -305,33 +283,26 @@ async def answer_question(
         async with get_checkpointer() as saver:
             agent = create_deep_agent(
                 model=build_llm(model, api_key),
-                tools=[open_document_for(graph_token)],
+                tools=[
+                    open_document_for(graph_token),
+                    check_document_for(graph_token),
+                ],
                 skills=["/skills/"],
                 system_prompt=SYSTEM_PROMPT,
                 checkpointer=saver,
             )
 
-            document, lost = await _document_for_this_turn(
-                agent,
-                run_config,
-                graph_token=graph_token,
-                document_hint=document_hint,
-            )
-
-            hint = HINT_PREAMBLE.format(hint=document_hint) if document_hint else ""
             prompt = REQUEST_PROMPT.format(
-                who=asked_by, question=question.strip(), hint=hint
+                who=asked_by, question=question.strip(), links=links_in(urls)
             )
-            if lost:
-                prompt += LOST_DOCUMENT_NOTICE
 
             with propagate_attributes(user_id=user_id):
                 result = await agent.ainvoke(
                     {
-                        # Skills, and the thread's document as of now. Skills must be
-                        # mounted up front because a tool cannot add them later; the
-                        # re-mount each turn is the same paths and content.
-                        "files": {**build_skill_files(), **document},
+                        # Skills only. Documents arrive through the tool and stay in the
+                        # thread's own files; skills have to be mounted up front because
+                        # a tool cannot add them later.
+                        "files": build_skill_files(),
                         "messages": [HumanMessage(content=prompt)],
                     },
                     config=run_config,

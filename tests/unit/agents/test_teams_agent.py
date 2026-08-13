@@ -1,35 +1,28 @@
 """Tests for the agent that answers Teams questions.
 
 It differs from the Word agent in one structural way: it is not given a document.
-Opening one is its own job, so what is asserted here is that it gets the tool to do
-that and mounts only the skills up front -- the skills middleware reads those once
-before the run, so a tool cannot supply them later.
+Deciding which to open, and where to put it, is its own job -- so what is asserted here
+is that it gets the tools and the candidate links, and that only the skills are mounted
+up front, since the skills middleware reads those once before the run and a tool cannot
+supply them later.
 
 The prompt assertions are narrow on purpose. A link is the only way to reach a
 document, and the failure they guard against is the model filling that gap itself:
 answering from a file name, or guessing at a URL.
 
-The persistence tests carry the most weight: a document is re-read every turn, because it
-may have been edited and because the next asker may not be allowed to open it. Both
-failures are silent -- a stale or unauthorised answer reads perfectly well.
+A conversation persists, so documents opened in earlier turns are still here. That is
+deliberate, and it is why the agent is given ``check_document``: a kept copy may have
+been edited since, and may have been opened for somebody else in the thread.
 """
 
 from typing import Any, Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
-from lib.agents import teams_agent
 from lib.agents.teams_agent import answer_question, answer_text
-from lib.agents.tools.sharepoint import (
-    COMMENTS_DOCUMENT,
-    DOCUMENT_SOURCE,
-    MAIN_DOCUMENT,
-)
-from lib.services.microsoft.graph.client import DocumentNotAllowed, GraphError
-from lib.services.microsoft.graph.documents import LoadedDocument
+from lib.agents.tools import sharepoint
 
 # Every run reads as somebody; the tests do not care who.
 TOKEN = "a-user-token"
@@ -41,11 +34,8 @@ def agent_returning(answer: str, state: Optional[dict[str, Any]] = None) -> Magi
     """A deep agent whose last message is the answer.
 
     Returns the whole history the way a checkpointed run does -- the question and then
-    the reply -- because what is read back out is now the messages rather than a
-    structured field.
-
-    ``state`` is what a checkpointer would restore for this thread, which is how the
-    tests stand in for an earlier turn without running one.
+    the reply -- because what is read back out is the messages rather than a structured
+    field.
     """
 
     fake = MagicMock()
@@ -60,34 +50,9 @@ def agent_returning(answer: str, state: Optional[dict[str, Any]] = None) -> Magi
     return fake
 
 
-def loaded_document(markdown: str = "## A heading\n\nA paragraph.") -> LoadedDocument:
-    """What Graph hands back when the document is re-read."""
-
-    return LoadedDocument(
-        name="a.docx",
-        url=DOCUMENT_URL,
-        markdown=markdown,
-        comments=[],
-        last_modified="2026-08-11T13:31:28Z",
-        size_bytes=1024,
-    )
-
-
-def thread_with_document(url: str = DOCUMENT_URL) -> dict[str, Any]:
-    """State as it stands after some earlier turn opened a document."""
-
-    return {
-        "files": {
-            MAIN_DOCUMENT: {"content": ["## A heading", "", "A paragraph."]},
-            DOCUMENT_SOURCE: {"content": [url]},
-        },
-        "messages": [],
-    }
-
-
 @pytest.fixture(autouse=True)
 def checkpointer() -> Any:
-    """Stand in for the saver, since every answer now belongs to a thread.
+    """Stand in for the saver, since every answer belongs to a thread.
 
     Nothing here is about the pool -- ``test_checkpointer.py`` covers that -- but every
     call opens one, so it is patched for the whole module rather than per test.
@@ -105,23 +70,8 @@ def checkpointer() -> Any:
 
 class TestWhatTheAgentIsGiven:
     @pytest.mark.asyncio
-    async def test_it_gets_the_tool_to_open_a_document(self) -> None:
-        """Opening from a link, and nothing that searches by name."""
-
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent",
-            return_value=agent_returning("an answer"),
-        ) as build:
-            await answer_question(
-                "does this overclaim?", graph_token=TOKEN, thread_id=THREAD
-            )
-
-        tools = build.call_args.kwargs["tools"]
-        assert {tool.name for tool in tools} == {"open_document"}
-
-    @pytest.mark.asyncio
     async def test_no_document_is_mounted_up_front(self) -> None:
-        """The document arrives through the tool; only skills are mounted."""
+        """Documents arrive through the tool; only skills are mounted."""
 
         agent = agent_returning("an answer")
         with patch("lib.agents.teams_agent.build_llm"), patch(
@@ -132,40 +82,10 @@ class TestWhatTheAgentIsGiven:
             )
 
         files = agent.ainvoke.call_args[0][0]["files"]
-        assert "/main.md" not in files, "the agent opens its own document"
+        assert not any(path.startswith("/documents/") for path in files)
         assert any(path.startswith("/skills/") for path in files), (
             "skills must be mounted before the run; a tool cannot add them"
         )
-
-    @pytest.mark.asyncio
-    async def test_a_pasted_link_is_passed_through_as_a_hint(self) -> None:
-        agent = agent_returning("an answer")
-        url = "https://x.sharepoint.com/sites/X/a.docx"
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent", return_value=agent
-        ):
-            await answer_question(
-                "is this right?",
-                graph_token=TOKEN,
-                thread_id=THREAD,
-                document_hint=url,
-            )
-
-        prompt = agent.ainvoke.call_args[0][0]["messages"][0].content
-        assert url in prompt
-
-    @pytest.mark.asyncio
-    async def test_without_a_link_the_prompt_says_nothing_about_one(self) -> None:
-        agent = agent_returning("an answer")
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent", return_value=agent
-        ):
-            await answer_question(
-                "check the CERN paper", graph_token=TOKEN, thread_id=THREAD
-            )
-
-        prompt = agent.ainvoke.call_args[0][0]["messages"][0].content
-        assert "They linked to this document" not in prompt
 
     @pytest.mark.asyncio
     async def test_the_asker_is_named_in_the_prompt(self) -> None:
@@ -367,171 +287,48 @@ class TestContinuingAConversation:
         assert "Draft Detective" in build.call_args.kwargs["system_prompt"]
 
 
-class TestRereadingTheDocumentEachTurn:
-    """A continuing thread re-reads its document instead of keeping the mounted copy.
-
-    Two independent reasons, both covered below: it may have been edited since, and a
-    checkpoint carries no memory of whose access loaded it.
-    """
+class TestTheLinksHandedOver:
+    """Every link in the message, as candidates. The agent decides which is meant."""
 
     @pytest.mark.asyncio
-    async def test_the_document_is_read_again_as_the_person_asking(self) -> None:
-        agent = agent_returning("an answer", state=thread_with_document())
-        load = AsyncMock(return_value=loaded_document("Rewritten since last turn."))
+    async def test_one_link_is_named_in_the_prompt(self) -> None:
+        agent = agent_returning("an answer")
         with patch("lib.agents.teams_agent.build_llm"), patch(
             "lib.agents.teams_agent.create_deep_agent", return_value=agent
-        ), patch.object(teams_agent.documents, "load", load):
-            await answer_question(
-                "and the second one?", graph_token=TOKEN, thread_id=THREAD
-            )
-
-        assert load.await_args is not None
-        assert load.await_args.args[0] == DOCUMENT_URL, "the thread's own document"
-        assert load.await_args.kwargs["token"] == TOKEN, "read as the asker"
-
-        files = agent.ainvoke.call_args[0][0]["files"]
-        body = "\n".join(files[MAIN_DOCUMENT]["content"])
-        assert "Rewritten since last turn." in body, "the fresh copy, not the old"
-
-    @pytest.mark.asyncio
-    async def test_a_stale_copy_is_replaced_rather_than_merged(self) -> None:
-        """The failure this exists to prevent: answering from text since rewritten."""
-
-        stale = thread_with_document()
-        stale["files"][MAIN_DOCUMENT] = {"content": ["The old wording."]}
-        agent = agent_returning("an answer", state=stale)
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent", return_value=agent
-        ), patch.object(
-            teams_agent.documents,
-            "load",
-            AsyncMock(return_value=loaded_document("The new wording.")),
         ):
             await answer_question(
-                "does this overclaim?", graph_token=TOKEN, thread_id=THREAD
-            )
-
-        files = agent.ainvoke.call_args[0][0]["files"]
-        body = "\n".join(files[MAIN_DOCUMENT]["content"])
-        assert "The old wording." not in body
-        assert "The new wording." in body
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        "failure",
-        [
-            GraphError("could not find a.docx: 403"),
-            DocumentNotAllowed("outside the site paths this service may read"),
-            TimeoutError("graph took too long"),
-        ],
-        ids=[
-            "graph refuses this person",
-            "the allowlist no longer covers it",
-            "a timeout",
-        ],
-    )
-    async def test_a_document_that_cannot_be_read_is_given_up(
-        self, failure: Exception
-    ) -> None:
-        """Fail closed. A refusal and a timeout are indistinguishable from here, and
-        keeping the copy would answer someone from a document they may not open."""
-
-        agent = agent_returning("an answer", state=thread_with_document())
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent", return_value=agent
-        ), patch.object(
-            teams_agent.documents, "load", AsyncMock(side_effect=failure)
-        ):
-            await answer_question(
-                "what does paragraph 12 say?",
-                graph_token="somebody-elses-token",
-                thread_id=THREAD,
-            )
-
-        files = agent.ainvoke.call_args[0][0]["files"]
-        assert files[MAIN_DOCUMENT] is None
-        assert files[COMMENTS_DOCUMENT] is None
-        assert files[DOCUMENT_SOURCE] is None
-
-    @pytest.mark.asyncio
-    async def test_the_agent_is_told_not_to_answer_from_the_history(self) -> None:
-        """Dropping the file is not enough: what was quoted from it is still above."""
-
-        agent = agent_returning("an answer", state=thread_with_document())
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent", return_value=agent
-        ), patch.object(
-            teams_agent.documents, "load", AsyncMock(side_effect=GraphError("403"))
-        ):
-            await answer_question(
-                "what does paragraph 12 say?",
-                graph_token="somebody-elses-token",
-                thread_id=THREAD,
-            )
-
-        prompt = agent.ainvoke.call_args[0][0]["messages"][0].content
-        assert "could not be opened for the person asking now" in prompt
-        assert "Do not answer from what was said about it earlier" in prompt
-
-    @pytest.mark.asyncio
-    async def test_the_notice_does_not_claim_they_lack_access(self) -> None:
-        """A timeout is not a permission finding, and saying so would be a falsehood."""
-
-        agent = agent_returning("an answer", state=thread_with_document())
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent", return_value=agent
-        ), patch.object(
-            teams_agent.documents, "load", AsyncMock(side_effect=TimeoutError("slow"))
-        ):
-            await answer_question(
-                "what does it say?", graph_token=TOKEN, thread_id=THREAD
-            )
-
-        prompt = agent.ainvoke.call_args[0][0]["messages"][0].content
-        assert "may not have access, or it may have moved" in prompt
-
-    @pytest.mark.asyncio
-    async def test_a_new_link_closes_the_old_document(self) -> None:
-        """The agent will open the new one; the old must not linger unread."""
-
-        agent = agent_returning("an answer", state=thread_with_document())
-        load = AsyncMock(return_value=loaded_document())
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent", return_value=agent
-        ), patch.object(teams_agent.documents, "load", load):
-            await answer_question(
-                "what about this one?",
+                "is this right?",
                 graph_token=TOKEN,
                 thread_id=THREAD,
-                document_hint="https://x.sharepoint.com/sites/X/different.docx",
+                document_urls=[DOCUMENT_URL],
             )
-
-        files = agent.ainvoke.call_args[0][0]["files"]
-        assert files[MAIN_DOCUMENT] is None, "the old document goes"
-        assert load.await_count == 0, "the tool opens the new one, not this"
 
         prompt = agent.ainvoke.call_args[0][0]["messages"][0].content
-        assert "could not be opened" not in prompt, "nothing went wrong here"
+        assert DOCUMENT_URL in prompt
+        assert "They linked to this document" in prompt
 
     @pytest.mark.asyncio
-    async def test_a_thread_with_no_document_reads_nothing(self) -> None:
-        """The common case -- a first question, or a conversation about nothing yet."""
+    async def test_several_links_are_all_offered(self) -> None:
+        """"Compare these two" is unanswerable if only the first survives."""
 
-        agent = agent_returning("an answer", state={"files": {}, "messages": []})
-        load = AsyncMock()
+        second = "https://x.sharepoint.com/sites/X/b.docx"
+        agent = agent_returning("an answer")
         with patch("lib.agents.teams_agent.build_llm"), patch(
             "lib.agents.teams_agent.create_deep_agent", return_value=agent
-        ), patch.object(teams_agent.documents, "load", load):
+        ):
             await answer_question(
-                "what can you do?", graph_token=TOKEN, thread_id=THREAD
+                "compare these",
+                graph_token=TOKEN,
+                thread_id=THREAD,
+                document_urls=[DOCUMENT_URL, second],
             )
 
-        assert load.await_count == 0
+        prompt = agent.ainvoke.call_args[0][0]["messages"][0].content
+        assert DOCUMENT_URL in prompt and second in prompt
+        assert "They linked to these documents" in prompt
 
     @pytest.mark.asyncio
-    async def test_every_turn_reads_the_thread_before_answering(self) -> None:
-        """The check cannot be skipped, so the state is always looked at first."""
-
+    async def test_no_links_says_nothing_about_them(self) -> None:
         agent = agent_returning("an answer")
         with patch("lib.agents.teams_agent.build_llm"), patch(
             "lib.agents.teams_agent.create_deep_agent", return_value=agent
@@ -540,7 +337,85 @@ class TestRereadingTheDocumentEachTurn:
                 "what can you do?", graph_token=TOKEN, thread_id=THREAD
             )
 
-        assert agent.aget_state.await_count == 1
+        prompt = agent.ainvoke.call_args[0][0]["messages"][0].content
+        assert "They linked to" not in prompt
+
+    @pytest.mark.asyncio
+    async def test_nothing_is_loaded_before_the_agent_runs(self) -> None:
+        """The agent opens what it needs. A link in the message is not a decision.
+
+        A question about a document nobody asked about would otherwise cost a download
+        every turn -- and the router would be choosing, which is what it cannot do well.
+        """
+
+        load = AsyncMock()
+        agent = agent_returning("an answer")
+        with patch("lib.agents.teams_agent.build_llm"), patch(
+            "lib.agents.teams_agent.create_deep_agent", return_value=agent
+        ), patch.object(sharepoint.documents, "load", load):
+            await answer_question(
+                "what can you do?",
+                graph_token=TOKEN,
+                thread_id=THREAD,
+                document_urls=[DOCUMENT_URL],
+            )
+
+        assert load.await_count == 0
+        assert agent.ainvoke.call_args[0][0]["files"].keys() == {
+            path for path in agent.ainvoke.call_args[0][0]["files"] if "/skills/" in path
+        }, "skills only; documents arrive through the tool"
+
+
+class TestTheToolsTheAgentGets:
+    @pytest.mark.asyncio
+    async def test_it_can_open_and_check_a_document(self) -> None:
+        """Checking is what makes a kept copy safe to use in a later turn."""
+
+        with patch("lib.agents.teams_agent.build_llm"), patch(
+            "lib.agents.teams_agent.create_deep_agent",
+            return_value=agent_returning("an answer"),
+        ) as build:
+            await answer_question("hello?", graph_token=TOKEN, thread_id=THREAD)
+
+        assert {tool.name for tool in build.call_args.kwargs["tools"]} == {
+            "open_document",
+            "check_document",
+        }
+
+    @pytest.mark.asyncio
+    async def test_both_tools_read_as_the_asker(self) -> None:
+        """One process serves many people, so neither tool may outlive its identity.
+
+        Asserted by driving the tools the agent was actually handed, rather than by
+        trusting that the factories were called with the right token.
+        """
+
+        opened = MagicMock(
+            markdown="body", comments=[], name="a.docx", lines=1, last_modified="then"
+        )
+        load = AsyncMock(return_value=opened)
+        resolve = AsyncMock(return_value={"name": "a.docx"})
+
+        with patch("lib.agents.teams_agent.build_llm"), patch(
+            "lib.agents.teams_agent.create_deep_agent",
+            return_value=agent_returning("an answer"),
+        ) as build:
+            await answer_question("hello?", graph_token="carlos", thread_id=THREAD)
+
+            tools = {tool.name: tool for tool in build.call_args.kwargs["tools"]}
+            with patch.object(sharepoint.documents, "load", load):
+                await tools["open_document"].coroutine(
+                    "https://x/a.docx",
+                    "/documents/a.md",
+                    MagicMock(tool_call_id="call_1"),
+                )
+            with patch.object(sharepoint.client, "resolve", resolve):
+                await tools["check_document"].coroutine("https://x/a.docx")
+
+        assert load.await_args is not None
+        assert load.await_args.kwargs["token"] == "carlos"
+        assert resolve.await_args is not None
+        assert resolve.await_args.kwargs["token"] == "carlos"
 
 
 class TestThePrompt:
