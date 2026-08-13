@@ -211,12 +211,16 @@ class TestTheFollowUpActivity:
             Activity.model_validate(continuation.model_dump())
 
 
-class TestFindingTheDocument:
+class TestFindingTheLinks:
     """A link is the only way to reach a document, so failing to spot one is fatal.
 
     The case that broke in Teams: the link was there, visibly, but only as a
     hyperlink -- so ``activity.text`` held the file name and the bot asked for a link
     that had already been sent.
+
+    Every link is returned rather than the first. Which one is meant depends on what was
+    asked -- "compare these two", "the second one" -- so that decision belongs to the
+    agent, and picking one here would throw away the others before it could.
     """
 
     def message(
@@ -227,28 +231,54 @@ class TestFindingTheDocument:
         )
 
     def test_a_pasted_sharepoint_link_is_found(self) -> None:
-        found = bot.document_url_in(
+        found = bot.document_urls_in(
             self.message(
                 "have a look at "
                 "https://contoso.sharepoint.com/sites/X/Shared%20Documents/a.docx"
                 " please"
             )
         )
-        assert found is not None and found.endswith("a.docx")
+        assert len(found) == 1 and found[0].endswith("a.docx")
+
+    def test_every_link_is_returned_in_order(self) -> None:
+        """So "compare these two" is answerable, and "the second one" means something."""
+
+        found = bot.document_urls_in(
+            self.message(
+                "compare https://x.sharepoint.com/sites/X/v2.docx with "
+                "https://x.sharepoint.com/sites/X/v3.docx"
+            )
+        )
+
+        assert found == [
+            "https://x.sharepoint.com/sites/X/v2.docx",
+            "https://x.sharepoint.com/sites/X/v3.docx",
+        ]
+
+    def test_the_same_link_is_not_offered_twice(self) -> None:
+        """Teams repeats it: once in the text, again in the HTML, again in the card."""
+
+        url = "https://x.sharepoint.com/sites/X/a.docx"
+        activity = self.message(
+            f"look at {url}",
+            [Attachment(content_type="text/html", content=f'<a href="{url}">a</a>')],
+        )
+
+        assert bot.document_urls_in(activity) == [url]
 
     def test_trailing_punctuation_is_trimmed(self) -> None:
         """Teams decorates pasted links, and the URL must not absorb the full stop."""
 
-        found = bot.document_url_in(
+        found = bot.document_urls_in(
             self.message("see https://x.sharepoint.com/sites/X/a.docx.")
         )
-        assert found == "https://x.sharepoint.com/sites/X/a.docx"
+        assert found == ["https://x.sharepoint.com/sites/X/a.docx"]
 
     def test_a_message_with_no_link_finds_nothing(self) -> None:
-        assert bot.document_url_in(self.message("does this overclaim?")) is None
+        assert bot.document_urls_in(self.message("does this overclaim?")) == []
 
-    def test_a_non_sharepoint_link_is_not_taken_as_the_document(self) -> None:
-        assert bot.document_url_in(self.message("see https://example.com/a.docx")) is None
+    def test_a_non_sharepoint_link_is_not_taken_as_a_document(self) -> None:
+        assert bot.document_urls_in(self.message("see https://example.com/a.docx")) == []
 
     def test_a_link_rendered_as_a_hyperlink_is_found_in_the_html(self) -> None:
         """The reported bug. The text is the file name; the href is in an attachment."""
@@ -267,10 +297,9 @@ class TestFindingTheDocument:
             ],
         )
 
-        found = bot.document_url_in(activity)
-        assert found == (
+        assert bot.document_urls_in(activity) == [
             "https://contoso.sharepoint.com/sites/Reviews/Drafts/v3-CERN.docx"
-        )
+        ]
 
     def test_an_escaped_query_string_survives_the_html(self) -> None:
         """An href arrives escaped, so ``&amp;`` would truncate the link's parameters."""
@@ -288,8 +317,8 @@ class TestFindingTheDocument:
             ],
         )
 
-        found = bot.document_url_in(activity)
-        assert found is not None and found.endswith("?d=w123&csf=1&web=1")
+        found = bot.document_urls_in(activity)
+        assert len(found) == 1 and found[0].endswith("?d=w123&csf=1&web=1")
 
     def test_a_link_in_an_unfurled_card_is_found(self) -> None:
         """Teams turns a pasted document link into a card; shape varies by card type."""
@@ -310,11 +339,11 @@ class TestFindingTheDocument:
             ],
         )
 
-        assert bot.document_url_in(activity) == (
+        assert bot.document_urls_in(activity) == [
             "https://x.sharepoint.com/sites/X/DD/v3-CERN.docx"
-        )
+        ]
 
-    def test_a_cards_thumbnail_is_not_mistaken_for_the_document(self) -> None:
+    def test_a_cards_thumbnail_is_not_mistaken_for_a_document(self) -> None:
         """The preview image lives on the same host and would resolve to the wrong thing."""
 
         activity = self.message(
@@ -334,10 +363,14 @@ class TestFindingTheDocument:
             ],
         )
 
-        assert bot.document_url_in(activity) is None
+        assert bot.document_urls_in(activity) == []
 
-    def test_the_visible_text_wins_over_an_attachment(self) -> None:
-        """What someone typed is more faithful than what Teams generated around it."""
+    def test_the_visible_text_comes_first(self) -> None:
+        """What someone typed is more faithful than what Teams generated around it.
+
+        Both are offered now, so the ordering is the whole signal: the agent reads the
+        list in order and the typed link leads it.
+        """
 
         activity = self.message(
             "compare https://x.sharepoint.com/sites/X/typed.docx",
@@ -349,7 +382,10 @@ class TestFindingTheDocument:
             ],
         )
 
-        assert bot.document_url_in(activity) == "https://x.sharepoint.com/sites/X/typed.docx"
+        assert bot.document_urls_in(activity) == [
+            "https://x.sharepoint.com/sites/X/typed.docx",
+            "https://x.sharepoint.com/sites/X/card.docx",
+        ]
 
 
 class TestAMalformedActivity:

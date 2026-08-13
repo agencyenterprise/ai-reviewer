@@ -33,7 +33,7 @@ class TestWhenAnsweringFails:
             teams.bot, "post_later", posted
         ):
             await teams._answer_into_thread(
-                "ref", "does this overclaim?", "Carlos", "19:x", None, "token"
+                "ref", "does this overclaim?", "Carlos", "19:x", [], "token"
             )
 
         posted.assert_awaited_once()
@@ -53,7 +53,7 @@ class TestWhenAnsweringFails:
             teams, "answer_question", AsyncMock(side_effect=RuntimeError("upstream"))
         ), patch.object(teams.bot, "post_later", posted):
             await teams._answer_into_thread(
-                "ref", "does this overclaim?", "Carlos", "19:x", None, "token"
+                "ref", "does this overclaim?", "Carlos", "19:x", [], "token"
             )
 
         posted.assert_awaited_once()
@@ -67,7 +67,7 @@ class TestWhenAnsweringFails:
         with patch.object(
             teams, "answer_question", AsyncMock(side_effect=RuntimeError("upstream"))
         ), patch.object(teams.bot, "post_later", AsyncMock()):
-            await teams._answer_into_thread("ref", "q", "Carlos", "19:x", None, "t")
+            await teams._answer_into_thread("ref", "q", "Carlos", "19:x", [], "t")
 
     @pytest.mark.asyncio
     async def test_the_question_is_truncated_in_the_log(self) -> None:
@@ -79,7 +79,7 @@ class TestWhenAnsweringFails:
         ), patch.object(teams.bot, "post_later", AsyncMock()), patch.object(
             teams.logger, "exception"
         ) as logged:
-            await teams._answer_into_thread("ref", question, "C", "19:x", None, "t")
+            await teams._answer_into_thread("ref", question, "C", "19:x", [], "t")
 
         assert logged.call_args is not None
         assert len(logged.call_args[0][1]) == 120

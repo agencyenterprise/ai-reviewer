@@ -364,20 +364,27 @@ def _scannable(activity: Activity) -> Iterator[str]:
             yield attachment.content_url
 
 
-def document_url_in(activity: Activity) -> Optional[str]:
-    """A SharePoint link to a document in this message, if there is one.
+def document_urls_in(activity: Activity) -> list[str]:
+    """Every SharePoint link in this message, in the order they were found.
+
+    All of them rather than the first, because which one is meant is a question about
+    the conversation -- "compare these two", "the second one" -- and that is the agent's
+    to answer, not a regex's. They are candidates handed over, not a decision made here.
 
     Trailing punctuation is trimmed: Teams decorates a pasted link, and an href in
-    HTML arrives escaped, so the match is cleaned rather than used raw.
+    HTML arrives escaped, so a match is cleaned rather than used raw. Duplicates are
+    dropped because the same link appears in the text, the HTML and the card.
     """
 
+    found: list[str] = []
     for text in _scannable(activity):
         for match in _SHAREPOINT_URL.finditer(html.unescape(text)):
             url = match.group(0).rstrip(").,;'\"")
             if any(marker in url.lower() for marker in _NOT_A_DOCUMENT):
                 continue
-            return url
-    return None
+            if url not in found:
+                found.append(url)
+    return found
 
 
 def reference_for(activity: Activity) -> ConversationReference:
