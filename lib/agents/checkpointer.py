@@ -51,7 +51,12 @@ checkpointer_pool: AsyncConnectionPool[AsyncConnection[dict[str, Any]]] = (
     )
 )
 
+# Two flags rather than one, because they can disagree: a setup failure leaves the pool
+# open but not usable. Conflating them loses track of a pool that shutdown must still
+# close, and psycopg_pool refuses to reopen a closed one -- so closing it to recover is
+# not an option, and the open flag has to stay honest instead.
 _opened = False
+_ready = False
 _open_lock = asyncio.Lock()
 
 
@@ -77,18 +82,27 @@ async def _run_setup() -> None:
 
 
 async def _ensure_pool_ready() -> None:
-    """Open the pool and run the checkpoint migrations, once per process."""
+    """Open the pool and run the checkpoint migrations, once per process.
 
-    global _opened
-    if _opened:
+    A failure here leaves the pool open and retries the setup on the next call, which is
+    the right answer for the transient kind. It deliberately does not close the pool to
+    tidy up: a closed pool cannot be reopened, so that would turn one slow advisory lock
+    into every later turn failing.
+    """
+
+    global _opened, _ready
+    if _ready:
         return
     async with _open_lock:
         # Checked again under the lock: several first calls can arrive together.
-        if _opened:
+        if _ready:
             return
-        await checkpointer_pool.open(wait=True)
+        if not _opened:
+            await checkpointer_pool.open(wait=True)
+            # Set before setup runs, so a failure there still leaves something to close.
+            _opened = True
         await _run_setup()
-        _opened = True
+        _ready = True
         logger.info("checkpointer pool opened and checkpoint tables verified")
 
 
@@ -105,9 +119,16 @@ async def get_checkpointer() -> AsyncIterator[AsyncPostgresSaver]:
 
 
 async def close_checkpointer_pool() -> None:
-    """Close the pool. Called from the FastAPI lifespan shutdown."""
+    """Close the pool, for good. Called from the FastAPI lifespan shutdown.
 
-    global _opened
+    One way only: psycopg_pool raises on reopening a closed pool, so this is the end of
+    checkpointing in this process rather than something to call between runs.
+    """
+
+    global _ready
     if _opened:
         await checkpointer_pool.close()
-        _opened = False
+        # ``_opened`` stays true because the pool remains closed-and-used forever; only
+        # readiness is withdrawn, so a later call fails on the pool rather than
+        # cheerfully trying to open it again.
+        _ready = False

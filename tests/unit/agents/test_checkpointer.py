@@ -10,6 +10,8 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from psycopg import OperationalError
+from psycopg_pool import AsyncConnectionPool
 
 from lib.agents import checkpointer as checkpointer_module
 from lib.agents.checkpointer import (
@@ -25,9 +27,15 @@ run_setup = checkpointer_module._run_setup
 
 @pytest.fixture(autouse=True)
 def reset_pool_state() -> Any:
-    """Reset the module's opened flag and stub everything that touches Postgres."""
+    """Reset the module's flags and stub everything that touches Postgres.
+
+    Note what is mocked: ``open`` and ``close`` are the two methods carrying psycopg's
+    "a closed pool cannot be reopened" rule, so no test here can observe it. That rule is
+    asserted against a real pool in ``TestClosingIsFinal`` instead.
+    """
 
     checkpointer_module._opened = False
+    checkpointer_module._ready = False
     with (
         patch.object(checkpointer_pool, "open", new_callable=AsyncMock) as mock_open,
         patch.object(checkpointer_pool, "close", new_callable=AsyncMock) as mock_close,
@@ -37,6 +45,7 @@ def reset_pool_state() -> Any:
     ):
         yield mock_open, mock_close, mock_setup
     checkpointer_module._opened = False
+    checkpointer_module._ready = False
 
 
 class TestTheSharedPool:
@@ -92,24 +101,53 @@ class TestTheSharedPool:
         assert mock_setup.await_count == 1
 
 
-class TestShutdown:
+class TestClosingIsFinal:
+    """Shutting down ends checkpointing in this process, and cannot be undone.
+
+    This replaces a test that asserted the opposite -- that a later call reopens the pool
+    -- which passed only because the fixture mocks ``open`` and ``close``. psycopg allows
+    neither, so the real constraint is pinned against a real pool here.
+    """
+
     @pytest.mark.asyncio
-    async def test_closing_lets_a_later_call_reopen(
+    async def test_psycopg_refuses_to_reopen_a_closed_pool(self) -> None:
+        """The fact everything else in this class follows from.
+
+        Its own pool, never connected to anything: the refusal is bookkeeping inside
+        psycopg_pool and needs no database.
+        """
+
+        pool: Any = AsyncConnectionPool(
+            conninfo="postgresql://nobody@127.0.0.1:1/none",
+            min_size=0,
+            max_size=2,
+            open=False,
+        )
+        await pool.open(wait=False)
+        await pool.open(wait=False)  # opening an open pool is fine
+        await pool.close()
+
+        with pytest.raises(OperationalError, match="cannot be reused"):
+            await pool.open(wait=False)
+
+    @pytest.mark.asyncio
+    async def test_closing_does_not_claim_the_pool_could_reopen(
         self, reset_pool_state: Any
     ) -> None:
-        """A reload closes the pool; the next run must still work."""
+        """``_opened`` stays true after closing, because the pool is used up.
 
-        mock_open, mock_close, mock_setup = reset_pool_state
+        Resetting it would invite the next call to open a pool psycopg will refuse.
+        """
+
+        _, mock_close, _ = reset_pool_state
 
         async with get_checkpointer():
             pass
         await close_checkpointer_pool()
-        async with get_checkpointer():
-            pass
 
         assert mock_close.await_count == 1
-        assert mock_open.await_count == 2
-        assert mock_setup.await_count == 2
+        assert checkpointer_module._opened is True
+        assert checkpointer_module._ready is False
 
     @pytest.mark.asyncio
     async def test_closing_what_was_never_opened_does_nothing(
@@ -122,6 +160,64 @@ class TestShutdown:
         await close_checkpointer_pool()
 
         assert mock_close.await_count == 0
+
+
+class TestWhenSetupFails:
+    """A failed setup must leave a pool that shutdown can still close.
+
+    The pool is open by then, so losing track of it leaks connections. Closing it to tidy
+    up is not the fix: it could never be reopened, turning one slow advisory lock into
+    every later turn failing.
+    """
+
+    @pytest.mark.asyncio
+    async def test_the_pool_is_still_closable(self, reset_pool_state: Any) -> None:
+        _, mock_close, mock_setup = reset_pool_state
+        mock_setup.side_effect = RuntimeError("could not acquire the advisory lock")
+
+        with pytest.raises(RuntimeError):
+            async with get_checkpointer():
+                pass
+
+        assert checkpointer_module._opened is True, "shutdown must know to close it"
+
+        await close_checkpointer_pool()
+
+        assert mock_close.await_count == 1
+
+    @pytest.mark.asyncio
+    async def test_the_pool_is_not_closed_behind_our_back(
+        self, reset_pool_state: Any
+    ) -> None:
+        """Closing here would make the failure permanent rather than transient."""
+
+        _, mock_close, mock_setup = reset_pool_state
+        mock_setup.side_effect = RuntimeError("a blip")
+
+        with pytest.raises(RuntimeError):
+            async with get_checkpointer():
+                pass
+
+        assert mock_close.await_count == 0
+
+    @pytest.mark.asyncio
+    async def test_the_next_call_retries_setup_without_reopening(
+        self, reset_pool_state: Any
+    ) -> None:
+        """What makes a transient failure transient."""
+
+        mock_open, _, mock_setup = reset_pool_state
+        mock_setup.side_effect = [RuntimeError("a blip"), None]
+
+        with pytest.raises(RuntimeError):
+            async with get_checkpointer():
+                pass
+        async with get_checkpointer():
+            pass
+
+        assert mock_setup.await_count == 2, "setup is retried"
+        assert mock_open.await_count == 1, "but the pool is opened only once"
+        assert checkpointer_module._ready is True
 
 
 class TestSetupAcrossWorkers:
