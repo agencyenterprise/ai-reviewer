@@ -60,13 +60,13 @@ def agent_returning(answer: str, state: Optional[dict[str, Any]] = None) -> Magi
     return fake
 
 
-def loaded_document(paragraphs: Optional[list[str]] = None) -> LoadedDocument:
+def loaded_document(markdown: str = "## A heading\n\nA paragraph.") -> LoadedDocument:
     """What Graph hands back when the document is re-read."""
 
     return LoadedDocument(
         name="a.docx",
         url=DOCUMENT_URL,
-        paragraphs=paragraphs if paragraphs is not None else ["A paragraph."],
+        markdown=markdown,
         comments=[],
         last_modified="2026-08-11T13:31:28Z",
         size_bytes=1024,
@@ -78,7 +78,7 @@ def thread_with_document(url: str = DOCUMENT_URL) -> dict[str, Any]:
 
     return {
         "files": {
-            MAIN_DOCUMENT: {"content": ["[0] A paragraph."]},
+            MAIN_DOCUMENT: {"content": ["## A heading", "", "A paragraph."]},
             DOCUMENT_SOURCE: {"content": [url]},
         },
         "messages": [],
@@ -377,7 +377,7 @@ class TestRereadingTheDocumentEachTurn:
     @pytest.mark.asyncio
     async def test_the_document_is_read_again_as_the_person_asking(self) -> None:
         agent = agent_returning("an answer", state=thread_with_document())
-        load = AsyncMock(return_value=loaded_document(["Rewritten since last turn."]))
+        load = AsyncMock(return_value=loaded_document("Rewritten since last turn."))
         with patch("lib.agents.teams_agent.build_llm"), patch(
             "lib.agents.teams_agent.create_deep_agent", return_value=agent
         ), patch.object(teams_agent.documents, "load", load):
@@ -398,14 +398,14 @@ class TestRereadingTheDocumentEachTurn:
         """The failure this exists to prevent: answering from text since rewritten."""
 
         stale = thread_with_document()
-        stale["files"][MAIN_DOCUMENT] = {"content": ["[0] The old wording."]}
+        stale["files"][MAIN_DOCUMENT] = {"content": ["The old wording."]}
         agent = agent_returning("an answer", state=stale)
         with patch("lib.agents.teams_agent.build_llm"), patch(
             "lib.agents.teams_agent.create_deep_agent", return_value=agent
         ), patch.object(
             teams_agent.documents,
             "load",
-            AsyncMock(return_value=loaded_document(["The new wording."])),
+            AsyncMock(return_value=loaded_document("The new wording.")),
         ):
             await answer_question(
                 "does this overclaim?", graph_token=TOKEN, thread_id=THREAD

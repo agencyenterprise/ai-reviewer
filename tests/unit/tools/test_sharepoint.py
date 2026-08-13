@@ -72,13 +72,15 @@ def runtime() -> MagicMock:
 
 
 def document(
-    paragraphs: Optional[list[str]] = None,
+    markdown: Optional[str] = None,
     comments: Optional[list[tuple[str, str]]] = None,
 ) -> LoadedDocument:
     return LoadedDocument(
         name="v2-cern-for-ai.docx",
         url="https://x.sharepoint.com/sites/X/Shared%20Documents/v2-cern-for-ai.docx",
-        paragraphs=paragraphs if paragraphs is not None else ["First.", "Second."],
+        markdown=(
+            markdown if markdown is not None else "## A heading\n\nFirst.\n\nSecond."
+        ),
         comments=comments or [],
         last_modified="2026-08-04T13:31:28Z",
         size_bytes=180097,
@@ -100,16 +102,38 @@ class TestOpeningADocument:
         assert "/main.md" in mounted(result)
 
     @pytest.mark.asyncio
-    async def test_the_mounted_text_carries_paragraph_numbers(self) -> None:
+    async def test_the_mounted_text_keeps_the_document_structure(self) -> None:
+        """Markdown, not a flat list of paragraphs.
+
+        Headings and tables are how the agent navigates and how a skill tells one part
+        of a document from another, so losing them to a paragraph-by-paragraph read is
+        the regression this guards.
+        """
+
+        markdown = (
+            "## Abbreviations\n\n| AI | artificial intelligence |\n\nBody **text**."
+        )
         with patch.object(
-            sharepoint.documents,
-            "load",
-            AsyncMock(return_value=document(["Alpha.", "Beta."])),
+            sharepoint.documents, "load", AsyncMock(return_value=document(markdown))
         ):
             result = await call(opener(), "https://x/a.docx", runtime())
 
         body = body_of(mounted(result), "/main.md")
-        assert "[0] Alpha." in body and "[1] Beta." in body
+        assert body == markdown, "mounted verbatim, with nothing numbered into it"
+
+    @pytest.mark.asyncio
+    async def test_nothing_is_prefixed_onto_the_lines(self) -> None:
+        """The read tool numbers lines itself, so a second scheme only competes."""
+
+        with patch.object(
+            sharepoint.documents,
+            "load",
+            AsyncMock(return_value=document("Alpha.\n\nBeta.")),
+        ):
+            result = await call(opener(), "https://x/a.docx", runtime())
+
+        body = body_of(mounted(result), "/main.md")
+        assert "[0]" not in body and "[1]" not in body
 
     @pytest.mark.asyncio
     async def test_the_body_is_not_in_the_tool_message(self) -> None:
@@ -118,13 +142,13 @@ class TestOpeningADocument:
         with patch.object(
             sharepoint.documents,
             "load",
-            AsyncMock(return_value=document(["A distinctive sentence."])),
+            AsyncMock(return_value=document("A distinctive sentence.")),
         ):
             result = await call(opener(), "https://x/a.docx", runtime())
 
         message = message_of(result)
         assert "distinctive sentence" not in message
-        assert "1 paragraphs" in message and "/main.md" in message
+        assert "1 lines" in message and "/main.md" in message
 
     @pytest.mark.asyncio
     async def test_comments_are_mounted_separately_when_present(self) -> None:

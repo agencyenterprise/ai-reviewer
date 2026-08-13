@@ -15,8 +15,10 @@ service instead. The model never sees the token -- it is closed over, not a para
 ``open_document`` mounts the document at ``/main.md`` rather than returning its text.
 Two reasons, and the second is the one that decides it:
 
-- ``/main.md`` is the path every other agent and skill in this codebase reads. The
-  line numbers in ``skills/issues/SKILL.md`` are *defined* relative to it.
+- ``/main.md`` is the path every other agent and skill in this codebase reads, holding
+  the same markdown that the workflow path mounts there. The line numbers in
+  ``skills/issues/SKILL.md`` are *defined* relative to it, and the read and search tools
+  report positions in lines, so nothing needs numbering into the text itself.
 - A tool result over roughly 80,000 characters is evicted by the filesystem
   middleware to ``/large_tool_results/{tool_call_id}``. Real documents here run to
   that size, so returning the body would scatter it to a machine-generated path
@@ -36,7 +38,6 @@ from langchain.tools import BaseTool, ToolRuntime, tool
 from langchain_core.messages import ToolMessage
 from langgraph.types import Command
 
-from lib.agents.deep_agent_setup import number_paragraphs
 from lib.services.microsoft.graph import documents
 from lib.services.microsoft.graph.client import (
     DocumentNotAllowed,
@@ -70,10 +71,10 @@ def open_document_for(token: str) -> BaseTool:
         """
         Open a Word document so you can read it. Do this before answering about one.
 
-        The document becomes available at /main.md, with every paragraph prefixed by
-        its number like [12]. Any comments already on it become available at
-        /comments.md. Use your read and search tools on those files; this tool does
-        not return the text.
+        The document becomes available at /main.md as markdown: headings, tables and
+        emphasis are preserved, so its structure is readable. Any comments already on
+        it become available at /comments.md. Use your read and search tools on those
+        files; this tool does not return the text.
 
         You open it as the person who asked, so a document they cannot access will be
         refused. Tell them that plainly rather than trying another way in.
@@ -85,7 +86,7 @@ def open_document_for(token: str) -> BaseTool:
         Returns:
             A confirmation of what was opened. Example:
             Opened 'v2-04-21-2025- cern-for-ai-for-full-review.docx' at /main.md:
-            366 paragraphs, 4 comments at /comments.md. Modified 2026-08-04T13:31:28Z.
+            648 lines, 4 comments at /comments.md. Modified 2026-08-04T13:31:28Z.
         """
 
         try:
@@ -125,7 +126,7 @@ def document_files(document: documents.LoadedDocument, url: str) -> dict[str, An
     """
 
     return {
-        MAIN_DOCUMENT: create_file_data(number_paragraphs(document.paragraphs)),
+        MAIN_DOCUMENT: create_file_data(document.markdown),
         # Written with the document, never separately, so that a later turn can name what
         # it is holding and re-read it as whoever is asking then.
         DOCUMENT_SOURCE: create_file_data(url),
@@ -179,10 +180,9 @@ def describe(document: documents.LoadedDocument) -> str:
     to a machine-named file and defeat the mounting above.
     """
 
-    parts = [
-        f"Opened '{document.name}' at {MAIN_DOCUMENT}: "
-        f"{len(document.paragraphs)} paragraphs"
-    ]
+    # Lines rather than paragraphs, because that is the unit the read and search tools
+    # report positions in -- so the size given here is in the same currency.
+    parts = [f"Opened '{document.name}' at {MAIN_DOCUMENT}: {document.lines} lines"]
     if document.comments:
         parts.append(f", {len(document.comments)} comments at {COMMENTS_DOCUMENT}")
     parts.append(".")
