@@ -4,8 +4,7 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime
-from functools import lru_cache
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,17 +13,21 @@ from sqlmodel import col
 from lib.config.database import get_async_db_session
 from lib.models.workflow_progress import ProgressLevel, WorkflowProgress
 from lib.models.workflow_run import WorkflowRun, WorkflowRunType
+from lib.services.keyed_locks import KeyedLockRegistry
 
 logger = logging.getLogger(__name__)
 
 
-@lru_cache(maxsize=256)
+_progress_locks: KeyedLockRegistry[Tuple[uuid.UUID, str]] = KeyedLockRegistry()
+
+
 def _get_progress_lock(workflow_run_id: uuid.UUID, name: str) -> asyncio.Lock:
     """Get or create a lock for a specific (workflow_run_id, name) combination.
 
-    Uses LRU cache to automatically evict old locks and prevent unbounded memory growth.
+    The registry keeps each lock only while it is in use, which prevents
+    unbounded memory growth without ever evicting a lock somebody is holding.
     """
-    return asyncio.Lock()
+    return _progress_locks.get((workflow_run_id, name))
 
 
 async def create_and_start_progress(

@@ -2,7 +2,6 @@ import asyncio
 import logging
 import uuid
 from contextlib import asynccontextmanager
-from functools import lru_cache
 from typing import List, Optional, Tuple, cast
 
 from sqlalchemy import select
@@ -11,6 +10,7 @@ from sqlmodel import col
 from lib.config.database import get_async_db_session
 from lib.models.project import Project
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
+from lib.services.keyed_locks import KeyedLockRegistry
 from lib.services.workflow_runs import (
     create_workflow_run,
     get_project_workflow_run_by_type,
@@ -30,12 +30,15 @@ from lib.workflows.reference_file_matching.state import (
 logger = logging.getLogger(__name__)
 
 
-# Project-level locks to prevent race conditions on concurrent state updates
-# Using LRU cache to limit memory usage - keeps most recently used locks
-@lru_cache(maxsize=128)
+# Project-level locks to prevent race conditions on concurrent state updates.
+# The registry keeps a lock only while it is in use, so memory stays bounded
+# without a lock ever being dropped out from under the caller holding it.
+_project_locks: KeyedLockRegistry[str] = KeyedLockRegistry()
+
+
 def _get_project_lock(project_id: str) -> asyncio.Lock:
-    """Get or create a lock for a specific project (cached with LRU eviction)."""
-    return asyncio.Lock()
+    """Get or create a lock for a specific project."""
+    return _project_locks.get(project_id)
 
 
 @asynccontextmanager
