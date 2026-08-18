@@ -26,10 +26,6 @@ const MANIFEST_DESCRIPTIONS: Record<string, string> = {
     'Are all figures and tables properly titled, numbered, and referenced? Checks that every figure and table has a title, is consistently numbered, is cited in the body text, and that all body-text references resolve to an actual figure or table.', // figures_tables_check
   'inference-validation':
     "Does your reasoning hold up? Flags logical leaps, unsupported conclusions, and arguments where the evidence doesn't support the claim.", // inference_validation_v2
-  'literature-review':
-    'Are there relevant sources you may have missed? Searches the web for academic sources related to your claims, surfacing both supporting and conflicting papers that have not already been cited.', // literature_review
-  'live-reports':
-    "Have any of your findings been updated or contradicted by newer research? Searches the web for sources published after your document's publish date and generates an addendum of new evidence.", // live_reports
   'methodology-comparison':
     'Does your methodology match standard practices in the literature? Uses web search to find standard methods for a topic area, then compares them against your approach.', // methodological_alignment
   'recommendation-check':

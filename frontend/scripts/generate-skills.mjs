@@ -25,8 +25,18 @@ function parseSkill(markdown) {
   return { name, description, instructions: body.trim() };
 }
 
+// Skills that exist under ../skills but are not part of Draft Detective. Draft
+// Detective offers checks that review a draft the author already has; these two
+// go looking for new literature instead, which is a different product. The
+// SKILL.md files stay on disk — the backend workflows and any standalone use
+// still read them — they are just left out of the chat catalogue and the
+// slash-command menu. Keep this in step with lib/workflows/categories.py, which
+// omits the matching workflows from the assessment picker.
+const EXCLUDED_SKILLS = new Set(['literature-review', 'live-reports']);
+
 const skills = [];
 for (const entry of readdirSync(skillsDir).sort()) {
+  if (EXCLUDED_SKILLS.has(entry)) continue;
   const skillPath = join(skillsDir, entry, 'SKILL.md');
   try {
     if (!statSync(join(skillsDir, entry)).isDirectory()) continue;

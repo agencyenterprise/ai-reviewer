@@ -66,13 +66,6 @@ Each check is listed below, organized by category and shown in the order it appe
 |:---|:---|:---:|
 | **Advocacy & Tone** | Flags trigger words, advocacy language, and subjective tone — language that departs from a neutral, objective voice. | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/advocacy_tone_v2) |
 
-### Research & Writing Assistant
-
-| Analysis Type | Description | Eval |
-|:---|:---|:---:|
-| **Literature Review** | Searches the web for relevant academic sources related to your document's claims that you may not have cited, noting for each whether it supports or conflicts with your work. `#experimental` `#web_search` | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/literature_review_v2) |
-| **Live Reports** | Analyzes claims against sources published after the document's date, identifying findings that may need updating in light of newer evidence and generating a consolidated addendum. `#experimental` `#web_search` | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/live_reports_v2) |
-
 ---
 
 ## Source Code
