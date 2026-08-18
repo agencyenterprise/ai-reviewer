@@ -217,11 +217,11 @@ export function WorkflowTypeCheckbox({
                   <TooltipTrigger asChild>
                     <Badge variant="secondary" className="flex items-center gap-1 text-xs">
                       <FlaskConical className="size-3" />
-                      Beta
+                      Alpha
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
-                    This assessment is in beta. Results may vary and features/performance may change in future updates.
+                    This assessment is in alpha. Results may vary and features/performance may change in future updates.
                   </TooltipContent>
                 </Tooltip>
               )}

@@ -13,7 +13,7 @@ from lib.workflows.workflow_types import WorkflowState
 class Reviewer2Manifest(WorkflowManifest[Reviewer2State, Reviewer2Config]):
     type = WorkflowRunType.REVIEWER_2
     name = "Reviewer 2"
-    description = "Simulates a full peer review with a one-shot prompt, returning a structured critique with strengths, weaknesses, actionable next steps, and a devil's-advocate rebuttal. This assessment is in beta and has not been evaluated for accuracy or consistency."
+    description = "Simulates a full peer review with a one-shot prompt, returning a structured critique with strengths, weaknesses, actionable next steps, and a devil's-advocate rebuttal."
 
     needs_web_search = False
     is_experimental = True
