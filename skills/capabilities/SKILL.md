@@ -31,8 +31,6 @@ These review the document and flag issues.
 | **Claim Reference Validation** | Does each cited source actually back the claim it's attached to? Judges every citation as supported, partially supported, contradicted, unsupported, or unverifiable against the cited source. (Full-text references needed; the app fetches or you upload the sources.) | `citation-support` |
 | **Advocacy & Tone** | Does the document use neutral, objective language? Flags trigger words (certainty language without evidence), advocacy language (unsupported recommendations or opinion framing), and subjective tone. (Alpha.) | `advocacy-tone` |
 | **Reviewer 2** | A rigorous simulated peer review — summary, strengths, weaknesses, and prioritized next steps — plus a separate devil's-advocate rebuttal. (Alpha.) | `reviewer-2` |
-| **Literature Review** | Are there relevant sources you may have missed? Searches the web for academic sources related to your document's claims — both supporting and conflicting — that aren't already cited. (Alpha.) | `literature-review` |
-| **Live Reports** | Have your findings been updated or contradicted by newer research? Searches the web for sources published after your document's date and produces an addendum of what to update. (Alpha.) | `live-reports` |
 | **Methodological Alignment** | Does your methodology match standard practice in the field? Uses web search to characterize the field baseline, then compares your approach — similarities, differences, missing components, rigor, and suggested improvements. | `methodology-comparison` |
 | **Reproducibility Check** | Could someone reproduce your results from the document alone? Extracts the main results and classifies each by how reproducible it is. (Alpha.) | `reproducibility-check` |
 

@@ -82,10 +82,6 @@ Analyses are grouped by category (shown here in app order). See the in-app **Abo
 **Language**
 - **Advocacy & Tone** — flags trigger words, advocacy language, and subjective tone that departs from a neutral, objective voice.
 
-**Research & Writing Assistant**
-- **Literature Review** — searches the web for relevant academic sources you may have missed, both supporting and conflicting.
-- **Live Reports** — searches for sources published after your document's date and produces an addendum of findings to update.
-
 Some analyses are experimental and hidden by default in the web app (enable "Experimental Features" in your profile menu).
 
 ## Architecture
