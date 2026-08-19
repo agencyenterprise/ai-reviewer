@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 import { WorkflowRunType } from '@/lib/generated-api';
-import { hasSupportingDocumentsRequirement } from '@/components/workflows/utils';
+import { DEFAULT_SELECTED_WORKFLOW_TYPES, hasSupportingDocumentsRequirement } from '@/components/workflows/utils';
+import { useVisibleWorkflowTypes } from '@/lib/hooks/use-visible-workflow-types';
 
 export type PreflightStatus = 'idle' | 'pending' | 'valid' | 'invalid';
 export type WizardStep = 1 | 2;
@@ -37,7 +38,19 @@ export function WizardProvider({ children }: WizardProviderProps) {
   const [preflightStatus, setPreflightStatusState] = useState<WizardState['preflightStatus']>({
     format: 'idle',
   });
-  const [selectedWorkflowTypes, setSelectedWorkflowTypes] = useState<WorkflowRunType[]>([]);
+  // `null` means the user has not touched the assessment checkboxes yet, so the
+  // recommended default set applies. An explicit array — including an empty one,
+  // after unchecking everything — always wins.
+  const [chosenWorkflowTypes, setSelectedWorkflowTypes] = useState<WorkflowRunType[] | null>(null);
+  const { visibleTypes } = useVisibleWorkflowTypes();
+
+  // Intersected with what is actually on offer: an assessment that is hidden for
+  // this user (experimental, opt-in only) must never be started from a checkbox
+  // they cannot see or uncheck.
+  const selectedWorkflowTypes = useMemo(
+    () => chosenWorkflowTypes ?? DEFAULT_SELECTED_WORKFLOW_TYPES.filter((type) => visibleTypes.includes(type)),
+    [chosenWorkflowTypes, visibleTypes],
+  );
 
   const needsReferencesStep = useMemo(
     () => hasSupportingDocumentsRequirement(selectedWorkflowTypes),
