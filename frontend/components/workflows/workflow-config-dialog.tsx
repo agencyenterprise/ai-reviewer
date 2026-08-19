@@ -88,7 +88,9 @@ export function WorkflowConfigDialog({ isOpen, type, projectId, onConfirm, onCan
 
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
-      <DialogContent className="min-w-2xl max-h-[90vh] overflow-y-auto">
+      {/* Wide enough for the two-column assessment grid this dialog renders when
+          no specific `type` is given. */}
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Start Workflow</DialogTitle>
           <DialogDescription>Please select the workflow configuration to start.</DialogDescription>

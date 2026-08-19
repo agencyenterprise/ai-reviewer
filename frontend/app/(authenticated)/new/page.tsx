@@ -33,7 +33,9 @@ function WizardContent() {
   // When REQUIRE_API_KEY_CONFIG is true, wizard steps are offset by 1 in the indicator.
   const currentIndicatorStep = isOnApiKeyStep ? 1 : wizard.currentStep + (REQUIRE_API_KEY_CONFIG ? 1 : 0);
 
-  const cardWidthClass = 'max-w-3xl';
+  // The assessment picker lists every category with per-assessment descriptions and
+  // run-time estimates, so it gets more room than the single-file upload step.
+  const cardWidthClass = !isOnApiKeyStep && wizard.currentStep === 2 ? 'max-w-5xl' : 'max-w-3xl';
 
   // Guard against hydration mismatch: the server renders with no user data while the
   // client immediately begins fetching (isLoading differs between SSR and first client
@@ -50,7 +52,7 @@ function WizardContent() {
     <div className="space-y-8">
       <StepIndicator currentStep={currentIndicatorStep} steps={steps} className="mb-8" />
 
-      <Card className={`${cardWidthClass} mx-auto transition-all duration-300`}>
+      <Card className={`${cardWidthClass} mx-auto`}>
         <CardContent className="">
           {isOnApiKeyStep && <StepApiKeyConfig />}
           {!isOnApiKeyStep && wizard.currentStep === 1 && <StepUpload onComplete={wizard.nextStep} />}
