@@ -62,3 +62,19 @@ export function formatEstimatedDuration(seconds: number | null | undefined): str
   const rounded = hours < 10 ? Math.round(hours * 10) / 10 : Math.round(hours);
   return `~${rounded} hr`;
 }
+
+/**
+ * Assessments pre-selected when a project is created, so the wizard opens on a
+ * sensible default instead of an empty selection. The user can uncheck any of
+ * them.
+ *
+ * Callers must intersect this with the assessments actually on offer (see
+ * `useVisibleWorkflowTypes`) — an experimental assessment listed here is hidden
+ * for users who have not opted in, and pre-selecting a hidden checkbox would
+ * start a workflow the user cannot see or uncheck.
+ */
+export const DEFAULT_SELECTED_WORKFLOW_TYPES: WorkflowRunType[] = [
+  WorkflowRunType.ReferenceValidationV2,
+  WorkflowRunType.AdvocacyToneV2,
+  WorkflowRunType.RecommendationCheck,
+];

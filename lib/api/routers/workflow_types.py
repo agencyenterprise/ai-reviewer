@@ -11,7 +11,7 @@ from lib.services.workflow_duration_estimates import (
 )
 from lib.services.workflow_types import (
     WorkflowTypesResponse,
-    get_workflow_types_for_user,
+    get_all_workflow_types,
 )
 
 router = APIRouter(tags=["workflow-types"])
@@ -31,13 +31,9 @@ async def _cached_duration_estimates(
 
 
 @router.get("/api/workflow-types", response_model=WorkflowTypesResponse)
-async def get_workflow_types(user: Optional[User] = Depends(get_current_user_optional)):
-    """
-    List available workflow types and ordered category display config based on user permissions.
-
-    QA Screener workflows are only visible to RAND and ADMIN roles.
-    """
-    return get_workflow_types_for_user(user)
+async def get_workflow_types():
+    """List available workflow types and the ordered category display config."""
+    return get_all_workflow_types()
 
 
 @router.get(

@@ -5995,10 +5995,6 @@ export type WorkflowTypeDescription = {
    */
   is_internal: boolean;
   /**
-   * Is Qa Screener
-   */
-  is_qa_screener: boolean;
-  /**
    * Category
    */
   category: string;
@@ -8225,3 +8221,33 @@ export type SetApiKeyApiUsersMeApiKeyPutResponses = {
 
 export type SetApiKeyApiUsersMeApiKeyPutResponse =
   SetApiKeyApiUsersMeApiKeyPutResponses[keyof SetApiKeyApiUsersMeApiKeyPutResponses];
+
+export type BotMessagesApiMicrosoftTeamsMessagesPostData = {
+  body?: never;
+  headers?: {
+    /**
+     * Authorization
+     */
+    authorization?: string | null;
+  };
+  path?: never;
+  query?: never;
+  url: '/api/microsoft/teams/messages';
+};
+
+export type BotMessagesApiMicrosoftTeamsMessagesPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type BotMessagesApiMicrosoftTeamsMessagesPostError =
+  BotMessagesApiMicrosoftTeamsMessagesPostErrors[keyof BotMessagesApiMicrosoftTeamsMessagesPostErrors];
+
+export type BotMessagesApiMicrosoftTeamsMessagesPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};

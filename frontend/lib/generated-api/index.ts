@@ -3,6 +3,7 @@
 export {
   appendMessageApiChatThreadsThreadIdMessagesPost,
   approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost,
+  botMessagesApiMicrosoftTeamsMessagesPost,
   cancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPost,
   checkPreflightApiPreflightPost,
   coreHeadRouteTusUuidHead,
@@ -101,6 +102,10 @@ export {
   type BibliographyItemValidation,
   type BibliographyItemValidationV2,
   type BodyStartAnalysisApiStartAnalysisPost,
+  type BotMessagesApiMicrosoftTeamsMessagesPostData,
+  type BotMessagesApiMicrosoftTeamsMessagesPostError,
+  type BotMessagesApiMicrosoftTeamsMessagesPostErrors,
+  type BotMessagesApiMicrosoftTeamsMessagesPostResponses,
   type CancelWorkflowResponse,
   type CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostData,
   type CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostError,
