@@ -11,7 +11,7 @@ import {
   useDocumentExplorerStore,
 } from '@/lib/stores/document-explorer-store';
 import {
-  getWorkflowErrors,
+  getBlockingWorkflowErrors,
   getWorkflowRunByType,
   isAnyWorkflowProcessing,
   isWorkflowProcessing,
@@ -64,7 +64,7 @@ export function DocumentExplorerTab({
   const sidebarRef = useRef<DocumentExplorerSidebarHandle>(null);
   const markdownRef = useRef<DocumentMarkdownRendererHandle>(null);
 
-  const workflowErrors = useMemo(() => getWorkflowErrors(workflowDetails), [workflowDetails]);
+  const workflowErrors = useMemo(() => getBlockingWorkflowErrors(workflowDetails), [workflowDetails]);
   const visibleIssues = useMemo(() => getVisibleIssues(issues, filter), [issues, filter]);
   const resolvedCount = useMemo(() => getResolvedCount(issues, selectedLineRange), [issues, selectedLineRange]);
   const passingCount = useMemo(() => getPassingCount(issues), [issues]);

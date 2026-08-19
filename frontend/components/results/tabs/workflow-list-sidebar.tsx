@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
-import { getDisplayStatus, hasCurrentRunErrors, isWorkflowFailed } from '@/lib/workflow-state';
+import { getDisplayStatus, hasBlockingErrors, hasCurrentRunErrors, isWorkflowFailed } from '@/lib/workflow-state';
 import { formatDistanceToNow } from 'date-fns';
 import { AlertTriangleIcon, ChevronDownIcon, InfoIcon, PlusIcon, XCircleIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -19,7 +19,9 @@ interface WorkflowListItemProps {
 
 function WorkflowListItem({ workflowDetail, isSelected, onSelect }: WorkflowListItemProps) {
   const displayStatus = getDisplayStatus(workflowDetail);
-  const hasErrors = hasCurrentRunErrors(workflowDetail);
+  const hasErrors = hasBlockingErrors(workflowDetail);
+  // Recovered failures: the run completed, so flag them without the error tone.
+  const hasWarnings = !hasErrors && hasCurrentRunErrors(workflowDetail);
   const hasFailed = isWorkflowFailed(workflowDetail);
   const failureMessage = workflowDetail.run.failure_message;
   const { getWorkflowTypeName } = useWorkflowTypes();
@@ -41,6 +43,16 @@ function WorkflowListItem({ workflowDetail, isSelected, onSelect }: WorkflowList
                 <AlertTriangleIcon className="w-4 h-4 text-destructive cursor-help" />
               </TooltipTrigger>
               <TooltipContent>This workflow completed with errors. Please check them and try again.</TooltipContent>
+            </Tooltip>
+          )}
+          {hasWarnings && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AlertTriangleIcon className="w-4 h-4 text-amber-600 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent>
+                This workflow completed, but some parts returned incomplete results. Check the details in its results.
+              </TooltipContent>
             </Tooltip>
           )}
           {hasFailed && (
