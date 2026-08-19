@@ -1,8 +1,8 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
 import { ErrorsCard } from '@/components/results/components/errors-card';
+import { GenericWorkflowResults } from '@/components/results/components/generic-workflow-results';
 import { AboutThisGerResults } from '@/components/workflows/results/about-this-ger-results';
 import { AdvocacyToneResults } from '@/components/workflows/results/advocacy-tone-results';
 import { CitationSuggesterResults } from '@/components/workflows/results/citation-suggester-results';
@@ -19,7 +19,7 @@ import { SimpleDeepAgentResults } from '@/components/workflows/results/simple-de
 import { ProjectDetailed, SimpleDeepAgentState, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { getCurrentRunErrors, WorkflowRunDetailTyped } from '@/lib/workflow-state';
-import { ArrowRight, FileText, FlaskConicalIcon } from 'lucide-react';
+import { FlaskConicalIcon } from 'lucide-react';
 
 function InternalWorkflowResults({ workflowName }: { workflowName: string }) {
   return (
@@ -82,20 +82,12 @@ function renderWorkflowResults(
     case WorkflowRunType.ClaimReferenceValidationV2:
     case WorkflowRunType.AbbreviationScanV2:
       return (
-        <Callout title="View Results in Document Explorer" variant="info" icon={FileText}>
-          <div className="space-y-3">
-            <p className="text-sm">
-              Results for {getWorkflowTypeName(type)} are displayed in the <strong>Document Explorer</strong> tab.
-              Please navigate there to view each issue highlighted inline on the document.
-            </p>
-            {onNavigateToDocumentExplorer && (
-              <Button onClick={() => onNavigateToDocumentExplorer()} size="sm" variant="outline" className="mt-2">
-                Go to Document Explorer
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </Callout>
+        <GenericWorkflowResults
+          project={project}
+          workflowRun={workflowRun}
+          workflowName={getWorkflowTypeName(type)}
+          onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
+        />
       );
     case WorkflowRunType.Reviewer2:
       return <Reviewer2Results workflowDetail={workflowRun} />;
@@ -121,12 +113,15 @@ function renderWorkflowResults(
         />
       );
     default:
+      // No bespoke visualisation for this type: fall back to its issues, which
+      // every assessment produces, rather than telling the user nothing.
       return (
-        <div className="p-4 bg-muted rounded-lg">
-          <p className="text-sm text-muted-foreground">
-            Results visualization for {getWorkflowTypeName(type)} is not yet implemented.
-          </p>
-        </div>
+        <GenericWorkflowResults
+          project={project}
+          workflowRun={workflowRun}
+          workflowName={getWorkflowTypeName(type)}
+          onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
+        />
       );
   }
 }

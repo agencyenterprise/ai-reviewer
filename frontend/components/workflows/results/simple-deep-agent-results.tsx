@@ -2,14 +2,14 @@
 
 import { ReadonlyThread } from '@/components/assistant-ui/readonly-thread';
 import { Markdown } from '@/components/markdown';
-import { DocumentIssueCard } from '@/components/results/components/document-issue-card';
 import { HtmlReportFrame, HtmlReportFrameHandle } from '@/components/results/components/html-report-frame';
+import { WorkflowIssuesList } from '@/components/results/components/workflow-issues-list';
 import { MarkdownDownloadButton } from '@/components/results/components/markdown-download-button';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Issue, ProjectDetailed, SeverityEnum, SimpleDeepAgentState } from '@/lib/generated-api';
+import { ProjectDetailed, SimpleDeepAgentState } from '@/lib/generated-api';
 import {
   isWorkflowCancelled,
   isWorkflowFailed,
@@ -18,7 +18,7 @@ import {
 } from '@/lib/workflow-state';
 import { AssistantRuntimeProvider, ThreadMessageLike, useExternalStoreRuntime } from '@assistant-ui/react';
 import { convertLangChainMessages, LangChainMessage } from '@assistant-ui/react-langgraph';
-import { Ban, CheckCircle2, ClipboardList, Download, Loader2, MessageSquare, XCircle } from 'lucide-react';
+import { Ban, ClipboardList, Download, Loader2, MessageSquare, XCircle } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 
 interface SimpleDeepAgentResultsProps {
@@ -26,67 +26,6 @@ interface SimpleDeepAgentResultsProps {
   workflowDetail: WorkflowRunDetailTyped<SimpleDeepAgentState>;
   workflowName: string;
   onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void;
-}
-
-function IssuesList({
-  issues,
-  onNavigateToDocumentExplorer,
-}: {
-  issues: Issue[];
-  onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void;
-}) {
-  const realIssues = issues.filter((i) => i.severity !== SeverityEnum.None);
-  const informational = issues.filter((i) => i.severity === SeverityEnum.None);
-
-  const handleSelect = (issue: Issue) => {
-    if (typeof issue.start_line === 'number' && typeof issue.end_line === 'number') {
-      onNavigateToDocumentExplorer([issue.start_line, issue.end_line]);
-    } else {
-      onNavigateToDocumentExplorer();
-    }
-  };
-
-  return (
-    <>
-      {realIssues.length === 0 ? (
-        <Card className="border-green-200 bg-green-50/30 dark:bg-green-950/30 dark:border-green-900">
-          <CardContent className="flex items-center gap-3 py-6">
-            <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center flex-shrink-0">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium">All Checks Passed</p>
-              <p className="text-xs text-muted-foreground">No issues were found in the document.</p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <section className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">
-            {realIssues.length} Issue{realIssues.length !== 1 ? 's' : ''} Found
-          </h3>
-          <div className="space-y-2">
-            {realIssues.map((issue) => (
-              <DocumentIssueCard key={issue.id} issue={issue} onSelect={handleSelect} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {informational.length > 0 && (
-        <section className="space-y-2 mt-4">
-          <h3 className="text-sm font-medium text-muted-foreground">
-            {informational.length} Informational Item{informational.length !== 1 ? 's' : ''}
-          </h3>
-          <div className="space-y-2">
-            {informational.map((issue) => (
-              <DocumentIssueCard key={issue.id} issue={issue} onSelect={handleSelect} />
-            ))}
-          </div>
-        </section>
-      )}
-    </>
-  );
 }
 
 function ReportCard({ reportMarkdown }: { reportMarkdown: string }) {
@@ -203,7 +142,7 @@ export function SimpleDeepAgentResults({
         ) : (
           <>
             {result.report_markdown && <ReportCard reportMarkdown={result.report_markdown} />}
-            <IssuesList issues={issues} onNavigateToDocumentExplorer={onNavigateToDocumentExplorer} />
+            <WorkflowIssuesList issues={issues} onNavigateToDocumentExplorer={onNavigateToDocumentExplorer} />
           </>
         )}
       </TabsContent>

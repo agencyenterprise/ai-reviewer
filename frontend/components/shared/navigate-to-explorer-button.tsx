@@ -1,11 +1,14 @@
 import { ExternalLink } from 'lucide-react';
 import { Button } from '../ui/button';
+import { cn } from '@/lib/utils';
 
 interface NavigateToExplorerButtonProps {
   /** Callback when button is clicked */
   onClick: () => void;
   /** Optional custom label (defaults to "View in Document Explorer") */
   label?: string;
+  /** Extra classes, e.g. to drop the default top margin inside a flex row */
+  className?: string;
 }
 
 /**
@@ -15,12 +18,13 @@ interface NavigateToExplorerButtonProps {
 export function NavigateToExplorerButton({
   onClick,
   label = 'View in Document Explorer',
+  className,
 }: NavigateToExplorerButtonProps) {
   return (
     <Button
       variant="ghost"
       size="sm"
-      className="mt-2 gap-1"
+      className={cn('mt-2 gap-1', className)}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
