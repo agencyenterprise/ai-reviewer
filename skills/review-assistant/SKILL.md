@@ -166,16 +166,10 @@ reviewer wrote it.
 - **Put your contribution next to each point.** After each quoted point, add your
   own content for it (the suggestion, the author's response, or the verdict and
   evidence, depending on the output), clearly labeled and outside the quote.
-- **Open with a summary of your own observations.** Every output starts with a
-  short overview, placed before the reproduced memo with the
-  point-by-point content: what the reviewer is asking for taken as a whole, the
-  themes the individual points fall into, and anything the reader should know
-  before working through the detail. The reader gets their bearings once, up
-  front, instead of having to assemble the picture from the points themselves.
-  Keep it brief, a few sentences or a short list rather than a retelling of every
-  point. The per-output sections below say
-  what each one should emphasize; the coverage report's opening is specified there
-  in full.
+- **Open with Part 1, the summary.** Every output leads with a short summary
+  that stands on its own, placed before the reproduced memo and the
+  point-by-point content. See "Lead with the decision, demote the detail" below
+  for what belongs in it and, just as importantly, what does not.
 - **Preserve the reviewer's order and wording.** Reproduce the memo in the
   reviewer's own order, and do not drop, reorder, or reword any of the reviewer's
   text.
@@ -183,6 +177,42 @@ reviewer wrote it.
 The per-output sections below say what your contribution next to each point
 should contain. The verbatim reproduction and clear marking are constant across
 all of them.
+
+## Lead with the decision, demote the detail
+
+Reproducing every memo in full makes these outputs long by design. That is the
+right trade for trust, but it leaves the reader's actual decision sitting behind
+pages of material they may not need. So lay every output out in two parts, and
+make the split explicit on the page:
+
+- **Part 1, the summary.** What the reader has to act on. It stands alone: a
+  reader who stops here has everything they need for their next decision. Keep
+  it to roughly one printed page.
+- **Part 2, the point-by-point detail.** The reviewer memos reproduced verbatim
+  with your contribution under each point. Label it as reference material to
+  consult, not a section to read through.
+
+Say this on the page. Under the Part 2 heading, add a line noting that it
+reproduces every reviewer point in full and is there for reference, so no reader
+concludes that something was dropped from Part 1.
+
+**Part 1 is decision-grade, not descriptive.** The failure mode is a summary
+that retells the memos in shorter words, which adds length and saves nobody any
+reading. Part 1 earns its place only by naming what still needs someone to do
+something. Two rules keep it honest:
+
+- **Name the exceptions, not the full set.** Anything already settled belongs in
+  Part 1 as a count and nowhere else. In the coverage report that means an
+  `addressed` or `declined with rationale` point never gets a line of its own,
+  however interesting the reasoning behind it.
+- **One line per item, then point into Part 2.** Give the point ID, the ask in
+  the reviewer's terms, and what is missing or needed. The evidence, the
+  reviewer's full wording, and your reasoning live in Part 2, and the ID is the
+  reader's way back to them.
+
+The per-output sections below say what each Part 1 contains. The reviewer
+response memos are the one exception to this layout, for the reason given in
+their section.
 
 ## Tone and voice
 
@@ -208,15 +238,22 @@ critique voice and stay neutral and evidence-anchored.
 Goal: help the author see the whole ask before revising. Inputs: original draft
 and reviewer memos.
 
-Open with your summary of observations (see "Include the reviewer memo verbatim
-in every output"): the overall shape of what the reviewers want changed, the
-themes their points fall into, which ones are the substantial asks against the
-quick fixes, and any conflict between reviewers the author will have to settle.
-This is the author's orientation before they start revising.
+**Part 1** is the author's worklist, not a description of the feedback. The
+decision it has to support is what to work on and in what order, so give the
+author:
 
-Then reproduce the reviewer memo(s) in full, verbatim, following the reviewer's
-own structure, and label each point with its ID (see step 1). Directly under each
-quoted point, add a compact planning note with:
+- **Conflicts between reviewers**, first. Where two reviewers want incompatible
+  things, name both point IDs and say what has to be settled. Only the author
+  can resolve these, so nothing sits above them.
+- **The substantial asks**, as a short ordered list: point ID, the ask in one
+  line, and where it lands in the draft (by content, per step 2). These are the
+  points that need real work rather than an edit.
+- **The quick fixes**, reduced to a count and their point IDs. Do not spell them
+  out; each is already one line in Part 2.
+
+**Part 2** reproduces the reviewer memo(s) in full, verbatim, following the
+reviewer's own structure, with each point labeled with its ID (see step 1).
+Directly under each quoted point, add a compact planning note with:
 
 - its scope,
 - where it lives in the draft (by content, per step 2),
@@ -230,6 +267,12 @@ text is reproduced in full.
 Goal: one response memo per reviewer, in the form authors write by hand.
 Inputs: original draft, revised draft, reviewer memos.
 
+This is the one output that does not use the two-part layout from "Lead with the
+decision, demote the detail". The response memo is an outbound document
+addressed to the reviewer, and a summary panel written for the author would read
+wrong in a letter to somebody else. The courtesy preamble already gives the
+reviewer their bearings.
+
 The response memo is a near-mechanical transform of the reviewer memo: clone the
 memo and interleave the author's replies. Follow this shape, which mirrors what
 authors actually produce:
@@ -240,10 +283,11 @@ authors actually produce:
 2. Open with a short courtesy preamble and state how the author's replies are
    distinguished from the reviewer's text (see formatting below). It is common to
    also restate the reviewer's overall-assessment paragraph. Follow the preamble
-   with your summary of observations (see "Include the reviewer memo verbatim in
-   every output"): how the revision responded to this reviewer overall, the main
-   changes their comments produced, and anything deliberately not changed, so the
-   reviewer sees the shape of the response before the point-by-point replies.
+   with a short summary written for the reviewer: how the revision responded to
+   them overall, the main changes their comments produced, and anything
+   deliberately not changed, so the reviewer sees the shape of the response
+   before the point-by-point replies. This stands in for Part 1 in this output,
+   so keep it to a paragraph or two.
 3. For every point in the reviewer's memo, in the reviewer's order, label it
    with its ID (see step 1), echo the reviewer's original text verbatim as a
    clearly marked quote, then add the author's response directly after it in a
@@ -266,6 +310,15 @@ When you cannot write a real response to a point because nothing in the revised
 draft addresses it and there is no stated reason, flag it for the author rather
 than inventing a change. That flag is the signal that prompts another revision.
 
+Collect those flags into a single block at the very top of the deliverable,
+above the first memo, headed so that it is unmistakably internal: it is
+addressed to the author, and it has to be deleted before the memo is sent. Give
+one line per flagged point, with its ID and what is missing, style the block to
+stand apart from everything else in the document, and repeat the "remove before
+sending" instruction inside it. Keep the flags out of the body of the memos,
+where they would otherwise go out to the reviewer. If there are no flags, leave
+the block out entirely.
+
 Produce one such memo per reviewer. Do not generate the reviewer memos
 themselves, and do not edit the draft.
 
@@ -274,24 +327,35 @@ themselves, and do not edit the draft.
 Goal: one consolidated view for the QAM. Inputs: original draft, revised draft,
 reviewer memos, and response memos.
 
-Always lay the report out in this order:
+The QAM has one decision to make: sign off, or send the revision back for
+another pass. Part 1 exists to answer that and nothing else.
 
-1. **Opening.** A title, the document type (see below), and the list of
-   reviewers, followed by a short overall responsiveness read: how responsive the
-   authors were across the board, and a short list of anything genuinely
-   unaddressed that would need another pass.
-2. **Summary verdict table.** A table with the count of points in each verdict
+**Part 1, the summary.** In this order:
+
+1. **Header and verdict.** A title, the document type (see below), and the list
+   of reviewers, then the overall responsiveness read in a line or two and an
+   explicit recommendation: sign off, or return for another pass.
+2. **What needs another pass.** The critical list, and the centerpiece of the
+   page. Include every `not addressed` point, and every `partially addressed`
+   point whose remainder is consequential. One line each: the point ID, what the
+   reviewer asked for, and what is still missing. When there is nothing, say so
+   in one line rather than dropping the section.
+3. **Summary verdict table.** A table with the count of points in each verdict
    category: addressed, partially addressed, declined with rationale, and not
    addressed. Give the totals, and break the counts down per reviewer when there
-   is more than one. It helps to list the point IDs that fall into each category
-   so the QAM can jump straight to them.
-3. **Each reviewer's memo, verbatim, with your verdicts interleaved.** For each
-   reviewer in turn, reproduce their memo in full and verbatim as a clearly
-   marked quote (see "Include the reviewer memo verbatim in every output"), in
-   the reviewer's own order, labeling each point with its ID (see step 1).
-   Directly under each quoted point, record your assessment: the verdict, the
-   point's location in the draft by content, and brief evidence (what changed in
-   the revised draft, or the author's stated reason for not changing it).
+   is more than one. List the point IDs in each category so the QAM can jump
+   straight to them in Part 2.
+
+Nothing else belongs in Part 1. A point that is `addressed` or `declined with
+rationale` is settled, so it appears in the counts and nowhere else.
+
+**Part 2, each reviewer's memo, verbatim, with your verdicts interleaved.** For
+each reviewer in turn, reproduce their memo in full and verbatim as a clearly
+marked quote (see "Include the reviewer memo verbatim in every output"), in the
+reviewer's own order, labeling each point with its ID (see step 1). Directly
+under each quoted point, record your assessment: the verdict, the point's
+location in the draft by content, and brief evidence (what changed in the
+revised draft, or the author's stated reason for not changing it).
 
 Use a verdict scale that reflects how real responses look, not a binary:
 
@@ -339,6 +403,21 @@ the one the medium you were asked for actually supports.
   standard one, and reproduce any rating or overall-assessment block when one
   appears.
 - **Describe locations by content, not by number**, for the reasons in step 2.
+- **When the output is HTML, style it as a finished document.** Give it a
+  readable measure and type scale, real table styling for anything tabular, and
+  visible hierarchy between headings, quoted reviewer text, and your own
+  contribution. Assume it will be read on screen and printed to PDF, so it has
+  to hold up in black and white as well as in color.
+- **Make the Part 1 / Part 2 split visible.** Give each part a heading that says
+  what it is, and label Part 2 as reference material. Start Part 2 on a new
+  printed page (in HTML, `break-before: page` on the Part 2 heading) so that
+  Part 1 is literally the first page when the report is printed to PDF. Style
+  Part 1 as a summary panel rather than as the opening section of a long report.
+- **Do not hide Part 2 behind a control that printing cannot open.** These
+  reports get printed to PDF, and a collapsed `<details>` prints collapsed,
+  which would drop the verbatim memo from the PDF. The page break above is what
+  demotes Part 2. If you add a disclosure widget on top of that, pair it with a
+  print rule that forces it open.
 
 ## Related skills
 

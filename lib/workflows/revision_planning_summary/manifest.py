@@ -44,20 +44,18 @@ The project's revisions are mounted under `/revisions/<n>/`. Find the \
 
 ## Task
 
-Produce ONLY the "Revision-planning summary" output described in the skill \
-(not the reviewer response memos and not the coverage report). Reproduce each \
-reviewer memo verbatim following the reviewer's own structure, label each point \
-with its stable ID, and add a compact planning note under each point per the \
-skill.
+Produce ONLY the "Revision-planning summary" output described in the skill, \
+not the reviewer response memos and not the coverage report. Follow the \
+skill's specification for it exactly: everything about the summary's content, \
+structure, and formatting is defined there.
 
 ## Output
 
-Produce a single, complete, self-contained HTML document for the revision-\
-planning summary and write it into the `report_html` field of your structured \
-response. Give it its own inline `<style>` block with a clean, readable report \
-layout. The document must be fully self-contained: no external stylesheets, \
-fonts, scripts, or images, and no `<script>` of any kind; embed any images as \
-`data:` URIs.\
+Deliver the summary as a single, complete, self-contained HTML document \
+written into the `report_html` field of your structured response, with its own \
+inline `<style>` block implementing the skill's formatting conventions. \
+Self-contained means no external stylesheets, fonts, scripts, or images, and no \
+`<script>` of any kind; embed any images as `data:` URIs.\
 """
 
 
