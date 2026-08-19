@@ -28,11 +28,11 @@ from lib.services.workflow_runs import (
     update_workflow_run_status,
 )
 from lib.workflows.context import ContextSchema
+from lib.workflows.error_details import build_workflow_error
 from lib.workflows.models import (
     BaseWorkflowConfig,
     DependencyWaitTimeoutError,
     WorkflowCancelledError,
-    WorkflowError,
 )
 from lib.workflows.registry import create_graph, create_state, get_workflow_manifest
 from lib.workflows.workflow_types import WorkflowConfig, WorkflowState
@@ -269,9 +269,9 @@ async def run_workflow(
 
     except Exception as e:
         logger.error(f"Error running workflow {workflow_type}: {e}", exc_info=True)
-        error = WorkflowError(
+        error = build_workflow_error(
             task_name="global",
-            error=str(e),
+            exc=e,
             workflow_run_id=workflow_run_id,
         )
 

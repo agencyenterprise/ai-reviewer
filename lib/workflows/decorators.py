@@ -26,10 +26,10 @@ from lib.services.workflow_progress import (
 # finishes initializing. The functions only need the helpers at call time,
 # so deferring is safe.
 from lib.workflows.context import ContextSchema, current_progress_id
+from lib.workflows.error_details import build_workflow_error
 from lib.workflows.models import (
     BaseWorkflowState,
     WorkflowCancelledError,
-    WorkflowError,
 )
 
 CANCELLATION_CHECK_INTERVAL = 5.0
@@ -197,9 +197,9 @@ def register_node(name: str):
                 )
                 return {
                     "errors": [
-                        WorkflowError(
+                        build_workflow_error(
                             task_name=func.__name__,
-                            error=str(e),
+                            exc=e,
                             workflow_run_id=workflow_run_id,
                         )
                     ]

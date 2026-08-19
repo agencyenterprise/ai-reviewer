@@ -28,7 +28,7 @@ from lib.workflows.advocacy_tone.state import (
 )
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
-from lib.workflows.models import WorkflowError
+from lib.workflows.error_details import build_workflow_error
 
 logger = logging.getLogger(__name__)
 
@@ -92,9 +92,9 @@ async def _run_llm_verification(flagged, chunks, agent, workflow_run_id: str | N
 
         if exc:
             errors.append(
-                WorkflowError(
+                build_workflow_error(
                     task_name=f"verify_{check_type}",
-                    error=str(exc),
+                    exc=exc,
                     chunk_index=chunk_idx,
                     workflow_run_id=workflow_run_id,
                 )

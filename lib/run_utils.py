@@ -5,6 +5,7 @@ from typing import Any, List, Optional, Tuple
 from uuid import UUID
 
 from lib.workflows.context import current_progress_id
+from lib.workflows.error_details import build_workflow_error
 from lib.workflows.models import WorkflowError
 
 logger = logging.getLogger(__name__)
@@ -155,9 +156,9 @@ def convert_exceptions_to_workflow_errors(
     for i, exception in enumerate(exceptions):
         if exception is not None:
             errors.append(
-                WorkflowError(
+                build_workflow_error(
                     task_name=task_name,
-                    error=str(exception),
+                    exc=exception,
                     chunk_index=chunk_indices[i] if chunk_indices else None,
                     workflow_run_id=workflow_run_id,
                 )
