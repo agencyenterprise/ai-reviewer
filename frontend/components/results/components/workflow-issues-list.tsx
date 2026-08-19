@@ -42,41 +42,25 @@ export function WorkflowIssuesList({ issues, onNavigateToDocumentExplorer, heade
     }
   };
 
-  const hasHeader = headerAction !== undefined || realIssues.length > 0;
-
   return (
     <div className="space-y-2">
-      {/* One row: the caller's action on the left, count and filter on the
-          right. Rendered for an all-clear too, so the action does not vanish
-          when an assessment happens to find nothing. */}
-      {hasHeader && (
-        <div className="flex items-center gap-2">
-          {headerAction}
-          {realIssues.length > 0 && (
-            <>
-              <h3 className="ml-auto text-sm font-medium text-muted-foreground">
-                {isFiltered
-                  ? `${visibleIssues.length} of ${realIssues.length} issues`
-                  : `${realIssues.length} issue${realIssues.length !== 1 ? 's' : ''} found`}
-              </h3>
-              <SeverityFilter value={severityFilter} onChange={setSeverityFilter} />
-            </>
-          )}
-        </div>
-      )}
-
       {realIssues.length === 0 ? (
-        <Card className="border-green-200 bg-green-50/30 dark:bg-green-950/30 dark:border-green-900">
-          <CardContent className="flex items-center gap-3 py-6">
-            <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center flex-shrink-0">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium">All Checks Passed</p>
-              <p className="text-xs text-muted-foreground">No issues were found in the document.</p>
-            </div>
-          </CardContent>
-        </Card>
+        <>
+          {/* Kept outside the header row below: an all-clear has no count or
+              filter to show, but the action must not vanish with them. */}
+          {headerAction}
+          <Card className="border-green-200 bg-green-50/30 dark:bg-green-950/30 dark:border-green-900">
+            <CardContent className="flex items-center gap-3 py-6">
+              <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center flex-shrink-0">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">All Checks Passed</p>
+                <p className="text-xs text-muted-foreground">No issues were found in the document.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </>
       ) : (
         <section className="space-y-2">
           <div className="flex items-center gap-2">
