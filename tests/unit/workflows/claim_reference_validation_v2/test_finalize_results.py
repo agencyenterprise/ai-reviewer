@@ -1,9 +1,9 @@
-"""Tests for how finalize_results treats partially-validated sections.
+"""Tests for how finalize_results reports section-level failures.
 
-A PARTIAL section is one whose model response was cut off after some
-assessments completed. It has to contribute both — its salvaged issues and the
-error explaining what was lost — so the run neither drops recovered work nor
-reports a clean bill of health.
+A failed or partially-validated section costs part of the document, not the
+run, so it is reported as a warning and the run still reads as completed. The
+exception is a run where nothing completed: with no issues to show, a warning
+would let an empty result set render as an all-clear.
 """
 
 from __future__ import annotations
@@ -39,6 +39,9 @@ def _section(
 ) -> SectionVerificationItem:
     return SectionVerificationItem(
         section_index=index,
+        start_line=107,
+        end_line=125,
+        headings=["The Idea of a CERN for AI"],
         status=status,
         issues=issues or [],
         num_citations=len(issues or []),
@@ -101,16 +104,15 @@ async def test_partial_section_still_reports_an_error():
     error = result["errors"][0]
     assert error.task_name == "validate_section"
     assert error.workflow_run_id == RUN_ID
-    assert "recovered 1 assessment(s)" in error.error
     assert error.details is not None
     assert error.details.error_type == "PartialSectionValidationError"
 
 
 @pytest.mark.asyncio
-async def test_partial_section_reports_a_warning_so_the_run_stays_completed():
-    """A salvaged section must not collapse the whole run to 'failed' in the UI."""
+async def test_partial_section_message_names_what_was_lost():
     result = await _finalize(
         _state(
+            _section(0, SectionVerificationStatus.COMPLETED, [_issue("done")]),
             _section(
                 8,
                 SectionVerificationStatus.PARTIAL,
@@ -120,26 +122,81 @@ async def test_partial_section_reports_a_warning_so_the_run_stays_completed():
         )
     )
 
+    message = result["errors"][0].error
+    assert "Section 8" in message
+    assert "lines 107-125" in message
+    assert "1 citation assessment(s) were recovered" in message
+
+
+@pytest.mark.asyncio
+async def test_failed_section_message_names_the_section_and_the_cause():
+    """The reader needs to know a whole section is missing, and why."""
+    result = await _finalize(
+        _state(
+            _section(0, SectionVerificationStatus.COMPLETED, [_issue("done")]),
+            _section(10, SectionVerificationStatus.ERROR, error="hard failure"),
+        )
+    )
+
+    message = result["errors"][0].error
+    assert "Section 10 (The Idea of a CERN for AI, lines 107-125)" in message
+    assert "citations are missing from these results" in message
+    assert "hard failure" in message
+
+
+@pytest.mark.asyncio
+async def test_section_failures_are_warnings_while_other_sections_produced_results():
+    """31 good sections out of 33 is not a failed run."""
+    result = await _finalize(
+        _state(
+            _section(0, SectionVerificationStatus.COMPLETED, [_issue("done")]),
+            _section(
+                8,
+                SectionVerificationStatus.PARTIAL,
+                [_issue("salvaged")],
+                error="truncated",
+            ),
+            _section(10, SectionVerificationStatus.ERROR, error="hard failure"),
+        )
+    )
+
+    assert [e.severity for e in result["errors"]] == [
+        WorkflowErrorSeverity.WARNING,
+        WorkflowErrorSeverity.WARNING,
+    ]
+
+
+@pytest.mark.asyncio
+async def test_a_partial_section_alone_still_counts_as_results():
+    result = await _finalize(
+        _state(
+            _section(
+                8,
+                SectionVerificationStatus.PARTIAL,
+                [_issue("salvaged")],
+                error="truncated",
+            ),
+        )
+    )
+
     assert result["errors"][0].severity == WorkflowErrorSeverity.WARNING
 
 
 @pytest.mark.asyncio
-async def test_failed_section_reports_a_blocking_error():
+async def test_every_section_failing_escalates_to_a_blocking_error():
+    """With nothing to show, a warning would let an empty run look all-clear."""
     result = await _finalize(
-        _state(_section(8, SectionVerificationStatus.ERROR, error="hard failure"))
-    )
-
-    assert result["errors"][0].severity == WorkflowErrorSeverity.ERROR
-
-
-@pytest.mark.asyncio
-async def test_failed_section_contributes_an_error_and_no_issues():
-    result = await _finalize(
-        _state(_section(8, SectionVerificationStatus.ERROR, error="hard failure"))
+        _state(
+            _section(8, SectionVerificationStatus.ERROR, error="hard failure"),
+            _section(10, SectionVerificationStatus.ERROR, error="hard failure"),
+        )
     )
 
     assert result["citation_issues"] == []
-    assert len(result["errors"]) == 1
+    assert [e.severity for e in result["errors"]] == [
+        WorkflowErrorSeverity.ERROR,
+        WorkflowErrorSeverity.ERROR,
+    ]
 
 
 @pytest.mark.asyncio

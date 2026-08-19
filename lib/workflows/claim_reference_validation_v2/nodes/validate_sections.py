@@ -192,6 +192,32 @@ async def validate_section(state: dict, runtime: Runtime[ContextSchema]):
     }
 
 
+def _section_label(item: SectionVerificationItem) -> str:
+    """Identify a section in user-facing text."""
+    heading = " > ".join(item.headings) if item.headings else "Document root"
+    return f"Section {item.section_index} ({heading}, lines {item.start_line}-{item.end_line})"
+
+
+def _section_error_message(item: SectionVerificationItem) -> str:
+    """State what the reader lost, not what the exception was.
+
+    The underlying failure stays on `details` for debugging; a truncation is
+    self-explanatory here, while a hard failure can have any cause, so its
+    message is appended.
+    """
+    if item.status == SectionVerificationStatus.PARTIAL:
+        return (
+            f"{_section_label(item)} returned truncated output. "
+            f"{len(item.issues)} citation assessment(s) were recovered; "
+            "the rest are missing from these results."
+        )
+
+    return (
+        f"{_section_label(item)} could not be validated. Its citations are "
+        f"missing from these results. {item.error or 'Unknown error'}"
+    )
+
+
 @register_node("Finalize results")
 async def finalize_results(
     state: ClaimReferenceValidationV2State,
@@ -200,6 +226,21 @@ async def finalize_results(
     """Flatten section issues into the top-level citation_issues list."""
     all_issues = []
     errors: List[WorkflowError] = []
+
+    # A failed section costs part of the document, not the run: the sections
+    # that did complete still produced usable findings, so the run must not
+    # read as failed. Only a run left with nothing usable escalates to an
+    # error — otherwise an empty result set would render as an all-clear.
+    produced_results = any(
+        item.status
+        in (SectionVerificationStatus.COMPLETED, SectionVerificationStatus.PARTIAL)
+        for item in state.section_verifications
+    )
+    severity = (
+        WorkflowErrorSeverity.WARNING
+        if produced_results
+        else WorkflowErrorSeverity.ERROR
+    )
 
     for item in state.section_verifications:
         # PARTIAL sections contribute both: the assessments salvaged from a
@@ -217,15 +258,9 @@ async def finalize_results(
             errors.append(
                 WorkflowError(
                     task_name="validate_section",
-                    error=item.error or "Unknown error",
+                    error=_section_error_message(item),
                     workflow_run_id=runtime.context.workflow_run_id,
-                    # A salvaged section cost the run some assessments but not
-                    # the section, so it must not fail the whole run.
-                    severity=(
-                        WorkflowErrorSeverity.WARNING
-                        if item.status == SectionVerificationStatus.PARTIAL
-                        else WorkflowErrorSeverity.ERROR
-                    ),
+                    severity=severity,
                     details=item.error_details,
                 )
             )
