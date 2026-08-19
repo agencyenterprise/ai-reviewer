@@ -343,11 +343,13 @@ another pass. Part 1 exists to answer that and nothing else.
 3. **Summary verdict table.** A table with the count of points in each verdict
    category: addressed, partially addressed, declined with rationale, and not
    addressed. Give the totals, and break the counts down per reviewer when there
-   is more than one. List the point IDs in each category so the QAM can jump
-   straight to them in Part 2.
+   is more than one. List the point IDs alongside each category's count so the
+   QAM can jump straight to them in Part 2.
 
 Nothing else belongs in Part 1. A point that is `addressed` or `declined with
-rationale` is settled, so it appears in the counts and nowhere else.
+rationale` is settled: it is counted in the table and its ID appears there, but
+it gets no entry of its own outside the table, and no account of what changed or
+why. That belongs in Part 2.
 
 **Part 2, each reviewer's memo, verbatim, with your verdicts interleaved.** For
 each reviewer in turn, reproduce their memo in full and verbatim as a clearly
