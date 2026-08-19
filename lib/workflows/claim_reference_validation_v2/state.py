@@ -8,7 +8,12 @@ from pydantic import BaseModel, Field, field_serializer
 
 from lib.agents.citation_validator import TruthfulnessLabel
 from lib.agents.claim_verifier import ClaimEvidenceSource, EvidenceAlignmentLevel
-from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
+from lib.workflows.models import (
+    BaseWorkflowConfig,
+    BaseWorkflowState,
+    ErrorDetails,
+    WorkflowRunType,
+)
 
 
 class CitationIssueItem(BaseModel):
@@ -44,6 +49,9 @@ class ClaimReferenceValidationV2Config(BaseWorkflowConfig):
 class SectionVerificationStatus(str, Enum):
     PENDING = "pending"
     COMPLETED = "completed"
+    # The model's response was cut off mid-output; the assessments it had
+    # finished were salvaged, so the section carries both issues and an error.
+    PARTIAL = "partial"
     ERROR = "error"
     CANCELLED = "cancelled"
 
@@ -57,6 +65,10 @@ class SectionVerificationItem(BaseModel):
     num_citations: int = 0
     issues: List[CitationIssueItem] = Field(default_factory=list)
     error: Optional[str] = None
+    error_details: Optional[ErrorDetails] = Field(
+        default=None,
+        description="Traceback, raw model output, and LLM metadata for a failed section.",
+    )
     messages: List[BaseMessage] = Field(
         default_factory=list,
         description="LLM conversation messages from the citation-validator agent invocation.",
