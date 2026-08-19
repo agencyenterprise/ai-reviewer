@@ -7,7 +7,6 @@ import { useWorkflowDurationEstimates } from '@/lib/hooks/use-workflow-duration-
 import { Button } from '@/components/ui/button';
 import { WorkflowTypeCheckbox } from './workflow-type-checkbox';
 import { useVisibleWorkflowTypes } from '@/lib/hooks/use-visible-workflow-types';
-import { useExperimentalFeatures } from '@/context/experimental-features-context';
 
 interface WorkflowTypeSelectorProps {
   /** When set, only this workflow type is listed (e.g. config dialog for a specific analysis). */
@@ -36,7 +35,6 @@ export function WorkflowTypeSelector({
 }: WorkflowTypeSelectorProps) {
   const { workflowTypes: allTypes, isPending: isLoadingWorkflowTypes } = useWorkflowTypes();
   const { getEstimatedSeconds } = useWorkflowDurationEstimates(projectId);
-  const { showExperimentalFeatures } = useExperimentalFeatures();
   const { visibleGroups: allVisibleGroups } = useVisibleWorkflowTypes();
 
   const workflowTypes = useMemo(() => {
@@ -46,12 +44,23 @@ export function WorkflowTypeSelector({
     return allTypes.filter((wt) => !wt.is_internal);
   }, [allTypes, restrictToType]);
 
-  // Memoised so the bulk-action lists below get a stable reference to depend on.
+  // Memoised so the derived lists below get a stable reference to depend on.
   const visibleGroups = useMemo(() => (restrictToType ? [] : allVisibleGroups), [restrictToType, allVisibleGroups]);
 
-  const visibleCount = restrictToType
-    ? workflowTypes.filter((wt) => !wt.is_experimental || showExperimentalFeatures).length
-    : visibleGroups.reduce((total, group) => total + group.workflows.length, 0);
+  // Exactly the checkboxes the render path below produces. The header count and
+  // the bulk actions both work off this, so neither can drift from what is on
+  // screen — `selectedTypes` may legitimately hold types this picker does not
+  // list, and counting those would show nonsense like "12/11 selected".
+  const renderedTypes = useMemo(
+    () =>
+      restrictToType
+        ? workflowTypes.map((wt) => wt.type)
+        : visibleGroups.flatMap((group) => group.workflows.map((wt) => wt.type)),
+    [restrictToType, workflowTypes, visibleGroups],
+  );
+
+  const visibleCount = renderedTypes.length;
+  const selectedVisibleCount = renderedTypes.filter((type) => selectedTypes.includes(type)).length;
 
   const handleCheckedChange = (type: WorkflowRunType, checked: boolean) => {
     if (checked) {
@@ -65,11 +74,8 @@ export function WorkflowTypeSelector({
   // Anything else already in `selectedTypes` is left alone, so a caller that
   // seeds the selection with a type this list does not offer keeps it.
   const bulkSelectableTypes = useMemo(
-    () =>
-      visibleGroups.flatMap((group) =>
-        group.workflows.map((wt) => wt.type).filter((type) => !disabledTypes.includes(type)),
-      ),
-    [visibleGroups, disabledTypes],
+    () => renderedTypes.filter((type) => !disabledTypes.includes(type)),
+    [renderedTypes, disabledTypes],
   );
 
   const selectedBulkCount = bulkSelectableTypes.filter((type) => selectedTypes.includes(type)).length;
@@ -104,7 +110,7 @@ export function WorkflowTypeSelector({
               Assessment Type Selection{' '}
               {visibleCount > 0 && (
                 <span className="text-sm font-normal text-muted-foreground">
-                  ({selectedTypes.length}/{visibleCount} selected)
+                  ({selectedVisibleCount}/{visibleCount} selected)
                 </span>
               )}
               <span className="text-destructive ml-1">*</span>

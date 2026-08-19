@@ -1,6 +1,6 @@
 """Service layer for workflow types."""
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
