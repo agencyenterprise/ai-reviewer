@@ -1,23 +1,32 @@
 'use client';
 
+import { IssueCountBadge } from '@/components/results/components/issue-count-badge';
 import { Button } from '@/components/ui/button';
 import { StatusIndicator } from '@/components/ui/status-indicator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
+import { Issue, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
+import { summarizeReportedIssues } from '@/lib/health-status';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
-import { getDisplayStatus, hasBlockingErrors, hasCurrentRunErrors, isWorkflowFailed } from '@/lib/workflow-state';
+import {
+  getDisplayStatus,
+  hasBlockingErrors,
+  hasCurrentRunErrors,
+  isWorkflowFailed,
+  isWorkflowProcessing,
+} from '@/lib/workflow-state';
 import { formatDistanceToNow } from 'date-fns';
 import { AlertTriangleIcon, ChevronDownIcon, InfoIcon, PlusIcon, XCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 
 interface WorkflowListItemProps {
   workflowDetail: WorkflowRunDetail;
+  issues: Issue[];
   isSelected: boolean;
   onSelect: () => void;
 }
 
-function WorkflowListItem({ workflowDetail, isSelected, onSelect }: WorkflowListItemProps) {
+function WorkflowListItem({ workflowDetail, issues, isSelected, onSelect }: WorkflowListItemProps) {
   const displayStatus = getDisplayStatus(workflowDetail);
   const hasErrors = hasBlockingErrors(workflowDetail);
   // Recovered failures: the run completed, so flag them without the error tone.
@@ -25,6 +34,10 @@ function WorkflowListItem({ workflowDetail, isSelected, onSelect }: WorkflowList
   const hasFailed = isWorkflowFailed(workflowDetail);
   const failureMessage = workflowDetail.run.failure_message;
   const { getWorkflowTypeName } = useWorkflowTypes();
+  // A run still working has nothing final to count, so no badge until it settles.
+  const issuesSummary = isWorkflowProcessing(workflowDetail)
+    ? null
+    : summarizeReportedIssues(issues, workflowDetail.run.type);
 
   return (
     <button
@@ -65,6 +78,11 @@ function WorkflowListItem({ workflowDetail, isSelected, onSelect }: WorkflowList
               </TooltipContent>
             </Tooltip>
           )}
+          {issuesSummary && (
+            <span className="ml-auto pl-2">
+              <IssueCountBadge summary={issuesSummary} />
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2 justify-between">
           <div className="text-xs text-muted-foreground">
@@ -79,6 +97,7 @@ function WorkflowListItem({ workflowDetail, isSelected, onSelect }: WorkflowList
 
 interface WorkflowListSidebarProps {
   workflowDetails: WorkflowRunDetail[];
+  issues: Issue[];
   selectedWorkflowType: WorkflowRunType | null;
   onSelectWorkflowType: (type: WorkflowRunType) => void;
   onStartNewAnalysis: () => void;
@@ -87,6 +106,7 @@ interface WorkflowListSidebarProps {
 
 export function WorkflowListSidebar({
   workflowDetails,
+  issues,
   selectedWorkflowType,
   onSelectWorkflowType,
   onStartNewAnalysis,
@@ -114,6 +134,7 @@ export function WorkflowListSidebar({
           <WorkflowListItem
             key={workflowDetail.run.id}
             workflowDetail={workflowDetail}
+            issues={issues}
             isSelected={selectedWorkflowType === workflowDetail.run.type}
             onSelect={() => onSelectWorkflowType(workflowDetail.run.type)}
           />
@@ -149,6 +170,7 @@ export function WorkflowListSidebar({
                   <div key={workflowDetail.run.id} className="opacity-70">
                     <WorkflowListItem
                       workflowDetail={workflowDetail}
+                      issues={issues}
                       isSelected={selectedWorkflowType === workflowDetail.run.type}
                       onSelect={() => onSelectWorkflowType(workflowDetail.run.type)}
                     />

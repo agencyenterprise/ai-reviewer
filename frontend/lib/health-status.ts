@@ -1,4 +1,6 @@
 import { Issue, SeverityEnum, WorkflowRunDetail, WorkflowRunStatus, WorkflowRunType } from './generated-api';
+import { getMaxSeverity } from './severity';
+import { isIssueResolved } from './stores/document-explorer-store';
 import { getDisplayStatus } from './workflow-state';
 
 /**
@@ -20,33 +22,55 @@ export interface WorkflowHealthData {
 }
 
 /**
- * Determines if an issue should be considered as affecting health status.
- * Only Medium and High severity issues affect the health status.
+ * The reported issues of one workflow type, for at-a-glance display.
  */
-export function isHealthAffectingIssue(issue: Issue): boolean {
-  return issue.severity === SeverityEnum.High || issue.severity === SeverityEnum.Medium;
+export interface ReportedIssuesSummary {
+  /** Every reported issue, across severities. */
+  total: number;
+  /** Per severity; `none` is always 0, since passing checks are not reported. */
+  counts: Record<SeverityEnum, number>;
+  /** Undefined when nothing was reported. Drives the badge's icon and colour. */
+  maxSeverity?: SeverityEnum;
 }
 
 /**
- * Counts issues by severity from a pre-filtered list
+ * Summarise the issues one workflow type reported.
+ *
+ * The single counting rule for the app: passing checks (severity `none`) and
+ * resolved issues are excluded, matching the document explorer's defaults, so
+ * every count the user sees agrees with the list they land on.
  */
-function countBySeverity(issues: Issue[]): { high: number; medium: number; low: number; total: number } {
-  const high = issues.filter((i) => i.severity === SeverityEnum.High).length;
-  const medium = issues.filter((i) => i.severity === SeverityEnum.Medium).length;
-  const low = issues.filter((i) => i.severity === SeverityEnum.Low).length;
-  return {
-    high,
-    medium,
-    low,
-    total: high + medium + low,
+export function summarizeReportedIssues(issues: Issue[], workflowType: WorkflowRunType): ReportedIssuesSummary {
+  const reported = issues.filter(
+    (issue) => issue.workflow_type === workflowType && issue.severity !== SeverityEnum.None && !isIssueResolved(issue),
+  );
+
+  const counts: Record<SeverityEnum, number> = {
+    [SeverityEnum.None]: 0,
+    [SeverityEnum.Low]: 0,
+    [SeverityEnum.Medium]: 0,
+    [SeverityEnum.High]: 0,
   };
+  reported.forEach((issue) => {
+    counts[issue.severity] += 1;
+  });
+
+  return { total: reported.length, counts, maxSeverity: getMaxSeverity(reported) };
 }
 
 /**
- * Determines the health status for a workflow based on its run status and issues.
- * Accepts pre-filtered issues to avoid redundant filtering in aggregateWorkflowHealth.
+ * Whether a workflow's findings warrant attention. Only Medium and High
+ * severity issues affect health status.
  */
-function determineHealthStatusFromIssues(workflowRun: WorkflowRunDetail, workflowIssues: Issue[]): HealthStatus {
+function hasHealthAffectingIssues(summary: ReportedIssuesSummary): boolean {
+  return summary.counts[SeverityEnum.High] > 0 || summary.counts[SeverityEnum.Medium] > 0;
+}
+
+/**
+ * Determines the health status for a workflow from its run status and the
+ * issues it reported.
+ */
+function determineHealthStatus(workflowRun: WorkflowRunDetail, summary: ReportedIssuesSummary): HealthStatus {
   const displayStatus = getDisplayStatus(workflowRun);
 
   if (displayStatus === 'failed') return 'error';
@@ -55,24 +79,27 @@ function determineHealthStatusFromIssues(workflowRun: WorkflowRunDetail, workflo
     return 'processing';
   }
 
-  return workflowIssues.some(isHealthAffectingIssue) ? 'issues' : 'healthy';
+  return hasHealthAffectingIssues(summary) ? 'issues' : 'healthy';
 }
 
 /**
- * Aggregates health data for all workflow runs
+ * Aggregates health data for all workflow runs.
+ *
+ * Counts come from `summarizeReportedIssues`, so the health monitor, the
+ * assessment badges and the document explorer all agree on what an issue is:
+ * a resolved finding stops counting everywhere at once.
  */
 export function aggregateWorkflowHealth(workflowRuns: WorkflowRunDetail[], issues: Issue[]): WorkflowHealthData[] {
   return workflowRuns.map((workflowRun) => {
-    const workflowIssues = issues.filter((issue) => issue.workflow_type === workflowRun.run.type);
-    const { high, medium, low, total } = countBySeverity(workflowIssues);
+    const summary = summarizeReportedIssues(issues, workflowRun.run.type);
 
     return {
       type: workflowRun.run.type,
-      status: determineHealthStatusFromIssues(workflowRun, workflowIssues),
-      issueCount: total,
-      highSeverityCount: high,
-      mediumSeverityCount: medium,
-      lowSeverityCount: low,
+      status: determineHealthStatus(workflowRun, summary),
+      issueCount: summary.total,
+      highSeverityCount: summary.counts[SeverityEnum.High],
+      mediumSeverityCount: summary.counts[SeverityEnum.Medium],
+      lowSeverityCount: summary.counts[SeverityEnum.Low],
       workflowRun,
     };
   });

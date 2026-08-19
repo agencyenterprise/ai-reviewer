@@ -93,6 +93,7 @@ export function AnalysesTab({
     <div className="flex h-full gap-4">
       <WorkflowListSidebar
         workflowDetails={filteredWorkflowDetails}
+        issues={projectDetail.issues ?? []}
         selectedWorkflowType={selectedWorkflowType}
         onSelectWorkflowType={handleSelectWorkflowType}
         onStartNewAnalysis={handleStartNewAnalysis}
