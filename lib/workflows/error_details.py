@@ -14,6 +14,7 @@ from typing import Any, Optional
 
 from langchain_core.messages import AIMessage
 
+from lib.agents.structured_output_salvage import ai_message_text
 from lib.workflows.models import ErrorDetails, WorkflowError, WorkflowErrorSeverity
 
 logger = logging.getLogger(__name__)
@@ -56,20 +57,6 @@ def _find_ai_message(exc: BaseException) -> Optional[AIMessage]:
         if isinstance(candidate, AIMessage):
             return candidate
     return None
-
-
-def _message_text(message: AIMessage) -> str:
-    content = message.content
-    if isinstance(content, str):
-        return content
-
-    parts: list[str] = []
-    for block in content:
-        if isinstance(block, str):
-            parts.append(block)
-        elif isinstance(block, dict) and block.get("type") == "text":
-            parts.append(str(block.get("text", "")))
-    return "".join(parts)
 
 
 def _decoded_document(exc: BaseException) -> Optional[str]:
@@ -118,7 +105,7 @@ def capture_error_details(exc: BaseException) -> ErrorDetails:
 
     raw_output: Optional[str] = None
     if ai_message is not None:
-        raw_output = _message_text(ai_message) or None
+        raw_output = ai_message_text(ai_message) or None
     if raw_output is None:
         raw_output = _decoded_document(exc)
 

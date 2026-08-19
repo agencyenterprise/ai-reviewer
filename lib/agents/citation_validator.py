@@ -201,32 +201,32 @@ class CitationValidatorAgent(LangChainAgent):
                 context=self.context,
             )
         except StructuredOutputError as e:
-            raise self._salvage_or_reraise(e)
+            partial = self._salvage(e)
+            if partial is None:
+                raise
+            raise partial from e
 
         structured: SectionValidationResult = result["structured_response"]
         return structured, result["messages"]
 
     @staticmethod
-    def _salvage_or_reraise(error: StructuredOutputError) -> BaseException:
-        """Turn a structured-output failure into a partial result where possible.
+    def _salvage(error: StructuredOutputError) -> Optional[PartialSectionValidationError]:
+        """Recover the assessments a truncated response had already completed.
 
         LangChain raises before the agent returns, so the only record of the
-        model's work is the `AIMessage` carried on the exception. Returns the
-        exception to raise: a `PartialSectionValidationError` when assessments
-        were recovered, otherwise the original error unchanged.
+        model's work is the `AIMessage` carried on the exception. Returns None
+        when there is nothing to recover, leaving the caller to re-raise.
         """
         ai_message = getattr(error, "ai_message", None)
         if not isinstance(ai_message, AIMessage):
-            return error
+            return None
 
         salvaged = salvage_models(
             ai_message_text(ai_message), "issues", CitationAssessment
         )
         if not salvaged:
-            return error
+            return None
 
-        partial = PartialSectionValidationError(
+        return PartialSectionValidationError(
             SectionValidationResult(issues=salvaged), [ai_message], error
         )
-        partial.__cause__ = error
-        return partial
