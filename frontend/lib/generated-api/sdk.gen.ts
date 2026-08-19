@@ -16,6 +16,9 @@ import type {
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData,
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostErrors,
   ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostResponses,
+  BotMessagesApiMicrosoftTeamsMessagesPostData,
+  BotMessagesApiMicrosoftTeamsMessagesPostErrors,
+  BotMessagesApiMicrosoftTeamsMessagesPostResponses,
   CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostData,
   CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostErrors,
   CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostResponses,
@@ -729,16 +732,13 @@ export const cancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPost = <
 /**
  * Get Workflow Types
  *
- * List available workflow types and ordered category display config based on user permissions.
- *
- * QA Screener workflows are only visible to RAND and ADMIN roles.
+ * List available workflow types and the ordered category display config.
  */
 export const getWorkflowTypesApiWorkflowTypesGet = <ThrowOnError extends boolean = true>(
   options?: Options<GetWorkflowTypesApiWorkflowTypesGetData, ThrowOnError>,
 ): RequestResult<GetWorkflowTypesApiWorkflowTypesGetResponses, unknown, ThrowOnError, 'data'> =>
   (options?.client ?? client).get<GetWorkflowTypesApiWorkflowTypesGetResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/workflow-types',
     ...options,
   });
@@ -1779,4 +1779,35 @@ export const setApiKeyApiUsersMeApiKeyPut = <ThrowOnError extends boolean = true
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * Bot Messages
+ *
+ * The bot's messaging endpoint, called by the Bot Connector.
+ *
+ * The turn acknowledges and ends; the answer follows about a minute later into
+ * the same thread. Keeping the request short is what lets Teams show a reply
+ * immediately instead of waiting on the model.
+ *
+ * Outside ``get_current_user``: the Bot Connector presents its own token, which
+ * the Agents SDK validates. That token is the authentication.
+ */
+export const botMessagesApiMicrosoftTeamsMessagesPost = <ThrowOnError extends boolean = true>(
+  options?: Options<BotMessagesApiMicrosoftTeamsMessagesPostData, ThrowOnError>,
+): RequestResult<
+  BotMessagesApiMicrosoftTeamsMessagesPostResponses,
+  BotMessagesApiMicrosoftTeamsMessagesPostErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options?.client ?? client).post<
+    BotMessagesApiMicrosoftTeamsMessagesPostResponses,
+    BotMessagesApiMicrosoftTeamsMessagesPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    url: '/api/microsoft/teams/messages',
+    ...options,
   });

@@ -210,7 +210,6 @@ async def test_list_workflow_types_entry_has_expected_fields(authed_mcp_client: 
         "needs_web_search",
         "is_experimental",
         "is_internal",
-        "is_qa_screener",
         "category",
     }
 
