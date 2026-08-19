@@ -12,6 +12,8 @@ import { useState } from 'react';
 interface WorkflowIssuesListProps {
   issues: Issue[];
   onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void;
+  /** Rendered at the left of the header row, opposite the count and filter. */
+  headerAction?: React.ReactNode;
 }
 
 /**
@@ -21,7 +23,7 @@ interface WorkflowIssuesListProps {
  * assessment that verified 717 abbreviations and flagged 3 reads as three
  * issues — and does not mount 717 cards to say so.
  */
-export function WorkflowIssuesList({ issues, onNavigateToDocumentExplorer }: WorkflowIssuesListProps) {
+export function WorkflowIssuesList({ issues, onNavigateToDocumentExplorer, headerAction }: WorkflowIssuesListProps) {
   const [showInformational, setShowInformational] = useState(false);
   // Empty means no filter, matching the document explorer's severity toggles.
   const [severityFilter, setSeverityFilter] = useState<SeverityEnum[]>([]);
@@ -40,8 +42,29 @@ export function WorkflowIssuesList({ issues, onNavigateToDocumentExplorer }: Wor
     }
   };
 
+  const hasHeader = headerAction !== undefined || realIssues.length > 0;
+
   return (
-    <>
+    <div className="space-y-2">
+      {/* One row: the caller's action on the left, count and filter on the
+          right. Rendered for an all-clear too, so the action does not vanish
+          when an assessment happens to find nothing. */}
+      {hasHeader && (
+        <div className="flex items-center gap-2">
+          {headerAction}
+          {realIssues.length > 0 && (
+            <>
+              <h3 className="ml-auto text-sm font-medium text-muted-foreground">
+                {isFiltered
+                  ? `${visibleIssues.length} of ${realIssues.length} issues`
+                  : `${realIssues.length} issue${realIssues.length !== 1 ? 's' : ''} found`}
+              </h3>
+              <SeverityFilter value={severityFilter} onChange={setSeverityFilter} />
+            </>
+          )}
+        </div>
+      )}
+
       {realIssues.length === 0 ? (
         <Card className="border-green-200 bg-green-50/30 dark:bg-green-950/30 dark:border-green-900">
           <CardContent className="flex items-center gap-3 py-6">
@@ -56,11 +79,12 @@ export function WorkflowIssuesList({ issues, onNavigateToDocumentExplorer }: Wor
         </Card>
       ) : (
         <section className="space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-medium text-muted-foreground">
+          <div className="flex items-center gap-2">
+            {headerAction}
+            <h3 className="ml-auto mr-1 text-sm font-medium text-muted-foreground">
               {isFiltered
-                ? `${visibleIssues.length} of ${realIssues.length} Issues`
-                : `${realIssues.length} Issue${realIssues.length !== 1 ? 's' : ''} Found`}
+                ? `${visibleIssues.length} of ${realIssues.length} issues`
+                : `${realIssues.length} issue${realIssues.length !== 1 ? 's' : ''}`}
             </h3>
             <SeverityFilter value={severityFilter} onChange={setSeverityFilter} />
           </div>
@@ -80,7 +104,7 @@ export function WorkflowIssuesList({ issues, onNavigateToDocumentExplorer }: Wor
         <Collapsible open={showInformational} onOpenChange={setShowInformational} className="mt-4 space-y-2">
           <CollapsibleTrigger className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
             <ChevronDownIcon className={cn('size-3.5 transition-transform', !showInformational && '-rotate-90')} />
-            {informational.length} Informational Item{informational.length !== 1 ? 's' : ''}
+            {informational.length} informational item{informational.length !== 1 ? 's' : ''}
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-2">
             {informational.map((issue) => (
@@ -89,6 +113,6 @@ export function WorkflowIssuesList({ issues, onNavigateToDocumentExplorer }: Wor
           </CollapsibleContent>
         </Collapsible>
       )}
-    </>
+    </div>
   );
 }

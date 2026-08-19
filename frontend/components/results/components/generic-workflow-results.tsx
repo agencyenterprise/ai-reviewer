@@ -87,14 +87,16 @@ export function GenericWorkflowResults({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex justify-end">
+    <WorkflowIssuesList
+      issues={issues}
+      onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
+      headerAction={
         <NavigateToExplorerButton
           onClick={() => onNavigateToDocumentExplorer()}
           label="See these findings inline in the Document Explorer"
+          className="mt-0 -ml-2"
         />
-      </div>
-      <WorkflowIssuesList issues={issues} onNavigateToDocumentExplorer={onNavigateToDocumentExplorer} />
-    </div>
+      }
+    />
   );
 }
