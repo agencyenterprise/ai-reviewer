@@ -10,6 +10,7 @@ from lib.services.markdown_conversion import convert_file_document_to_markdown
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.document_processing.state import DocumentProcessingState
+from lib.workflows.error_details import build_workflow_error
 from lib.workflows.models import WorkflowError
 
 logger = logging.getLogger(__name__)
@@ -89,9 +90,10 @@ async def _convert_batch(
 
         if failure is not None:
             workflow_errors.append(
-                WorkflowError(
+                build_workflow_error(
                     task_name="convert_to_markdown",
-                    error=(
+                    exc=failure,
+                    message=(
                         f"Failed to convert {label} {original.file_name} "
                         f"(file_id={original.file_id}): {failure}"
                     ),

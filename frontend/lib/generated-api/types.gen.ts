@@ -2055,6 +2055,45 @@ export const DocxManipulatorType = {
 export type DocxManipulatorType = (typeof DocxManipulatorType)[keyof typeof DocxManipulatorType];
 
 /**
+ * ErrorDetails
+ *
+ * Diagnostic payload captured from a caught exception.
+ *
+ * Persisted alongside the human-readable error message so failures can be
+ * debugged from the database alone, without needing the server logs of the
+ * run that produced them. Every field is optional: older persisted state
+ * predates this model, and not every exception carries model output.
+ */
+export type ErrorDetails = {
+  /**
+   * Error Type
+   *
+   * Class name of the exception that was caught, e.g. 'StructuredOutputValidationError'.
+   */
+  error_type?: string | null;
+  /**
+   * Traceback
+   *
+   * Formatted traceback, including chained causes. Truncated if very long.
+   */
+  traceback?: string | null;
+  /**
+   * Raw Model Output
+   *
+   * Raw text the LLM returned, when the exception carried it. Truncated if very long.
+   */
+  raw_model_output?: string | null;
+  /**
+   * Llm Metadata
+   *
+   * Response metadata from the failing LLM call (model name, finish/stop reason, token usage).
+   */
+  llm_metadata?: {
+    [key: string]: unknown;
+  } | null;
+};
+
+/**
  * EvidenceAlignmentLevel
  */
 export const EvidenceAlignmentLevel = {
@@ -5159,6 +5198,10 @@ export type SectionVerificationItem = {
    */
   error?: string | null;
   /**
+   * Traceback, raw model output, and LLM metadata for a failed section.
+   */
+  error_details?: ErrorDetails | null;
+  /**
    * Messages
    *
    * LLM conversation messages from the citation-validator agent invocation.
@@ -5174,6 +5217,7 @@ export type SectionVerificationItem = {
 export const SectionVerificationStatus = {
   Pending: 'pending',
   Completed: 'completed',
+  Partial: 'partial',
   Error: 'error',
   Cancelled: 'cancelled',
 } as const;
@@ -5705,7 +5749,39 @@ export type WorkflowError = {
    * The workflow run ID when this error occurred. Used to filter errors to current run only.
    */
   workflow_run_id?: string | null;
+  /**
+   * Whether this error cost the run part of its output ('error') or was recovered from and is informational ('warning'). Errors persisted before this field existed read as 'error'.
+   */
+  severity?: WorkflowErrorSeverity;
+  /**
+   * Diagnostic details (traceback, raw model output, LLM metadata) for debugging this error.
+   */
+  details?: ErrorDetails | null;
 };
+
+/**
+ * WorkflowErrorSeverity
+ *
+ * Whether an error compromised the run's output.
+ *
+ * `ERROR` means work was lost: the run's results are incomplete and the user
+ * should retry. `WARNING` means the failure was handled — the affected step
+ * recovered usable output — so the run still counts as completed and the
+ * message is informational.
+ */
+export const WorkflowErrorSeverity = { Error: 'error', Warning: 'warning' } as const;
+
+/**
+ * WorkflowErrorSeverity
+ *
+ * Whether an error compromised the run's output.
+ *
+ * `ERROR` means work was lost: the run's results are incomplete and the user
+ * should retry. `WARNING` means the failure was handled — the affected step
+ * recovered usable output — so the run still counts as completed and the
+ * message is informational.
+ */
+export type WorkflowErrorSeverity = (typeof WorkflowErrorSeverity)[keyof typeof WorkflowErrorSeverity];
 
 /**
  * WorkflowProgressResponse

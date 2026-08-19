@@ -7,7 +7,11 @@ from langchain_core.messages import BaseMessage
 from langgraph.runtime import Runtime
 from langgraph.types import Overwrite, Send
 
-from lib.agents.citation_validator import CitationAssessment, CitationValidatorAgent
+from lib.agents.citation_validator import (
+    CitationAssessment,
+    CitationValidatorAgent,
+    PartialSectionValidationError,
+)
 from lib.agents.formatting_utils import format_audience_context, format_domain_context
 from lib.models.file import FileRole
 from lib.workflows.claim_reference_validation_v2.citation_mapping import (
@@ -22,7 +26,8 @@ from lib.workflows.claim_reference_validation_v2.state import (
 )
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
-from lib.workflows.models import WorkflowError
+from lib.workflows.error_details import capture_error_details
+from lib.workflows.models import ErrorDetails, WorkflowError, WorkflowErrorSeverity
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +111,7 @@ async def validate_section(state: dict, runtime: Runtime[ContextSchema]):
     issues = []
     messages: List[BaseMessage] = []
     error: Optional[str] = None
+    error_details: Optional[ErrorDetails] = None
     status = SectionVerificationStatus.COMPLETED
 
     try:
@@ -143,10 +149,30 @@ async def validate_section(state: dict, runtime: Runtime[ContextSchema]):
         issues = [_assessment_to_issue(a) for a in result.issues]
         messages = lc_messages
 
+    except PartialSectionValidationError as e:
+        # Keep what the model finished writing: a truncated response would
+        # otherwise discard the whole section. The section stays flagged so the
+        # gap is visible rather than silently under-reported.
+        logger.warning(
+            "Section %d returned truncated output; salvaged %d assessment(s): %s",
+            section_index,
+            len(e.result.issues),
+            e,
+        )
+        issues = [_assessment_to_issue(a) for a in e.result.issues]
+        messages = e.messages
+        status = SectionVerificationStatus.PARTIAL
+        error = str(e)
+        error_details = capture_error_details(e)
+
     except Exception as e:
         logger.error("Error validating section %d: %s", section_index, e, exc_info=True)
         status = SectionVerificationStatus.ERROR
         error = str(e)
+        # Persist the traceback and the raw model output alongside the message:
+        # structured-output failures here are unreproducible after the fact, so
+        # the state row is the only record of what the model actually returned.
+        error_details = capture_error_details(e)
 
     return {
         "section_verifications": [
@@ -159,10 +185,37 @@ async def validate_section(state: dict, runtime: Runtime[ContextSchema]):
                 num_citations=len(issues),
                 issues=issues,
                 error=error,
+                error_details=error_details,
                 messages=messages,
             )
         ]
     }
+
+
+def _section_label(item: SectionVerificationItem) -> str:
+    """Identify a section in user-facing text."""
+    heading = " > ".join(item.headings) if item.headings else "Document root"
+    return f"Section {item.section_index} ({heading}, lines {item.start_line}-{item.end_line})"
+
+
+def _section_error_message(item: SectionVerificationItem) -> str:
+    """State what the reader lost, not what the exception was.
+
+    The underlying failure stays on `details` for debugging; a truncation is
+    self-explanatory here, while a hard failure can have any cause, so its
+    message is appended.
+    """
+    if item.status == SectionVerificationStatus.PARTIAL:
+        return (
+            f"{_section_label(item)} returned truncated output. "
+            f"{len(item.issues)} citation assessment(s) were recovered; "
+            "the rest are missing from these results."
+        )
+
+    return (
+        f"{_section_label(item)} could not be validated. Its citations are "
+        f"missing from these results. {item.error or 'Unknown error'}"
+    )
 
 
 @register_node("Finalize results")
@@ -174,15 +227,41 @@ async def finalize_results(
     all_issues = []
     errors: List[WorkflowError] = []
 
+    # A failed section costs part of the document, not the run: the sections
+    # that did complete still produced usable findings, so the run must not
+    # read as failed. Only a run left with nothing usable escalates to an
+    # error — otherwise an empty result set would render as an all-clear.
+    produced_results = any(
+        item.status
+        in (SectionVerificationStatus.COMPLETED, SectionVerificationStatus.PARTIAL)
+        for item in state.section_verifications
+    )
+    severity = (
+        WorkflowErrorSeverity.WARNING
+        if produced_results
+        else WorkflowErrorSeverity.ERROR
+    )
+
     for item in state.section_verifications:
-        if item.status == SectionVerificationStatus.COMPLETED:
+        # PARTIAL sections contribute both: the assessments salvaged from a
+        # truncated response, and the error explaining what was lost.
+        if item.status in (
+            SectionVerificationStatus.COMPLETED,
+            SectionVerificationStatus.PARTIAL,
+        ):
             all_issues.extend(item.issues)
-        elif item.status == SectionVerificationStatus.ERROR:
+
+        if item.status in (
+            SectionVerificationStatus.ERROR,
+            SectionVerificationStatus.PARTIAL,
+        ):
             errors.append(
                 WorkflowError(
                     task_name="validate_section",
-                    error=item.error or "Unknown error",
+                    error=_section_error_message(item),
                     workflow_run_id=runtime.context.workflow_run_id,
+                    severity=severity,
+                    details=item.error_details,
                 )
             )
 

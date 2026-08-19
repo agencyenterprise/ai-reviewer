@@ -22,6 +22,7 @@ import {
   Reviewer2State,
   SimpleDeepAgentState,
   WorkflowError,
+  WorkflowErrorSeverity,
   WorkflowRun,
   WorkflowRunDetail,
   WorkflowRunStatus,
@@ -95,13 +96,28 @@ function filterErrorsToCurrentRun(errors: WorkflowError[], runId: string): Workf
 }
 
 /**
- * Check if a workflow run has errors from the current run only.
- * Used to determine if a run should be displayed as "failed".
+ * Whether an error cost the run part of its output, as opposed to one the
+ * workflow recovered from. Errors persisted before severity existed have no
+ * `severity` field and count as blocking.
+ */
+export function isBlockingError(error: WorkflowError): boolean {
+  return error.severity !== WorkflowErrorSeverity.Warning;
+}
+
+/**
+ * Check if a workflow run has errors from the current run only, of any severity.
+ * Used to decide whether to surface error messages at all.
  */
 export function hasCurrentRunErrors(workflowRun: WorkflowRunDetail): boolean {
-  const errors = workflowRun.state?.errors ?? [];
-  const runId = workflowRun.run.id;
-  return filterErrorsToCurrentRun(errors, runId).length > 0;
+  return getCurrentRunErrors(workflowRun).length > 0;
+}
+
+/**
+ * Check if a workflow run has errors that cost it output.
+ * Used to determine if a run should be displayed as "failed".
+ */
+export function hasBlockingErrors(workflowRun: WorkflowRunDetail): boolean {
+  return getCurrentRunErrors(workflowRun).some(isBlockingError);
 }
 
 /**
@@ -115,16 +131,18 @@ export function getCurrentRunErrors(workflowRun: WorkflowRunDetail): WorkflowErr
 
 /**
  * Display status for a workflow run. Mirrors `WorkflowRunStatus`, but `Completed`
- * runs that contain errors collapse to `Failed` for UI purposes.
+ * runs that lost output to an error collapse to `Failed` for UI purposes.
  */
 export type DisplayStatus = WorkflowRunStatus;
 
 /**
  * Get the display status for a workflow run.
- * Returns "failed" if completed with errors, otherwise returns the actual status.
+ * Returns "failed" if completed with blocking errors, otherwise the actual
+ * status. Warnings — failures the workflow recovered from — leave the run
+ * completed; they are surfaced as messages rather than as a failed run.
  */
 export function getDisplayStatus(workflowRun: WorkflowRunDetail): DisplayStatus {
-  if (workflowRun.run.status === WorkflowRunStatus.Completed && hasCurrentRunErrors(workflowRun)) {
+  if (workflowRun.run.status === WorkflowRunStatus.Completed && hasBlockingErrors(workflowRun)) {
     return WorkflowRunStatus.Failed;
   }
   return workflowRun.run.status;
@@ -137,6 +155,14 @@ export function getWorkflowErrors(workflowRuns: WorkflowRunDetail[]): WorkflowEr
       return filterErrorsToCurrentRun(errors, result.run.id);
     })
     .filter((error) => error.chunk_index === null || error.chunk_index === undefined);
+}
+
+/**
+ * Workflow-level errors that cost the run output. Use for banners that tell the
+ * user something went wrong, so recovered failures do not trigger them.
+ */
+export function getBlockingWorkflowErrors(workflowRuns: WorkflowRunDetail[]): WorkflowError[] {
+  return getWorkflowErrors(workflowRuns).filter(isBlockingError);
 }
 
 export function getChunkErrors(workflowRuns: WorkflowRunDetail[], chunkIndex: number): WorkflowError[] {
