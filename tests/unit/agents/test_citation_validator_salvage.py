@@ -86,7 +86,18 @@ def test_partial_error_message_reports_what_was_recovered():
     )
 
     assert "recovered 2 complete citation assessment(s)" in str(raised)
-    assert "Unterminated string" in str(raised)
+
+
+def test_partial_error_keeps_the_underlying_failure_reachable():
+    """The message stays short for the UI; the cause carries the detail."""
+    original = _structured_output_error(TRUNCATED_PAYLOAD)
+
+    raised = CitationValidatorAgent._salvage_or_reraise(original)
+
+    assert isinstance(raised, PartialSectionValidationError)
+    assert raised.source is original
+    assert raised.__cause__ is original
+    assert "Unterminated string" in str(raised.source)
 
 
 def test_partial_error_keeps_the_response_message_for_debugging():
