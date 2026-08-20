@@ -3,15 +3,17 @@ from typing import Optional
 import aiotools
 from fastapi import APIRouter, Depends
 
-from lib.api.auth import get_current_user_optional
+from lib.api.auth import get_current_user, get_current_user_optional
 from lib.models.user import User
 from lib.services.workflow_duration_estimates import (
     WorkflowDurationEstimatesResponse,
     get_workflow_duration_estimates,
 )
 from lib.services.workflow_types import (
+    RecentWorkflowSelectionResponse,
     WorkflowTypesResponse,
     get_all_workflow_types,
+    get_recent_workflow_selection,
 )
 
 router = APIRouter(tags=["workflow-types"])
@@ -34,6 +36,22 @@ async def _cached_duration_estimates(
 async def get_workflow_types():
     """List available workflow types and the ordered category display config."""
     return get_all_workflow_types()
+
+
+@router.get(
+    "/api/workflow-types/recent-selection",
+    response_model=RecentWorkflowSelectionResponse,
+)
+async def get_recent_selection(user: User = Depends(get_current_user)):
+    """
+    Assessments this user ran on their most recent project.
+
+    Seeds the new-project wizard's pre-selection with what the user actually
+    reaches for. Unlike the listing above this is per-user, so it requires auth.
+    Deliberately uncached: it is two indexed queries, and it has to reflect the
+    project the user just finished.
+    """
+    return await get_recent_workflow_selection(user)
 
 
 @router.get(

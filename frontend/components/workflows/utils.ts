@@ -64,9 +64,13 @@ export function formatEstimatedDuration(seconds: number | null | undefined): str
 }
 
 /**
- * Assessments pre-selected when a project is created, so the wizard opens on a
- * sensible default instead of an empty selection. The user can uncheck any of
- * them.
+ * Fallback assessments pre-selected when a project is created, so the wizard
+ * opens on a sensible default instead of an empty selection. The user can
+ * uncheck any of them.
+ *
+ * This applies only to users with no assessment history: the wizard prefers the
+ * assessments from their most recent project (see `useRecentWorkflowSelection`)
+ * and falls back here on a first project or a failed lookup.
  *
  * Callers must intersect this with the assessments actually on offer (see
  * `useVisibleWorkflowTypes`) — an experimental assessment listed here is hidden

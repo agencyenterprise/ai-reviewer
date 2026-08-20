@@ -119,6 +119,8 @@ import type {
   GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetData,
   GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetErrors,
   GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses,
+  GetRecentSelectionApiWorkflowTypesRecentSelectionGetData,
+  GetRecentSelectionApiWorkflowTypesRecentSelectionGetResponses,
   GetSharedResourceApiPublicShareTokenGetData,
   GetSharedResourceApiPublicShareTokenGetErrors,
   GetSharedResourceApiPublicShareTokenGetResponses,
@@ -740,6 +742,31 @@ export const getWorkflowTypesApiWorkflowTypesGet = <ThrowOnError extends boolean
   (options?.client ?? client).get<GetWorkflowTypesApiWorkflowTypesGetResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
     url: '/api/workflow-types',
+    ...options,
+  });
+
+/**
+ * Get Recent Selection
+ *
+ * Assessments this user ran on their most recent project.
+ *
+ * Seeds the new-project wizard's pre-selection with what the user actually
+ * reaches for. Unlike the listing above this is per-user, so it requires auth.
+ * Deliberately uncached: it is two indexed queries, and it has to reflect the
+ * project the user just finished.
+ */
+export const getRecentSelectionApiWorkflowTypesRecentSelectionGet = <ThrowOnError extends boolean = true>(
+  options?: Options<GetRecentSelectionApiWorkflowTypesRecentSelectionGetData, ThrowOnError>,
+): RequestResult<GetRecentSelectionApiWorkflowTypesRecentSelectionGetResponses, unknown, ThrowOnError, 'data'> =>
+  (options?.client ?? client).get<
+    GetRecentSelectionApiWorkflowTypesRecentSelectionGetResponses,
+    unknown,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/workflow-types/recent-selection',
     ...options,
   });
 

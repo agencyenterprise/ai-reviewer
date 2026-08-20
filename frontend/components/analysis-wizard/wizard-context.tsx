@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useCallback, useMemo, ReactNode } 
 import { WorkflowRunType } from '@/lib/generated-api';
 import { DEFAULT_SELECTED_WORKFLOW_TYPES, hasSupportingDocumentsRequirement } from '@/components/workflows/utils';
 import { useVisibleWorkflowTypes } from '@/lib/hooks/use-visible-workflow-types';
+import { useRecentWorkflowSelection } from '@/lib/hooks/use-recent-workflow-selection';
 
 export type PreflightStatus = 'idle' | 'pending' | 'valid' | 'invalid';
 export type WizardStep = 1 | 2;
@@ -43,13 +44,28 @@ export function WizardProvider({ children }: WizardProviderProps) {
   // after unchecking everything — always wins.
   const [chosenWorkflowTypes, setSelectedWorkflowTypes] = useState<WorkflowRunType[] | null>(null);
   const { visibleTypes } = useVisibleWorkflowTypes();
+  const { recentTypes, isPending: isRecentSelectionPending } = useRecentWorkflowSelection();
+
+  // What the user picked last time, so the wizard opens on the assessments they
+  // actually reach for. The hardcoded set is the first-run fallback, and it also
+  // covers a failed lookup — that resolves to an empty `recentTypes` with
+  // `isPending` already false, so the wizard degrades to the old behaviour.
+  //
+  // While the lookup is in flight there is deliberately no default: briefly
+  // pre-checking the fallback and then swapping it out under the user is worse
+  // than a moment with nothing checked. In practice it never shows, because the
+  // provider mounts on step 1 and the request resolves during the upload.
+  const defaultWorkflowTypes = useMemo(() => {
+    if (isRecentSelectionPending) return [];
+    return recentTypes.length > 0 ? recentTypes : DEFAULT_SELECTED_WORKFLOW_TYPES;
+  }, [isRecentSelectionPending, recentTypes]);
 
   // Intersected with what is actually on offer: an assessment that is hidden for
   // this user (experimental, opt-in only) must never be started from a checkbox
   // they cannot see or uncheck.
   const selectedWorkflowTypes = useMemo(
-    () => chosenWorkflowTypes ?? DEFAULT_SELECTED_WORKFLOW_TYPES.filter((type) => visibleTypes.includes(type)),
-    [chosenWorkflowTypes, visibleTypes],
+    () => chosenWorkflowTypes ?? defaultWorkflowTypes.filter((type) => visibleTypes.includes(type)),
+    [chosenWorkflowTypes, defaultWorkflowTypes, visibleTypes],
   );
 
   const needsReferencesStep = useMemo(
