@@ -4010,6 +4010,18 @@ export const QualityLevel = {
 export type QualityLevel = (typeof QualityLevel)[keyof typeof QualityLevel];
 
 /**
+ * RecentWorkflowSelectionResponse
+ *
+ * The assessments a user picked most recently, for pre-checking the wizard.
+ */
+export type RecentWorkflowSelectionResponse = {
+  /**
+   * Workflow Types
+   */
+  workflow_types: Array<WorkflowRunType>;
+};
+
+/**
  * RecommendedAction
  */
 export const RecommendedAction = {
@@ -6748,6 +6760,23 @@ export type GetWorkflowTypesApiWorkflowTypesGetResponses = {
 
 export type GetWorkflowTypesApiWorkflowTypesGetResponse =
   GetWorkflowTypesApiWorkflowTypesGetResponses[keyof GetWorkflowTypesApiWorkflowTypesGetResponses];
+
+export type GetRecentSelectionApiWorkflowTypesRecentSelectionGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/workflow-types/recent-selection';
+};
+
+export type GetRecentSelectionApiWorkflowTypesRecentSelectionGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: RecentWorkflowSelectionResponse;
+};
+
+export type GetRecentSelectionApiWorkflowTypesRecentSelectionGetResponse =
+  GetRecentSelectionApiWorkflowTypesRecentSelectionGetResponses[keyof GetRecentSelectionApiWorkflowTypesRecentSelectionGetResponses];
 
 export type GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetData = {
   body?: never;
