@@ -1,0 +1,471 @@
+- id: remote_work_conflicting_reviewers
+  draft: file://files/peer_review/remote_work/draft.md
+  memos:
+  - file_name: reviewer-a-memo.md
+    content: |
+      # Review of "Distributed Work and Team Productivity: Evidence from a Two-Year Panel"
+
+      Reviewer: A
+      Recommendation: Revise and resubmit
+
+      ## Overall assessment
+
+      This is a careful piece of work on a question where careful work has been
+      scarce. The panel design is the right choice and the authors are honest about
+      the size of what they found. My concerns are about framing and about how much
+      of the report is spent on machinery that the intended audience will not read.
+
+      ## Framing
+
+      - The title promises evidence about productivity, but the report measures a
+        constructed index that is mostly about throughput and latency. I would either
+        rename the index something narrower or say plainly in the About This section
+        that "productivity" here means this specific index and nothing else.
+
+      - The report is addressed to a general policy audience, but the Background
+        section assumes the reader already knows why cross-sectional designs are
+        suspect. Two sentences explaining selection bias in plain terms would carry
+        most readers the rest of the way.
+
+      ## Methods
+
+      - The Methods section is far longer than this audience needs. The
+        standardization procedure, the clustering choice, and the three robustness
+        checks are all defensible, but they belong in an appendix. In the body I
+        would keep the panel structure, the outcome measure in one paragraph, and the
+        fixed effects design in two sentences. As it stands the reader has to get
+        through a page and a half of estimation detail before reaching a single
+        number.
+
+      - Voluntary recruitment through an industry consortium is a real limitation and
+        it is mentioned only in passing. Firms that join consortia and agree to be
+        measured are not a random draw from the population of firms.
+
+      ## Interpretation
+
+      - The claim that the cost is "a coordination cost rather than an effort cost"
+        is doing a lot of work and rests entirely on which component of the index
+        moved. Cycle time can rise for reasons that have nothing to do with
+        coordination, including reviewers being asked to cover more surface area. I
+        would soften this to a hypothesis.
+
+      - The team-age finding is presented as the most suggestive result and then
+        turned directly into Recommendation 2, despite the authors saying the
+        difference is not statistically significant. Either the finding supports the
+        recommendation or it does not. I would drop the recommendation or reframe it
+        explicitly as a hypothesis worth testing.
+
+      - Recommendation 3 tells firms to invest in reducing review and deployment
+        latency. Nothing in the study tests whether such investment would recover the
+        lost productivity, so this is an inference beyond the data.
+
+      ## Minor comments
+
+      - The confidence interval on the headline estimate touches -0.01, and the text
+        says it "touches zero". It does not quite; please state the interval and let
+        the reader judge.
+
+      - "Available on request" is not an acceptable reference list for a report that
+        makes empirical claims about prior literature.
+  - file_name: reviewer-b-memo.md
+    content: |
+      Review of the distributed work panel report
+
+      I read this with interest and I think the underlying analysis is sound. My
+      comments are mostly about what the report leaves out rather than what it gets
+      wrong.
+
+      The Methods section needs more detail, not less. The sampling frame is
+      described in a single sentence: 84 teams at 12 firms recruited through an
+      industry consortium. I cannot tell from this how the 84 teams were selected
+      within those 12 firms, whether every team at a participating firm was included,
+      or what happened to teams that dissolved or merged during the eight quarters.
+      Given that identification comes entirely from the 61 arrangement changes, I
+      also want to know what drove those changes. If teams moved to distributed work
+      because they were already struggling, the fixed effects design does not save
+      you. A short subsection on how arrangement changes came about would do more for
+      my confidence in the result than any of the robustness checks currently
+      reported.
+
+      Relatedly, the three sectors studied are all ones where software is a cost
+      center or a regulated function. I would be cautious about generalizing to
+      firms where the software team is the product, and the report should say so.
+      The Recommendations are written as though they apply to firms in general.
+
+      On the outcome measure, I would like to see the three components reported
+      separately in the main results table rather than only in the decomposition
+      paragraph. Readers who distrust composite indices, and there are many of us,
+      should be able to read the paper without them.
+
+      I am not persuaded by the treatment of the team-age result. Splitting the
+      sample and finding a larger effect in one half is exactly the kind of analysis
+      that produces findings which do not replicate, and the authors acknowledge the
+      difference is not significant while continuing to build on it. At minimum this
+      needs a sentence about how many such splits were examined.
+
+      Two smaller things. The defect-escape rate is defined per 1,000 deployments,
+      which means a team that deploys less often can improve its rate by shipping
+      less. Some acknowledgement of that would be welcome. And the report never says
+      what happened to the teams that were observed for fewer than eight quarters,
+      though a robustness check restricts to those that were.
+  expected_reviewers:
+  - A
+  - B
+  point_count_bands:
+    A:
+    - 8
+    - 14
+    B:
+    - 5
+    - 10
+  verbatim_probes:
+  - Voluntary recruitment through an industry consortium is a real limitation and it is mentioned
+    only in passing.
+  - '"Available on request" is not an acceptable reference list for a report that makes empirical
+    claims about prior literature.'
+  - I am not persuaded by the treatment of the team-age result.
+  - And the report never says what happened to the teams that were observed for fewer than
+    eight quarters, though a robustness check restricts to those that were.
+  rubric:
+    scenario_trap: >-
+      The two reviewers want incompatible things: one asks for the Methods section to be cut
+      down and moved to an appendix, the other asks for it to be expanded with detail on the
+      sampling frame and on what drove the 61 arrangement changes. Part 1 must open with this
+      conflict, name both point IDs, and say it is the author's call to settle. Both reviewers
+      also independently raise generalisability, one on voluntary consortium recruitment and
+      the other on the three sectors studied; that overlap must be noted by ID rather than
+      listed twice as unrelated work. Do not penalise which memo was lettered A and which
+      B, only that the lettering is consistent.
+- id: hiring_audits_compound_points
+  draft: file://files/peer_review/hiring_audits/draft.md
+  memos:
+  - file_name: reviewer-memo.md
+    content: |
+      Reviewer comments on "Auditing Algorithmic Hiring Tools"
+
+      Below are my comments, keyed to the page where the passage appears.
+
+      1. (p. 1) The About This section says the report is written for agency staff
+         with limited technical capacity, but the Capacity section concludes that
+         running the framework requires two technically trained staff per regional
+         office. These two statements are in tension. Please reconcile them: either
+         the framework is usable by the audience as described, or the report is
+         really an argument for hiring, and it should say which.
+
+      2. (p. 2) The claim that vendors have "converged on a narrow reading" of Local
+         Law 144 is stated without support. This is an empirical claim about vendor
+         behavior and it carries a lot of the report's motivation. Please cite the
+         published audits you are characterizing, say how many you looked at, and
+         note whether you looked at all of them or a sample.
+
+      3. (p. 3) Layer 2 is the most original contribution here and also the least
+         developed. Three things need to happen to it. First, define construct
+         validity for a reader who has not taken a psychometrics course, because the
+         intended audience has not. Second, say what evidence would satisfy the
+         layer, since "require the validation evidence" is not an operational
+         instruction and an auditor will need a threshold. Third, reconcile the layer
+         with the Uniform Guidelines on Employee Selection Procedures, which already
+         impose validation requirements and which the report does not mention at all.
+
+      4. (p. 3) The prosody example is good but it is doing double duty as
+         illustration and as evidence. I would keep it as an illustration and add a
+         real audit finding if one is available in the public record.
+
+      5. (p. 4) The recommendation to treat a refusal to produce validation evidence
+         as "itself a finding" is the most consequential proposal in the report and
+         it gets two sentences. What is the legal basis? Under what authority would
+         an agency publish an adverse finding based on non-production rather than on
+         evidence of disparate impact? A reader at an enforcement agency will stop
+         here.
+
+      6. (p. 4) Layer 3 asserts that the same tool can be lawful in one deployment
+         and unlawful in another. I agree, but the report should say whether it means
+         this as a description of current doctrine or as an argument about how
+         doctrine should develop. As written a reader could take it for settled law.
+
+      7. (p. 5) Recommendation 4 asks legislatures to fund staff before expanding
+         mandates. Nothing in the report estimates what that funding would cost
+         beyond "two staff per regional office", and the report does not say how many
+         regional offices are in scope. A rough total would make this recommendation
+         actionable instead of rhetorical.
+
+      8. (p. 5) There is no reference list.
+  expected_reviewers:
+  - A
+  point_count_bands:
+    A:
+    - 8
+    - 14
+  verbatim_probes:
+  - These two statements are in tension.
+  - Third, reconcile the layer with the Uniform Guidelines on Employee Selection Procedures,
+    which already impose validation requirements and which the report does not mention at
+    all.
+  - A reader at an enforcement agency will stop here.
+  - A rough total would make this recommendation actionable instead of rhetorical.
+  rubric:
+    scenario_trap: >-
+      One numbered item bundles three distinct asks: define construct validity for a non-specialist
+      audience, state what evidence would satisfy the layer, and reconcile it with the Uniform
+      Guidelines on Employee Selection Procedures. It must be split into sub-point IDs such
+      as A3.1, A3.2 and A3.3 rather than tracked as a single point. There is one reviewer,
+      so every ID uses the letter A.
+- id: soil_carbon_three_reviewers_commentary
+  draft: file://files/peer_review/soil_carbon/draft.md
+  memos:
+  - file_name: reviewer-a-memo.md
+    content: |
+      REVIEWER REPORT
+
+      Manuscript ID: COMM-2024-0417
+      Title: Soil Carbon Credits Are Not Ready for Compliance Markets
+      Type: Commentary
+      Reviewer: A
+      Recommendation: Minor revision
+
+      Summary of the piece
+
+      The author argues that soil carbon credits should be kept out of compliance
+      markets on measurement, permanence, and additionality grounds, while continuing
+      to pay farmers for soil carbon on agronomic grounds. The argument is clear and
+      the distinction between the two payment rationales is the piece's main
+      contribution.
+
+      Comments
+
+      1. The measurement argument would be stronger with a number. The author says
+         the annual change is "small relative to that background variation" without
+         saying how small. One sentence giving a typical annual change and a typical
+         within-field standard deviation would let the reader assess the claim
+         directly.
+
+      2. On permanence, the claim that "a single pass of deep tillage can undo a
+         decade of accumulation" is stated more strongly than the literature
+         supports. Deep tillage causes large losses, but a full decade is at the
+         extreme end of reported estimates. Please soften or cite.
+
+      3. The additionality section attributes rising no-till adoption to fuel costs
+         and equipment. Both matter, but conservation compliance requirements have
+         also driven adoption in some regions and should be mentioned.
+
+      4. The closing line is effective but the piece would benefit from one sentence
+         on what a policy that follows the author's advice would actually look like.
+         Readers who agree will want to know what to do on Monday.
+
+      5. Minor: "compliance markets are built on the assumption that a retired credit
+         represents a permanent removal" is true of some registries and not others.
+         Consider narrowing.
+  - file_name: reviewer-b-memo.md
+    content: |
+      Review
+
+      I agree with the thesis and I think it is worth publishing. Two things hold it
+      back.
+
+      The additionality argument is the strongest of the three and it is given the
+      least space. It is also the only one of the three that cannot be fixed by
+      better technology, which is the point that would change a reader's mind. I
+      would expand it and move it first.
+
+      My second concern is that the piece asserts the models used in soil carbon
+      protocols are "calibrated on a thin and geographically skewed set of long-term
+      trials" and leaves it there. This is the crux of the measurement argument. Even
+      in a commentary, a reader deserves to know which protocols the author has in
+      mind and what the calibration base actually looks like.
+
+      I will also note, without insisting on it, that the piece would read as more
+      even-handed if it engaged with the strongest argument on the other side, which
+      is that imperfect measurement plus conservative discounting can still produce
+      a credit that is net beneficial. The author does not have to agree, but
+      ignoring the discounting response leaves the argument looking narrower than it
+      is.
+  - file_name: reviewer-c-memo.md
+    content: |
+      Reviewer C comments
+
+      - The piece needs a proper methods section describing how the literature was
+        searched and which studies were included.
+
+      - I would like to see a meta-analysis of the reported sequestration rates
+        across the long-term trials the author refers to, with a forest plot.
+
+      - Please add a table comparing the major soil carbon protocols on measurement
+        requirements, permanence terms, and additionality tests.
+
+      - The claims about no-till adoption trends should be supported with a figure
+        showing adoption over the thirty-year period.
+
+      - The author should state a position on whether voluntary market credits should
+        also be restricted, and support it with the same three-part analysis.
+
+      - There are no references at all. At minimum the empirical claims about
+        variation, tillage losses, and adoption trends need citations.
+  expected_reviewers:
+  - A
+  - B
+  - C
+  point_count_bands:
+    A:
+    - 5
+    - 8
+    B:
+    - 3
+    - 6
+    C:
+    - 6
+    - 9
+  verbatim_probes:
+  - 'Manuscript ID: COMM-2024-0417'
+  - Readers who agree will want to know what to do on Monday.
+  - It is also the only one of the three that cannot be fixed by better technology, which
+    is the point that would change a reader's mind.
+  - Please add a table comparing the major soil carbon protocols on measurement requirements,
+    permanence terms, and additionality tests.
+  rubric:
+    scenario_trap: >-
+      The document is a commentary, not a research report. One reviewer asks for a methods
+      section, a meta-analysis with a forest plot, a protocol comparison table and an adoption
+      figure. Those are requests for a different kind of document and must be flagged as scope
+      decisions for the author to make, not queued as ordinary work. Two reviewers separately
+      raise the missing evidential support for the model-calibration claim, and that overlap
+      should be noted by ID. One memo opens with a header block (Manuscript ID, Type, Recommendation)
+      which must be carried over rather than replaced with a standard header. Do not penalise
+      which memo received which letter.
+- id: heat_resilience_semantic_anchors
+  draft: file://files/peer_review/heat_resilience/draft.md
+  memos:
+  - file_name: reviewer-memo.md
+    content: |
+      Review of "Five Concepts for Municipal Heat Resilience"
+
+      Thank you for the chance to read this. It is well organized and I expect city
+      staff will find it usable. My comments follow the order of the report.
+
+      On the framing, around page 2, the report says extreme heat kills more people
+      than any other weather hazard "in most temperate cities" but does not say over
+      what period or from whose mortality accounting. Heat death counts vary by a
+      factor of five depending on whether they use coded causes or excess mortality.
+      Please say which you mean.
+
+      Concept 2 is the most useful idea in the report and I would like it to be
+      first. The overnight minimum point reorganizes how a reader thinks about the
+      whole problem, and readers who stop after two concepts should have it.
+
+      Concept 4 is where I have my most substantive concern. The claim that cities
+      which capitalize shade funding have "canopy survival rates roughly double" is
+      the strongest empirical claim in the report and it appears without a source,
+      a sample, or a definition of survival. If this rests on a handful of cities,
+      say so. As written it will be quoted back at city councils as an established
+      finding.
+
+      Still on the fourth concept, the argument treats the operating-versus-capital
+      distinction as though it works the same way everywhere. In many states,
+      capital budgets are constrained by debt limits and by rules about what
+      qualifies as a capital asset, and street trees often do not qualify. The
+      recommendation may be unavailable to a large share of the report's audience.
+      A paragraph on when this move is legally possible would make the concept
+      usable rather than aspirational.
+
+      Concept 3 says cooling centers are "the least effective per dollar" municipal
+      response. Compared with what, measured how? This is the kind of claim that
+      needs either a citation or a hedge, and it sits awkwardly next to
+      Recommendation 5, which tells cities to maintain them at current levels. If
+      they are the least effective use of money, why is the recommendation to keep
+      funding them?
+
+      Around page 8, in the section that puts the concepts together, the report says
+      the sequence "takes a decade". That number appears nowhere else and is not
+      derived. Either support it or drop it.
+
+      Finally, the report never discusses cost. Five concepts, five
+      recommendations, and no indication of what any of it costs or where the money
+      comes from. For an audience of city managers this is the first question they
+      will ask.
+  expected_reviewers:
+  - A
+  point_count_bands:
+    A:
+    - 6
+    - 11
+  verbatim_probes:
+  - Concept 2 is the most useful idea in the report and I would like it to be first.
+  - As written it will be quoted back at city councils as an established finding.
+  - The recommendation may be unavailable to a large share of the report's audience.
+  - Finally, the report never discusses cost.
+  rubric:
+    scenario_trap: >-
+      One point asks the author to move the concept about overnight minima to the front of
+      the report, which renumbers every concept after it. Part 1 must surface that reordering
+      request early, because it changes the shape of the whole revision. Two separate points
+      land on the concept arguing shade should be capitalized, the unsourced canopy-survival
+      claim and whether capital funding is legally available for street trees, and both must
+      appear with distinct IDs.
+- id: organics_collection_quick_fix_heavy
+  draft: file://files/peer_review/organics_collection/draft.md
+  memos:
+  - file_name: reviewer-memo.md
+    content: |
+      Comments on "Curbside Organics Collection: What Twelve Municipal Programs
+      Reveal About Public Acceptance"
+
+      This is a useful contribution and I recommend publication after revision. I
+      have three substantive concerns and a number of small corrections.
+
+      Substantive
+
+      First, the outcome coding does most of the analytical work and I do not think
+      it holds up. A program is "abandoned" if it was defunded for more than 36
+      months, but three of the five abandoned programs were in states whose landfill
+      diversion mandate was repealed partway through the study period. Abandoning a
+      mandate response after the mandate lapses is not the same kind of failure as
+      abandoning one under public pressure, and the report treats them identically.
+      I would either recode or add a sensitivity analysis that drops those cases.
+
+      Second, Finding 5 claims a single elected opponent was "decisive" in four of
+      five abandoned programs. Decisive is a causal word and the design cannot
+      support it. The report has twelve cases, no counterfactual, and an outcome
+      that co-occurs with opposition. I would rewrite this as an association and
+      say plainly what the design can and cannot establish.
+
+      Third, the report never addresses selection into the sample. Twelve programs
+      were compiled from city records and press coverage, which means programs that
+      were killed early and quietly are systematically less likely to appear. If the
+      missing cases are disproportionately failures without a vocal opponent,
+      Finding 5 is partly an artifact. Please discuss.
+
+      Smaller points
+
+      - Page 1, "The operations are well understood" is too strong. Say the
+        operations are mature and well characterized.
+      - Finding 2 refers to Table 2, but the report contains no Table 2.
+      - Finding 4 refers to Figure 3; I count only two figures.
+      - The interview count is given as 23 staff, but the Method section does not say
+        how many municipalities those 23 came from.
+      - "Coded objections" in Finding 3 needs a sentence on who did the coding and
+        whether agreement was measured.
+      - The 14 percent figure in Finding 3 has no denominator. Fourteen percent of
+        how many objections?
+      - Reference 3 (Reyes 2017) is cited nowhere in the text.
+      - The date range is given as 2008 to 2023 in the About This section and as
+        2008 to 2022 in the Method section.
+      - Please expand the term "organics" at first use in the Findings; it is defined
+        in the About This section but the Findings read as a standalone section.
+  expected_reviewers:
+  - A
+  point_count_bands:
+    A:
+    - 11
+    - 16
+  verbatim_probes:
+  - Abandoning a mandate response after the mandate lapses is not the same kind of failure
+    as abandoning one under public pressure, and the report treats them identically.
+  - Decisive is a causal word and the design cannot support it.
+  - Finding 2 refers to Table 2, but the report contains no Table 2.
+  - Reference 3 (Reyes 2017) is cited nowhere in the text.
+  rubric:
+    scenario_trap: >-
+      The memo separates three substantive concerns from nine small corrections. The three
+      substantial asks are the outcome coding that treats mandate-lapsed programs as failures,
+      the causal language in Finding 5, and the unaddressed selection into the sample of twelve
+      programs. Part 1 must carry exactly those three as substantial work, and must not promote
+      any of the nine smaller points alongside them.

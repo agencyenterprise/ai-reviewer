@@ -1,6 +1,7 @@
 """Async HTTP client for calling the Draft Detective API in e2e evals."""
 
 import asyncio
+import base64
 import logging
 import mimetypes
 import os
@@ -9,11 +10,15 @@ import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 import jwt
 
-from evals_inspectai.common.errors import check_workflow_errors
+from evals_inspectai.common.errors import (
+    WorkflowCompletionError,
+    check_workflow_errors,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +31,15 @@ DEFAULT_TIMEOUT_S = 300
 JWT_ALGORITHM = "HS512"
 JWT_ISSUER = "ai-reviewer"
 JWT_AUDIENCE = "ai-reviewer-api"
+
+# The dev server runs workflow agents in-process, so a routine GET can sit
+# behind them when several are running at once.
+DEFAULT_HTTP_TIMEOUT_S = 300.0
+
+TUS_VERSION = "1.0.0"
+
+# Run statuses from which a workflow can never reach "completed".
+TERMINAL_FAILURE_STATUSES = frozenset({"failed", "cancelled"})
 
 
 def _get_base_url() -> str:
@@ -60,7 +74,7 @@ def _build_client() -> httpx.AsyncClient:
     return httpx.AsyncClient(
         base_url=_get_base_url(),
         headers={"Authorization": f"Bearer {_get_auth_token()}"},
-        timeout=120.0,
+        timeout=DEFAULT_HTTP_TIMEOUT_S,
     )
 
 
@@ -156,6 +170,82 @@ async def upload_and_start_analysis(
         return body["project_id"]
 
 
+def _encode_tus_metadata(metadata: dict[str, str]) -> str:
+    """Encode upload metadata as the TUS `Upload-Metadata` header value."""
+    return ",".join(
+        f"{key} {base64.b64encode(value.encode()).decode()}"
+        for key, value in metadata.items()
+    )
+
+
+async def tus_upload_file(
+    project_id: str,
+    file_name: str,
+    content: str,
+    role: str,
+    revision: int | None = None,
+) -> None:
+    """Upload a file into an existing project through the TUS endpoint.
+
+    `/api/start-analysis` can only create files with the MAIN and SUPPORT roles,
+    so anything else has to go through TUS: it is the only upload path that
+    reads a `role` (and, for revision-scoped roles, a `revision`) from the
+    upload metadata. Reviewer memos need both.
+
+    Args:
+        project_id: Project to attach the file to.
+        file_name: Display name for the uploaded file.
+        content: Markdown content of the file.
+        role: A `FileRole` value, e.g. "reviewer_memo" or "main".
+        revision: Revision the file belongs to. Only meaningful for the
+            revision-scoped roles (main, reviewer_memo); omitting it attaches
+            the file to the project's current revision.
+
+    The upload is done as a create (POST) followed by a single write (PATCH).
+    The creation-with-upload shortcut is deliberately not used: tuspyserver
+    only fires the completion hook that creates the file record from the PATCH
+    route, so a POST carrying the whole body would upload bytes and never
+    register the file.
+    """
+    payload = content.encode()
+    metadata = {"filename": file_name, "project_id": project_id, "role": role}
+    if revision is not None:
+        metadata["revision"] = str(revision)
+
+    async with _build_client() as client:
+        create = await client.post(
+            "/tus",
+            headers={
+                "Tus-Resumable": TUS_VERSION,
+                "Upload-Length": str(len(payload)),
+                "Upload-Metadata": _encode_tus_metadata(metadata),
+            },
+        )
+        create.raise_for_status()
+
+        # The Location header is absolute; the client is already bound to the
+        # API base URL, so only its path is needed.
+        upload_path = urlparse(create.headers["Location"]).path
+
+        write = await client.patch(
+            upload_path,
+            content=payload,
+            headers={
+                "Tus-Resumable": TUS_VERSION,
+                "Upload-Offset": "0",
+                "Content-Type": "application/offset+octet-stream",
+            },
+        )
+        write.raise_for_status()
+        logger.info(
+            "Uploaded %s (role=%s, revision=%s) to project %s",
+            file_name,
+            role,
+            revision,
+            project_id,
+        )
+
+
 async def approve_workflow_run(workflow_run_id: str) -> None:
     """Trigger the human-approval gate for a workflow run."""
     async with _build_client() as client:
@@ -237,6 +327,13 @@ async def start_workflow(config: dict[str, Any]) -> str:
 
     Returns:
         The workflow_run_id of the newly created run.
+
+    Note:
+        This endpoint takes the `WorkflowConfig` union, which is untagged: a
+        payload carrying only `type` and `project_id` validates against the
+        first union member that accepts it, not the one matching `type`. Pass a
+        config with fields unique to the target workflow, or use
+        `start_workflow_by_type`, whose endpoint takes an explicit request model.
     """
     async with _build_client() as client:
         resp = await client.post("/api/workflows/start", json=config)
@@ -248,6 +345,37 @@ async def start_workflow(config: dict[str, Any]) -> str:
             body.get("workflow_run_id"),
         )
         return body["workflow_run_id"]
+
+
+async def start_workflow_types(project_id: str, workflow_types: list[str]) -> None:
+    """Start workflows on an existing project.
+
+    Goes through `/api/workflows/start-multiple`, whose request model names
+    `workflow_types` explicitly, rather than `/api/workflows/start`, whose
+    `WorkflowConfig` union is untagged and silently mis-resolves a minimal
+    payload (a bare `{type, project_id}` validates as `HumanApprovalConfig`,
+    and the run then fails constructing its state). This is also the endpoint
+    the app itself uses to start analyses.
+
+    Returns nothing even though the endpoint now reports `workflow_run_ids`:
+    the caller tracks the run with `poll_until_complete`, which finds it on the
+    project by type. That is what the other e2e suites do, and it keeps this
+    helper usable for the multi-workflow case where the ids would need pairing
+    back up with their types anyway.
+    """
+    payload: dict[str, Any] = {
+        "project_id": project_id,
+        "workflow_types": workflow_types,
+    }
+    openai_api_key = os.environ.get("EVAL_API_OPENAI_API_KEY")
+    if openai_api_key:
+        payload["openai_api_key"] = openai_api_key
+
+    async with _build_client() as client:
+        resp = await client.post("/api/workflows/start-multiple", json=payload)
+        resp.raise_for_status()
+
+    logger.info("Started %s on project %s", workflow_types, project_id)
 
 
 async def poll_workflow_run_until_complete(
@@ -272,14 +400,33 @@ async def poll_workflow_run_until_complete(
 
     async with _build_client() as client:
         while time.monotonic() < deadline:
-            resp = await client.get(f"/api/workflows/{workflow_run_id}")
-            resp.raise_for_status()
+            try:
+                resp = await client.get(f"/api/workflows/{workflow_run_id}")
+                resp.raise_for_status()
+            except (httpx.TimeoutException, httpx.TransportError) as e:
+                logger.warning(
+                    "Polling workflow run %s failed (%s); retrying",
+                    workflow_run_id,
+                    type(e).__name__,
+                )
+                await asyncio.sleep(interval_s)
+                continue
             run_detail = resp.json()
             status = run_detail.get("run", {}).get("status")
             if status == "completed":
                 logger.info("Workflow run %s completed", workflow_run_id)
                 check_workflow_errors(run_detail.get("state") or {})
                 return run_detail
+            if status in TERMINAL_FAILURE_STATUSES:
+                # A run that has failed or been cancelled will never reach
+                # "completed", so polling on would only burn the timeout and
+                # report the wrong cause.
+                check_workflow_errors(run_detail.get("state") or {})
+                raise WorkflowCompletionError(
+                    f"Workflow run '{workflow_run_id}' ended with status "
+                    f"'{status}'. The run carried no error details; check the "
+                    f"backend log for the traceback."
+                )
             logger.debug(
                 "Workflow run %s status=%s, polling again in %ss",
                 workflow_run_id,
@@ -308,7 +455,20 @@ async def poll_until_complete(
 
     async with _build_client() as client:
         while time.monotonic() < deadline:
-            project = await _fetch_project_detail(client, project_id)
+            try:
+                project = await _fetch_project_detail(client, project_id)
+            except (httpx.TimeoutException, httpx.TransportError) as e:
+                # The workflow is still running server-side; only this poll
+                # failed. Losing the whole eval sample over it would report a
+                # busy server as a workflow failure.
+                logger.warning(
+                    "Polling %s for project %s failed (%s); retrying",
+                    workflow_type,
+                    project_id,
+                    type(e).__name__,
+                )
+                await asyncio.sleep(interval_s)
+                continue
             for run_detail in project.get("workflow_runs", []):
                 run = run_detail.get("run", {})
                 if run.get("type") != workflow_type:
@@ -322,6 +482,17 @@ async def poll_until_complete(
                     )
                     check_workflow_errors(run_detail.get("state") or {})
                     return run_detail
+                if status in TERMINAL_FAILURE_STATUSES:
+                    # A failed or cancelled run will never reach "completed",
+                    # so polling on would only burn the timeout and report the
+                    # wrong cause.
+                    check_workflow_errors(run_detail.get("state") or {})
+                    raise WorkflowCompletionError(
+                        f"Workflow '{workflow_type}' ended with status "
+                        f"'{status}' (run_id={run.get('id')}) for project "
+                        f"{project_id}. The run carried no error details; "
+                        f"check the backend log for the traceback."
+                    )
                 logger.debug(
                     "Workflow %s status=%s, polling again in %ss",
                     workflow_type,
