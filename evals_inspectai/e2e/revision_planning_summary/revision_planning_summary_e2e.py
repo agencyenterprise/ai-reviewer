@@ -13,6 +13,10 @@ workflow against it.
 
 The prose is free-form, so scoring splits in two:
 
+Each scenario's draft and reviewer memos live as markdown under
+`evals_inspectai/files/peer_review/<scenario>/`; the dataset references them and
+carries the per-scenario expectations.
+
 - `report_structure`, for the rules the skill states outright and that can be
   checked exactly. It reports one metric per rule (memos reproduced verbatim,
   reviewer text inside marked quotes, a valid and gap-free point-ID scheme, a
@@ -104,12 +108,19 @@ _MIN_REPORT_CHARS = 2000
 def _record_to_sample(record: dict) -> Sample:
     """Build a sample from one dataset record.
 
-    Memos are embedded in the dataset as literal YAML blocks, next to the
-    verbatim probes that are checked against them, so their line breaks and
-    indentation survive exactly as a reviewer would have written them. The
-    draft is a `file://` reference: it is bulk input that nothing is matched
-    against character by character.
+    The draft and the reviewer memos are `file://` references, resolved here.
+    Keeping them on disk as markdown rather than embedding them keeps the
+    dataset readable and lets the fixture documents be edited as the documents
+    they are; the memo's file name is carried through as its display name on
+    upload.
     """
+    memos = [
+        {
+            "file_name": Path(ref.removeprefix("file://")).name,
+            "content": resolve_input(ref),
+        }
+        for ref in record["memos"]
+    ]
     return Sample(
         id=record["id"],
         # The draft is the sample input so it reaches the grader as the question.
@@ -118,7 +129,7 @@ def _record_to_sample(record: dict) -> Sample:
         # viewer. The graded criteria are read from metadata, not from here.
         target=record["rubric"]["scenario_trap"],
         metadata={
-            "memos": record["memos"],
+            "memos": memos,
             "expected_reviewers": record["expected_reviewers"],
             "point_count_bands": record["point_count_bands"],
             "verbatim_probes": record["verbatim_probes"],
@@ -132,9 +143,8 @@ def _load_dataset() -> MemoryDataset:
 
     Inspect ships CSV and JSON loaders but not YAML, so the records are read
     here and handed over as a `MemoryDataset`. YAML is worth that small amount
-    of glue: the memos are multi-paragraph documents with meaningful line
-    breaks, bullet indentation, and blank lines, and a literal block keeps them
-    legible and diffable in a way a JSON string with escaped newlines does not.
+    of glue for the criterion prose, which folded scalars keep readable and
+    diffable where a JSON string of the same length would not be.
     """
     path = Path(__file__).parent / "dataset.yaml"
     records = yaml.safe_load(path.read_text())
