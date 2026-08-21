@@ -5407,6 +5407,30 @@ export type StartMultipleWorkflowsRequest = {
 };
 
 /**
+ * StartMultipleWorkflowsResponse
+ *
+ * Response model for starting multiple workflows
+ */
+export type StartMultipleWorkflowsResponse = {
+  /**
+   * Project Id
+   */
+  project_id: string;
+  /**
+   * Types
+   */
+  types: Array<WorkflowRunType>;
+  /**
+   * Workflow Run Ids
+   */
+  workflow_run_ids: Array<string>;
+  /**
+   * Message
+   */
+  message: string;
+};
+
+/**
  * StartWorkflowResponse
  *
  * Response model for starting a workflow
@@ -6642,7 +6666,7 @@ export type StartMultipleWorkflowsApiWorkflowsStartMultiplePostResponses = {
   /**
    * Successful Response
    */
-  200: StartWorkflowResponse;
+  200: StartMultipleWorkflowsResponse;
 };
 
 export type StartMultipleWorkflowsApiWorkflowsStartMultiplePostResponse =

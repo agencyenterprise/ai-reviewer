@@ -506,6 +506,7 @@ export {
   type StartMultipleWorkflowsApiWorkflowsStartMultiplePostResponse,
   type StartMultipleWorkflowsApiWorkflowsStartMultiplePostResponses,
   type StartMultipleWorkflowsRequest,
+  type StartMultipleWorkflowsResponse,
   type StartWorkflowApiWorkflowsStartPostData,
   type StartWorkflowApiWorkflowsStartPostError,
   type StartWorkflowApiWorkflowsStartPostErrors,
