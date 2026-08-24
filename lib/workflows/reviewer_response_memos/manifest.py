@@ -53,12 +53,16 @@ and formatting is defined there.
 
 ## Output
 
-Deliver all of the memos together as a single, complete, self-contained \
-HTML document written into the `report_html` field of your structured \
-response, with its own inline `<style>` block implementing the skill's \
-formatting conventions. \
-Self-contained means no external stylesheets, fonts, scripts, or images, and no \
-`<script>` of any kind; embed any images as `data:` URIs.\
+Write the memos, all of them together, to `/report.html` using the \
+`write_file` tool, as a single, complete, self-contained HTML document with \
+its own inline `<style>` \
+block implementing the skill's formatting conventions. Self-contained means no \
+external stylesheets, fonts, scripts, or images, and no `<script>` of any \
+kind; embed any images as `data:` URIs.
+
+`/report.html` is the deliverable: it is read from the filesystem when you \
+finish, and nothing you say in your final message is used in its place. Write \
+the whole document, and if you revise it, write it again in full.\
 """
 
 

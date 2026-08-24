@@ -5,9 +5,10 @@ single-node deep-agent workflows, plus the helper that converts them into
 DocumentIssue objects.
 """
 
-from typing import List, Literal, Optional
+from typing import Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from langchain_core.messages import BaseMessage
+from pydantic import BaseModel, ConfigDict, Field
 
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 
@@ -47,9 +48,19 @@ class IssueItem(BaseModel):
 
 
 # --- LLM structured-output models ---------------------------------------
-# Each deep-agent variant forces one of these as the model's response schema,
-# so the LLM sees only the fields it should populate. They are mapped into the
-# unified DeepAgentResult that the workflow state stores.
+# The validation variant forces this as its response schema, so the LLM sees
+# exactly the fields it should populate. It is mapped into the unified
+# DeepAgentResult that the workflow state stores.
+#
+# The HTML-report variant has no schema. It writes its deliverable to
+# REPORT_PATH on the agent filesystem instead: a report is thousands of tokens
+# of markup, and returning it as one JSON string made the whole run hinge on a
+# single terminal message parsing cleanly. It did not always. Every observed
+# failure was `Extra data` -- a complete report object followed by more output,
+# once by a second object -- which no amount of retrying the parse would have
+# helped, and constrained decoding costs accuracy on long generations besides.
+# A file write is an ordinary tool call: recoverable mid-run, and repeatable in
+# pieces rather than in one irreversible breath.
 
 
 class AgentCheckResult(BaseModel):
@@ -65,21 +76,39 @@ class AgentCheckResult(BaseModel):
     )
 
 
-class AgentHtmlReport(BaseModel):
-    """LLM output for a pass that produces an HTML report deliverable."""
+# Where an HTML-report workflow is told to write its deliverable.
+REPORT_PATH = "/report.html"
 
-    issues: List[IssueItem] = Field(
-        default_factory=list,
-        description="Optional issues found while producing the report",
-    )
-    report_html: str = Field(
-        default="",
-        description=(
-            "A complete, self-contained HTML document for the report: its own "
-            "inline <style>, no external resources (fonts/images/scripts), and "
-            "images only as data: URIs."
-        ),
-    )
+
+class ReportNotWrittenError(Exception):
+    """An HTML-report agent finished without writing its report.
+
+    Raised rather than returning an empty report: a run that produced nothing
+    is a failure, and recording it as a successful run with a blank deliverable
+    would hide it from both the UI and the evals.
+    """
+
+    def __init__(self, path: str, files: List[str]) -> None:
+        self.path = path
+        super().__init__(
+            f"The agent wrote no report at {path}. Files present: {sorted(files)}"
+        )
+
+
+class DeepAgentRun(BaseModel):
+    """Everything one deep-agent invocation produced.
+
+    Carries both ways a variant can deliver a result -- ``structured_response``
+    for the schema-filling one, ``files`` for the one that writes its report to
+    the agent filesystem -- so the node can hand the whole run to the manifest
+    and let it take what it needs.
+    """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    structured_response: Optional[BaseModel] = None
+    files: Dict[str, str] = Field(default_factory=dict)
+    messages: List[BaseMessage] = Field(default_factory=list)
 
 
 # --- Unified state result ------------------------------------------------
