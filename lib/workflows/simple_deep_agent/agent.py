@@ -5,20 +5,21 @@ Callers supply the user prompt (specific rules/criteria) and may optionally
 override the system prompt when the default is not appropriate.
 """
 
-from typing import Any, Callable, Literal, Optional, Sequence, Type, Union
+from typing import Any, Callable, Literal, Optional, Sequence, Union
 
 from deepagents import create_deep_agent
-from deepagents.backends.utils import file_data_to_string
-from langchain.agents.structured_output import AutoStrategy
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
-from pydantic import BaseModel
 
 from lib.config.llm_models import gpt_5_5_model
 from lib.models.agent import LangChainAgent, ReasoningDict
 from lib.workflows.context import ContextSchema
-from lib.workflows.simple_deep_agent.agent_types import AgentCheckResult, DeepAgentRun
+from lib.workflows.simple_deep_agent.agent_types import DeepAgentRun
+from lib.workflows.simple_deep_agent.issue_reporting import (
+    IssueReporter,
+    collect_deep_agent_run,
+)
 
 _SYSTEM_PROMPT = """\
 You are a specialist document reviewer. Your task is to review a document \
@@ -31,9 +32,18 @@ content as needed to evaluate the rules given by the user.
 
 ## Reporting Issues
 
-For each rule or criterion that fails, report one issue following the conventions \
-defined in the issues skill (`/skills/issues/SKILL.md`). \
-Do not create issues for rules that pass.\
+Call `report_issue` once for each finding the workflow criteria require, \
+following the conventions defined in the issues skill \
+(`/skills/issues/SKILL.md`). Do not call it for rules that pass unless the \
+workflow criteria explicitly request informational issues with severity `none`. \
+If nothing qualifies for reporting, make no `report_issue` calls.
+
+## Report
+
+Write the overall review to `/report.md` using `write_file`. This file is the \
+report deliverable: the workflow reads it from the filesystem when you finish, \
+and nothing in your final message is used in its place. Write the whole report, \
+and if you revise it, write it again in full.\
 """
 
 
@@ -45,7 +55,7 @@ class SimpleDeepAgent(LangChainAgent):
     """
 
     name = "Simple Deep Agent"
-    description = "Runs a deep-agent validation pass and returns structured issues"
+    description = "Runs a deep-agent validation pass and records issues through tools"
     model = gpt_5_5_model
     temperature = 0.0
     reasoning = {"effort": "medium", "summary": "auto"}
@@ -55,18 +65,14 @@ class SimpleDeepAgent(LangChainAgent):
         context: ContextSchema,
         user_prompt: str,
         system_prompt: Optional[str] = None,
-        response_model: Optional[Type[BaseModel]] = AgentCheckResult,
+        report_issues: bool = True,
         tools: Optional[Sequence[Union[BaseTool, Callable, dict[str, Any]]]] = None,
         reasoning_effort: Optional[Literal["low", "medium", "high"]] = None,
     ):
         super().__init__(context)
         self._system_prompt = system_prompt or _SYSTEM_PROMPT
         self._user_prompt = user_prompt
-        # Structured-output model the agent fills. Defaults to AgentCheckResult
-        # (issues + a markdown report). None means no structured output at all:
-        # the HTML-report variant writes its deliverable to a file instead, so
-        # constraining its final message buys nothing and costs accuracy.
-        self._response_model = response_model
+        self._report_issues = report_issues
         self._tools = tools
         # Shadows the class-level `reasoning` for this instance only, so one
         # workflow can ask for more reasoning without affecting the others that
@@ -79,13 +85,15 @@ class SimpleDeepAgent(LangChainAgent):
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
     ) -> DeepAgentRun:
+        issue_reporter = IssueReporter() if self._report_issues else None
+        tools = list(self._tools or ())
+        if issue_reporter is not None:
+            tools.extend(issue_reporter.tools)
+
         deep_agent = create_deep_agent(
             model=self.llm,
-            tools=self._tools,
+            tools=tools,
             context_schema=ContextSchema,
-            response_format=(
-                AutoStrategy(self._response_model) if self._response_model else None
-            ),
             skills=["/skills/"],
         )
 
@@ -105,11 +113,4 @@ class SimpleDeepAgent(LangChainAgent):
         # The filesystem is returned whole -- the mounted document and skills
         # alongside anything the agent wrote -- so the caller picks out what it
         # asked for by path.
-        return DeepAgentRun(
-            structured_response=result.get("structured_response"),
-            files={
-                path: file_data_to_string(data)
-                for path, data in (result.get("files") or {}).items()
-            },
-            messages=result["messages"],
-        )
+        return collect_deep_agent_run(result, issue_reporter)

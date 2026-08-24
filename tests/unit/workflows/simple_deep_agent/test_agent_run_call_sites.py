@@ -74,7 +74,7 @@ def test_no_call_site_unpacks_ainvoke(path: Path):
         for target in node.targets:
             assert not isinstance(target, ast.Tuple), (
                 f"{path.name}:{node.lineno} unpacks ainvoke() into a tuple. "
-                f"It returns a DeepAgentRun; read .structured_response and "
+                f"It returns a DeepAgentRun; read its delivery fields and "
                 f".messages off it instead."
             )
 

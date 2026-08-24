@@ -27,7 +27,8 @@ class SimpleDeepAgentState(BaseWorkflowState):
     """Shared state for all single-node deep-agent workflows.
 
     ``result`` is the unified DeepAgentResult; markdown variants fill its
-    ``report_markdown`` (+ ``issues``), HTML variants fill its ``report_html``.
+    ``report_markdown`` (+ ``issues``) from file/tool deliveries, while HTML
+    variants fill its ``report_html`` from a file.
     """
 
     type: WorkflowRunType = Field(

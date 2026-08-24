@@ -12,8 +12,9 @@ class LiteratureReviewV2Manifest(SimpleDeepAgentManifest):
     """Literature review implemented with the simple deep-agent pattern.
 
     Same goal as v1 (surface relevant academic sources the document may have
-    missed, both supporting and conflicting), but returns the standard
-    simple-deep-agent output (`AgentCheckResult`: issues + report_markdown).
+    missed, both supporting and conflicting), but persists the standard
+    simple-deep-agent result (issues + report_markdown) after collecting issues
+    through tools and reading the report from `/report.md`.
 
     Reuses ``SimpleDeepAgentState``/``SimpleDeepAgentConfig`` and the base
     ``create_initial_state`` / ``convert_state_to_issues``; only the graph is
