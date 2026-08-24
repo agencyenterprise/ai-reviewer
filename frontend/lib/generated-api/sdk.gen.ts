@@ -170,9 +170,6 @@ import type {
   StartAnalysisApiStartAnalysisPostData,
   StartAnalysisApiStartAnalysisPostErrors,
   StartAnalysisApiStartAnalysisPostResponses,
-  StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostData,
-  StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostErrors,
-  StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostResponses,
   StartMultipleWorkflowsApiWorkflowsStartMultiplePostData,
   StartMultipleWorkflowsApiWorkflowsStartMultiplePostErrors,
   StartMultipleWorkflowsApiWorkflowsStartMultiplePostResponses,
@@ -483,33 +480,6 @@ export const appendMessageApiChatThreadsThreadIdMessagesPost = <ThrowOnError ext
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/chat/threads/{thread_id}/messages',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Start Analysis Openapi Stub
- */
-export const startAnalysisOpenapiStubApiStartAnalysisDoNotUsePost = <ThrowOnError extends boolean = true>(
-  options: Options<StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostData, ThrowOnError>,
-): RequestResult<
-  StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostResponses,
-  StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostErrors,
-  ThrowOnError,
-  'data'
-> =>
-  (options.client ?? client).post<
-    StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostResponses,
-    StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/start-analysis/_do_not_use_',
     ...options,
     headers: {
       'Content-Type': 'application/json',

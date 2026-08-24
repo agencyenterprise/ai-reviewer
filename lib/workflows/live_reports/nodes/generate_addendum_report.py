@@ -6,8 +6,6 @@ from langgraph.runtime import Runtime
 
 from lib.agents.addendum_report_generator import AddendumReportGeneratorAgent
 from lib.agents.formatting_utils import (
-    format_domain_context,
-    format_audience_context,
     format_summary_context,
 )
 from lib.workflows.context import ContextSchema
@@ -69,8 +67,6 @@ async def generate_addendum_report(
         return {}
 
     prompt_kwargs = {
-        "domain_context": format_domain_context(state.config.domain),
-        "audience_context": format_audience_context(state.config.target_audience),
         "document_title": document_summary.title if document_summary else "",
         "summary_context": (
             format_summary_context(document_summary.summary) if document_summary else ""

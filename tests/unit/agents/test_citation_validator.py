@@ -19,8 +19,6 @@ _SAMPLE_KWARGS = {
     "end_line": 42,
     "section_headings": "Results > Findings",
     "reference_file_map": "[1] Smith 2020 -> file-abc",
-    "domain_context": "",
-    "audience_context": "",
     "headings": ["Results", "Findings"],
 }
 
@@ -64,8 +62,6 @@ def test_env_guidance_formats_with_validate_section_kwargs():
         "{end_line}",
         "{section_headings}",
         "{reference_file_map}",
-        "{domain_context}",
-        "{audience_context}",
     ):
         assert placeholder not in rendered
 

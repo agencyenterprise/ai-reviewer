@@ -103,10 +103,6 @@ Within the list of claims, you must include the following information for each c
 
 # Agent Inputs
 
-{domain_context}
-
-{audience_context}
-
 {summary_context}
 
 {headings_context}

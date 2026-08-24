@@ -157,10 +157,6 @@ Return `issues` — one `CitationAssessment` per citation you validate — each 
 - `feedback`: an actionable suggestion for the author (`"No changes needed"` if the citation is correct);
 - `evidence_sources`: every reference file you checked for this citation (with a quote, location, and file_id each);
 - `citation_to_file_mapping`: a display-friendly summary of which bibliography entry matched which file (e.g. `"Smith (2020) → smith_2020.pdf"`; no file_id UUIDs here).
-
-{domain_context}
-
-{audience_context}
 """
 
 
