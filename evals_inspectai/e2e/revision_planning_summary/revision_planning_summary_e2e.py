@@ -35,12 +35,8 @@ asks are out of scope, a memo that refers to everything by a number the
 revision will change, and a memo dominated by trivial corrections.
 """
 
-import asyncio
 import json
-import re
-from itertools import permutations
 from pathlib import Path
-from typing import Any
 
 import yaml
 from inspect_ai import Task, task
@@ -54,11 +50,6 @@ from inspect_ai.scorer import (
     scorer,
     stderr,
 )
-from inspect_ai.scorer._model import (  # type: ignore[attr-defined]
-    DEFAULT_GRADE_PATTERN,
-    DEFAULT_MODEL_GRADED_FACT_TEMPLATE,
-    default_instructions,
-)
 from inspect_ai.solver import Generate, Solver, TaskState, solver
 from inspect_ai.viewer import (
     SampleScoreView,
@@ -70,24 +61,22 @@ from inspect_ai.viewer import (
     ViewerConfig,
 )
 from langchain_core.messages.utils import convert_to_messages
-from pydantic import ValidationError
 
 from evals_inspectai.common.converters import messages_from_langchain
-from evals_inspectai.common.html_report import (
-    HtmlReport,
-    find_point_ids,
-    self_containment_violations,
-    top_level_ids_by_reviewer,
-    two_part_layout,
-    voice_tells,
-)
 from evals_inspectai.common.loaders import resolve_input
 from evals_inspectai.common.peer_review_fixture import (
     ReviewerMemo,
     run_review_assistant_workflow,
     setup_peer_review_project,
 )
-from evals_inspectai.common.simple_deep_agent_types import HtmlReportAgentOutput
+from evals_inspectai.common.review_assistant_scorers import (
+    STRUCTURE_CHECKS,
+    criteria_for,
+    extract_report,
+    failed_score,
+    grade_criteria,
+    report_structure,
+)
 
 _TARGET_WORKFLOW = "revision_planning_summary"
 
@@ -99,10 +88,6 @@ GRADER_MODEL = "openai/gpt-5.6-terra"
 # The agent reads a whole draft plus every memo at high reasoning effort and
 # writes a long HTML document, so it runs well past the default budget.
 _WORKFLOW_TIMEOUT_S = 2400
-
-# Below this, the report is too short to be a real deliverable regardless of
-# what else it gets right.
-_MIN_REPORT_CHARS = 2000
 
 
 def _record_to_sample(record: dict) -> Sample:
@@ -204,163 +189,6 @@ def revision_planning_summary_solver(
     return solve
 
 
-# One key per rule the skill states outright. Reported as separate metrics
-# rather than averaged into one number, so a regression names itself in the
-# results table instead of showing up as a fractional dip to read out of an
-# explanation string.
-STRUCTURE_CHECKS = (
-    "verbatim",
-    "quoted",
-    "id_scheme",
-    "self_contained",
-    "two_part_layout",
-    "voice",
-)
-
-
-def _all_failed(reason: str) -> Score:
-    """Score every check as failed, for outputs there is nothing to check."""
-    return Score(
-        value={name: 0.0 for name in STRUCTURE_CHECKS},
-        explanation=reason,
-    )
-
-
-@scorer(metrics={name: [mean(), stderr()] for name in STRUCTURE_CHECKS})
-def report_structure() -> Scorer:
-    """Score the skill's exactly-checkable rules, one metric per rule.
-
-    A single scorer returning a dict rather than six separate scorers: the
-    checks share the HTML parse, which is the expensive part, and Inspect
-    reports each key as its own metric either way. That is the documented
-    split -- separate scorers when they are genuinely independent, one
-    dict-valued scorer when they share computation.
-    """
-
-    async def score(state: TaskState, target: Target) -> Score:
-        try:
-            output = HtmlReportAgentOutput.model_validate_json(state.output.completion)
-        except ValidationError as e:
-            return _all_failed(f"Could not parse the workflow state: {e}")
-
-        html = (output.result.report_html if output.result else "") or ""
-        if len(html) < _MIN_REPORT_CHARS:
-            return _all_failed(f"No substantive HTML report ({len(html)} chars)")
-
-        report = HtmlReport(html)
-        meta = state.metadata or {}
-        checks: dict[str, tuple[bool, str]] = {}
-
-        # Every memo is reproduced verbatim. The probes are distinctive
-        # sentences drawn from across each memo, including its trailing
-        # sections, since dropping the tail is the likely failure.
-        probes: list[str] = meta["verbatim_probes"]
-        missing = [p for p in probes if not report.contains(p)]
-        checks["verbatim"] = (
-            not missing,
-            f"{len(probes) - len(missing)}/{len(probes)} memo probes reproduced"
-            + (f"; first missing: {missing[0][:60]!r}" if missing else ""),
-        )
-
-        # Reviewer text is marked as a quote, so the boundary between the
-        # reviewer's words and the workflow's own is unmistakable.
-        unquoted = [p for p in probes if report.contains(p) and not report.quotes(p)]
-        checks["quoted"] = (
-            not unquoted,
-            (
-                "reviewer text is inside marked quotes"
-                if not unquoted
-                else f"{len(unquoted)} reproduced probe(s) sit outside any quote"
-            ),
-        )
-
-        # One letter per reviewer, numbered from 1 with no gaps, and a
-        # plausible number of points per reviewer.
-        grouped = top_level_ids_by_reviewer(find_point_ids(report.raw_text))
-        checks["id_scheme"] = _check_id_scheme(grouped, meta)
-
-        # A self-contained document, as all three system prompts require.
-        violations = self_containment_violations(html)
-        checks["self_contained"] = (
-            not violations,
-            "self-contained" if not violations else "; ".join(violations),
-        )
-
-        # A visible two-part split with a short first part, keyed on the page
-        # break rather than on heading wording.
-        checks["two_part_layout"] = two_part_layout(report)
-
-        # Voice tells, counted only outside quotes: the memo is reproduced
-        # verbatim, so the reviewer's own punctuation is not held against it.
-        tells = voice_tells(report.raw_unquoted_text)
-        checks["voice"] = (
-            not any(tells.values()),
-            (
-                "no generic-AI tells in own prose"
-                if not any(tells.values())
-                else ", ".join(f"{k}={v}" for k, v in tells.items() if v)
-            ),
-        )
-
-        return Score(
-            value={name: float(ok) for name, (ok, _) in checks.items()},
-            explanation=" | ".join(
-                f"{'PASS' if ok else 'FAIL'} {name}: {detail}"
-                for name, (ok, detail) in checks.items()
-            ),
-        )
-
-    return score
-
-
-def _check_id_scheme(
-    grouped: dict[str, set[int]], meta: dict[str, Any]
-) -> tuple[bool, str]:
-    """Validate reviewer letters, per-reviewer point counts, and numbering gaps.
-
-    Which memo gets which letter is not checked. The skill letters reviewers in
-    the order their memos are provided, but the agent sees the memos as
-    `/revisions/<n>/reviewer-memos/<file_id>.md`, so the mounted tree carries
-    neither the original file names nor a stable order. Holding the eval to a
-    specific assignment would score a coin flip. The bands are therefore
-    satisfied by any assignment of expected counts to the letters actually
-    used, which still catches a dropped or merged reviewer.
-    """
-    expected: list[str] = meta["expected_reviewers"]
-    bands: dict[str, list[int]] = meta["point_count_bands"]
-
-    problems: list[str] = []
-
-    used = sorted(grouped)
-    if used != sorted(expected):
-        problems.append(
-            f"reviewer letters {used or 'none'}, expected {sorted(expected)}"
-        )
-    else:
-        counts = [len(grouped[letter]) for letter in used]
-        band_list = [tuple(bands[letter]) for letter in expected]
-        if not any(
-            all(low <= count <= high for count, (low, high) in zip(counts, order))
-            for order in permutations(band_list)
-        ):
-            problems.append(
-                f"per-reviewer point counts {counts} fit no assignment of the "
-                f"expected bands {band_list}"
-            )
-
-    for letter, numbers in sorted(grouped.items()):
-        if numbers and sorted(numbers) != list(range(1, max(numbers) + 1)):
-            missing = sorted(set(range(1, max(numbers) + 1)) - numbers)
-            problems.append(f"{letter} numbering has gaps at {missing}")
-
-    summary = ", ".join(f"{k}={len(v)}" for k, v in sorted(grouped.items()))
-    return (
-        not problems,
-        f"points per reviewer: {summary or 'none'}"
-        + ("; " + "; ".join(problems) if problems else ""),
-    )
-
-
 # The rubric, decomposed. One prose brief per sample produced a single grade
 # that said "something was weak" without saying which judgement, and let one
 # poor area drag the rest. Each criterion is now graded on its own and reported
@@ -405,41 +233,10 @@ SHARED_CRITERIA: dict[str, str] = {
     ),
 }
 
-# C / P / I as the grader returns them.
-_GRADE_VALUES = {"C": 1.0, "P": 0.5, "I": 0.0}
-
-
-def _criteria_for(state: TaskState) -> dict[str, str]:
-    """Shared criteria, with any per-sample text layered on top."""
-    overrides = (state.metadata or {}).get("rubric") or {}
-    return {**SHARED_CRITERIA, **overrides}
-
-
-async def _grade_one(
-    grader: Model, criterion: str, answer: str, question: str
-) -> tuple[float, str]:
-    """Grade a single criterion, returning its value and the grader's reasoning."""
-    prompt = DEFAULT_MODEL_GRADED_FACT_TEMPLATE.format(
-        question=question,
-        answer=answer,
-        criterion=criterion,
-        instructions=default_instructions(partial_credit=True),
-    )
-    result = await grader.generate(prompt)
-    match = re.search(DEFAULT_GRADE_PATTERN, result.completion)
-    if not match:
-        return 0.0, f"grade not found in grader output: {result.completion[:300]}"
-    return _GRADE_VALUES.get(match.group(1), 0.0), result.completion
-
 
 @scorer(metrics={name: [mean(), stderr()] for name in RUBRIC_CRITERIA})
 def rubric_criteria(model: str | Model | None = None) -> Scorer:
-    """Grade each rubric criterion independently.
-
-    One grader call per criterion rather than one call weighing all of them.
-    Judging them together lets a single weak area colour the rest, which is the
-    behaviour that made the old single grade hard to act on. The calls run
-    concurrently, so the extra cost is tokens rather than wall clock.
+    """Grade this suite's four criteria, each in its own grader call.
 
     The grader is shown the report's rendered text, not its HTML. Reading order
     and headings survive the flattening, which is what these criteria turn on,
@@ -447,38 +244,16 @@ def rubric_criteria(model: str | Model | None = None) -> Scorer:
     """
 
     async def score(state: TaskState, target: Target) -> Score:
-        try:
-            output = HtmlReportAgentOutput.model_validate_json(state.output.completion)
-        except ValidationError as e:
-            return Score(
-                value={name: 0.0 for name in RUBRIC_CRITERIA},
-                explanation=f"Could not parse the workflow state: {e}",
-            )
+        report, reason = extract_report(state)
+        if report is None:
+            return failed_score(RUBRIC_CRITERIA, reason)
 
-        html = (output.result.report_html if output.result else "") or ""
-        if len(html) < _MIN_REPORT_CHARS:
-            return Score(
-                value={name: 0.0 for name in RUBRIC_CRITERIA},
-                explanation=f"No substantive HTML report ({len(html)} chars)",
-            )
-
-        answer = HtmlReport(html).raw_text
-        criteria = _criteria_for(state)
-        grader = get_model(model) if model else get_model(GRADER_MODEL)
-
-        graded = await asyncio.gather(
-            *(
-                _grade_one(grader, criteria[name], answer, state.input_text)
-                for name in RUBRIC_CRITERIA
-            )
-        )
-
-        return Score(
-            value={name: value for name, (value, _) in zip(RUBRIC_CRITERIA, graded)},
-            explanation="\n\n".join(
-                f"### {name}: {value}\n{reasoning}"
-                for name, (value, reasoning) in zip(RUBRIC_CRITERIA, graded)
-            ),
+        return await grade_criteria(
+            grader=get_model(model) if model else get_model(GRADER_MODEL),
+            keys=RUBRIC_CRITERIA,
+            criteria=criteria_for(state, SHARED_CRITERIA),
+            answer=report.raw_text,
+            question=state.input_text,
         )
 
     return score

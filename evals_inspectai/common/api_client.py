@@ -152,9 +152,7 @@ async def upload_and_start_analysis(
             if openai_api_key:
                 data["openai_api_key"] = openai_api_key
 
-            resp = await client.post(
-                "/api/start-analysis", files=multipart, data=data
-            )
+            resp = await client.post("/api/start-analysis", files=multipart, data=data)
         finally:
             for h in open_handles:
                 h.close()
@@ -249,9 +247,7 @@ async def tus_upload_file(
 async def approve_workflow_run(workflow_run_id: str) -> None:
     """Trigger the human-approval gate for a workflow run."""
     async with _build_client() as client:
-        resp = await client.post(
-            f"/api/workflow-runs/{workflow_run_id}/approve"
-        )
+        resp = await client.post(f"/api/workflow-runs/{workflow_run_id}/approve")
         resp.raise_for_status()
         logger.info("Approved workflow_run_id=%s", workflow_run_id)
 
@@ -345,6 +341,23 @@ async def start_workflow(config: dict[str, Any]) -> str:
             body.get("workflow_run_id"),
         )
         return body["workflow_run_id"]
+
+
+async def create_revision(project_id: str) -> int:
+    """Create a new revision on a project and return its number.
+
+    Creating a revision archives the current revision's issues and cancels any
+    workflow still running against it, so anything that must belong to the
+    outgoing revision has to be uploaded before this is called. The new main
+    document is uploaded afterwards, through TUS.
+    """
+    async with _build_client() as client:
+        resp = await client.post(f"/api/project/{project_id}/revisions")
+        resp.raise_for_status()
+        revision = int(resp.json()["revision"])
+
+    logger.info("Created revision %s on project %s", revision, project_id)
+    return revision
 
 
 async def start_workflow_types(project_id: str, workflow_types: list[str]) -> None:

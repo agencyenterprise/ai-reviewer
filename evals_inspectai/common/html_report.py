@@ -263,9 +263,14 @@ def self_containment_violations(html: str) -> list[str]:
 # --- Reviewer point IDs -----------------------------------------------------
 
 # A1, B12, A1.2 — a reviewer letter, a point number, and an optional sub-point.
-# The lookarounds keep it from matching inside words or longer identifiers
-# (e.g. the "A1" in "DNA123" or a decimal like "3.1415").
-_POINT_ID = re.compile(r"(?<![A-Za-z0-9])([A-Z])(\d{1,2})(?:\.(\d{1,2}))?(?![\d.])")
+# The leading lookbehind keeps it out of words and longer identifiers (the "A1"
+# in "DNA123"). The trailing lookaheads reject a longer number and a decimal
+# tail, but deliberately allow a bare period after the id: reports label points
+# "A1." as often as "A1", and rejecting that undercounted every point in a
+# section and made the numbering look full of gaps.
+_POINT_ID = re.compile(
+    r"(?<![A-Za-z0-9])([A-Z])(\d{1,2})(?:\.(\d{1,2}))?(?!\d)(?!\.\d)"
+)
 
 
 class PointId(str):
@@ -387,3 +392,92 @@ def two_part_layout(report: "HtmlReport") -> tuple[bool, str]:
             f"{_MAX_FIRST_PART_SHARE:.0%} budget",
         )
     return True, f"first part is {boundary:.0%} of the document"
+
+
+# --- Tables ----------------------------------------------------------------
+
+
+class _TableExtractor(HTMLParser):
+    """Collects every table as rows of cell text."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.tables: list[list[list[str]]] = []
+        self._table: list[list[str]] | None = None
+        self._row: list[str] | None = None
+        self._cell: list[str] | None = None
+
+    def handle_starttag(self, tag: str, attrs: list) -> None:
+        if tag == "table":
+            self._table = []
+        elif tag == "tr" and self._table is not None:
+            self._row = []
+        elif tag in ("td", "th") and self._row is not None:
+            self._cell = []
+        elif self._cell is not None:
+            # A separator between the cell's child elements. Without it a cell
+            # built as "<strong>9</strong><br>A1, A2" flattens to "9A1, A2",
+            # and an id glued to a preceding digit is not an id any scanner
+            # will recognise.
+            self._cell.append(" ")
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag not in ("td", "th", "tr", "table") and self._cell is not None:
+            self._cell.append(" ")
+        if tag in ("td", "th") and self._cell is not None and self._row is not None:
+            self._row.append(_WHITESPACE.sub(" ", "".join(self._cell)).strip())
+            self._cell = None
+        elif tag == "tr" and self._row is not None and self._table is not None:
+            self._table.append(self._row)
+            self._row = None
+        elif tag == "table" and self._table is not None:
+            self.tables.append(self._table)
+            self._table = None
+
+    def handle_data(self, data: str) -> None:
+        if self._cell is not None:
+            self._cell.append(data)
+
+
+def tables(html: str) -> list[list[list[str]]]:
+    """Every table in the document, as rows of cell text."""
+    parser = _TableExtractor()
+    parser.feed(html)
+    parser.close()
+    return parser.tables
+
+
+# --- Point-ID ranges -------------------------------------------------------
+
+# "A1-A8" or "A1–8": reports abbreviate a run of consecutive points rather than
+# listing each one, which a plain id scan reads as two ids with a hole between.
+_ID_RANGE = re.compile(
+    r"(?<![A-Za-z0-9])([A-Z])(\d{1,2})\s*[-–—]\s*([A-Z]?)(\d{1,2})(?!\d)"
+)
+
+
+def expand_point_ids(text: str) -> list[PointId]:
+    """Point IDs in `text`, expanding an abbreviated range into its members.
+
+    `A1-A8` means eight points, not two. Ranges are expanded and their spans
+    removed before the remaining text is scanned, so nothing is counted twice.
+    A range whose ends disagree on the reviewer letter (`A3-B2`) is left to the
+    plain scan, since it is not a run of one reviewer's points.
+    """
+    ids: list[PointId] = []
+    spans: list[tuple[int, int]] = []
+    for match in _ID_RANGE.finditer(text):
+        letter, start, end_letter, end = match.groups()
+        if end_letter and end_letter != letter:
+            continue
+        first, last = int(start), int(end)
+        if not first <= last:
+            continue
+        ids.extend(PointId(f"{letter}{n}") for n in range(first, last + 1))
+        spans.append(match.span())
+
+    remainder = text
+    for start_at, end_at in reversed(spans):
+        remainder = remainder[:start_at] + " " + remainder[end_at:]
+    ids.extend(find_point_ids(remainder))
+    return ids
