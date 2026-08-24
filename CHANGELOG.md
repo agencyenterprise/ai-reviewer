@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.0] - 2026-08-24
+
+### Added
+- Added end-to-end evaluation suites for two `review-assistant` workflows: Revision-Planning Summary and Reviewer Coverage Report.
+- Added `GET /api/workflow-types/recent-selection` to return a user’s recently used assessment selection for the new-project wizard.
+- Added persisted workflow error diagnostics, including an error details payload with traceback, raw LLM output, and response metadata.
+- Added a Teams conversation checkpointer backed by Postgres so one Teams thread maps to one persisted LangGraph thread.
+- Added UI support to show assessment findings in the Assessments tab, including issue-count indicators and a generic issues-based results view for workflows without a custom view.
+
+### Changed
+- Changed `review-assistant` outputs to lead with a decision-grade first-page summary and demote verbatim memo detail behind a page break (with response memos explicitly exempted from the two-part layout).
+- Changed `review-assistant` workflows to deliver HTML reports by writing to `/report.html` instead of using structured output, without changing workflow state, the API, or the frontend rendering contract.
+- Changed e2e evals to run through the app’s endpoints (create project, TUS upload, start workflows) instead of `POST /api/start-analysis`.
+- Changed the new-project wizard to pre-select recommended assessments and use a more compact, two-column assessment picker with Select all / Deselect all.
+- Changed the new-project wizard to pre-check assessments based on the user’s most recent project, with first-time users falling back to the previous default set.
+- Changed the user-facing label for experimental workflows and features from “Beta” to “Alpha” (display strings only).
+- Changed Teams handling so each turn re-reads the document from SharePoint as the current asker, while persisting the conversation thread state.
+
+### Fixed
+- Fixed a response-model bug on `/api/workflows/start-multiple` surfaced by the new peer-review e2e eval suites.
+- Fixed loss of completed work when provider-truncated structured output caused parsing failures by salvaging complete items from partial JSON fragments.
+- Fixed a SharePoint tool bug where a document with no comments could leave a previous document’s `/comments.md` in place.
+- Fixed frontend workflow status display so completed runs with recovered (warning) errors are not always shown as “Failed.”
+
+### Removed
+- Removed the “Help us understand your context” step from project creation and removed the `domain` and `target_audience` fields across the API, services, workflow config, database columns, prompts, tests, and frontend UI.
+- Removed `POST /api/start-analysis` and deleted code used only by that endpoint, leaving TUS as the only upload path.
+- Removed the deprecated “Research & Writing Assistant” category to hide Literature Review and Live Reports from Draft Detective UI surfaces while keeping the workflows registered and runnable by type.
+- Removed the QA Screener flag and related backend filtering used only to render a badge.
+- Removed Literature Review and Live Reports from the generated frontend skills bundle and related UI surfaces (slash-command menu, skill catalogue, and `load_skill` reachability).
+
+
 ## [v0.5.47] - 2026-08-11
 
 ### Added
