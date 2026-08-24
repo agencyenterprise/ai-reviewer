@@ -69,30 +69,75 @@ def _transpose(table: list[list[str]]) -> list[list[str]]:
     return [list(col) for col in zip(*padded)]
 
 
-def find_verdict_table(report: HtmlReport) -> list[list[str]] | None:
-    """The summary table, oriented so each row is one verdict category.
+def _verdict_rows(table: list[list[str]]) -> dict[str, list[str]]:
+    """The table's rows, keyed by the verdict category their first cell names."""
+    return {
+        verdict: row
+        for row in table
+        if row and (verdict := _verdict_of(row[0])) is not None
+    }
+
+
+# One <table> element. Used to locate the verdict table's own source so its
+# text can be excluded from the report body; `tables()` returns parsed cells
+# and cannot say where in the document they came from.
+_TABLE_BLOCK = re.compile(r"<table\b[^>]*>.*?</table>", re.IGNORECASE | re.DOTALL)
+
+
+def locate_verdict_table(
+    report: HtmlReport,
+) -> tuple[list[list[str]] | None, str]:
+    """The summary table, oriented rows-per-category, and its HTML source.
 
     Chosen by content rather than position, since a report may carry other
-    tables. Both orientations occur: usually the verdicts run down the first
-    column, but some reports put the verdicts across the header and one row per
-    reviewer. A transposed table is turned the right way up rather than
-    rejected, which is what "no verdict table found" used to mean.
+    tables -- one run produced nine. Both orientations occur: usually the
+    verdicts run down the first column, but some reports put the verdicts
+    across the header and one row per reviewer. A transposed table is turned
+    the right way up rather than rejected, which is what "no verdict table
+    found" used to mean. Direct orientation wins over transposed across the
+    whole document, so a later table is not preferred to an earlier one merely
+    because it happens to parse in the usual direction.
     """
-    candidates = tables(report.html)
-    for table in candidates:
-        labelled = {_verdict_of(row[0]) for row in table if row and _verdict_of(row[0])}
-        if len(labelled) >= 3:
-            return table
-    for table in candidates:
-        if not table:
-            continue
-        flipped = _transpose(table)
-        labelled = {
-            _verdict_of(row[0]) for row in flipped if row and _verdict_of(row[0])
-        }
-        if len(labelled) >= 3:
-            return flipped
-    return None
+    parsed = [(block, tables(block)) for block in _TABLE_BLOCK.findall(report.html)]
+    for block, candidates in parsed:
+        for table in candidates:
+            if len(_verdict_rows(table)) >= 3:
+                return table, block
+    for block, candidates in parsed:
+        for table in candidates:
+            if table and len(_verdict_rows(_transpose(table))) >= 3:
+                return _transpose(table), block
+    return None, ""
+
+
+def find_verdict_table(report: HtmlReport) -> list[list[str]] | None:
+    """The summary table, oriented so each row is one verdict category."""
+    return locate_verdict_table(report)[0]
+
+
+def _points_outside(report: HtmlReport, table_block: str) -> set[PointId]:
+    """Point ids the report labels anywhere other than in the summary table.
+
+    The table's own ids used to be counted as part of the report's labelled
+    points, which made the coverage check circular: a table listing A1 and A2
+    satisfied itself even when Part 2 only ever quoted A1. Removing the
+    table's source before scanning is what lets an invented point show up.
+    """
+    body = report.html.replace(table_block, " ", 1) if table_block else report.html
+    return set(find_point_ids(HtmlReport(body).raw_text))
+
+
+def _covered_by(point: PointId, labelled: set[PointId]) -> bool:
+    """Whether `point` is accounted for among the ids labelled in the body.
+
+    A point and its sub-points stand in for each other. A report may quote A3
+    once while the table splits it into A3.1 and A3.2, or quote A3.1 and A3.2
+    while the table counts the parent; neither is an invented point.
+    """
+    if point in labelled:
+        return True
+    root = point.split(".")[0]
+    return any(other == root or other.split(".")[0] == point for other in labelled)
 
 
 def check_verdict_table(report: HtmlReport) -> tuple[bool, str]:
@@ -103,15 +148,11 @@ def check_verdict_table(report: HtmlReport) -> tuple[bool, str]:
     is that the bookkeeping holds together, which is what makes the table
     usable at all.
     """
-    table = find_verdict_table(report)
+    table, table_block = locate_verdict_table(report)
     if table is None:
         return False, "no verdict table found"
 
-    rows = {
-        verdict: row
-        for row in table
-        if row and (verdict := _verdict_of(row[0])) is not None
-    }
+    rows = _verdict_rows(table)
     missing = [v for v in VERDICTS if v not in rows]
     if missing:
         return False, f"table omits {missing}"
@@ -136,18 +177,33 @@ def check_verdict_table(report: HtmlReport) -> tuple[bool, str]:
                 )
             seen[point] = verdict
 
-    # The table covers every point the report labels in Part 2. A point split
+    # The table covers every point the report labels outside it. A point split
     # into sub-points is covered by them: when A3 becomes A3.1, A3.2 and A3.3,
     # the table counts the three and not the parent, which is correct.
+    #
+    # "Outside it" rather than "in Part 2": Part 1 prose may cite ids too, and
+    # separating the two parts reliably needs a text offset the parser does not
+    # hand back. Excluding the table alone is what closes the circularity, and
+    # an id cited in Part 1 but never quoted in Part 2 remains out of scope.
     counted = set(seen)
     parents_covered = {
         PointId(point.split(".")[0]) for point in counted if "." in point
     }
-    labelled = set(find_point_ids(report.raw_text))
+    labelled = _points_outside(report, table_block)
     uncounted = sorted(labelled - counted - parents_covered)
     if uncounted:
         problems.append(
             f"{len(uncounted)} point(s) missing from the table: {uncounted[:6]}"
+        )
+
+    # ...and the table invents none. This is the other direction of the same
+    # rule: a row claiming A1 and A2 when the body only ever quotes A1 is an
+    # arithmetic error of exactly the kind the table exists to rule out.
+    phantom = sorted(p for p in counted if not _covered_by(p, labelled))
+    if phantom:
+        problems.append(
+            f"{len(phantom)} point(s) counted but never labelled outside the "
+            f"table: {phantom[:6]}"
         )
 
     # The stated counts match the ids. Reports lay this out three ways: a cell
@@ -208,12 +264,11 @@ def check_verdict_vocabulary(report: HtmlReport) -> tuple[bool, str]:
     table_text = normalize(" ".join(" ".join(row) for row in table)) if table else ""
 
     counts = {v: report.text.count(v) - table_text.count(v) for v in VERDICTS}
-    # "addressed" is a substring of the other three labels, so discount those.
-    counts["addressed"] -= (
-        counts["partially addressed"]
-        + counts["not addressed"]
-        + (report.text.count("declined") - table_text.count("declined"))
-    )
+    # "addressed" is a substring of "partially addressed" and "not addressed",
+    # so those two are discounted. "declined with rationale" is not -- it does
+    # not contain the substring, and subtracting it (as this did) deflated the
+    # addressed tally by one per decline for no reason.
+    counts["addressed"] -= counts["partially addressed"] + counts["not addressed"]
     used = [v for v, n in counts.items() if n > 0]
     detail = ", ".join(f"{v}={max(n, 0)}" for v, n in counts.items())
     if len(used) < 2:
