@@ -110,9 +110,17 @@ def locate_verdict_table(
     return None, ""
 
 
-def find_verdict_table(report: HtmlReport) -> list[list[str]] | None:
-    """The summary table, oriented so each row is one verdict category."""
-    return locate_verdict_table(report)[0]
+def _assigned_ids(rows: dict[str, list[str]]) -> dict[str, set[PointId]]:
+    """The point ids the table assigns to each verdict, with ranges expanded.
+
+    The whole row after the label is scanned rather than one column: a table
+    that breaks counts down per reviewer puts the total in the last cell, and
+    taking the union avoids depending on the layout.
+    """
+    return {
+        verdict: set(expand_point_ids(" ".join(row[1:])))
+        for verdict, row in rows.items()
+    }
 
 
 def _points_outside(report: HtmlReport, table_block: str) -> set[PointId]:
@@ -159,13 +167,7 @@ def check_verdict_table(report: HtmlReport) -> tuple[bool, str]:
 
     problems: list[str] = []
 
-    # Every id the table assigns, per category, with ranges expanded.
-    assigned: dict[str, set[PointId]] = {}
-    for verdict, row in rows.items():
-        # The last cell is the total when the table breaks counts down per
-        # reviewer; scanning the whole row and taking the union avoids
-        # depending on the column layout.
-        assigned[verdict] = set(expand_point_ids(" ".join(row[1:])))
+    assigned = _assigned_ids(rows)
 
     # A point belongs to exactly one category.
     seen: dict[PointId, str] = {}
@@ -176,6 +178,20 @@ def check_verdict_table(report: HtmlReport) -> tuple[bool, str]:
                     f"{point} counted under both {seen[point]} and {verdict}"
                 )
             seen[point] = verdict
+
+    # ...and at one granularity. Counting A3 and also counting A3.1 inflates
+    # the total: a point and its split points are the same reviewer point
+    # recorded twice, which the exact-id comparison above cannot see because
+    # A3 and A3.1 are different strings. This holds whether or not the two
+    # land in the same category.
+    inflated = sorted(
+        {p.split(".")[0] for p in seen if "." in p and p.split(".")[0] in seen}
+    )
+    if inflated:
+        problems.append(
+            f"{inflated} counted alongside their own sub-points, "
+            "so the total counts them twice"
+        )
 
     # The table covers every point the report labels outside it. A point split
     # into sub-points is covered by them: when A3 becomes A3.1, A3.2 and A3.3,
@@ -253,14 +269,23 @@ def check_verdict_vocabulary(report: HtmlReport) -> tuple[bool, str]:
     distinction the skill exists to preserve: a decline with a stated reason is
     settled, and only `not addressed` should read as a gap.
 
-    The summary table's own labels are discounted first. `find_verdict_table`
+    The summary table's own labels are discounted first. `locate_verdict_table`
     only recognises a table when at least three of its rows name a verdict, so
     counting across the whole report meant any report with a usable table
-    cleared the bar automatically and this check could never fail. What it asks
-    now is that the scale is used where it does the work, under the points in
-    Part 2, rather than only declared in the header of a table.
+    cleared the bar automatically and this check could never fail.
+
+    The bar is then set by the report's own arithmetic: every category the
+    table assigns a point to has to be used in Part 2 as well. Asking instead
+    for a fixed non-binary verdict would be wrong, because whether a scenario
+    contains anything partial or declined is a property of the memo, not of
+    the report -- the organics scenario is nine corrections made and one
+    concern ignored, and an addressed/not-addressed Part 2 is the honest
+    answer there. Deriving the requirement from the table catches the failure
+    that is really in scope, a scale declared in a header and then abandoned,
+    without asking any report to invent a verdict its scenario never earned.
     """
-    table = find_verdict_table(report)
+    table, _ = locate_verdict_table(report)
+    rows = _verdict_rows(table) if table else {}
     table_text = normalize(" ".join(" ".join(row) for row in table)) if table else ""
 
     counts = {v: report.text.count(v) - table_text.count(v) for v in VERDICTS}
@@ -269,12 +294,23 @@ def check_verdict_vocabulary(report: HtmlReport) -> tuple[bool, str]:
     # not contain the substring, and subtracting it (as this did) deflated the
     # addressed tally by one per decline for no reason.
     counts["addressed"] -= counts["partially addressed"] + counts["not addressed"]
-    used = [v for v, n in counts.items() if n > 0]
-    detail = ", ".join(f"{v}={max(n, 0)}" for v, n in counts.items())
+    used = {v for v, n in counts.items() if n > 0}
+    detail = ", ".join(f"{v}={max(counts[v], 0)}" for v in VERDICTS)
+
     if len(used) < 2:
         return (
             False,
             f"outside the summary table the verdict scale is barely used: {detail}",
+        )
+
+    claimed = {v for v, ids in _assigned_ids(rows).items() if ids}
+    abandoned = sorted(claimed - used)
+    if abandoned:
+        return (
+            False,
+            f"the table assigns points to {abandoned} but Part 2 never uses "
+            f"{'that verdict' if len(abandoned) == 1 else 'those verdicts'}: "
+            f"{detail}",
         )
     return True, f"outside the summary table: {detail}"
 
