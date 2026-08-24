@@ -166,6 +166,11 @@ class HtmlReport:
         parser.close()
 
         self.html = html
+        # The uncollapsed concatenation. `break_offsets` and heading offsets
+        # index into this, so it is the only string the part split can be cut
+        # from -- `text` and `raw_text` have had their whitespace collapsed and
+        # no longer line up with the offsets the parser recorded.
+        self._raw = parser.text
         self.text = normalize(parser.text)
         self.quoted_text = normalize(parser.quoted_text)
         self.unquoted_text = normalize(parser.unquoted_text)
@@ -174,6 +179,39 @@ class HtmlReport:
         self._text_length = parser._length
         self.headings = [(offset, normalize(text)) for offset, text in parser.headings]
         self.break_offsets = parser.break_offsets
+
+    @property
+    def part2(self) -> str:
+        """Normalised text from the first page break onward.
+
+        The reports put Part 1 -- the summary a QAM reads first -- above a
+        forced page break and the point-by-point detail below it, so the break
+        is the part boundary. Slicing there is what lets a check ask about
+        Part 2 alone rather than about the document as a whole, which matters
+        whenever Part 1 recaps in prose something Part 2 is supposed to do: a
+        summary saying "two points were partially addressed" otherwise stands
+        in for a Part 2 that never uses the scale at all.
+
+        Falls back to the whole document when nothing forces a break. There is
+        no second part to isolate in that case, and `two_part_layout` already
+        fails the report for it, so there is no need to fail twice.
+        """
+        return (
+            normalize(self._raw[min(self.break_offsets) :])
+            if self.break_offsets
+            else self.text
+        )
+
+    @property
+    def part2_raw(self) -> str:
+        """`part2`, whitespace-collapsed but not character-folded.
+
+        For checks about the characters themselves -- point ids are matched
+        case-sensitively, and `normalize` lowercases.
+        """
+        if not self.break_offsets:
+            return self.raw_text
+        return _WHITESPACE.sub(" ", self._raw[min(self.break_offsets) :]).strip()
 
     def contains(self, snippet: str) -> bool:
         """Whether the report's text contains `snippet`, ignoring whitespace."""
@@ -233,7 +271,8 @@ def normalize(text: str) -> str:
 # `srcset` is listed before `src` so the alternation does not match its prefix,
 # and the leading \b keeps `data` from matching `metadata=` or `data-*=`.
 _FETCHED_ATTR = re.compile(
-    r"""\b(srcset|src|poster|background|data)\s*=\s*["']?\s*([^"'\s>]+)""",
+    r"""\b(srcset|src|poster|background|data)\s*="""
+    r"""(?:"([^"]*)"|'([^']*)'|([^\s>]+))""",
     re.IGNORECASE,
 )
 
@@ -256,6 +295,25 @@ _STYLESHEET_LINK = re.compile(
     r"<\s*link\b[^>]*rel\s*=\s*[\"']?stylesheet", re.IGNORECASE
 )
 _IMPORT_RULE = re.compile(r"@import\b", re.IGNORECASE)
+
+
+def _resource_targets(attr: str, value: str) -> list[str]:
+    """Every URL an attribute value offers, not just the first.
+
+    Only `srcset` carries more than one. It is a comma-separated list of
+    "url descriptor" pairs, so reading up to the first space inspects only the
+    leading candidate: a list whose first entry is a data URI and whose second
+    is a CDN would pass while still fetching from the CDN.
+
+    Candidates are split on a comma *followed by whitespace* rather than on any
+    comma, because a data URI carries commas of its own -- the one after
+    `;base64` is part of the URL. Those are never followed by a space, since
+    base64 has none, so the distinction holds for the images these reports
+    embed.
+    """
+    if attr.lower() != "srcset":
+        return [value.strip()]
+    return [c.split()[0] for c in re.split(r",\s+", value) if c.split()]
 
 
 def _stays_in_document(value: str) -> bool:
@@ -285,9 +343,10 @@ def self_containment_violations(html: str) -> list[str]:
         violations.append("uses an @import rule")
 
     fetched = [
-        f"{attr}={value[:40]}"
-        for attr, value in _FETCHED_ATTR.findall(html)
-        if not _stays_in_document(value)
+        f"{attr}={candidate[:40]}"
+        for attr, *values in _FETCHED_ATTR.findall(html)
+        for candidate in _resource_targets(attr, "".join(values))
+        if not _stays_in_document(candidate)
     ]
     if fetched:
         violations.append(

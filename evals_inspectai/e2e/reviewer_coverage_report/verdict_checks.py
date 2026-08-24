@@ -123,29 +123,17 @@ def _assigned_ids(rows: dict[str, list[str]]) -> dict[str, set[PointId]]:
     }
 
 
-def _points_outside(report: HtmlReport, table_block: str) -> set[PointId]:
-    """Point ids the report labels anywhere other than in the summary table.
+def _points_in_part2(report: HtmlReport, table_block: str) -> set[PointId]:
+    """Point ids the report labels in Part 2, outside the summary table.
 
-    The table's own ids used to be counted as part of the report's labelled
-    points, which made the coverage check circular: a table listing A1 and A2
-    satisfied itself even when Part 2 only ever quoted A1. Removing the
-    table's source before scanning is what lets an invented point show up.
+    Two things are excluded, for two reasons. The table's own ids, because
+    counting them as evidence made the coverage rule circular: a row listing
+    A1 and A2 satisfied itself even when only A1 was ever discussed. And
+    Part 1, because a summary that recaps ids in prose is not the
+    point-by-point assessment the table is supposed to index.
     """
     body = report.html.replace(table_block, " ", 1) if table_block else report.html
-    return set(find_point_ids(HtmlReport(body).raw_text))
-
-
-def _covered_by(point: PointId, labelled: set[PointId]) -> bool:
-    """Whether `point` is accounted for among the ids labelled in the body.
-
-    A point and its sub-points stand in for each other. A report may quote A3
-    once while the table splits it into A3.1 and A3.2, or quote A3.1 and A3.2
-    while the table counts the parent; neither is an invented point.
-    """
-    if point in labelled:
-        return True
-    root = point.split(".")[0]
-    return any(other == root or other.split(".")[0] == point for other in labelled)
+    return set(find_point_ids(HtmlReport(body).part2_raw))
 
 
 def check_verdict_table(report: HtmlReport) -> tuple[bool, str]:
@@ -193,33 +181,30 @@ def check_verdict_table(report: HtmlReport) -> tuple[bool, str]:
             "so the total counts them twice"
         )
 
-    # The table covers every point the report labels outside it. A point split
-    # into sub-points is covered by them: when A3 becomes A3.1, A3.2 and A3.3,
-    # the table counts the three and not the parent, which is correct.
-    #
-    # "Outside it" rather than "in Part 2": Part 1 prose may cite ids too, and
-    # separating the two parts reliably needs a text offset the parser does not
-    # hand back. Excluding the table alone is what closes the circularity, and
-    # an id cited in Part 1 but never quoted in Part 2 remains out of scope.
+    # The table indexes Part 2: every point assessed there is counted, and
+    # every point counted is assessed there. The two directions get different
+    # tolerance, deliberately. A parent id may excuse itself on the way in,
+    # since Part 2 has to name A3 to introduce A3.1 and A3.2. It may not
+    # excuse a count on the way out: a table counting A3.1 and A3.2 when
+    # Part 2 only ever labels A3 has two rows a reader cannot trace to any
+    # assessment, which is what the stable-id scheme exists to prevent.
     counted = set(seen)
-    parents_covered = {
-        PointId(point.split(".")[0]) for point in counted if "." in point
-    }
-    labelled = _points_outside(report, table_block)
-    uncounted = sorted(labelled - counted - parents_covered)
+    labelled = _points_in_part2(report, table_block)
+    # A parent Part 2 names only to group its split points is not a missing
+    # entry: when A3 becomes A3.1 to A3.3, the table counts the three and the
+    # heading above them still reads A3.
+    grouped = {PointId(point.split(".")[0]) for point in counted if "." in point}
+    uncounted = sorted(labelled - counted - grouped)
     if uncounted:
         problems.append(
             f"{len(uncounted)} point(s) missing from the table: {uncounted[:6]}"
         )
 
-    # ...and the table invents none. This is the other direction of the same
-    # rule: a row claiming A1 and A2 when the body only ever quotes A1 is an
-    # arithmetic error of exactly the kind the table exists to rule out.
-    phantom = sorted(p for p in counted if not _covered_by(p, labelled))
+    phantom = sorted(counted - labelled)
     if phantom:
         problems.append(
-            f"{len(phantom)} point(s) counted but never labelled outside the "
-            f"table: {phantom[:6]}"
+            f"{len(phantom)} point(s) counted but never labelled in Part 2: "
+            f"{phantom[:6]}"
         )
 
     # The stated counts match the ids. Reports lay this out three ways: a cell
@@ -248,6 +233,17 @@ def check_verdict_table(report: HtmlReport) -> tuple[bool, str]:
                         f"{verdict}: cell states {stated} but lists "
                         f"{listed} id(s) ({cell[:40]!r})"
                     )
+            # A row that pairs counts with ids per reviewer usually carries a
+            # bare total as well, and that total used to go unread: "2 A1,A2 |
+            # 3 B1-B3 | 6" passed on five ids. Only an inflated total is
+            # flagged. A bare cell smaller than the row's ids is indis-
+            # tinguishable from one reviewer's share without reading the
+            # header, and header wording varies too much to key on.
+            if bare and max(bare) > len(assigned[verdict]):
+                problems.append(
+                    f"{verdict}: row totals {max(bare)} but lists "
+                    f"{len(assigned[verdict])} id(s)"
+                )
         elif bare and max(bare) != len(assigned[verdict]):
             problems.append(
                 f"{verdict}: row states {max(bare)} but lists "
@@ -284,11 +280,19 @@ def check_verdict_vocabulary(report: HtmlReport) -> tuple[bool, str]:
     that is really in scope, a scale declared in a header and then abandoned,
     without asking any report to invent a verdict its scenario never earned.
     """
-    table, _ = locate_verdict_table(report)
+    table, table_block = locate_verdict_table(report)
     rows = _verdict_rows(table) if table else {}
-    table_text = normalize(" ".join(" ".join(row) for row in table)) if table else ""
 
-    counts = {v: report.text.count(v) - table_text.count(v) for v in VERDICTS}
+    # Part 2 with the table cut out of the document first, rather than its
+    # counts subtracted afterwards: the table normally sits in Part 1, so
+    # subtracting it from a Part 2 tally would deduct labels that were never
+    # in the tally to begin with. Part 1 is excluded because its prose recap
+    # would otherwise stand in for the assessments -- a summary reading "two
+    # points were partially addressed" satisfied this check while Part 2
+    # labelled everything "resolved".
+    body = report.html.replace(table_block, " ", 1) if table_block else report.html
+    scope = HtmlReport(body).part2
+    counts = {v: scope.count(v) for v in VERDICTS}
     # "addressed" is a substring of "partially addressed" and "not addressed",
     # so those two are discounted. "declined with rationale" is not -- it does
     # not contain the substring, and subtracting it (as this did) deflated the
@@ -300,7 +304,7 @@ def check_verdict_vocabulary(report: HtmlReport) -> tuple[bool, str]:
     if len(used) < 2:
         return (
             False,
-            f"outside the summary table the verdict scale is barely used: {detail}",
+            f"Part 2 barely uses the verdict scale: {detail}",
         )
 
     claimed = {v for v, ids in _assigned_ids(rows).items() if ids}
@@ -312,7 +316,7 @@ def check_verdict_vocabulary(report: HtmlReport) -> tuple[bool, str]:
             f"{'that verdict' if len(abandoned) == 1 else 'those verdicts'}: "
             f"{detail}",
         )
-    return True, f"outside the summary table: {detail}"
+    return True, f"in Part 2: {detail}"
 
 
 def check_recommendation(report: HtmlReport) -> tuple[bool, str]:
