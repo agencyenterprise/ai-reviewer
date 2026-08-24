@@ -5,12 +5,12 @@ Callers supply the user prompt (specific rules/criteria) and may optionally
 override the system prompt when the default is not appropriate.
 """
 
-from typing import Any, Callable, List, Literal, Optional, Sequence, Type, Union
+from typing import Any, Callable, Literal, Optional, Sequence, Type, Union
 
 from deepagents import create_deep_agent
 from deepagents.backends.utils import file_data_to_string
 from langchain.agents.structured_output import AutoStrategy
-from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel
