@@ -11,7 +11,6 @@ from lib.agents.claim_verifier import (
     ClaimVerifierAgent,
     ParagraphVerificationResult,
 )
-from lib.agents.formatting_utils import format_audience_context, format_domain_context
 from lib.models.bibliography_item import (
     BibliographyItem,
     get_associated_supporting_file,
@@ -220,8 +219,6 @@ async def distribute_verifications(
             "verify_single_paragraph",
             {
                 "paragraph_index": item.paragraph_index,
-                "domain": state.config.domain,
-                "target_audience": state.config.target_audience,
             },
         )
         for item in state.paragraph_verifications
@@ -237,8 +234,6 @@ async def verify_single_paragraph(state: dict, runtime: Runtime[ContextSchema]):
     will merge into the state by paragraph_index.
     """
     paragraph_index: int = state["paragraph_index"]
-    domain: Optional[str] = state.get("domain")
-    target_audience: Optional[str] = state.get("target_audience")
 
     file_artifacts_service = runtime.context.file_artifacts_service
     claim_verifier_agent = ClaimVerifierAgent(runtime.context)
@@ -303,8 +298,6 @@ async def verify_single_paragraph(state: dict, runtime: Runtime[ContextSchema]):
                 "paragraph": paragraph_text,
                 "claims_list": claims_list,
                 "citation_file_mapping": citation_file_mapping,
-                "domain_context": format_domain_context(domain),
-                "audience_context": format_audience_context(target_audience),
             }
         )
 

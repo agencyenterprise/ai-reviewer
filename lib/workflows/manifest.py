@@ -15,12 +15,6 @@ from lib.workflows.workflow_types import WorkflowState
 WorkflowStateType = TypeVar("WorkflowStateType", bound=BaseWorkflowState)
 WorkflowConfigType = TypeVar("WorkflowConfigType", bound=BaseWorkflowConfig)
 
-# QA Screener workflows - only visible to RAND and ADMIN roles
-QA_SCREENER_WORKFLOWS = {
-    WorkflowRunType.ADVOCACY_TONE,
-    WorkflowRunType.ABOUT_THIS_GER,
-}
-
 
 class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     """Base class for workflow manifests."""
@@ -66,11 +60,6 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     # workflows that fan out heavy per-item LLM calls (e.g. one web-search
     # agent per reference) to stay under provider rate limits.
     max_concurrency: int = env_config.LANGGRAPH_MAX_CONCURRENCY
-
-    @property
-    def is_qa_screener(self) -> bool:
-        """Whether the workflow is part of the QA Screener tool."""
-        return self.type in QA_SCREENER_WORKFLOWS
 
     # List of workflow types that this workflow depends on.
     # Used to determine the order in which the workflows should be run.

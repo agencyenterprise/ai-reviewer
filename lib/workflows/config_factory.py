@@ -35,8 +35,6 @@ def create_workflow_config(
         "type": workflow_type,
         "project_id": str(project.id),
         "openai_api_key": openai_api_key,
-        "domain": project.domain,
-        "target_audience": project.target_audience,
         "publication_date": (
             project.publication_date.isoformat() if project.publication_date else None
         ),

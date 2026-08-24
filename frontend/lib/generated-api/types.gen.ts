@@ -79,18 +79,6 @@ export type AbbreviationScanV2Config = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -175,18 +163,6 @@ export type AboutThisGerConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -321,18 +297,6 @@ export type AdvocacyToneWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -362,34 +326,6 @@ export type AgentCheckResult = {
    * Markdown report summarising the check results
    */
   report_markdown?: string;
-};
-
-/**
- * AnalysisFormConfig
- *
- * Form config for starting analysis (project creation + workflow start)
- */
-export type AnalysisFormConfig = {
-  /**
-   * Domain
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   */
-  target_audience?: string | null;
-  /**
-   * Openai Api Key
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   */
-  publication_date?: string | null;
-  /**
-   * Workflow Types
-   */
-  workflow_types?: Array<WorkflowRunType> | null;
 };
 
 /**
@@ -665,40 +601,6 @@ export type BibliographyItemValidationV2 = {
 };
 
 /**
- * Body_start_analysis_api_start_analysis_post
- */
-export type BodyStartAnalysisApiStartAnalysisPost = {
-  /**
-   * Main Document
-   */
-  main_document: Blob | File;
-  /**
-   * Supporting Documents
-   */
-  supporting_documents?: Array<Blob | File> | null;
-  /**
-   * Domain
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   */
-  target_audience?: string | null;
-  /**
-   * Openai Api Key
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   */
-  publication_date?: string | null;
-  /**
-   * Workflow Types
-   */
-  workflow_types?: string | null;
-};
-
-/**
  * CancelWorkflowResponse
  *
  * Response for workflow cancellation.
@@ -840,18 +742,6 @@ export type ChunkSplittingWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -927,18 +817,6 @@ export type CitationDetectionConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -1099,18 +977,6 @@ export type CitationSuggesterWorkflowConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -1335,18 +1201,6 @@ export type ClaimExtractionWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -1476,18 +1330,6 @@ export type ClaimReferenceValidationV2Config = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -1542,18 +1384,6 @@ export type ClaimReferenceValidationWorkflowConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -1852,18 +1682,6 @@ export type DocumentProcessingWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -2013,18 +1831,6 @@ export type DocumentSummarizationWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -2053,6 +1859,45 @@ export const DocxManipulatorType = {
  * Type of DOCX to generate.
  */
 export type DocxManipulatorType = (typeof DocxManipulatorType)[keyof typeof DocxManipulatorType];
+
+/**
+ * ErrorDetails
+ *
+ * Diagnostic payload captured from a caught exception.
+ *
+ * Persisted alongside the human-readable error message so failures can be
+ * debugged from the database alone, without needing the server logs of the
+ * run that produced them. Every field is optional: older persisted state
+ * predates this model, and not every exception carries model output.
+ */
+export type ErrorDetails = {
+  /**
+   * Error Type
+   *
+   * Class name of the exception that was caught, e.g. 'StructuredOutputValidationError'.
+   */
+  error_type?: string | null;
+  /**
+   * Traceback
+   *
+   * Formatted traceback, including chained causes. Truncated if very long.
+   */
+  traceback?: string | null;
+  /**
+   * Raw Model Output
+   *
+   * Raw text the LLM returned, when the exception carried it. Truncated if very long.
+   */
+  raw_model_output?: string | null;
+  /**
+   * Llm Metadata
+   *
+   * Response metadata from the failing LLM call (model name, finish/stop reason, token usage).
+   */
+  llm_metadata?: {
+    [key: string]: unknown;
+  } | null;
+};
 
 /**
  * EvidenceAlignmentLevel
@@ -2707,18 +2552,6 @@ export type FootnoteExtractionConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -2841,18 +2674,6 @@ export type HumanApprovalConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -2996,18 +2817,6 @@ export type InferenceValidationV2WorkflowConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -3392,18 +3201,6 @@ export type LiteratureReviewWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -3468,18 +3265,6 @@ export type LiveReportsWorkflowConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -3574,18 +3359,6 @@ export type MethodologicalAlignmentWorkflowConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -3855,18 +3628,6 @@ export type Project = {
    */
   publication_date: Date;
   /**
-   * Domain
-   *
-   * The subject area or field of expertise of the report
-   */
-  domain: string;
-  /**
-   * Target Audience
-   *
-   * The intended readers of the report
-   */
-  target_audience: string;
-  /**
    * Controls what feedback information is shared with administrators
    */
   feedback_visibility?: FeedbackVisibility | null;
@@ -3969,6 +3730,18 @@ export const QualityLevel = {
  * QualityLevel
  */
 export type QualityLevel = (typeof QualityLevel)[keyof typeof QualityLevel];
+
+/**
+ * RecentWorkflowSelectionResponse
+ *
+ * The assessments a user picked most recently, for pre-checking the wizard.
+ */
+export type RecentWorkflowSelectionResponse = {
+  /**
+   * Workflow Types
+   */
+  workflow_types: Array<WorkflowRunType>;
+};
 
 /**
  * RecommendedAction
@@ -4160,18 +3933,6 @@ export type ReferenceDownloaderWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -4207,18 +3968,6 @@ export type ReferenceExtractionConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -4422,18 +4171,6 @@ export type ReferenceFileMatchingConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -4748,18 +4485,6 @@ export type ReferenceValidationV2WorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -4789,18 +4514,6 @@ export type ReferenceValidationWorkflowConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -4987,18 +4700,6 @@ export type ResultsExtractionWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -5040,18 +4741,6 @@ export type Reviewer2Config = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -5159,6 +4848,10 @@ export type SectionVerificationItem = {
    */
   error?: string | null;
   /**
+   * Traceback, raw model output, and LLM metadata for a failed section.
+   */
+  error_details?: ErrorDetails | null;
+  /**
    * Messages
    *
    * LLM conversation messages from the citation-validator agent invocation.
@@ -5174,6 +4867,7 @@ export type SectionVerificationItem = {
 export const SectionVerificationStatus = {
   Pending: 'pending',
   Completed: 'completed',
+  Partial: 'partial',
   Error: 'error',
   Cancelled: 'cancelled',
 } as const;
@@ -5273,18 +4967,6 @@ export type SimpleDeepAgentConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -5351,6 +5033,30 @@ export type StartMultipleWorkflowsRequest = {
 };
 
 /**
+ * StartMultipleWorkflowsResponse
+ *
+ * Response model for starting multiple workflows
+ */
+export type StartMultipleWorkflowsResponse = {
+  /**
+   * Project Id
+   */
+  project_id: string;
+  /**
+   * Types
+   */
+  types: Array<WorkflowRunType>;
+  /**
+   * Workflow Run Ids
+   */
+  workflow_run_ids: Array<string>;
+  /**
+   * Message
+   */
+  message: string;
+};
+
+/**
  * StartWorkflowResponse
  *
  * Response model for starting a workflow
@@ -5363,8 +5069,8 @@ export type StartWorkflowResponse = {
   /**
    * Workflow Run Id
    */
-  workflow_run_id?: string | null;
-  type?: WorkflowRunType | null;
+  workflow_run_id: string;
+  type: WorkflowRunType;
   /**
    * Message
    */
@@ -5434,14 +5140,6 @@ export type UpdateProjectRequest = {
    * Publication Date
    */
   publication_date?: Date | null;
-  /**
-   * Domain
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   */
-  target_audience?: string | null;
   feedback_visibility?: FeedbackVisibility | null;
 };
 
@@ -5705,7 +5403,39 @@ export type WorkflowError = {
    * The workflow run ID when this error occurred. Used to filter errors to current run only.
    */
   workflow_run_id?: string | null;
+  /**
+   * Whether this error cost the run part of its output ('error') or was recovered from and is informational ('warning'). Errors persisted before this field existed read as 'error'.
+   */
+  severity?: WorkflowErrorSeverity;
+  /**
+   * Diagnostic details (traceback, raw model output, LLM metadata) for debugging this error.
+   */
+  details?: ErrorDetails | null;
 };
+
+/**
+ * WorkflowErrorSeverity
+ *
+ * Whether an error compromised the run's output.
+ *
+ * `ERROR` means work was lost: the run's results are incomplete and the user
+ * should retry. `WARNING` means the failure was handled — the affected step
+ * recovered usable output — so the run still counts as completed and the
+ * message is informational.
+ */
+export const WorkflowErrorSeverity = { Error: 'error', Warning: 'warning' } as const;
+
+/**
+ * WorkflowErrorSeverity
+ *
+ * Whether an error compromised the run's output.
+ *
+ * `ERROR` means work was lost: the run's results are incomplete and the user
+ * should retry. `WARNING` means the failure was handled — the affected step
+ * recovered usable output — so the run still counts as completed and the
+ * message is informational.
+ */
+export type WorkflowErrorSeverity = (typeof WorkflowErrorSeverity)[keyof typeof WorkflowErrorSeverity];
 
 /**
  * WorkflowProgressResponse
@@ -5994,10 +5724,6 @@ export type WorkflowTypeDescription = {
    * Is Internal
    */
   is_internal: boolean;
-  /**
-   * Is Qa Screener
-   */
-  is_qa_screener: boolean;
   /**
    * Category
    */
@@ -6401,60 +6127,6 @@ export type AppendMessageApiChatThreadsThreadIdMessagesPostResponses = {
 export type AppendMessageApiChatThreadsThreadIdMessagesPostResponse =
   AppendMessageApiChatThreadsThreadIdMessagesPostResponses[keyof AppendMessageApiChatThreadsThreadIdMessagesPostResponses];
 
-export type StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostData = {
-  body: AnalysisFormConfig;
-  path?: never;
-  query?: never;
-  url: '/api/start-analysis/_do_not_use_';
-};
-
-export type StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostError =
-  StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostErrors[keyof StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostErrors];
-
-export type StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostResponses = {
-  /**
-   * Successful Response
-   */
-  200: StartWorkflowResponse;
-};
-
-export type StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostResponse =
-  StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostResponses[keyof StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostResponses];
-
-export type StartAnalysisApiStartAnalysisPostData = {
-  body: BodyStartAnalysisApiStartAnalysisPost;
-  path?: never;
-  query?: never;
-  url: '/api/start-analysis';
-};
-
-export type StartAnalysisApiStartAnalysisPostErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type StartAnalysisApiStartAnalysisPostError =
-  StartAnalysisApiStartAnalysisPostErrors[keyof StartAnalysisApiStartAnalysisPostErrors];
-
-export type StartAnalysisApiStartAnalysisPostResponses = {
-  /**
-   * Successful Response
-   */
-  200: StartWorkflowResponse;
-};
-
-export type StartAnalysisApiStartAnalysisPostResponse =
-  StartAnalysisApiStartAnalysisPostResponses[keyof StartAnalysisApiStartAnalysisPostResponses];
-
 export type CheckPreflightApiPreflightPostData = {
   body: PreflightRequest;
   path?: never;
@@ -6558,7 +6230,7 @@ export type StartMultipleWorkflowsApiWorkflowsStartMultiplePostResponses = {
   /**
    * Successful Response
    */
-  200: StartWorkflowResponse;
+  200: StartMultipleWorkflowsResponse;
 };
 
 export type StartMultipleWorkflowsApiWorkflowsStartMultiplePostResponse =
@@ -6676,6 +6348,23 @@ export type GetWorkflowTypesApiWorkflowTypesGetResponses = {
 
 export type GetWorkflowTypesApiWorkflowTypesGetResponse =
   GetWorkflowTypesApiWorkflowTypesGetResponses[keyof GetWorkflowTypesApiWorkflowTypesGetResponses];
+
+export type GetRecentSelectionApiWorkflowTypesRecentSelectionGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/workflow-types/recent-selection';
+};
+
+export type GetRecentSelectionApiWorkflowTypesRecentSelectionGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: RecentWorkflowSelectionResponse;
+};
+
+export type GetRecentSelectionApiWorkflowTypesRecentSelectionGetResponse =
+  GetRecentSelectionApiWorkflowTypesRecentSelectionGetResponses[keyof GetRecentSelectionApiWorkflowTypesRecentSelectionGetResponses];
 
 export type GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetData = {
   body?: never;
@@ -8225,3 +7914,33 @@ export type SetApiKeyApiUsersMeApiKeyPutResponses = {
 
 export type SetApiKeyApiUsersMeApiKeyPutResponse =
   SetApiKeyApiUsersMeApiKeyPutResponses[keyof SetApiKeyApiUsersMeApiKeyPutResponses];
+
+export type BotMessagesApiMicrosoftTeamsMessagesPostData = {
+  body?: never;
+  headers?: {
+    /**
+     * Authorization
+     */
+    authorization?: string | null;
+  };
+  path?: never;
+  query?: never;
+  url: '/api/microsoft/teams/messages';
+};
+
+export type BotMessagesApiMicrosoftTeamsMessagesPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type BotMessagesApiMicrosoftTeamsMessagesPostError =
+  BotMessagesApiMicrosoftTeamsMessagesPostErrors[keyof BotMessagesApiMicrosoftTeamsMessagesPostErrors];
+
+export type BotMessagesApiMicrosoftTeamsMessagesPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};

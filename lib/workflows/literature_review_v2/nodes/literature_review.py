@@ -107,6 +107,6 @@ async def literature_review(
         user_prompt=user_prompt,
         tools=[{"type": "web_search"}],
     )
-    result, messages = await agent.ainvoke({})
+    run = await agent.ainvoke({})
 
-    return {"result": result, "messages": messages}
+    return {"result": run.structured_response, "messages": run.messages}

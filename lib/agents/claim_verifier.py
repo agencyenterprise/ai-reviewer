@@ -110,10 +110,6 @@ For each claim, output an evidence alignment level based on the following defini
 - Citations may appear in the same chunk of text that a claim belongs to, or potentially in a later chunk of the paragraph. Use your judgement to determine whether a reference is cited close enough to the actual claim for readers to understand that the citation is supporting that claim. For example, if all citations of an introduction paragraph are at the end of the paragraph, then it's likely that the citations are supporting all the claims in the whole paragraph together.
 - You MUST produce a result for every claim in the numbered list.
 - When searching, try a couple of different query formulations if the first search doesn't return useful results, but don't over-search. Two or three searches per claim should usually be enough to find the relevant evidence. If you still can't find supporting evidence after a few targeted attempts, conclude with the best information you have rather than continuing to search exhaustively.
-
-{domain_context}
-
-{audience_context}
 """
 )
 

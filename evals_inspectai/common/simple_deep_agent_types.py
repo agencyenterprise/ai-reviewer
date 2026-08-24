@@ -38,3 +38,28 @@ class SimpleDeepAgentOutput(BaseModel):
     """
 
     result: Optional[AgentCheckResult] = None
+
+
+class AgentHtmlReport(BaseModel):
+    """Local mirror of the HTML-carrying half of ``DeepAgentResult``.
+
+    The report-producing workflows no longer use structured output at all --
+    the agent writes the document to a file and the node reads it into
+    ``DeepAgentResult.report_html`` -- but the state these evals read is
+    unchanged, which is why this mirror still works. ``issues`` is present
+    because the markdown variant shares the same state model, and is always
+    empty here.
+    """
+
+    issues: List[IssueItem] = Field(default_factory=list)
+    report_html: str = ""
+
+
+class HtmlReportAgentOutput(BaseModel):
+    """Local mirror of SimpleDeepAgentState for HTML-report workflows.
+
+    Same shape as ``SimpleDeepAgentOutput``; only the fields read off
+    ``result`` differ.
+    """
+
+    result: Optional[AgentHtmlReport] = None

@@ -1,9 +1,4 @@
 from datetime import date
-from lib.agents.formatting_utils import (
-    format_domain_context,
-    format_audience_context,
-    format_summary_context,
-)
 from typing import List
 
 from langgraph.runtime import Runtime
@@ -13,7 +8,7 @@ from lib.agents.evidence_weighter import (
     EvidenceWeighterAgent,
     EvidenceWeighterResponseWithClaimIndex,
 )
-from lib.agents.formatting_utils import format_bibliography
+from lib.agents.formatting_utils import format_bibliography, format_summary_context
 from lib.agents.live_literature_review import LiveLiteratureReviewAgent
 from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
 from lib.services.file_artifacts_service.file_artifacts_service_type import FileArtifactsServiceType
@@ -130,10 +125,6 @@ async def _analyze_chunk_live_reports(
                     if state.config.publication_date
                     else date.today().isoformat()
                 ),
-                "domain_context": format_domain_context(state.config.domain),
-                "audience_context": format_audience_context(
-                    state.config.target_audience
-                ),
                 "bibliography": format_bibliography(references),
             }
         )
@@ -155,10 +146,6 @@ async def _analyze_chunk_live_reports(
                 ),
                 "chunk": chunk.content,
                 "claim": claim.claim,
-                "domain_context": format_domain_context(state.config.domain),
-                "audience_context": format_audience_context(
-                    state.config.target_audience
-                ),
                 "newer_references": literature_review_result.newer_references,
                 "evidence_summary": literature_review_result.references_summary,
             }

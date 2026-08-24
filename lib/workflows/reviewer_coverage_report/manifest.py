@@ -48,27 +48,22 @@ original; you do not have the author's response memos.
 
 ## Task
 
-Produce ONLY the "Reviewer coverage report" output described in the skill (not \
-the revision-planning summary and not the reviewer response memos). Lay it out \
-in the skill's order: (1) an opening with a title, the document type, the list \
-of reviewers, and a short overall responsiveness read plus anything genuinely \
-unaddressed; (2) a summary verdict table with per-category counts (addressed, \
-partially addressed, declined with rationale, not addressed), totals and a \
-per-reviewer breakdown, listing the point IDs in each category; (3) each \
-reviewer's memo reproduced verbatim and in order, every point labeled with its \
-stable ID, with the verdict, the point's location in the draft by content, and \
-brief evidence directly under it. Be document-type aware, and note overlap \
-between reviewers by point ID instead of double-counting.
+Produce ONLY the "Reviewer coverage report" output described in the skill, \
+not the revision-planning summary and not the reviewer response memos. Follow \
+the skill's specification for it exactly: everything about the report's \
+content, structure, and formatting is defined there.
 
 ## Output
 
-Produce a single, complete, self-contained HTML document for the coverage \
-report and write it into the `report_html` field of your structured response. \
-Give it its own inline `<style>` block with a clean, readable layout — include \
-a real styled table for the summary verdict counts and clearly distinguish each \
-verdict. The document must be fully self-contained: no external stylesheets, \
-fonts, scripts, or images, and no `<script>` of any kind; embed any images as \
-`data:` URIs.\
+Write the report to `/report.html` using the `write_file` tool, as a \
+single, complete, self-contained HTML document with its own inline `<style>` \
+block implementing the skill's formatting conventions. Self-contained means no \
+external stylesheets, fonts, scripts, or images, and no `<script>` of any \
+kind; embed any images as `data:` URIs.
+
+`/report.html` is the deliverable: it is read from the filesystem when you \
+finish, and nothing you say in your final message is used in its place. Write \
+the whole document, and if you revise it, write it again in full.\
 """
 
 

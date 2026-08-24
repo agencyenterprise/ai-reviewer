@@ -11,9 +11,9 @@ from inspect_ai.solver import TaskState
 from pydantic import BaseModel, Field
 
 from evals_inspectai.common.api_client import (
+    create_project_and_start_workflows,
     poll_workflow_run_until_complete,
     start_workflow,
-    upload_and_start_analysis,
 )
 from evals_inspectai.common.errors import WorkflowCompletionError
 from evals_inspectai.common.scorers import structured_output_scorer
@@ -79,7 +79,7 @@ def _reference_downloader_api_agent(
     async def execute(state: AgentState) -> AgentState:
         reference = state.messages[0].text if state.messages else ""
 
-        project_id = await upload_and_start_analysis(
+        project_id = await create_project_and_start_workflows(
             file_content=f"## References\n\n{reference}",
             file_name="eval-document.md",
             workflow_types=["document_processing", "reference_extraction"],

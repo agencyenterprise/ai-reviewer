@@ -4,7 +4,7 @@ from mcp.types import ToolAnnotations
 
 from lib.api.mcp import helpers
 from lib.api.mcp.instance import mcp
-from lib.services.workflow_types import get_workflow_types_for_user
+from lib.services.workflow_types import get_all_workflow_types
 
 
 @mcp.tool(
@@ -25,5 +25,8 @@ async def list_workflow_types(token: AccessToken = CurrentAccessToken()) -> str:
     categories: ordered list of categories, each with an ordered list of workflow type slugs
     that belong to it — use this to understand grouping and display order.
     """
-    user = await helpers.resolve_user(token)
-    return get_workflow_types_for_user(user).model_dump_json()
+    # The listing is the same for every caller, but resolving the user still
+    # validates the token's identity claims (and provisions the account on a
+    # first call), which is the behaviour every other tool relies on.
+    await helpers.resolve_user(token)
+    return get_all_workflow_types().model_dump_json()

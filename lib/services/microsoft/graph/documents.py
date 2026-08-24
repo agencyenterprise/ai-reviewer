@@ -1,9 +1,14 @@
-"""A SharePoint document, loaded and read as text.
+"""A SharePoint document, loaded as markdown.
 
-The backend holds a real .docx here rather than the Flat OPC an add-in sends, so
-``docx-editor`` opens it directly and none of the adapter in
+The backend holds a real .docx here rather than the Flat OPC an add-in sends, so both
+readers below open it directly and none of the adapter in
 ``lib/services/microsoft/word/word_package.py`` is involved. That is the one clear
 simplification of loading documents server-side.
+
+Two readers, because neither does both jobs. **markitdown** produces the body, the same
+converter the rest of the app uses for a main document -- headings, tables and emphasis
+survive, where a paragraph-by-paragraph read flattens them into indistinguishable
+strings. **docx-editor** produces the comments, which markitdown does not extract.
 
 Read-only. Writing back is refused by SharePoint with 423 while anyone has the
 document open, so it is not offered here at all.
@@ -19,6 +24,7 @@ from typing import Optional
 from docx_editor import Document
 from pydantic import BaseModel, Field
 
+from lib.services.converters.base import convert_to_markdown
 from lib.services.microsoft.graph import client
 
 logger = logging.getLogger(__name__)
@@ -29,8 +35,8 @@ class LoadedDocument(BaseModel):
 
     name: str
     url: str
-    paragraphs: list[str] = Field(
-        description="Every paragraph in order, so positions can be referred to"
+    markdown: str = Field(
+        description="The document as markdown, with its structure intact"
     )
     comments: list[tuple[str, str]] = Field(
         default_factory=list, description="(author, text), threads and replies alike"
@@ -39,16 +45,17 @@ class LoadedDocument(BaseModel):
     size_bytes: int = 0
 
     @property
-    def text(self) -> str:
-        return "\n".join(self.paragraphs)
+    def lines(self) -> int:
+        """How long the document is, in the units the agent's tools count in."""
+
+        return len(self.markdown.splitlines())
 
 
-def _read(path: Path, work: Path) -> tuple[list[str], list[tuple[str, str]]]:
-    """Paragraphs and comments, via docx-editor on a real file."""
+def _read_comments(path: Path, work: Path) -> list[tuple[str, str]]:
+    """Comments and their replies, flattened, via docx-editor on a real file."""
 
     doc = Document.open(path, author="Draft Detective", workspace_dir=str(work / "ws"))
     try:
-        paragraphs = [info.text for info in doc.list_paragraphs_structured(limit=None)]
         comments: list[tuple[str, str]] = []
         for comment in doc.list_comments():
             comments.append((comment.author, comment.text))
@@ -56,7 +63,7 @@ def _read(path: Path, work: Path) -> tuple[list[str], list[tuple[str, str]]]:
                 comments.append((reply.author, reply.text))
     finally:
         doc.close()
-    return paragraphs, comments
+    return comments
 
 
 async def load(url: str, *, token: str) -> LoadedDocument:
@@ -84,16 +91,17 @@ async def load(url: str, *, token: str) -> LoadedDocument:
     try:
         path = work / "document.docx"
         path.write_bytes(payload)
+        markdown = await convert_to_markdown(str(path), converter="markitdown")
         # docx-editor is synchronous and unzips into a workspace, so it does not
         # belong on the event loop.
-        paragraphs, comments = await asyncio.to_thread(_read, path, work)
+        comments = await asyncio.to_thread(_read_comments, path, work)
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
     return LoadedDocument(
         name=str(item.get("name") or "document.docx"),
         url=url,
-        paragraphs=paragraphs,
+        markdown=markdown,
         comments=comments,
         last_modified=item.get("lastModifiedDateTime"),
         size_bytes=len(payload),

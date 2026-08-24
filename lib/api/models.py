@@ -13,19 +13,9 @@ class StartWorkflowResponse(BaseModel):
     """Response model for starting a workflow"""
 
     project_id: str
-    workflow_run_id: str | None = None
-    type: WorkflowRunType | None = None
+    workflow_run_id: str
+    type: WorkflowRunType
     message: str
-
-
-class AnalysisFormConfig(BaseModel):
-    """Form config for starting analysis (project creation + workflow start)"""
-
-    domain: Optional[str] = None
-    target_audience: Optional[str] = None
-    openai_api_key: Optional[str] = None
-    publication_date: Optional[str] = None
-    workflow_types: Optional[List[WorkflowRunType]] = None
 
 
 class StartMultipleWorkflowsRequest(BaseModel):

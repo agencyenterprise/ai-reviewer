@@ -27,8 +27,6 @@ interface EditProjectDialogProps {
 export interface EditProjectFormValues {
   title: string;
   publication_date: string;
-  domain: string;
-  target_audience: string;
   feedback_visibility: FeedbackVisibility | null;
 }
 
@@ -62,8 +60,6 @@ export function EditProjectDialog({
     defaultValues: {
       title: project.title || '',
       publication_date: formatDateForInput(project.publication_date),
-      domain: project.domain || '',
-      target_audience: project.target_audience || '',
       feedback_visibility: project.feedback_visibility ?? null,
     } as EditProjectFormValues,
     validators: {
@@ -132,48 +128,6 @@ export function EditProjectDialog({
               )}
             </form.Field>
           )}
-
-          <form.Field name="domain">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor="domain">
-                  Domain <span className="text-muted-foreground text-xs font-normal">(Optional)</span>
-                </Label>
-                <Input
-                  id="domain"
-                  placeholder="e.g., Healthcare, Technology, Finance..."
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  disabled={isSubmitting}
-                />
-                <p className="text-sm text-muted-foreground">
-                  The subject area or field of expertise to contextualize the analysis. This helps tailor the evaluation
-                  to domain-specific standards and terminology.
-                </p>
-              </div>
-            )}
-          </form.Field>
-
-          <form.Field name="target_audience">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor="target-audience">
-                  Target Audience <span className="text-muted-foreground text-xs font-normal">(Optional)</span>
-                </Label>
-                <Input
-                  id="target-audience"
-                  placeholder="e.g., General public, Experts, Students..."
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  disabled={isSubmitting}
-                />
-                <p className="text-sm text-muted-foreground">
-                  The intended readers of the document. Specifying the audience helps adjust the analysis to match
-                  appropriate complexity level and expectations.
-                </p>
-              </div>
-            )}
-          </form.Field>
         </div>
 
         <form.Field name="feedback_visibility">

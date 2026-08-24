@@ -5,13 +5,14 @@ unified ``DeepAgentResult``):
 
 - ``SimpleDeepAgentManifest`` — the LLM fills ``AgentCheckResult`` (issues + a
   markdown report).
-- ``HtmlReportDeepAgentManifest`` — the LLM fills ``AgentHtmlReport`` (a single
-  self-contained HTML document), no issues.
+- ``HtmlReportDeepAgentManifest`` — the LLM writes a single self-contained HTML
+  document to ``REPORT_PATH`` on the agent filesystem, no structured output and
+  no issues.
 
-The LLM sees only the fields of its variant's output model (so it knows exactly
-which to populate); the node maps that output into the shared
+Either way the node maps what the agent produced into the shared
 ``DeepAgentResult`` stored in state, and the UI renders whichever report field
-is present.
+is present. That mapping is the point of the split: the two variants deliver
+their results by different mechanisms, and state does not know or care.
 
 Subclasses declare class-level attributes (type, name, description, and either
 `skill` or `user_prompt`) and the usual WorkflowManifest metadata fields.
@@ -36,10 +37,12 @@ from lib.workflows.simple_deep_agent.state import (
     SimpleDeepAgentState,
 )
 from lib.workflows.simple_deep_agent.agent_types import (
+    REPORT_PATH,
     AgentCheckResult,
-    AgentHtmlReport,
     DeepAgentResult,
+    DeepAgentRun,
     IssueItem,
+    ReportNotWrittenError,
     issues_from_agent_result,
 )
 
@@ -55,7 +58,8 @@ class _BaseDeepAgentManifest(
 ):
     """Shared machinery for single-node deep-agent workflows.
 
-    Subclasses set ``result_model`` (the LLM's structured-output schema),
+    Subclasses set ``result_model`` (the LLM's structured-output schema, or
+    ``None`` for a variant that does not use structured output),
     implement ``_guard_result`` (how a ``precheck`` message is surfaced), and
     ``convert_state_to_issues``. State, graph, prompt resolution, and the
     LLM-output → ``DeepAgentResult`` mapping are shared.
@@ -71,7 +75,8 @@ class _BaseDeepAgentManifest(
     system_prompt: ClassVar[Optional[str]] = None
 
     # Structured-output schema the LLM must fill for this variant.
-    result_model: ClassVar[Type[BaseModel]] = AgentCheckResult
+    # None means the variant does not use structured output at all.
+    result_model: ClassVar[Optional[Type[BaseModel]]] = AgentCheckResult
 
     # Per-workflow reasoning effort. None keeps SimpleDeepAgent's default;
     # set it on workflows whose task warrants more deliberation.
@@ -103,15 +108,9 @@ class _BaseDeepAgentManifest(
         """Build the state result carrying a precheck guard message."""
         raise NotImplementedError
 
-    @staticmethod
-    def _to_state_result(output: BaseModel) -> DeepAgentResult:
-        """Map a variant's LLM output into the unified DeepAgentResult."""
-        issues = getattr(output, "issues", None) or []
-        return DeepAgentResult(
-            issues=[i for i in issues if isinstance(i, IssueItem)],
-            report_markdown=getattr(output, "report_markdown", "") or "",
-            report_html=getattr(output, "report_html", "") or "",
-        )
+    def _to_state_result(self, run: DeepAgentRun) -> DeepAgentResult:
+        """Map what the agent produced into the unified DeepAgentResult."""
+        raise NotImplementedError
 
     def get_state_type(self) -> Type[SimpleDeepAgentState]:
         return SimpleDeepAgentState
@@ -138,10 +137,10 @@ class _BaseDeepAgentManifest(
                 response_model=manifest.result_model,
                 reasoning_effort=manifest.reasoning_effort,
             )
-            output, messages = await agent.ainvoke({})
+            run = await agent.ainvoke({})
             return {
-                "result": manifest._to_state_result(output),
-                "messages": messages,
+                "result": manifest._to_state_result(run),
+                "messages": run.messages,
             }
 
         decorated = register_node(self.name)(run_agent)
@@ -176,16 +175,37 @@ class _BaseDeepAgentManifest(
 class SimpleDeepAgentManifest(_BaseDeepAgentManifest):
     """Deep-agent workflow whose LLM fills issues plus a markdown report."""
 
-    result_model: ClassVar[Type[BaseModel]] = AgentCheckResult
+    result_model: ClassVar[Optional[Type[BaseModel]]] = AgentCheckResult
+
+    def _to_state_result(self, run: DeepAgentRun) -> DeepAgentResult:
+        output = run.structured_response
+        issues = getattr(output, "issues", None) or []
+        return DeepAgentResult(
+            issues=[i for i in issues if isinstance(i, IssueItem)],
+            report_markdown=getattr(output, "report_markdown", "") or "",
+        )
 
     def _guard_result(self, message: str) -> DeepAgentResult:
         return DeepAgentResult(report_markdown=message)
 
 
 class HtmlReportDeepAgentManifest(_BaseDeepAgentManifest):
-    """Deep-agent workflow whose LLM fills a single self-contained HTML report."""
+    """Deep-agent workflow that writes a self-contained HTML report to a file.
 
-    result_model: ClassVar[Type[BaseModel]] = AgentHtmlReport
+    No structured output: the agent is told to write its deliverable to
+    ``REPORT_PATH`` and the node reads it back off the agent filesystem. What
+    lands in state is unchanged -- ``DeepAgentResult.report_html``, the same
+    field the UI has always rendered -- so this is a change of delivery
+    mechanism only, invisible past this method.
+    """
+
+    result_model: ClassVar[Optional[Type[BaseModel]]] = None
+
+    def _to_state_result(self, run: DeepAgentRun) -> DeepAgentResult:
+        report = run.files.get(REPORT_PATH, "").strip()
+        if not report:
+            raise ReportNotWrittenError(REPORT_PATH, list(run.files))
+        return DeepAgentResult(report_html=report)
 
     def _guard_result(self, message: str) -> DeepAgentResult:
         safe = html_lib.escape(message)

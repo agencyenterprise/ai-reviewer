@@ -186,9 +186,6 @@ Live Reports Analysis
 ```
 {records_json}
 ```
-{domain_context}
-
-{audience_context}
 
 ## Title: {document_title}
 

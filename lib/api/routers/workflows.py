@@ -48,7 +48,9 @@ async def start_workflow(
     )
 
 
-@router.post("/api/workflows/start-multiple", response_model=StartWorkflowResponse)
+@router.post(
+    "/api/workflows/start-multiple", response_model=StartMultipleWorkflowsResponse
+)
 async def start_multiple_workflows(
     request: StartMultipleWorkflowsRequest,
     background_tasks: BackgroundTasks,

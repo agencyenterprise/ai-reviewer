@@ -32,8 +32,6 @@ import { RevisionSwitcher } from './revision-switcher';
 
 type ProjectWithDetails = Project & {
   publication_date?: Date | null;
-  domain?: string | null;
-  target_audience?: string | null;
 };
 
 export interface AnalysisOptionsMenuProps {
@@ -91,8 +89,6 @@ export function AnalysisOptionsMenu({
         body: {
           title: values.title,
           publication_date: values.publication_date ? new Date(values.publication_date) : null,
-          domain: values.domain || null,
-          target_audience: values.target_audience || null,
           feedback_visibility: values.feedback_visibility ?? undefined,
         },
       });
@@ -202,7 +198,7 @@ export function AnalysisOptionsMenu({
               <MenuItemWithTooltip
                 icon={Pencil}
                 onClick={() => setIsEditDialogOpen(true)}
-                tooltip="Edit project title, publication date, domain, and target audience"
+                tooltip="Edit project details"
               >
                 Edit project details
               </MenuItemWithTooltip>

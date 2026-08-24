@@ -23,6 +23,46 @@ class DependencyWaitTimeoutError(Exception):
     pass
 
 
+class WorkflowErrorSeverity(StrEnum):
+    """Whether an error compromised the run's output.
+
+    `ERROR` means work was lost: the run's results are incomplete and the user
+    should retry. `WARNING` means the failure was handled — the affected step
+    recovered usable output — so the run still counts as completed and the
+    message is informational.
+    """
+
+    ERROR = "error"
+    WARNING = "warning"
+
+
+class ErrorDetails(BaseModel):
+    """Diagnostic payload captured from a caught exception.
+
+    Persisted alongside the human-readable error message so failures can be
+    debugged from the database alone, without needing the server logs of the
+    run that produced them. Every field is optional: older persisted state
+    predates this model, and not every exception carries model output.
+    """
+
+    error_type: Optional[str] = Field(
+        default=None,
+        description="Class name of the exception that was caught, e.g. 'StructuredOutputValidationError'.",
+    )
+    traceback: Optional[str] = Field(
+        default=None,
+        description="Formatted traceback, including chained causes. Truncated if very long.",
+    )
+    raw_model_output: Optional[str] = Field(
+        default=None,
+        description="Raw text the LLM returned, when the exception carried it. Truncated if very long.",
+    )
+    llm_metadata: Optional[dict] = Field(
+        default=None,
+        description="Response metadata from the failing LLM call (model name, finish/stop reason, token usage).",
+    )
+
+
 class WorkflowError(BaseModel):
     """Error object for the overall workflow or specific chunks."""
 
@@ -35,6 +75,18 @@ class WorkflowError(BaseModel):
     workflow_run_id: Optional[str] = Field(
         default=None,
         description="The workflow run ID when this error occurred. Used to filter errors to current run only.",
+    )
+    severity: WorkflowErrorSeverity = Field(
+        default=WorkflowErrorSeverity.ERROR,
+        description=(
+            "Whether this error cost the run part of its output ('error') or was "
+            "recovered from and is informational ('warning'). Errors persisted "
+            "before this field existed read as 'error'."
+        ),
+    )
+    details: Optional[ErrorDetails] = Field(
+        default=None,
+        description="Diagnostic details (traceback, raw model output, LLM metadata) for debugging this error.",
     )
 
 
@@ -56,12 +108,6 @@ class BaseWorkflowConfig(BaseModel):
     openai_api_key: Optional[str] = Field(
         default=None,
         description="The OpenAI API key to use for this workflow execution",
-    )
-    domain: Optional[str] = Field(
-        default=None, description="Domain context for more accurate analysis"
-    )
-    target_audience: Optional[str] = Field(
-        default=None, description="Target audience context for analysis"
     )
     publication_date: Optional[str] = Field(
         default=None, description="Publication date of the document (YYYY-MM-DD format)"

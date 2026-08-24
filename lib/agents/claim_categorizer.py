@@ -250,10 +250,6 @@ When in doubt between TRUE and FALSE, default to FALSE.
 
 # Agent Inputs
 
-{domain_context}
-
-{audience_context}
-
 {summary_context}
 
 {headings_context}
@@ -304,8 +300,6 @@ if __name__ == "__main__":
     # Test cases with expected vs inferred categorizations
     test_cases = [
         {
-            "domain_context": "Military personnel management and technology",
-            "audience_context": "Military leadership and HR professionals",
             "document_summary": """In recent years, RAND Project AIR FORCE (PAF) has supported the U.S. Air Force's efforts to enhance its talent management practices through technology investments (Schulker et al., 2022; Snyder, 2022; Yeung et al., 2022). These projects demonstrate that leveraging emerging technology can transform the USAF's talent management system. Beyond conceptual work, PAF developed a prototype tool, Personnel Records Scoring System (PReSS), and tested it with select DTs. In this report, we describe improvements to PReSS and an expansion to enlisted personnel.""",
             "paragraph": """In recent years, RAND Project AIR FORCE (PAF) has supported the U.S. Air Force's efforts to enhance its talent management practices through technology investments (Schulker et al., 2022; Snyder, 2022; Yeung et al., 2022). These projects demonstrate that leveraging emerging technology can transform the USAF's talent management system.""",
             "chunk": chunk,

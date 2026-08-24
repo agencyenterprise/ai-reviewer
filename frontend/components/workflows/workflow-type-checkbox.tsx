@@ -108,13 +108,13 @@ export function WorkflowTypeCheckbox({
     <label
       htmlFor={workflowType.type}
       className={cn(
-        'group rounded-xl p-4 cursor-pointer transition-all block border',
+        'group rounded-xl p-3 cursor-pointer transition-all block border h-full',
         'hover:bg-accent/50 hover:border-accent',
         checked ? 'border-primary bg-primary/5' : 'border-border',
         disabled && 'cursor-not-allowed opacity-50',
       )}
     >
-      <div className="flex gap-4">
+      <div className="flex gap-3">
         <div
           className={cn(
             'flex items-center justify-center size-8 rounded-lg shrink-0 transition-colors',
@@ -124,7 +124,7 @@ export function WorkflowTypeCheckbox({
           <Icon className="size-4" />
         </div>
 
-        <div className="flex-1 min-w-0 space-y-1.5">
+        <div className="flex-1 min-w-0 space-y-1">
           <div className="flex items-start justify-between gap-3">
             <span className={cn('text-sm font-medium leading-tight', disabled && 'opacity-70')}>
               {workflowType.name}
@@ -153,9 +153,8 @@ export function WorkflowTypeCheckbox({
           {(estimatedDuration ||
             workflowType.is_experimental ||
             workflowType.needs_web_search ||
-            requiresSupportingFiles ||
-            workflowType.is_qa_screener) && (
-            <div className="flex flex-wrap items-center gap-2 pt-1">
+            requiresSupportingFiles) && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
               {estimatedDuration && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -166,21 +165,7 @@ export function WorkflowTypeCheckbox({
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
                     Rough estimate based on how long this assessment has taken on past documents. Actual time varies
-                    with document size and current load.
-                  </TooltipContent>
-                </Tooltip>
-              )}
-              {workflowType.is_qa_screener && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge variant="default" className="flex items-center gap-1 text-xs bg-blue-600 hover:bg-blue-700">
-                      <ShieldCheck className="size-3" />
-                      QA Screener
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs">
-                    This assessment is part of the QA Screener tool, designed for quality assurance screening of
-                    documents.
+                    with document size and current system load.
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -217,11 +202,11 @@ export function WorkflowTypeCheckbox({
                   <TooltipTrigger asChild>
                     <Badge variant="secondary" className="flex items-center gap-1 text-xs">
                       <FlaskConical className="size-3" />
-                      Beta
+                      Alpha
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
-                    This assessment is in beta. Results may vary and features/performance may change in future updates.
+                    This assessment is in alpha. Results may vary and features/performance may change in future updates.
                   </TooltipContent>
                 </Tooltip>
               )}

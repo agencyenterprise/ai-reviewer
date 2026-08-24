@@ -4,11 +4,13 @@ from enum import StrEnum
 from typing import List, Optional
 
 from langchain.agents import create_agent
-from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from langchain.agents.structured_output import StructuredOutputError
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langgraph.graph.state import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.claim_verifier import ClaimEvidenceSource, EvidenceAlignmentLevel
+from lib.agents.structured_output_salvage import ai_message_text, salvage_models
 from lib.agents.tools.read_document import read_document
 from lib.agents.tools.search_document import search_document
 from lib.agents.tools.vector_search import vector_search
@@ -84,6 +86,31 @@ class SectionValidationResult(BaseModel):
     )
 
 
+class PartialSectionValidationError(Exception):
+    """The model's response was cut off, but complete assessments were recovered.
+
+    Carries the salvaged result so the caller can keep the assessments the model
+    finished writing while still recording the section as incomplete. Always
+    raised `from` the underlying structured-output error, so the provider
+    metadata that explains the cut (`incomplete_details.reason`) stays reachable
+    through the exception chain.
+    """
+
+    def __init__(
+        self,
+        result: SectionValidationResult,
+        messages: List[BaseMessage],
+        source: Exception,
+    ) -> None:
+        self.result = result
+        self.messages = messages
+        self.source = source
+        super().__init__(
+            f"Section validation output was truncated; recovered "
+            f"{len(result.issues)} complete citation assessment(s) before the cut."
+        )
+
+
 # The citation-substantiation *method* lives in the portable `citation-support`
 # skill (the single source of truth). This backend-only addendum carries the
 # Draft-Detective specifics the skill omits: the assigned section, the concrete
@@ -130,10 +157,6 @@ Return `issues` — one `CitationAssessment` per citation you validate — each 
 - `feedback`: an actionable suggestion for the author (`"No changes needed"` if the citation is correct);
 - `evidence_sources`: every reference file you checked for this citation (with a quote, location, and file_id each);
 - `citation_to_file_mapping`: a display-friendly summary of which bibliography entry matched which file (e.g. `"Smith (2020) → smith_2020.pdf"`; no file_id UUIDs here).
-
-{domain_context}
-
-{audience_context}
 """
 
 
@@ -159,19 +182,47 @@ class CitationValidatorAgent(LangChainAgent):
             response_format=SectionValidationResult,
         )
 
-        result = await agent.ainvoke(
-            {
-                "messages": [
-                    SystemMessage(
-                        content=load_skill_prompt("citation-support")
-                        + _ENV_GUIDANCE.format(**prompt_kwargs)
-                    ),
-                    HumanMessage(content=_USER_MESSAGE),
-                ]
-            },
-            config={"recursion_limit": 80, **(config or {})},
-            context=self.context,
-        )
+        try:
+            result = await agent.ainvoke(
+                {
+                    "messages": [
+                        SystemMessage(
+                            content=load_skill_prompt("citation-support")
+                            + _ENV_GUIDANCE.format(**prompt_kwargs)
+                        ),
+                        HumanMessage(content=_USER_MESSAGE),
+                    ]
+                },
+                config={"recursion_limit": 80, **(config or {})},
+                context=self.context,
+            )
+        except StructuredOutputError as e:
+            partial = self._salvage(e)
+            if partial is None:
+                raise
+            raise partial from e
 
         structured: SectionValidationResult = result["structured_response"]
         return structured, result["messages"]
+
+    @staticmethod
+    def _salvage(error: StructuredOutputError) -> Optional[PartialSectionValidationError]:
+        """Recover the assessments a truncated response had already completed.
+
+        LangChain raises before the agent returns, so the only record of the
+        model's work is the `AIMessage` carried on the exception. Returns None
+        when there is nothing to recover, leaving the caller to re-raise.
+        """
+        ai_message = getattr(error, "ai_message", None)
+        if not isinstance(ai_message, AIMessage):
+            return None
+
+        salvaged = salvage_models(
+            ai_message_text(ai_message), "issues", CitationAssessment
+        )
+        if not salvaged:
+            return None
+
+        return PartialSectionValidationError(
+            SectionValidationResult(issues=salvaged), [ai_message], error
+        )

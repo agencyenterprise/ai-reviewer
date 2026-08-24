@@ -66,14 +66,6 @@ class Project(SQLModel, table=True):
         sa_column=Column(Date, nullable=True),
         description="The publication date of the report",
     )
-    domain: str = Field(
-        sa_column=Column(String, nullable=True),
-        description="The subject area or field of expertise of the report",
-    )
-    target_audience: str = Field(
-        sa_column=Column(String, nullable=True),
-        description="The intended readers of the report",
-    )
     feedback_visibility: Optional[FeedbackVisibility] = Field(
         sa_column=Column(
             SQLAlchemyEnum(FeedbackVisibility, name="feedbackvisibility"),
