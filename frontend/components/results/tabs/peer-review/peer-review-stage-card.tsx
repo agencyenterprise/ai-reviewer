@@ -97,10 +97,17 @@ interface StagePanelProps {
   children?: ReactNode;
 }
 
-/** Body of the selected step: why it is blocked, its content, then its actions. */
+/**
+ * Body of the selected step: why it is blocked, its content, then its actions.
+ *
+ * Deliberately unbordered. The step card above is highlighted while its panel is
+ * open, which is what identifies the selection, and this content already sits
+ * inside the bordered tab container — a border here would nest a box in a box
+ * around reports that carry their own framing.
+ */
 export function PeerReviewStagePanel({ blockedReason, actions, children }: StagePanelProps) {
   return (
-    <div className="space-y-4 rounded-lg border p-4">
+    <div className="space-y-4">
       {blockedReason && (
         <Callout variant="info" icon={Info} title="Not ready yet">
           <p className="text-sm">{blockedReason}</p>
@@ -114,8 +121,9 @@ export function PeerReviewStagePanel({ blockedReason, actions, children }: Stage
 
 /**
  * The call to action for a step with nothing to show yet: what it produces,
- * then the button. Centred like `EmptyState`, but without its Card — the stage
- * panel already provides the border.
+ * then the button. Centred like `EmptyState`, but with a dashed border of its
+ * own rather than a Card: the stage panel around it is unbordered, and an empty
+ * step needs to read as a target rather than as text floating in the tab.
  */
 export function PeerReviewStageCta({
   icon: Icon,
@@ -129,7 +137,7 @@ export function PeerReviewStageCta({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center gap-4 py-10 text-center">
+    <div className="flex flex-col items-center gap-4 rounded-lg border border-dashed px-6 py-10 text-center">
       <Icon className="size-8 text-muted-foreground" />
       <div className="space-y-1.5">
         <p className="text-sm font-medium">{title}</p>
