@@ -601,32 +601,6 @@ export type BibliographyItemValidationV2 = {
 };
 
 /**
- * Body_start_analysis_api_start_analysis_post
- */
-export type BodyStartAnalysisApiStartAnalysisPost = {
-  /**
-   * Main Document
-   */
-  main_document: Blob | File;
-  /**
-   * Supporting Documents
-   */
-  supporting_documents?: Array<Blob | File> | null;
-  /**
-   * Openai Api Key
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   */
-  publication_date?: string | null;
-  /**
-   * Workflow Types
-   */
-  workflow_types?: string | null;
-};
-
-/**
  * CancelWorkflowResponse
  *
  * Response for workflow cancellation.
@@ -5095,8 +5069,8 @@ export type StartWorkflowResponse = {
   /**
    * Workflow Run Id
    */
-  workflow_run_id?: string | null;
-  type?: WorkflowRunType | null;
+  workflow_run_id: string;
+  type: WorkflowRunType;
   /**
    * Message
    */
@@ -6152,33 +6126,6 @@ export type AppendMessageApiChatThreadsThreadIdMessagesPostResponses = {
 
 export type AppendMessageApiChatThreadsThreadIdMessagesPostResponse =
   AppendMessageApiChatThreadsThreadIdMessagesPostResponses[keyof AppendMessageApiChatThreadsThreadIdMessagesPostResponses];
-
-export type StartAnalysisApiStartAnalysisPostData = {
-  body: BodyStartAnalysisApiStartAnalysisPost;
-  path?: never;
-  query?: never;
-  url: '/api/start-analysis';
-};
-
-export type StartAnalysisApiStartAnalysisPostErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type StartAnalysisApiStartAnalysisPostError =
-  StartAnalysisApiStartAnalysisPostErrors[keyof StartAnalysisApiStartAnalysisPostErrors];
-
-export type StartAnalysisApiStartAnalysisPostResponses = {
-  /**
-   * Successful Response
-   */
-  200: StartWorkflowResponse;
-};
-
-export type StartAnalysisApiStartAnalysisPostResponse =
-  StartAnalysisApiStartAnalysisPostResponses[keyof StartAnalysisApiStartAnalysisPostResponses];
 
 export type CheckPreflightApiPreflightPostData = {
   body: PreflightRequest;

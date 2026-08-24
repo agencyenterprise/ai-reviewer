@@ -23,8 +23,8 @@ from inspect_ai.scorer import Score
 from inspect_ai.solver import Generate, Solver, TaskState, solver
 
 from evals_inspectai.common.api_client import (
+    create_project_and_start_workflows,
     poll_until_complete,
-    upload_and_start_analysis,
 )
 from evals_inspectai.common.errors import WorkflowCompletionError
 from evals_inspectai.common.loaders import resolve_input
@@ -67,7 +67,7 @@ def live_reports_v2_solver(
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         meta = state.metadata or {}
 
-        project_id = await upload_and_start_analysis(
+        project_id = await create_project_and_start_workflows(
             file_content=state.input_text,
             file_name="eval-document.md",
             workflow_types=[_TARGET_WORKFLOW],

@@ -3,9 +3,7 @@
 import asyncio
 import base64
 import logging
-import mimetypes
 import os
-import tempfile
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -37,6 +35,10 @@ JWT_AUDIENCE = "ai-reviewer-api"
 DEFAULT_HTTP_TIMEOUT_S = 300.0
 
 TUS_VERSION = "1.0.0"
+
+# `FileRole` values, as the app sends them in the TUS upload metadata.
+MAIN_ROLE = "main"
+SUPPORT_ROLE = "support"
 
 # Run statuses from which a workflow can never reach "completed".
 TERMINAL_FAILURE_STATUSES = frozenset({"failed", "cancelled"})
@@ -78,94 +80,89 @@ def _build_client() -> httpx.AsyncClient:
     )
 
 
-async def upload_and_start_analysis(
+async def create_project(title: str) -> str:
+    """Create an empty project and return its id."""
+    async with _build_client() as client:
+        resp = await client.post("/api/projects", json={"title": title})
+        resp.raise_for_status()
+        project_id = str(resp.json()["project"]["id"])
+
+    logger.info("Created project %s", project_id)
+    return project_id
+
+
+async def set_publication_date(project_id: str, publication_date: str) -> None:
+    """Set a project's document publication date (YYYY-MM-DD).
+
+    Date-sensitive workflows (live reports, literature review) read the date off
+    the project when their config is built, so it has to be set before the
+    workflows are started. This is also how the app sets it, from the analysis
+    options menu.
+    """
+    async with _build_client() as client:
+        resp = await client.patch(
+            f"/api/project/{project_id}",
+            json={"publication_date": publication_date},
+        )
+        resp.raise_for_status()
+
+    logger.info("Set publication_date=%s on project %s", publication_date, project_id)
+
+
+async def create_project_and_start_workflows(
     file_content: str,
     workflow_types: list[str],
     file_name: str = "document.md",
     supporting_files: list[tuple[str, str | Path]] | None = None,
     publication_date: str | None = None,
 ) -> str:
-    """Upload a document and start analysis workflows.
+    """Create a project, upload its documents, and start workflows on it.
+
+    This is the same sequence the app performs when a user starts an
+    assessment: `POST /api/projects`, upload each document through TUS, then
+    `POST /api/workflows/start-multiple`. Keeping the eval on those endpoints
+    means a break in the path real users take shows up here too.
 
     Args:
         file_content: Markdown content of the main document.
         workflow_types: Workflow types to trigger (dependencies are auto-resolved
             server-side; pass only the leaf workflow).
-        file_name: Display name for the main document.
+        file_name: Display name for the main document, also used as the project
+            title, as the app does.
         supporting_files: Optional list of (file_name, content_or_path) tuples
-            uploaded alongside the main document as multipart `supporting_documents`.
-            The second element can be either:
-              - a markdown string (written to a temp file before upload), or
-              - a `Path` pointing at an existing file (uploaded directly, e.g. a PDF).
-        publication_date: Optional document publication date (YYYY-MM-DD) passed
-            to the workflow config. Used by date-sensitive workflows such as
-            live reports, which search for sources published after this date.
+            uploaded alongside the main document with the SUPPORT role. The
+            second element can be either:
+              - a markdown string, or
+              - a `Path` pointing at an existing file (e.g. a PDF), whose bytes
+                are uploaded as-is.
+        publication_date: Optional document publication date (YYYY-MM-DD). Used
+            by date-sensitive workflows such as live reports, which search for
+            sources published after this date.
 
     Returns the project_id.
     """
-    async with _build_client() as client:
-        tmp_paths: list[str] = []
-        open_handles: list[Any] = []
-        try:
-            with tempfile.NamedTemporaryFile(
-                suffix=".md", mode="w", delete=False
-            ) as tmp:
-                tmp.write(file_content)
-                main_path = tmp.name
-            tmp_paths.append(main_path)
+    project_id = await create_project(title=file_name)
 
-            multipart: list[tuple[str, tuple[str, Any, str]]] = []
-            main_handle = open(main_path, "rb")
-            open_handles.append(main_handle)
-            multipart.append(
-                ("main_document", (file_name, main_handle, "text/markdown"))
-            )
+    if publication_date:
+        await set_publication_date(project_id, publication_date)
 
-            for sf_name, sf_value in supporting_files or []:
-                if isinstance(sf_value, Path):
-                    sf_path = str(sf_value)
-                    content_type = (
-                        mimetypes.guess_type(sf_path)[0] or "application/octet-stream"
-                    )
-                else:
-                    with tempfile.NamedTemporaryFile(
-                        suffix=".md", mode="w", delete=False
-                    ) as tmp_sf:
-                        tmp_sf.write(sf_value)
-                        sf_path = tmp_sf.name
-                    tmp_paths.append(sf_path)
-                    content_type = "text/markdown"
-                handle = open(sf_path, "rb")
-                open_handles.append(handle)
-                multipart.append(
-                    ("supporting_documents", (sf_name, handle, content_type))
-                )
+    await tus_upload_file(
+        project_id=project_id,
+        file_name=file_name,
+        content=file_content,
+        role=MAIN_ROLE,
+    )
 
-            data: dict[str, Any] = {}
-            for wt in workflow_types:
-                data.setdefault("workflow_types", []).append(wt)
+    for sf_name, sf_value in supporting_files or []:
+        await tus_upload_file(
+            project_id=project_id,
+            file_name=sf_name,
+            content=sf_value.read_bytes() if isinstance(sf_value, Path) else sf_value,
+            role=SUPPORT_ROLE,
+        )
 
-            if publication_date:
-                data["publication_date"] = publication_date
-
-            openai_api_key = os.environ.get("EVAL_API_OPENAI_API_KEY")
-            if openai_api_key:
-                data["openai_api_key"] = openai_api_key
-
-            resp = await client.post("/api/start-analysis", files=multipart, data=data)
-        finally:
-            for h in open_handles:
-                h.close()
-            for p in tmp_paths:
-                try:
-                    os.unlink(p)
-                except OSError:
-                    pass
-
-        resp.raise_for_status()
-        body = resp.json()
-        logger.info("Started analysis, project_id=%s", body["project_id"])
-        return body["project_id"]
+    await start_workflow_types(project_id, workflow_types)
+    return project_id
 
 
 def _encode_tus_metadata(metadata: dict[str, str]) -> str:
@@ -179,22 +176,21 @@ def _encode_tus_metadata(metadata: dict[str, str]) -> str:
 async def tus_upload_file(
     project_id: str,
     file_name: str,
-    content: str,
+    content: str | bytes,
     role: str,
     revision: int | None = None,
 ) -> None:
     """Upload a file into an existing project through the TUS endpoint.
 
-    `/api/start-analysis` can only create files with the MAIN and SUPPORT roles,
-    so anything else has to go through TUS: it is the only upload path that
-    reads a `role` (and, for revision-scoped roles, a `revision`) from the
-    upload metadata. Reviewer memos need both.
+    This is the only upload path the app has, and the only one that reads a
+    `role` (and, for the revision-scoped roles, a `revision`) from the upload
+    metadata.
 
     Args:
         project_id: Project to attach the file to.
         file_name: Display name for the uploaded file.
-        content: Markdown content of the file.
-        role: A `FileRole` value, e.g. "reviewer_memo" or "main".
+        content: File content, either text or raw bytes (e.g. a PDF).
+        role: A `FileRole` value, e.g. "main", "support" or "reviewer_memo".
         revision: Revision the file belongs to. Only meaningful for the
             revision-scoped roles (main, reviewer_memo); omitting it attaches
             the file to the project's current revision.
@@ -205,7 +201,7 @@ async def tus_upload_file(
     route, so a POST carrying the whole body would upload bytes and never
     register the file.
     """
-    payload = content.encode()
+    payload = content.encode() if isinstance(content, str) else content
     metadata = {"filename": file_name, "project_id": project_id, "role": role}
     if revision is not None:
         metadata["revision"] = str(revision)
