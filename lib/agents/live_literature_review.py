@@ -142,10 +142,6 @@ When generating responses, remove or replace all internal citation tokens such a
 
 # Agent Inputs
 
-{domain_context}
-
-{audience_context}
-
 **Document Publication Date**: {document_publication_date}
 
 {summary_context}

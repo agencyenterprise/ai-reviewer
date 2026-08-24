@@ -110,10 +110,6 @@ General Guidelines for Processing
 
 # Agent Inputs
 
-{domain_context}
-
-{audience_context}
-
 {summary_context}
 
 ## The list of references already cited in this chunk of text to support the claim and their associated supporting document (if any)

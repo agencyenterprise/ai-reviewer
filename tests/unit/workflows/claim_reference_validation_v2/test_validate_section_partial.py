@@ -24,8 +24,6 @@ SECTION_INPUT = {
     "start_line": 89,
     "end_line": 99,
     "headings": ["Introduction"],
-    "domain": None,
-    "target_audience": None,
 }
 
 

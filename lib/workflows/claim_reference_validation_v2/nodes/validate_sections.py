@@ -12,7 +12,6 @@ from lib.agents.citation_validator import (
     CitationValidatorAgent,
     PartialSectionValidationError,
 )
-from lib.agents.formatting_utils import format_audience_context, format_domain_context
 from lib.models.file import FileRole
 from lib.workflows.claim_reference_validation_v2.citation_mapping import (
     build_reference_file_map,
@@ -89,8 +88,6 @@ async def distribute_sections(
                 "start_line": item.start_line,
                 "end_line": item.end_line,
                 "headings": item.headings,
-                "domain": state.config.domain,
-                "target_audience": state.config.target_audience,
             },
         )
         for item in state.section_verifications
@@ -104,8 +101,6 @@ async def validate_section(state: dict, runtime: Runtime[ContextSchema]):
     start_line: int = state["start_line"]
     end_line: int = state["end_line"]
     headings: List[str] = state.get("headings", [])
-    domain: Optional[str] = state.get("domain")
-    target_audience: Optional[str] = state.get("target_audience")
 
     file_artifacts_service = runtime.context.file_artifacts_service
     issues = []
@@ -140,8 +135,6 @@ async def validate_section(state: dict, runtime: Runtime[ContextSchema]):
                 "end_line": end_line,
                 "section_headings": headings_str,
                 "reference_file_map": reference_file_map,
-                "domain_context": format_domain_context(domain),
-                "audience_context": format_audience_context(target_audience),
                 "headings": headings,
             }
         )

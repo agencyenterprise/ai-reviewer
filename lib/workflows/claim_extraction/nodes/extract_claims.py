@@ -6,8 +6,6 @@ from langgraph.runtime import Runtime
 from lib.agents.claim_extractor import ClaimExtractorAgent, ClaimResponseWithChunkIndex
 from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.formatting_utils import (
-    format_audience_context,
-    format_domain_context,
     format_headings_context,
     format_summary_context,
 )
@@ -89,8 +87,6 @@ async def _extract_chunk_claims(
                 else ""
             ),
             "headings_context": format_headings_context(chunk.headings),
-            "domain_context": format_domain_context(state.config.domain),
-            "audience_context": format_audience_context(state.config.target_audience),
         }
     )
 

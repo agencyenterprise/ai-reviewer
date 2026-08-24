@@ -58,8 +58,6 @@ _PROMPT_KWARGS = {
     "end_line": 99,
     "section_headings": "Introduction",
     "reference_file_map": "[1] The Economist 2024 -> file-abc",
-    "domain_context": "",
-    "audience_context": "",
     "headings": ["Introduction"],
 }
 

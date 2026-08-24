@@ -10,8 +10,6 @@ from lib.agents.claim_categorizer import (
 from lib.agents.claim_extractor import Claim, ClaimResponseWithChunkIndex
 from lib.agents.document_summarizer import DocumentSummary
 from lib.agents.formatting_utils import (
-    format_audience_context,
-    format_domain_context,
     format_headings_context,
     format_summary_context,
 )
@@ -124,8 +122,6 @@ async def _categorize_single_claim(
             "chunk": chunk.content,
             "claim": claim.claim,
             "headings_context": format_headings_context(chunk.headings),
-            "domain_context": format_domain_context(state.config.domain),
-            "audience_context": format_audience_context(state.config.target_audience),
         }
     )
     categorization = ClaimCategorizationResponseWithClaimIndex(

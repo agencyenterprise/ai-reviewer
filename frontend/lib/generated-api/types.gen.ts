@@ -79,18 +79,6 @@ export type AbbreviationScanV2Config = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -175,18 +163,6 @@ export type AboutThisGerConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -321,18 +297,6 @@ export type AdvocacyToneWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -362,34 +326,6 @@ export type AgentCheckResult = {
    * Markdown report summarising the check results
    */
   report_markdown?: string;
-};
-
-/**
- * AnalysisFormConfig
- *
- * Form config for starting analysis (project creation + workflow start)
- */
-export type AnalysisFormConfig = {
-  /**
-   * Domain
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   */
-  target_audience?: string | null;
-  /**
-   * Openai Api Key
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   */
-  publication_date?: string | null;
-  /**
-   * Workflow Types
-   */
-  workflow_types?: Array<WorkflowRunType> | null;
 };
 
 /**
@@ -677,14 +613,6 @@ export type BodyStartAnalysisApiStartAnalysisPost = {
    */
   supporting_documents?: Array<Blob | File> | null;
   /**
-   * Domain
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   */
-  target_audience?: string | null;
-  /**
    * Openai Api Key
    */
   openai_api_key?: string | null;
@@ -840,18 +768,6 @@ export type ChunkSplittingWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -927,18 +843,6 @@ export type CitationDetectionConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -1099,18 +1003,6 @@ export type CitationSuggesterWorkflowConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -1335,18 +1227,6 @@ export type ClaimExtractionWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -1476,18 +1356,6 @@ export type ClaimReferenceValidationV2Config = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -1542,18 +1410,6 @@ export type ClaimReferenceValidationWorkflowConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -1852,18 +1708,6 @@ export type DocumentProcessingWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -2012,18 +1856,6 @@ export type DocumentSummarizationWorkflowConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -2746,18 +2578,6 @@ export type FootnoteExtractionConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -2880,18 +2700,6 @@ export type HumanApprovalConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -3035,18 +2843,6 @@ export type InferenceValidationV2WorkflowConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -3431,18 +3227,6 @@ export type LiteratureReviewWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -3507,18 +3291,6 @@ export type LiveReportsWorkflowConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -3613,18 +3385,6 @@ export type MethodologicalAlignmentWorkflowConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -3893,18 +3653,6 @@ export type Project = {
    * The publication date of the report
    */
   publication_date: Date;
-  /**
-   * Domain
-   *
-   * The subject area or field of expertise of the report
-   */
-  domain: string;
-  /**
-   * Target Audience
-   *
-   * The intended readers of the report
-   */
-  target_audience: string;
   /**
    * Controls what feedback information is shared with administrators
    */
@@ -4211,18 +3959,6 @@ export type ReferenceDownloaderWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -4258,18 +3994,6 @@ export type ReferenceExtractionConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -4473,18 +4197,6 @@ export type ReferenceFileMatchingConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -4799,18 +4511,6 @@ export type ReferenceValidationV2WorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -4840,18 +4540,6 @@ export type ReferenceValidationWorkflowConfig = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -5038,18 +4726,6 @@ export type ResultsExtractionWorkflowConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -5091,18 +4767,6 @@ export type Reviewer2Config = {
    * The OpenAI API key to use for this workflow execution
    */
   openai_api_key?: string | null;
-  /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
   /**
    * Publication Date
    *
@@ -5329,18 +4993,6 @@ export type SimpleDeepAgentConfig = {
    */
   openai_api_key?: string | null;
   /**
-   * Domain
-   *
-   * Domain context for more accurate analysis
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   *
-   * Target audience context for analysis
-   */
-  target_audience?: string | null;
-  /**
    * Publication Date
    *
    * Publication date of the document (YYYY-MM-DD format)
@@ -5490,14 +5142,6 @@ export type UpdateProjectRequest = {
    * Publication Date
    */
   publication_date?: Date | null;
-  /**
-   * Domain
-   */
-  domain?: string | null;
-  /**
-   * Target Audience
-   */
-  target_audience?: string | null;
   feedback_visibility?: FeedbackVisibility | null;
 };
 
@@ -6484,33 +6128,6 @@ export type AppendMessageApiChatThreadsThreadIdMessagesPostResponses = {
 
 export type AppendMessageApiChatThreadsThreadIdMessagesPostResponse =
   AppendMessageApiChatThreadsThreadIdMessagesPostResponses[keyof AppendMessageApiChatThreadsThreadIdMessagesPostResponses];
-
-export type StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostData = {
-  body: AnalysisFormConfig;
-  path?: never;
-  query?: never;
-  url: '/api/start-analysis/_do_not_use_';
-};
-
-export type StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostError =
-  StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostErrors[keyof StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostErrors];
-
-export type StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostResponses = {
-  /**
-   * Successful Response
-   */
-  200: StartWorkflowResponse;
-};
-
-export type StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostResponse =
-  StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostResponses[keyof StartAnalysisOpenapiStubApiStartAnalysisDoNotUsePostResponses];
 
 export type StartAnalysisApiStartAnalysisPostData = {
   body: BodyStartAnalysisApiStartAnalysisPost;

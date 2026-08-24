@@ -29,15 +29,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["analysis"])
 
 
-@router.post("/api/start-analysis/_do_not_use_", response_model=StartWorkflowResponse)
-async def start_analysis_openapi_stub(
-    request: AnalysisFormConfig,
-    current_user: User = Depends(get_current_user),
-):
-    # Temporary empty endpoint to force OpenAPI generation for the AnalysisFormConfig object
-    return None
-
-
 @router.post("/api/start-analysis", response_model=StartWorkflowResponse)
 async def start_analysis(
     background_tasks: BackgroundTasks,
@@ -77,8 +68,6 @@ async def start_analysis(
                 if config.publication_date
                 else None
             ),
-            domain=config.domain,
-            target_audience=config.target_audience,
         )
 
         logger.info(f"Created project {project.id}")
