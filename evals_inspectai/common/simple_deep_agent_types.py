@@ -38,3 +38,25 @@ class SimpleDeepAgentOutput(BaseModel):
     """
 
     result: Optional[AgentCheckResult] = None
+
+
+class AgentHtmlReport(BaseModel):
+    """Local mirror of AgentHtmlReport from simple_deep_agent/agent_types.py.
+
+    The HTML variant of the deep-agent result. It shares ``DeepAgentResult``
+    with the markdown variant in state, so ``issues`` is present here too and
+    is simply left empty by the report-producing workflows.
+    """
+
+    issues: List[IssueItem] = Field(default_factory=list)
+    report_html: str = ""
+
+
+class HtmlReportAgentOutput(BaseModel):
+    """Local mirror of SimpleDeepAgentState for HTML-report workflows.
+
+    Same shape as ``SimpleDeepAgentOutput``; only the fields read off
+    ``result`` differ.
+    """
+
+    result: Optional[AgentHtmlReport] = None

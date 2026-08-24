@@ -1,0 +1,140 @@
+- id: remote_work_conflicting_reviewers
+  draft: file://files/peer_review/remote_work/draft.md
+  memos:
+  - file://files/peer_review/remote_work/reviewer-a-memo.md
+  - file://files/peer_review/remote_work/reviewer-b-memo.md
+  expected_reviewers:
+  - A
+  - B
+  point_count_bands:
+    A:
+    - 8
+    - 14
+    B:
+    - 5
+    - 10
+  verbatim_probes:
+  - Voluntary recruitment through an industry consortium is a real limitation and it is mentioned
+    only in passing.
+  - '"Available on request" is not an acceptable reference list for a report that makes empirical
+    claims about prior literature.'
+  - I am not persuaded by the treatment of the team-age result.
+  - And the report never says what happened to the teams that were observed for fewer than
+    eight quarters, though a robustness check restricts to those that were.
+  rubric:
+    scenario_trap: >-
+      The two reviewers want incompatible things: one asks for the Methods section to be cut
+      down and moved to an appendix, the other asks for it to be expanded with detail on the
+      sampling frame and on what drove the 61 arrangement changes. Part 1 must open with this
+      conflict, name both point IDs, and say it is the author's call to settle. Both reviewers
+      also independently raise generalisability, one on voluntary consortium recruitment and
+      the other on the three sectors studied; that overlap must be noted by ID rather than
+      listed twice as unrelated work. Do not penalise which memo was lettered A and which
+      B, only that the lettering is consistent.
+- id: hiring_audits_compound_points
+  draft: file://files/peer_review/hiring_audits/draft.md
+  memos:
+  - file://files/peer_review/hiring_audits/reviewer-memo.md
+  expected_reviewers:
+  - A
+  point_count_bands:
+    A:
+    - 8
+    - 14
+  verbatim_probes:
+  - These two statements are in tension.
+  - Third, reconcile the layer with the Uniform Guidelines on Employee Selection Procedures,
+    which already impose validation requirements and which the report does not mention at
+    all.
+  - A reader at an enforcement agency will stop here.
+  - A rough total would make this recommendation actionable instead of rhetorical.
+  rubric:
+    scenario_trap: >-
+      One numbered item bundles three distinct asks: define construct validity for a non-specialist
+      audience, state what evidence would satisfy the layer, and reconcile it with the Uniform
+      Guidelines on Employee Selection Procedures. It must be split into sub-point IDs such
+      as A3.1, A3.2 and A3.3 rather than tracked as a single point. There is one reviewer,
+      so every ID uses the letter A.
+- id: soil_carbon_three_reviewers_commentary
+  draft: file://files/peer_review/soil_carbon/draft.md
+  memos:
+  - file://files/peer_review/soil_carbon/reviewer-a-memo.md
+  - file://files/peer_review/soil_carbon/reviewer-b-memo.md
+  - file://files/peer_review/soil_carbon/reviewer-c-memo.md
+  expected_reviewers:
+  - A
+  - B
+  - C
+  point_count_bands:
+    A:
+    - 5
+    - 8
+    B:
+    - 3
+    - 6
+    C:
+    - 6
+    - 9
+  verbatim_probes:
+  - 'Manuscript ID: COMM-2024-0417'
+  - Readers who agree will want to know what to do on Monday.
+  - It is also the only one of the three that cannot be fixed by better technology, which
+    is the point that would change a reader's mind.
+  - Please add a table comparing the major soil carbon protocols on measurement requirements,
+    permanence terms, and additionality tests.
+  rubric:
+    scenario_trap: >-
+      The document is a commentary, not a research report. One reviewer asks for a methods
+      section, a meta-analysis with a forest plot, a protocol comparison table and an adoption
+      figure. Those are requests for a different kind of document and must be flagged as scope
+      decisions for the author to make, not queued as ordinary work. Two reviewers separately
+      raise the missing evidential support for the model-calibration claim, and that overlap
+      should be noted by ID. One memo opens with a header block (Manuscript ID, Type, Recommendation)
+      which must be carried over rather than replaced with a standard header. Do not penalise
+      which memo received which letter.
+- id: heat_resilience_semantic_anchors
+  draft: file://files/peer_review/heat_resilience/draft.md
+  memos:
+  - file://files/peer_review/heat_resilience/reviewer-memo.md
+  expected_reviewers:
+  - A
+  point_count_bands:
+    A:
+    - 6
+    - 11
+  verbatim_probes:
+  - Concept 2 is the most useful idea in the report and I would like it to be first.
+  - As written it will be quoted back at city councils as an established finding.
+  - The recommendation may be unavailable to a large share of the report's audience.
+  - Finally, the report never discusses cost.
+  rubric:
+    scenario_trap: >-
+      One point asks the author to move the concept about overnight minima to the front of
+      the report, which renumbers every concept after it. Part 1 must surface that reordering
+      request early, because it changes the shape of the whole revision. Two separate points
+      land on the concept arguing shade should be capitalized, the unsourced canopy-survival
+      claim and whether capital funding is legally available for street trees, and both must
+      appear with distinct IDs.
+- id: organics_collection_quick_fix_heavy
+  draft: file://files/peer_review/organics_collection/draft.md
+  memos:
+  - file://files/peer_review/organics_collection/reviewer-memo.md
+  expected_reviewers:
+  - A
+  point_count_bands:
+    A:
+    - 11
+    - 16
+  verbatim_probes:
+  - Abandoning a mandate response after the mandate lapses is not the same kind of failure
+    as abandoning one under public pressure, and the report treats them identically.
+  - Decisive is a causal word and the design cannot support it.
+  - Finding 2 refers to Table 2, but the report contains no Table 2.
+  - Reference 3 (Reyes 2017) is cited nowhere in the text.
+  rubric:
+    scenario_trap: >-
+      The memo separates three substantive concerns from nine small corrections. The three
+      substantial asks are the outcome coding that treats mandate-lapsed programs as failures,
+      the causal language in Finding 5, and the unaddressed selection into the sample of twelve
+      programs. Part 1 must carry exactly those three as substantial work, and must not promote
+      any of the nine smaller points alongside them.
