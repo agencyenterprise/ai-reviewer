@@ -50,9 +50,10 @@ increase (28 percent), and cost (19 percent). Only 14 percent, or 30 objections,
 concerned odor or pests as such.
 
 **Finding 4. The framing that worked was rate stability.** Programs that framed
-organics collection as a way to hold refuse rates down by avoiding landfill
-tipping fees fared better than those that framed it as climate action or as a
-sustainability achievement. Figure 2 shows the distribution of framings.
+organics collection (food scraps and yard waste diverted from landfill for
+composting) as a way to hold refuse rates down by avoiding landfill tipping fees
+fared better than those that framed it as climate action or as a sustainability
+achievement. Figure 2 shows the distribution of framings.
 
 **Finding 5. A vocal opponent in an elected position was strongly associated
 with abandonment.** In four of the five abandoned programs, a single council

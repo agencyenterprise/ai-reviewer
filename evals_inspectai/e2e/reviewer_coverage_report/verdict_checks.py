@@ -196,19 +196,32 @@ def check_verdict_vocabulary(report: HtmlReport) -> tuple[bool, str]:
     A report that collapses the scale to addressed/not addressed loses the
     distinction the skill exists to preserve: a decline with a stated reason is
     settled, and only `not addressed` should read as a gap.
+
+    The summary table's own labels are discounted first. `find_verdict_table`
+    only recognises a table when at least three of its rows name a verdict, so
+    counting across the whole report meant any report with a usable table
+    cleared the bar automatically and this check could never fail. What it asks
+    now is that the scale is used where it does the work, under the points in
+    Part 2, rather than only declared in the header of a table.
     """
-    counts = {v: report.text.count(v) for v in VERDICTS}
+    table = find_verdict_table(report)
+    table_text = normalize(" ".join(" ".join(row) for row in table)) if table else ""
+
+    counts = {v: report.text.count(v) - table_text.count(v) for v in VERDICTS}
     # "addressed" is a substring of the other three labels, so discount those.
     counts["addressed"] -= (
         counts["partially addressed"]
         + counts["not addressed"]
-        + report.text.count("declined")
+        + (report.text.count("declined") - table_text.count("declined"))
     )
     used = [v for v, n in counts.items() if n > 0]
     detail = ", ".join(f"{v}={max(n, 0)}" for v, n in counts.items())
     if len(used) < 2:
-        return False, f"the verdict scale is barely used: {detail}"
-    return True, detail
+        return (
+            False,
+            f"outside the summary table the verdict scale is barely used: {detail}",
+        )
+    return True, f"outside the summary table: {detail}"
 
 
 def check_recommendation(report: HtmlReport) -> tuple[bool, str]:

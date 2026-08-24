@@ -227,17 +227,41 @@ def normalize(text: str) -> str:
 
 # --- Self-containment -------------------------------------------------------
 
-# Any attribute pulling a resource over the network. Data URIs are allowed;
-# fragment and relative references cannot leave the document.
-_EXTERNAL_RESOURCE = re.compile(
-    r"""(?:src|href|action|data|poster)\s*=\s*["']?\s*(?:https?:)?//""",
+# Attributes whose value the renderer fetches. A self-contained document may
+# only point them at a data: URI, so anything else -- an absolute URL, a
+# site-relative path like "/logo.png", or a sibling file -- is a violation.
+# `srcset` is listed before `src` so the alternation does not match its prefix,
+# and the leading \b keeps `data` from matching `metadata=` or `data-*=`.
+_FETCHED_ATTR = re.compile(
+    r"""\b(srcset|src|poster|background|data)\s*=\s*["']?\s*([^"'\s>]+)""",
     re.IGNORECASE,
 )
+
+# Attributes that reach the network without being a fetched resource. `href` is
+# checked only for network targets: on a <link> it pulls a stylesheet, but on an
+# <a> it is a hyperlink the reader may click, which does not stop the document
+# from standing alone.
+_EXTERNAL_LINK = re.compile(
+    r"""\b(?:href|action)\s*=\s*["']?\s*(?:https?:)?//""",
+    re.IGNORECASE,
+)
+
+# CSS resource references: `@font-face { src: url(...) }`, `background: url(...)`
+# and friends. These use a colon rather than an `=`, so the attribute patterns
+# above never see them, which is how a webfont used to slip through.
+_CSS_URL = re.compile(r"""url\(\s*["']?\s*([^)"']*)""", re.IGNORECASE)
+
 _SCRIPT_TAG = re.compile(r"<\s*script\b", re.IGNORECASE)
 _STYLESHEET_LINK = re.compile(
     r"<\s*link\b[^>]*rel\s*=\s*[\"']?stylesheet", re.IGNORECASE
 )
 _IMPORT_RULE = re.compile(r"@import\b", re.IGNORECASE)
+
+
+def _stays_in_document(value: str) -> bool:
+    """Whether a resource reference resolves without leaving the document."""
+    target = value.strip().strip("\"'").lower()
+    return not target or target.startswith(("data:", "#", "about:blank"))
 
 
 def self_containment_violations(html: str) -> list[str]:
@@ -246,6 +270,11 @@ def self_containment_violations(html: str) -> list[str]:
     All three review-assistant system prompts require a single self-contained
     document: no external stylesheets, fonts, scripts or images, and no
     `<script>` of any kind. An empty list means the document complies.
+
+    "External" is judged by whether the reference resolves inside the document,
+    not by whether it names a host. A report saved to disk and mailed to a QAM
+    renders a site-relative `<img src="/chart.png">` as a broken image just as
+    surely as it does an absolute URL, so both count.
     """
     violations: list[str] = []
     if _SCRIPT_TAG.search(html):
@@ -254,9 +283,28 @@ def self_containment_violations(html: str) -> list[str]:
         violations.append("links an external stylesheet")
     if _IMPORT_RULE.search(html):
         violations.append("uses an @import rule")
-    external = _EXTERNAL_RESOURCE.findall(html)
-    if external:
-        violations.append(f"references {len(external)} external resource(s)")
+
+    fetched = [
+        f"{attr}={value[:40]}"
+        for attr, value in _FETCHED_ATTR.findall(html)
+        if not _stays_in_document(value)
+    ]
+    if fetched:
+        violations.append(
+            f"fetches {len(fetched)} resource(s) from outside the document: "
+            + ", ".join(sorted(set(fetched))[:3])
+        )
+
+    links = _EXTERNAL_LINK.findall(html)
+    if links:
+        violations.append(f"references {len(links)} external URL(s)")
+
+    css = [url for url in _CSS_URL.findall(html) if not _stays_in_document(url)]
+    if css:
+        violations.append(
+            f"{len(css)} CSS url() reference(s) leave the document: "
+            + ", ".join(sorted(set(u[:40] for u in css))[:3])
+        )
     return violations
 
 
