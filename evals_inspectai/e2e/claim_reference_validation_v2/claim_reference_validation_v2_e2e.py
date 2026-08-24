@@ -21,9 +21,9 @@ from inspect_ai.solver import Generate, Solver, TaskState, solver
 
 from evals_inspectai.common.api_client import (
     approve_workflow_run,
+    create_project_and_start_workflows,
     poll_until_complete,
     poll_until_status,
-    upload_and_start_analysis,
 )
 from evals_inspectai.common.errors import WorkflowCompletionError
 from evals_inspectai.common.scorers import model_graded_check
@@ -90,7 +90,7 @@ def claim_reference_validation_v2_e2e_solver(
             for sf in meta.get("supporting_files", [])
         ]
 
-        project_id = await upload_and_start_analysis(
+        project_id = await create_project_and_start_workflows(
             file_content=meta["main_doc"],
             file_name="main.md",
             workflow_types=[_TARGET_WORKFLOW],

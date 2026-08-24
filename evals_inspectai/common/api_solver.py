@@ -8,8 +8,8 @@ from inspect_ai.model import ModelOutput
 from langchain_core.messages.utils import convert_to_messages
 
 from evals_inspectai.common.api_client import (
+    create_project_and_start_workflows,
     poll_until_complete,
-    upload_and_start_analysis,
 )
 from evals_inspectai.common.converters import messages_from_langchain
 from evals_inspectai.common.errors import WorkflowCompletionError
@@ -35,7 +35,7 @@ def api_workflow_agent(
     async def execute(state: AgentState) -> AgentState:
         document_content = state.messages[0].text if state.messages else ""
 
-        project_id = await upload_and_start_analysis(
+        project_id = await create_project_and_start_workflows(
             file_content=document_content,
             file_name="eval-document.md",
             workflow_types=[workflow_type],

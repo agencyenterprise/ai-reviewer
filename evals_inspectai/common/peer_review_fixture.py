@@ -3,9 +3,9 @@
 The three `review-assistant` workflows (revision-planning summary, reviewer
 response memos, reviewer coverage report) need more project state than the
 other e2e evals: alongside the draft they need one or more files with the
-`reviewer_memo` role, attached to the revision the reviewers reviewed. That
-state cannot be created by `/api/start-analysis`, which only assigns the MAIN
-and SUPPORT roles, so the memos go up through TUS afterwards.
+`reviewer_memo` role, attached to the revision the reviewers reviewed. Those
+uploads have to follow the draft rather than accompany it, so the project is
+set up first and the memos go up afterwards.
 
 The sequence is:
 
@@ -33,11 +33,11 @@ import logging
 from typing import Any, NamedTuple
 
 from evals_inspectai.common.api_client import (
+    create_project_and_start_workflows,
     create_revision,
     poll_until_complete,
     start_workflow_types,
     tus_upload_file,
-    upload_and_start_analysis,
 )
 
 logger = logging.getLogger(__name__)
@@ -96,7 +96,7 @@ async def setup_peer_review_project(
             "the same file and the comparing workflows would have nothing to do"
         )
 
-    project_id = await upload_and_start_analysis(
+    project_id = await create_project_and_start_workflows(
         file_content=draft,
         file_name=draft_file_name,
         workflow_types=[_DOCUMENT_PROCESSING],
