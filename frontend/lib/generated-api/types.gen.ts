@@ -311,7 +311,7 @@ export type AdvocacyToneWorkflowConfig = {
 /**
  * AgentCheckResult
  *
- * LLM output for a validation pass: issues plus a markdown report.
+ * Persisted result for a validation pass: issues plus a markdown report.
  */
 export type AgentCheckResult = {
   /**
@@ -3122,6 +3122,36 @@ export type LlmVerificationResult = {
 };
 
 /**
+ * LinkReferenceFileRequest
+ *
+ * Request body for linking an already-uploaded file to a reference.
+ */
+export type LinkReferenceFileRequest = {
+  /**
+   * File Id
+   *
+   * ID of the supporting file to link.
+   */
+  file_id: string;
+};
+
+/**
+ * LinkReferenceFileResponse
+ *
+ * Result of linking a supporting file to a reference.
+ */
+export type LinkReferenceFileResponse = {
+  /**
+   * Reference Id
+   */
+  reference_id: string;
+  /**
+   * File Id
+   */
+  file_id: string;
+};
+
+/**
  * LitRecommendedAction
  */
 export const LitRecommendedAction = {
@@ -4984,7 +5014,8 @@ export type SimpleDeepAgentConfig = {
  * Shared state for all single-node deep-agent workflows.
  *
  * ``result`` is the unified DeepAgentResult; markdown variants fill its
- * ``report_markdown`` (+ ``issues``), HTML variants fill its ``report_html``.
+ * ``report_markdown`` (+ ``issues``) from file/tool deliveries, while HTML
+ * variants fill its ``report_html`` from a file.
  */
 export type SimpleDeepAgentState = {
   /**
@@ -7153,6 +7184,42 @@ export type DeleteProjectFileEndpointApiProjectProjectIdFilesFileIdDeleteRespons
    */
   200: unknown;
 };
+
+export type LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostData = {
+  body: LinkReferenceFileRequest;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+    /**
+     * Reference Id
+     */
+    reference_id: string;
+  };
+  query?: never;
+  url: '/api/project/{project_id}/references/{reference_id}/files';
+};
+
+export type LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostError =
+  LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostErrors[keyof LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostErrors];
+
+export type LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: LinkReferenceFileResponse;
+};
+
+export type LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostResponse =
+  LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostResponses[keyof LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostResponses];
 
 export type DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetData = {
   body?: never;
