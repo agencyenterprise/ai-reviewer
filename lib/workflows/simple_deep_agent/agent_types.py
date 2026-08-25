@@ -70,6 +70,20 @@ class AgentCheckResult(BaseModel):
 REPORT_PATH = "/report.html"
 MARKDOWN_REPORT_PATH = "/report.md"
 
+# LangGraph super-step budget for one deep-agent run. Two steps per model turn
+# (model node + tools node), so this is roughly 250 turns.
+#
+# Issue reporting is one `report_issue` call per turn in practice -- the eval
+# logs show a mean of 1.07-2.12 calls per turn, not one batched call -- so the
+# budget now scales with the number of findings, which it did not when issues
+# arrived in a single structured response. Web search does not count against it:
+# the Responses API resolves it inside a single model call, so it never reaches
+# the tools node. The worst run in the current eval set used 31 steps, so this
+# is deliberately generous: it is still 20x under LangGraph's own default, which
+# is all this needs to be to stay a backstop against a runaway loop rather than
+# a ceiling real documents can hit.
+DEEP_AGENT_RECURSION_LIMIT = 500
+
 
 class ReportNotWrittenError(Exception):
     """A report agent finished without writing its required deliverable.

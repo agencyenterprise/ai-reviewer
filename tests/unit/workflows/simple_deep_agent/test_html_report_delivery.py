@@ -20,6 +20,7 @@ from lib.workflows.simple_deep_agent.agent import (
     SimpleDeepAgent,
 )
 from lib.workflows.simple_deep_agent.agent_types import (
+    DEEP_AGENT_RECURSION_LIMIT,
     MARKDOWN_REPORT_PATH,
     REPORT_PATH,
     DeepAgentResult,
@@ -299,6 +300,47 @@ async def test_agent_returns_files_and_collected_issue_state():
 
     assert run.files == {MARKDOWN_REPORT_PATH: "# Report\n\nOne issue found."}
     assert [issue.title for issue in run.reported_issues] == ["Missing methods"]
+
+
+@pytest.mark.asyncio
+async def test_the_agent_spends_its_own_recursion_budget():
+    """Issue reporting costs super-steps, so the budget is not LangGraph's default.
+
+    One `report_issue` call per model turn means the step budget now scales with
+    the number of findings. The explicit limit is both a raise over the 100 that
+    predates tool-reported issues and a cap well under LangGraph's 10007 default,
+    so a runaway loop still terminates.
+    """
+    agent = _stub_agent(True)
+
+    with patch(
+        "lib.workflows.simple_deep_agent.agent.create_deep_agent"
+    ) as create_agent:
+        create_agent.return_value.ainvoke = AsyncMock(
+            return_value={"messages": [], "files": {}}
+        )
+        await agent.ainvoke({})
+
+    config = create_agent.return_value.ainvoke.call_args.kwargs["config"]
+    assert config["recursion_limit"] == DEEP_AGENT_RECURSION_LIMIT
+    assert DEEP_AGENT_RECURSION_LIMIT > 100
+
+
+@pytest.mark.asyncio
+async def test_an_explicit_config_still_wins():
+    """The default is a floor for callers, not something they cannot override."""
+    agent = _stub_agent(True)
+
+    with patch(
+        "lib.workflows.simple_deep_agent.agent.create_deep_agent"
+    ) as create_agent:
+        create_agent.return_value.ainvoke = AsyncMock(
+            return_value={"messages": [], "files": {}}
+        )
+        await agent.ainvoke({}, config={"recursion_limit": 12})
+
+    config = create_agent.return_value.ainvoke.call_args.kwargs["config"]
+    assert config["recursion_limit"] == 12
 
 
 def test_state_result_shape_is_unchanged():

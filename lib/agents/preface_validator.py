@@ -16,7 +16,10 @@ from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
 from lib.workflows.about_this_ger.state import AgentCheckResult
 from lib.workflows.context import ContextSchema
-from lib.workflows.simple_deep_agent.agent_types import markdown_result_from_run
+from lib.workflows.simple_deep_agent.agent_types import (
+    DEEP_AGENT_RECURSION_LIMIT,
+    markdown_result_from_run,
+)
 from lib.workflows.simple_deep_agent.issue_reporting import (
     IssueReporter,
     collect_deep_agent_run,
@@ -82,7 +85,7 @@ class PrefaceValidatorAgent(LangChainAgent):
                     ),
                 ],
             },
-            config={"recursion_limit": 100, **(config or {})},
+            config={"recursion_limit": DEEP_AGENT_RECURSION_LIMIT, **(config or {})},
         )
 
         state_result = markdown_result_from_run(

@@ -12,7 +12,10 @@ from lib.config.llm_models import gpt_5_4_model
 from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
 from lib.workflows.context import ContextSchema
-from lib.workflows.simple_deep_agent.agent_types import report_file
+from lib.workflows.simple_deep_agent.agent_types import (
+    DEEP_AGENT_RECURSION_LIMIT,
+    report_file,
+)
 
 PEER_REVIEW_PATH = "/peer-review.md"
 REBUTTAL_PATH = "/rebuttal.md"
@@ -68,7 +71,7 @@ class Reviewer2Agent(LangChainAgent):
                     ),
                 ],
             },
-            config={"recursion_limit": 100, **(config or {})},
+            config={"recursion_limit": DEEP_AGENT_RECURSION_LIMIT, **(config or {})},
         )
 
         files = {

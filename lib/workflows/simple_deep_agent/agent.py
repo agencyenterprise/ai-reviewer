@@ -15,7 +15,10 @@ from langchain_core.tools import BaseTool
 from lib.config.llm_models import gpt_5_5_model
 from lib.models.agent import LangChainAgent, ReasoningDict
 from lib.workflows.context import ContextSchema
-from lib.workflows.simple_deep_agent.agent_types import DeepAgentRun
+from lib.workflows.simple_deep_agent.agent_types import (
+    DEEP_AGENT_RECURSION_LIMIT,
+    DeepAgentRun,
+)
 from lib.workflows.simple_deep_agent.issue_reporting import (
     IssueReporter,
     collect_deep_agent_run,
@@ -107,7 +110,7 @@ class SimpleDeepAgent(LangChainAgent):
                     HumanMessage(content=self._user_prompt),
                 ],
             },
-            config={"recursion_limit": 100, **(config or {})},
+            config={"recursion_limit": DEEP_AGENT_RECURSION_LIMIT, **(config or {})},
         )
 
         # The filesystem is returned whole -- the mounted document and skills
