@@ -3,8 +3,8 @@
 Two variants share one base and one state (``SimpleDeepAgentState`` with a
 unified ``DeepAgentResult``):
 
-- ``SimpleDeepAgentManifest`` — the LLM fills ``AgentCheckResult`` (issues + a
-  markdown report).
+- ``SimpleDeepAgentManifest`` — the LLM writes a markdown report and calls tools
+  to report issues.
 - ``HtmlReportDeepAgentManifest`` — the LLM writes a single self-contained HTML
   document to ``REPORT_PATH`` on the agent filesystem, no structured output and
   no issues.
@@ -24,26 +24,24 @@ from typing import TYPE_CHECKING, ClassVar, List, Literal, Optional, Type
 from langgraph.graph import START, StateGraph
 from langgraph.graph.state import END
 from langgraph.runtime import Runtime
-from pydantic import BaseModel
 
+from lib.skills import load_skill_prompt
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue
 from lib.workflows.simple_deep_agent.agent import SimpleDeepAgent
-from lib.skills import load_skill_prompt
+from lib.workflows.simple_deep_agent.agent_types import (
+    REPORT_PATH,
+    DeepAgentResult,
+    DeepAgentRun,
+    issues_from_agent_result,
+    markdown_result_from_run,
+    report_file,
+)
 from lib.workflows.simple_deep_agent.state import (
     SimpleDeepAgentConfig,
     SimpleDeepAgentState,
-)
-from lib.workflows.simple_deep_agent.agent_types import (
-    REPORT_PATH,
-    AgentCheckResult,
-    DeepAgentResult,
-    DeepAgentRun,
-    IssueItem,
-    ReportNotWrittenError,
-    issues_from_agent_result,
 )
 
 if TYPE_CHECKING:
@@ -58,8 +56,7 @@ class _BaseDeepAgentManifest(
 ):
     """Shared machinery for single-node deep-agent workflows.
 
-    Subclasses set ``result_model`` (the LLM's structured-output schema, or
-    ``None`` for a variant that does not use structured output),
+    Subclasses set whether they report issues through tools,
     implement ``_guard_result`` (how a ``precheck`` message is surfaced), and
     ``convert_state_to_issues``. State, graph, prompt resolution, and the
     LLM-output → ``DeepAgentResult`` mapping are shared.
@@ -74,9 +71,7 @@ class _BaseDeepAgentManifest(
     user_prompt: ClassVar[Optional[str]] = None
     system_prompt: ClassVar[Optional[str]] = None
 
-    # Structured-output schema the LLM must fill for this variant.
-    # None means the variant does not use structured output at all.
-    result_model: ClassVar[Optional[Type[BaseModel]]] = AgentCheckResult
+    report_issues: ClassVar[bool] = True
 
     # Per-workflow reasoning effort. None keeps SimpleDeepAgent's default;
     # set it on workflows whose task warrants more deliberation.
@@ -134,7 +129,7 @@ class _BaseDeepAgentManifest(
                 context=runtime.context,
                 system_prompt=manifest.system_prompt,
                 user_prompt=manifest.resolve_user_prompt(),
-                response_model=manifest.result_model,
+                report_issues=manifest.report_issues,
                 reasoning_effort=manifest.reasoning_effort,
             )
             run = await agent.ainvoke({})
@@ -173,17 +168,10 @@ class _BaseDeepAgentManifest(
 
 
 class SimpleDeepAgentManifest(_BaseDeepAgentManifest):
-    """Deep-agent workflow whose LLM fills issues plus a markdown report."""
-
-    result_model: ClassVar[Optional[Type[BaseModel]]] = AgentCheckResult
+    """Deep-agent workflow that writes markdown and reports issues via tools."""
 
     def _to_state_result(self, run: DeepAgentRun) -> DeepAgentResult:
-        output = run.structured_response
-        issues = getattr(output, "issues", None) or []
-        return DeepAgentResult(
-            issues=[i for i in issues if isinstance(i, IssueItem)],
-            report_markdown=getattr(output, "report_markdown", "") or "",
-        )
+        return markdown_result_from_run(run)
 
     def _guard_result(self, message: str) -> DeepAgentResult:
         return DeepAgentResult(report_markdown=message)
@@ -199,13 +187,10 @@ class HtmlReportDeepAgentManifest(_BaseDeepAgentManifest):
     mechanism only, invisible past this method.
     """
 
-    result_model: ClassVar[Optional[Type[BaseModel]]] = None
+    report_issues: ClassVar[bool] = False
 
     def _to_state_result(self, run: DeepAgentRun) -> DeepAgentResult:
-        report = run.files.get(REPORT_PATH, "").strip()
-        if not report:
-            raise ReportNotWrittenError(REPORT_PATH, list(run.files))
-        return DeepAgentResult(report_html=report)
+        return DeepAgentResult(report_html=report_file(run.files, REPORT_PATH))
 
     def _guard_result(self, message: str) -> DeepAgentResult:
         safe = html_lib.escape(message)

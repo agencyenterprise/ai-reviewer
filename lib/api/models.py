@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, computed_field, field_validator
+from pydantic import BaseModel, Field, computed_field, field_validator
 
 from lib.models.user import UserRole
 from lib.models.workflow_progress import ProgressLevel
@@ -143,3 +143,16 @@ class CreateProjectRequest(BaseModel):
     """Request body for creating a project."""
 
     title: str
+
+
+class LinkReferenceFileRequest(BaseModel):
+    """Request body for linking an already-uploaded file to a reference."""
+
+    file_id: str = Field(description="ID of the supporting file to link.")
+
+
+class LinkReferenceFileResponse(BaseModel):
+    """Result of linking a supporting file to a reference."""
+
+    reference_id: str
+    file_id: str

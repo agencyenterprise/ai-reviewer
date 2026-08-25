@@ -3,7 +3,7 @@
 from typing import Optional
 
 from deepagents import create_deep_agent
-from langchain.agents.structured_output import AutoStrategy
+from deepagents.backends.utils import file_data_to_string
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
@@ -12,6 +12,26 @@ from lib.config.llm_models import gpt_5_4_model
 from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
 from lib.workflows.context import ContextSchema
+from lib.workflows.simple_deep_agent.agent_types import (
+    DEEP_AGENT_RECURSION_LIMIT,
+    report_file,
+)
+
+PEER_REVIEW_PATH = "/peer-review.md"
+REBUTTAL_PATH = "/rebuttal.md"
+
+_DELIVERY_GUIDANCE = f"""\
+
+---
+
+## Deliverables
+
+Write the complete peer review to `{PEER_REVIEW_PATH}` and the complete rebuttal \
+to `{REBUTTAL_PATH}` using `write_file`. These files are the only deliverables: \
+the workflow reads them from the filesystem when you finish, and nothing in your \
+final message is used in their place. Write each document in full, and if you \
+revise one, write that file again in full.
+"""
 
 
 class Reviewer2Output(BaseModel):
@@ -36,21 +56,29 @@ class Reviewer2Agent(LangChainAgent):
         deep_agent = create_deep_agent(
             model=self.llm,
             context_schema=ContextSchema,
-            response_format=AutoStrategy(Reviewer2Output),
         )
 
         result = await deep_agent.ainvoke(
             {
                 "messages": [
-                    SystemMessage(content=load_skill_prompt("reviewer-2")),
+                    SystemMessage(
+                        content=load_skill_prompt("reviewer-2") + _DELIVERY_GUIDANCE
+                    ),
                     HumanMessage(
                         content=(
-                            "Here is the document to review:\n\n" f"{document_markdown}"
+                            f"Here is the document to review:\n\n{document_markdown}"
                         )
                     ),
                 ],
             },
-            config={"recursion_limit": 100, **(config or {})},
+            config={"recursion_limit": DEEP_AGENT_RECURSION_LIMIT, **(config or {})},
         )
 
-        return result["structured_response"]
+        files = {
+            path: file_data_to_string(data)
+            for path, data in (result.get("files") or {}).items()
+        }
+        return Reviewer2Output(
+            peer_review_markdown=report_file(files, PEER_REVIEW_PATH),
+            rebuttal_markdown=report_file(files, REBUTTAL_PATH),
+        )

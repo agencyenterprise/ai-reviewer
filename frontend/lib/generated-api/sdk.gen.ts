@@ -125,6 +125,9 @@ import type {
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses,
   GetWorkflowTypesApiWorkflowTypesGetData,
   GetWorkflowTypesApiWorkflowTypesGetResponses,
+  LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostData,
+  LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostErrors,
+  LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostResponses,
   ListAppConfigsApiAppConfigsGetData,
   ListAppConfigsApiAppConfigsGetResponses,
   ListLogsApiAdminLogsGetData,
@@ -1240,6 +1243,45 @@ export const deleteProjectFileEndpointApiProjectProjectIdFilesFileIdDelete = <Th
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/project/{project_id}/files/{file_id}',
     ...options,
+  });
+
+/**
+ * Link Reference File Endpoint
+ *
+ * Link an already-uploaded supporting file to an extracted reference.
+ *
+ * The app can already do this at upload time, by putting a `reference_id` in
+ * the TUS metadata. This is the same operation for a file that is already in
+ * the project, so a user can correct or supply a match without re-uploading.
+ *
+ * The link is recorded as `MANUAL_UPLOAD`, which takes precedence over
+ * whatever the automatic matcher decided. Re-posting for the same reference
+ * replaces the previous match rather than adding a second one.
+ */
+export const linkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPost = <
+  ThrowOnError extends boolean = true,
+>(
+  options: Options<LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostData, ThrowOnError>,
+): RequestResult<
+  LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostResponses,
+  LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).post<
+    LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostResponses,
+    LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/references/{reference_id}/files',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**
