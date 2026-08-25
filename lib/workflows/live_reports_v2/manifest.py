@@ -13,8 +13,8 @@ class LiveReportsV2Manifest(SimpleDeepAgentManifest):
 
     Same goal as v1 (surface newer sources published after the document's
     publication date that update or challenge its claims, and produce an
-    addendum), but returns the standard simple-deep-agent output
-    (`AgentCheckResult`: issues + report_markdown).
+    addendum), but persists the standard simple-deep-agent result after
+    collecting issues through tools and reading the addendum from `/report.md`.
 
     Reuses ``SimpleDeepAgentState``/``SimpleDeepAgentConfig`` and the base
     ``create_initial_state`` / ``convert_state_to_issues``; only the graph is

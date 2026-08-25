@@ -1,14 +1,13 @@
 """Preface validator deep agent for the About This (GER) workflow.
 
 Reads the full document, locates the preface / introduction section,
-and checks it against six publication requirements.  Returns structured
-issues and a markdown summary report.
+and checks it against six publication requirements. Reports issues through
+tools and writes a markdown summary report to a file.
 """
 
 from typing import Optional
 
 from deepagents import create_deep_agent
-from langchain.agents.structured_output import AutoStrategy
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 
@@ -17,6 +16,14 @@ from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
 from lib.workflows.about_this_ger.state import AgentCheckResult
 from lib.workflows.context import ContextSchema
+from lib.workflows.simple_deep_agent.agent_types import (
+    DEEP_AGENT_RECURSION_LIMIT,
+    markdown_result_from_run,
+)
+from lib.workflows.simple_deep_agent.issue_reporting import (
+    IssueReporter,
+    collect_deep_agent_run,
+)
 
 # The preface rules live in the portable `about-this-preface` skill (the source
 # of truth; deployments customise it by editing the skill file). This backend
@@ -31,9 +38,11 @@ _ENV_GUIDANCE = """\
 The document is available at `/main.md` — use your tools to read or search it.
 
 Report findings following the conventions in the issues skill (`/skills/issues/SKILL.md`):
-- one issue per failed rule (or the single "section not found" issue), with the exact title and severity given above;
-- set `start_line`/`end_line` to the 1-indexed line range in `/main.md` of the text the issue refers to; when the section is absent, set both to `1`;
-- also produce an overall `report_markdown`: a heading naming the section found (or noting its absence), a PASS/FAIL checklist of the six rules with a brief note each, and a summary paragraph.
+- call `report_issue` once per failed rule (or for the single "section not found" issue), with the exact title and severity given above;
+- make no `report_issue` calls when every rule passes;
+- write an overall report to `/report.md` using `write_file`: a heading naming the section found (or noting its absence), a PASS/FAIL checklist of the six rules with a brief note each, and a summary paragraph.
+
+`/report.md` and the issue tool calls are the deliverables. Nothing in your final message is used in their place.
 """
 
 
@@ -53,10 +62,11 @@ class PrefaceValidatorAgent(LangChainAgent):
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
     ) -> AgentCheckResult:
+        issue_reporter = IssueReporter()
         deep_agent = create_deep_agent(
             model=self.llm,
+            tools=issue_reporter.tools,
             context_schema=ContextSchema,
-            response_format=AutoStrategy(AgentCheckResult),
         )
 
         result = await deep_agent.ainvoke(
@@ -64,19 +74,24 @@ class PrefaceValidatorAgent(LangChainAgent):
                 "files": await self.context.file_artifacts_service.get_deepagent_backend_files(),
                 "messages": [
                     SystemMessage(
-                        content=load_skill_prompt("about-this-preface")
-                        + _ENV_GUIDANCE
+                        content=load_skill_prompt("about-this-preface") + _ENV_GUIDANCE
                     ),
                     HumanMessage(
                         content=(
                             "Please read the document and validate the preface / "
-                            "introduction section against all six rules. "
-                            "Return the structured result and a markdown report."
+                            "introduction section against all six rules. Deliver "
+                            "issues through the tools and the report through the file."
                         )
                     ),
                 ],
             },
-            config={"recursion_limit": 100, **(config or {})},
+            config={"recursion_limit": DEEP_AGENT_RECURSION_LIMIT, **(config or {})},
         )
 
-        return result["structured_response"]
+        state_result = markdown_result_from_run(
+            collect_deep_agent_run(result, issue_reporter)
+        )
+        return AgentCheckResult(
+            issues=state_result.issues,
+            report_markdown=state_result.report_markdown,
+        )

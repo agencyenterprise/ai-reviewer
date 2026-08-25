@@ -47,24 +47,14 @@ class IssueItem(BaseModel):
     )
 
 
-# --- LLM structured-output models ---------------------------------------
-# The validation variant forces this as its response schema, so the LLM sees
-# exactly the fields it should populate. It is mapped into the unified
-# DeepAgentResult that the workflow state stores.
-#
-# The HTML-report variant has no schema. It writes its deliverable to
-# REPORT_PATH on the agent filesystem instead: a report is thousands of tokens
-# of markup, and returning it as one JSON string made the whole run hinge on a
-# single terminal message parsing cleanly. It did not always. Every observed
-# failure was `Extra data` -- a complete report object followed by more output,
-# once by a second object -- which no amount of retrying the parse would have
-# helped, and constrained decoding costs accuracy on long generations besides.
-# A file write is an ordinary tool call: recoverable mid-run, and repeatable in
-# pieces rather than in one irreversible breath.
+# --- State-facing result models -----------------------------------------
+# Deep agents no longer fill these as terminal structured responses. Markdown
+# and HTML reports are read from files; issues are collected through validated
+# tool calls. The models remain the state/API contract consumed downstream.
 
 
 class AgentCheckResult(BaseModel):
-    """LLM output for a validation pass: issues plus a markdown report."""
+    """Persisted result for a validation pass: issues plus a markdown report."""
 
     issues: List[IssueItem] = Field(
         default_factory=list,
@@ -76,12 +66,27 @@ class AgentCheckResult(BaseModel):
     )
 
 
-# Where an HTML-report workflow is told to write its deliverable.
+# Where report workflows are told to write their deliverables.
 REPORT_PATH = "/report.html"
+MARKDOWN_REPORT_PATH = "/report.md"
+
+# LangGraph super-step budget for one deep-agent run. Two steps per model turn
+# (model node + tools node), so this is roughly 250 turns.
+#
+# Issue reporting is one `report_issue` call per turn in practice -- the eval
+# logs show a mean of 1.07-2.12 calls per turn, not one batched call -- so the
+# budget now scales with the number of findings, which it did not when issues
+# arrived in a single structured response. Web search does not count against it:
+# the Responses API resolves it inside a single model call, so it never reaches
+# the tools node. The worst run in the current eval set used 31 steps, so this
+# is deliberately generous: it is still 20x under LangGraph's own default, which
+# is all this needs to be to stay a backstop against a runaway loop rather than
+# a ceiling real documents can hit.
+DEEP_AGENT_RECURSION_LIMIT = 500
 
 
 class ReportNotWrittenError(Exception):
-    """An HTML-report agent finished without writing its report.
+    """A report agent finished without writing its required deliverable.
 
     Raised rather than returning an empty report: a run that produced nothing
     is a failure, and recording it as a successful run with a blank deliverable
@@ -98,16 +103,15 @@ class ReportNotWrittenError(Exception):
 class DeepAgentRun(BaseModel):
     """Everything one deep-agent invocation produced.
 
-    Carries both ways a variant can deliver a result -- ``structured_response``
-    for the schema-filling one, ``files`` for the one that writes its report to
-    the agent filesystem -- so the node can hand the whole run to the manifest
-    and let it take what it needs.
+    Reports arrive through ``files`` and issues through per-run tool calls. The
+    final assistant message is retained for inspection but never parsed as the
+    workflow result.
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    structured_response: Optional[BaseModel] = None
     files: Dict[str, str] = Field(default_factory=dict)
+    reported_issues: List[IssueItem] = Field(default_factory=list)
     messages: List[BaseMessage] = Field(default_factory=list)
 
 
@@ -126,6 +130,23 @@ class DeepAgentResult(BaseModel):
     issues: List[IssueItem] = Field(default_factory=list)
     report_markdown: str = Field(default="")
     report_html: str = Field(default="")
+
+
+def report_file(files: Dict[str, str], path: str) -> str:
+    """Read a required, non-empty report file or fail the workflow."""
+    report = files.get(path, "").strip()
+    if not report:
+        raise ReportNotWrittenError(path, list(files))
+    return report
+
+
+def markdown_result_from_run(run: DeepAgentRun) -> DeepAgentResult:
+    """Build the persisted markdown result from file and tool deliveries."""
+    report = report_file(run.files, MARKDOWN_REPORT_PATH)
+    return DeepAgentResult(
+        issues=run.reported_issues,
+        report_markdown=report,
+    )
 
 
 _SEVERITY_MAP = {

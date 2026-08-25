@@ -9,6 +9,7 @@ import pytest
 
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.registry import get_workflow_manifest
+from lib.workflows.simple_deep_agent.agent import _SYSTEM_PROMPT
 from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifest
 
 # SimpleDeepAgent workflows whose rules live in a skill file.
@@ -51,3 +52,14 @@ def test_inline_user_prompt_still_supported():
         user_prompt = "Check the thing."
 
     assert _Inline().resolve_user_prompt() == "Check the thing."
+
+
+def test_shared_prompt_allows_workflows_to_report_passing_checks():
+    manifest = get_workflow_manifest(WorkflowRunType.RECOMMENDATION_CHECK)
+    assert isinstance(manifest, SimpleDeepAgentManifest)
+
+    assert "unless" in _SYSTEM_PROMPT
+    assert "severity `none`" in _SYSTEM_PROMPT
+    recommendation_prompt = manifest.resolve_user_prompt()
+    assert "supported" in recommendation_prompt
+    assert "severity: none" in recommendation_prompt
