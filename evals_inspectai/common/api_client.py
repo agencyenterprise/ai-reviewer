@@ -325,7 +325,7 @@ async def start_workflow(config: dict[str, Any]) -> str:
         payload carrying only `type` and `project_id` validates against the
         first union member that accepts it, not the one matching `type`. Pass a
         config with fields unique to the target workflow, or use
-        `start_workflow_by_type`, whose endpoint takes an explicit request model.
+        `start_workflow_types`, whose endpoint takes an explicit request model.
     """
     async with _build_client() as client:
         resp = await client.post("/api/workflows/start", json=config)
