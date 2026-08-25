@@ -11,8 +11,10 @@ from lib.models.file import FileRole
 from lib.services.references import MatchSource
 
 PROJECT_ID = str(uuid.uuid4())
+# ExtractedReference.id is an opaque str, not a UUID.
 REFERENCE_ID = str(uuid.uuid4())
-FILE_ID = str(uuid.uuid4())
+FILE_UUID = uuid.uuid4()
+FILE_ID = str(FILE_UUID)
 
 
 def _mock_user() -> MagicMock:
@@ -28,7 +30,8 @@ def _mock_project(current_revision: int = 1) -> MagicMock:
     return project
 
 
-def _mock_file(file_id: str) -> MagicMock:
+def _mock_file(file_id: uuid.UUID) -> MagicMock:
+    """File.id is a real uuid.UUID on the model, so mocks must match."""
     file = MagicMock()
     file.id = file_id
     return file
@@ -57,7 +60,7 @@ async def test_links_supporting_file_to_reference():
     """Happy path returns the pair and records the match as MANUAL_UPLOAD."""
     from lib.api.routers.projects import link_reference_file_endpoint
 
-    access, files, add = _patches([_mock_file(FILE_ID)], linked=True)
+    access, files, add = _patches([_mock_file(FILE_UUID)], linked=True)
     with access, files, add as mock_add:
         result = await link_reference_file_endpoint(
             project_id=PROJECT_ID,
@@ -78,7 +81,7 @@ async def test_only_supporting_files_are_considered():
     """The file lookup is scoped to SUPPORT files of the current revision."""
     from lib.api.routers.projects import link_reference_file_endpoint
 
-    access, files, add = _patches([_mock_file(FILE_ID)], linked=True)
+    access, files, add = _patches([_mock_file(FILE_UUID)], linked=True)
     with access, files as mock_files, add:
         await link_reference_file_endpoint(
             project_id=PROJECT_ID,
@@ -97,7 +100,7 @@ async def test_file_from_another_project_raises_404():
     from lib.api.routers.projects import link_reference_file_endpoint
 
     # The project has a supporting file, but not the one being requested.
-    access, files, add = _patches([_mock_file(str(uuid.uuid4()))], linked=True)
+    access, files, add = _patches([_mock_file(uuid.uuid4())], linked=True)
     with access, files, add as mock_add:
         with pytest.raises(HTTPException) as exc_info:
             await link_reference_file_endpoint(
@@ -117,7 +120,7 @@ async def test_unknown_reference_raises_409():
     """add_file_to_reference returning False surfaces as a 409, not a success."""
     from lib.api.routers.projects import link_reference_file_endpoint
 
-    access, files, add = _patches([_mock_file(FILE_ID)], linked=False)
+    access, files, add = _patches([_mock_file(FILE_UUID)], linked=False)
     with access, files, add:
         with pytest.raises(HTTPException) as exc_info:
             await link_reference_file_endpoint(
@@ -140,7 +143,7 @@ async def test_relinking_the_same_reference_is_idempotent():
     """
     from lib.api.routers.projects import link_reference_file_endpoint
 
-    access, files, add = _patches([_mock_file(FILE_ID)], linked=True)
+    access, files, add = _patches([_mock_file(FILE_UUID)], linked=True)
     with access, files, add as mock_add:
         for _ in range(2):
             result = await link_reference_file_endpoint(
@@ -155,3 +158,64 @@ async def test_relinking_the_same_reference_is_idempotent():
     for call in mock_add.await_args_list:
         assert call.kwargs["reference_id"] == REFERENCE_ID
         assert call.kwargs["file_id"] == FILE_ID
+
+
+@pytest.mark.asyncio
+async def test_uppercase_file_id_is_accepted():
+    """An equivalent UUID spelling resolves to the same file.
+
+    File.id is a uuid.UUID, so comparing raw text would reject this even though
+    it names exactly the file the caller means.
+    """
+    from lib.api.routers.projects import link_reference_file_endpoint
+
+    access, files, add = _patches([_mock_file(FILE_UUID)], linked=True)
+    with access, files, add as mock_add:
+        result = await link_reference_file_endpoint(
+            project_id=PROJECT_ID,
+            reference_id=REFERENCE_ID,
+            request=LinkReferenceFileRequest(file_id=FILE_ID.upper()),
+            current_user=_mock_user(),
+        )
+
+    # Stored and echoed in canonical form, not as it was sent.
+    assert result.file_id == FILE_ID
+    assert mock_add.call_args.kwargs["file_id"] == FILE_ID
+
+
+@pytest.mark.asyncio
+async def test_malformed_file_id_raises_400():
+    """A file_id that is not a UUID is a bad request, not a missing file."""
+    from lib.api.routers.projects import link_reference_file_endpoint
+
+    access, files, add = _patches([_mock_file(FILE_UUID)], linked=True)
+    with access, files, add as mock_add:
+        with pytest.raises(HTTPException) as exc_info:
+            await link_reference_file_endpoint(
+                project_id=PROJECT_ID,
+                reference_id=REFERENCE_ID,
+                request=LinkReferenceFileRequest(file_id="not-a-uuid"),
+                current_user=_mock_user(),
+            )
+
+    assert exc_info.value.status_code == 400
+    mock_add.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_opaque_reference_id_is_passed_through_unchanged():
+    """reference_id is an opaque str and must not be normalised as a UUID."""
+    from lib.api.routers.projects import link_reference_file_endpoint
+
+    opaque = "ref-7"
+    access, files, add = _patches([_mock_file(FILE_UUID)], linked=True)
+    with access, files, add as mock_add:
+        result = await link_reference_file_endpoint(
+            project_id=PROJECT_ID,
+            reference_id=opaque,
+            request=LinkReferenceFileRequest(file_id=FILE_ID),
+            current_user=_mock_user(),
+        )
+
+    assert result.reference_id == opaque
+    assert mock_add.call_args.kwargs["reference_id"] == opaque
