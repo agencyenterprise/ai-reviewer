@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.1] - 2026-08-25
+
+### Added
+- Added `POST /api/project/{project_id}/references/{reference_id}/files` to link an already-uploaded supporting file in a project to an extracted reference as a `MANUAL_UPLOAD` match.
+- Added `LinkReferenceFileRequest` and `LinkReferenceFileResponse` models.
+
+### Changed
+- Regenerated `frontend/lib/generated-api/*` via `pnpm run openapi-generate` after the API change.
+- Refactored Markdown-producing deep agents to deliver reports via file-based report delivery and a validated per-run `report_issue` tool.
+- Migrated six simple deep-agent workflows, the About This validators, and Reviewer 2 to the new report/issue delivery approach, with Reviewer 2 now writing `/peer-review.md` and `/rebuttal.md`.
+- Clarified the Literature Review eval boundary between local implementation notes and empirical user-outcome claims, including a positive counterexample.
+
+### Fixed
+- Fixed a docstring in `evals_inspectai/common/api_client.py` to reference `start_workflow_types` instead of the non-existent `start_workflow_by_type`.
+- Updated the new reference-file linking endpoint to return 404 when the file is not a `SUPPORT` file of the project's current revision and to map unknown reference or extraction-not-yet-run cases to 409.
+
+
 ## [v1.0.0] - 2026-08-24
 
 ### Added
