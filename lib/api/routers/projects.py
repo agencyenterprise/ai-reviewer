@@ -1,4 +1,5 @@
 import logging
+import uuid
 from typing import List, Literal, Optional
 
 from fastapi import APIRouter, Depends
@@ -7,13 +8,20 @@ from fastapi.responses import StreamingResponse
 from starlette.responses import FileResponse
 
 from lib.api.auth import get_current_user, get_current_user_optional
-from lib.api.models import CreateRevisionResponse, RevisionListItem, WorkflowProgressResponse
+from lib.api.models import (
+    CreateRevisionResponse,
+    LinkReferenceFileRequest,
+    LinkReferenceFileResponse,
+    RevisionListItem,
+    WorkflowProgressResponse,
+)
 from lib.models.file import File, FileRole
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
 from lib.services.docx_workflow_service import DocxManipulatorType, generate_docx
 from lib.services.files import get_files_by_project_id
 from lib.services.project_zip import create_project_files_zip
+from lib.services.references import MatchSource, add_file_to_reference
 from lib.services.projects import (
     ProjectDetailed,
     ProjectListItem,
@@ -208,6 +216,68 @@ async def delete_project_file_endpoint(
         raise HTTPException(status_code=404, detail="File not found in project")
 
     return {"message": "File deleted successfully", "file_id": file_id}
+
+
+@router.post(
+    "/api/project/{project_id}/references/{reference_id}/files",
+    response_model=LinkReferenceFileResponse,
+)
+async def link_reference_file_endpoint(
+    project_id: str,
+    reference_id: str,
+    request: LinkReferenceFileRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Link an already-uploaded supporting file to an extracted reference.
+
+    The app can already do this at upload time, by putting a `reference_id` in
+    the TUS metadata. This is the same operation for a file that is already in
+    the project, so a user can correct or supply a match without re-uploading.
+
+    The link is recorded as `MANUAL_UPLOAD`, which takes precedence over
+    whatever the automatic matcher decided. Re-posting for the same reference
+    replaces the previous match rather than adding a second one.
+    """
+    project, _ = await get_project_access(
+        project_id, user=current_user, required_level=AccessLevel.WRITE
+    )
+
+    # The service validates reference_id against the extraction state, but not
+    # the file, so check it here: it has to be a supporting file of this
+    # project's current revision.
+    supporting_files = await get_files_by_project_id(
+        uuid.UUID(project_id),
+        roles=[FileRole.SUPPORT],
+        revision=project.current_revision,
+    )
+    if request.file_id not in {str(f.id) for f in supporting_files}:
+        raise HTTPException(
+            status_code=404,
+            detail="Supporting file not found in this project's current revision",
+        )
+
+    linked = await add_file_to_reference(
+        project_id=project_id,
+        file_id=request.file_id,
+        reference_id=reference_id,
+        source=MatchSource.MANUAL_UPLOAD,
+        revision=project.current_revision,
+    )
+    if not linked:
+        # add_file_to_reference returns False when the reference is unknown for
+        # this revision, or when references have not been extracted yet.
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Could not link the file to that reference. The reference is "
+                "unknown for the current revision, or reference extraction has "
+                "not run yet."
+            ),
+        )
+
+    return LinkReferenceFileResponse(
+        reference_id=reference_id, file_id=request.file_id
+    )
 
 
 @router.get("/api/project/{project_id}/files/download-all")
