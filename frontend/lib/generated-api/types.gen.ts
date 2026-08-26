@@ -1974,68 +1974,6 @@ export type EvidenceWeighterResponseWithClaimIndex = {
 };
 
 /**
- * ExtractedInferenceResult
- *
- * An inference result with document-derived chunk indices.
- */
-export type ExtractedInferenceResult = {
-  /**
-   * Key Sentence
-   *
-   * The key sentence that contains the incorrect inference, conclusion, or argument. Should be a direct quote from the text.
-   */
-  key_sentence: string;
-  /**
-   * The severity level of the inference analysis. HIGH if the inference problem leads the conclusion to be completely invalid. MEDIUM if the inference problem weakens the justification for the conclusion. LOW if the inference problem is a minor/tangential issue that does not significantly weaken the justification for the conclusion. NONE if the inference is valid and correct.
-   */
-  severity: SeverityEnum;
-  /**
-   * Inference Validity
-   *
-   * Whether the inference is valid or not.
-   */
-  inference_validity: boolean;
-  /**
-   * Short Form Argument Analysis
-   *
-   * A concise analysis what is wrong with the inference. In only TWO sentences.
-   */
-  short_form_argument_analysis: string;
-  /**
-   * Long Form Argument Analysis
-   *
-   * A detailed analysis what is wrong with the inference.
-   */
-  long_form_argument_analysis: string;
-  /**
-   * Suggested Action
-   *
-   * A suggested action to take to correct the wrong inference. In only TWO sentences.
-   */
-  suggested_action: string;
-  /**
-   * Chunk Indices
-   *
-   * Chunk indices that overlap with the inference (by line range).
-   */
-  chunk_indices?: Array<number>;
-};
-
-/**
- * ExtractedInferenceResultResponse
- *
- * Response containing extracted inference results with chunk indices.
- */
-export type ExtractedInferenceResultResponse = {
-  /**
-   * Results
-   *
-   * Extracted inference results with chunk indices and severity.
-   */
-  results: Array<ExtractedInferenceResult>;
-};
-
-/**
  * ExtractedReference
  *
  * A reference extracted from the document.
@@ -2709,124 +2647,6 @@ export type HumanApprovalState = {
    * ISO timestamp when approved
    */
   approved_at?: string | null;
-};
-
-/**
- * InferenceAnalysis
- *
- * A single invalid-inference finding from one detection pass.
- */
-export type InferenceAnalysis = {
-  /**
-   * Key Sentence
-   *
-   * The key sentence that contains the incorrect inference, conclusion, or argument. Should be a direct quote from the text.
-   */
-  key_sentence: string;
-  /**
-   * Inference Validity
-   *
-   * Whether the inference is valid or not.
-   */
-  inference_validity: boolean;
-  /**
-   * Short Form Argument Analysis
-   *
-   * A concise analysis what is wrong with the inference. In only TWO sentences.
-   */
-  short_form_argument_analysis: string;
-  /**
-   * Long Form Argument Analysis
-   *
-   * A detailed analysis what is wrong with the inference.
-   */
-  long_form_argument_analysis: string;
-  /**
-   * Suggested Action
-   *
-   * A suggested action to take to correct the wrong inference. In only TWO sentences.
-   */
-  suggested_action: string;
-};
-
-/**
- * InferenceResultResponse
- *
- * Response containing the result of a single inference check pass.
- */
-export type InferenceResultResponse = {
-  /**
-   * Results
-   *
-   * The result of the inference check
-   */
-  results: Array<InferenceAnalysis>;
-};
-
-/**
- * InferenceValidationV2State
- *
- * State for the inference validation v2 workflow.
- */
-export type InferenceValidationV2State = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'inference_validation_v2';
-  /**
-   * File Id
-   *
-   * The ID of the main source document
-   */
-  file_id: string;
-  /**
-   * Validator Results
-   *
-   * Results from parallel inference validator runs keyed by run index (1, 2, 3, ...)
-   */
-  validator_results?: {
-    [key: string]: InferenceResultResponse;
-  };
-  /**
-   * Extracted inference analysis result with chunk indices and severity
-   */
-  inference_results?: ExtractedInferenceResultResponse | null;
-};
-
-/**
- * InferenceValidationV2WorkflowConfig
- *
- * Configuration model for the inference validation v2 workflow.
- */
-export type InferenceValidationV2WorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'inference_validation_v2';
 };
 
 /**
@@ -5633,7 +5453,6 @@ export type WorkflowRunDetail = {
     | ReferenceValidationV2State
     | CitationSuggesterState
     | ResultsExtractionState
-    | InferenceValidationV2State
     | HumanApprovalState
     | Reviewer2State
     | SimpleDeepAgentState
@@ -6211,7 +6030,6 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | ReferenceValidationV2WorkflowConfig
     | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
-    | InferenceValidationV2WorkflowConfig
     | HumanApprovalConfig
     | Reviewer2Config
     | SimpleDeepAgentConfig;

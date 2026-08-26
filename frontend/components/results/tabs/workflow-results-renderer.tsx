@@ -6,7 +6,6 @@ import { GenericWorkflowResults } from '@/components/results/components/generic-
 import { AboutThisGerResults } from '@/components/workflows/results/about-this-ger-results';
 import { AdvocacyToneResults } from '@/components/workflows/results/advocacy-tone-results';
 import { CitationSuggesterResults } from '@/components/workflows/results/citation-suggester-results';
-import { InferenceValidationV2Results } from '@/components/workflows/results/inference-validation-v2-results';
 import { LiteratureReviewResults } from '@/components/workflows/results/literature-review/literature-review-results';
 import { LiveReportsResults } from '@/components/workflows/results/live-reports-results';
 import { MethodologicalAlignmentResults } from '@/components/workflows/results/methodological-alignment-results';
@@ -70,14 +69,6 @@ function renderWorkflowResults(
       return <AdvocacyToneResults project={project} onNavigateToDocumentExplorer={onNavigateToDocumentExplorer} />;
     case WorkflowRunType.AboutThisGer:
       return <AboutThisGerResults workflowDetail={workflowRun} />;
-    case WorkflowRunType.InferenceValidationV2:
-      return (
-        <InferenceValidationV2Results
-          project={project}
-          workflowDetail={workflowRun}
-          onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
-        />
-      );
     case WorkflowRunType.ClaimReferenceValidation:
     case WorkflowRunType.ClaimReferenceValidationV2:
     case WorkflowRunType.AbbreviationScanV2:
@@ -97,6 +88,7 @@ function renderWorkflowResults(
       return <ReferenceValidationV2Results workflowDetail={workflowRun} />;
     case WorkflowRunType.DocumentStructure:
     case WorkflowRunType.FiguresTablesCheck:
+    case WorkflowRunType.InferenceValidationV2:
     case WorkflowRunType.RecommendationCheck:
     case WorkflowRunType.RevisionPlanningSummary:
     case WorkflowRunType.ReviewerResponseMemos:

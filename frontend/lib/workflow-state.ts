@@ -10,7 +10,6 @@ import {
   DocumentSummarizationState,
   FootnoteExtractionState,
   HumanApprovalState,
-  InferenceValidationV2State,
   LiteratureReviewState,
   LiveReportsState,
   MethodologicalAlignmentState,
@@ -49,13 +48,13 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.ReferenceValidation]: ReferenceValidationState;
   [WorkflowRunType.CitationSuggester]: CitationSuggesterState;
   [WorkflowRunType.ResultsExtraction]: ResultsExtractionState;
-  [WorkflowRunType.InferenceValidationV2]: InferenceValidationV2State;
   [WorkflowRunType.ClaimReferenceValidation]: ClaimReferenceValidationState;
   [WorkflowRunType.AbbreviationScanV2]: AbbreviationScanV2State;
   [WorkflowRunType.AdvocacyTone]: AdvocacyToneState;
   [WorkflowRunType.Reviewer2]: Reviewer2State;
   [WorkflowRunType.DocumentStructure]: SimpleDeepAgentState;
   [WorkflowRunType.FiguresTablesCheck]: SimpleDeepAgentState;
+  [WorkflowRunType.InferenceValidationV2]: SimpleDeepAgentState;
   [WorkflowRunType.AdvocacyToneV2]: SimpleDeepAgentState;
   [WorkflowRunType.RecommendationCheck]: SimpleDeepAgentState;
   [WorkflowRunType.LiteratureReviewV2]: SimpleDeepAgentState;
