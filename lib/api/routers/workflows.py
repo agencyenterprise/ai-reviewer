@@ -100,7 +100,7 @@ async def approve_workflow_run(
     1. Exist and belong to a project owned by the current user
     2. Be a workflow type that supports human approval (requires_human_trigger=True)
 
-    This unblocks any dependent workflows (e.g., CLAIM_REFERENCE_VALIDATION).
+    This unblocks any dependent workflows (e.g., CLAIM_REFERENCE_VALIDATION_V2).
     """
     workflow_run = await get_workflow_run(workflow_run_id, user=current_user)
 

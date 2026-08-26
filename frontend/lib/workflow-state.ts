@@ -3,7 +3,6 @@ import {
   ChunkSplittingState,
   CitationDetectionState,
   ClaimExtractionState,
-  ClaimReferenceValidationState,
   DocumentProcessingState,
   DocumentSummarizationState,
   FootnoteExtractionState,
@@ -41,7 +40,6 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
   [WorkflowRunType.ReferenceValidation]: ReferenceValidationState;
   [WorkflowRunType.ResultsExtraction]: ResultsExtractionState;
-  [WorkflowRunType.ClaimReferenceValidation]: ClaimReferenceValidationState;
   [WorkflowRunType.AbbreviationScanV2]: AbbreviationScanV2State;
   [WorkflowRunType.Reviewer2]: Reviewer2State;
   [WorkflowRunType.DocumentStructure]: SimpleDeepAgentState;

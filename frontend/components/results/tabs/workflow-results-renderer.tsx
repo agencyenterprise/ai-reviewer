@@ -57,7 +57,6 @@ function renderWorkflowResults(
       return <ResultsExtractorResults workflowDetail={workflowRun} />;
     case WorkflowRunType.AboutThisGer:
       return <AboutThisGerResults workflowDetail={workflowRun} />;
-    case WorkflowRunType.ClaimReferenceValidation:
     case WorkflowRunType.ClaimReferenceValidationV2:
     case WorkflowRunType.AbbreviationScanV2:
       return (

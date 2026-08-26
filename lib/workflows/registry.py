@@ -65,9 +65,6 @@ def register_all_workflow_manifests():
     from lib.workflows.chunk_splitting.manifest import ChunkSplittingManifest
     from lib.workflows.citation_detection.manifest import CitationDetectionManifest
     from lib.workflows.claim_extraction.manifest import ClaimExtractionManifest
-    from lib.workflows.claim_reference_validation.manifest import (
-        ClaimReferenceValidationManifest,
-    )
     from lib.workflows.claim_reference_validation_v2.manifest import (
         ClaimReferenceValidationV2Manifest,
     )
@@ -119,7 +116,6 @@ def register_all_workflow_manifests():
         FootnoteExtractionManifest(),
         ClaimExtractionManifest(),
         CitationDetectionManifest(),
-        ClaimReferenceValidationManifest(),
         ClaimReferenceValidationV2Manifest(),
         AbbreviationScanV2Manifest(),
         InferenceValidationV2Manifest(),

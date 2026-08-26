@@ -1042,35 +1042,6 @@ export type ClaimExtractionWorkflowConfig = {
 };
 
 /**
- * ClaimReferenceValidationState
- *
- * State for the claim reference validation workflow.
- */
-export type ClaimReferenceValidationState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'claim_reference_validation';
-  config: ClaimReferenceValidationWorkflowConfig;
-  /**
-   * Paragraph Verifications
-   */
-  paragraph_verifications?: Array<ParagraphVerificationItem>;
-  /**
-   * Substantiations
-   *
-   * Claim substantiation results indexed by chunk_index and claim_index
-   */
-  substantiations?: Array<ClaimSubstantiationResultWithClaimIndex>;
-};
-
-/**
  * ClaimReferenceValidationV2Config
  */
 export type ClaimReferenceValidationV2Config = {
@@ -1124,36 +1095,6 @@ export type ClaimReferenceValidationV2State = {
 };
 
 /**
- * ClaimReferenceValidationWorkflowConfig
- *
- * Configuration model for claim reference validation workflow
- */
-export type ClaimReferenceValidationWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'claim_reference_validation';
-};
-
-/**
  * ClaimResponseWithChunkIndex
  */
 export type ClaimResponseWithChunkIndex = {
@@ -1175,60 +1116,6 @@ export type ClaimResponseWithChunkIndex = {
    * The index of the chunk of text that contains the claim
    */
   chunk_index: number;
-};
-
-/**
- * ClaimSubstantiationResultWithClaimIndex
- */
-export type ClaimSubstantiationResultWithClaimIndex = {
-  /**
-   * Key Sentence
-   *
-   * The key sentence that contains the claim to be substantiated. Should be a direct quote from the text.
-   */
-  key_sentence: string;
-  /**
-   * Claim Number
-   *
-   * The number of the claim from the provided numbered list
-   */
-  claim_number: number;
-  /**
-   * The degree of evidence that the supporting document(s) provides to support the claim. Possible values: ['unverifiable', 'supported', 'partially_supported', 'unsupported']
-   */
-  evidence_alignment: EvidenceAlignmentLevel;
-  /**
-   * Rationale
-   *
-   * A brief rationale for why you think the claim is substantiated or not substantiated by the cited supporting document(s)
-   */
-  rationale: string;
-  /**
-   * Feedback
-   *
-   * A brief suggestion on how the issue can be resolved, e.g., by adding more supporting documents or by rephrasing the original chunk, etc. Return 'No changes needed' if there are no significant issues with the substantiation of the claim.
-   */
-  feedback: string;
-  /**
-   * Evidence Sources
-   *
-   * The sources/documents that were checked in the validation process. If there are multiple sources, include all of them. If no sources were checked, return an empty list.
-   */
-  evidence_sources: Array<ClaimEvidenceSource>;
-  /**
-   * Citation To File Mapping
-   *
-   * A string representation of the citation-to-file mapping that was used to check the evidence. Do not include file IDs. Null if no citation-to-file mapping was provided.
-   */
-  citation_to_file_mapping?: string | null;
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Claim Index
-   */
-  claim_index: number;
 };
 
 /**
@@ -2716,62 +2603,6 @@ export type ModelCostBreakdown = {
    */
   request_count?: number;
 };
-
-/**
- * ParagraphVerificationItem
- *
- * Item for tracking individual paragraph verification with status.
- */
-export type ParagraphVerificationItem = {
-  /**
-   * Paragraph Index
-   *
-   * The paragraph index being verified.
-   */
-  paragraph_index: number;
-  /**
-   * Current status of this paragraph verification.
-   */
-  status?: ParagraphVerificationStatus;
-  /**
-   * Num Claims
-   *
-   * Number of claims being verified in this paragraph.
-   */
-  num_claims?: number;
-  /**
-   * Substantiations
-   *
-   * Verification results for claims in this paragraph.
-   */
-  substantiations?: Array<ClaimSubstantiationResultWithClaimIndex>;
-  /**
-   * Error
-   *
-   * Error message, present on failure.
-   */
-  error?: string | null;
-};
-
-/**
- * ParagraphVerificationStatus
- *
- * Status of a paragraph verification operation.
- */
-export const ParagraphVerificationStatus = {
-  Pending: 'pending',
-  Completed: 'completed',
-  Error: 'error',
-  Cancelled: 'cancelled',
-} as const;
-
-/**
- * ParagraphVerificationStatus
- *
- * Status of a paragraph verification operation.
- */
-export type ParagraphVerificationStatus =
-  (typeof ParagraphVerificationStatus)[keyof typeof ParagraphVerificationStatus];
 
 /**
  * PreflightRequest
@@ -4613,7 +4444,6 @@ export type WorkflowRunDetail = {
     | ReferenceFileMatchingState
     | FootnoteExtractionState
     | ClaimExtractionState
-    | ClaimReferenceValidationState
     | ClaimReferenceValidationV2State
     | CitationDetectionState
     | AbbreviationScanV2State
@@ -5187,7 +5017,6 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | FootnoteExtractionConfig
     | ClaimExtractionWorkflowConfig
     | CitationDetectionConfig
-    | ClaimReferenceValidationWorkflowConfig
     | ClaimReferenceValidationV2Config
     | AbbreviationScanV2Config
     | MethodologicalAlignmentWorkflowConfig

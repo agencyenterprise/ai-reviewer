@@ -57,7 +57,6 @@ const workflowTypeIcons: Partial<Record<WorkflowRunType, LucideIcon>> = {
   [WorkflowRunType.ReferenceValidationV2]: FileCheck,
   [WorkflowRunType.ResultsExtraction]: BarChart3,
   [WorkflowRunType.InferenceValidationV2]: BrainCircuit,
-  [WorkflowRunType.ClaimReferenceValidation]: ClipboardCheck,
   [WorkflowRunType.ClaimReferenceValidationV2]: ClipboardCheck,
   [WorkflowRunType.AbbreviationScanV2]: ALargeSmall,
   [WorkflowRunType.AdvocacyToneV2]: MessageSquareWarning,

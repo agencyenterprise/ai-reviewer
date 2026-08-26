@@ -596,7 +596,7 @@ export const getWorkflowStateApiWorkflowsWorkflowRunIdGet = <ThrowOnError extend
  * 1. Exist and belong to a project owned by the current user
  * 2. Be a workflow type that supports human approval (requires_human_trigger=True)
  *
- * This unblocks any dependent workflows (e.g., CLAIM_REFERENCE_VALIDATION).
+ * This unblocks any dependent workflows (e.g., CLAIM_REFERENCE_VALIDATION_V2).
  */
 export const approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost = <ThrowOnError extends boolean = true>(
   options: Options<ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData, ThrowOnError>,
