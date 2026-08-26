@@ -41,13 +41,27 @@ def inference_validation_v2_e2e():
 def _compare_invalid_count(output: SimpleDeepAgentOutput, state: TaskState) -> Score:
     """Compare the number of reported invalid inferences to the expected count.
 
-    Every issue this workflow reports is an invalid inference (it emits no
-    informational entries for sound reasoning), so the issue count is the count
-    of findings. Titles are free-form paraphrases of the flaw, so the count is
-    the stable signal to score on.
+    Every issue this workflow reports is an invalid inference: sound reasoning
+    is reported as nothing at all, never as an informational (`none`) entry. An
+    informational issue is therefore a contract violation and fails the sample
+    outright rather than being counted as a finding -- otherwise a run that
+    reported the right *number* of the wrong *kind* of result would score full
+    marks. Titles are free-form paraphrases of the flaw, so the count of real
+    findings is the stable signal to score on.
     """
     expected: int = state.metadata["expected_invalid_count"]
     issues = output.result.issues if output.result else []
+
+    informational = [issue for issue in issues if issue.severity.lower() == "none"]
+    if informational:
+        return Score(
+            value=0.0,
+            explanation=(
+                f"Reported {len(informational)} informational (severity 'none') "
+                f"issue(s); this assessment must report invalid inferences only"
+            ),
+        )
+
     actual = len(issues)
 
     if actual == expected:
