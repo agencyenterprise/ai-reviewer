@@ -43,7 +43,6 @@ dependencies = [
     "pypdfium2>=5.6.0",
     "pyjwt>=2.13.0",
     "mypy>=1.19.1",
-    "textblob>=0.18.0",
     "rich>=14.2.0",
     "tuspyserver>=4.2.3",
     "inspect-ai>=0.3.259",

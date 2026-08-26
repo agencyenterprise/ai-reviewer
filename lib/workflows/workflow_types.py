@@ -10,10 +10,6 @@ from lib.workflows.simple_deep_agent.state import (
     SimpleDeepAgentConfig,
     SimpleDeepAgentState,
 )
-from lib.workflows.advocacy_tone.state import (
-    AdvocacyToneState,
-    AdvocacyToneWorkflowConfig,
-)
 from lib.workflows.chunk_splitting.state import (
     ChunkSplittingState,
     ChunkSplittingWorkflowConfig,
@@ -21,10 +17,6 @@ from lib.workflows.chunk_splitting.state import (
 from lib.workflows.citation_detection.state import (
     CitationDetectionConfig,
     CitationDetectionState,
-)
-from lib.workflows.citation_suggester.state import (
-    CitationSuggesterState,
-    CitationSuggesterWorkflowConfig,
 )
 from lib.workflows.claim_extraction.state import (
     ClaimExtractionState,
@@ -54,11 +46,6 @@ from lib.workflows.human_approval.state import (
     HumanApprovalConfig,
     HumanApprovalState,
 )
-from lib.workflows.literature_review.state import (
-    LiteratureReviewState,
-    LiteratureReviewWorkflowConfig,
-)
-from lib.workflows.live_reports.state import LiveReportsState, LiveReportsWorkflowConfig
 from lib.workflows.methodological_alignment.state import (
     MethodologicalAlignmentState,
     MethodologicalAlignmentWorkflowConfig,
@@ -94,7 +81,6 @@ from lib.workflows.reviewer_2.state import (
 
 WorkflowState = (
     AboutThisGerState
-    | AdvocacyToneState
     | DocumentProcessingState
     | ChunkSplittingState
     | DocumentSummarizationState
@@ -108,11 +94,8 @@ WorkflowState = (
     | AbbreviationScanV2State
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
-    | LiteratureReviewState
-    | LiveReportsState
     | ReferenceValidationState
     | ReferenceValidationV2State
-    | CitationSuggesterState
     | ResultsExtractionState
     | HumanApprovalState
     | Reviewer2State
@@ -121,7 +104,6 @@ WorkflowState = (
 
 WorkflowConfig = (
     AboutThisGerConfig
-    | AdvocacyToneWorkflowConfig
     | DocumentProcessingWorkflowConfig
     | ChunkSplittingWorkflowConfig
     | DocumentSummarizationWorkflowConfig
@@ -135,11 +117,8 @@ WorkflowConfig = (
     | AbbreviationScanV2Config
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
-    | LiteratureReviewWorkflowConfig
-    | LiveReportsWorkflowConfig
     | ReferenceValidationWorkflowConfig
     | ReferenceValidationV2WorkflowConfig
-    | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
     | HumanApprovalConfig
     | Reviewer2Config

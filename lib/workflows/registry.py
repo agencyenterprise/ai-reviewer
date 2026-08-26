@@ -61,11 +61,9 @@ def register_all_workflow_manifests():
     from lib.workflows.document_structure.manifest import DocumentStructureManifest
     from lib.workflows.figures_tables_check.manifest import FiguresTablesCheckManifest
     from lib.workflows.about_this_ger.manifest import AboutThisGerManifest
-    from lib.workflows.advocacy_tone.manifest import AdvocacyToneManifest
     from lib.workflows.advocacy_tone_v2.manifest import AdvocacyToneV2Manifest
     from lib.workflows.chunk_splitting.manifest import ChunkSplittingManifest
     from lib.workflows.citation_detection.manifest import CitationDetectionManifest
-    from lib.workflows.citation_suggester.manifest import CitationSuggesterManifest
     from lib.workflows.claim_extraction.manifest import ClaimExtractionManifest
     from lib.workflows.claim_reference_validation.manifest import (
         ClaimReferenceValidationManifest,
@@ -82,9 +80,7 @@ def register_all_workflow_manifests():
     from lib.workflows.inference_validation_v2.manifest import (
         InferenceValidationV2Manifest,
     )
-    from lib.workflows.literature_review.manifest import LiteratureReviewManifest
     from lib.workflows.literature_review_v2.manifest import LiteratureReviewV2Manifest
-    from lib.workflows.live_reports.manifest import LiveReportsManifest
     from lib.workflows.live_reports_v2.manifest import LiveReportsV2Manifest
     from lib.workflows.methodological_alignment.manifest import (
         MethodologicalAlignmentManifest,
@@ -125,19 +121,15 @@ def register_all_workflow_manifests():
         CitationDetectionManifest(),
         ClaimReferenceValidationManifest(),
         ClaimReferenceValidationV2Manifest(),
-        CitationSuggesterManifest(),
         AbbreviationScanV2Manifest(),
         InferenceValidationV2Manifest(),
-        LiteratureReviewManifest(),
         LiteratureReviewV2Manifest(),
-        LiveReportsManifest(),
         LiveReportsV2Manifest(),
         MethodologicalAlignmentManifest(),
         ReferenceDownloaderManifest(),
         ReferenceValidationManifest(),
         ReferenceValidationV2Manifest(),
         ResultsExtractionManifest(),
-        AdvocacyToneManifest(),
         AdvocacyToneV2Manifest(),
         AboutThisGerManifest(),
         Reviewer2Manifest(),

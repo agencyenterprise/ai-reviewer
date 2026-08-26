@@ -55,7 +55,6 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
         slug="language",
         label="Language",
         workflows=[
-            # WorkflowRunType.ADVOCACY_TONE,  # legacy v1; kept registered so old projects still load.
             WorkflowRunType.ADVOCACY_TONE_V2,
         ],
     ),
@@ -66,12 +65,11 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
     # of order returns a guard message instead of a report. Leaving them out of
     # every category is what keeps them out of the assessment picker; they stay
     # registered, so existing runs still list and render normally.
-    # The Research & Writing Assistant workflows (LITERATURE_REVIEW_V2,
-    # LIVE_REPORTS_V2, plus their legacy v1s and CITATION_SUGGESTER) are
-    # deliberately absent. Draft Detective is positioned as a suite of checks
-    # that review a draft the author already has; these two instead go looking
-    # for new literature, which is a different product, so they are kept out of
-    # the assessment picker. As with the peer-review workflows they stay
-    # registered: existing runs still list and render, and the API, MCP, and
-    # eval suites can still start them by type.
+    # The Research & Writing Assistant workflows (LITERATURE_REVIEW_V2 and
+    # LIVE_REPORTS_V2) are deliberately absent. Draft Detective is positioned as a
+    # suite of checks that review a draft the author already has; these instead go
+    # looking for new literature, which is a different product, so they are kept
+    # out of the assessment picker. As with the peer-review workflows they stay
+    # registered: existing runs still list and render, and the API, MCP, and eval
+    # suites can still start them by type.
 ]

@@ -46,9 +46,9 @@ def test_transitive_dependencies():
 
 def test_shared_dependencies():
     """Test that shared dependencies are not duplicated."""
-    # REFERENCE_VALIDATION and LITERATURE_REVIEW both depend on REFERENCE_EXTRACTION
+    # REFERENCE_VALIDATION and LITERATURE_REVIEW_V2 both depend on REFERENCE_EXTRACTION
     result = resolve_workflow_dependencies(
-        [WorkflowRunType.REFERENCE_VALIDATION, WorkflowRunType.LITERATURE_REVIEW]
+        [WorkflowRunType.REFERENCE_VALIDATION, WorkflowRunType.LITERATURE_REVIEW_V2]
     )
 
     # No duplicates
@@ -66,18 +66,19 @@ def test_shared_dependencies():
 
 def test_optional_dependencies_excluded():
     """Test that optional dependencies are NOT automatically included."""
-    # CITATION_SUGGESTER optionally depends on LITERATURE_REVIEW
-    result = resolve_workflow_dependencies([WorkflowRunType.CITATION_SUGGESTER])
+    # REFERENCE_DOWNLOADER requires REFERENCE_EXTRACTION and optionally depends
+    # on REFERENCE_FILE_MATCHING.
+    result = resolve_workflow_dependencies([WorkflowRunType.REFERENCE_DOWNLOADER])
 
-    assert WorkflowRunType.CLAIM_EXTRACTION in result
-    assert WorkflowRunType.LITERATURE_REVIEW not in result
+    assert WorkflowRunType.REFERENCE_EXTRACTION in result
+    assert WorkflowRunType.REFERENCE_FILE_MATCHING not in result
 
 
 def test_deterministic_ordering():
     """Test that resolution is deterministic across multiple runs."""
     workflows = [
         WorkflowRunType.REFERENCE_VALIDATION,
-        WorkflowRunType.LITERATURE_REVIEW,
+        WorkflowRunType.LITERATURE_REVIEW_V2,
         WorkflowRunType.METHODOLOGICAL_ALIGNMENT,
     ]
 

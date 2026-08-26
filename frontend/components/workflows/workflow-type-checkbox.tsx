@@ -18,7 +18,6 @@ import {
   Library,
   Newspaper,
   FileCheck,
-  Lightbulb,
   BarChart3,
   BrainCircuit,
   ClipboardCheck,
@@ -38,7 +37,9 @@ import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS, formatEstimatedDuration } from './utils';
 
-const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
+// Partial: WorkflowRunType keeps members whose workflow has been removed, so
+// old runs still deserialize. Those have no icon; getWorkflowIcon falls back.
+const workflowTypeIcons: Partial<Record<WorkflowRunType, LucideIcon>> = {
   [WorkflowRunType.DocumentProcessing]: FileText,
   [WorkflowRunType.ChunkSplitting]: FileText,
   [WorkflowRunType.DocumentSummarization]: FileText,
@@ -50,19 +51,15 @@ const workflowTypeIcons: Record<WorkflowRunType, LucideIcon> = {
   [WorkflowRunType.CitationDetection]: BookMarked,
   [WorkflowRunType.MethodologicalAlignment]: Scale,
   [WorkflowRunType.ReferenceDownloader]: Download,
-  [WorkflowRunType.LiteratureReview]: Library,
   [WorkflowRunType.LiteratureReviewV2]: Library,
-  [WorkflowRunType.LiveReports]: Newspaper,
   [WorkflowRunType.LiveReportsV2]: Newspaper,
   [WorkflowRunType.ReferenceValidation]: FileCheck,
   [WorkflowRunType.ReferenceValidationV2]: FileCheck,
-  [WorkflowRunType.CitationSuggester]: Lightbulb,
   [WorkflowRunType.ResultsExtraction]: BarChart3,
   [WorkflowRunType.InferenceValidationV2]: BrainCircuit,
   [WorkflowRunType.ClaimReferenceValidation]: ClipboardCheck,
   [WorkflowRunType.ClaimReferenceValidationV2]: ClipboardCheck,
   [WorkflowRunType.AbbreviationScanV2]: ALargeSmall,
-  [WorkflowRunType.AdvocacyTone]: MessageSquareWarning,
   [WorkflowRunType.AdvocacyToneV2]: MessageSquareWarning,
   [WorkflowRunType.AboutThisGer]: BookOpen,
   [WorkflowRunType.Reviewer2]: BookOpen,
