@@ -103,3 +103,36 @@ async def test_returns_none_when_workflow_type_is_no_longer_registered(monkeypat
     monkeypatch.setattr(registry, "_workflow_manifest_registry", surviving)
 
     assert await read_workflow_run_state(run) is None
+
+
+@pytest.mark.asyncio
+async def test_status_distinguishes_absent_state_from_schema_drift():
+    """`state is None` alone cannot tell the UI which message to show.
+
+    A run that never persisted state has nothing to offer; a run whose persisted
+    state no longer validates still holds the user's data and should say so and
+    surface it. Both hydrate to None, so the status is what separates them.
+    """
+    from lib.services.workflow_runs import (
+        WorkflowStateStatus,
+        hydrate_workflow_run_state_with_status,
+    )
+
+    state = _make_state(file_id="file-a", reference_id="ref-a")
+
+    ok_run = _make_run(str(uuid.uuid4()), state)
+    assert hydrate_workflow_run_state_with_status(ok_run)[1] == WorkflowStateStatus.OK
+
+    absent = _make_run(str(uuid.uuid4()), state)
+    absent.state_json = None
+    assert hydrate_workflow_run_state_with_status(absent) == (
+        None,
+        WorkflowStateStatus.ABSENT,
+    )
+
+    # Shape the persisted payload so it no longer satisfies the state model.
+    drifted = _make_run(str(uuid.uuid4()), state)
+    drifted.state_json = {"type": "reference_file_matching", "unexpected": True}
+    hydrated, status = hydrate_workflow_run_state_with_status(drifted)
+    assert hydrated is None
+    assert status == WorkflowStateStatus.SCHEMA_MISMATCH

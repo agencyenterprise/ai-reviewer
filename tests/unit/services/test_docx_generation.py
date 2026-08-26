@@ -62,7 +62,7 @@ class TestIssueToComment:
             title="Unsupported Claim",
             description="This claim lacks evidence",
             severity=SeverityEnum.HIGH,
-            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
             start_line=1,
             end_line=3,
         )
@@ -114,7 +114,7 @@ class TestIssueToComment:
             title="Unsupported Claim",
             description="This claim lacks evidence",
             severity=SeverityEnum.HIGH,
-            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
             start_line=1,
             end_line=3,
         )
@@ -132,7 +132,7 @@ class TestIssueToComment:
             title="Legacy issue",
             description="Only has chunk_indices",
             severity=SeverityEnum.MEDIUM,
-            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
             chunk_indices=[1],
         )
         chunks = [
@@ -164,7 +164,7 @@ class TestIssueToComment:
             title="Some issue",
             description="Issue description",
             severity=SeverityEnum.MEDIUM,
-            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
             start_line=100,
             end_line=110,
         )
@@ -179,7 +179,7 @@ class TestIssueToComment:
             title="Some issue",
             description="Issue description",
             severity=SeverityEnum.HIGH,
-            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
             start_line=5,
             end_line=15,
         )
@@ -198,7 +198,7 @@ class TestIssueToComment:
             title="Partially Supported",
             description="Some evidence found",
             severity=SeverityEnum.MEDIUM,
-            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION,
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
             start_line=1,
             end_line=1,
         )
@@ -215,7 +215,7 @@ class TestIssueToComment:
             title="Minor Note",
             description="Just a suggestion",
             severity=SeverityEnum.LOW,
-            workflow_type=WorkflowRunType.CITATION_SUGGESTER,
+            workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
             start_line=1,
             end_line=1,
         )

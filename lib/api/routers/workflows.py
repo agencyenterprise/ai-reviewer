@@ -1,4 +1,7 @@
+from typing import Any
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from pydantic import BaseModel
 
 from lib.api.auth import get_current_user
 from lib.api.models import (
@@ -14,18 +17,41 @@ from lib.api.services.workflow_runner import (
     start_workflow_run,
 )
 from lib.models.user import User
-from lib.models.workflow_run import WorkflowRunStatus
+from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.workflow_runs import (
+    hydrate_workflow_run_state_with_status,
     WorkflowRunDetail,
     cancel_workflow_run,
     get_workflow_run,
-    read_workflow_run_state,
 )
 from lib.workflows.human_approval.state import HumanApprovalConfig
 from lib.workflows.registry import get_workflow_manifest
 from lib.workflows.workflow_types import WorkflowConfig
 
 router = APIRouter(tags=["workflows"])
+
+
+class RawWorkflowStateResponse(BaseModel):
+    """A run's persisted state exactly as stored."""
+
+    workflow_run_id: str
+    type: str
+    state_json: dict[str, Any] | None
+
+
+def _assert_workflow_type_still_exists(run: WorkflowRun) -> None:
+    """404 for a run whose workflow no longer exists.
+
+    Retired types are filtered out of the project listings, so serving them here
+    would be the one way to reach a run the rest of the API pretends is gone —
+    and `WorkflowRunDetail.run.type` cannot even serialize once the enum member
+    is dropped.
+    """
+    if get_workflow_manifest(run.type, raise_exception=False) is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Workflow type '{run.type}' is no longer available",
+        )
 
 
 @router.post("/api/workflows/start", response_model=StartWorkflowResponse)
@@ -80,8 +106,33 @@ async def get_workflow_state(
     """Get the state of a workflow"""
 
     run = await get_workflow_run(workflow_run_id, user=user, include_state=True)
-    state = await read_workflow_run_state(run)
-    return WorkflowRunDetail(run=run, state=state)
+    _assert_workflow_type_still_exists(run)
+    state, status = hydrate_workflow_run_state_with_status(run)
+    return WorkflowRunDetail(run=run, state=state, state_status=status)
+
+
+@router.get(
+    "/api/workflows/{workflow_run_id}/raw-state",
+    response_model=RawWorkflowStateResponse,
+)
+async def get_workflow_raw_state(
+    workflow_run_id: str, user: User = Depends(get_current_user)
+):
+    """The run's persisted state exactly as stored, bypassing the state model.
+
+    Served on its own route rather than inlined into the run listings: payloads
+    reach several MB, and this is only ever needed for the one run a user is
+    looking at. The UI offers it when a run's state no longer validates against
+    the current model, so the data is still recoverable after an assessment
+    changes shape.
+    """
+    run = await get_workflow_run(workflow_run_id, user=user, include_state=True)
+    _assert_workflow_type_still_exists(run)
+    return RawWorkflowStateResponse(
+        workflow_run_id=str(run.id),
+        type=str(run.type),
+        state_json=run.state_json,
+    )
 
 
 @router.post(

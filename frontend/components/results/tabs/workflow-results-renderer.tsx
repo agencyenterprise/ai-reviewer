@@ -10,10 +10,17 @@ import { ReferenceValidationV2Results } from '@/components/workflows/results/ref
 import { ResultsExtractorResults } from '@/components/workflows/results/results-extractor-results';
 import { Reviewer2Results } from '@/components/workflows/results/reviewer-2-results';
 import { SimpleDeepAgentResults } from '@/components/workflows/results/simple-deep-agent-results';
-import { ProjectDetailed, SimpleDeepAgentState, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
+import {
+  ProjectDetailed,
+  SimpleDeepAgentState,
+  WorkflowRunDetail,
+  WorkflowRunType,
+  WorkflowStateStatus,
+} from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { getCurrentRunErrors, WorkflowRunDetailTyped } from '@/lib/workflow-state';
 import { FlaskConicalIcon } from 'lucide-react';
+import { StaleWorkflowStateNotice } from '@/components/results/components/stale-workflow-state-notice';
 
 function InternalWorkflowResults({ workflowName }: { workflowName: string }) {
   return (
@@ -44,6 +51,14 @@ function renderWorkflowResults(
   const { state } = workflowRun;
 
   if (!state) {
+    // A completed run whose saved state no longer matches the assessment's
+    // current model is a different situation from a run that never produced
+    // one: the data exists and is recoverable, so say so and offer it.
+    if (workflowRun.state_status === WorkflowStateStatus.SchemaMismatch) {
+      return (
+        <StaleWorkflowStateNotice workflowRunId={String(workflowRun.run.id)} workflowName={getWorkflowTypeName(type)} />
+      );
+    }
     return <div className="p-4 text-center text-muted-foreground">No results available for this workflow run</div>;
   }
 

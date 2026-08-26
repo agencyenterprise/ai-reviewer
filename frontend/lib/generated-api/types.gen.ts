@@ -2667,6 +2667,28 @@ export type ProjectListItem = {
 };
 
 /**
+ * RawWorkflowStateResponse
+ *
+ * A run's persisted state exactly as stored.
+ */
+export type RawWorkflowStateResponse = {
+  /**
+   * Workflow Run Id
+   */
+  workflow_run_id: string;
+  /**
+   * Type
+   */
+  type: string;
+  /**
+   * State Json
+   */
+  state_json: {
+    [key: string]: unknown;
+  } | null;
+};
+
+/**
  * RecentWorkflowSelectionResponse
  *
  * The assessments a user picked most recently, for pre-checking the wizard.
@@ -4224,6 +4246,7 @@ export type WorkflowRunDetail = {
     | SimpleDeepAgentState
     | null;
   cost?: CostBreakdown | null;
+  state_status?: WorkflowStateStatus;
 };
 
 /**
@@ -4284,19 +4307,13 @@ export const WorkflowRunType = {
   CitationDetection: 'citation_detection',
   MethodologicalAlignment: 'methodological_alignment',
   ReferenceDownloader: 'reference_downloader',
-  LiteratureReview: 'literature_review',
   LiteratureReviewV2: 'literature_review_v2',
-  LiveReports: 'live_reports',
   LiveReportsV2: 'live_reports_v2',
-  ReferenceValidation: 'reference_validation',
   ReferenceValidationV2: 'reference_validation_v2',
-  CitationSuggester: 'citation_suggester',
   ResultsExtraction: 'results_extraction',
   InferenceValidationV2: 'inference_validation_v2',
-  ClaimReferenceValidation: 'claim_reference_validation',
   ClaimReferenceValidationV2: 'claim_reference_validation_v2',
   AbbreviationScanV2: 'abbreviation_scan_v2',
-  AdvocacyTone: 'advocacy_tone',
   AdvocacyToneV2: 'advocacy_tone_v2',
   AboutThisGer: 'about_this_ger',
   Reviewer2: 'reviewer_2',
@@ -4312,6 +4329,34 @@ export const WorkflowRunType = {
  * WorkflowRunType
  */
 export type WorkflowRunType = (typeof WorkflowRunType)[keyof typeof WorkflowRunType];
+
+/**
+ * WorkflowStateStatus
+ *
+ * Why a run's state is or isn't available to render.
+ *
+ * `state` alone cannot express this: it is None both for a run that never
+ * persisted state and for one whose persisted state no longer matches the
+ * current model. The UI needs to tell those apart — the first is "nothing to
+ * show", the second is "your data is here but the assessment changed".
+ */
+export const WorkflowStateStatus = {
+  Ok: 'ok',
+  Absent: 'absent',
+  SchemaMismatch: 'schema_mismatch',
+} as const;
+
+/**
+ * WorkflowStateStatus
+ *
+ * Why a run's state is or isn't available to render.
+ *
+ * `state` alone cannot express this: it is None both for a run that never
+ * persisted state and for one whose persisted state no longer matches the
+ * current model. The UI needs to tell those apart — the first is "nothing to
+ * show", the second is "your data is here but the assessment changed".
+ */
+export type WorkflowStateStatus = (typeof WorkflowStateStatus)[keyof typeof WorkflowStateStatus];
 
 /**
  * WorkflowTypeDescription
@@ -4876,6 +4921,38 @@ export type GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses = {
 
 export type GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponse =
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses[keyof GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses];
+
+export type GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetData = {
+  body?: never;
+  path: {
+    /**
+     * Workflow Run Id
+     */
+    workflow_run_id: string;
+  };
+  query?: never;
+  url: '/api/workflows/{workflow_run_id}/raw-state';
+};
+
+export type GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetError =
+  GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetErrors[keyof GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetErrors];
+
+export type GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: RawWorkflowStateResponse;
+};
+
+export type GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetResponse =
+  GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetResponses[keyof GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetResponses];
 
 export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData = {
   body?: never;
