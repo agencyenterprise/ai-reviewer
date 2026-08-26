@@ -1,7 +1,10 @@
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install pnpm, pinned to the version package.json declares in
+# `packageManager`. Unpinned, this picks up whatever is latest at build time:
+# pnpm 11 verifies the package-manager identity against a `@pnpm/exe.<platform>`
+# entry that a pnpm-10 lockfile does not carry, so `--frozen-lockfile` fails.
+RUN npm install -g pnpm@10.33.0
 
 # Install dependencies only when needed
 FROM base AS deps
