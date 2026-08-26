@@ -29,18 +29,18 @@ def test_empty_and_simple_cases():
 def test_transitive_dependencies():
     """Test that all transitive dependencies are resolved in correct order."""
     # REFERENCE_VALIDATION -> REFERENCE_EXTRACTION -> DOCUMENT_PROCESSING
-    result = resolve_workflow_dependencies([WorkflowRunType.REFERENCE_VALIDATION])
+    result = resolve_workflow_dependencies([WorkflowRunType.REFERENCE_VALIDATION_V2])
 
     assert set(result) == {
         WorkflowRunType.DOCUMENT_PROCESSING,
         WorkflowRunType.REFERENCE_EXTRACTION,
-        WorkflowRunType.REFERENCE_VALIDATION,
+        WorkflowRunType.REFERENCE_VALIDATION_V2,
     }
     assert_order(
         result,
         WorkflowRunType.DOCUMENT_PROCESSING,
         WorkflowRunType.REFERENCE_EXTRACTION,
-        WorkflowRunType.REFERENCE_VALIDATION,
+        WorkflowRunType.REFERENCE_VALIDATION_V2,
     )
 
 
@@ -48,7 +48,7 @@ def test_shared_dependencies():
     """Test that shared dependencies are not duplicated."""
     # REFERENCE_VALIDATION and LITERATURE_REVIEW_V2 both depend on REFERENCE_EXTRACTION
     result = resolve_workflow_dependencies(
-        [WorkflowRunType.REFERENCE_VALIDATION, WorkflowRunType.LITERATURE_REVIEW_V2]
+        [WorkflowRunType.REFERENCE_VALIDATION_V2, WorkflowRunType.LITERATURE_REVIEW_V2]
     )
 
     # No duplicates
@@ -77,7 +77,7 @@ def test_optional_dependencies_excluded():
 def test_deterministic_ordering():
     """Test that resolution is deterministic across multiple runs."""
     workflows = [
-        WorkflowRunType.REFERENCE_VALIDATION,
+        WorkflowRunType.REFERENCE_VALIDATION_V2,
         WorkflowRunType.LITERATURE_REVIEW_V2,
         WorkflowRunType.METHODOLOGICAL_ALIGNMENT,
     ]
@@ -148,7 +148,7 @@ def test_get_required_dependents_returns_direct_dependents():
         {
             WorkflowRunType.DOCUMENT_PROCESSING: [],
             WorkflowRunType.REFERENCE_EXTRACTION: [WorkflowRunType.DOCUMENT_PROCESSING],
-            WorkflowRunType.REFERENCE_VALIDATION: [WorkflowRunType.DOCUMENT_PROCESSING],
+            WorkflowRunType.REFERENCE_VALIDATION_V2: [WorkflowRunType.DOCUMENT_PROCESSING],
         }
     )
     with _patch_all_manifests(manifests):
@@ -156,7 +156,7 @@ def test_get_required_dependents_returns_direct_dependents():
 
     assert set(result) == {
         WorkflowRunType.REFERENCE_EXTRACTION,
-        WorkflowRunType.REFERENCE_VALIDATION,
+        WorkflowRunType.REFERENCE_VALIDATION_V2,
     }
 
 
@@ -166,7 +166,7 @@ def test_get_required_dependents_returns_transitive_dependents():
         {
             WorkflowRunType.DOCUMENT_PROCESSING: [],
             WorkflowRunType.REFERENCE_EXTRACTION: [WorkflowRunType.DOCUMENT_PROCESSING],
-            WorkflowRunType.REFERENCE_VALIDATION: [WorkflowRunType.REFERENCE_EXTRACTION],
+            WorkflowRunType.REFERENCE_VALIDATION_V2: [WorkflowRunType.REFERENCE_EXTRACTION],
         }
     )
     with _patch_all_manifests(manifests):
@@ -174,7 +174,7 @@ def test_get_required_dependents_returns_transitive_dependents():
 
     assert set(result) == {
         WorkflowRunType.REFERENCE_EXTRACTION,
-        WorkflowRunType.REFERENCE_VALIDATION,
+        WorkflowRunType.REFERENCE_VALIDATION_V2,
     }
 
 
@@ -202,7 +202,7 @@ def test_get_required_dependents_no_duplicates_in_diamond_graph():
             WorkflowRunType.DOCUMENT_PROCESSING: [],
             WorkflowRunType.REFERENCE_EXTRACTION: [WorkflowRunType.DOCUMENT_PROCESSING],
             WorkflowRunType.CHUNK_SPLITTING: [WorkflowRunType.DOCUMENT_PROCESSING],
-            WorkflowRunType.REFERENCE_VALIDATION: [WorkflowRunType.REFERENCE_EXTRACTION],
+            WorkflowRunType.REFERENCE_VALIDATION_V2: [WorkflowRunType.REFERENCE_EXTRACTION],
         }
     )
     with _patch_all_manifests(manifests):
@@ -212,5 +212,5 @@ def test_get_required_dependents_no_duplicates_in_diamond_graph():
     assert set(result) == {
         WorkflowRunType.REFERENCE_EXTRACTION,
         WorkflowRunType.CHUNK_SPLITTING,
-        WorkflowRunType.REFERENCE_VALIDATION,
+        WorkflowRunType.REFERENCE_VALIDATION_V2,
     }

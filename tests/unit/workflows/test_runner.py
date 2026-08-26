@@ -265,7 +265,7 @@ async def test_dependency_wait_timeout_marks_failed_with_dependency_timeout_reas
     project_id = str(uuid4())
 
     config = MagicMock()
-    config.type = WorkflowRunType.REFERENCE_VALIDATION
+    config.type = WorkflowRunType.REFERENCE_VALIDATION_V2
     config.project_id = project_id
 
     fail = AsyncMock()
@@ -306,7 +306,7 @@ async def test_dependency_check_wraps_unexpected_exceptions_into_failed():
     project_id = str(uuid4())
 
     config = MagicMock()
-    config.type = WorkflowRunType.REFERENCE_VALIDATION
+    config.type = WorkflowRunType.REFERENCE_VALIDATION_V2
     config.project_id = project_id
 
     fail = AsyncMock()
@@ -340,7 +340,7 @@ async def test_dependency_check_swallows_workflow_cancelled_error():
     project_id = str(uuid4())
 
     config = MagicMock()
-    config.type = WorkflowRunType.REFERENCE_VALIDATION
+    config.type = WorkflowRunType.REFERENCE_VALIDATION_V2
     config.project_id = project_id
 
     fail = AsyncMock()

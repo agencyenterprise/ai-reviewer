@@ -58,10 +58,6 @@ from lib.workflows.reference_file_matching.state import (
     ReferenceFileMatchingConfig,
     ReferenceFileMatchingState,
 )
-from lib.workflows.reference_validation.state import (
-    ReferenceValidationState,
-    ReferenceValidationWorkflowConfig,
-)
 from lib.workflows.reference_validation_v2.state import (
     ReferenceValidationV2State,
     ReferenceValidationV2WorkflowConfig,
@@ -89,7 +85,6 @@ WorkflowState = (
     | AbbreviationScanV2State
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
-    | ReferenceValidationState
     | ReferenceValidationV2State
     | ResultsExtractionState
     | HumanApprovalState
@@ -111,7 +106,6 @@ WorkflowConfig = (
     | AbbreviationScanV2Config
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
-    | ReferenceValidationWorkflowConfig
     | ReferenceValidationV2WorkflowConfig
     | ResultsExtractionWorkflowConfig
     | HumanApprovalConfig

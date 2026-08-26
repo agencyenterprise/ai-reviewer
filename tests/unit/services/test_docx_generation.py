@@ -151,7 +151,7 @@ class TestIssueToComment:
             title="Invalid reference",
             description="Reference not found",
             severity=SeverityEnum.HIGH,
-            workflow_type=WorkflowRunType.REFERENCE_VALIDATION,
+            workflow_type=WorkflowRunType.REFERENCE_VALIDATION_V2,
         )
         chunks: list[_FakeChunk] = []
 

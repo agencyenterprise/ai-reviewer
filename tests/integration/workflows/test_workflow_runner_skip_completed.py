@@ -21,7 +21,7 @@ def test_context():
     return {
         "project_id": project_id,
         "user": User(id=uuid4(), email="test@example.com", name="Test User"),
-        "workflow_type": WorkflowRunType.REFERENCE_VALIDATION,
+        "workflow_type": WorkflowRunType.REFERENCE_VALIDATION_V2,
     }
 
 
@@ -132,7 +132,7 @@ async def test_skip_completed_dependencies(test_context):
     started_types = {call.kwargs["type"] for call in mock_create.call_args_list}
     assert started_types == {
         WorkflowRunType.DOCUMENT_PROCESSING,
-        WorkflowRunType.REFERENCE_VALIDATION,
+        WorkflowRunType.REFERENCE_VALIDATION_V2,
     }
 
 
@@ -147,7 +147,7 @@ async def test_start_all_when_none_completed(test_context):
     assert started_types == {
         WorkflowRunType.DOCUMENT_PROCESSING,
         WorkflowRunType.REFERENCE_EXTRACTION,
-        WorkflowRunType.REFERENCE_VALIDATION,
+        WorkflowRunType.REFERENCE_VALIDATION_V2,
     }
 
 
@@ -165,7 +165,7 @@ async def test_partial_completion(test_context):
     started_types = {call.kwargs["type"] for call in mock_create.call_args_list}
     assert WorkflowRunType.DOCUMENT_PROCESSING in started_types  # always_run=True
     assert WorkflowRunType.REFERENCE_EXTRACTION in started_types
-    assert WorkflowRunType.REFERENCE_VALIDATION in started_types
+    assert WorkflowRunType.REFERENCE_VALIDATION_V2 in started_types
 
 
 @pytest.mark.asyncio
@@ -178,7 +178,7 @@ async def test_requested_workflow_is_started_even_if_completed(test_context):
         [
             WorkflowRunType.DOCUMENT_PROCESSING,
             WorkflowRunType.REFERENCE_EXTRACTION,
-            WorkflowRunType.REFERENCE_VALIDATION,
+            WorkflowRunType.REFERENCE_VALIDATION_V2,
         ],
     )
 
@@ -187,7 +187,7 @@ async def test_requested_workflow_is_started_even_if_completed(test_context):
     started_types = {call.kwargs["type"] for call in mock_create.call_args_list}
     assert started_types == {
         WorkflowRunType.DOCUMENT_PROCESSING,
-        WorkflowRunType.REFERENCE_VALIDATION,
+        WorkflowRunType.REFERENCE_VALIDATION_V2,
     }
     assert mock_create_config.call_count == 2
 
@@ -215,7 +215,7 @@ async def test_rerun_extraction_when_dependency_cancelled_or_failed(
 
     started_types = {call.kwargs["type"] for call in mock_create.call_args_list}
     assert WorkflowRunType.REFERENCE_EXTRACTION in started_types
-    assert WorkflowRunType.REFERENCE_VALIDATION in started_types
+    assert WorkflowRunType.REFERENCE_VALIDATION_V2 in started_types
 
 
 @pytest.mark.asyncio
@@ -238,4 +238,4 @@ async def test_skip_extraction_when_already_in_flight(test_context, extraction_s
 
     started_types = {call.kwargs["type"] for call in mock_create.call_args_list}
     assert WorkflowRunType.REFERENCE_EXTRACTION not in started_types
-    assert WorkflowRunType.REFERENCE_VALIDATION in started_types
+    assert WorkflowRunType.REFERENCE_VALIDATION_V2 in started_types

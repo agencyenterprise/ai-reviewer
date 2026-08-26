@@ -53,7 +53,6 @@ const workflowTypeIcons: Partial<Record<WorkflowRunType, LucideIcon>> = {
   [WorkflowRunType.ReferenceDownloader]: Download,
   [WorkflowRunType.LiteratureReviewV2]: Library,
   [WorkflowRunType.LiveReportsV2]: Newspaper,
-  [WorkflowRunType.ReferenceValidation]: FileCheck,
   [WorkflowRunType.ReferenceValidationV2]: FileCheck,
   [WorkflowRunType.ResultsExtraction]: BarChart3,
   [WorkflowRunType.InferenceValidationV2]: BrainCircuit,

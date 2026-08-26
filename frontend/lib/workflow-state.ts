@@ -11,7 +11,6 @@ import {
   ReferenceDownloaderState,
   ReferenceExtractionState,
   ReferenceFileMatchingState,
-  ReferenceValidationState,
   ResultsExtractionState,
   Reviewer2State,
   SimpleDeepAgentState,
@@ -38,7 +37,6 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.CitationDetection]: CitationDetectionState;
   [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentState;
   [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
-  [WorkflowRunType.ReferenceValidation]: ReferenceValidationState;
   [WorkflowRunType.ResultsExtraction]: ResultsExtractionState;
   [WorkflowRunType.AbbreviationScanV2]: AbbreviationScanV2State;
   [WorkflowRunType.Reviewer2]: Reviewer2State;

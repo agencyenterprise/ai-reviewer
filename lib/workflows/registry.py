@@ -87,7 +87,6 @@ def register_all_workflow_manifests():
     from lib.workflows.reference_file_matching.manifest import (
         ReferenceFileMatchingManifest,
     )
-    from lib.workflows.reference_validation.manifest import ReferenceValidationManifest
     from lib.workflows.recommendation_check.manifest import (
         RecommendationCheckManifest,
     )
@@ -123,7 +122,6 @@ def register_all_workflow_manifests():
         LiveReportsV2Manifest(),
         MethodologicalAlignmentManifest(),
         ReferenceDownloaderManifest(),
-        ReferenceValidationManifest(),
         ReferenceValidationV2Manifest(),
         ResultsExtractionManifest(),
         AdvocacyToneV2Manifest(),

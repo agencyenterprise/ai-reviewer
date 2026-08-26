@@ -1,4 +1,4 @@
-import { MatchSource, ReferenceValidationItem, ReferenceFetchResult } from '@/lib/generated-api';
+import { MatchSource, ReferenceFetchResult } from '@/lib/generated-api';
 
 export type ReferenceReviewStatus = 'unmatched' | 'fetching' | 'matched';
 
@@ -16,5 +16,4 @@ export interface ReferenceReviewItem {
   matchedFile: null | MatchedFile;
   source: MatchSource | null;
   fetchResult?: ReferenceFetchResult | null;
-  validation?: ReferenceValidationItem | null;
 }
