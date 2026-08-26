@@ -600,6 +600,11 @@ export const getWorkflowStateApiWorkflowsWorkflowRunIdGet = <ThrowOnError extend
  * looking at. The UI offers it when a run's state no longer validates against
  * the current model, so the data is still recoverable after an assessment
  * changes shape.
+ *
+ * Authorized through `get_project_access` rather than ownership alone, so the
+ * escape hatch works on a share link too. A shared viewer is already served
+ * this run's parsed state in the project response; that it is unreadable is a
+ * parsing failure, not a narrower grant.
  */
 export const getWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGet = <ThrowOnError extends boolean = true>(
   options: Options<GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetData, ThrowOnError>,

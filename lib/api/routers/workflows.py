@@ -1,9 +1,9 @@
-from typing import Any
+from typing import Any, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel
 
-from lib.api.auth import get_current_user
+from lib.api.auth import get_current_user, get_current_user_optional
 from lib.api.models import (
     ApproveWorkflowResponse,
     CancelWorkflowResponse,
@@ -17,6 +17,7 @@ from lib.api.services.workflow_runner import (
     start_workflow_run,
 )
 from lib.models.user import User
+from lib.services.projects import get_project_access
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.workflow_runs import (
     hydrate_workflow_run_state_with_status,
@@ -116,7 +117,12 @@ async def get_workflow_state(
     response_model=RawWorkflowStateResponse,
 )
 async def get_workflow_raw_state(
-    workflow_run_id: str, user: User = Depends(get_current_user)
+    workflow_run_id: str,
+    share_token: Optional[str] = Query(
+        default=None,
+        description="Share token, for viewers reading the project through a share link.",
+    ),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """The run's persisted state exactly as stored, bypassing the state model.
 
@@ -125,8 +131,14 @@ async def get_workflow_raw_state(
     looking at. The UI offers it when a run's state no longer validates against
     the current model, so the data is still recoverable after an assessment
     changes shape.
+
+    Authorized through `get_project_access` rather than ownership alone, so the
+    escape hatch works on a share link too. A shared viewer is already served
+    this run's parsed state in the project response; that it is unreadable is a
+    parsing failure, not a narrower grant.
     """
-    run = await get_workflow_run(workflow_run_id, user=user, include_state=True)
+    run = await get_workflow_run(workflow_run_id, include_state=True)
+    await get_project_access(str(run.project_id), current_user, share_token)
     _assert_workflow_type_still_exists(run)
     # `run.type` is a raw str when loaded from the DB (SQLModel skips validation
     # on table models) but a WorkflowRunType when built in Python, and

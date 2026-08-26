@@ -4930,7 +4930,14 @@ export type GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetData = {
      */
     workflow_run_id: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Share Token
+     *
+     * Share token, for viewers reading the project through a share link.
+     */
+    share_token?: string | null;
+  };
   url: '/api/workflows/{workflow_run_id}/raw-state';
 };
 

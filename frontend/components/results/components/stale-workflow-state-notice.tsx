@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { getWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGet } from '@/lib/generated-api';
+import { useShare } from '@/context/share-context';
 
 interface StaleWorkflowStateNoticeProps {
   workflowRunId: string;
@@ -26,6 +27,9 @@ interface StaleWorkflowStateNoticeProps {
 export function StaleWorkflowStateNotice({ workflowRunId, workflowName }: StaleWorkflowStateNoticeProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Null in authenticated views; on /share/[token] it is what authorizes the
+  // fetch, since a shared viewer is not the project owner.
+  const { shareToken } = useShare();
 
   // Stringified in `select` rather than during render: these payloads reach
   // several MB, and re-running JSON.stringify on every re-render (toggling the
@@ -35,12 +39,13 @@ export function StaleWorkflowStateNotice({ workflowRunId, workflowName }: StaleW
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['workflow-raw-state', workflowRunId],
+    queryKey: ['workflow-raw-state', workflowRunId, shareToken],
     enabled: isOpen,
     staleTime: Infinity,
     queryFn: async () =>
       await getWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGet({
         path: { workflow_run_id: workflowRunId },
+        query: { share_token: shareToken },
       }),
     select: (response) => (response.state_json ? JSON.stringify(response.state_json, null, 2) : null),
   });
