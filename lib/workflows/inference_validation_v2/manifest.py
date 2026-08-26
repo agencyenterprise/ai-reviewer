@@ -31,8 +31,8 @@ it themselves.
 ## Line ranges
 
 Issue line numbers are 1-indexed against `/main.md`. Before reporting a \
-finding, locate its quoted sentence in `/main.md` (`grep` is the reliable way) \
-and report the line range you found there rather than an estimate.
+finding, search `/main.md` for its quoted sentence and report the line range \
+you find there rather than an estimate.
 
 ## Reporting Issues
 
