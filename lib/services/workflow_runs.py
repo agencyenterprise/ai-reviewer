@@ -558,6 +558,17 @@ async def get_project_workflow_runs(
     async with get_async_db_session() as session:
         runs = (await session.execute(stmt)).scalars().all()
 
+    # A run whose workflow no longer has a manifest is never surfaced — not even
+    # to include_internal=True callers. Both the public share response and the
+    # MCP project serializer pass that flag, and neither should hand back a
+    # workflow the rest of the API treats as gone. Such a run is also useless as
+    # a dependency state: without a manifest it cannot hydrate.
+    runs = [
+        run
+        for run in runs
+        if get_workflow_manifest(run.type, raise_exception=False) is not None
+    ]
+
     # Filter out internal workflows unless explicitly requested
     visible_runs = [
         run for run in runs if include_internal or is_user_visible_workflow(run.type)

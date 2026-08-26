@@ -119,3 +119,24 @@ async def test_the_retired_issue_row_still_exists(project_with_mixed_issues):
             col(Issue.workflow_type) == RETIRED_TYPE,
         )
         assert (await session.execute(stmt)).scalar_one_or_none() is not None
+
+
+@pytest.mark.asyncio
+async def test_retired_runs_are_hidden_even_from_include_internal_callers(
+    project_with_mixed_issues,
+):
+    """`include_internal=True` must not be a back door to retired workflows.
+
+    The public share response and the MCP project serializer both pass it, so a
+    filter that only applied to the user-facing listing would still hand retired
+    workflows to those clients.
+    """
+    from lib.services.workflow_runs import get_project_workflow_runs
+
+    for include_internal in (False, True):
+        runs = await get_project_workflow_runs(
+            str(project_with_mixed_issues.id),
+            revision=1,
+            include_internal=include_internal,
+        )
+        assert all(str(r.run.type) != RETIRED_TYPE for r in runs), include_internal

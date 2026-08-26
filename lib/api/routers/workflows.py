@@ -128,9 +128,13 @@ async def get_workflow_raw_state(
     """
     run = await get_workflow_run(workflow_run_id, user=user, include_state=True)
     _assert_workflow_type_still_exists(run)
+    # `run.type` is a raw str when loaded from the DB (SQLModel skips validation
+    # on table models) but a WorkflowRunType when built in Python, and
+    # `str(WorkflowRunType.X)` is "WorkflowRunType.X", not the slug. Take .value
+    # when it is there so the response always carries the persisted slug.
     return RawWorkflowStateResponse(
         workflow_run_id=str(run.id),
-        type=str(run.type),
+        type=getattr(run.type, "value", run.type),
         state_json=run.state_json,
     )
 

@@ -27,7 +27,14 @@ export function StaleWorkflowStateNotice({ workflowRunId, workflowName }: StaleW
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const { data, isLoading, error } = useQuery({
+  // Stringified in `select` rather than during render: these payloads reach
+  // several MB, and re-running JSON.stringify on every re-render (toggling the
+  // "Copied" label alone would do it) is enough to visibly freeze the UI.
+  const {
+    data: rawJson,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['workflow-raw-state', workflowRunId],
     enabled: isOpen,
     staleTime: Infinity,
@@ -35,9 +42,8 @@ export function StaleWorkflowStateNotice({ workflowRunId, workflowName }: StaleW
       await getWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGet({
         path: { workflow_run_id: workflowRunId },
       }),
+    select: (response) => (response.state_json ? JSON.stringify(response.state_json, null, 2) : null),
   });
-
-  const rawJson = data?.state_json ? JSON.stringify(data.state_json, null, 2) : null;
 
   const handleCopy = async () => {
     if (!rawJson) return;
