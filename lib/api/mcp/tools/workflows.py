@@ -43,14 +43,14 @@ async def run_workflow(
     current revision.
 
     workflow_types must be a list of type values returned by list_workflow_types
-    (e.g. ["claim_extraction", "reference_validation"]).
+    (e.g. ["claim_extraction", "reference_validation_v2"]).
 
     Two kinds of consent gates may apply:
 
     1. Human approval — some workflows (e.g. claim_reference_validation_v2)
        gate on a human review of the reference→file mappings before running.
-    2. Web-search consent — some workflows (e.g. reference_validation,
-       reference_downloader, literature_review) call out to the open web,
+    2. Web-search consent — some workflows (e.g. reference_validation_v2,
+       reference_downloader, literature_review_v2) call out to the open web,
        which the user must explicitly opt into.
 
     On the first call, leave both flags at False (the default). If any gate

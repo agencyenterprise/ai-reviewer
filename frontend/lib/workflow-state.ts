@@ -1,22 +1,16 @@
 import {
   AbbreviationScanV2State,
-  AdvocacyToneState,
   ChunkSplittingState,
   CitationDetectionState,
-  CitationSuggesterState,
   ClaimExtractionState,
-  ClaimReferenceValidationState,
   DocumentProcessingState,
   DocumentSummarizationState,
   FootnoteExtractionState,
   HumanApprovalState,
-  LiteratureReviewState,
-  LiveReportsState,
   MethodologicalAlignmentState,
   ReferenceDownloaderState,
   ReferenceExtractionState,
   ReferenceFileMatchingState,
-  ReferenceValidationState,
   ResultsExtractionState,
   Reviewer2State,
   SimpleDeepAgentState,
@@ -43,14 +37,8 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.CitationDetection]: CitationDetectionState;
   [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentState;
   [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
-  [WorkflowRunType.LiteratureReview]: LiteratureReviewState;
-  [WorkflowRunType.LiveReports]: LiveReportsState;
-  [WorkflowRunType.ReferenceValidation]: ReferenceValidationState;
-  [WorkflowRunType.CitationSuggester]: CitationSuggesterState;
   [WorkflowRunType.ResultsExtraction]: ResultsExtractionState;
-  [WorkflowRunType.ClaimReferenceValidation]: ClaimReferenceValidationState;
   [WorkflowRunType.AbbreviationScanV2]: AbbreviationScanV2State;
-  [WorkflowRunType.AdvocacyTone]: AdvocacyToneState;
   [WorkflowRunType.Reviewer2]: Reviewer2State;
   [WorkflowRunType.DocumentStructure]: SimpleDeepAgentState;
   [WorkflowRunType.FiguresTablesCheck]: SimpleDeepAgentState;

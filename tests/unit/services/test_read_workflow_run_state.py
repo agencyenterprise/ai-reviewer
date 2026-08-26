@@ -13,6 +13,7 @@ import pytest
 
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.workflow_runs import read_workflow_run_state
+from lib.workflows import registry
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.reference_file_matching.state import (
     ReferenceFileMatch,
@@ -77,5 +78,28 @@ async def test_returns_none_when_state_json_missing():
         status=WorkflowRunStatus.COMPLETED,
         state_json=None,
     )
+
+    assert await read_workflow_run_state(run) is None
+
+
+@pytest.mark.asyncio
+async def test_returns_none_when_workflow_type_is_no_longer_registered(monkeypatch):
+    """A retired workflow type must not blow up reads of old runs.
+
+    Workflow types outlive their manifests: a workflow can be deleted while its
+    rows stay in workflow_runs (and its enum member stays, so those rows keep
+    deserializing). Readers that pass include_internal=True see those rows, so a
+    missing manifest has to degrade to "no state" — raising here would fail every
+    read on the project, create_state included, blocking any new workflow run.
+    """
+    state = _make_state(file_id="file-a", reference_id="ref-a")
+    run = _make_run(str(uuid.uuid4()), state)
+
+    surviving = {
+        wf_type: manifest
+        for wf_type, manifest in registry._workflow_manifest_registry.items()
+        if wf_type != WorkflowRunType.REFERENCE_FILE_MATCHING
+    }
+    monkeypatch.setattr(registry, "_workflow_manifest_registry", surviving)
 
     assert await read_workflow_run_state(run) is None

@@ -4,13 +4,8 @@ import { Callout } from '@/components/ui/callout';
 import { ErrorsCard } from '@/components/results/components/errors-card';
 import { GenericWorkflowResults } from '@/components/results/components/generic-workflow-results';
 import { AboutThisGerResults } from '@/components/workflows/results/about-this-ger-results';
-import { AdvocacyToneResults } from '@/components/workflows/results/advocacy-tone-results';
-import { CitationSuggesterResults } from '@/components/workflows/results/citation-suggester-results';
-import { LiteratureReviewResults } from '@/components/workflows/results/literature-review/literature-review-results';
-import { LiveReportsResults } from '@/components/workflows/results/live-reports-results';
 import { MethodologicalAlignmentResults } from '@/components/workflows/results/methodological-alignment-results';
 import { ReferenceDownloaderResults } from '@/components/workflows/results/reference-downloader-results';
-import { ReferenceValidationResults } from '@/components/workflows/results/reference-validation-results';
 import { ReferenceValidationV2Results } from '@/components/workflows/results/reference-validation-v2-results';
 import { ResultsExtractorResults } from '@/components/workflows/results/results-extractor-results';
 import { Reviewer2Results } from '@/components/workflows/results/reviewer-2-results';
@@ -55,21 +50,12 @@ function renderWorkflowResults(
   switch (type) {
     case WorkflowRunType.MethodologicalAlignment:
       return <MethodologicalAlignmentResults workflowDetail={workflowRun} />;
-    case WorkflowRunType.LiveReports:
-      return <LiveReportsResults project={project} workflowDetail={workflowRun} />;
-    case WorkflowRunType.LiteratureReview:
-      return <LiteratureReviewResults workflowDetail={workflowRun} />;
-    case WorkflowRunType.CitationSuggester:
-      return <CitationSuggesterResults project={project} />;
     case WorkflowRunType.ReferenceDownloader:
       return <ReferenceDownloaderResults workflowDetail={workflowRun} />;
     case WorkflowRunType.ResultsExtraction:
       return <ResultsExtractorResults workflowDetail={workflowRun} />;
-    case WorkflowRunType.AdvocacyTone:
-      return <AdvocacyToneResults project={project} onNavigateToDocumentExplorer={onNavigateToDocumentExplorer} />;
     case WorkflowRunType.AboutThisGer:
       return <AboutThisGerResults workflowDetail={workflowRun} />;
-    case WorkflowRunType.ClaimReferenceValidation:
     case WorkflowRunType.ClaimReferenceValidationV2:
     case WorkflowRunType.AbbreviationScanV2:
       return (
@@ -82,8 +68,6 @@ function renderWorkflowResults(
       );
     case WorkflowRunType.Reviewer2:
       return <Reviewer2Results workflowDetail={workflowRun} />;
-    case WorkflowRunType.ReferenceValidation:
-      return <ReferenceValidationResults workflowDetail={workflowRun} />;
     case WorkflowRunType.ReferenceValidationV2:
       return <ReferenceValidationV2Results workflowDetail={workflowRun} />;
     case WorkflowRunType.DocumentStructure:
