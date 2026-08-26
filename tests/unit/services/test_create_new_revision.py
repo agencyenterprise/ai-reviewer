@@ -9,6 +9,7 @@ from lib.models.issue import IssueStatus
 from lib.models.project import AccessLevel, Project
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services.projects import create_new_revision
+from lib.workflows.registry import get_all_manifests
 
 
 def _make_project(current_revision: int = 1) -> Project:
@@ -243,3 +244,51 @@ async def test_create_new_revision_requires_write_access():
             await create_new_revision("some-project-id", MagicMock())
 
     assert exc_info.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_create_new_revision_skips_retired_workflow_types():
+    """Rows left behind by deleted workflows must not break revision creation.
+
+    Two shapes show up in old rows: a type string that is no longer a
+    WorkflowRunType member at all, and a member whose manifest has since been
+    unregistered. Neither has a workflow left to re-run, so both are dropped
+    instead of raising or being handed back for a run that cannot start.
+    """
+    project = _make_project(current_revision=1)
+
+    previous_types = [
+        (WorkflowRunType.CLAIM_EXTRACTION,),
+        ("claim_substantiation",),  # enum member removed in an earlier cleanup
+        (WorkflowRunType.RESULTS_EXTRACTION,),  # member kept, manifest retired
+    ]
+
+    sessions = [
+        _FakeSession(scalars_result=[]),
+        _FakeSession(all_result=previous_types),
+    ]
+    session_iter = iter(sessions)
+
+    surviving = {
+        wf_type: manifest
+        for wf_type, manifest in get_all_manifests().items()
+        if wf_type != WorkflowRunType.RESULTS_EXTRACTION
+    }
+
+    with (
+        patch(
+            "lib.services.projects.get_project_access",
+            new=AsyncMock(return_value=(project, AccessLevel.WRITE)),
+        ),
+        patch(
+            "lib.services.projects.get_async_db_session",
+            side_effect=lambda: next(session_iter),
+        ),
+        patch(
+            "lib.services.projects.get_all_manifests",
+            return_value=surviving,
+        ),
+    ):
+        _, returned_types = await create_new_revision(str(project.id), MagicMock())
+
+    assert returned_types == [WorkflowRunType.CLAIM_EXTRACTION]

@@ -491,22 +491,36 @@ async def create_new_revision(
             .distinct()
         )
         result = await session.execute(types_stmt)
-        ran_before = [
-            WorkflowRunType(row[0]) if isinstance(row[0], str) else row[0]
-            for row in result.all()
-        ]
+        ran_before: list[WorkflowRunType] = []
+        for row in result.all():
+            if not isinstance(row[0], str):
+                ran_before.append(row[0])
+                continue
+            try:
+                ran_before.append(WorkflowRunType(row[0]))
+            except ValueError:
+                # Retired/unknown type still present in old rows — there is no
+                # workflow left to re-run, so drop it instead of failing the
+                # whole revision.
+                logger.warning(
+                    f"Skipping unknown workflow type {row[0]!r} from revision "
+                    f"{old_revision} of project {project_id}"
+                )
         # Workflows can opt out of being re-run automatically. The peer-review
         # ones do: they read the *reviewed* revision against the current draft,
         # so firing them the moment a revision is created either wastes an
         # expensive run or returns a guard message. The user starts them from
         # the Peer Review tab once the new draft is in place.
+        #
+        # An enum value whose manifest has been retired has nothing left to run,
+        # so it is dropped here too — the enum member outlives the workflow so
+        # old rows keep deserializing.
         manifests = get_all_manifests()
         previous_workflow_types = [
             workflow_type
             for workflow_type in ran_before
-            if getattr(
-                manifests.get(workflow_type), "auto_rerun_on_new_revision", True
-            )
+            if workflow_type in manifests
+            and manifests[workflow_type].auto_rerun_on_new_revision
         ]
 
         # Increment project revision

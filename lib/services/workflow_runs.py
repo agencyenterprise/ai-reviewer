@@ -26,7 +26,7 @@ from lib.services.workflow_cost.pricing import compute_cost
 from lib.services.workflow_progress import cancel_workflow_progress
 from lib.workflows.dependency_resolver import get_required_dependents
 from lib.workflows.models import is_user_visible_workflow
-from lib.workflows.registry import get_state_type
+from lib.workflows.registry import get_workflow_manifest
 from lib.workflows.workflow_types import WorkflowState
 
 logger = logging.getLogger(__name__)
@@ -76,12 +76,25 @@ async def persist_workflow_run_state(
 def hydrate_workflow_run_state(run: WorkflowRun) -> WorkflowState | None:
     """Reconstruct a WorkflowState from the row's persisted state_json.
 
-    Returns None when state_json is missing (pre-backfill rows) or when the
-    persisted shape no longer matches the current WorkflowState subclass.
+    Returns None when state_json is missing (pre-backfill rows), when the run's
+    workflow type is no longer registered, or when the persisted shape no longer
+    matches the current WorkflowState subclass.
     """
     if run.state_json is None:
         return None
-    state_type = cast(Type[WorkflowState], get_state_type(run.type))
+    manifest = get_workflow_manifest(run.type, raise_exception=False)
+    if manifest is None:
+        # Retired workflow type still present in old rows. Callers that pass
+        # include_internal=True see these runs (is_user_visible_workflow filters
+        # them out for everyone else), so a missing manifest has to degrade to a
+        # stateless row instead of failing every read on the project — including
+        # create_state, which would otherwise block starting any new workflow.
+        logger.warning(
+            f"No workflow manifest registered for type {run.type!r} "
+            f"(run {run.id}); returning no state for it."
+        )
+        return None
+    state_type = cast(Type[WorkflowState], manifest.get_state_type())
     try:
         return state_type(**run.state_json)
     except Exception as e:

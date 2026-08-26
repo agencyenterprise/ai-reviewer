@@ -4,7 +4,7 @@ from typing import Dict, List, Literal, Optional, Type, overload
 from langgraph.graph import StateGraph
 
 from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
+from lib.workflows.models import BaseWorkflowConfig, WorkflowRunType
 from lib.workflows.workflow_types import WorkflowConfig, WorkflowState
 
 logger = logging.getLogger(__name__)
@@ -164,11 +164,6 @@ def create_graph(type: WorkflowRunType) -> StateGraph:
 def get_config_type(type: WorkflowRunType) -> Type[BaseWorkflowConfig]:
     manifest = get_workflow_manifest(type)
     return manifest.get_config_type()
-
-
-def get_state_type(type: WorkflowRunType) -> Type[BaseWorkflowState]:
-    manifest = get_workflow_manifest(type)
-    return manifest.get_state_type()
 
 
 async def create_state(
