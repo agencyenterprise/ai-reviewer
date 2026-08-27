@@ -144,15 +144,6 @@ export function getBlockingWorkflowErrors(workflowRuns: WorkflowRunDetail[]): Wo
   return getWorkflowErrors(workflowRuns).filter(isBlockingError);
 }
 
-export function getChunkErrors(workflowRuns: WorkflowRunDetail[], chunkIndex: number): WorkflowError[] {
-  return workflowRuns
-    .flatMap((result) => {
-      const errors = result?.state?.errors ?? [];
-      return filterErrorsToCurrentRun(errors, result.run.id);
-    })
-    .filter((error) => error.chunk_index === chunkIndex);
-}
-
 export function isWorkflowProcessing(workflowRun: WorkflowRunDetail | undefined): boolean {
   if (!workflowRun) return false;
   return workflowRun.run.status === WorkflowRunStatus.Running || workflowRun.run.status === WorkflowRunStatus.Pending;

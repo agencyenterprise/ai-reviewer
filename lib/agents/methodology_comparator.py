@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import List, Optional
 
 from langchain.agents import create_agent
@@ -5,12 +6,45 @@ from langchain_core.messages import HumanMessage
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.agents.literature_review import ReferenceType
 from lib.agents.methodology_extractor import ReproducibilityCategoryResponse
 from lib.config.llm_models import gpt_5_4_model
 from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
 from lib.workflows.context import ContextSchema
+
+
+class ReferenceType(str, Enum):
+    # Academic publications that have undergone formal peer review
+    PEER_REVIEWED_PUBLICATION = "peer_reviewed_publication"
+
+    # Preliminary research that hasn't completed peer review
+    PREPRINT = "preprint"
+
+    # Published books and book chapters
+    BOOK = "book"
+
+    # Official reports from government agencies and NGOs that are not peer reviewed
+    GOVERNMENT_NGO_REPORT = "government_ngo_report"
+
+    # Research data, code and software artifacts
+    DATA_SOFTWARE = "data_software"
+
+    # Journalism and media publications
+    NEWS_MEDIA = "news_media"
+
+    # Reference works and encyclopedic content
+    REFERENCE = "reference"
+
+    # Online and web-based content like blogs, wikis, social media, etc.
+    WEBPAGE = "webpage"
+
+
+# applies to the evidence
+class ReferenceDirection(str, Enum):
+    SUPPORTING = "supporting"
+    CONFLICTING = "conflicting"
+    MIXED = "mixed"
+    CONTEXTUAL_ONLY = "contextual"
 
 
 class SummaryAndOutput(BaseModel):

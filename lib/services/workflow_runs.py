@@ -174,13 +174,6 @@ async def get_workflow_run(
     return run
 
 
-async def get_workflow_run_state(
-    workflow_run_id: str, user: User | None = None
-) -> WorkflowState | None:
-    run = await get_workflow_run(workflow_run_id, user, include_state=True)
-    return await read_workflow_run_state(run)
-
-
 async def create_workflow_run(
     project_id: str,
     status: WorkflowRunStatus,
