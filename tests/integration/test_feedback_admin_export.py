@@ -77,7 +77,7 @@ async def workflow_run(shared_project):
     run = WorkflowRun(
         id=uuid.uuid4(),
         project_id=shared_project.id,
-        type=WorkflowRunType.CITATION_DETECTION,
+        type=WorkflowRunType.RECOMMENDATION_CHECK,
         langgraph_thread_id=str(uuid.uuid4()),
         status=WorkflowRunStatus.COMPLETED,
     )
@@ -108,7 +108,7 @@ async def issue(shared_project, workflow_run):
         description="A short description of the issue.",
         long_description="A longer detailed description.",
         severity=SeverityEnum.HIGH,
-        workflow_type=WorkflowRunType.CITATION_DETECTION,
+        workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
         status=IssueStatus.ACTIVE,
         chunk_indices=[0, 1],
     )
@@ -273,7 +273,7 @@ async def test_get_admin_feedbacks_filter_by_workflow_type(
     """workflow_type filter matches feedback for that issue workflow type."""
     async with get_async_db_session() as session:
         rows = await feedback_service.get_admin_feedbacks(
-            session=session, workflow_type=WorkflowRunType.CITATION_DETECTION
+            session=session, workflow_type=WorkflowRunType.RECOMMENDATION_CHECK
         )
     ids = [row["feedback"].id for row in rows]
     assert thumbs_down_feedback.id in ids

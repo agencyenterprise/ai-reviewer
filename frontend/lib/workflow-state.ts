@@ -1,11 +1,8 @@
 import {
   AbbreviationScanV2State,
   ChunkSplittingState,
-  CitationDetectionState,
-  ClaimExtractionState,
   DocumentProcessingState,
   DocumentSummarizationState,
-  FootnoteExtractionState,
   HumanApprovalState,
   MethodologicalAlignmentState,
   ReferenceDownloaderState,
@@ -32,9 +29,6 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.ReferenceExtraction]: ReferenceExtractionState;
   [WorkflowRunType.ReferenceFileMatching]: ReferenceFileMatchingState;
   [WorkflowRunType.HumanApproval]: HumanApprovalState;
-  [WorkflowRunType.FootnoteExtraction]: FootnoteExtractionState;
-  [WorkflowRunType.ClaimExtraction]: ClaimExtractionState;
-  [WorkflowRunType.CitationDetection]: CitationDetectionState;
   [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentState;
   [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
   [WorkflowRunType.ResultsExtraction]: ResultsExtractionState;

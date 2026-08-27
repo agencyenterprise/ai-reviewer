@@ -56,15 +56,6 @@ class ChunkWithIndex(BaseModel):
     end_line: int = Field(ge=1, description="1-indexed ending line in markdown")
 
 
-class ClaimCategory(str, Enum):
-    ESTABLISHED = "established_reported_knowledge"
-    METHODOLOGY = "methodology_procedural"
-    RESULTS = "empirical_analytical_results"
-    INTERPRETATION = "inferential_interpretive_claims"
-    META = "meta_structural_evaluative"
-    OTHER = "other"
-
-
 class ReproducibilityCategory(str, Enum):
     """Reproducibility classification for methodologies and results."""
 

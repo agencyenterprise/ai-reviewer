@@ -11,6 +11,10 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from lib.workflows.reference_validation_v2.nodes.reference_validation import (
+    initialize_validations,
+)
+
 from lib.models.workflow_progress import ProgressLevel
 from lib.workflows.decorators import register_node
 
@@ -66,9 +70,7 @@ async def test_diagnostic_check_decorator_receives_workflow_run_id(mock_create):
 @pytest.mark.asyncio
 async def test_diagnostic_check_real_node_signature():
     """Diagnostic: Check a real node to see its actual signature."""
-    from lib.workflows.claim_extraction.nodes.extract_claims import extract_claims
-
-    sig = inspect.signature(extract_claims)
+    sig = inspect.signature(initialize_validations)
     params = list(sig.parameters.keys())
 
     # Check if it matches our expectations

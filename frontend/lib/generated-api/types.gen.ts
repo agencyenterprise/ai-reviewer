@@ -599,111 +599,6 @@ export type ChunkSplittingWorkflowConfig = {
 };
 
 /**
- * Citation
- */
-export type Citation = {
-  /**
-   * Text
-   *
-   * The text of the citation or footnote mark, e.g., [1] or (Doe, et al., 2025), a url, etc. The bibliography/footnote itself is not a citation.
-   */
-  text: string;
-  /**
-   * The type of the citation. Possible values: ['bibliography', 'url', 'footnote', 'other']
-   */
-  type: CitationType;
-  /**
-   * Format
-   *
-   * The format of the citation or footnote mark, e.g., [number] or (Name, et al., Year), url, etc.
-   */
-  format: string;
-  /**
-   * Needs Bibliography
-   *
-   * A boolean value indicating whether the citation refers to a bibliography entry or footnote in the document so it expected to have an associated bibliography entry or footnote
-   */
-  needs_bibliography: boolean;
-  /**
-   * Associated Bibliography
-   *
-   * If the document includes a bibliography entry related to this citation, this will be an exact copy of that bibliography entry (do not include the entry number if there is one, just the full context of the bibliography entry), otherwise it will be an empty string.
-   */
-  associated_bibliography: string;
-  /**
-   * Index Of Associated Bibliography
-   *
-   * The index of the bibliography entry that this citation refers to, if any. Indices start at 1. If the citation does not refer to a bibliography entry, this should be -1.
-   */
-  index_of_associated_bibliography: number;
-  /**
-   * Rationale
-   *
-   * A very brief rationale for why you think this text is a citation
-   */
-  rationale: string;
-};
-
-/**
- * CitationDetectionConfig
- *
- * Configuration model for citation detection workflow
- */
-export type CitationDetectionConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'citation_detection';
-};
-
-/**
- * CitationDetectionState
- *
- * State for citation detection workflow.
- */
-export type CitationDetectionState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'citation_detection';
-  /**
-   * File Id
-   *
-   * File ID for backward compatibility
-   */
-  file_id?: string;
-  config: CitationDetectionConfig;
-  /**
-   * Citations
-   */
-  citations?: Array<CitationResponse>;
-};
-
-/**
  * CitationIssueItem
  *
  * Persisted workflow-state record for one validated citation.
@@ -749,136 +644,6 @@ export type CitationIssueItem = {
 };
 
 /**
- * CitationResponse
- */
-export type CitationResponse = {
-  /**
-   * Citations
-   *
-   * A list of citations found in the chunk of text
-   */
-  citations: Array<Citation>;
-  /**
-   * Rationale
-   *
-   * Very brief rationale for why you think the chunk of text includes these citations, if any
-   */
-  rationale: string;
-  /**
-   * Chunk Index
-   *
-   * The index of the chunk of text that contains the citations
-   */
-  chunk_index: number;
-};
-
-/**
- * CitationType
- */
-export const CitationType = {
-  Bibliography: 'bibliography',
-  Url: 'url',
-  Footnote: 'footnote',
-  Other: 'other',
-} as const;
-
-/**
- * CitationType
- */
-export type CitationType = (typeof CitationType)[keyof typeof CitationType];
-
-/**
- * Claim
- *
- * A single factual claim with verification properties.
- */
-export type Claim = {
-  /**
-   * Text
-   *
-   * The relevant part of the text within the chunk of text that is being decomposed into claims.
-   */
-  text: string;
-  /**
-   * Claim
-   *
-   * The claim made in the text
-   */
-  claim: string;
-  /**
-   * Rationale
-   *
-   * The rationale for why you think the chunk of text implies this claim
-   */
-  rationale: string;
-  /**
-   * Central
-   *
-   * Whether the claim is central to the argument of the document
-   */
-  central: boolean;
-  /**
-   * Centrality Rationale
-   *
-   * The rationale for why you think the claim is central or is not central to the argument of the document
-   */
-  centrality_rationale?: string | null;
-};
-
-/**
- * ClaimCategorizationResponseWithClaimIndex
- */
-export type ClaimCategorizationResponseWithClaimIndex = {
-  /**
-   * Claim
-   *
-   * Exact claim text as analyzed.
-   */
-  claim: string;
-  /**
-   * Assigned category. Possible values: ['established_reported_knowledge', 'methodology_procedural', 'empirical_analytical_results', 'inferential_interpretive_claims', 'meta_structural_evaluative', 'other']
-   */
-  claim_category: ClaimCategory;
-  /**
-   * Rationale
-   *
-   * Reason for the category assignment and for the needs_external_verification decision. Maximum two sentences.
-   */
-  rationale: string;
-  /**
-   * Needs External Verification
-   *
-   * True ONLY if the claim asserts a specific factual statement from external sources that is NOT common knowledge and CAN be verified by external sources. False for: common knowledge, authors' own work/results, inferences, interpretations, structural statements, or claims that cannot be externally verified. IMPORTANT: When uncertain, default to FALSE.
-   */
-  needs_external_verification: boolean;
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Claim Index
-   */
-  claim_index: number;
-};
-
-/**
- * ClaimCategory
- */
-export const ClaimCategory = {
-  EstablishedReportedKnowledge: 'established_reported_knowledge',
-  MethodologyProcedural: 'methodology_procedural',
-  EmpiricalAnalyticalResults: 'empirical_analytical_results',
-  InferentialInterpretiveClaims: 'inferential_interpretive_claims',
-  MetaStructuralEvaluative: 'meta_structural_evaluative',
-  Other: 'other',
-} as const;
-
-/**
- * ClaimCategory
- */
-export type ClaimCategory = (typeof ClaimCategory)[keyof typeof ClaimCategory];
-
-/**
  * ClaimEvidenceSource
  */
 export type ClaimEvidenceSource = {
@@ -900,73 +665,6 @@ export type ClaimEvidenceSource = {
    * The ID of the reference file that was checked as provided in the citation-to-file mapping.
    */
   file_id: string;
-};
-
-/**
- * ClaimExtractionState
- *
- * State for claim extraction workflow.
- */
-export type ClaimExtractionState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'claim_extraction';
-  /**
-   * File Id
-   *
-   * File ID for backward compatibility
-   */
-  file_id?: string;
-  config: ClaimExtractionWorkflowConfig;
-  /**
-   * Claims
-   *
-   * List of extracted claims with chunk indices
-   */
-  claims?: Array<ClaimResponseWithChunkIndex>;
-  /**
-   * Claim Categories
-   *
-   * List of claim categorizations with claim indices
-   */
-  claim_categories?: Array<ClaimCategorizationResponseWithClaimIndex>;
-};
-
-/**
- * ClaimExtractionWorkflowConfig
- *
- * Configuration model for claim extraction workflow
- */
-export type ClaimExtractionWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'claim_extraction';
 };
 
 /**
@@ -1020,30 +718,6 @@ export type ClaimReferenceValidationV2State = {
    * Citation Issues
    */
   citation_issues?: Array<CitationIssueItem>;
-};
-
-/**
- * ClaimResponseWithChunkIndex
- */
-export type ClaimResponseWithChunkIndex = {
-  /**
-   * Claims
-   *
-   * A list of claims made in the chunk of text
-   */
-  claims: Array<Claim>;
-  /**
-   * Rationale
-   *
-   * Overall rationale for why you think the chunk of text implies these claims
-   */
-  rationale: string;
-  /**
-   * Chunk Index
-   *
-   * The index of the chunk of text that contains the claim
-   */
-  chunk_index: number;
 };
 
 /**
@@ -1855,119 +1529,6 @@ export type FileSummary = {
    * The ID of the file
    */
   file_id: string;
-};
-
-/**
- * FootnoteExtractionConfig
- *
- * Configuration for footnote extraction workflow.
- */
-export type FootnoteExtractionConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'footnote_extraction';
-};
-
-/**
- * FootnoteExtractionState
- *
- * State for footnote extraction workflow.
- */
-export type FootnoteExtractionState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'footnote_extraction';
-  config: FootnoteExtractionConfig;
-  /**
-   * File Id
-   *
-   * The ID of the main document
-   */
-  file_id: string;
-  /**
-   * Detected Sections
-   *
-   * Detected footnote sections
-   */
-  detected_sections?: Array<FootnoteSection>;
-  /**
-   * Footnotes
-   *
-   * Extracted footnote items
-   */
-  footnotes?: Array<FootnoteItem>;
-};
-
-/**
- * FootnoteItem
- *
- * Represents a footnote extracted from a document.
- */
-export type FootnoteItem = {
-  /**
-   * Marker
-   *
-   * The footnote number/marker (e.g., '160', '1', '107')
-   */
-  marker: string;
-  /**
-   * Text
-   *
-   * The full text content of the footnote
-   */
-  text: string;
-  /**
-   * Reference Code
-   *
-   * The reference code/anchor (e.g., '#footnote-ref-161'). Stored as metadata only, no document linking.
-   */
-  reference_code?: string | null;
-};
-
-/**
- * FootnoteSection
- *
- * A detected footnote section in the document.
- */
-export type FootnoteSection = {
-  /**
-   * Start Offset
-   *
-   * Character offset where section starts
-   */
-  start_offset: number;
-  /**
-   * End Offset
-   *
-   * Character offset where section ends
-   */
-  end_offset: number;
 };
 
 /**
@@ -4232,10 +3793,7 @@ export type WorkflowRunDetail = {
     | DocumentSummarizationState
     | ReferenceExtractionState
     | ReferenceFileMatchingState
-    | FootnoteExtractionState
-    | ClaimExtractionState
     | ClaimReferenceValidationV2State
-    | CitationDetectionState
     | AbbreviationScanV2State
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
@@ -4302,9 +3860,6 @@ export const WorkflowRunType = {
   ReferenceExtraction: 'reference_extraction',
   ReferenceFileMatching: 'reference_file_matching',
   HumanApproval: 'human_approval',
-  FootnoteExtraction: 'footnote_extraction',
-  ClaimExtraction: 'claim_extraction',
-  CitationDetection: 'citation_detection',
   MethodologicalAlignment: 'methodological_alignment',
   ReferenceDownloader: 'reference_downloader',
   LiteratureReviewV2: 'literature_review_v2',
@@ -4826,9 +4381,6 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | DocumentSummarizationWorkflowConfig
     | ReferenceExtractionConfig
     | ReferenceFileMatchingConfig
-    | FootnoteExtractionConfig
-    | ClaimExtractionWorkflowConfig
-    | CitationDetectionConfig
     | ClaimReferenceValidationV2Config
     | AbbreviationScanV2Config
     | MethodologicalAlignmentWorkflowConfig

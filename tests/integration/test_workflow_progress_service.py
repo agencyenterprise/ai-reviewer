@@ -497,7 +497,7 @@ async def test_cancel_workflow_progress_clears_stuck_progress_from_previous_runs
                 id=run_id,
                 langgraph_thread_id=str(uuid.uuid4()),
                 project_id=project_id,
-                type=WorkflowRunType.CLAIM_EXTRACTION,
+                type=WorkflowRunType.RECOMMENDATION_CHECK,
                 status=WorkflowRunStatus.RUNNING,
             ))
         await session.commit()
@@ -516,7 +516,7 @@ async def test_cancel_workflow_progress_clears_stuck_progress_from_previous_runs
             total_steps=2,
         )
 
-        await cancel_workflow_progress(project_id, WorkflowRunType.CLAIM_EXTRACTION)
+        await cancel_workflow_progress(project_id, WorkflowRunType.RECOMMENDATION_CHECK)
 
         previous_entries = await get_workflow_progress(previous_run_id)
         current_entries = await get_workflow_progress(current_run_id)

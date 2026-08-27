@@ -43,7 +43,7 @@ async def run_workflow(
     current revision.
 
     workflow_types must be a list of type values returned by list_workflow_types
-    (e.g. ["claim_extraction", "reference_validation_v2"]).
+    (e.g. ["reference_validation_v2", "recommendation_check"]).
 
     Two kinds of consent gates may apply:
 

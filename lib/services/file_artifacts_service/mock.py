@@ -5,7 +5,6 @@ from deepagents.backends.utils import create_file_data
 
 from lib.models.bibliography_item import BibliographyItem
 from lib.models.file import FileRole
-from lib.models.footnote_item import FootnoteItem
 from lib.services.file import FileDocument
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     FileArtifactsServiceType,
@@ -91,9 +90,6 @@ class MockFileArtifactsService(FileArtifactsServiceType):
         return self._references
 
     async def get_chunks(self) -> list[AnalyzedChunk]:
-        return []
-
-    async def get_footnotes(self) -> list[FootnoteItem]:
         return []
 
     async def get_deepagent_backend_files(
