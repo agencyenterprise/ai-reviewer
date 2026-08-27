@@ -38,7 +38,7 @@ from lib.services.workflow_runs import (
 )
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.models import WorkflowRunType
-from lib.workflows.registry import get_all_manifests
+from lib.workflows.registry import available_workflow_type_values, get_all_manifests
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +128,10 @@ async def get_user_projects(user: User) -> List[ProjectListItem]:
                 and_(
                     col(WorkflowRun.project_id) == col(Project.id),
                     col(WorkflowRun.revision) == col(Project.current_revision),
+                    # Must stay in the join, not the WHERE: a predicate on the
+                    # right-hand table would make this an inner join and drop
+                    # projects with no live runs.
+                    col(WorkflowRun.type).in_(available_workflow_type_values()),
                 ),
             )
             .where(col(Project.user_id) == user.id)
@@ -141,6 +145,7 @@ async def get_user_projects(user: User) -> List[ProjectListItem]:
         for row in results:
             project, workflow_run = row.tuple()
             projects_by_id.setdefault(project.id, project)
+            # Retired types are excluded by the join; None means no runs.
             if workflow_run is not None:
                 runs_by_project[project.id].append(workflow_run)
 

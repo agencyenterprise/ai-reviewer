@@ -22,6 +22,7 @@ from lib.services.chunk_line_matcher import (
 )
 from lib.services.text_sanitization import strip_control_chars
 from lib.workflows.models import DocumentIssue, WorkflowRunType
+from lib.workflows.registry import available_workflow_type_values
 
 logger = logging.getLogger(__name__)
 
@@ -160,6 +161,16 @@ async def get_project_issues(
         if workflow_types:
             type_values = [t.value for t in workflow_types]
             stmt = stmt.where(col(Issue.workflow_type).in_(type_values))
+
+        # Issues outlive the workflow that produced them: the row keeps whatever
+        # `workflow_type` string was current when it was written, and nothing
+        # deletes it when a workflow is retired. Without this filter a project
+        # keeps surfacing findings from workflows that no longer exist — with no
+        # run to open, and labelled with the raw type slug because the name only
+        # resolves through a manifest. Restrict to types that still have one.
+        stmt = stmt.where(
+            col(Issue.workflow_type).in_(available_workflow_type_values())
+        )
 
         stmt = stmt.order_by(
             col(Issue.resolved_by).asc().nulls_first(),

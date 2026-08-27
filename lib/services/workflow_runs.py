@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from enum import StrEnum
 from datetime import datetime
 from typing import List, Optional, Type, cast
 
@@ -26,16 +27,35 @@ from lib.services.workflow_cost.pricing import compute_cost
 from lib.services.workflow_progress import cancel_workflow_progress
 from lib.workflows.dependency_resolver import get_required_dependents
 from lib.workflows.models import is_user_visible_workflow
-from lib.workflows.registry import get_workflow_manifest
+from lib.workflows.registry import get_workflow_manifest, is_available_workflow_type
 from lib.workflows.workflow_types import WorkflowState
 
 logger = logging.getLogger(__name__)
+
+
+class WorkflowStateStatus(StrEnum):
+    """Why a run's state is or isn't available to render.
+
+    `state` alone cannot express this: it is None both for a run that never
+    persisted state and for one whose persisted state no longer matches the
+    current model. The UI needs to tell those apart — the first is "nothing to
+    show", the second is "your data is here but the assessment changed".
+    """
+
+    OK = "ok"
+    # No state_json on the row: the run never got far enough, or predates the
+    # state_json backfill.
+    ABSENT = "absent"
+    # state_json is present but no longer validates against the workflow's
+    # current state model, i.e. the assessment changed since this run.
+    SCHEMA_MISMATCH = "schema_mismatch"
 
 
 class WorkflowRunDetail(BaseModel):
     run: WorkflowRun
     state: WorkflowState | None
     cost: CostBreakdown | None = None
+    state_status: WorkflowStateStatus = WorkflowStateStatus.OK
 
 
 async def _compute_cost_for_state(
@@ -78,10 +98,23 @@ def hydrate_workflow_run_state(run: WorkflowRun) -> WorkflowState | None:
 
     Returns None when state_json is missing (pre-backfill rows), when the run's
     workflow type is no longer registered, or when the persisted shape no longer
-    matches the current WorkflowState subclass.
+    matches the current WorkflowState subclass. Callers that need to tell those
+    apart should use `hydrate_workflow_run_state_with_status`.
+    """
+    return hydrate_workflow_run_state_with_status(run)[0]
+
+
+def hydrate_workflow_run_state_with_status(
+    run: WorkflowRun,
+) -> tuple[WorkflowState | None, WorkflowStateStatus]:
+    """`hydrate_workflow_run_state`, plus why the state is unavailable.
+
+    Hydration is attempted once and the outcome reported, so callers that render
+    a reason do not pay for a second validation pass over what can be a
+    multi-megabyte payload.
     """
     if run.state_json is None:
-        return None
+        return None, WorkflowStateStatus.ABSENT
     manifest = get_workflow_manifest(run.type, raise_exception=False)
     if manifest is None:
         # Retired workflow type still present in old rows. Callers that pass
@@ -93,16 +126,16 @@ def hydrate_workflow_run_state(run: WorkflowRun) -> WorkflowState | None:
             f"No workflow manifest registered for type {run.type!r} "
             f"(run {run.id}); returning no state for it."
         )
-        return None
+        return None, WorkflowStateStatus.ABSENT
     state_type = cast(Type[WorkflowState], manifest.get_state_type())
     try:
-        return state_type(**run.state_json)
+        return state_type(**run.state_json), WorkflowStateStatus.OK
     except Exception as e:
         logger.warning(
             f"Error hydrating state_json for run {run.id} "
             f"(possibly an old state schema version): {e}"
         )
-        return None
+        return None, WorkflowStateStatus.SCHEMA_MISMATCH
 
 
 async def read_workflow_run_state(run: WorkflowRun) -> WorkflowState | None:
@@ -464,11 +497,12 @@ async def get_project_workflow_runs_by_type_with_details(
 
     # Each run carries its own state_json, so state (and cost) are read per run
     # directly — no checkpointer fan-out, and no thread-sharing band-aid needed.
-    states = await asyncio.gather(*[read_workflow_run_state(run) for run in runs])
+    hydrated = [hydrate_workflow_run_state_with_status(run) for run in runs]
+    states = [state for state, _ in hydrated]
     costs = await asyncio.gather(*[_compute_cost_for_state(s) for s in states])
     return [
-        WorkflowRunDetail(run=run, state=state, cost=cost)
-        for run, state, cost in zip(runs, states, costs)
+        WorkflowRunDetail(run=run, state=state, cost=cost, state_status=status)
+        for run, (state, status), cost in zip(runs, hydrated, costs)
     ]
 
 
@@ -524,18 +558,24 @@ async def get_project_workflow_runs(
     async with get_async_db_session() as session:
         runs = (await session.execute(stmt)).scalars().all()
 
+    # A run whose workflow no longer has a manifest is never surfaced — not even
+    # to include_internal=True callers. Both the public share response and the
+    # MCP project serializer pass that flag, and neither should hand back a
+    # workflow the rest of the API treats as gone. Such a run is also useless as
+    # a dependency state: without a manifest it cannot hydrate.
+    runs = [run for run in runs if is_available_workflow_type(run.type)]
+
     # Filter out internal workflows unless explicitly requested
     visible_runs = [
         run for run in runs if include_internal or is_user_visible_workflow(run.type)
     ]
 
     # Each run carries its own state_json — read state per run directly.
-    states = await asyncio.gather(
-        *[read_workflow_run_state(run) for run in visible_runs]
-    )
+    hydrated = [hydrate_workflow_run_state_with_status(run) for run in visible_runs]
+    states = [state for state, _ in hydrated]
 
     costs = await asyncio.gather(*[_compute_cost_for_state(s) for s in states])
     return [
-        WorkflowRunDetail(run=run, state=state, cost=cost)
-        for run, state, cost in zip(visible_runs, states, costs)
+        WorkflowRunDetail(run=run, state=state, cost=cost, state_status=status)
+        for run, (state, status), cost in zip(visible_runs, hydrated, costs)
     ]
