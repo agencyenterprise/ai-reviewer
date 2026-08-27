@@ -10,7 +10,6 @@ from enum import Enum
 from typing import Optional
 import uuid
 
-from pydantic import BaseModel, Field
 from sqlalchemy import Column, DateTime, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlmodel import Field as SQLField
@@ -22,26 +21,6 @@ class FeedbackType(str, Enum):
 
     THUMBS_UP = "thumbs_up"
     THUMBS_DOWN = "thumbs_down"
-
-
-class EntityPath(BaseModel):
-    """Base class for entity coordinate paths"""
-
-    def to_dict(self) -> dict:
-        """Convert to dictionary for JSONB storage"""
-        return self.model_dump(exclude_none=True)
-
-    @classmethod
-    def from_dict(cls, data: dict) -> "EntityPath":
-        """Create from dictionary"""
-        return cls(**data)
-
-
-class ClaimPath(EntityPath):
-    """Coordinate path for claim-level feedback"""
-
-    chunk_index: int = Field(ge=0, description="Zero-based chunk index")
-    claim_index: int = Field(ge=0, description="Zero-based claim index within chunk")
 
 
 class Feedback(SQLModel, table=True):

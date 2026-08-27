@@ -20,21 +20,6 @@ def get_state_by_type(
     return None
 
 
-def get_state_by_type_or_raise(
-    type: WorkflowRunType, states: List["WorkflowState"]
-) -> "WorkflowState":
-    """
-    Get a state by type from a list of states, or raise an error if it's not found.
-    """
-
-    state = get_state_by_type(type, states)
-
-    if state is None:
-        raise ValueError(f"State of type {type} not found in states")
-
-    return state
-
-
 def get_main_file_id(all_states: List["WorkflowState"]) -> str:
     """
     Get the ID of the main file from a list of states.

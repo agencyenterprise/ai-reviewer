@@ -25,12 +25,3 @@ export function downloadFile({ filename, blob }: DownloadOptions): void {
   document.body.removeChild(link);
   window.URL.revokeObjectURL(url);
 }
-
-/**
- * Downloads data as a JSON file.
- */
-export function downloadAsJson(data: unknown, filename: string = 'results'): void {
-  const jsonString = JSON.stringify(data, null, 2);
-  const blob = new Blob([jsonString], { type: 'application/json' });
-  downloadFile({ filename: `${filename}.json`, blob });
-}
