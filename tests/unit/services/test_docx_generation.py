@@ -6,7 +6,12 @@ from datetime import UTC, datetime
 import pytest
 
 from lib.models.issue import Issue
-from lib.services.docx.manipulator import CommentSeverity, DocxComment, issue_to_comment
+from lib.services.docx.manipulator import (
+    CommentSeverity,
+    DocxComment,
+    count_unanchorable_issues,
+    issue_to_comment,
+)
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 
 _FAKE_PROJECT_ID = uuid.uuid4()
@@ -256,3 +261,77 @@ class TestLegacyIssuesAreDroppedNotGuessed:
         )
 
         assert issue_to_comment(issue, {0: (1, 2)}) is None
+
+
+class TestUnanchorableIssueAccounting:
+    """The count must match what the export paths actually drop.
+
+    Both modes skip issues they cannot tie to a paragraph — `issue_to_comment`
+    for comments, `_build_issue_map` for the add-in — and both do it silently.
+    The count is what turns that into a log line, so it has to agree with the
+    real behaviour rather than approximate it.
+    """
+
+    PARAGRAPHS = {0: (1, 2), 1: (3, 5)}
+
+    def _mixed_issues(self):
+        return [
+            _make_issue(  # anchors
+                title="anchored",
+                description="d",
+                severity=SeverityEnum.LOW,
+                workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
+                start_line=3,
+                end_line=5,
+            ),
+            _make_issue(  # legacy: chunk_indices only
+                title="legacy",
+                description="d",
+                severity=SeverityEnum.LOW,
+                workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
+                chunk_indices=[1],
+            ),
+            _make_issue(  # no location at all
+                title="locationless",
+                description="d",
+                severity=SeverityEnum.LOW,
+                workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
+            ),
+            _make_issue(  # has a range, but no paragraph covers it
+                title="off the end",
+                description="d",
+                severity=SeverityEnum.LOW,
+                workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
+                start_line=90,
+                end_line=95,
+            ),
+        ]
+
+    def test_counts_are_split_by_cause(self):
+        no_range, unmatched = count_unanchorable_issues(
+            self._mixed_issues(), self.PARAGRAPHS
+        )
+
+        assert (no_range, unmatched) == (2, 1)
+
+    def test_total_matches_what_the_comments_path_drops(self):
+        issues = self._mixed_issues()
+        comments = [c for i in issues if (c := issue_to_comment(i, self.PARAGRAPHS))]
+
+        no_range, unmatched = count_unanchorable_issues(issues, self.PARAGRAPHS)
+
+        assert no_range + unmatched == len(issues) - len(comments)
+
+    def test_nothing_is_counted_when_every_issue_anchors(self):
+        issues = [
+            _make_issue(
+                title="a",
+                description="d",
+                severity=SeverityEnum.LOW,
+                workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
+                start_line=1,
+                end_line=2,
+            )
+        ]
+
+        assert count_unanchorable_issues(issues, self.PARAGRAPHS) == (0, 0)

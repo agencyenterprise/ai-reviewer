@@ -70,6 +70,32 @@ def _resolve_issue_line_range(issue: Issue) -> Optional[Tuple[int, int]]:
     return None
 
 
+def count_unanchorable_issues(
+    issues: Sequence[Issue], paragraph_line_ranges: Dict[int, Tuple[int, int]]
+) -> Tuple[int, int]:
+    """Count issues no export can place, split by cause.
+
+    Returns ``(no_line_range, matched_no_paragraph)``. Both the comments and
+    add-in paths silently skip these — `issue_to_comment` and `_build_issue_map`
+    apply the same two checks — so callers use this to report the omission
+    instead of letting the export quietly come up short.
+    """
+    no_line_range = 0
+    matched_no_paragraph = 0
+    for issue in issues:
+        line_range = _resolve_issue_line_range(issue)
+        if line_range is None:
+            no_line_range += 1
+        elif (
+            find_paragraph_by_line_range(
+                paragraph_line_ranges, line_range[0], line_range[1]
+            )
+            is None
+        ):
+            matched_no_paragraph += 1
+    return no_line_range, matched_no_paragraph
+
+
 def _build_issue_anchor(line_range: Optional[Tuple[int, int]]) -> Optional[str]:
     """Build URL anchor fragment for a resolved issue line range (e.g. ``#L5-15``)."""
     if line_range is None:

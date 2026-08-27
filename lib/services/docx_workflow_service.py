@@ -7,6 +7,7 @@ from typing import List, Literal, Optional
 from lib.models.workflow_run import WorkflowRunType
 from lib.services.docx.manipulator import (
     DocxManipulatorType,
+    count_unanchorable_issues,
     docx_manipulator_service,
     issue_to_comment,
 )
@@ -98,6 +99,24 @@ async def generate_docx(
     # Unique per invocation so concurrent exports never collide.
     output_id = uuid.uuid4().hex
 
+    # Both export modes silently skip issues they cannot tie to a paragraph, so
+    # account for them once here rather than in either branch. Two causes: no
+    # line range at all (typically a legacy row carrying only chunk_indices, from
+    # before workflows emitted line ranges), or a range overlapping no paragraph.
+    no_range, unmatched = count_unanchorable_issues(issues, paragraph_line_ranges)
+    if no_range or unmatched:
+        logger.warning(
+            "DOCX export (%s) for project %s omits %d of %d issues that cannot be "
+            "anchored to a paragraph: %d have no line range, %d have one that "
+            "matches no paragraph",
+            docx_type.value,
+            project_id,
+            no_range + unmatched,
+            len(issues),
+            no_range,
+            unmatched,
+        )
+
     if docx_type in [
         DocxManipulatorType.COMMENTS,
         DocxManipulatorType.COMMENTS_WITH_LINKS,
@@ -118,25 +137,6 @@ async def generate_docx(
                 )
             )
         ]
-        # An issue that cannot be tied to a paragraph is silently absent from the
-        # export, so report the count rather than let it quietly come up short.
-        # Two causes: the issue has no line range at all (typically a legacy row
-        # carrying only chunk_indices, from before workflows emitted line
-        # ranges), or it has one that overlaps no mapped paragraph.
-        if (dropped := len(issues) - len(comments)) > 0:
-            no_range = sum(
-                1 for i in issues if i.start_line is None or i.end_line is None
-            )
-            logger.warning(
-                "DOCX export for project %s omitted %d of %d issues that could not "
-                "be anchored to a paragraph (%d had no line range, %d had one that "
-                "matched no paragraph)",
-                project_id,
-                dropped,
-                len(issues),
-                no_range,
-                dropped - no_range,
-            )
         output_path = await docx_manipulator_service.add_comments_to_docx(
             original_docx_path=main_file.file_path,
             comments=comments,
