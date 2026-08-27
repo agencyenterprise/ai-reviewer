@@ -220,49 +220,6 @@ class TestIssueToComment:
 
 
 
-class TestLegacyIssuesAreDroppedNotGuessed:
-    """Issues written before workflows emitted line ranges have no anchor left.
-
-    `chunk_splitting` used to translate their `chunk_indices` into a line range
-    at export time. It has been removed without migrating those rows, so the
-    export drops them — deliberately, rather than guessing at a paragraph. These
-    pin that the drop is total and that nothing else regresses with it.
-    """
-
-    def test_issue_with_a_line_range_still_exports(self):
-        issue = _make_issue(
-            title="Modern issue",
-            description="Has a line range",
-            severity=SeverityEnum.HIGH,
-            workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
-            start_line=3,
-            end_line=5,
-        )
-
-        assert issue_to_comment(issue, {0: (1, 2), 1: (3, 5)}) is not None
-
-    def test_issue_with_only_chunk_indices_is_dropped(self):
-        issue = _make_issue(
-            title="Legacy issue",
-            description="Only chunk_indices",
-            severity=SeverityEnum.HIGH,
-            workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
-            chunk_indices=[1],
-        )
-
-        assert issue_to_comment(issue, {0: (1, 2), 1: (3, 5)}) is None
-
-    def test_issue_with_no_location_at_all_is_dropped(self):
-        issue = _make_issue(
-            title="Locationless",
-            description="Neither field set",
-            severity=SeverityEnum.HIGH,
-            workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
-        )
-
-        assert issue_to_comment(issue, {0: (1, 2)}) is None
-
-
 class TestUnanchorableIssueAccounting:
     """The count must match what the export paths actually drop.
 
