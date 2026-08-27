@@ -38,7 +38,6 @@ import { WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS, formatEstimatedDuration } fro
 // old runs still deserialize. Those have no icon; getWorkflowIcon falls back.
 const workflowTypeIcons: Partial<Record<WorkflowRunType, LucideIcon>> = {
   [WorkflowRunType.DocumentProcessing]: FileText,
-  [WorkflowRunType.ChunkSplitting]: FileText,
   [WorkflowRunType.DocumentSummarization]: FileText,
   [WorkflowRunType.ReferenceExtraction]: Link,
   [WorkflowRunType.ReferenceFileMatching]: FileSearch,

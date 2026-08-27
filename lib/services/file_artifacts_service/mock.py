@@ -9,7 +9,6 @@ from lib.services.file import FileDocument
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     FileArtifactsServiceType,
 )
-from lib.workflows.chunk_utils import AnalyzedChunk
 from lib.workflows.document_summarization.state import FileSummary
 from lib.workflows.reference_extraction.state import ExtractedReference
 
@@ -88,9 +87,6 @@ class MockFileArtifactsService(FileArtifactsServiceType):
 
     async def get_references(self) -> list[BibliographyItem]:
         return self._references
-
-    async def get_chunks(self) -> list[AnalyzedChunk]:
-        return []
 
     async def get_deepagent_backend_files(
         self,

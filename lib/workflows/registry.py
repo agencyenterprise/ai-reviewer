@@ -88,7 +88,6 @@ def register_all_workflow_manifests():
     from lib.workflows.figures_tables_check.manifest import FiguresTablesCheckManifest
     from lib.workflows.about_this_ger.manifest import AboutThisGerManifest
     from lib.workflows.advocacy_tone_v2.manifest import AdvocacyToneV2Manifest
-    from lib.workflows.chunk_splitting.manifest import ChunkSplittingManifest
     from lib.workflows.claim_reference_validation_v2.manifest import (
         ClaimReferenceValidationV2Manifest,
     )
@@ -130,7 +129,6 @@ def register_all_workflow_manifests():
 
     manifests = [
         DocumentProcessingManifest(),
-        ChunkSplittingManifest(),
         DocumentSummarizationManifest(),
         ReferenceExtractionManifest(),
         ReferenceFileMatchingManifest(),

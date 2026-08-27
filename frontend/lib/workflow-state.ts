@@ -1,6 +1,5 @@
 import {
   AbbreviationScanV2State,
-  ChunkSplittingState,
   DocumentProcessingState,
   DocumentSummarizationState,
   HumanApprovalState,
@@ -24,7 +23,6 @@ import {
  */
 type WorkflowTypeToDetail = {
   [WorkflowRunType.DocumentProcessing]: DocumentProcessingState;
-  [WorkflowRunType.ChunkSplitting]: ChunkSplittingState;
   [WorkflowRunType.DocumentSummarization]: DocumentSummarizationState;
   [WorkflowRunType.ReferenceExtraction]: ReferenceExtractionState;
   [WorkflowRunType.ReferenceFileMatching]: ReferenceFileMatchingState;

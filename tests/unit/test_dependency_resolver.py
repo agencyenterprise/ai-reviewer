@@ -194,14 +194,14 @@ def test_get_required_dependents_does_not_include_source_workflow():
 
 def test_get_required_dependents_no_duplicates_in_diamond_graph():
     """A workflow reached through multiple paths is returned only once."""
-    # DOCUMENT_PROCESSING is required by both REFERENCE_EXTRACTION and CHUNK_SPLITTING.
+    # DOCUMENT_PROCESSING is required by both REFERENCE_EXTRACTION and DOCUMENT_SUMMARIZATION.
     # REFERENCE_VALIDATION requires REFERENCE_EXTRACTION.
     # Cancelling DOCUMENT_PROCESSING should list both paths without duplicates.
     manifests = _make_all_manifests(
         {
             WorkflowRunType.DOCUMENT_PROCESSING: [],
             WorkflowRunType.REFERENCE_EXTRACTION: [WorkflowRunType.DOCUMENT_PROCESSING],
-            WorkflowRunType.CHUNK_SPLITTING: [WorkflowRunType.DOCUMENT_PROCESSING],
+            WorkflowRunType.DOCUMENT_SUMMARIZATION: [WorkflowRunType.DOCUMENT_PROCESSING],
             WorkflowRunType.REFERENCE_VALIDATION_V2: [WorkflowRunType.REFERENCE_EXTRACTION],
         }
     )
@@ -211,6 +211,6 @@ def test_get_required_dependents_no_duplicates_in_diamond_graph():
     assert len(result) == len(set(result)), "No duplicates expected"
     assert set(result) == {
         WorkflowRunType.REFERENCE_EXTRACTION,
-        WorkflowRunType.CHUNK_SPLITTING,
+        WorkflowRunType.DOCUMENT_SUMMARIZATION,
         WorkflowRunType.REFERENCE_VALIDATION_V2,
     }

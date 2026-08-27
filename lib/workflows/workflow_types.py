@@ -10,10 +10,6 @@ from lib.workflows.simple_deep_agent.state import (
     SimpleDeepAgentConfig,
     SimpleDeepAgentState,
 )
-from lib.workflows.chunk_splitting.state import (
-    ChunkSplittingState,
-    ChunkSplittingWorkflowConfig,
-)
 from lib.workflows.claim_reference_validation_v2.state import (
     ClaimReferenceValidationV2Config,
     ClaimReferenceValidationV2State,
@@ -62,7 +58,6 @@ from lib.workflows.reviewer_2.state import (
 WorkflowState = (
     AboutThisGerState
     | DocumentProcessingState
-    | ChunkSplittingState
     | DocumentSummarizationState
     | ReferenceExtractionState
     | ReferenceFileMatchingState
@@ -80,7 +75,6 @@ WorkflowState = (
 WorkflowConfig = (
     AboutThisGerConfig
     | DocumentProcessingWorkflowConfig
-    | ChunkSplittingWorkflowConfig
     | DocumentSummarizationWorkflowConfig
     | ReferenceExtractionConfig
     | ReferenceFileMatchingConfig

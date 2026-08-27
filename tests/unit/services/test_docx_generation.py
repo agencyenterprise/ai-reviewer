@@ -1,7 +1,6 @@
 """Tests for DOCX generation helper functions"""
 
 import uuid
-from dataclasses import dataclass
 from datetime import UTC, datetime
 
 import pytest
@@ -12,14 +11,6 @@ from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 
 _FAKE_PROJECT_ID = uuid.uuid4()
 _FAKE_WORKFLOW_RUN_ID = uuid.uuid4()
-
-
-@dataclass
-class _FakeChunk:
-    chunk_index: int
-    content: str
-    start_line: int
-    end_line: int
 
 
 def _make_issue(
@@ -66,10 +57,9 @@ class TestIssueToComment:
             start_line=1,
             end_line=3,
         )
-        chunks = [_FakeChunk(0, "The claim content here", 1, 3)]
         paragraph_line_ranges = {0: (1, 3)}
 
-        comment = issue_to_comment(issue, chunks, paragraph_line_ranges)
+        comment = issue_to_comment(issue, paragraph_line_ranges)
 
         assert comment is not None
         assert isinstance(comment, DocxComment)
@@ -91,10 +81,9 @@ class TestIssueToComment:
             start_line=1,
             end_line=3,
         )
-        chunks = [_FakeChunk(0, "The reference here", 1, 3)]
         paragraph_line_ranges = {0: (1, 3)}
 
-        comment = issue_to_comment(issue, chunks, paragraph_line_ranges)
+        comment = issue_to_comment(issue, paragraph_line_ranges)
 
         assert comment is not None
         text = comment.comment_text
@@ -118,16 +107,21 @@ class TestIssueToComment:
             start_line=1,
             end_line=3,
         )
-        chunks = [_FakeChunk(0, "The claim content here", 1, 3)]
         paragraph_line_ranges = {0: (1, 3)}
 
-        comment = issue_to_comment(issue, chunks, paragraph_line_ranges)
+        comment = issue_to_comment(issue, paragraph_line_ranges)
 
         assert comment is not None
         assert comment.comment_text.endswith("This claim lacks evidence")
 
-    def test_falls_back_to_chunk_indices_for_legacy_issue(self):
-        """Issues pre-dating the line-range migration only carry chunk_indices."""
+    def test_legacy_chunk_indices_issue_is_dropped(self):
+        """An issue carrying only chunk_indices can no longer be placed.
+
+        Those rows pre-date workflows emitting line ranges, and the chunk data
+        that used to translate them went with the chunk_splitting workflow. The
+        export drops them rather than guessing at a paragraph; the caller logs
+        how many were omitted.
+        """
         issue = _make_issue(
             title="Legacy issue",
             description="Only has chunk_indices",
@@ -135,16 +129,9 @@ class TestIssueToComment:
             workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
             chunk_indices=[1],
         )
-        chunks = [
-            _FakeChunk(0, "Intro", 1, 2),
-            _FakeChunk(1, "Body with the claim", 3, 5),
-        ]
         paragraph_line_ranges = {0: (1, 2), 1: (3, 5)}
 
-        comment = issue_to_comment(issue, chunks, paragraph_line_ranges)
-
-        assert comment is not None
-        assert comment.paragraph_index == 1
+        assert issue_to_comment(issue, paragraph_line_ranges) is None
 
     def test_returns_none_when_line_range_unresolvable(self):
         issue = _make_issue(
@@ -153,9 +140,8 @@ class TestIssueToComment:
             severity=SeverityEnum.HIGH,
             workflow_type=WorkflowRunType.REFERENCE_VALIDATION_V2,
         )
-        chunks: list[_FakeChunk] = []
 
-        comment = issue_to_comment(issue, chunks, {})
+        comment = issue_to_comment(issue, {})
 
         assert comment is None
 
@@ -170,7 +156,7 @@ class TestIssueToComment:
         )
         paragraph_line_ranges = {0: (1, 10), 1: (11, 20)}
 
-        comment = issue_to_comment(issue, [], paragraph_line_ranges)
+        comment = issue_to_comment(issue, paragraph_line_ranges)
 
         assert comment is None
 
@@ -186,7 +172,7 @@ class TestIssueToComment:
         paragraph_line_ranges = {0: (1, 20)}
 
         comment = issue_to_comment(
-            issue, [], paragraph_line_ranges, share_token="share-token-abc"
+            issue, paragraph_line_ranges, share_token="share-token-abc"
         )
 
         assert comment is not None
@@ -204,7 +190,7 @@ class TestIssueToComment:
         )
         paragraph_line_ranges = {0: (1, 1)}
 
-        comment = issue_to_comment(issue, [], paragraph_line_ranges)
+        comment = issue_to_comment(issue, paragraph_line_ranges)
 
         assert comment.severity == CommentSeverity.MEDIUM
         assert comment.get_author() == "⚠️ Medium Priority"
@@ -221,9 +207,52 @@ class TestIssueToComment:
         )
         paragraph_line_ranges = {0: (1, 1)}
 
-        comment = issue_to_comment(issue, [], paragraph_line_ranges)
+        comment = issue_to_comment(issue, paragraph_line_ranges)
 
         assert comment.severity == CommentSeverity.LOW
         assert comment.get_author() == "💡 Low Priority"
         assert comment.get_initials() == "LP"
 
+
+
+class TestLegacyIssuesAreDroppedNotGuessed:
+    """Issues written before workflows emitted line ranges have no anchor left.
+
+    `chunk_splitting` used to translate their `chunk_indices` into a line range
+    at export time. It has been removed without migrating those rows, so the
+    export drops them — deliberately, rather than guessing at a paragraph. These
+    pin that the drop is total and that nothing else regresses with it.
+    """
+
+    def test_issue_with_a_line_range_still_exports(self):
+        issue = _make_issue(
+            title="Modern issue",
+            description="Has a line range",
+            severity=SeverityEnum.HIGH,
+            workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
+            start_line=3,
+            end_line=5,
+        )
+
+        assert issue_to_comment(issue, {0: (1, 2), 1: (3, 5)}) is not None
+
+    def test_issue_with_only_chunk_indices_is_dropped(self):
+        issue = _make_issue(
+            title="Legacy issue",
+            description="Only chunk_indices",
+            severity=SeverityEnum.HIGH,
+            workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
+            chunk_indices=[1],
+        )
+
+        assert issue_to_comment(issue, {0: (1, 2), 1: (3, 5)}) is None
+
+    def test_issue_with_no_location_at_all_is_dropped(self):
+        issue = _make_issue(
+            title="Locationless",
+            description="Neither field set",
+            severity=SeverityEnum.HIGH,
+            workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
+        )
+
+        assert issue_to_comment(issue, {0: (1, 2)}) is None

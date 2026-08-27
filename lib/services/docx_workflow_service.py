@@ -61,8 +61,6 @@ async def generate_docx(
     # After the "original" early-return above, docx_type is a DocxManipulatorType.
     assert isinstance(docx_type, DocxManipulatorType)
 
-    chunks = await file_artifacts.get_chunks()
-
     # Validate file is a DOCX
     main_file_path = main_file.file_path.lower()
     if not main_file_path.endswith(".docx") and not main_file_path.endswith(".doc"):
@@ -115,12 +113,23 @@ async def generate_docx(
             if (
                 c := issue_to_comment(
                     issue,
-                    chunks,
                     paragraph_line_ranges,
                     share_token_for_comments,
                 )
             )
         ]
+        # An issue with no line range cannot be anchored to a paragraph, so it is
+        # silently absent from the export. That is nearly always a legacy row
+        # carrying only chunk_indices, from before workflows emitted line ranges.
+        # Log it rather than let the export quietly come up short.
+        if (dropped := len(issues) - len(comments)) > 0:
+            logger.warning(
+                "DOCX export for project %s omitted %d of %d issues: no line range "
+                "to anchor them to a paragraph",
+                project_id,
+                dropped,
+                len(issues),
+            )
         output_path = await docx_manipulator_service.add_comments_to_docx(
             original_docx_path=main_file.file_path,
             comments=comments,
@@ -135,7 +144,6 @@ async def generate_docx(
             share_token=share_token,
             workflow_run_id=output_id,
             paragraph_line_ranges=paragraph_line_ranges,
-            chunks=chunks,
             issues=issues,
         )
     else:
