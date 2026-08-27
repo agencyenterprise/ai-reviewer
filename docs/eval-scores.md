@@ -2,8 +2,8 @@
 
 Current Inspect AI eval numbers across every eval in `evals_inspectai/e2e/`.
 
-- **Last updated:** 2026-08-26
-- **Total:** 19 evals · 243 runnable samples · run at epochs=3
+- **Last updated:** 2026-08-27
+- **Total:** 19 evals · 244 runnable samples · run at epochs=3
 
 > [!NOTE]
 > All evals are **end-to-end**: they trigger the real workflow through the API,
@@ -44,7 +44,7 @@ lower judged score is a trend; averaging them together hides both.
 | 6 | `document_structure` | 5 | 3 | <details><summary>1 deterministic 0.911 · 1 judged 0.733</summary>`structured_output_scorer` 0.911 ±0.065[^issue-titles]<br>`model_graded_check` 0.733 ±0.194[^mg]</details> | **0.822** | 2026-07-09 | [`…_AvxR8yUFKqbrd7THBoA4PR.eval`](./evals/2026-07-09T16-13-30-00-00_document-structure-e2e_AvxR8yUFKqbrd7THBoA4PR.eval) |
 | 7 | `figures_tables_check` | 19 | 3 | <details><summary>1 deterministic 0.775 · 1 judged 0.956</summary>`structured_output_scorer` 0.775 ±0.060[^issue-titles]<br>`model_graded_check` 0.956 ±0.031[^mg]</details> | **0.866** | 2026-07-09 | [`…_R79SgLdDysAMuo8LcKMa2R.eval`](./evals/2026-07-09T16-13-33-00-00_figures-tables-check-e2e_R79SgLdDysAMuo8LcKMa2R.eval) |
 | 8 | `inference_validation_v2` | 6 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 1.000</summary>`structured_output_scorer` 1.000 ±0.000[^inf-count]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-08-26 | [`…_4S6mpv7uW3Tty4GdXwz4gA.eval`](./evals/2026-08-26T20-30-17-00-00_inference-validation-v2-e2e_4S6mpv7uW3Tty4GdXwz4gA.eval) |
-| 9 | `literature_review_v2` | 3 | 3 | <details><summary>1 deterministic 0.963 · 1 judged 0.889</summary>`structured_output_scorer` 0.963 ±0.037[^score-structure]<br>`model_graded_check` 0.889 ±0.111[^mg]</details> | **0.926** | 2026-07-09 | [`…_fbZ4xxXFiswd9whZPLEEwp.eval`](./evals/2026-07-09T16-18-17-00-00_literature-review-v2-e2e_fbZ4xxXFiswd9whZPLEEwp.eval) |
+| 9 | `literature_review_v2` | 4 | 3 | <details><summary>1 deterministic 0.972 · 1 judged 0.917</summary>`structured_output_scorer` 0.972 ±0.028[^score-structure]<br>`model_graded_check` 0.917 ±0.083[^mg]</details> | **0.944** | 2026-08-27 | [`…_fX3YfGjX975VkBdNWKAj66.eval`](./evals/2026-08-27T15-48-45-00-00_literature-review-v2-e2e_fX3YfGjX975VkBdNWKAj66.eval) |
 | 10 | `live_reports_v2` | 3 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 1.000</summary>`structured_output_scorer` 1.000 ±0.000[^score-structure]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-07-09 | [`…_dNcWGbnu4YMbQvWtqmdrL4.eval`](./evals/2026-07-09T16-18-20-00-00_live-reports-v2-e2e_dNcWGbnu4YMbQvWtqmdrL4.eval) |
 | 11 | `methodological_alignment` | 2 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 0.917</summary>`structured_output_scorer` 1.000 ±0.000[^meth-analysis]<br>`model_graded_check` 0.917 ±0.083[^mg]</details> | **0.958** | 2026-07-09 | [`…_Pb2TBcXsi4xTtgqGXz2Loo.eval`](./evals/2026-07-09T16-18-22-00-00_methodological-alignment-e2e_Pb2TBcXsi4xTtgqGXz2Loo.eval) |
 | 12 | `recommendation_check` | 6 | 3 | <details><summary>1 deterministic 0.994 · 1 judged 0.944</summary>`structured_output_scorer` 0.994 ±0.006[^rec-severity]<br>`model_graded_check` 0.944 ±0.035[^mg]</details> | **0.969** | 2026-07-09 | [`…_m49mXFHqKSEvnYaeTpfrAv.eval`](./evals/2026-07-09T16-35-09-00-00_recommendation-check-e2e_m49mXFHqKSEvnYaeTpfrAv.eval) |
@@ -55,7 +55,7 @@ lower judged score is a trend; averaging them together hides both.
 | 17 | `reviewer_2` | 2 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 1.000</summary>`structured_output_scorer` 1.000 ±0.000[^rev-produced]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-07-09 | [`…_Hvsv4KmhjdSPMGFbKCjykd.eval`](./evals/2026-07-09T16-54-17-00-00_reviewer-2-e2e_Hvsv4KmhjdSPMGFbKCjykd.eval) |
 | 18 | `reviewer_coverage_report` | 5 | 3 | <details><summary>9 deterministic all 1.000 · 4 judged 0.833–0.967</summary>`verbatim` 1.000 ±0.000<br>`quoted` 1.000 ±0.000<br>`id_scheme` 1.000 ±0.000<br>`self_contained` 1.000 ±0.000<br>`two_part_layout` 1.000 ±0.000<br>`voice` 1.000 ±0.000[^ra-structure]<br>`verdict_table` 1.000 ±0.000<br>`verdict_vocabulary` 1.000 ±0.000<br>`recommendation` 1.000 ±0.000[^rcr-bookkeeping]<br>`verdicts_correct` 0.900 ±0.041<br>`part1_is_decision_grade` 0.933 ±0.041<br>`evidence_and_location` 0.967 ±0.033<br>`scenario_trap` 0.833 ±0.075[^rcr-rubric]</details> | **0.972** | 2026-08-24 | [`…_QQLyTtYCQDafkbvYJ6JSHE.eval`](./evals/2026-08-24T17-17-04-00-00_reviewer-coverage-report-e2e_QQLyTtYCQDafkbvYJ6JSHE.eval) |
 | 19 | `revision_planning_summary` | 5 | 3 | <details><summary>6 deterministic all 1.000 · 4 judged 0.833–1.000</summary>`verbatim` 1.000 ±0.000<br>`quoted` 1.000 ±0.000<br>`id_scheme` 1.000 ±0.000<br>`self_contained` 1.000 ±0.000<br>`two_part_layout` 1.000 ±0.000<br>`voice` 1.000 ±0.000[^ra-structure]<br>`locations_by_content` 0.933 ±0.041<br>`part1_triage` 0.900 ±0.067<br>`planning_notes` 1.000 ±0.000<br>`scenario_trap` 0.833 ±0.075[^rps-rubric]</details> | **0.967** | 2026-08-24 | [`…_FUKLiArqfTX2ebmzGjEHuQ.eval`](./evals/2026-08-24T17-12-20-00-00_revision-planning-summary-e2e_FUKLiArqfTX2ebmzGjEHuQ.eval) |
-| | **Mean across all evals** | | | | **0.943** | | |
+| | **Mean across all evals** | | | | **0.944** | | |
 
 ## Scorer reference
 
