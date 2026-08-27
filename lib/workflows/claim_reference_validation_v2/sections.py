@@ -1,12 +1,60 @@
 """Utility for splitting a markdown document into sections for parallel processing."""
 
+import logging
 import re
 from typing import List, Tuple
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pydantic import BaseModel, Field
 
-from lib.agents.document_chunker_nltk import find_text_line_range
+logger = logging.getLogger(__name__)
+
+
+def char_offset_to_line(text: str, char_offset: int) -> int:
+    """Convert a character offset to a 1-indexed line number."""
+    return text[:char_offset].count("\n") + 1
+
+
+def find_text_line_range(
+    full_text: str, search_text: str, search_start: int = 0
+) -> Tuple[int, int, int]:
+    """
+    Find the line range of search_text within full_text.
+
+    Args:
+        full_text: The full markdown text
+        search_text: The text to find
+        search_start: Character offset to start searching from
+
+    Returns:
+        Tuple of (start_line, end_line, char_end_position)
+        If not found, returns (1, 1, search_start)
+    """
+    # An empty needle "matches" at search_start, which would make end_pos-1
+    # negative and count almost every newline in the document — reporting a
+    # range that spans to EOF. It has no location, so treat it as not found.
+    if not search_text.strip():
+        return (1, 1, search_start)
+
+    pos = full_text.find(search_text, search_start)
+    if pos == -1:
+        # Fallback: try to find with stripped text
+        stripped = search_text.strip()
+        pos = full_text.find(stripped, search_start)
+        if pos == -1:
+            logger.warning(
+                f"Could not find text in document, defaulting to line 1. "
+                f"search_text={search_text[:100]!r}..."
+            )
+            return (1, 1, search_start)
+        search_text = stripped
+
+    start_line = char_offset_to_line(full_text, pos)
+    end_pos = pos + len(search_text)
+    end_line = char_offset_to_line(
+        full_text, end_pos - 1
+    )  # -1 to get line of last char
+    return (start_line, end_line, end_pos)
 
 
 class DocumentSection(BaseModel):
@@ -106,6 +154,13 @@ def split_into_sections(markdown: str) -> List[DocumentSection]:
 
     for start_line, end_line, headings in raw:
         block = "\n".join(lines[start_line - 1 : end_line])
+
+        # A run of blank lines (typically the pre-heading region of a document
+        # that opens with whitespace) is not a section. `_subsplit` already skips
+        # these; without the same guard here the block would be searched for as
+        # an empty string and come back spanning the whole document.
+        if not block.strip():
+            continue
 
         if len(block) <= _CHUNK_SIZE:
             start_line_found, end_line_found, search_pos = find_text_line_range(

@@ -51,20 +51,11 @@ The system processes documents through a multi-stage pipeline implemented using 
 
 1. **Document Conversion**: Input documents (PDF, DOCX, Markdown) are converted to structured markdown format while preserving semantic structure using Markitdown.
 
-2. **Document Chunking**: Documents are segmented into semantically coherent chunks using NLTK-based sentence splitting with LLM fallback for complex text. The chunking process:
+2. **Reference Extraction**: Bibliographic references are extracted using section detection and windowed extraction, enabling mapping between in-text citations and their full reference entries.
 
-   - Converts documents to markdown
-   - Splits into paragraphs on double newlines
-   - Splits each paragraph into sentence-level chunks using NLTK
-   - Falls back to LLM for complex sentences that NLTK cannot handle
-   - Maintains chunk_index, paragraph_index, and chunk_index_within_paragraph metadata
-   - Processes paragraphs in parallel for performance (3-10x faster for documents with LLM fallbacks)
+3. **Reference File Matching**: Supporting documents are matched to extracted references to enable verification against full-text sources.
 
-3. **Reference Extraction**: Bibliographic references are extracted using section detection and windowed extraction, enabling mapping between in-text citations and their full reference entries.
-
-4. **Reference File Matching**: Supporting documents are matched to extracted references to enable verification against full-text sources.
-
-5. **Claim Verification**: Claims are verified against supporting documents using RAG-Based verification:
+4. **Claim Verification**: Claims are verified against supporting documents using RAG-Based verification:
 
    - Supporting documents are indexed in a vector store using OpenAI's `text-embedding-3-large` embeddings
    - Documents are chunked (2000 characters with 400-character overlap) and embedded
@@ -73,39 +64,39 @@ The system processes documents through a multi-stage pipeline implemented using 
    - Retrieved passages are ranked by cosine distance and presented to the verification agent
    - The LLM evaluates whether retrieved passages substantiate the claim
 
-6. **Inference Validation**: Flags reasoning in the document that is logically invalid — conclusions not supported by their premises, or arguments resting on a fallacy. Three independent detection passes read the full document in parallel and deliberately over-flag; their candidates are merged and then judged by a separate adjudicator subagent, which did not perform the detection and so assesses each candidate on its merits. Only findings that survive adjudication are reported.
+5. **Inference Validation**: Flags reasoning in the document that is logically invalid — conclusions not supported by their premises, or arguments resting on a fallacy. Three independent detection passes read the full document in parallel and deliberately over-flag; their candidates are merged and then judged by a separate adjudicator subagent, which did not perform the detection and so assesses each candidate on its merits. Only findings that survive adjudication are reported.
 
-7. **Reference Validation**: Uses web search to check if each reference from the document is available online and matches author, title, year, and publisher against public internet sources. Useful for detecting fabricated or hallucinated references.
+6. **Reference Validation**: Uses web search to check if each reference from the document is available online and matches author, title, year, and publisher against public internet sources. Useful for detecting fabricated or hallucinated references.
 
-8. **Literature Review**: The system conducts automated literature reviews by:
+7. **Literature Review**: The system conducts automated literature reviews by:
 
     - Searching external sources for supporting or conflicting evidence
     - Identifying newer publications relevant to the claims
     - Evaluating reference quality and source credibility
     - Recommending citation additions, replacements, or discussions for claims that would benefit from stronger support
 
-9. **Methodological Alignment**: Analyzes the methodology used in the document against typical methods used in the field, using web search to find field methods context.
+8. **Methodological Alignment**: Analyzes the methodology used in the document against typical methods used in the field, using web search to find field methods context.
 
-10. **Reproducibility Check**: Extracts the main results from the document and classifies each by how reproducibly it could be recreated from the document alone.
+9. **Reproducibility Check**: Extracts the main results from the document and classifies each by how reproducibly it could be recreated from the document alone.
 
-11. **Recommendation Check**: Evaluates whether each recommendation is supported by the document's own findings, flagging recommendations whose backing is weak, indirect, missing, or contradictory.
+10. **Recommendation Check**: Evaluates whether each recommendation is supported by the document's own findings, flagging recommendations whose backing is weak, indirect, missing, or contradictory.
 
-12. **Peer Review Simulation (Reviewer 2)**: Produces an integrated, senior-reviewer-style critique of the document as a whole — strengths, weaknesses, actionable next steps, and a devil's-advocate rebuttal.
+11. **Peer Review Simulation (Reviewer 2)**: Produces an integrated, senior-reviewer-style critique of the document as a whole — strengths, weaknesses, actionable next steps, and a devil's-advocate rebuttal.
 
-13. **Advocacy & Tone Detection**: Flags trigger words, advocacy language, and subjective tone that departs from a neutral, objective voice, combining fast procedural checks with LLM verification.
+12. **Advocacy & Tone Detection**: Flags trigger words, advocacy language, and subjective tone that departs from a neutral, objective voice, combining fast procedural checks with LLM verification.
 
-14. **Preface & Author Biography Validation ("About This")**: Validates the preface/introduction and author biographies against configurable publication requirements:
+13. **Preface & Author Biography Validation ("About This")**: Validates the preface/introduction and author biographies against configurable publication requirements:
 
     - Context, objectives, audience, and scope
     - Relationship to existing literature and contribution statement
     - Boilerplate and funding statement presence
     - Author biography completeness (sentence count, position and affiliation, research focus, style consistency)
 
-15. **Document Contents**: Checks that required sections are present (About This, Acknowledgements, Methods, Results, Conclusion, References, and Appendix when referenced).
+14. **Document Contents**: Checks that required sections are present (About This, Acknowledgements, Methods, Results, Conclusion, References, and Appendix when referenced).
 
-16. **Figures & Tables Check**: Verifies that every figure and table is titled, consistently numbered, and referenced in the body text, and that every body-text reference resolves to an actual figure or table.
+15. **Figures & Tables Check**: Verifies that every figure and table is titled, consistently numbered, and referenced in the body text, and that every body-text reference resolves to an actual figure or table.
 
-17. **Abbreviation Scan**: Verifies that each abbreviation is defined at first use and listed in an Abbreviations section, and that usage is consistent throughout.
+16. **Abbreviation Scan**: Verifies that each abbreviation is defined at first use and listed in an Abbreviations section, and that usage is consistent throughout.
 
 ### Technical Architecture
 

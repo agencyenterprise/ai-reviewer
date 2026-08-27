@@ -16,10 +16,6 @@ from pydantic import BaseModel
 
 from lib.config.env import config
 from lib.models.issue import Issue
-from lib.services.chunk_line_matcher import (
-    IndexedChunkWithLines,
-    find_line_range_by_chunks,
-)
 from lib.services.docx.paragraph_line_mapper import find_paragraph_by_line_range
 from lib.services.docx.docx_xml import (
     add_custom_properties_to_docx,
@@ -61,20 +57,43 @@ def _map_severity_enum_to_comment_severity(severity: SeverityEnum) -> "CommentSe
     return mapping.get(severity, CommentSeverity.NONE)
 
 
-def _resolve_issue_line_range(
-    issue: Issue, chunks: Sequence[IndexedChunkWithLines]
-) -> Optional[Tuple[int, int]]:
-    """Return ``(start_line, end_line)`` for an issue, or None if unresolvable.
+def _resolve_issue_line_range(issue: Issue) -> Optional[Tuple[int, int]]:
+    """Return ``(start_line, end_line)`` for an issue, or None if it has none.
 
-    Prefers native line-range fields. Falls back to deriving the range from legacy
-    ``chunk_indices`` using the provided chunks so the export pipeline downstream
-    can always reason in line-range terms.
+    Issues written before workflows moved to line ranges carry only
+    `chunk_indices`, and the chunk data that used to translate those is gone with
+    the chunk_splitting workflow. Such an issue cannot be anchored to a
+    paragraph, so it is dropped from the export — see the caller, which logs it.
     """
     if issue.start_line is not None and issue.end_line is not None:
         return (issue.start_line, issue.end_line)
-    if issue.chunk_indices:
-        return find_line_range_by_chunks(chunks, issue.chunk_indices)
     return None
+
+
+def count_unanchorable_issues(
+    issues: Sequence[Issue], paragraph_line_ranges: Dict[int, Tuple[int, int]]
+) -> Tuple[int, int]:
+    """Count issues no export can place, split by cause.
+
+    Returns ``(no_line_range, matched_no_paragraph)``. Both the comments and
+    add-in paths silently skip these — `issue_to_comment` and `_build_issue_map`
+    apply the same two checks — so callers use this to report the omission
+    instead of letting the export quietly come up short.
+    """
+    no_line_range = 0
+    matched_no_paragraph = 0
+    for issue in issues:
+        line_range = _resolve_issue_line_range(issue)
+        if line_range is None:
+            no_line_range += 1
+        elif (
+            find_paragraph_by_line_range(
+                paragraph_line_ranges, line_range[0], line_range[1]
+            )
+            is None
+        ):
+            matched_no_paragraph += 1
+    return no_line_range, matched_no_paragraph
 
 
 def _build_issue_anchor(line_range: Optional[Tuple[int, int]]) -> Optional[str]:
@@ -157,7 +176,6 @@ def _get_workflow_display_name(issue: Issue) -> Optional[str]:
 
 def issue_to_comment(
     issue: Issue,
-    chunks: Sequence[IndexedChunkWithLines],
     paragraph_line_ranges: Dict[int, Tuple[int, int]],
     share_token: Optional[str] = None,
 ) -> Optional["DocxComment"]:
@@ -166,7 +184,7 @@ def issue_to_comment(
     Resolves the issue to a paragraph by line-range overlap. Returns None when the
     issue has no resolvable line range or does not overlap any mapped paragraph.
     """
-    line_range = _resolve_issue_line_range(issue, chunks)
+    line_range = _resolve_issue_line_range(issue)
     if line_range is None:
         return None
 
@@ -207,12 +225,11 @@ def issue_to_comment(
 
 def _build_issue_map(
     issues: List[Issue],
-    chunks: Sequence[IndexedChunkWithLines],
     paragraph_line_ranges: Dict[int, Tuple[int, int]],
 ) -> Dict[int, List[Issue]]:
     issue_map: Dict[int, List[Issue]] = defaultdict(list)
     for issue in issues:
-        line_range = _resolve_issue_line_range(issue, chunks)
+        line_range = _resolve_issue_line_range(issue)
         if line_range is None:
             continue
         paragraph_index = find_paragraph_by_line_range(
@@ -252,7 +269,6 @@ class DocxManipulatorService:
         share_token: str,
         workflow_run_id: str,
         paragraph_line_ranges: Dict[int, Tuple[int, int]],
-        chunks: Sequence[IndexedChunkWithLines] | None = None,
         issues: List[Issue] | None = None,
     ) -> str:
         """Add custom properties and a comment to a DOCX file.
@@ -266,7 +282,6 @@ class DocxManipulatorService:
             share_token,
             workflow_run_id,
             paragraph_line_ranges,
-            chunks,
             issues,
         )
 
@@ -276,7 +291,6 @@ class DocxManipulatorService:
         share_token: str,
         workflow_run_id: str,
         paragraph_line_ranges: Dict[int, Tuple[int, int]],
-        chunks: Sequence[IndexedChunkWithLines] | None = None,
         issues: List[Issue] | None = None,
     ) -> str:
         """Sync implementation for add-in metadata generation."""
@@ -294,7 +308,7 @@ class DocxManipulatorService:
         if issues is not None:
             if paragraph_line_ranges:
                 issue_map = _build_issue_map(
-                    issues, chunks or [], paragraph_line_ranges
+                    issues, paragraph_line_ranges
                 )
                 for paragraph_index, paragraph in enumerate(docx_paragraphs):
                     paragraph_issues = issue_map.get(paragraph_index, [])

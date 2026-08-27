@@ -7,6 +7,7 @@ from typing import List, Literal, Optional
 from lib.models.workflow_run import WorkflowRunType
 from lib.services.docx.manipulator import (
     DocxManipulatorType,
+    count_unanchorable_issues,
     docx_manipulator_service,
     issue_to_comment,
 )
@@ -61,8 +62,6 @@ async def generate_docx(
     # After the "original" early-return above, docx_type is a DocxManipulatorType.
     assert isinstance(docx_type, DocxManipulatorType)
 
-    chunks = await file_artifacts.get_chunks()
-
     # Validate file is a DOCX
     main_file_path = main_file.file_path.lower()
     if not main_file_path.endswith(".docx") and not main_file_path.endswith(".doc"):
@@ -100,6 +99,24 @@ async def generate_docx(
     # Unique per invocation so concurrent exports never collide.
     output_id = uuid.uuid4().hex
 
+    # Both export modes silently skip issues they cannot tie to a paragraph, so
+    # account for them once here rather than in either branch. Two causes: no
+    # line range at all (typically a legacy row carrying only chunk_indices, from
+    # before workflows emitted line ranges), or a range overlapping no paragraph.
+    no_range, unmatched = count_unanchorable_issues(issues, paragraph_line_ranges)
+    if no_range or unmatched:
+        logger.warning(
+            "DOCX export (%s) for project %s omits %d of %d issues that cannot be "
+            "anchored to a paragraph: %d have no line range, %d have one that "
+            "matches no paragraph",
+            docx_type.value,
+            project_id,
+            no_range + unmatched,
+            len(issues),
+            no_range,
+            unmatched,
+        )
+
     if docx_type in [
         DocxManipulatorType.COMMENTS,
         DocxManipulatorType.COMMENTS_WITH_LINKS,
@@ -115,7 +132,6 @@ async def generate_docx(
             if (
                 c := issue_to_comment(
                     issue,
-                    chunks,
                     paragraph_line_ranges,
                     share_token_for_comments,
                 )
@@ -135,7 +151,6 @@ async def generate_docx(
             share_token=share_token,
             workflow_run_id=output_id,
             paragraph_line_ranges=paragraph_line_ranges,
-            chunks=chunks,
             issues=issues,
         )
     else:

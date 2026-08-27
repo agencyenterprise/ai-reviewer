@@ -24,7 +24,6 @@ from lib.services.files import (
     get_files_by_project_id,
     get_project_files_list_items,
 )
-from lib.services.chunk_line_matcher import find_line_range_by_chunks
 from lib.services.issue_persistence import get_project_issues
 from lib.services.references import (
     remove_fetch_result_for_file,
@@ -212,11 +211,6 @@ async def get_project_detailed_from_project(
         uuid.UUID(str(project.id)), revision=resolved_revision
     )
 
-    # For issues persisted before the line-range migration, derive
-    # (start_line, end_line) on-the-fly from their chunk_indices so the
-    # markdown renderer can locate them.
-    _backfill_issue_line_ranges(issues, workflow_runs)
-
     feedbacks: list[FeedbackSummary] = []
     if user is not None:
         async with get_async_db_session() as session:
@@ -269,32 +263,6 @@ async def _get_main_document_markdown(project_id: str, revision: int) -> Optiona
     except ValueError:
         return None
     return file_document.markdown
-
-
-def _backfill_issue_line_ranges(
-    issues: Sequence[Issue], workflow_runs: List[WorkflowRunDetail]
-) -> None:
-    """Derive (start_line, end_line) from chunk_indices for issues persisted
-    before the line-range migration. Mutates issues in place."""
-    chunks = None
-    for detail in workflow_runs:
-        if (
-            detail.state is not None
-            and detail.state.type == WorkflowRunType.CHUNK_SPLITTING
-        ):
-            chunks = getattr(detail.state, "chunks", None) or None
-            break
-    if not chunks:
-        return
-
-    for issue in issues:
-        if issue.start_line is not None or issue.end_line is not None:
-            continue
-        if not issue.chunk_indices:
-            continue
-        line_range = find_line_range_by_chunks(chunks, issue.chunk_indices)
-        if line_range is not None:
-            issue.start_line, issue.end_line = line_range
 
 
 async def get_shared_project(project_id: str) -> Project:

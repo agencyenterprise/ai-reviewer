@@ -538,67 +538,6 @@ export type ChatThreadResponse = {
 };
 
 /**
- * ChunkSplittingState
- *
- * State for chunk splitting workflow.
- */
-export type ChunkSplittingState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'chunk_splitting';
-  /**
-   * File Id
-   *
-   * ID of the main document to split into chunks
-   */
-  file_id: string;
-  config: ChunkSplittingWorkflowConfig;
-  /**
-   * Chunks
-   *
-   * Document chunks from main document
-   */
-  chunks?: Array<DocumentChunk>;
-};
-
-/**
- * ChunkSplittingWorkflowConfig
- *
- * Configuration model for chunk splitting workflow.
- */
-export type ChunkSplittingWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'chunk_splitting';
-};
-
-/**
  * CitationIssueItem
  *
  * Persisted workflow-state record for one validated citation.
@@ -827,44 +766,6 @@ export type DeepAgentResult = {
    * Report Html
    */
   report_html?: string;
-};
-
-/**
- * DocumentChunk
- *
- * Raw document chunk without analysis results.
- */
-export type DocumentChunk = {
-  /**
-   * Content
-   */
-  content: string;
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Paragraph Index
-   */
-  paragraph_index: number;
-  /**
-   * Headings
-   *
-   * The headings associated with the chunk, in order of hierarchy
-   */
-  headings?: Array<string> | null;
-  /**
-   * Start Line
-   *
-   * 1-indexed starting line in markdown
-   */
-  start_line: number;
-  /**
-   * End Line
-   *
-   * 1-indexed ending line in markdown
-   */
-  end_line: number;
 };
 
 /**
@@ -3789,7 +3690,6 @@ export type WorkflowRunDetail = {
   state:
     | AboutThisGerState
     | DocumentProcessingState
-    | ChunkSplittingState
     | DocumentSummarizationState
     | ReferenceExtractionState
     | ReferenceFileMatchingState
@@ -3855,7 +3755,6 @@ export type WorkflowRunStatus = (typeof WorkflowRunStatus)[keyof typeof Workflow
  */
 export const WorkflowRunType = {
   DocumentProcessing: 'document_processing',
-  ChunkSplitting: 'chunk_splitting',
   DocumentSummarization: 'document_summarization',
   ReferenceExtraction: 'reference_extraction',
   ReferenceFileMatching: 'reference_file_matching',
@@ -4377,7 +4276,6 @@ export type StartWorkflowApiWorkflowsStartPostData = {
   body:
     | AboutThisGerConfig
     | DocumentProcessingWorkflowConfig
-    | ChunkSplittingWorkflowConfig
     | DocumentSummarizationWorkflowConfig
     | ReferenceExtractionConfig
     | ReferenceFileMatchingConfig

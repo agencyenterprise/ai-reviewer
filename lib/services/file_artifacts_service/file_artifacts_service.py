@@ -18,7 +18,6 @@ from lib.workflows.models import WorkflowRunType
 
 if TYPE_CHECKING:
     from lib.models.bibliography_item import BibliographyItem
-    from lib.workflows.chunk_utils import AnalyzedChunk
     from lib.workflows.document_processing.state import DocumentProcessingState
     from lib.workflows.document_summarization.state import (
         DocumentSummarizationState,
@@ -398,27 +397,6 @@ class FileArtifactsService(FileArtifactsServiceType):
             )
 
         return references
-
-    async def get_chunks(self) -> list["AnalyzedChunk"]:
-        """Retrieve the document's chunks from the chunk splitting state.
-
-        Returns:
-            The document's chunks, each carrying its index and line range, or an
-            empty list if chunk splitting has not run for this project.
-
-        Raises:
-            ValueError: If no workflow runs are found for the project.
-        """
-        from lib.services.workflow_runs import get_project_workflow_runs
-        from lib.workflows.chunk_utils import build_analyzed_chunks
-
-        workflow_runs = await get_project_workflow_runs(
-            self.project_id, revision=self.revision, include_internal=True
-        )
-        states: list["WorkflowState"] = [
-            run.state for run in workflow_runs if run.state is not None
-        ]
-        return build_analyzed_chunks(states)
 
     async def get_deepagent_backend_files(
         self,
