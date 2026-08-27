@@ -15,6 +15,10 @@ import { RadioGroup, RadioGroupItemWithDescription } from '@/components/ui/radio
 import { AlertTriangle, Download, Loader2 } from 'lucide-react';
 import { DocxType } from '../results/components/use-download-docx';
 
+// Temporarily hidden: the Draft Detective add-in export is not offered right now.
+// Flip back to `true` to restore the export type picker.
+const SHOW_ADD_IN_OPTION = false;
+
 interface ShareWarningDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,7 +37,7 @@ export function ShareWarningDialog({
   onDownload,
 }: ShareWarningDialogProps) {
   const isProcessing = isEnablingShare || isDownloading;
-  const [selectedExportType, setSelectedExportType] = useState<'comments' | 'add-in'>('add-in');
+  const [selectedExportType, setSelectedExportType] = useState<'comments' | 'add-in'>('comments');
   const [makePublicAndAddLinks, setMakePublicAndAddLinks] = useState(isProjectPublic);
 
   const shouldShowLinksCheckbox = selectedExportType === 'comments' && !isProjectPublic;
@@ -41,7 +45,7 @@ export function ShareWarningDialog({
 
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
-      setSelectedExportType('add-in');
+      setSelectedExportType('comments');
       setMakePublicAndAddLinks(isProjectPublic);
     }
     onOpenChange(isOpen);
@@ -52,7 +56,7 @@ export function ShareWarningDialog({
       selectedExportType === 'add-in' ? 'add-in' : makePublicAndAddLinks ? 'comments-with-links' : 'comments';
 
     onDownload(docxType);
-    setSelectedExportType('add-in');
+    setSelectedExportType('comments');
     setMakePublicAndAddLinks(isProjectPublic);
   };
 
@@ -62,36 +66,40 @@ export function ShareWarningDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
-            Choose How Issues Are Shown
+            {SHOW_ADD_IN_OPTION ? 'Choose How Issues Are Shown' : 'Download DOCX'}
           </DialogTitle>
           <DialogDescription asChild>
             <div className="text-sm text-muted-foreground pt-2">
-              Choose how reviewers should see this assessment in the downloaded DOCX.
+              {SHOW_ADD_IN_OPTION
+                ? 'Choose how reviewers should see this assessment in the downloaded DOCX.'
+                : 'The assessment results are added to the document as standard Word comments.'}
             </div>
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 pt-2">
-          <RadioGroup
-            value={selectedExportType}
-            onValueChange={(value) => setSelectedExportType(value as 'comments' | 'add-in')}
-            className="gap-2"
-          >
-            <RadioGroupItemWithDescription
-              id="add-in"
+          {SHOW_ADD_IN_OPTION && (
+            <RadioGroup
               value={selectedExportType}
-              label="Draft Detective add-in"
-              description="Reviewers can see issues directly in the add-in as they do in the app."
-              disabled={isProcessing}
-            />
-            <RadioGroupItemWithDescription
-              id="comments"
-              value={selectedExportType}
-              label="Regular comments"
-              description="Adds standard Word comments for use outside the add-in."
-              disabled={isProcessing}
-            />
-          </RadioGroup>
+              onValueChange={(value) => setSelectedExportType(value as 'comments' | 'add-in')}
+              className="gap-2"
+            >
+              <RadioGroupItemWithDescription
+                id="comments"
+                value={selectedExportType}
+                label="Regular comments"
+                description="Adds standard Word comments for use outside the add-in."
+                disabled={isProcessing}
+              />
+              <RadioGroupItemWithDescription
+                id="add-in"
+                value={selectedExportType}
+                label="Draft Detective add-in"
+                description="Reviewers can see issues directly in the add-in as they do in the app."
+                disabled={isProcessing}
+              />
+            </RadioGroup>
+          )}
 
           {shouldShowLinksCheckbox && (
             <label className="flex items-start gap-2 rounded-md border p-3 cursor-pointer">
