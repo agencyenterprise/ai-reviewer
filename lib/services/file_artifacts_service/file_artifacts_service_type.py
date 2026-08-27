@@ -6,7 +6,6 @@ from lib.models.file import FileRole
 if TYPE_CHECKING:
     from lib.workflows.chunk_utils import AnalyzedChunk
     from lib.models.bibliography_item import BibliographyItem
-    from lib.models.footnote_item import FootnoteItem
     from lib.services.file import FileDocument
     from lib.workflows.document_summarization.state import FileSummary
     from lib.workflows.reference_extraction.state import ExtractedReference
@@ -38,9 +37,6 @@ class FileArtifactsServiceType(ABC):
 
     @abstractmethod
     async def get_chunks(self) -> list["AnalyzedChunk"]: ...
-
-    @abstractmethod
-    async def get_footnotes(self) -> list["FootnoteItem"]: ...
 
     @abstractmethod
     async def get_deepagent_backend_files(

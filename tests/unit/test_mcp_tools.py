@@ -611,13 +611,13 @@ async def test_export_project_docx_passes_filters_to_service():
     ):
         await export_project_docx(
             project_id=project_id,
-            workflow_types=[WorkflowRunType.CLAIM_EXTRACTION],
+            workflow_types=[WorkflowRunType.RECOMMENDATION_CHECK],
             severities=[SeverityEnum.HIGH],
             token=_make_token(),
         )
 
     _, kwargs = mock_gen.call_args
-    assert kwargs["workflow_types"] == [WorkflowRunType.CLAIM_EXTRACTION]
+    assert kwargs["workflow_types"] == [WorkflowRunType.RECOMMENDATION_CHECK]
     assert kwargs["severities"] == [SeverityEnum.HIGH]
 
 
@@ -954,7 +954,7 @@ async def test_create_revision_with_content_returns_file_id():
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch("lib.api.mcp.tools.revisions.create_new_revision", new=AsyncMock(return_value=(2, ["claim_extraction"]))),
+        patch("lib.api.mcp.tools.revisions.create_new_revision", new=AsyncMock(return_value=(2, ["recommendation_check"]))),
         patch("lib.api.mcp.tools.revisions.finalize_file", new=AsyncMock(return_value=file_record)),
     ):
         raw = await create_revision(
@@ -966,7 +966,7 @@ async def test_create_revision_with_content_returns_file_id():
     data = json.loads(raw)
     assert data["revision"] == 2
     assert data["file_id"] == str(file_record.id)
-    assert data["previous_workflow_types"] == ["claim_extraction"]
+    assert data["previous_workflow_types"] == ["recommendation_check"]
 
 
 @pytest.mark.asyncio

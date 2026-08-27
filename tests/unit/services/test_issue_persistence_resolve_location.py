@@ -27,7 +27,7 @@ def _issue(**overrides: Any) -> DocumentIssue:
         title="t",
         description="d",
         severity=SeverityEnum.LOW,
-        type=WorkflowRunType.CLAIM_EXTRACTION,
+        type=WorkflowRunType.RECOMMENDATION_CHECK,
     )
     base.update(overrides)
     return DocumentIssue(**base)

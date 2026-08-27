@@ -14,14 +14,6 @@ from lib.workflows.chunk_splitting.state import (
     ChunkSplittingState,
     ChunkSplittingWorkflowConfig,
 )
-from lib.workflows.citation_detection.state import (
-    CitationDetectionConfig,
-    CitationDetectionState,
-)
-from lib.workflows.claim_extraction.state import (
-    ClaimExtractionState,
-    ClaimExtractionWorkflowConfig,
-)
 from lib.workflows.claim_reference_validation_v2.state import (
     ClaimReferenceValidationV2Config,
     ClaimReferenceValidationV2State,
@@ -33,10 +25,6 @@ from lib.workflows.document_processing.state import (
 from lib.workflows.document_summarization.state import (
     DocumentSummarizationState,
     DocumentSummarizationWorkflowConfig,
-)
-from lib.workflows.footnote_extraction.state import (
-    FootnoteExtractionConfig,
-    FootnoteExtractionState,
 )
 from lib.workflows.human_approval.state import (
     HumanApprovalConfig,
@@ -78,10 +66,7 @@ WorkflowState = (
     | DocumentSummarizationState
     | ReferenceExtractionState
     | ReferenceFileMatchingState
-    | FootnoteExtractionState
-    | ClaimExtractionState
     | ClaimReferenceValidationV2State
-    | CitationDetectionState
     | AbbreviationScanV2State
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
@@ -99,9 +84,6 @@ WorkflowConfig = (
     | DocumentSummarizationWorkflowConfig
     | ReferenceExtractionConfig
     | ReferenceFileMatchingConfig
-    | FootnoteExtractionConfig
-    | ClaimExtractionWorkflowConfig
-    | CitationDetectionConfig
     | ClaimReferenceValidationV2Config
     | AbbreviationScanV2Config
     | MethodologicalAlignmentWorkflowConfig

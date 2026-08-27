@@ -44,7 +44,7 @@ async def create_project(
         to upload the file after project creation.
 
     After creation, use run_workflow with the returned project_id to start
-    analysis workflows (e.g. document_processing, claim_extraction).
+    analysis workflows (e.g. document_processing, reference_extraction).
 
     Returns JSON with project_id, file_id (if content was provided), and project_url.
     """
