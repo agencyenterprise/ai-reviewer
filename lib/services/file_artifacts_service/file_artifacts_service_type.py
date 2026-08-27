@@ -39,7 +39,6 @@ class FileArtifactsServiceType(ABC):
     async def get_chunks(self) -> list["AnalyzedChunk"]: ...
 
     @abstractmethod
-    @abstractmethod
     async def get_deepagent_backend_files(
         self,
         include_skills: bool = True,

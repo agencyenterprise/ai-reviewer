@@ -45,7 +45,7 @@ The system addresses these primary research questions:
 
 ![Document Processing Pipeline](./document-processing-pipeline.png)
 
-The system accepts two primary inputs: a **main document** to be reviewed and a set of **supporting documents/references** that provide the evidentiary foundation. These inputs are processed by Draft Detective, which orchestrates a series of specialized agents to analyze the document. The output is a comprehensive table containing all extracted elements—files, chunks, claims, citations, and their verification results—along with a detailed analysis summary. The web interface provides multiple views (Summary, Explorer, Files, Chunks, Citations) to navigate the results and assess the quality of claim substantiation throughout the document.
+The system accepts two primary inputs: a **main document** to be reviewed and a set of **supporting documents/references** that provide the evidentiary foundation. These inputs are processed by Draft Detective, which orchestrates a series of specialized agents to analyze the document. Each assessment reports its findings as issues anchored to a line range in the document, so every finding can be traced back to the text that produced it. The web interface presents them across five views — Document Explorer, References, Files, Assessments, and Peer Review — for navigating the results and judging how well the document is supported.
 
 The system processes documents through a multi-stage pipeline implemented using LangGraph, which orchestrates a series of specialized AI agents:
 
@@ -73,7 +73,7 @@ The system processes documents through a multi-stage pipeline implemented using 
    - Retrieved passages are ranked by cosine distance and presented to the verification agent
    - The LLM evaluates whether retrieved passages substantiate the claim
 
-6. **Inference Validation**: Claims identified as inferential or interpretive are analyzed using the Toulmin model of argumentation to detect potential logical fallacies, unsupported leaps, or missing intermediate reasoning steps. The system examines claims, data/grounds, warrants, qualifiers, rebuttals, and backing to identify invalid inferences.
+6. **Inference Validation**: Flags reasoning in the document that is logically invalid — conclusions not supported by their premises, or arguments resting on a fallacy. Three independent detection passes read the full document in parallel and deliberately over-flag; their candidates are merged and then judged by a separate adjudicator subagent, which did not perform the detection and so assesses each candidate on its merits. Only findings that survive adjudication are reported.
 
 7. **Reference Validation**: Uses web search to check if each reference from the document is available online and matches author, title, year, and publisher against public internet sources. Useful for detecting fabricated or hallucinated references.
 
@@ -130,9 +130,9 @@ The system processes documents through a multi-stage pipeline implemented using 
 **State Management**: The workflow maintains a comprehensive state object that tracks:
 
 - Original documents and their markdown representations
-- Extracted chunks with associated metadata
-- Claims, citations, and references per chunk
-- Verification results and evidence alignments
+- Extracted chunks with their index, paragraph, headings, and line range
+- Extracted references and the supporting documents matched to them
+- Per-assessment findings, each anchored to a line range in the document
 - Error conditions and recovery information
 - Configuration parameters
 
