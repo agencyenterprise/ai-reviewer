@@ -118,17 +118,24 @@ async def generate_docx(
                 )
             )
         ]
-        # An issue with no line range cannot be anchored to a paragraph, so it is
-        # silently absent from the export. That is nearly always a legacy row
-        # carrying only chunk_indices, from before workflows emitted line ranges.
-        # Log it rather than let the export quietly come up short.
+        # An issue that cannot be tied to a paragraph is silently absent from the
+        # export, so report the count rather than let it quietly come up short.
+        # Two causes: the issue has no line range at all (typically a legacy row
+        # carrying only chunk_indices, from before workflows emitted line
+        # ranges), or it has one that overlaps no mapped paragraph.
         if (dropped := len(issues) - len(comments)) > 0:
+            no_range = sum(
+                1 for i in issues if i.start_line is None or i.end_line is None
+            )
             logger.warning(
-                "DOCX export for project %s omitted %d of %d issues: no line range "
-                "to anchor them to a paragraph",
+                "DOCX export for project %s omitted %d of %d issues that could not "
+                "be anchored to a paragraph (%d had no line range, %d had one that "
+                "matched no paragraph)",
                 project_id,
                 dropped,
                 len(issues),
+                no_range,
+                dropped - no_range,
             )
         output_path = await docx_manipulator_service.add_comments_to_docx(
             original_docx_path=main_file.file_path,

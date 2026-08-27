@@ -30,6 +30,12 @@ def find_text_line_range(
         Tuple of (start_line, end_line, char_end_position)
         If not found, returns (1, 1, search_start)
     """
+    # An empty needle "matches" at search_start, which would make end_pos-1
+    # negative and count almost every newline in the document — reporting a
+    # range that spans to EOF. It has no location, so treat it as not found.
+    if not search_text.strip():
+        return (1, 1, search_start)
+
     pos = full_text.find(search_text, search_start)
     if pos == -1:
         # Fallback: try to find with stripped text
@@ -148,6 +154,13 @@ def split_into_sections(markdown: str) -> List[DocumentSection]:
 
     for start_line, end_line, headings in raw:
         block = "\n".join(lines[start_line - 1 : end_line])
+
+        # A run of blank lines (typically the pre-heading region of a document
+        # that opens with whitespace) is not a section. `_subsplit` already skips
+        # these; without the same guard here the block would be searched for as
+        # an empty string and come back spanning the whole document.
+        if not block.strip():
+            continue
 
         if len(block) <= _CHUNK_SIZE:
             start_line_found, end_line_found, search_pos = find_text_line_range(
