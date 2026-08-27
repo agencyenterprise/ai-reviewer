@@ -22,7 +22,7 @@ from lib.services.chunk_line_matcher import (
 )
 from lib.services.text_sanitization import strip_control_chars
 from lib.workflows.models import DocumentIssue, WorkflowRunType
-from lib.workflows.registry import get_all_manifests
+from lib.workflows.registry import available_workflow_type_values
 
 logger = logging.getLogger(__name__)
 
@@ -169,7 +169,7 @@ async def get_project_issues(
         # run to open, and labelled with the raw type slug because the name only
         # resolves through a manifest. Restrict to types that still have one.
         stmt = stmt.where(
-            col(Issue.workflow_type).in_([t.value for t in get_all_manifests()])
+            col(Issue.workflow_type).in_(available_workflow_type_values())
         )
 
         stmt = stmt.order_by(

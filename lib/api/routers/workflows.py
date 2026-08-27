@@ -26,7 +26,7 @@ from lib.services.workflow_runs import (
     get_workflow_run,
 )
 from lib.workflows.human_approval.state import HumanApprovalConfig
-from lib.workflows.registry import get_workflow_manifest
+from lib.workflows.registry import get_workflow_manifest, is_available_workflow_type
 from lib.workflows.workflow_types import WorkflowConfig
 
 router = APIRouter(tags=["workflows"])
@@ -48,7 +48,7 @@ def _assert_workflow_type_still_exists(run: WorkflowRun) -> None:
     and `WorkflowRunDetail.run.type` cannot even serialize once the enum member
     is dropped.
     """
-    if get_workflow_manifest(run.type, raise_exception=False) is None:
+    if not is_available_workflow_type(run.type):
         raise HTTPException(
             status_code=404,
             detail=f"Workflow type '{run.type}' is no longer available",
@@ -137,9 +137,15 @@ async def get_workflow_raw_state(
     this run's parsed state in the project response; that it is unreadable is a
     parsing failure, not a narrower grant.
     """
-    run = await get_workflow_run(workflow_run_id, include_state=True)
+    # Metadata first, authorize, only then pay for the payload: state_json is
+    # deferred and runs to several MB, so loading it up front would let anyone
+    # holding a stale run id (say, after a share link is revoked) force that
+    # read repeatedly and get a 403 for it.
+    run = await get_workflow_run(workflow_run_id)
     await get_project_access(str(run.project_id), current_user, share_token)
     _assert_workflow_type_still_exists(run)
+    run = await get_workflow_run(workflow_run_id, include_state=True)
+
     # `run.type` is a raw str when loaded from the DB (SQLModel skips validation
     # on table models) but a WorkflowRunType when built in Python, and
     # `str(WorkflowRunType.X)` is "WorkflowRunType.X", not the slug. Take .value

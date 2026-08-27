@@ -12,7 +12,11 @@ import uuid
 import pytest
 
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
-from lib.services.workflow_runs import read_workflow_run_state
+from lib.services.workflow_runs import (
+    WorkflowStateStatus,
+    hydrate_workflow_run_state_with_status,
+    read_workflow_run_state,
+)
 from lib.workflows import registry
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.reference_file_matching.state import (
@@ -113,11 +117,6 @@ async def test_status_distinguishes_absent_state_from_schema_drift():
     state no longer validates still holds the user's data and should say so and
     surface it. Both hydrate to None, so the status is what separates them.
     """
-    from lib.services.workflow_runs import (
-        WorkflowStateStatus,
-        hydrate_workflow_run_state_with_status,
-    )
-
     state = _make_state(file_id="file-a", reference_id="ref-a")
 
     ok_run = _make_run(str(uuid.uuid4()), state)

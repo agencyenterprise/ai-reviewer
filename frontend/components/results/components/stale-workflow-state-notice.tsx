@@ -31,9 +31,11 @@ export function StaleWorkflowStateNotice({ workflowRunId, workflowName }: StaleW
   // fetch, since a shared viewer is not the project owner.
   const { shareToken } = useShare();
 
-  // Stringified in `select` rather than during render: these payloads reach
-  // several MB, and re-running JSON.stringify on every re-render (toggling the
-  // "Copied" label alone would do it) is enough to visibly freeze the UI.
+  // Stringified inside queryFn so the cached value *is* the string: these
+  // payloads reach several MB, and re-running JSON.stringify on every render
+  // (toggling the "Copied" label alone would do it) visibly freezes the UI.
+  // `select` would not fix that — query-core memoizes it on reference equality,
+  // so an inline callback re-runs every render anyway.
   const {
     data: rawJson,
     isLoading,
@@ -42,12 +44,13 @@ export function StaleWorkflowStateNotice({ workflowRunId, workflowName }: StaleW
     queryKey: ['workflow-raw-state', workflowRunId, shareToken],
     enabled: isOpen,
     staleTime: Infinity,
-    queryFn: async () =>
-      await getWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGet({
+    queryFn: async () => {
+      const response = await getWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGet({
         path: { workflow_run_id: workflowRunId },
         query: { share_token: shareToken },
-      }),
-    select: (response) => (response.state_json ? JSON.stringify(response.state_json, null, 2) : null),
+      });
+      return response.state_json ? JSON.stringify(response.state_json, null, 2) : null;
+    },
   });
 
   const handleCopy = async () => {

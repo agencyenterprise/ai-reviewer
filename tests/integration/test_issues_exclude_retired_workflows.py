@@ -21,6 +21,7 @@ from lib.models.project import Project
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.models.user import User, UserRole
 from lib.services.issue_persistence import get_project_issues
+from lib.services.workflow_runs import get_project_workflow_runs
 from lib.workflows.models import SeverityEnum, WorkflowRunType
 
 # A type string that used to exist and still sits in real rows, but is no longer
@@ -131,8 +132,6 @@ async def test_retired_runs_are_hidden_even_from_include_internal_callers(
     filter that only applied to the user-facing listing would still hand retired
     workflows to those clients.
     """
-    from lib.services.workflow_runs import get_project_workflow_runs
-
     for include_internal in (False, True):
         runs = await get_project_workflow_runs(
             str(project_with_mixed_issues.id),

@@ -27,7 +27,7 @@ from lib.services.workflow_cost.pricing import compute_cost
 from lib.services.workflow_progress import cancel_workflow_progress
 from lib.workflows.dependency_resolver import get_required_dependents
 from lib.workflows.models import is_user_visible_workflow
-from lib.workflows.registry import get_workflow_manifest
+from lib.workflows.registry import get_workflow_manifest, is_available_workflow_type
 from lib.workflows.workflow_types import WorkflowState
 
 logger = logging.getLogger(__name__)
@@ -563,11 +563,7 @@ async def get_project_workflow_runs(
     # MCP project serializer pass that flag, and neither should hand back a
     # workflow the rest of the API treats as gone. Such a run is also useless as
     # a dependency state: without a manifest it cannot hydrate.
-    runs = [
-        run
-        for run in runs
-        if get_workflow_manifest(run.type, raise_exception=False) is not None
-    ]
+    runs = [run for run in runs if is_available_workflow_type(run.type)]
 
     # Filter out internal workflows unless explicitly requested
     visible_runs = [

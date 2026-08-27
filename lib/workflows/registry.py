@@ -18,6 +18,32 @@ def get_all_manifests() -> Dict[WorkflowRunType, WorkflowManifest]:
     return dict(_workflow_manifest_registry)
 
 
+def is_available_workflow_type(workflow_type: WorkflowRunType | str) -> bool:
+    """Whether a persisted workflow type still has a manifest behind it.
+
+    Rows outlive the workflows that wrote them: `workflow_runs.type` and
+    `issues.workflow_type` keep whatever slug was current when they were
+    written, and nothing rewrites them when a workflow is retired. Anything that
+    loads such a row has to decide whether the workflow still exists before
+    handing it to a client — without a manifest there is no state model to
+    hydrate it with, no display name to label it, and nothing to re-run.
+
+    Accepts the raw `str` these columns actually yield as well as the enum:
+    `WorkflowRunType` is a `(str, Enum)`, so both hash and compare alike as dict
+    keys. Retired types are exactly the ones that miss.
+    """
+    return workflow_type in _workflow_manifest_registry
+
+
+def available_workflow_type_values() -> List[str]:
+    """Slugs of every workflow type that still has a manifest.
+
+    The collection form of `is_available_workflow_type`, for callers that filter
+    in SQL rather than in Python.
+    """
+    return [workflow_type.value for workflow_type in _workflow_manifest_registry]
+
+
 def register_workflow_manifest(manifest: WorkflowManifest) -> None:
     """
     Register a workflow manifest.

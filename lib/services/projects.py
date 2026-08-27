@@ -38,7 +38,7 @@ from lib.services.workflow_runs import (
 )
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.models import WorkflowRunType
-from lib.workflows.registry import get_all_manifests
+from lib.workflows.registry import get_all_manifests, is_available_workflow_type
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +141,13 @@ async def get_user_projects(user: User) -> List[ProjectListItem]:
         for row in results:
             project, workflow_run = row.tuple()
             projects_by_id.setdefault(project.id, project)
-            if workflow_run is not None:
+            # Same rule as the detail path: a run whose workflow no longer has
+            # a manifest is never handed to a client. Its `type` is a raw string
+            # that is not a WorkflowRunType member, so serializing it here would
+            # also break the contract the generated client is built against.
+            if workflow_run is not None and is_available_workflow_type(
+                workflow_run.type
+            ):
                 runs_by_project[project.id].append(workflow_run)
 
         # Build the result list
