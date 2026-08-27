@@ -60,31 +60,11 @@ The system processes documents through a multi-stage pipeline implemented using 
    - Maintains chunk_index, paragraph_index, and chunk_index_within_paragraph metadata
    - Processes paragraphs in parallel for performance (3-10x faster for documents with LLM fallbacks)
 
-3. **Claim Extraction**: An LLM-based agent extracts factual claims from each chunk. Claims are defined as decontextualized propositions—assertions that can be understood and verified independently of their surrounding context. The extraction process considers:
+3. **Reference Extraction**: Bibliographic references are extracted using section detection and windowed extraction, enabling mapping between in-text citations and their full reference entries.
 
-   - Full document context
-   - Paragraph-level context
-   - Domain-specific knowledge requirements
-   - Target audience expectations
+4. **Reference File Matching**: Supporting documents are matched to extracted references to enable verification against full-text sources.
 
-4. **Citation Detection**: Citations are identified and mapped to their corresponding references in the document's bibliography. The system handles various citation formats and associates citations with claims based on proximity and paragraph-level context.
-
-5. **Reference Extraction**: Bibliographic references are extracted using section detection and windowed extraction, enabling mapping between in-text citations and their full reference entries.
-
-6. **Reference File Matching**: Supporting documents are matched to extracted references to enable verification against full-text sources.
-
-7. **Claim Categorization**: Extracted claims are classified into six categories:
-
-   - Established/reported knowledge
-   - Methodological/procedural statements
-   - Empirical/analytical results
-   - Inferential/interpretive claims
-   - Meta/structural/evaluative statements
-   - Other
-
-   Each category determination includes an assessment of whether external verification is required, filtering out common knowledge claims that do not necessitate citation.
-
-8. **Claim Verification**: Claims are verified against supporting documents using RAG-Based verification:
+5. **Claim Verification**: Claims are verified against supporting documents using RAG-Based verification:
 
    - Supporting documents are indexed in a vector store using OpenAI's `text-embedding-3-large` embeddings
    - Documents are chunked (2000 characters with 400-character overlap) and embedded
@@ -93,39 +73,39 @@ The system processes documents through a multi-stage pipeline implemented using 
    - Retrieved passages are ranked by cosine distance and presented to the verification agent
    - The LLM evaluates whether retrieved passages substantiate the claim
 
-9. **Inference Validation**: Claims identified as inferential or interpretive are analyzed using the Toulmin model of argumentation to detect potential logical fallacies, unsupported leaps, or missing intermediate reasoning steps. The system examines claims, data/grounds, warrants, qualifiers, rebuttals, and backing to identify invalid inferences.
+6. **Inference Validation**: Claims identified as inferential or interpretive are analyzed using the Toulmin model of argumentation to detect potential logical fallacies, unsupported leaps, or missing intermediate reasoning steps. The system examines claims, data/grounds, warrants, qualifiers, rebuttals, and backing to identify invalid inferences.
 
-10. **Reference Validation**: Uses web search to check if each reference from the document is available online and matches author, title, year, and publisher against public internet sources. Useful for detecting fabricated or hallucinated references.
+7. **Reference Validation**: Uses web search to check if each reference from the document is available online and matches author, title, year, and publisher against public internet sources. Useful for detecting fabricated or hallucinated references.
 
-11. **Literature Review**: The system conducts automated literature reviews by:
+8. **Literature Review**: The system conducts automated literature reviews by:
 
     - Searching external sources for supporting or conflicting evidence
     - Identifying newer publications relevant to the claims
     - Evaluating reference quality and source credibility
     - Recommending citation additions, replacements, or discussions for claims that would benefit from stronger support
 
-12. **Methodological Alignment**: Analyzes the methodology used in the document against typical methods used in the field, using web search to find field methods context.
+9. **Methodological Alignment**: Analyzes the methodology used in the document against typical methods used in the field, using web search to find field methods context.
 
-13. **Reproducibility Check**: Extracts the main results from the document and classifies each by how reproducibly it could be recreated from the document alone.
+10. **Reproducibility Check**: Extracts the main results from the document and classifies each by how reproducibly it could be recreated from the document alone.
 
-14. **Recommendation Check**: Evaluates whether each recommendation is supported by the document's own findings, flagging recommendations whose backing is weak, indirect, missing, or contradictory.
+11. **Recommendation Check**: Evaluates whether each recommendation is supported by the document's own findings, flagging recommendations whose backing is weak, indirect, missing, or contradictory.
 
-15. **Peer Review Simulation (Reviewer 2)**: Produces an integrated, senior-reviewer-style critique of the document as a whole — strengths, weaknesses, actionable next steps, and a devil's-advocate rebuttal.
+12. **Peer Review Simulation (Reviewer 2)**: Produces an integrated, senior-reviewer-style critique of the document as a whole — strengths, weaknesses, actionable next steps, and a devil's-advocate rebuttal.
 
-16. **Advocacy & Tone Detection**: Flags trigger words, advocacy language, and subjective tone that departs from a neutral, objective voice, combining fast procedural checks with LLM verification.
+13. **Advocacy & Tone Detection**: Flags trigger words, advocacy language, and subjective tone that departs from a neutral, objective voice, combining fast procedural checks with LLM verification.
 
-17. **Preface & Author Biography Validation ("About This")**: Validates the preface/introduction and author biographies against configurable publication requirements:
+14. **Preface & Author Biography Validation ("About This")**: Validates the preface/introduction and author biographies against configurable publication requirements:
 
     - Context, objectives, audience, and scope
     - Relationship to existing literature and contribution statement
     - Boilerplate and funding statement presence
     - Author biography completeness (sentence count, position and affiliation, research focus, style consistency)
 
-18. **Document Contents**: Checks that required sections are present (About This, Acknowledgements, Methods, Results, Conclusion, References, and Appendix when referenced).
+15. **Document Contents**: Checks that required sections are present (About This, Acknowledgements, Methods, Results, Conclusion, References, and Appendix when referenced).
 
-19. **Figures & Tables Check**: Verifies that every figure and table is titled, consistently numbered, and referenced in the body text, and that every body-text reference resolves to an actual figure or table.
+16. **Figures & Tables Check**: Verifies that every figure and table is titled, consistently numbered, and referenced in the body text, and that every body-text reference resolves to an actual figure or table.
 
-20. **Abbreviation Scan**: Verifies that each abbreviation is defined at first use and listed in an Abbreviations section, and that usage is consistent throughout.
+17. **Abbreviation Scan**: Verifies that each abbreviation is defined at first use and listed in an Abbreviations section, and that usage is consistent throughout.
 
 ### Technical Architecture
 
@@ -168,25 +148,40 @@ The system uses GPT-5-family models (e.g. GPT-5.4/GPT-5.5, via LangChain) for al
 
 ### Evaluation Framework
 
-The system includes evaluation capabilities for:
+Most analyses have an end-to-end eval suite under `evals_inspectai/e2e/`, built on
+[Inspect AI](https://inspect.ai-safety-institute.org.uk/). They are end-to-end in the literal sense:
+every sample triggers the real workflow through the API, so the backend must be
+running (`uv run dev.py`) and the run exercises the same pipeline a user would.
 
-- Claim extraction accuracy
-- Citation detection precision and recall
-- Verification alignment classification
-- End-to-end workflow performance
-- Model comparison for cost optimization
+Each suite pairs a dataset (JSON, or YAML for the review-assistant suites) with two
+kinds of scorer:
 
-Evaluation datasets are maintained in YAML format with ground truth annotations for systematic testing. Results can be exported and visualized in a dedicated frontend evaluation viewer.
+- **Deterministic** — the workflow's structured output compared against expected
+  values, for anything with a checkable answer (issue counts, validation verdicts,
+  detected line ranges).
+- **Model-graded** — an LLM judge for output whose quality cannot be matched
+  literally, such as prose reports.
+
+Run one suite, or a single sample, with:
+
+```bash
+uv run inspect eval evals_inspectai/e2e/<eval>/<eval>_e2e.py --epochs=3
+uv run inspect view   # browse the results
+```
+
+Current scores for every suite are recorded in
+[`docs/eval-scores.md`](./eval-scores.md), with the raw Inspect logs under
+[`docs/evals/`](./evals/).
 
 ### System architecture
 
 ![Document Processing Pipeline](./architecture.png)
 
-The system follows a containerized architecture consisting of three primary containers and integration with external providers. The **App Container** hosts a NextJS frontend that provides the user interface, allowing users to interact with the system. This frontend communicates with the **Server Container**, which houses the core processing engine built on FastAPI and LangGraph. LangGraph orchestrates the agent-based workflow as a directed graph, where each node represents a specialized processing step (claim extraction, verification, citation detection, etc.). The **Database Container** runs PostgreSQL with the pgvector extension, storing workflow state, execution history, and vector embeddings for semantic search. The server container maintains bidirectional communication with the database for both workflow persistence and retrieval-augmented generation (RAG) operations. Finally, the system integrates with **External Providers** including OpenAI, Anthropic, Google (and others) for large language model inference, as well as web search capabilities for literature review tasks. This architecture enables flexible deployment, horizontal scaling of processing components, and provider-agnostic LLM integration through a unified interface.
+The system follows a containerized architecture consisting of three primary containers and integration with external providers. The **App Container** hosts a NextJS frontend that provides the user interface, allowing users to interact with the system. This frontend communicates with the **Server Container**, which houses the core processing engine built on FastAPI and LangGraph. LangGraph orchestrates the agent-based workflow as a directed graph, where each node represents a specialized processing step (chunking, reference extraction, claim verification, etc.). The **Database Container** runs PostgreSQL with the pgvector extension, storing workflow state, execution history, and vector embeddings for semantic search. The server container maintains bidirectional communication with the database for both workflow persistence and retrieval-augmented generation (RAG) operations. Finally, the system integrates with **External Providers** including OpenAI, Anthropic, Google (and others) for large language model inference, as well as web search capabilities for literature review tasks. This architecture enables flexible deployment, horizontal scaling of processing components, and provider-agnostic LLM integration through a unified interface.
 
 ## Results
 
-_Note: The following examples represent excerpts extracted from complete document analyses conducted during actual system evaluations. While these excerpts are presented in isolation for clarity and illustrative purposes, it should be noted that the agents operate within the full document context, where paragraph-level and document-level contextual information significantly influences claim extraction, citation association, and verification outcomes._
+_Note: The following examples represent excerpts extracted from complete document analyses conducted during actual system evaluations. While these excerpts are presented in isolation for clarity and illustrative purposes, it should be noted that the agents operate within the full document context, where paragraph-level and document-level contextual information significantly influences claim verification and review outcomes._
 
 ### Claim-Reference Alignment
 
@@ -238,14 +233,10 @@ The following example demonstrates the system's "live reports" capabilities for 
 
 3. **Semantic Retrieval**: RAG-based verification relies on semantic similarity, which may retrieve passages that are topically related but do not substantiate specific claims. The verification agent filters these, but false positives are possible.
 
-4. **Common Knowledge Boundaries**: The distinction between claims requiring citation and common knowledge is domain- and audience-dependent. The system's categorization may not align with all disciplinary conventions.
+4. **Processing Scale**: Large documents with many claims require significant computational resources. The system supports selective re-evaluation of specific chunks to optimize resource usage.
 
-5. **Citation Proximity**: The system associates citations with claims based on paragraph-level proximity. In cases where citations are distant from their claims, associations may be incorrect.
+5. **Web Search Dependency**: Literature review, reference validation, and methodological alignment analyses require web search access. Results depend on search engine availability and the indexed web content.
 
-6. **Processing Scale**: Large documents with many claims require significant computational resources. The system supports selective re-evaluation of specific chunks to optimize resource usage.
-
-7. **Web Search Dependency**: Literature review, reference validation, and methodological alignment analyses require web search access. Results depend on search engine availability and the indexed web content.
-
-8. **Editorial Check Customization**: The editorial and compliance checks (advocacy & tone, preface and author-biography validation, document contents) are configurable but may require tuning to match a given publication's or organization's style requirements.
+6. **Editorial Check Customization**: The editorial and compliance checks (advocacy & tone, preface and author-biography validation, document contents) are configurable but may require tuning to match a given publication's or organization's style requirements.
 
 ## References

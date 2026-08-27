@@ -28,7 +28,7 @@ computed over every metric in the cell, not only the ones a reader expands. **Ov
 mean of that eval's per-scorer accuracies (a rough headline number: scorers
 measure different things, so it is not a rigorous aggregate). Model-graded
 scores use `openai/gpt-5.4` as the grader, except the two review-assistant
-suites (18 and 19), which pin `openai/gpt-5.6-terra`.
+suites (17 and 18), which pin `openai/gpt-5.6-terra`.
 
 Those two also report one metric per check rather than a single blended score,
 so every rule they enforce is listed separately. A broken rule is a defect and a
@@ -54,7 +54,7 @@ lower judged score is a trend; averaging them together hides both.
 | 16 | `reviewer_2` | 2 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 1.000</summary>`structured_output_scorer` 1.000 ±0.000[^rev-produced]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-07-09 | [`…_Hvsv4KmhjdSPMGFbKCjykd.eval`](./evals/2026-07-09T16-54-17-00-00_reviewer-2-e2e_Hvsv4KmhjdSPMGFbKCjykd.eval) |
 | 17 | `reviewer_coverage_report` | 5 | 3 | <details><summary>9 deterministic all 1.000 · 4 judged 0.833–0.967</summary>`verbatim` 1.000 ±0.000<br>`quoted` 1.000 ±0.000<br>`id_scheme` 1.000 ±0.000<br>`self_contained` 1.000 ±0.000<br>`two_part_layout` 1.000 ±0.000<br>`voice` 1.000 ±0.000[^ra-structure]<br>`verdict_table` 1.000 ±0.000<br>`verdict_vocabulary` 1.000 ±0.000<br>`recommendation` 1.000 ±0.000[^rcr-bookkeeping]<br>`verdicts_correct` 0.900 ±0.041<br>`part1_is_decision_grade` 0.933 ±0.041<br>`evidence_and_location` 0.967 ±0.033<br>`scenario_trap` 0.833 ±0.075[^rcr-rubric]</details> | **0.972** | 2026-08-24 | [`…_QQLyTtYCQDafkbvYJ6JSHE.eval`](./evals/2026-08-24T17-17-04-00-00_reviewer-coverage-report-e2e_QQLyTtYCQDafkbvYJ6JSHE.eval) |
 | 18 | `revision_planning_summary` | 5 | 3 | <details><summary>6 deterministic all 1.000 · 4 judged 0.833–1.000</summary>`verbatim` 1.000 ±0.000<br>`quoted` 1.000 ±0.000<br>`id_scheme` 1.000 ±0.000<br>`self_contained` 1.000 ±0.000<br>`two_part_layout` 1.000 ±0.000<br>`voice` 1.000 ±0.000[^ra-structure]<br>`locations_by_content` 0.933 ±0.041<br>`part1_triage` 0.900 ±0.067<br>`planning_notes` 1.000 ±0.000<br>`scenario_trap` 0.833 ±0.075[^rps-rubric]</details> | **0.967** | 2026-08-24 | [`…_FUKLiArqfTX2ebmzGjEHuQ.eval`](./evals/2026-08-24T17-12-20-00-00_revision-planning-summary-e2e_FUKLiArqfTX2ebmzGjEHuQ.eval) |
-| | **Mean across all evals** | | | | **0.944** | | |
+| | **Mean across all evals** | | | | **0.953** | | |
 
 ## Scorer reference
 

@@ -400,15 +400,11 @@ class FileArtifactsService(FileArtifactsServiceType):
         return references
 
     async def get_chunks(self) -> list["AnalyzedChunk"]:
-        """Retrieve analyzed chunks from workflow states.
-
-        Builds analyzed chunks by extracting chunks from document processing state
-        and enriching them with claims, claim categories, and citations from their
-        respective workflow states (claim extraction, citation detection).
+        """Retrieve the document's chunks from the chunk splitting state.
 
         Returns:
-            A list of analyzed chunks with all available analysis results.
-            Returns empty list if document processing state is not found.
+            The document's chunks, each carrying its index and line range, or an
+            empty list if chunk splitting has not run for this project.
 
         Raises:
             ValueError: If no workflow runs are found for the project.

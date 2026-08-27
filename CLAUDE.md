@@ -226,7 +226,7 @@ except DocumentProcessingError as e:
 
 ```
 lib/
-├── agents/          # Individual AI agents (claim_extractor, etc.)
+├── agents/          # Individual AI agents (reference_validator_v2, etc.)
 ├── workflows/       # LangGraph workflow definitions
 ├── services/        # Business logic services
 ├── models/          # Database models
@@ -406,7 +406,7 @@ async def test_document_processing():
 # Mock external dependencies
 @pytest.fixture
 def mock_llm():
-    with patch('lib.agents.claim_extractor.init_chat_model') as mock:
+    with patch('lib.agents.deep_agent_setup.init_chat_model') as mock:
         mock.return_value.ainvoke.return_value = MockResponse()
         yield mock
 ```
