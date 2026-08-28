@@ -57,13 +57,16 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
       });
     },
     onSuccess: (updatedProject) => {
-      queryClient.setQueryData(['project', projectId], (curr: ProjectDetailed | undefined) => {
+      // The details query is keyed per revision (['project', id, revision]), so patch every
+      // cached revision instead of an exact key that would never match.
+      queryClient.setQueriesData({ queryKey: ['project', projectId] }, (curr: ProjectDetailed | undefined) => {
         if (!curr) return curr;
         return {
           ...curr,
           project: updatedProject,
         };
       });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast.success('Title updated successfully');
     },
     onError: (error) => {
