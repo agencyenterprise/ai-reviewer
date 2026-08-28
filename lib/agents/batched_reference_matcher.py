@@ -12,7 +12,7 @@ from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.document_summarizer import DocumentSummary
-from lib.config.llm_models import gpt_5_mini_model
+from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
 from lib.services.reference_embedding_matcher import CandidateMatch
 
@@ -113,7 +113,7 @@ class BatchedReferenceMatcherAgent(LangChainAgent):
 
     name = "Batched Reference Matcher"
     description = "Match multiple bibliographic references to their candidate documents in a single call"
-    model = gpt_5_mini_model
+    model = gpt_5_6_terra_model
     temperature = 0.0
     output_schema = BatchedMatchResult
 

@@ -7,7 +7,7 @@ from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.env import config
-from lib.config.llm_models import gpt_5_mini_model
+from lib.config.llm_models import gpt_5_6_terra_model
 from lib.agents.models import ReproducibilityCategory
 from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
@@ -46,7 +46,7 @@ class MethodologyExtractorAgent(LangChainAgent):
         "the methodology used to obtain the results, with sufficient detail for external "
         "researchers to reproduce the work."
     )
-    model = gpt_5_mini_model
+    model = gpt_5_6_terra_model
     temperature = 0.2
     output_schema = MethodologyExtractionResponse
 

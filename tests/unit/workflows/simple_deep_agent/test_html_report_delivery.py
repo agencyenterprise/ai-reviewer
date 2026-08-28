@@ -11,6 +11,7 @@ from lib.workflows.literature_review_v2.nodes.literature_review import (
 from lib.workflows.live_reports_v2.nodes.live_reports import (
     _SYSTEM_PROMPT as LIVE_REPORTS_PROMPT,
 )
+from lib.config.llm_models import gpt_5_6_terra_model, web_search_tool
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.registry import get_workflow_manifest
 from lib.workflows.simple_deep_agent.agent import (
@@ -249,7 +250,7 @@ async def test_issue_tool_is_added_without_replacing_workflow_tools():
     agent = SimpleDeepAgent(
         context=context,
         user_prompt="rules",
-        tools=[{"type": "web_search"}],
+        tools=[web_search_tool(gpt_5_6_terra_model)],
     )
     agent._llm = MagicMock()
 
@@ -263,7 +264,7 @@ async def test_issue_tool_is_added_without_replacing_workflow_tools():
 
     tools = create_agent.call_args.kwargs["tools"]
     assert {tool.name for tool in tools if hasattr(tool, "name")} == {"report_issue"}
-    assert {"type": "web_search"} in tools
+    assert web_search_tool(gpt_5_6_terra_model) in tools
 
 
 @pytest.mark.asyncio

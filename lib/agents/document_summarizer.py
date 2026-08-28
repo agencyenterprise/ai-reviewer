@@ -6,7 +6,7 @@ from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.config.env import config
-from lib.config.llm_models import gpt_5_mini_model
+from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 
@@ -97,7 +97,7 @@ This summary should feel like a compressed research report focused on the argume
 class DocumentSummarizerAgent(LangChainAgent):
     name = "Document Summarizer"
     description = "Read a document and produce a ~1000-word argument-focused miniature version plus basic metadata."
-    model = gpt_5_mini_model
+    model = gpt_5_6_terra_model
     temperature = 0.5
     output_schema = DocumentSummarizerResponse
 

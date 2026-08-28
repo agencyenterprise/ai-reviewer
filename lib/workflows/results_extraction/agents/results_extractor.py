@@ -7,7 +7,7 @@ from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.models import ReproducibilityCategory
-from lib.config.llm_models import gpt_5_mini_model
+from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
 
@@ -48,7 +48,7 @@ class ResultsListResponse(BaseModel):
 class ResultsExtractorAgent(LangChainAgent):
     name = "Results Extractor"
     description = "Read a research document and extract a detailed list of the results"
-    model = gpt_5_mini_model
+    model = gpt_5_6_terra_model
     temperature = 0.2
     output_schema = ResultsListResponse
 
