@@ -1,5 +1,6 @@
 'use client';
 
+import { useExperimentalFeatures } from '@/context/experimental-features-context';
 import { WorkflowRunType } from '@/lib/generated-api';
 import { useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
 import { TabType } from './constants';
@@ -19,6 +20,9 @@ export function ProjectTabPanel({ tab }: { tab: TabType }) {
   const { projectDetail, readOnly, selectedRevision, onRevisionChange, onRevisionCreated, navigateToTab } =
     useProjectView();
   const setFilter = useDocumentExplorerStore((s) => s.setFilter);
+  // Peer Review is still alpha: the tab, and the route behind it, exist only
+  // for users who opted in.
+  const { showExperimentalFeatures, isLoading: isLoadingPreferences } = useExperimentalFeatures();
 
   const navigateToDocumentExplorer = (lineRange?: [number, number]) => {
     navigateToTab('document-explorer', lineRangeHash(lineRange));
@@ -61,10 +65,12 @@ export function ProjectTabPanel({ tab }: { tab: TabType }) {
           readOnly={readOnly}
           onNavigateToDocumentExplorer={navigateToDocumentExplorer}
           onNavigateToReferences={() => navigateToTab('references')}
-          onNavigateToPeerReview={() => navigateToTab('peer-review')}
+          onNavigateToPeerReview={showExperimentalFeatures ? () => navigateToTab('peer-review') : undefined}
         />
       );
     case 'peer-review':
+      if (isLoadingPreferences) return null;
+      if (!showExperimentalFeatures) return <PeerReviewUnavailable />;
       return (
         <PeerReviewTab
           projectDetail={projectDetail}
@@ -75,4 +81,16 @@ export function ProjectTabPanel({ tab }: { tab: TabType }) {
         />
       );
   }
+}
+
+/**
+ * Shown when the Peer Review route is reached without the alpha opt-in — from a
+ * bookmark or a shared link, since the tab itself is hidden in that case.
+ */
+function PeerReviewUnavailable() {
+  return (
+    <div className="py-12 text-center text-sm text-muted-foreground">
+      Peer Review is an alpha feature. Turn on <strong>Alpha features</strong> in your profile menu to use it.
+    </div>
+  );
 }

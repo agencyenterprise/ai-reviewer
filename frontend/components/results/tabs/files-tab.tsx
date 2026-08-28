@@ -23,6 +23,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FileDownloadLink } from '@/components/ui/file-download-link';
+import { useExperimentalFeatures } from '@/context/experimental-features-context';
 import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
 import { buildReferenceByFileIdMap, composeReferences, ComposedReference } from '@/lib/composed-references';
 import { FileListItem, FileRole, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
@@ -179,6 +180,9 @@ export function FilesTab({ projectDetail, readOnly = false, onRevisionCreated }:
   const [searchQuery, setSearchQuery] = useState('');
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  // Reviewer memos only feed the alpha Peer Review tab, so the role picker is
+  // offered to the same users who can see that tab.
+  const { showExperimentalFeatures } = useExperimentalFeatures();
 
   const referenceExtraction = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction);
   const referenceFileMatching = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching);
@@ -314,9 +318,13 @@ export function FilesTab({ projectDetail, readOnly = false, onRevisionCreated }:
         isOpen={isUploadOpen}
         projectId={projectId}
         title="Upload files"
-        description="Add supporting documents or reviewer memos to this project."
+        description={
+          showExperimentalFeatures
+            ? 'Add supporting documents or reviewer memos to this project.'
+            : 'Add supporting documents to this project.'
+        }
         multiple
-        allowRoleSelection
+        allowRoleSelection={showExperimentalFeatures}
         allowRevisionSelection
         currentRevision={currentRevision}
         onCancel={() => setIsUploadOpen(false)}

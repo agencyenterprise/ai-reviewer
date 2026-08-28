@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
 import { EditableTitle } from '@/components/ui/editable-title';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useExperimentalFeatures } from '@/context/experimental-features-context';
 import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
 import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
@@ -67,6 +68,8 @@ export function ProjectResultsShell({
   const documentSummarization = getWorkflowRunByType(results, WorkflowRunType.DocumentSummarization);
   const referenceExtraction = getWorkflowRunByType(results, WorkflowRunType.ReferenceExtraction);
   const { isWorkflowTypeVisible } = useWorkflowTypes();
+  // Peer Review is still alpha, so it only exists for users who opted in.
+  const { showExperimentalFeatures } = useExperimentalFeatures();
 
   const referenceApproval = useReferenceApprovalFlow(projectDetail, projectDetail.project.id);
 
@@ -175,17 +178,19 @@ export function ProjectResultsShell({
                     {results.filter((r) => isWorkflowTypeVisible(r.run.type)).length}
                   </Badge>
                 </TabsTrigger>
-                <TabsTrigger value="peer-review" className="relative">
-                  Peer Review
-                  {peerReviewFacts.memos.length > 0 && (
-                    <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
-                      {peerReviewFacts.memos.length}
-                    </Badge>
-                  )}
-                  {peerReviewAttention && (
-                    <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-background" />
-                  )}
-                </TabsTrigger>
+                {showExperimentalFeatures && (
+                  <TabsTrigger value="peer-review" className="relative">
+                    Peer Review
+                    {peerReviewFacts.memos.length > 0 && (
+                      <Badge className="rounded-full h-4.5 min-w-4.5" variant="secondary">
+                        {peerReviewFacts.memos.length}
+                      </Badge>
+                    )}
+                    {peerReviewAttention && (
+                      <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-background" />
+                    )}
+                  </TabsTrigger>
+                )}
               </TabsList>
             </Tabs>
 
