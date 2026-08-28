@@ -1,12 +1,12 @@
 'use client';
 
-import { IssuesList, IssuesListHandle } from './issues-list';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Issue } from '@/lib/generated-api';
 import { getIssueCount, hasActiveFilters, useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
-import { Loader2, X } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Ref, useImperativeHandle, useRef, useState } from 'react';
+import { IssuesList, IssuesListHandle } from './issues-list';
 
 export interface IssuesColumnHandle {
   scrollToIssue: (issue: Issue) => void;
@@ -14,27 +14,33 @@ export interface IssuesColumnHandle {
 
 interface IssuesColumnProps {
   ref?: Ref<IssuesColumnHandle>;
+  /** Issues after the passing/resolved toggles, before severity and type. */
   visibleIssues: Issue[];
-  filteredIssues: Issue[];
+  /** Issues after every filter — what the list shows. */
+  issues: Issue[];
   /** The issue whose row is expanded. */
   activeIssueId: string | null;
   isAnyProcessing: boolean;
   readOnly: boolean;
   onSelectIssue: (issue: Issue) => void;
-  onClearSelection: () => void;
 }
 
+/**
+ * The whole issue queue, always. Selecting an issue or a paragraph opens and
+ * scrolls to its row rather than narrowing the list to it: the margin already
+ * answers "what is on this paragraph", so filtering here only cost the reader
+ * their sense of what else the document holds.
+ */
 export function IssuesColumn({
   ref,
   visibleIssues,
-  filteredIssues,
+  issues,
   activeIssueId,
   isAnyProcessing,
   readOnly,
   onSelectIssue,
-  onClearSelection,
 }: IssuesColumnProps) {
-  const { selectedLineRange, filter, clearFilters } = useDocumentExplorerStore();
+  const { filter, clearFilters } = useDocumentExplorerStore();
   const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
   const listRef = useRef<IssuesListHandle>(null);
 
@@ -45,13 +51,7 @@ export function IssuesColumn({
   }));
 
   const visibleCount = getIssueCount(visibleIssues);
-  const filteredCount = getIssueCount(filteredIssues);
-
-  const selectionLabel = selectedLineRange
-    ? selectedLineRange[0] === selectedLineRange[1]
-      ? `Line ${selectedLineRange[0]}`
-      : `Lines ${selectedLineRange[0]}–${selectedLineRange[1]}`
-    : null;
+  const shownCount = getIssueCount(issues);
 
   return (
     <div className="flex h-full flex-col">
@@ -71,17 +71,10 @@ export function IssuesColumn({
             </Tooltip>
           )}
           {visibleCount > 0 &&
-            (filteredCount === visibleCount ? `${visibleCount} issues` : `${filteredCount} of ${visibleCount} issues`)}
+            (shownCount === visibleCount ? `${visibleCount} issues` : `${shownCount} of ${visibleCount} issues`)}
           {visibleCount === 0 && isAnyProcessing && 'Finding issues...'}
           {visibleCount === 0 && !isAnyProcessing && 'No issues'}
         </span>
-
-        {selectionLabel && (
-          <Button variant="outline" size="sm" className="ml-auto h-6 gap-1 px-2 text-xs" onClick={onClearSelection}>
-            {selectionLabel}
-            <X />
-          </Button>
-        )}
       </div>
 
       <div ref={setScrollContainer} className="min-h-0 flex-1 overflow-y-auto">
@@ -89,10 +82,10 @@ export function IssuesColumn({
           <p className="p-4 text-sm text-muted-foreground">No issues found for this document.</p>
         )}
 
-        {visibleIssues.length > 0 && filteredIssues.length === 0 && !isAnyProcessing && (
+        {visibleIssues.length > 0 && issues.length === 0 && !isAnyProcessing && (
           <div className="space-y-1 py-8 text-center text-sm text-muted-foreground">
-            <p>{selectedLineRange ? 'No issues on the selected lines.' : 'No issues match the current filters.'}</p>
-            {hasActiveFilters(filter) && !selectedLineRange && (
+            <p>No issues match the current filters.</p>
+            {hasActiveFilters(filter) && (
               <Button variant="link" size="sm" className="text-xs" onClick={clearFilters}>
                 Clear filters
               </Button>
@@ -102,7 +95,7 @@ export function IssuesColumn({
 
         <IssuesList
           ref={listRef}
-          issues={filteredIssues}
+          issues={issues}
           scrollElement={scrollContainer}
           activeIssueId={activeIssueId}
           onSelect={onSelectIssue}

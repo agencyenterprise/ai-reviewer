@@ -168,7 +168,10 @@ function blockFactory(Tag: string, spacing: string, className: string, isContain
       {
         ...rest,
         ...dataProps,
-        className: cn(className, '-mx-2 rounded-sm px-2 transition-colors', !isRow && spacing, rest.className),
+        // The shared classes come first so a block's own padding wins: tailwind-merge
+        // drops the earlier of two conflicting utilities, which was silently
+        // removing the lists' indent and leaving their markers over the gutter.
+        className: cn('-mx-2 rounded-sm px-2 transition-colors', className, !isRow && spacing, rest.className),
       },
       body,
     );
@@ -212,7 +215,7 @@ function blockFactory(Tag: string, spacing: string, className: string, isContain
   return Block;
 }
 
-const REMARK_PLUGINS: PluggableList = [remarkGfm, remarkMath];
+const REMARK_PLUGINS: PluggableList = [remarkGfm, [remarkMath, { singleDollarTextMath: false }]];
 const REHYPE_PLUGINS: PluggableList = [rehypeMathML, [rehypeRaw, { tagfilter: true }]];
 
 const BLOCK_COMPONENTS = {
@@ -223,9 +226,9 @@ const BLOCK_COMPONENTS = {
   h4: blockFactory('h4', 'mt-4 mb-2', 'text-base font-semibold'),
   h5: blockFactory('h5', 'mt-4 mb-2', 'text-base font-medium'),
   h6: blockFactory('h6', 'mt-4 mb-2', 'text-base font-medium'),
-  ul: blockFactory('ul', 'mb-3', 'ml-6 list-disc', true),
-  ol: blockFactory('ol', 'mb-3', 'ml-6 list-decimal', true),
-  li: blockFactory('li', 'mb-1', ''),
+  ul: blockFactory('ul', 'mb-3', 'list-disc pl-8', true),
+  ol: blockFactory('ol', 'mb-3', 'list-decimal pl-8', true),
+  li: blockFactory('li', 'mb-1', 'leading-[1.7]'),
   blockquote: blockFactory('blockquote', 'mb-3', 'border-l-2 border-border pl-4 text-muted-foreground', true),
   pre: blockFactory('pre', 'mb-3', 'max-w-full overflow-x-auto rounded bg-muted px-2 py-1'),
   table: blockFactory('table', 'mb-3', 'w-full border-collapse text-left text-[13px]', true, true),
@@ -377,7 +380,15 @@ export function DocumentView({
   const marginState: MarginState | null = margin ? { issues: lineIssues, ...margin } : null;
 
   return (
-    <div ref={containerRef} className="relative h-full overflow-x-hidden overflow-y-auto px-5 py-5 text-sm break-words">
+    <div
+      ref={containerRef}
+      className={cn(
+        'relative h-full overflow-x-hidden overflow-y-auto px-5 py-5 text-sm break-words',
+        // MathML does not wrap, so give it its own scroll rather than letting it
+        // run past the text column.
+        '[&_math]:inline-block [&_math]:max-w-full [&_math]:overflow-x-auto [&_math]:align-middle',
+      )}
+    >
       {header && <div className="mb-4">{header}</div>}
       <MarginContext.Provider value={marginState}>
         <div className={cn('mx-auto', WIDTH_BASE, marginState && WIDTH_WITH_MARGIN)}>{renderedMarkdown}</div>

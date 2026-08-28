@@ -67,15 +67,15 @@ export function lineLabel(issue: Issue): string | null {
   return start === end ? `L${start}` : `L${start}–${end}`;
 }
 
-/** The line above an issue's title: where it came from and where it lands. */
-export function IssueMeta({ issue, showDot = true }: { issue: Issue; showDot?: boolean }) {
+/** The line above an issue's title: its severity, where it came from, where it lands. */
+export function IssueMeta({ issue }: { issue: Issue }) {
   const { getWorkflowTypeName } = useWorkflowTypes();
   const resolved = isIssueResolved(issue);
   const line = lineLabel(issue);
 
   return (
     <span className="flex items-center gap-1.5">
-      {showDot && <span className={cn('block size-1.5 shrink-0 rounded-full', SEVERITY[issue.severity].dot)} />}
+      <span className={cn('block size-1.5 shrink-0 rounded-full', SEVERITY[issue.severity].dot)} />
       <span className="truncate font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
         {getWorkflowTypeName(issue.workflow_type)}
       </span>

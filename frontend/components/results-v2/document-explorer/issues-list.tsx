@@ -144,8 +144,11 @@ function IssueRow({
         resolved && !active && 'opacity-60',
       )}
     >
-      <IssueMeta issue={issue} showDot={false} />
-      <span className="mt-1 block text-[13.5px] leading-snug font-medium">{issue.title}</span>
+      <IssueMeta issue={issue} />
+      <span className="mt-1 flex items-start gap-2">
+        <span className="flex-1 text-[13.5px] leading-snug font-medium">{issue.title}</span>
+        {active && <span className={cn('shrink-0 font-mono text-[10px] uppercase', style.text)}>{style.label}</span>}
+      </span>
       {active && (
         <div className="mt-2">
           <IssueBody issue={issue} readOnly={readOnly} />

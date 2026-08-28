@@ -5,7 +5,6 @@ import { Callout } from '@/components/ui/callout';
 import { Issue, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { useLineHashNavigation } from '@/lib/line-hash';
 import {
-  getFilteredIssues,
   getHighlightIssues,
   getPassingCount,
   getResolvedCount,
@@ -82,12 +81,8 @@ export function DocumentExplorerTabV2({
   const workflowErrors = useMemo(() => getBlockingWorkflowErrors(workflowDetails), [workflowDetails]);
   const outline = useMemo(() => extractOutline(mainDocumentMarkdown), [mainDocumentMarkdown]);
   const visibleIssues = useMemo(() => getVisibleIssues(issues, filter), [issues, filter]);
-  const resolvedCount = useMemo(() => getResolvedCount(issues, selectedLineRange), [issues, selectedLineRange]);
+  const resolvedCount = useMemo(() => getResolvedCount(issues, null), [issues]);
   const passingCount = useMemo(() => getPassingCount(issues), [issues]);
-  const filteredIssues = useMemo(
-    () => getFilteredIssues(visibleIssues, filter, selectedLineRange),
-    [visibleIssues, filter, selectedLineRange],
-  );
   const highlightIssues = useMemo(() => getHighlightIssues(visibleIssues, filter), [visibleIssues, filter]);
 
   // Falls back to the first issue on the selected lines, so arriving on a #L… hash
@@ -312,15 +307,11 @@ export function DocumentExplorerTabV2({
           <IssuesColumn
             ref={issuesRef}
             visibleIssues={visibleIssues}
-            filteredIssues={filteredIssues}
+            issues={highlightIssues}
             activeIssueId={activeIssueId}
             isAnyProcessing={isAnyProcessing}
             readOnly={readOnly}
             onSelectIssue={handleSelectIssue}
-            onClearSelection={() => {
-              setOpenIssueId(null);
-              clearLineSelection();
-            }}
           />
         </aside>
       </div>
