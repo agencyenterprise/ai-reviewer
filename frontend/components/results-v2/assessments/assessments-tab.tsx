@@ -13,15 +13,14 @@ import { getErrorMessage } from '@/lib/api-error';
 import { ProjectDetailed, startMultipleWorkflowsApiWorkflowsStartMultiplePost } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { isPeerReviewWorkflowType } from '@/lib/peer-review';
-import { cn } from '@/lib/utils';
 import { getDisplayStatus } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
-import { ArrowRight, PanelLeft, PlayIcon } from 'lucide-react';
+import { ArrowRight, PlayIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { WorkflowRunHistory } from '@/components/workflows/workflow-run-history';
+import { Rail, RailToggle, useRailState } from '../panes';
 import { AssessmentRail } from './assessment-rail';
 
 interface AssessmentsTabV2Props {
@@ -51,7 +50,7 @@ export function AssessmentsTabV2({
   const queryClient = useQueryClient();
   const { getWorkflowTypeName, getWorkflowTypeDescription, isWorkflowTypeVisible } = useWorkflowTypes();
 
-  const [railOpen, setRailOpen] = useState(true);
+  const rail = useRailState();
   const [configOpen, setConfigOpen] = useState(false);
 
   // Opening on the first assessment beats opening on a prompt to click one.
@@ -91,39 +90,23 @@ export function AssessmentsTabV2({
         onCancel={() => setConfigOpen(false)}
       />
 
-      <aside
-        className={cn(
-          'bg-sidebar hidden shrink-0 border-r transition-[width] xl:block',
-          railOpen ? 'w-72' : 'w-0 overflow-hidden border-r-0',
-        )}
-      >
+      <Rail state={rail} label="Assessments">
         <AssessmentRail
           workflowDetails={workflowDetails}
           issues={projectDetail.issues ?? []}
           selectedWorkflowType={selectedWorkflowType}
-          onSelectWorkflowType={handleSelectWorkflowType}
+          onSelectWorkflowType={(type) => {
+            handleSelectWorkflowType(type);
+            rail.close();
+          }}
           onStartNewAssessment={() => setConfigOpen(true)}
           readOnly={readOnly}
         />
-      </aside>
+      </Rail>
 
       <main className="flex min-w-0 flex-1 flex-col">
         <div className="flex h-10 shrink-0 items-center gap-2 border-b px-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="hidden size-7 xl:flex"
-                onClick={() => setRailOpen(!railOpen)}
-                aria-label={railOpen ? 'Hide assessments' : 'Show assessments'}
-                aria-pressed={railOpen}
-              >
-                <PanelLeft className="size-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{railOpen ? 'Hide assessments' : 'Show assessments'}</TooltipContent>
-          </Tooltip>
+          <RailToggle state={rail} label="Assessments" />
 
           {/* The count, not the selected name: the pane's own heading says which
               assessment this is, one line below. */}

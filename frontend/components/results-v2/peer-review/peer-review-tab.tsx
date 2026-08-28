@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { SimpleDeepAgentResults } from '@/components/workflows/results/simple-deep-agent-results';
 import { FileRole, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
-import { cn } from '@/lib/utils';
-import { ClipboardCheck, History, ListChecks, Lock, MessagesSquare, PanelLeft, Upload } from 'lucide-react';
+import { WIDE_ENOUGH_FOR_PANE, useMediaQuery } from '@/lib/use-media-query';
+import { ClipboardCheck, History, ListChecks, Lock, MessagesSquare, Upload } from 'lucide-react';
 import { ReactNode, useState } from 'react';
+import { Rail, RailToggle, SidePane, useRailState } from '../panes';
 import { MemosPane } from './memos-pane';
 import { StepRail } from './step-rail';
 import { STEPS, StepId, readStepStates } from './steps';
@@ -40,7 +41,9 @@ export function PeerReviewTabV2({
   const { facts, planFallback, startStage, cancelRun, isStarting } = usePeerReviewState({ projectDetail });
   const { runs, currentRevision, reviewedRevision, hasRevisedDraft, isViewingOldRevision } = facts;
 
-  const [railOpen, setRailOpen] = useState(true);
+  const rail = useRailState();
+  const isWideEnoughForMemos = useMediaQuery(WIDE_ENOUGH_FOR_PANE);
+  const [memosOpen, setMemosOpen] = useState(false);
   const [memoUploadOpen, setMemoUploadOpen] = useState(false);
   const [revisionDialogOpen, setRevisionDialogOpen] = useState(false);
 
@@ -115,32 +118,20 @@ export function PeerReviewTabV2({
         hideRerunOption
       />
 
-      <aside
-        className={cn(
-          'bg-sidebar hidden shrink-0 border-r transition-[width] xl:block',
-          railOpen ? 'w-72' : 'w-0 overflow-hidden border-r-0',
-        )}
-      >
-        <StepRail states={states} activeStep={activeStep} onSelectStep={setActiveStep} />
-      </aside>
+      <Rail state={rail} label="Steps">
+        <StepRail
+          states={states}
+          activeStep={activeStep}
+          onSelectStep={(step) => {
+            setActiveStep(step);
+            rail.close();
+          }}
+        />
+      </Rail>
 
       <main className="flex min-w-0 flex-1 flex-col">
         <div className="flex h-10 shrink-0 items-center gap-2 border-b px-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="hidden size-7 xl:flex"
-                onClick={() => setRailOpen(!railOpen)}
-                aria-label={railOpen ? 'Hide steps' : 'Show steps'}
-                aria-pressed={railOpen}
-              >
-                <PanelLeft className="size-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{railOpen ? 'Hide steps' : 'Show steps'}</TooltipContent>
-          </Tooltip>
+          <RailToggle state={rail} label="Steps" />
 
           <span className="min-w-0 truncate text-xs text-muted-foreground">
             Step {stepIndex + 1} of {STEPS.length}
@@ -159,6 +150,19 @@ export function PeerReviewTabV2({
               </>
             )}
             {!readOnly && !state.blockedReason && <ToolbarAction />}
+
+            {!isWideEnoughForMemos && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="xs" variant="outline" onClick={() => setMemosOpen(true)}>
+                    <MessagesSquare className="size-3" />
+                    Memos
+                    <span className="font-mono tabular-nums">{facts.activeMemos.length}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>The reviewer memos every step reads from</TooltipContent>
+              </Tooltip>
+            )}
           </span>
         </div>
 
@@ -186,14 +190,21 @@ export function PeerReviewTabV2({
         </div>
       </main>
 
-      <aside className="hidden w-[22rem] shrink-0 border-l lg:block xl:w-[24rem]">
+      {/* Always a column where there is room; a sheet the reader opens where
+          there is not, since the memos are context rather than a selection. */}
+      <SidePane
+        open={isWideEnoughForMemos || memosOpen}
+        onClose={() => setMemosOpen(false)}
+        label="Reviewer memos"
+        className="w-[22rem] xl:w-[24rem]"
+      >
         <MemosPane
           facts={facts}
           projectId={projectId}
           readOnly={readOnly}
           onUploadMemos={() => setMemoUploadOpen(true)}
         />
-      </aside>
+      </SidePane>
     </div>
   );
 

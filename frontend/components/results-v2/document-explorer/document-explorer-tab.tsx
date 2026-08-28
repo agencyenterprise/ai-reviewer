@@ -19,11 +19,13 @@ import {
   isAnyWorkflowProcessing,
   isWorkflowProcessing,
 } from '@/lib/workflow-state';
+import { WIDE_ENOUGH_FOR_PANE, useMediaQuery } from '@/lib/use-media-query';
 import { cn } from '@/lib/utils';
-import { AlertTriangleIcon, Columns2, History, ListFilter, Loader2, PanelLeft } from 'lucide-react';
+import { AlertTriangleIcon, Columns2, History, ListFilter, Loader2 } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { DocumentView, DocumentViewHandle } from './document-view';
 import { IssuesColumn, IssuesColumnHandle, issueCountLabel } from './issues-column';
+import { Rail, RailToggle, SidePane, useRailState } from '../panes';
 import { OutlineRail } from './outline-rail';
 import { OutlineEntry, extractOutline } from './outline';
 
@@ -66,7 +68,9 @@ export function DocumentExplorerTabV2({
   const { selectedLineRange, selectLineRange, clearLineSelection, filter, setFilter, clearFilters } =
     useDocumentExplorerStore();
 
-  const [railOpen, setRailOpen] = useState(true);
+  const rail = useRailState();
+  const isWideEnoughForColumn = useMediaQuery(WIDE_ENOUGH_FOR_PANE);
+  const [issuesOpen, setIssuesOpen] = useState(false);
   const [activeLine, setActiveLine] = useState<number | null>(null);
   // Margin puts each issue beside its paragraph in one shared scroll; list keeps
   // the ranked queue in a column of its own.
@@ -121,6 +125,11 @@ export function DocumentExplorerTabV2({
 
   useLineHashNavigation(handleLineHashNavigation);
 
+  const showIssuesColumn = isWideEnoughForColumn && (mode === 'list' || !rail.isWide);
+  // Margin notes only render once the document has a margin to put them in,
+  // which is the same width the rail sits beside the text at.
+  const issuesVisible = showIssuesColumn || (mode === 'margin' && rail.isWide);
+
   const handleSelectIssue = useCallback(
     (issue: Issue) => {
       const range = getIssueLineRange(issue);
@@ -161,13 +170,22 @@ export function DocumentExplorerTabV2({
         return;
       }
       const range = getIssueLineRange(issue);
-      if (range) {
-        setOpenIssueId(issue.id);
-        selectLineRange(range);
+      if (!range) return;
+
+      setOpenIssueId(issue.id);
+      selectLineRange(range);
+
+      if (issuesVisible) {
         issuesRef.current?.scrollToIssue(issue);
+        return;
       }
+
+      // Nowhere on screen is showing this issue, so bring the pane out and
+      // scroll once it has mounted — the ref is null until the sheet opens.
+      setIssuesOpen(true);
+      setTimeout(() => issuesRef.current?.scrollToIssue(issue), 250);
     },
-    [selectLineRange, clearLineSelection],
+    [issuesVisible, selectLineRange, clearLineSelection],
   );
 
   /**
@@ -186,6 +204,9 @@ export function DocumentExplorerTabV2({
     },
     [mode],
   );
+
+  // Margin mode puts the issues beside the text, so the column only earns its
+  // place there while the margin itself is too narrow to appear.
 
   const countLabel = issueCountLabel(visibleIssues, highlightIssues);
 
@@ -217,12 +238,7 @@ export function DocumentExplorerTabV2({
       )}
 
       <div className="flex min-h-0 flex-1">
-        <aside
-          className={cn(
-            'bg-sidebar hidden shrink-0 border-r transition-[width] xl:block',
-            railOpen ? 'w-72' : 'w-0 overflow-hidden border-r-0',
-          )}
-        >
+        <Rail state={rail} label="Filters and outline">
           <OutlineRail
             outline={outline}
             visibleIssues={visibleIssues}
@@ -233,27 +249,16 @@ export function DocumentExplorerTabV2({
             resolvedCount={resolvedCount}
             passingCount={passingCount}
             activeLine={activeLine}
-            onJump={handleJumpToSection}
+            onJump={(entry) => {
+              handleJumpToSection(entry);
+              rail.close();
+            }}
           />
-        </aside>
+        </Rail>
 
         <main className="flex min-w-0 flex-1 flex-col">
           <div className="flex h-10 shrink-0 items-center gap-2 border-b px-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="hidden size-7 xl:flex"
-                  onClick={() => setRailOpen(!railOpen)}
-                  aria-label={railOpen ? 'Hide contents' : 'Show contents'}
-                  aria-pressed={railOpen}
-                >
-                  <PanelLeft className="size-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{railOpen ? 'Hide filters and outline' : 'Show filters and outline'}</TooltipContent>
-            </Tooltip>
+            <RailToggle state={rail} label="Filters and outline" />
             <span className="truncate text-xs text-muted-foreground">
               {outline.length > 0 ? `${outline.length} sections` : 'Document'}
               {mainDocumentMarkdown ? ` · ${mainDocumentMarkdown.split('\n').length} lines` : ''}
@@ -271,6 +276,18 @@ export function DocumentExplorerTabV2({
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>Some results are still loading, see the Assessments tab for details</TooltipContent>
+              </Tooltip>
+            )}
+
+            {!issuesVisible && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="xs" variant="outline" className="ml-auto" onClick={() => setIssuesOpen(true)}>
+                    <ListFilter className="size-3" />
+                    Issues
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Every issue found in this document</TooltipContent>
               </Tooltip>
             )}
 
@@ -331,11 +348,15 @@ export function DocumentExplorerTabV2({
           </div>
         </main>
 
-        <aside
-          className={cn(
-            'hidden w-[24rem] shrink-0 border-l xl:w-[26rem]',
-            mode === 'list' ? 'lg:block' : 'lg:block xl:hidden',
-          )}
+        {/* A column wherever the margin is not already carrying the issues,
+            and a sheet the reader opens below that width — where neither the
+            margin nor a column fits. */}
+        {/* Asking for the pane must not keep it around once the margin or the
+            column has taken the issues back. */}
+        <SidePane
+          open={showIssuesColumn || (!issuesVisible && issuesOpen)}
+          onClose={() => setIssuesOpen(false)}
+          label="Issues"
         >
           <IssuesColumn
             ref={issuesRef}
@@ -346,7 +367,7 @@ export function DocumentExplorerTabV2({
             readOnly={readOnly}
             onSelectIssue={handleSelectIssue}
           />
-        </aside>
+        </SidePane>
       </div>
     </div>
   );

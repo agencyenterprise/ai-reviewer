@@ -22,9 +22,10 @@ import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-fil
 import { FileRole, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
-import { Copy, Download, FileText, GlobeIcon, Loader2, MoreHorizontal, PanelLeft, Search, Upload } from 'lucide-react';
+import { Copy, Download, FileText, GlobeIcon, Loader2, MoreHorizontal, Search, Upload } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { FileUploadDialog } from '@/components/results/tabs/reference-review/file-upload-dialog';
+import { Rail, RailToggle, SidePane, useRailState } from '../panes';
 import { ReferenceDetail } from './reference-detail';
 import { ReferenceRow } from './reference-row';
 
@@ -46,7 +47,7 @@ export function ReferencesTabV2({ projectDetail, readOnly }: ReferencesTabV2Prop
   const projectId = projectDetail.project.id;
   const workflowRuns = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
 
-  const [railOpen, setRailOpen] = useState(true);
+  const rail = useRailState();
   const [lens, setLens] = useState<Lens>('all');
   const [search, setSearch] = useState('');
   const [copyOpen, setCopyOpen] = useState(false);
@@ -138,32 +139,21 @@ export function ReferencesTabV2({ projectDetail, readOnly }: ReferencesTabV2Prop
         onConfirmApprove={approval.handleConfirmApprove}
       />
 
-      <aside
-        className={cn(
-          'bg-sidebar hidden shrink-0 border-r transition-[width] xl:block',
-          railOpen ? 'w-72' : 'w-0 overflow-hidden border-r-0',
-        )}
-      >
-        <LensRail lens={lens} onLensChange={setLens} counts={counts} onExplain={() => setExplainOpen(true)} />
-      </aside>
+      <Rail state={rail} label="Filters">
+        <LensRail
+          lens={lens}
+          onLensChange={(next) => {
+            setLens(next);
+            rail.close();
+          }}
+          counts={counts}
+          onExplain={() => setExplainOpen(true)}
+        />
+      </Rail>
 
       <main className="flex min-w-0 flex-1 flex-col">
         <div className="flex h-10 shrink-0 items-center gap-2 border-b px-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="hidden size-7 xl:flex"
-                onClick={() => setRailOpen(!railOpen)}
-                aria-label={railOpen ? 'Hide filters' : 'Show filters'}
-                aria-pressed={railOpen}
-              >
-                <PanelLeft className="size-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{railOpen ? 'Hide filters' : 'Show filters'}</TooltipContent>
-          </Tooltip>
+          <RailToggle state={rail} label="Filters" />
 
           <span className="shrink-0 truncate text-xs text-muted-foreground">
             {filtered ? `${shown.length} of ${counts.all} references` : `${counts.all} references`}
@@ -315,8 +305,19 @@ export function ReferencesTabV2({ projectDetail, readOnly }: ReferencesTabV2Prop
       </main>
 
       {references.length > 0 && (
-        <aside className="hidden w-[24rem] shrink-0 border-l lg:block xl:w-[26rem]">
-          {selected ? (
+        <SidePane
+          open={selected !== null}
+          onClose={() => setSelectedId(null)}
+          label="Reference details"
+          empty={
+            <div className="flex h-full items-center justify-center p-8">
+              <p className="max-w-56 text-center text-xs leading-relaxed text-muted-foreground">
+                Select a reference to see more details, provide or replace a source file.
+              </p>
+            </div>
+          }
+        >
+          {selected && (
             <ReferenceDetail
               key={selected.id}
               reference={selected}
@@ -325,14 +326,8 @@ export function ReferencesTabV2({ projectDetail, readOnly }: ReferencesTabV2Prop
               disabled={approval.isProcessingFiles}
               onExplain={() => setExplainOpen(true)}
             />
-          ) : (
-            <div className="flex h-full items-center justify-center p-8">
-              <p className="max-w-56 text-center text-xs leading-relaxed text-muted-foreground">
-                Select a reference to see more details, provide or replace a source file.
-              </p>
-            </div>
           )}
-        </aside>
+        </SidePane>
       )}
     </div>
   );

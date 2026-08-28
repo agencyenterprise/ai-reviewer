@@ -12,8 +12,9 @@ import { buildReferenceByFileIdMap, composeReferences } from '@/lib/composed-ref
 import { FileListItem, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
-import { Download, FileText, Loader2, PanelLeft, Search, Upload } from 'lucide-react';
+import { Download, FileText, Loader2, Search, Upload } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { Rail, RailToggle, SidePane, useRailState } from '../panes';
 import { FileDetail } from './file-detail';
 import { FileGroup, GROUP, fileGroup, revisionLabel, sortFiles } from './role';
 
@@ -36,7 +37,7 @@ export function FilesTabV2({ projectDetail, readOnly, onRevisionCreated }: Files
   const files = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
   const workflowRuns = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
 
-  const [railOpen, setRailOpen] = useState(true);
+  const rail = useRailState();
   const [lens, setLens] = useState<Lens>('all');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -110,32 +111,20 @@ export function FilesTabV2({ projectDetail, readOnly, onRevisionCreated }: Files
         onComplete={() => setUploadOpen(false)}
       />
 
-      <aside
-        className={cn(
-          'bg-sidebar hidden shrink-0 border-r transition-[width] xl:block',
-          railOpen ? 'w-72' : 'w-0 overflow-hidden border-r-0',
-        )}
-      >
-        <KindRail lens={lens} onLensChange={setLens} counts={counts} />
-      </aside>
+      <Rail state={rail} label="Filters">
+        <KindRail
+          lens={lens}
+          onLensChange={(next) => {
+            setLens(next);
+            rail.close();
+          }}
+          counts={counts}
+        />
+      </Rail>
 
       <main className="flex min-w-0 flex-1 flex-col">
         <div className="flex h-10 shrink-0 items-center gap-2 border-b px-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="hidden size-7 xl:flex"
-                onClick={() => setRailOpen(!railOpen)}
-                aria-label={railOpen ? 'Hide filters' : 'Show filters'}
-                aria-pressed={railOpen}
-              >
-                <PanelLeft className="size-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{railOpen ? 'Hide filters' : 'Show filters'}</TooltipContent>
-          </Tooltip>
+          <RailToggle state={rail} label="Filters" />
 
           <span className="shrink-0 truncate text-xs text-muted-foreground">
             {filtered ? `${shown.length} of ${counts.all} files` : `${counts.all} files`}
@@ -225,8 +214,19 @@ export function FilesTabV2({ projectDetail, readOnly, onRevisionCreated }: Files
       </main>
 
       {counts.all > 0 && (
-        <aside className="hidden w-[24rem] shrink-0 border-l lg:block xl:w-[26rem]">
-          {selected ? (
+        <SidePane
+          open={selected !== null}
+          onClose={() => setSelectedId(null)}
+          label="File details"
+          empty={
+            <div className="flex h-full items-center justify-center p-8">
+              <p className="max-w-56 text-center text-xs leading-relaxed text-muted-foreground">
+                Select a file to see more details, download it or remove it.
+              </p>
+            </div>
+          }
+        >
+          {selected && (
             <FileDetail
               key={selected.id}
               file={selected}
@@ -236,14 +236,8 @@ export function FilesTabV2({ projectDetail, readOnly, onRevisionCreated }: Files
               readOnly={readOnly}
               onReplaceMain={() => setReplaceOpen(true)}
             />
-          ) : (
-            <div className="flex h-full items-center justify-center p-8">
-              <p className="max-w-56 text-center text-xs leading-relaxed text-muted-foreground">
-                Select a file to see more details, download it or remove it.
-              </p>
-            </div>
           )}
-        </aside>
+        </SidePane>
       )}
     </div>
   );
