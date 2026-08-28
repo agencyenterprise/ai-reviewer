@@ -27,6 +27,17 @@ import { IssuesColumn, IssuesColumnHandle, issueCountLabel } from './issues-colu
 import { OutlineRail } from './outline-rail';
 import { OutlineEntry, extractOutline } from './outline';
 
+/** The two ways to read the issues: beside the text, or gathered in a column. */
+const MODES = [
+  {
+    id: 'margin' as const,
+    label: 'Margin',
+    icon: Columns2,
+    hint: 'Issues sit beside the paragraph they belong to',
+  },
+  { id: 'list' as const, label: 'List', icon: ListFilter, hint: 'Issues in one column, grouped by severity' },
+];
+
 interface DocumentExplorerTabProps {
   projectDetail: ProjectDetailed;
   readOnly?: boolean;
@@ -228,16 +239,21 @@ export function DocumentExplorerTabV2({
 
         <main className="flex min-w-0 flex-1 flex-col">
           <div className="flex h-10 shrink-0 items-center gap-2 border-b px-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hidden size-7 xl:flex"
-              onClick={() => setRailOpen(!railOpen)}
-              aria-label={railOpen ? 'Hide contents' : 'Show contents'}
-              aria-pressed={railOpen}
-            >
-              <PanelLeft className="size-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hidden size-7 xl:flex"
+                  onClick={() => setRailOpen(!railOpen)}
+                  aria-label={railOpen ? 'Hide contents' : 'Show contents'}
+                  aria-pressed={railOpen}
+                >
+                  <PanelLeft className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{railOpen ? 'Hide filters and outline' : 'Show filters and outline'}</TooltipContent>
+            </Tooltip>
             <span className="truncate text-xs text-muted-foreground">
               {outline.length > 0 ? `${outline.length} sections` : 'Document'}
               {mainDocumentMarkdown ? ` · ${mainDocumentMarkdown.split('\n').length} lines` : ''}
@@ -259,26 +275,25 @@ export function DocumentExplorerTabV2({
             )}
 
             <div className="ml-auto hidden items-center gap-1 rounded-md border p-0.5 xl:flex">
-              {(
-                [
-                  { id: 'margin' as const, label: 'Margin', icon: Columns2 },
-                  { id: 'list' as const, label: 'List', icon: ListFilter },
-                ] satisfies { id: 'margin' | 'list'; label: string; icon: typeof Columns2 }[]
-              ).map((option) => (
-                <button
-                  key={option.id}
-                  onClick={() => handleModeChange(option.id)}
-                  aria-pressed={mode === option.id}
-                  className={cn(
-                    'flex cursor-pointer items-center gap-1.5 rounded-sm px-2 py-0.5 text-xs font-medium transition-colors',
-                    mode === option.id
-                      ? 'bg-accent text-accent-foreground'
-                      : 'text-muted-foreground hover:bg-accent/60',
-                  )}
-                >
-                  <option.icon className="size-3.5" />
-                  {option.label}
-                </button>
+              {MODES.map((option) => (
+                <Tooltip key={option.id}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => handleModeChange(option.id)}
+                      aria-pressed={mode === option.id}
+                      className={cn(
+                        'flex cursor-pointer items-center gap-1.5 rounded-sm px-2 py-0.5 text-xs font-medium transition-colors',
+                        mode === option.id
+                          ? 'bg-accent text-accent-foreground'
+                          : 'text-muted-foreground hover:bg-accent/60',
+                      )}
+                    >
+                      <option.icon className="size-3.5" />
+                      {option.label}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>{option.hint}</TooltipContent>
+                </Tooltip>
               ))}
             </div>
           </div>

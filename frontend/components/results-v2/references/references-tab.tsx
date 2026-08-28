@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { WorkflowConfigDialog } from '@/components/workflows/workflow-config-dialog';
 import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
 import { FileRole, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
@@ -148,16 +149,21 @@ export function ReferencesTabV2({ projectDetail, readOnly }: ReferencesTabV2Prop
 
       <main className="flex min-w-0 flex-1 flex-col">
         <div className="flex h-10 shrink-0 items-center gap-2 border-b px-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hidden size-7 xl:flex"
-            onClick={() => setRailOpen(!railOpen)}
-            aria-label={railOpen ? 'Hide filters' : 'Show filters'}
-            aria-pressed={railOpen}
-          >
-            <PanelLeft className="size-4" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hidden size-7 xl:flex"
+                onClick={() => setRailOpen(!railOpen)}
+                aria-label={railOpen ? 'Hide filters' : 'Show filters'}
+                aria-pressed={railOpen}
+              >
+                <PanelLeft className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{railOpen ? 'Hide filters' : 'Show filters'}</TooltipContent>
+          </Tooltip>
 
           <span className="shrink-0 truncate text-xs text-muted-foreground">
             {filtered ? `${shown.length} of ${counts.all} references` : `${counts.all} references`}
@@ -176,25 +182,49 @@ export function ReferencesTabV2({ projectDetail, readOnly }: ReferencesTabV2Prop
 
           {!readOnly && (
             <div className="ml-auto flex shrink-0 items-center gap-1.5">
-              <Button
-                size="xs"
-                variant="outline"
-                disabled={isFetchingAll || isProcessingFiles || counts.unmatched === 0}
-                onClick={() => setFetchAllOpen(true)}
-              >
-                {isFetchingAll ? <Loader2 className="size-3 animate-spin" /> : <GlobeIcon className="size-3" />}
-                Fetch all missing
-              </Button>
-              <Button size="xs" variant="outline" disabled={isProcessingFiles} onClick={() => setBatchUploadOpen(true)}>
-                <Upload className="size-3" />
-                Upload sources
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="icon" variant="ghost" className="size-7" aria-label="More reference actions">
-                    <MoreHorizontal className="size-4" />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    disabled={isFetchingAll || isProcessingFiles || counts.unmatched === 0}
+                    onClick={() => setFetchAllOpen(true)}
+                  >
+                    {isFetchingAll ? <Loader2 className="size-3 animate-spin" /> : <GlobeIcon className="size-3" />}
+                    Fetch all missing
                   </Button>
-                </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {counts.unmatched === 0
+                    ? 'Every reference already has a source file'
+                    : 'Search the web for the source files not provided yet'}
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    disabled={isProcessingFiles}
+                    onClick={() => setBatchUploadOpen(true)}
+                  >
+                    <Upload className="size-3" />
+                    Upload sources
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Upload source files, and we match each one to its reference</TooltipContent>
+              </Tooltip>
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="icon" variant="ghost" className="size-7" aria-label="More reference actions">
+                        <MoreHorizontal className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>More options</TooltipContent>
+                </Tooltip>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onSelect={() => setCopyOpen(true)}>
                     <Copy className="size-4" />

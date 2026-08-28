@@ -6,6 +6,7 @@ import { FileUploadDialog } from '@/components/results/tabs/reference-review/fil
 import { FileTypeIcon } from '@/components/shared/file-type-icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
 import { buildReferenceByFileIdMap, composeReferences } from '@/lib/composed-references';
 import { FileListItem, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
@@ -120,16 +121,21 @@ export function FilesTabV2({ projectDetail, readOnly, onRevisionCreated }: Files
 
       <main className="flex min-w-0 flex-1 flex-col">
         <div className="flex h-10 shrink-0 items-center gap-2 border-b px-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hidden size-7 xl:flex"
-            onClick={() => setRailOpen(!railOpen)}
-            aria-label={railOpen ? 'Hide filters' : 'Show filters'}
-            aria-pressed={railOpen}
-          >
-            <PanelLeft className="size-4" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hidden size-7 xl:flex"
+                onClick={() => setRailOpen(!railOpen)}
+                aria-label={railOpen ? 'Hide filters' : 'Show filters'}
+                aria-pressed={railOpen}
+              >
+                <PanelLeft className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{railOpen ? 'Hide filters' : 'Show filters'}</TooltipContent>
+          </Tooltip>
 
           <span className="shrink-0 truncate text-xs text-muted-foreground">
             {filtered ? `${shown.length} of ${counts.all} files` : `${counts.all} files`}
@@ -148,16 +154,26 @@ export function FilesTabV2({ projectDetail, readOnly, onRevisionCreated }: Files
 
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
             {!readOnly && (
-              <Button size="xs" variant="outline" onClick={() => setUploadOpen(true)}>
-                <Upload className="size-3" />
-                Add files
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="xs" variant="outline" onClick={() => setUploadOpen(true)}>
+                    <Upload className="size-3" />
+                    Add files
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Add source documents or reviewer memos to this project</TooltipContent>
+              </Tooltip>
             )}
             {counts.all > 0 && (
-              <Button size="xs" variant="outline" disabled={isDownloading} onClick={() => downloadAll()}>
-                {isDownloading ? <Loader2 className="size-3 animate-spin" /> : <Download className="size-3" />}
-                {isDownloading ? 'Preparing zip…' : 'Download all'}
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="xs" variant="outline" disabled={isDownloading} onClick={() => downloadAll()}>
+                    {isDownloading ? <Loader2 className="size-3 animate-spin" /> : <Download className="size-3" />}
+                    {isDownloading ? 'Preparing zip…' : 'Download all'}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Download every file in this project as a zip</TooltipContent>
+              </Tooltip>
             )}
           </div>
         </div>
