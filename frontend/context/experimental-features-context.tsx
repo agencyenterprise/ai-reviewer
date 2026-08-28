@@ -11,6 +11,12 @@ interface ExperimentalFeaturesContextType {
   showExperimentalFeatures: boolean;
   setShowExperimentalFeatures: (value: boolean) => void;
   isUpdating: boolean;
+  /**
+   * True while the preference is still unknown. Gate anything that would
+   * otherwise render its "feature is off" state before the user has loaded.
+   * Stays false for anonymous visitors, whose query never runs.
+   */
+  isLoading: boolean;
 }
 
 const ExperimentalFeaturesContext = React.createContext<ExperimentalFeaturesContextType | undefined>(undefined);
@@ -25,7 +31,7 @@ interface ExperimentalFeaturesProviderProps {
  */
 export function ExperimentalFeaturesProvider({ children }: ExperimentalFeaturesProviderProps) {
   const queryClient = useQueryClient();
-  const { data: user } = useUserMe();
+  const { data: user, isLoading } = useUserMe();
 
   const showExperimentalFeatures = user?.show_experimental_features ?? false;
 
@@ -61,8 +67,9 @@ export function ExperimentalFeaturesProvider({ children }: ExperimentalFeaturesP
       showExperimentalFeatures,
       setShowExperimentalFeatures,
       isUpdating: mutation.isPending,
+      isLoading,
     }),
-    [showExperimentalFeatures, setShowExperimentalFeatures, mutation.isPending],
+    [showExperimentalFeatures, setShowExperimentalFeatures, mutation.isPending, isLoading],
   );
 
   return <ExperimentalFeaturesContext.Provider value={value}>{children}</ExperimentalFeaturesContext.Provider>;
