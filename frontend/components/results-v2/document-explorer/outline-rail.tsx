@@ -24,8 +24,16 @@ const SEVERITY_DOT: Record<SeverityEnum, string> = {
 
 interface OutlineRailProps {
   outline: OutlineEntry[];
-  /** Issues after the passing/resolved toggles, before severity and type. */
+  /**
+   * Issues after the passing/resolved toggles, before severity and type. Drives
+   * the filter counts, so they keep showing what turning a filter on would add.
+   */
   visibleIssues: Issue[];
+  /**
+   * Issues after every filter — the same set the document highlights. Drives the
+   * section dots, so the outline always agrees with what is marked in the text.
+   */
+  markedIssues: Issue[];
   filter: DocumentExplorerFilter;
   onFilterChange: (partial: Partial<DocumentExplorerFilter>) => void;
   onClearFilters: () => void;
@@ -38,6 +46,7 @@ interface OutlineRailProps {
 export function OutlineRail({
   outline,
   visibleIssues,
+  markedIssues,
   filter,
   onFilterChange,
   onClearFilters,
@@ -162,7 +171,7 @@ export function OutlineRail({
         ) : (
           <ol className="mt-2 space-y-px">
             {outline.map((entry) => {
-              const marks = issuesInSection(visibleIssues, entry).filter((i) => i.severity !== SeverityEnum.None);
+              const marks = issuesInSection(markedIssues, entry);
               const isActive = activeLine !== null && activeLine >= entry.line && activeLine <= entry.endLine;
               return (
                 <li key={entry.id}>

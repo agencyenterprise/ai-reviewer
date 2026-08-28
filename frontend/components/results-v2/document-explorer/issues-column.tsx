@@ -1,6 +1,6 @@
 'use client';
 
-import { DocumentIssuesList, DocumentIssuesListHandle } from '@/components/results/components/document-issues-list';
+import { IssuesList, IssuesListHandle } from './issues-list';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Issue } from '@/lib/generated-api';
@@ -16,6 +16,8 @@ interface IssuesColumnProps {
   ref?: Ref<IssuesColumnHandle>;
   visibleIssues: Issue[];
   filteredIssues: Issue[];
+  /** The issue whose row is expanded. */
+  activeIssueId: string | null;
   isAnyProcessing: boolean;
   readOnly: boolean;
   onSelectIssue: (issue: Issue) => void;
@@ -26,6 +28,7 @@ export function IssuesColumn({
   ref,
   visibleIssues,
   filteredIssues,
+  activeIssueId,
   isAnyProcessing,
   readOnly,
   onSelectIssue,
@@ -33,7 +36,7 @@ export function IssuesColumn({
 }: IssuesColumnProps) {
   const { selectedLineRange, filter, clearFilters } = useDocumentExplorerStore();
   const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
-  const listRef = useRef<DocumentIssuesListHandle>(null);
+  const listRef = useRef<IssuesListHandle>(null);
 
   useImperativeHandle(ref, () => ({
     scrollToIssue: (issue: Issue) => {
@@ -81,9 +84,9 @@ export function IssuesColumn({
         )}
       </div>
 
-      <div ref={setScrollContainer} className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+      <div ref={setScrollContainer} className="min-h-0 flex-1 overflow-y-auto">
         {visibleIssues.length === 0 && !isAnyProcessing && (
-          <p className="py-4 text-sm text-muted-foreground">No issues found for this document.</p>
+          <p className="p-4 text-sm text-muted-foreground">No issues found for this document.</p>
         )}
 
         {visibleIssues.length > 0 && filteredIssues.length === 0 && !isAnyProcessing && (
@@ -97,11 +100,11 @@ export function IssuesColumn({
           </div>
         )}
 
-        <DocumentIssuesList
+        <IssuesList
           ref={listRef}
           issues={filteredIssues}
           scrollElement={scrollContainer}
-          hideJumpButton={selectedLineRange !== null}
+          activeIssueId={activeIssueId}
           onSelect={onSelectIssue}
           readOnly={readOnly}
         />

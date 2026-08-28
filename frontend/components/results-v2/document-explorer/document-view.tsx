@@ -5,6 +5,8 @@ import { SeverityEnum } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import type { Element } from 'hast';
 import { ImageOff } from 'lucide-react';
+import { SEVERITY } from './issue-note';
+import { MarginNote } from './margin-note';
 import React, { Ref, createContext, useContext, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import ReactMarkdown, { type ExtraProps } from 'react-markdown';
 import rehypeMathML from '@daiji256/rehype-mathml';
@@ -20,7 +22,9 @@ interface IssueWithLines extends Issue {
 
 export interface DocumentViewHandle {
   scrollToLineRange: (range: [number, number]) => void;
-  scrollToLine: (line: number) => void;
+  scrollToLine: (line: number, behavior?: ScrollBehavior) => void;
+  /** Source line of the block currently at the top of the pane. */
+  getTopVisibleLine: () => number | null;
 }
 
 interface DocumentViewProps {
@@ -31,31 +35,12 @@ interface DocumentViewProps {
   onIssueSelect: (issue: Issue | null) => void;
   /** Optional content rendered inside the scroll area, above the document. */
   header?: React.ReactNode;
+  /**
+   * When set, issues are rendered in a margin column beside the paragraph they
+   * belong to, sharing this pane's scroll. Omit for a plain document.
+   */
+  margin?: { activeIssueId: string | null; readOnly: boolean; onSelect: (issue: Issue) => void };
 }
-
-/** Gutter rule colour, one per severity. Same families the issue cards use. */
-const SEVERITY_RULE: Record<string, string> = {
-  [SeverityEnum.High]: 'bg-red-500',
-  [SeverityEnum.Medium]: 'bg-amber-500',
-  [SeverityEnum.Low]: 'bg-blue-500',
-  [SeverityEnum.None]: 'bg-green-500',
-};
-
-/** Resting wash on a flagged block — quiet enough to read through. */
-const SEVERITY_WASH: Record<string, string> = {
-  [SeverityEnum.High]: 'bg-red-50/70 dark:bg-red-950/20',
-  [SeverityEnum.Medium]: 'bg-amber-50/70 dark:bg-amber-950/20',
-  [SeverityEnum.Low]: 'bg-blue-50/70 dark:bg-blue-950/20',
-  [SeverityEnum.None]: 'bg-green-50/70 dark:bg-green-950/20',
-};
-
-/** Wash once the block is the selected one. */
-const SEVERITY_WASH_SELECTED: Record<string, string> = {
-  [SeverityEnum.High]: 'bg-red-100 dark:bg-red-950/50',
-  [SeverityEnum.Medium]: 'bg-amber-100 dark:bg-amber-950/50',
-  [SeverityEnum.Low]: 'bg-blue-100 dark:bg-blue-950/50',
-  [SeverityEnum.None]: 'bg-green-100 dark:bg-green-950/50',
-};
 
 const SEVERITY_RANK: Record<string, number> = {
   [SeverityEnum.None]: 0,
@@ -64,15 +49,13 @@ const SEVERITY_RANK: Record<string, number> = {
   [SeverityEnum.High]: 3,
 };
 
+/** Resting mark on flagged text, as in the mock: the mark is on the text, not behind it. */
+const FLAGGED_CLASSES = ['underline', 'decoration-dotted', 'underline-offset-4', 'decoration-muted-foreground/50'];
+
 const CLEARED_CLASSES = [
-  ...new Set(
-    [...Object.values(SEVERITY_WASH), ...Object.values(SEVERITY_WASH_SELECTED)].flatMap((cls) => cls.split(' ')),
-  ),
+  ...new Set(Object.values(SEVERITY).flatMap((style) => style.wash.split(' '))),
+  ...FLAGGED_CLASSES,
   'cursor-pointer',
-  'opacity-50',
-  'ring-1',
-  'ring-inset',
-  'ring-foreground/15',
 ];
 
 function hasLineRange(issue: Issue): issue is IssueWithLines & { start_line: number; end_line: number } {
@@ -115,10 +98,52 @@ function findBlockForRange(container: HTMLElement, range: [number, number]): HTM
 }
 
 /**
+ * Both modes must give the text column the same width, or switching between them
+ * rewraps the document and the reader's place in it moves.
+ *
+ * The trick is to keep the non-text overhead identical: in margin mode that is
+ * the gutter plus the margin column, and in list mode it is the gutter plus the
+ * issues aside, which sits outside this pane. The extra pixel matches the
+ * aside's left border. Below `xl` the margin column is not rendered and the
+ * aside takes over, so two columns are the base and the third arrives at `xl`.
+ *
+ * Written out in full because Tailwind reads class names as literal strings.
+ */
+const GRID_BASE = 'grid-cols-[3rem_minmax(0,46rem)]';
+const GRID_WITH_MARGIN = 'xl:grid-cols-[3rem_minmax(0,46rem)_calc(26rem_+_1px)]';
+const WIDTH_BASE = 'max-w-[calc(3rem_+_46rem)]';
+const WIDTH_WITH_MARGIN = 'xl:max-w-[calc(3rem_+_46rem_+_26rem_+_1px)]';
+
+/**
  * True inside a container block (list, quote, table). Nested blocks skip the
  * gutter so only top-level blocks are numbered, the way an editor numbers lines.
  */
 const NestedContext = createContext(false);
+
+interface MarginState {
+  issues: IssueWithLines[];
+  activeIssueId: string | null;
+  readOnly: boolean;
+  onSelect: (issue: Issue) => void;
+}
+
+const MarginContext = createContext<MarginState | null>(null);
+
+/**
+ * Notes for one row: the issues that *begin* inside it. An issue can span several
+ * blocks, so anchoring on its first line keeps each note in exactly one place —
+ * and keeps this pure, which claiming into a shared set was not: React invokes a
+ * component's render more than once, and the second pass would find its own
+ * issues already taken.
+ */
+function useRowNotes(lineStart: number | undefined, lineEnd: number | undefined) {
+  const margin = useContext(MarginContext);
+  if (!margin || lineStart === undefined || lineEnd === undefined) return null;
+
+  const notes = margin.issues.filter((issue) => issue.start_line! >= lineStart && issue.start_line! <= lineEnd);
+
+  return { notes, margin };
+}
 
 /**
  * `spacing` goes on the row rather than the element so the line number stays on
@@ -149,18 +174,37 @@ function blockFactory(Tag: string, spacing: string, className: string, isContain
     );
 
     const content = scrollWrap ? <div className="max-w-full overflow-x-auto">{element}</div> : element;
+    const row = useRowNotes(isRow ? lineStart : undefined, isRow ? lineEnd : undefined);
 
     if (!isRow) return content;
 
     return (
-      <div data-block-row className={cn('grid grid-cols-[3rem_minmax(0,1fr)] gap-x-2', spacing)}>
-        <div className="flex justify-end gap-2 select-none" aria-hidden>
-          <span className="pt-[0.15em] font-mono text-[10.5px] leading-[1.7] tabular-nums text-muted-foreground/60">
+      <div data-block-row className={cn('grid', spacing, GRID_BASE, row && GRID_WITH_MARGIN)}>
+        {/* The rule sits beside the text rather than in the gutter cell so it
+            measures the paragraph, not the row — a row can be tall because its
+            margin holds several notes. */}
+        <div className="justify-end pt-[0.15em] pr-2 text-right select-none" aria-hidden>
+          <span className="font-mono text-[10.5px] leading-[1.7] tabular-nums text-muted-foreground/60">
             {lineStart}
           </span>
-          <span data-rule className="w-[2px] shrink-0 rounded-full bg-transparent" />
         </div>
-        <div className="min-w-0">{content}</div>
+        <div className="flex min-w-0 gap-2 self-start">
+          <span data-rule className="w-[2px] shrink-0 rounded-full bg-transparent" />
+          <div className="min-w-0 flex-1">{content}</div>
+        </div>
+        {row && (
+          <div className="col-start-3 hidden self-start pl-4 xl:block">
+            {row.notes.map((issue) => (
+              <MarginNote
+                key={issue.id}
+                issue={issue}
+                active={row.margin.activeIssueId === issue.id}
+                readOnly={row.margin.readOnly}
+                onSelect={row.margin.onSelect}
+              />
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -207,7 +251,15 @@ const BLOCK_COMPONENTS = {
     ),
 };
 
-export function DocumentView({ ref, markdown, issues, selectedLineRange, onIssueSelect, header }: DocumentViewProps) {
+export function DocumentView({
+  ref,
+  markdown,
+  issues,
+  selectedLineRange,
+  onIssueSelect,
+  header,
+  margin,
+}: DocumentViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -216,7 +268,7 @@ export function DocumentView({ ref, markdown, issues, selectedLineRange, onIssue
    * arrives from another tab's route. Scrolls the container itself rather than
    * block.scrollIntoView(), which would also scroll ancestors.
    */
-  const scrollToRange = (range: [number, number], align: 'center' | 'start') => {
+  const scrollToRange = (range: [number, number], align: 'center' | 'start', behavior: ScrollBehavior = 'smooth') => {
     let attempts = 0;
     const attempt = () => {
       const container = containerRef.current;
@@ -233,14 +285,26 @@ export function DocumentView({ ref, markdown, issues, selectedLineRange, onIssue
         align === 'center'
           ? block.offsetTop - container.clientHeight / 2 + block.offsetHeight / 2
           : block.offsetTop - 12;
-      container.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      container.scrollTo({ top: Math.max(0, top), behavior });
     };
     attempt();
   };
 
   useImperativeHandle(ref, () => ({
     scrollToLineRange: (range: [number, number]) => scrollToRange(range, 'center'),
-    scrollToLine: (line: number) => scrollToRange([line, line], 'start'),
+    scrollToLine: (line: number, behavior: ScrollBehavior = 'smooth') => scrollToRange([line, line], 'start', behavior),
+    getTopVisibleLine: () => {
+      const container = containerRef.current;
+      if (!container) return null;
+      const blocks = container.querySelectorAll<HTMLElement>('[data-line-start]');
+      for (const block of blocks) {
+        if (block.offsetTop + block.offsetHeight > container.scrollTop) {
+          const line = Number(block.getAttribute('data-line-start'));
+          return Number.isFinite(line) ? line : null;
+        }
+      }
+      return null;
+    },
   }));
 
   const lineIssues = useMemo(() => issues.filter(hasLineRange) as IssueWithLines[], [issues]);
@@ -280,26 +344,21 @@ export function DocumentView({ ref, markdown, issues, selectedLineRange, onIssue
       const issue = pickTopSeverityIssue(lineIssues, lineStart, lineEnd);
       if (!issue) return;
 
-      const issueRange: [number, number] = [issue.start_line!, issue.end_line!];
-      const isSelected = selectedLineRange !== null && rangesOverlap(issueRange, selectedLineRange);
+      // Selected means this block is inside the selected lines — not merely that
+      // it carries an issue overlapping them. Otherwise a heading whose own issue
+      // spans into the selection lights up alongside the paragraph you picked.
+      const isSelected = selectedLineRange !== null && rangesOverlap([lineStart, lineEnd], selectedLineRange);
 
-      const wash = isSelected ? SEVERITY_WASH_SELECTED[issue.severity] : SEVERITY_WASH[issue.severity];
-      if (wash) block.classList.add(...wash.split(' '));
-      block.classList.add('cursor-pointer');
+      block.classList.add('cursor-pointer', ...FLAGGED_CLASSES);
       block.setAttribute('data-issue-id', issue.id);
+      block.setAttribute('data-issue-selected', String(isSelected));
 
-      if (rule) {
-        rule.className = cn('w-[2px] shrink-0 rounded-full', SEVERITY_RULE[issue.severity]);
+      if (isSelected) {
+        block.classList.add(...SEVERITY[issue.severity].wash.split(' '));
       }
 
-      if (selectedLineRange) {
-        block.setAttribute('data-issue-selected', String(isSelected));
-        if (isSelected) {
-          block.classList.add('ring-1', 'ring-inset', 'ring-foreground/15');
-        } else {
-          block.classList.add('opacity-50');
-          if (rule) rule.classList.add('opacity-50');
-        }
+      if (rule) {
+        rule.className = cn('w-[2px] shrink-0 rounded-full', SEVERITY[issue.severity].dot);
       }
 
       const handler = (event: Event) => {
@@ -315,10 +374,14 @@ export function DocumentView({ ref, markdown, issues, selectedLineRange, onIssue
     };
   }, [markdown, lineIssues, selectedLineRange, onIssueSelect]);
 
+  const marginState: MarginState | null = margin ? { issues: lineIssues, ...margin } : null;
+
   return (
     <div ref={containerRef} className="relative h-full overflow-x-hidden overflow-y-auto px-5 py-5 text-sm break-words">
       {header && <div className="mb-4">{header}</div>}
-      <div className="mx-auto max-w-[78ch]">{renderedMarkdown}</div>
+      <MarginContext.Provider value={marginState}>
+        <div className={cn('mx-auto', WIDTH_BASE, marginState && WIDTH_WITH_MARGIN)}>{renderedMarkdown}</div>
+      </MarginContext.Provider>
     </div>
   );
 }

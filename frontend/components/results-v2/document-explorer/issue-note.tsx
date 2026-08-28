@@ -1,0 +1,165 @@
+'use client';
+
+import { Markdown } from '@/components/markdown';
+import { IssueFeedbackButtons } from '@/components/results/components/document-issue-card';
+import { Button } from '@/components/ui/button';
+import { Issue, SeverityEnum } from '@/lib/generated-api';
+import { useIssueActions } from '@/lib/hooks/use-issue-actions';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
+import { isIssueResolved } from '@/lib/stores/document-explorer-store';
+import { cn } from '@/lib/utils';
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon, LightbulbIcon, UndoIcon } from 'lucide-react';
+import { useState } from 'react';
+
+export interface SeverityStyle {
+  /** Severity marker: the dot beside a note and the rule in the document gutter. */
+  dot: string;
+  /** Border of an open note. */
+  edge: string;
+  /** Fill for the selected block and the open note. */
+  wash: string;
+  label: string;
+  text: string;
+}
+
+/**
+ * The one severity palette. The document, the margin and the list all read from
+ * here so a colour cannot drift between where an issue is marked and where it is
+ * read.
+ */
+export const SEVERITY: Record<SeverityEnum, SeverityStyle> = {
+  [SeverityEnum.High]: {
+    dot: 'bg-red-500',
+    edge: 'border-red-400 dark:border-red-700',
+    wash: 'bg-red-50 dark:bg-red-950/30',
+    label: 'High',
+    text: 'text-red-700 dark:text-red-300',
+  },
+  [SeverityEnum.Medium]: {
+    dot: 'bg-amber-500',
+    edge: 'border-amber-400 dark:border-amber-700',
+    wash: 'bg-amber-50 dark:bg-amber-950/30',
+    label: 'Medium',
+    text: 'text-amber-800 dark:text-amber-300',
+  },
+  [SeverityEnum.Low]: {
+    dot: 'bg-blue-500',
+    edge: 'border-blue-400 dark:border-blue-700',
+    wash: 'bg-blue-50 dark:bg-blue-950/30',
+    label: 'Low',
+    text: 'text-blue-700 dark:text-blue-300',
+  },
+  [SeverityEnum.None]: {
+    dot: 'bg-green-500',
+    edge: 'border-green-400 dark:border-green-700',
+    wash: 'bg-green-50 dark:bg-green-950/30',
+    label: 'Passing',
+    text: 'text-green-700 dark:text-green-300',
+  },
+};
+
+export function lineLabel(issue: Issue): string | null {
+  const { start_line: start, end_line: end } = issue as Issue & {
+    start_line?: number | null;
+    end_line?: number | null;
+  };
+  if (typeof start !== 'number' || typeof end !== 'number') return null;
+  return start === end ? `L${start}` : `L${start}–${end}`;
+}
+
+/** The line above an issue's title: where it came from and where it lands. */
+export function IssueMeta({ issue, showDot = true }: { issue: Issue; showDot?: boolean }) {
+  const { getWorkflowTypeName } = useWorkflowTypes();
+  const resolved = isIssueResolved(issue);
+  const line = lineLabel(issue);
+
+  return (
+    <span className="flex items-center gap-1.5">
+      {showDot && <span className={cn('block size-1.5 shrink-0 rounded-full', SEVERITY[issue.severity].dot)} />}
+      <span className="truncate font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
+        {getWorkflowTypeName(issue.workflow_type)}
+      </span>
+      {resolved && (
+        <span className="inline-flex shrink-0 items-center gap-0.5 font-mono text-[10px] text-muted-foreground uppercase">
+          <CheckIcon className="size-3" />
+          Resolved
+        </span>
+      )}
+      {line && (
+        <span className="ml-auto shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">{line}</span>
+      )}
+    </span>
+  );
+}
+
+/**
+ * Everything an open issue shows below its title — description, suggested
+ * action, details, and the actions that change it. Shared so the margin note and
+ * the list row cannot drift apart.
+ */
+export function IssueBody({ issue, readOnly }: { issue: Issue; readOnly: boolean }) {
+  const { resolveIssue, unresolveIssue, isResolving, isUnresolving } = useIssueActions();
+  const [showDetails, setShowDetails] = useState(false);
+
+  const resolved = isIssueResolved(issue);
+  const busy = isResolving || isUnresolving;
+
+  return (
+    <div className="space-y-2">
+      <div className="text-foreground/80 text-xs leading-relaxed [&_p]:mb-1 [&_p:last-child]:mb-0">
+        <Markdown>{issue.description}</Markdown>
+      </div>
+
+      {issue.suggested_action && (
+        <div className="bg-background/60 rounded border border-dashed px-2 py-1.5">
+          <p className="mb-1 flex items-center gap-1 font-mono text-[9.5px] tracking-wide text-muted-foreground uppercase">
+            <LightbulbIcon className="size-3" />
+            Suggested action
+          </p>
+          <div className="text-xs leading-relaxed [&_p]:mb-1 [&_p:last-child]:mb-0">
+            <Markdown>{issue.suggested_action}</Markdown>
+          </div>
+        </div>
+      )}
+
+      {issue.long_description && (
+        <>
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              setShowDetails(!showDetails);
+            }}
+            aria-expanded={showDetails}
+            className="flex cursor-pointer items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+          >
+            {showDetails ? <ChevronUpIcon className="size-3" /> : <ChevronDownIcon className="size-3" />}
+            {showDetails ? 'Hide details' : 'Show details'}
+          </button>
+          {showDetails && (
+            <div className="text-foreground/80 text-xs leading-relaxed [&_p]:mb-1 [&_p:last-child]:mb-0">
+              <Markdown>{issue.long_description}</Markdown>
+            </div>
+          )}
+        </>
+      )}
+
+      {!readOnly && issue.id && (
+        <div className="flex items-center gap-1.5 pt-0.5" onClick={(event) => event.stopPropagation()}>
+          <Button
+            size="sm"
+            variant={resolved ? 'outline' : 'default'}
+            className="h-6 px-2 text-[11px]"
+            disabled={busy}
+            onClick={() => (resolved ? unresolveIssue(issue.id) : resolveIssue(issue.id))}
+          >
+            {resolved ? <UndoIcon className="size-3" /> : <CheckIcon className="size-3" />}
+            {resolved ? 'Mark unresolved' : 'Mark resolved'}
+          </Button>
+          <span className="ml-auto">
+            <IssueFeedbackButtons issueId={issue.id} />
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}

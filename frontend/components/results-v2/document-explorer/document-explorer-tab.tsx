@@ -20,7 +20,7 @@ import {
   isWorkflowProcessing,
 } from '@/lib/workflow-state';
 import { cn } from '@/lib/utils';
-import { AlertTriangleIcon, History, Loader2, PanelLeft } from 'lucide-react';
+import { AlertTriangleIcon, Columns2, History, ListFilter, Loader2, PanelLeft } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { DocumentView, DocumentViewHandle } from './document-view';
 import { IssuesColumn, IssuesColumnHandle } from './issues-column';
@@ -57,6 +57,13 @@ export function DocumentExplorerTabV2({
 
   const [railOpen, setRailOpen] = useState(true);
   const [activeLine, setActiveLine] = useState<number | null>(null);
+  // Margin puts each issue beside its paragraph in one shared scroll; list keeps
+  // the ranked queue in a column of its own.
+  const [mode, setMode] = useState<'margin' | 'list'>('margin');
+  // Which margin note is open. Tracked rather than derived from the line range,
+  // because several issues can share a range and the one you clicked is the one
+  // that should expand.
+  const [openIssueId, setOpenIssueId] = useState<string | null>(null);
 
   const mainDocumentMarkdown = projectDetail.main_document_markdown ?? '';
   const currentRevision = projectDetail.project.current_revision ?? 1;
@@ -83,6 +90,18 @@ export function DocumentExplorerTabV2({
   );
   const highlightIssues = useMemo(() => getHighlightIssues(visibleIssues, filter), [visibleIssues, filter]);
 
+  // Falls back to the first issue on the selected lines, so arriving on a #L… hash
+  // from another tab still opens something.
+  const activeIssueId = useMemo(() => {
+    if (!selectedLineRange) return null;
+    if (openIssueId && highlightIssues.some((issue) => issue.id === openIssueId)) return openIssueId;
+    const match = highlightIssues.find((issue) => {
+      const range = getIssueLineRange(issue);
+      return range !== null && range[0] <= selectedLineRange[1] && range[1] >= selectedLineRange[0];
+    });
+    return match?.id ?? null;
+  }, [highlightIssues, selectedLineRange, openIssueId]);
+
   // Landing on a #L… hash (e.g. from an issue in another tab) both filters to
   // that range and brings it into view, matching a click on an issue in-tab.
   const handleLineHashNavigation = useCallback(
@@ -99,29 +118,66 @@ export function DocumentExplorerTabV2({
     (issue: Issue) => {
       const range = getIssueLineRange(issue);
       if (range) {
+        setOpenIssueId(issue.id);
         selectLineRange(range);
         issuesRef.current?.scrollToIssue(issue);
         documentRef.current?.scrollToLineRange(range);
       } else {
+        setOpenIssueId(null);
         clearLineSelection();
       }
     },
     [selectLineRange, clearLineSelection],
   );
 
+  /** Toggles a margin note without moving the document under the reader. */
+  const handleToggleMarginNote = useCallback(
+    (issue: Issue) => {
+      if (openIssueId === issue.id) {
+        setOpenIssueId(null);
+        clearLineSelection();
+        return;
+      }
+      const range = getIssueLineRange(issue);
+      setOpenIssueId(issue.id);
+      if (range) selectLineRange(range);
+      else clearLineSelection();
+    },
+    [openIssueId, selectLineRange, clearLineSelection],
+  );
+
   const handleIssueSelectFromDocument = useCallback(
     (issue: Issue | null) => {
       if (!issue) {
+        setOpenIssueId(null);
         clearLineSelection();
         return;
       }
       const range = getIssueLineRange(issue);
       if (range) {
+        setOpenIssueId(issue.id);
         selectLineRange(range);
         issuesRef.current?.scrollToIssue(issue);
       }
     },
     [selectLineRange, clearLineSelection],
+  );
+
+  /**
+   * Margin rows grow to fit the notes beside them, so the document is taller in
+   * margin mode than in list mode. Switching therefore lands on a different part
+   * of the text unless the reader's place is carried across.
+   */
+  const handleModeChange = useCallback(
+    (next: 'margin' | 'list') => {
+      if (next === mode) return;
+      const line = documentRef.current?.getTopVisibleLine() ?? null;
+      setMode(next);
+      if (line !== null) {
+        setTimeout(() => documentRef.current?.scrollToLine(line, 'auto'), 0);
+      }
+    },
+    [mode],
   );
 
   const handleJumpToSection = useCallback((entry: OutlineEntry) => {
@@ -161,6 +217,7 @@ export function DocumentExplorerTabV2({
           <OutlineRail
             outline={outline}
             visibleIssues={visibleIssues}
+            markedIssues={highlightIssues}
             filter={filter}
             onFilterChange={setFilter}
             onClearFilters={clearFilters}
@@ -187,6 +244,30 @@ export function DocumentExplorerTabV2({
               {outline.length > 0 ? `${outline.length} sections` : 'Document'}
               {mainDocumentMarkdown ? ` · ${mainDocumentMarkdown.split('\n').length} lines` : ''}
             </span>
+
+            <div className="ml-auto hidden items-center gap-1 rounded-md border p-0.5 xl:flex">
+              {(
+                [
+                  { id: 'margin' as const, label: 'Margin', icon: Columns2 },
+                  { id: 'list' as const, label: 'List', icon: ListFilter },
+                ] satisfies { id: 'margin' | 'list'; label: string; icon: typeof Columns2 }[]
+              ).map((option) => (
+                <button
+                  key={option.id}
+                  onClick={() => handleModeChange(option.id)}
+                  aria-pressed={mode === option.id}
+                  className={cn(
+                    'flex cursor-pointer items-center gap-1.5 rounded-sm px-2 py-0.5 text-xs font-medium transition-colors',
+                    mode === option.id
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-muted-foreground hover:bg-accent/60',
+                  )}
+                >
+                  <option.icon className="size-3.5" />
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="min-h-0 flex-1">
@@ -196,6 +277,7 @@ export function DocumentExplorerTabV2({
               issues={highlightIssues}
               selectedLineRange={selectedLineRange}
               onIssueSelect={handleIssueSelectFromDocument}
+              margin={mode === 'margin' ? { activeIssueId, readOnly, onSelect: handleToggleMarginNote } : undefined}
               header={
                 isViewingOlderRevision ? (
                   <Callout variant="info" icon={History} title={`Viewing revision ${selectedRevision}`}>
@@ -221,15 +303,24 @@ export function DocumentExplorerTabV2({
           </div>
         </main>
 
-        <aside className="hidden w-[24rem] shrink-0 border-l lg:block xl:w-[26rem]">
+        <aside
+          className={cn(
+            'hidden w-[24rem] shrink-0 border-l xl:w-[26rem]',
+            mode === 'list' ? 'lg:block' : 'lg:block xl:hidden',
+          )}
+        >
           <IssuesColumn
             ref={issuesRef}
             visibleIssues={visibleIssues}
             filteredIssues={filteredIssues}
+            activeIssueId={activeIssueId}
             isAnyProcessing={isAnyProcessing}
             readOnly={readOnly}
             onSelectIssue={handleSelectIssue}
-            onClearSelection={clearLineSelection}
+            onClearSelection={() => {
+              setOpenIssueId(null);
+              clearLineSelection();
+            }}
           />
         </aside>
       </div>
