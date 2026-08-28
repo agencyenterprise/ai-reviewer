@@ -8,6 +8,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -23,7 +24,8 @@ import { useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { getErrorMessage } from '@/lib/api-error';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Download, EllipsisVerticalIcon, Link, Pencil, Plus } from 'lucide-react';
+import { ArrowLeftRight, Download, EllipsisVerticalIcon, Link, Pencil, Plus } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { downloadDocxFile, DocxType, useDownloadDocx } from './use-download-docx';
@@ -58,7 +60,19 @@ export function AnalysisOptionsMenu({
   downloadVariant = 'default',
 }: AnalysisOptionsMenuProps) {
   const { filter } = useDocumentExplorerStore();
+  const router = useRouter();
+  const pathname = usePathname();
   const projectId = project.id;
+
+  // The two layouts are the same routes under a /v2 prefix, so switching is
+  // adding or dropping it. Only offered on the project routes: the share view
+  // has no v2 counterpart.
+  const isNewLayout = pathname.startsWith('/v2/projects/');
+  const layoutSwitchPath = isNewLayout
+    ? pathname.slice('/v2'.length)
+    : pathname.startsWith('/projects/')
+      ? `/v2${pathname}`
+      : null;
   const share = useShareStatus(projectId, !readOnly);
   const shareContext = useShare();
   const queryClient = useQueryClient();
@@ -229,6 +243,23 @@ export function AnalysisOptionsMenu({
               >
                 {share.isEnabled ? 'Manage share link' : 'Share this assessment'}
               </MenuItemWithTooltip>
+
+              {layoutSwitchPath && (
+                <>
+                  <DropdownMenuSeparator />
+                  <MenuItemWithTooltip
+                    icon={ArrowLeftRight}
+                    onClick={() => router.push(`${layoutSwitchPath}${window.location.hash}`)}
+                    tooltip={
+                      isNewLayout
+                        ? 'Return to the layout the rest of the app uses.'
+                        : 'The same project in the redesigned layout. Nothing changes about your data.'
+                    }
+                  >
+                    {isNewLayout ? 'Back to the classic layout' : 'Try the new layout'}
+                  </MenuItemWithTooltip>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
