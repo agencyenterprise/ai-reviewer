@@ -100,7 +100,7 @@ export function OutlineRail({
     <div className="flex h-full min-h-0 flex-col">
       <section className="max-h-[55%] shrink-0 overflow-y-auto px-3 py-4">
         <div className="flex items-center justify-between px-2">
-          <h3 className="font-mono text-[10px] tracking-[0.14em] text-muted-foreground uppercase">Filter issues</h3>
+          <h3 className="font-mono text-[10px] tracking-wide text-muted-foreground uppercase">Filter issues</h3>
           {hasActiveFilters(filter) && (
             <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={onClearFilters}>
               Clear
@@ -190,9 +190,7 @@ export function OutlineRail({
       <div className="border-t" />
 
       <section className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-        <h3 className="px-2 font-mono text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
-          Document outline
-        </h3>
+        <h3 className="px-2 font-mono text-[10px] tracking-wide text-muted-foreground uppercase">Document outline</h3>
         {outline.length === 0 ? (
           <p className="px-2 pt-2 text-xs text-muted-foreground">This document has no headings.</p>
         ) : (
