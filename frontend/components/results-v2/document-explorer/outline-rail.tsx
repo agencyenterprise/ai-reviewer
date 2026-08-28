@@ -1,0 +1,195 @@
+'use client';
+
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Issue, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
+import { DocumentExplorerFilter, hasActiveFilters } from '@/lib/stores/document-explorer-store';
+import { cn } from '@/lib/utils';
+import { useMemo } from 'react';
+import { OutlineEntry, issuesInSection } from './outline';
+
+const SEVERITY_ROWS = [
+  { value: SeverityEnum.High, label: 'High', dot: 'bg-red-500' },
+  { value: SeverityEnum.Medium, label: 'Medium', dot: 'bg-amber-500' },
+  { value: SeverityEnum.Low, label: 'Low', dot: 'bg-blue-500' },
+] as const;
+
+const SEVERITY_DOT: Record<SeverityEnum, string> = {
+  [SeverityEnum.High]: 'bg-red-500',
+  [SeverityEnum.Medium]: 'bg-amber-500',
+  [SeverityEnum.Low]: 'bg-blue-500',
+  [SeverityEnum.None]: 'bg-green-500',
+};
+
+interface OutlineRailProps {
+  outline: OutlineEntry[];
+  /** Issues after the passing/resolved toggles, before severity and type. */
+  visibleIssues: Issue[];
+  filter: DocumentExplorerFilter;
+  onFilterChange: (partial: Partial<DocumentExplorerFilter>) => void;
+  onClearFilters: () => void;
+  resolvedCount: number;
+  passingCount: number;
+  activeLine: number | null;
+  onJump: (entry: OutlineEntry) => void;
+}
+
+export function OutlineRail({
+  outline,
+  visibleIssues,
+  filter,
+  onFilterChange,
+  onClearFilters,
+  resolvedCount,
+  passingCount,
+  activeLine,
+  onJump,
+}: OutlineRailProps) {
+  const { getWorkflowTypeName } = useWorkflowTypes();
+
+  const workflowCounts = useMemo(() => {
+    const counts = new Map<WorkflowRunType, number>();
+    for (const issue of visibleIssues) {
+      counts.set(issue.workflow_type, (counts.get(issue.workflow_type) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [visibleIssues]);
+
+  const toggleSeverity = (value: SeverityEnum) => {
+    const next = filter.severity.includes(value)
+      ? filter.severity.filter((s) => s !== value)
+      : [...filter.severity, value];
+    onFilterChange({ severity: next });
+  };
+
+  const toggleWorkflowType = (value: WorkflowRunType) => {
+    const next = filter.workflowType.includes(value)
+      ? filter.workflowType.filter((t) => t !== value)
+      : [...filter.workflowType, value];
+    onFilterChange({ workflowType: next });
+  };
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <section className="max-h-[55%] shrink-0 overflow-y-auto px-3 py-4">
+        <div className="flex items-center justify-between px-2">
+          <h3 className="font-mono text-[10px] tracking-[0.14em] text-muted-foreground uppercase">Filter issues</h3>
+          {hasActiveFilters(filter) && (
+            <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={onClearFilters}>
+              Clear
+            </Button>
+          )}
+        </div>
+
+        <div className="mt-2 space-y-px">
+          {SEVERITY_ROWS.map((row) => {
+            const count = visibleIssues.filter((i) => i.severity === row.value).length;
+            const on = filter.severity.includes(row.value);
+            return (
+              <button
+                key={row.value}
+                onClick={() => toggleSeverity(row.value)}
+                aria-pressed={on}
+                className={cn(
+                  'flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
+                  on ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/60',
+                )}
+              >
+                <span className={cn('block size-2 rounded-[2px]', row.dot)} />
+                <span className="flex-1 text-left">{row.label}</span>
+                <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {workflowCounts.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5 px-2">
+            {workflowCounts.map(([type, count]) => {
+              const on = filter.workflowType.includes(type);
+              return (
+                <button
+                  key={type}
+                  onClick={() => toggleWorkflowType(type)}
+                  aria-pressed={on}
+                  title={getWorkflowTypeName(type)}
+                  className={cn(
+                    'max-w-full cursor-pointer truncate rounded-full border px-2 py-0.5 text-[11px] transition-colors',
+                    on
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                  )}
+                >
+                  {getWorkflowTypeName(type)}
+                  <span className="ml-1 tabular-nums opacity-70">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="mt-4 space-y-2.5 px-2">
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <Switch
+              checked={filter.showPassing}
+              onCheckedChange={(showPassing) => onFilterChange({ showPassing })}
+              className="scale-90"
+            />
+            <span className="flex-1">Passing checks</span>
+            <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{passingCount}</span>
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <Switch
+              checked={filter.showResolved}
+              onCheckedChange={(showResolved) => onFilterChange({ showResolved })}
+              className="scale-90"
+            />
+            <span className="flex-1">Resolved</span>
+            <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{resolvedCount}</span>
+          </label>
+        </div>
+      </section>
+
+      <div className="border-t" />
+
+      <section className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+        <h3 className="px-2 font-mono text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
+          Document outline
+        </h3>
+        {outline.length === 0 ? (
+          <p className="px-2 pt-2 text-xs text-muted-foreground">This document has no headings.</p>
+        ) : (
+          <ol className="mt-2 space-y-px">
+            {outline.map((entry) => {
+              const marks = issuesInSection(visibleIssues, entry).filter((i) => i.severity !== SeverityEnum.None);
+              const isActive = activeLine !== null && activeLine >= entry.line && activeLine <= entry.endLine;
+              return (
+                <li key={entry.id}>
+                  <button
+                    onClick={() => onJump(entry)}
+                    className={cn(
+                      'flex w-full cursor-pointer items-center gap-2 rounded-md py-1.5 pr-2 text-left text-sm transition-colors',
+                      isActive ? 'bg-accent text-accent-foreground font-medium' : 'hover:bg-accent/60',
+                    )}
+                    style={{ paddingLeft: `${0.5 + (entry.level - 1) * 0.75}rem` }}
+                  >
+                    <span className="w-6 shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
+                      {entry.line}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{entry.text}</span>
+                    <span className="flex shrink-0 items-center gap-[3px]">
+                      {marks.slice(0, 4).map((m) => (
+                        <span key={m.id} className={cn('block size-1.5 rounded-full', SEVERITY_DOT[m.severity])} />
+                      ))}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </section>
+    </div>
+  );
+}

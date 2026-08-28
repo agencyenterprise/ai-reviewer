@@ -41,6 +41,8 @@ export interface AnalysisOptionsMenuProps {
   selectedRevision?: number;
   onRevisionChange?: (revision: number) => void;
   onRevisionCreated?: () => void;
+  /** Label for the download button. */
+  downloadLabel?: string;
 }
 
 export function AnalysisOptionsMenu({
@@ -50,6 +52,7 @@ export function AnalysisOptionsMenu({
   selectedRevision,
   onRevisionChange,
   onRevisionCreated,
+  downloadLabel = 'Download DOCX',
 }: AnalysisOptionsMenuProps) {
   const { filter } = useDocumentExplorerStore();
   const projectId = project.id;
@@ -169,7 +172,7 @@ export function AnalysisOptionsMenu({
               <span tabIndex={0}>
                 <Button variant="default" size="xs" onClick={handleDownloadClick} disabled={!hasDocx || isDownloading}>
                   <Download />
-                  {isDownloading ? 'Downloading...' : 'Download DOCX'}
+                  {isDownloading ? 'Downloading...' : downloadLabel}
                 </Button>
               </span>
             </TooltipTrigger>

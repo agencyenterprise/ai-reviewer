@@ -30,7 +30,9 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
     current: pathname.startsWith(item.href),
   }));
 
-  if (pathname.startsWith('/addin')) {
+  // The add-in and the v2 project view render their own chrome edge to edge,
+  // navigation included.
+  if (pathname.startsWith('/addin') || pathname.startsWith('/v2/')) {
     return <>{children}</>;
   }
 

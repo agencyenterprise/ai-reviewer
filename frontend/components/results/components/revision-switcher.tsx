@@ -35,7 +35,9 @@ export function RevisionSwitcher({
   return (
     <Select value={String(selectedRevision)} onValueChange={handleChange}>
       <SelectTrigger className="h-7 w-auto gap-1 text-xs">
-        <SelectValue />
+        {/* The trigger names the revision only; which one is current is a
+            distinction that matters while choosing, not while reading. */}
+        <SelectValue>Revision {selectedRevision}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {Array.from({ length: totalRevisions }, (_, i) => totalRevisions - i).map((rev) => (
