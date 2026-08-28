@@ -5,8 +5,7 @@ from typing import List, Type, cast
 from langgraph.graph import StateGraph
 
 from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
-from lib.workflows.reference_extraction.state import ReferenceExtractionState
+from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.reference_file_matching.graph import (
     build_reference_file_matching_graph,
 )
@@ -87,34 +86,6 @@ class ReferenceFileMatchingManifest(
         state: ReferenceFileMatchingState,
         other_states: List[WorkflowState],
     ) -> List[DocumentIssue]:
-        """Convert reference file matching state to issues."""
+        """Reference file matching does not report issues."""
 
-        issues: List[DocumentIssue] = []
-
-        # Get reference extraction state to access extracted references
-        ref_extraction_state = get_state_by_type(
-            WorkflowRunType.REFERENCE_EXTRACTION, other_states
-        )
-        if ref_extraction_state is None:
-            return issues
-
-        ref_extraction_state = cast(ReferenceExtractionState, ref_extraction_state)
-
-        # Build set of matched reference IDs
-        matched_ref_ids = {match.reference_id for match in state.matches}
-
-        # References without matching supporting documents. Emits line ranges
-        # only; persistence derives chunk_indices from them.
-        for reference in ref_extraction_state.extracted_references:
-            if reference.id not in matched_ref_ids:
-                issue = DocumentIssue(
-                    title="Missing supporting document for reference",
-                    description=f'Reference does not have an associated supporting document: "{reference.text}"',
-                    severity=SeverityEnum.LOW,
-                    type=self.type,
-                    start_line=reference.start_line,
-                    end_line=reference.end_line,
-                )
-                issues.append(issue)
-
-        return issues
+        return []
