@@ -19,7 +19,7 @@ import { ProjectTab, ProjectTabs } from './project-tabs';
 import { ReferenceReviewBanner } from './reference-review-banner';
 
 /** Tabs redesigned for the v2 frame, which manage their own scrolling. */
-const FULL_BLEED_TABS = new Set<TabType>(['document-explorer', 'references', 'files']);
+const FULL_BLEED_TABS = new Set<TabType>(['document-explorer', 'references', 'files', 'analyses']);
 
 interface ProjectShellV2Props {
   projectDetail: ProjectDetailed;

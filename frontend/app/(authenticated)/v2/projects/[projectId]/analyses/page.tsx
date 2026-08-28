@@ -1,8 +1,7 @@
 'use client';
 
-import { ProjectTabPanel } from '@/components/results/project-tab-panel';
+import { AssessmentsV2Panel } from '@/components/results-v2/assessments-v2-panel';
 
-/** Production tab content, v2 chrome. Redesigned in a later step. */
 export default function Page() {
-  return <ProjectTabPanel tab="analyses" />;
+  return <AssessmentsV2Panel />;
 }

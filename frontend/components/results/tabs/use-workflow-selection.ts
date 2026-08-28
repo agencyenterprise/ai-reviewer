@@ -7,11 +7,24 @@ interface UseWorkflowSelectionParams {
   projectId: string;
   workflowDetails: WorkflowRunDetail[];
   shareToken?: string | null;
+  /**
+   * Shown until the reader picks one. Views that put the assessment list in a
+   * rail pass the first entry, so the pane opens on something rather than on a
+   * prompt to click the thing already in front of you.
+   */
+  defaultWorkflowType?: WorkflowRunType | null;
 }
 
-export function useWorkflowSelection({ projectId, workflowDetails, shareToken }: UseWorkflowSelectionParams) {
-  const [selectedWorkflowType, setSelectedWorkflowType] = useState<WorkflowRunType | null>(null);
+export function useWorkflowSelection({
+  projectId,
+  workflowDetails,
+  shareToken,
+  defaultWorkflowType = null,
+}: UseWorkflowSelectionParams) {
+  const [pickedWorkflowType, setPickedWorkflowType] = useState<WorkflowRunType | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+
+  const selectedWorkflowType = pickedWorkflowType ?? defaultWorkflowType;
 
   const mainRequestWorkflow = selectedWorkflowType
     ? workflowDetails.find((w) => w.run.type === selectedWorkflowType)
@@ -50,7 +63,7 @@ export function useWorkflowSelection({ projectId, workflowDetails, shareToken }:
   }, [selectedWorkflowType, selectedRunId, historyData, mainRequestWorkflow]);
 
   const handleSelectWorkflowType = (workflowType: WorkflowRunType) => {
-    setSelectedWorkflowType(workflowType);
+    setPickedWorkflowType(workflowType);
     setSelectedRunId(null);
   };
 
