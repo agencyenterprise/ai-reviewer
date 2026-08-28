@@ -8,6 +8,7 @@ import {
   getPassingCount,
   getResolvedCount,
   getVisibleIssues,
+  LineRange,
   useDocumentExplorerStore,
 } from '@/lib/stores/document-explorer-store';
 import {
@@ -74,7 +75,17 @@ export function DocumentExplorerTab({
   );
   const highlightIssues = useMemo(() => getHighlightIssues(visibleIssues, filter), [visibleIssues, filter]);
 
-  useLineHashNavigation(selectLineRange);
+  // Landing on a #L… hash (e.g. from an issue in another tab) both filters to
+  // that range and brings it into view, matching a click on an issue in-tab.
+  const handleLineHashNavigation = useCallback(
+    (range: LineRange) => {
+      selectLineRange(range);
+      markdownRef.current?.scrollToLineRange(range);
+    },
+    [selectLineRange],
+  );
+
+  useLineHashNavigation(handleLineHashNavigation);
 
   const handleSelectIssue = useCallback(
     (issue: Issue) => {
