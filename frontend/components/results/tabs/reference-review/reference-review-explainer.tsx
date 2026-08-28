@@ -77,7 +77,8 @@ const OUTCOMES: Verdict[] = [
 interface ReferenceReviewExplainerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onReviewReferences: () => void;
+  /** Omitted when the reader is already on the References tab. */
+  onReviewReferences?: () => void;
 }
 
 export function ReferenceReviewExplainer({ open, onOpenChange, onReviewReferences }: ReferenceReviewExplainerProps) {
@@ -157,7 +158,7 @@ export function ReferenceReviewExplainer({ open, onOpenChange, onReviewReference
           <DialogClose asChild>
             <Button variant="outline">Close</Button>
           </DialogClose>
-          <Button onClick={onReviewReferences}>Review references</Button>
+          {onReviewReferences && <Button onClick={onReviewReferences}>Review references</Button>}
         </DialogFooter>
       </DialogContent>
     </Dialog>

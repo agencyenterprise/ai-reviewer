@@ -1,8 +1,7 @@
 'use client';
 
-import { ProjectTabPanel } from '@/components/results/project-tab-panel';
+import { ReferencesV2Panel } from '@/components/results-v2/references-v2-panel';
 
-/** Production tab content, v2 chrome. Redesigned in a later step. */
 export default function Page() {
-  return <ProjectTabPanel tab="references" />;
+  return <ReferencesV2Panel />;
 }

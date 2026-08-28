@@ -1,0 +1,399 @@
+'use client';
+
+import { CopyReferencesDialog } from '@/components/references/copy-references-dialog';
+import { useFetchAllFromWebMutation } from '@/components/results/tabs/reference-review/mutations';
+import { useReferenceReviewReferences } from '@/components/results/tabs/reference-review/queries';
+import { ReferenceReviewStatus } from '@/components/results/tabs/reference-review/types';
+import { ReferenceReviewExplainer } from '@/components/results/tabs/reference-review/reference-review-explainer';
+import { UnmatchedReferencesApproveDialog } from '@/components/results/tabs/reference-review/unmatched-references-approve-dialog';
+import { useReferenceApprovalFlow } from '@/components/results/tabs/reference-review/use-reference-approval-flow';
+import { useScrollToReference } from '@/components/results/tabs/reference-review/use-scroll-to-reference';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { WorkflowConfigDialog } from '@/components/workflows/workflow-config-dialog';
+import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
+import { FileRole, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { cn } from '@/lib/utils';
+import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
+import { Copy, Download, FileText, GlobeIcon, Loader2, MoreHorizontal, PanelLeft, Search, Upload } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { FileUploadDialog } from '@/components/results/tabs/reference-review/file-upload-dialog';
+import { ReferenceDetail } from './reference-detail';
+import { ReferenceRow } from './reference-row';
+
+type Lens = 'all' | ReferenceReviewStatus;
+
+interface ReferencesTabV2Props {
+  projectDetail: ProjectDetailed;
+  readOnly: boolean;
+}
+
+/**
+ * The references tab in the v2 frame: a rail that narrows the list, a toolbar
+ * that acts on all of it, and one flat row per reference. The right-hand
+ * evidence pane the mock carried is gone — reference validation reports its
+ * findings as issues in the document explorer, so a second place to read them
+ * would only be a second place to keep in sync.
+ */
+export function ReferencesTabV2({ projectDetail, readOnly }: ReferencesTabV2Props) {
+  const projectId = projectDetail.project.id;
+  const workflowRuns = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
+
+  const [railOpen, setRailOpen] = useState(true);
+  const [lens, setLens] = useState<Lens>('all');
+  const [search, setSearch] = useState('');
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [fetchAllOpen, setFetchAllOpen] = useState(false);
+  const [batchUploadOpen, setBatchUploadOpen] = useState(false);
+  const [explainOpen, setExplainOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useScrollToReference();
+
+  const references = useReferenceReviewReferences(projectDetail);
+  const approval = useReferenceApprovalFlow(projectDetail, projectId);
+  const fetchAll = useFetchAllFromWebMutation(projectId);
+  const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId, [FileRole.Support]);
+
+  const referenceExtraction = getWorkflowRunByType(workflowRuns, WorkflowRunType.ReferenceExtraction);
+  const referenceDownloader = getWorkflowRunByType(workflowRuns, WorkflowRunType.ReferenceDownloader);
+  const isExtracting = isWorkflowProcessing(referenceExtraction);
+  const isFetchingAll = fetchAll.isPending || isWorkflowProcessing(referenceDownloader);
+  const isProcessingFiles = approval.isProcessingFiles;
+
+  const counts = useMemo(
+    () => ({
+      all: references.length,
+      unmatched: references.filter((r) => r.status === 'unmatched').length,
+      matched: references.filter((r) => r.status === 'matched').length,
+      fetching: references.filter((r) => r.status === 'fetching').length,
+      withFile: references.filter((r) => r.matchedFile).length,
+    }),
+    [references],
+  );
+
+  const shown = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return references.filter((reference) => {
+      if (lens !== 'all' && reference.status !== lens) return false;
+      if (!query) return true;
+      return (
+        reference.text?.toLowerCase().includes(query) || !!reference.matchedFile?.name.toLowerCase().includes(query)
+      );
+    });
+  }, [references, lens, search]);
+
+  const filtered = lens !== 'all' || search.trim() !== '';
+  // Looked up in the filtered list, not all of them: a pane describing a row
+  // the filter has hidden is a pane pointing at nothing. The id is kept, so
+  // clearing the filter brings the selection back.
+  const selected = shown.find((reference) => reference.id === selectedId) ?? null;
+
+  if (isExtracting) {
+    return <ExtractingState />;
+  }
+
+  const handleFetchAllConfirm = () => {
+    const unmatched = references
+      .filter((reference) => reference.status === 'unmatched')
+      .map((reference) => ({ reference_id: reference.id, text: reference.text }));
+    fetchAll.mutate({ references: unmatched }, { onSuccess: () => setFetchAllOpen(false) });
+  };
+
+  return (
+    <div className="flex h-full min-h-0">
+      <WorkflowConfigDialog
+        isOpen={fetchAllOpen}
+        type={WorkflowRunType.ReferenceDownloader}
+        projectId={projectId}
+        onConfirm={handleFetchAllConfirm}
+        onCancel={() => setFetchAllOpen(false)}
+      />
+      <FileUploadDialog
+        isOpen={batchUploadOpen}
+        title="Upload source documents"
+        description="Upload as many sources as you like. We process each one and match it to the reference it belongs to."
+        multiple
+        projectId={projectId}
+        onCancel={() => setBatchUploadOpen(false)}
+        onComplete={() => setBatchUploadOpen(false)}
+      />
+      <CopyReferencesDialog
+        references={references.map((reference) => reference.text)}
+        open={copyOpen}
+        onOpenChange={setCopyOpen}
+      />
+      <ReferenceReviewExplainer open={explainOpen} onOpenChange={setExplainOpen} />
+      <UnmatchedReferencesApproveDialog
+        open={approval.showUnmatchedWarning}
+        onOpenChange={approval.setShowUnmatchedWarning}
+        unmatchedCount={approval.unmatchedCount}
+        onConfirmApprove={approval.handleConfirmApprove}
+      />
+
+      <aside
+        className={cn(
+          'bg-sidebar hidden shrink-0 border-r transition-[width] xl:block',
+          railOpen ? 'w-72' : 'w-0 overflow-hidden border-r-0',
+        )}
+      >
+        <LensRail lens={lens} onLensChange={setLens} counts={counts} onExplain={() => setExplainOpen(true)} />
+      </aside>
+
+      <main className="flex min-w-0 flex-1 flex-col">
+        <div className="flex h-10 shrink-0 items-center gap-2 border-b px-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden size-7 xl:flex"
+            onClick={() => setRailOpen(!railOpen)}
+            aria-label={railOpen ? 'Hide filters' : 'Show filters'}
+            aria-pressed={railOpen}
+          >
+            <PanelLeft className="size-4" />
+          </Button>
+
+          <span className="shrink-0 truncate text-xs text-muted-foreground">
+            {filtered ? `${shown.length} of ${counts.all} references` : `${counts.all} references`}
+          </span>
+
+          <div className="relative ml-2 hidden max-w-64 min-w-0 flex-1 sm:block">
+            <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search references and files"
+              className="h-7 pl-7 text-xs"
+            />
+          </div>
+
+          {!readOnly && (
+            <div className="ml-auto flex shrink-0 items-center gap-1.5">
+              <Button
+                size="xs"
+                variant="outline"
+                disabled={isFetchingAll || isProcessingFiles || counts.unmatched === 0}
+                onClick={() => setFetchAllOpen(true)}
+              >
+                {isFetchingAll ? <Loader2 className="size-3 animate-spin" /> : <GlobeIcon className="size-3" />}
+                Fetch all missing
+              </Button>
+              <Button size="xs" variant="outline" disabled={isProcessingFiles} onClick={() => setBatchUploadOpen(true)}>
+                <Upload className="size-3" />
+                Upload sources
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon" variant="ghost" className="size-7" aria-label="More reference actions">
+                    <MoreHorizontal className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => setCopyOpen(true)}>
+                    <Copy className="size-4" />
+                    Copy all references
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => downloadAll()} disabled={counts.withFile === 0 || isDownloading}>
+                    {isDownloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+                    {isDownloading ? 'Preparing zip…' : `Download ${counts.withFile} source files (.zip)`}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
+        </div>
+
+        {isProcessingFiles && (
+          <div className="flex shrink-0 items-center gap-2 border-b bg-blue-50 px-4 py-2 text-xs dark:bg-blue-950/30">
+            <Loader2 className="size-3.5 shrink-0 animate-spin text-blue-700 dark:text-blue-400" />
+            <span>
+              <strong className="font-medium">Processing your source files.</strong>{' '}
+              <span className="text-muted-foreground">
+                We are indexing them and matching them to references — usually a minute or two.
+              </span>
+            </span>
+          </div>
+        )}
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {references.length === 0 ? (
+            <EmptyState />
+          ) : shown.length === 0 ? (
+            <div className="space-y-1 py-12 text-center text-sm text-muted-foreground">
+              <p>No references match this view.</p>
+              <Button
+                variant="link"
+                size="sm"
+                className="text-xs"
+                onClick={() => {
+                  setLens('all');
+                  setSearch('');
+                }}
+              >
+                Clear filters
+              </Button>
+            </div>
+          ) : (
+            <div className="divide-y">
+              {shown.map((reference) => (
+                <ReferenceRow
+                  key={reference.id}
+                  reference={reference}
+                  active={reference.id === selectedId}
+                  onSelect={() => setSelectedId(reference.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {approval.hasPendingApproval && !readOnly && (
+          <div className="flex shrink-0 flex-wrap items-center gap-3 border-t px-4 py-2.5">
+            <span className="min-w-0 text-sm">
+              {counts.unmatched > 0 ? (
+                <>
+                  <strong className="font-medium">
+                    {counts.unmatched} reference{counts.unmatched === 1 ? ' has' : 's have'} no source file provided.
+                  </strong>{' '}
+                  <span className="text-muted-foreground">
+                    Claim Reference Validation will mark {counts.unmatched === 1 ? 'its claims' : 'their claims'}{' '}
+                    unverifiable.
+                  </span>
+                </>
+              ) : (
+                <span className="text-muted-foreground">Every reference has its source file. Ready when you are.</span>
+              )}
+            </span>
+            <Button
+              size="sm"
+              className="ml-auto h-7"
+              onClick={approval.handleApprove}
+              disabled={approval.isApproveDisabled}
+            >
+              {approval.showApproveButtonSpinner && <Loader2 className="size-3 animate-spin" />}
+              {approval.approveButtonText}
+            </Button>
+          </div>
+        )}
+      </main>
+
+      {references.length > 0 && (
+        <aside className="hidden w-[24rem] shrink-0 border-l lg:block xl:w-[26rem]">
+          {selected ? (
+            <ReferenceDetail
+              key={selected.id}
+              reference={selected}
+              projectId={projectId}
+              readOnly={readOnly}
+              disabled={approval.isProcessingFiles}
+              onExplain={() => setExplainOpen(true)}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center p-8">
+              <p className="max-w-56 text-center text-xs leading-relaxed text-muted-foreground">
+                Select a reference to see more details, provide or replace a source file.
+              </p>
+            </div>
+          )}
+        </aside>
+      )}
+    </div>
+  );
+}
+
+const LENSES: { id: Lens; label: string; countKey: 'all' | 'unmatched' | 'matched' | 'fetching' }[] = [
+  { id: 'all', label: 'All references', countKey: 'all' },
+  { id: 'unmatched', label: 'Source file not provided', countKey: 'unmatched' },
+  { id: 'matched', label: 'Source file provided', countKey: 'matched' },
+  { id: 'fetching', label: 'Fetching', countKey: 'fetching' },
+];
+
+function LensRail({
+  lens,
+  onLensChange,
+  counts,
+  onExplain,
+}: {
+  lens: Lens;
+  onLensChange: (lens: Lens) => void;
+  counts: Record<'all' | 'unmatched' | 'matched' | 'fetching' | 'withFile', number>;
+  onExplain: () => void;
+}) {
+  return (
+    <div className="flex h-full flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto p-3">
+        <div className="flex items-center justify-between px-2">
+          <h2 className="font-mono text-[10px] tracking-wide text-muted-foreground uppercase">Filter references</h2>
+          {lens !== 'all' && (
+            <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => onLensChange('all')}>
+              Clear
+            </Button>
+          )}
+        </div>
+        <div className="mt-2 space-y-px">
+          {LENSES.map((entry) => {
+            const count = counts[entry.countKey];
+            if (entry.id === 'fetching' && count === 0) return null;
+            return (
+              <button
+                key={entry.id}
+                onClick={() => onLensChange(entry.id)}
+                aria-pressed={lens === entry.id}
+                className={cn(
+                  'flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors',
+                  lens === entry.id ? 'bg-accent text-accent-foreground font-medium' : 'hover:bg-accent/60',
+                )}
+              >
+                <span className="flex-1 truncate">{entry.label}</span>
+                <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <p className="shrink-0 border-t px-5 py-4 text-xs leading-relaxed text-muted-foreground">
+        Some assessments — Claim Reference Validation among them — read the original source documents behind your
+        bibliographic references.{' '}
+        <button onClick={onExplain} className="cursor-pointer underline underline-offset-2 hover:text-foreground">
+          More details
+        </button>
+      </p>
+    </div>
+  );
+}
+
+function ExtractingState() {
+  return (
+    <div className="flex h-full items-center justify-center p-8">
+      <div className="max-w-sm space-y-2 text-center">
+        <Loader2 className="text-primary mx-auto size-7 animate-spin" />
+        <p className="text-sm font-medium">Finding references in your document</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Usually two to ten minutes, depending on how long the document is. You can leave this page — we keep working.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="flex h-full items-center justify-center p-8">
+      <div className="max-w-sm space-y-2 text-center">
+        <FileText className="mx-auto size-7 text-muted-foreground" />
+        <p className="text-sm font-medium">No references found</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          We did not find a bibliography in this document. Assessments that read sources have nothing to check against.
+        </p>
+      </div>
+    </div>
+  );
+}

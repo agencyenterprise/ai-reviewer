@@ -18,6 +18,9 @@ import { AppBar } from './app-bar';
 import { ProjectTab, ProjectTabs } from './project-tabs';
 import { ReferenceReviewBanner } from './reference-review-banner';
 
+/** Tabs redesigned for the v2 frame, which manage their own scrolling. */
+const FULL_BLEED_TABS = new Set<TabType>(['document-explorer', 'references']);
+
 interface ProjectShellV2Props {
   projectDetail: ProjectDetailed;
   activeTab: TabType;
@@ -140,7 +143,7 @@ export function ProjectShellV2({
           )}
 
           <div className="min-h-0 flex-1">
-            {activeTab === 'document-explorer' ? (
+            {FULL_BLEED_TABS.has(activeTab) ? (
               children
             ) : (
               /* Placeholder framing for tabs that have not been redesigned yet:
