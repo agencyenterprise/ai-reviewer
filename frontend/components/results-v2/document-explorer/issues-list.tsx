@@ -5,7 +5,8 @@ import { isIssueResolved } from '@/lib/stores/document-explorer-store';
 import { cn } from '@/lib/utils';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Ref, useImperativeHandle, useMemo } from 'react';
-import { IssueBody, IssueMeta, SEVERITY } from './issue-note';
+import { SEVERITY } from '@/lib/severity-style';
+import { IssueBody, IssueMeta } from './issue-note';
 
 /** Worst first, matching the order the store already sorts issues into. */
 const SEVERITY_ORDER: SeverityEnum[] = [SeverityEnum.High, SeverityEnum.Medium, SeverityEnum.Low, SeverityEnum.None];

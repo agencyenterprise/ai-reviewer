@@ -6,7 +6,7 @@ import { Issue, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { DocumentExplorerFilter, hasActiveFilters } from '@/lib/stores/document-explorer-store';
 import { cn } from '@/lib/utils';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { OutlineEntry, issuesInSection } from './outline';
 
 const SEVERITY_ROWS = [
@@ -14,6 +14,9 @@ const SEVERITY_ROWS = [
   { value: SeverityEnum.Medium, label: 'Medium', dot: 'bg-amber-500' },
   { value: SeverityEnum.Low, label: 'Low', dot: 'bg-blue-500' },
 ] as const;
+
+/** Assessments shown before the list is collapsed behind a toggle. */
+const VISIBLE_ASSESSMENTS = 4;
 
 const SEVERITY_DOT: Record<SeverityEnum, string> = {
   [SeverityEnum.High]: 'bg-red-500',
@@ -56,6 +59,7 @@ export function OutlineRail({
   onJump,
 }: OutlineRailProps) {
   const { getWorkflowTypeName } = useWorkflowTypes();
+  const [showAllWorkflows, setShowAllWorkflows] = useState(false);
 
   const workflowCounts = useMemo(() => {
     const counts = new Map<WorkflowRunType, number>();
@@ -64,6 +68,19 @@ export function OutlineRail({
     }
     return [...counts.entries()].sort((a, b) => b[1] - a[1]);
   }, [visibleIssues]);
+
+  /**
+   * A project can run a dozen assessments, and the full set of chips pushes the
+   * outline off the rail. Show the ones carrying the most issues, plus anything
+   * selected so an active filter is never out of sight, and put the rest behind
+   * a toggle.
+   */
+  const shownWorkflows = useMemo(() => {
+    if (showAllWorkflows) return workflowCounts;
+    return workflowCounts.filter(([type], index) => index < VISIBLE_ASSESSMENTS || filter.workflowType.includes(type));
+  }, [workflowCounts, showAllWorkflows, filter.workflowType]);
+
+  const hiddenWorkflowCount = workflowCounts.length - shownWorkflows.length;
 
   const toggleSeverity = (value: SeverityEnum) => {
     const next = filter.severity.includes(value)
@@ -115,7 +132,7 @@ export function OutlineRail({
 
         {workflowCounts.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5 px-2">
-            {workflowCounts.map(([type, count]) => {
+            {shownWorkflows.map(([type, count]) => {
               const on = filter.workflowType.includes(type);
               return (
                 <button
@@ -135,6 +152,16 @@ export function OutlineRail({
                 </button>
               );
             })}
+
+            {(hiddenWorkflowCount > 0 || showAllWorkflows) && (
+              <button
+                onClick={() => setShowAllWorkflows(!showAllWorkflows)}
+                aria-expanded={showAllWorkflows}
+                className="cursor-pointer rounded-full px-2 py-0.5 text-[11px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              >
+                {showAllWorkflows ? 'Show fewer' : `${hiddenWorkflowCount} more`}
+              </button>
+            )}
           </div>
         )}
 

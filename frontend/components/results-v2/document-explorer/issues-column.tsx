@@ -1,12 +1,23 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Issue } from '@/lib/generated-api';
 import { getIssueCount, hasActiveFilters, useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
-import { Loader2 } from 'lucide-react';
 import { Ref, useImperativeHandle, useRef, useState } from 'react';
 import { IssuesList, IssuesListHandle } from './issues-list';
+
+/**
+ * "12 issues", or "3 of 12 issues" once filters narrow the list. Null when the
+ * document has none to report, so callers can leave the slot empty.
+ */
+export function issueCountLabel(visibleIssues: Issue[], issues: Issue[]): string | null {
+  const visibleCount = getIssueCount(visibleIssues);
+  if (visibleCount === 0) return null;
+
+  const shownCount = getIssueCount(issues);
+  const noun = visibleCount === 1 ? 'issue' : 'issues';
+  return shownCount === visibleCount ? `${visibleCount} ${noun}` : `${shownCount} of ${visibleCount} ${noun}`;
+}
 
 export interface IssuesColumnHandle {
   scrollToIssue: (issue: Issue) => void;
@@ -50,33 +61,8 @@ export function IssuesColumn({
     },
   }));
 
-  const visibleCount = getIssueCount(visibleIssues);
-  const shownCount = getIssueCount(issues);
-
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-10 shrink-0 items-center gap-2 border-b px-4">
-        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-          {isAnyProcessing && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span
-                  className="inline-flex size-3.5 items-center justify-center"
-                  aria-label="Some results are still loading"
-                >
-                  <Loader2 className="size-3.5 animate-spin" />
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>Some results are still loading, see the Assessments tab for details</TooltipContent>
-            </Tooltip>
-          )}
-          {visibleCount > 0 &&
-            (shownCount === visibleCount ? `${visibleCount} issues` : `${shownCount} of ${visibleCount} issues`)}
-          {visibleCount === 0 && isAnyProcessing && 'Finding issues...'}
-          {visibleCount === 0 && !isAnyProcessing && 'No issues'}
-        </span>
-      </div>
-
       <div ref={setScrollContainer} className="min-h-0 flex-1 overflow-y-auto">
         {visibleIssues.length === 0 && !isAnyProcessing && (
           <p className="p-4 text-sm text-muted-foreground">No issues found for this document.</p>

@@ -5,7 +5,7 @@ import { SeverityEnum } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import type { Element } from 'hast';
 import { ImageOff } from 'lucide-react';
-import { SEVERITY } from './issue-note';
+import { SEVERITY } from '@/lib/severity-style';
 import { MarginNote } from './margin-note';
 import React, { Ref, createContext, useContext, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import ReactMarkdown, { type ExtraProps } from 'react-markdown';

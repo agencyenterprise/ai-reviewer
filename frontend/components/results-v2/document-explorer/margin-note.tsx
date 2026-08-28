@@ -3,7 +3,8 @@
 import { Issue, SeverityEnum } from '@/lib/generated-api';
 import { isIssueResolved } from '@/lib/stores/document-explorer-store';
 import { cn } from '@/lib/utils';
-import { IssueBody, IssueMeta, SEVERITY } from './issue-note';
+import { SEVERITY } from '@/lib/severity-style';
+import { IssueBody, IssueMeta } from './issue-note';
 
 interface MarginNoteProps {
   issue: Issue;

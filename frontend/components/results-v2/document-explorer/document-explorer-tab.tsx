@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Issue, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { useLineHashNavigation } from '@/lib/line-hash';
 import {
@@ -22,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { AlertTriangleIcon, Columns2, History, ListFilter, Loader2, PanelLeft } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { DocumentView, DocumentViewHandle } from './document-view';
-import { IssuesColumn, IssuesColumnHandle } from './issues-column';
+import { IssuesColumn, IssuesColumnHandle, issueCountLabel } from './issues-column';
 import { OutlineRail } from './outline-rail';
 import { OutlineEntry, extractOutline } from './outline';
 
@@ -175,6 +176,8 @@ export function DocumentExplorerTabV2({
     [mode],
   );
 
+  const countLabel = issueCountLabel(visibleIssues, highlightIssues);
+
   const handleJumpToSection = useCallback((entry: OutlineEntry) => {
     setActiveLine(entry.line);
     documentRef.current?.scrollToLine(entry.line);
@@ -238,7 +241,22 @@ export function DocumentExplorerTabV2({
             <span className="truncate text-xs text-muted-foreground">
               {outline.length > 0 ? `${outline.length} sections` : 'Document'}
               {mainDocumentMarkdown ? ` · ${mainDocumentMarkdown.split('\n').length} lines` : ''}
+              {` · ${countLabel ?? (isAnyProcessing ? 'Finding issues...' : 'No issues')}`}
             </span>
+
+            {isAnyProcessing && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className="inline-flex size-3.5 shrink-0 items-center justify-center text-muted-foreground"
+                    aria-label="Some results are still loading"
+                  >
+                    <Loader2 className="size-3.5 animate-spin" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Some results are still loading, see the Assessments tab for details</TooltipContent>
+              </Tooltip>
+            )}
 
             <div className="ml-auto hidden items-center gap-1 rounded-md border p-0.5 xl:flex">
               {(
