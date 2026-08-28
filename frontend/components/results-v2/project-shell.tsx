@@ -9,6 +9,7 @@ import {
 } from '@/components/results/tabs/peer-review/peer-review-derive';
 import { Badge } from '@/components/ui/badge';
 import { EditableTitle } from '@/components/ui/editable-title';
+import { useExperimentalFeatures } from '@/context/experimental-features-context';
 import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
 import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
@@ -62,6 +63,7 @@ export function ProjectShellV2({
 
   const referenceExtraction = getWorkflowRunByType(results, WorkflowRunType.ReferenceExtraction);
 
+  const { showExperimentalFeatures } = useExperimentalFeatures();
   const peerReviewFacts = derivePeerReviewFacts(projectDetail);
   const peerReviewAttention = peerReviewNeedsAttention(peerReviewFacts, readOnly);
 
@@ -75,12 +77,17 @@ export function ProjectShellV2({
     },
     { id: 'files', label: 'Files', count: projectDetail.files?.length ?? 0 },
     { id: 'analyses', label: 'Assessments', count: results.filter((r) => isWorkflowTypeVisible(r.run.type)).length },
-    {
-      id: 'peer-review',
-      label: 'Peer Review',
-      count: peerReviewFacts.memos.length > 0 ? peerReviewFacts.memos.length : undefined,
-      attention: peerReviewAttention,
-    },
+    // Peer Review is still alpha, so it only exists for users who opted in.
+    ...(showExperimentalFeatures
+      ? [
+          {
+            id: 'peer-review' as const,
+            label: 'Peer Review',
+            count: peerReviewFacts.memos.length > 0 ? peerReviewFacts.memos.length : undefined,
+            attention: peerReviewAttention,
+          },
+        ]
+      : []),
   ];
 
   const titleNode =

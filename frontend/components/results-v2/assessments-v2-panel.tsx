@@ -1,6 +1,7 @@
 'use client';
 
 import { useProjectView } from '@/components/results/project-view-context';
+import { useExperimentalFeatures } from '@/context/experimental-features-context';
 import { useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
 import { AssessmentsTabV2 } from './assessments/assessments-tab';
 
@@ -15,6 +16,8 @@ function lineRangeHash(lineRange?: [number, number]): string | undefined {
 export function AssessmentsV2Panel() {
   const { projectDetail, readOnly, navigateToTab } = useProjectView();
   const setFilter = useDocumentExplorerStore((s) => s.setFilter);
+  // Nothing should point at Peer Review while it is hidden.
+  const { showExperimentalFeatures } = useExperimentalFeatures();
 
   return (
     <AssessmentsTabV2
@@ -25,7 +28,7 @@ export function AssessmentsV2Panel() {
         navigateToTab('document-explorer', lineRangeHash(lineRange));
       }}
       onNavigateToReferences={() => navigateToTab('references')}
-      onNavigateToPeerReview={() => navigateToTab('peer-review')}
+      onNavigateToPeerReview={showExperimentalFeatures ? () => navigateToTab('peer-review') : undefined}
     />
   );
 }

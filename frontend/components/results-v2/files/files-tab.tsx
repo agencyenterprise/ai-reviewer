@@ -7,6 +7,7 @@ import { FileTypeIcon } from '@/components/shared/file-type-icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useExperimentalFeatures } from '@/context/experimental-features-context';
 import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
 import { buildReferenceByFileIdMap, composeReferences } from '@/lib/composed-references';
 import { FileListItem, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
@@ -37,6 +38,9 @@ export function FilesTabV2({ projectDetail, readOnly, onRevisionCreated }: Files
   const files = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
   const workflowRuns = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
 
+  // Reviewer memos only feed the alpha Peer Review tab, so the role picker is
+  // offered to the same users who can see that tab.
+  const { showExperimentalFeatures } = useExperimentalFeatures();
   const rail = useRailState();
   const [lens, setLens] = useState<Lens>('all');
   const [search, setSearch] = useState('');
@@ -102,9 +106,13 @@ export function FilesTabV2({ projectDetail, readOnly, onRevisionCreated }: Files
         isOpen={uploadOpen}
         projectId={projectId}
         title="Add files"
-        description="Add source documents or reviewer memos to this project."
+        description={
+          showExperimentalFeatures
+            ? 'Add source documents or reviewer memos to this project.'
+            : 'Add source documents to this project.'
+        }
         multiple
-        allowRoleSelection
+        allowRoleSelection={showExperimentalFeatures}
         allowRevisionSelection
         currentRevision={currentRevision}
         onCancel={() => setUploadOpen(false)}
