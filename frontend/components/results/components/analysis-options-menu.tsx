@@ -43,6 +43,8 @@ export interface AnalysisOptionsMenuProps {
   onRevisionCreated?: () => void;
   /** Label for the download button. */
   downloadLabel?: string;
+  /** Drops the download button to secondary where another action leads the row. */
+  downloadVariant?: 'default' | 'outline';
 }
 
 export function AnalysisOptionsMenu({
@@ -53,6 +55,7 @@ export function AnalysisOptionsMenu({
   onRevisionChange,
   onRevisionCreated,
   downloadLabel = 'Download DOCX',
+  downloadVariant = 'default',
 }: AnalysisOptionsMenuProps) {
   const { filter } = useDocumentExplorerStore();
   const projectId = project.id;
@@ -156,21 +159,16 @@ export function AnalysisOptionsMenu({
         <div className="flex items-center gap-2">
           {!readOnly && <ShareStatusBadge isEnabled={share.isEnabled} onClick={() => share.setIsDialogOpen(true)} />}
 
-          {selectedRevision && onRevisionChange && (
-            <RevisionSwitcher
-              currentRevision={project.current_revision ?? 1}
-              totalRevisions={project.current_revision ?? 1}
-              selectedRevision={selectedRevision}
-              onRevisionChange={onRevisionChange}
-              onCreateRevision={readOnly ? undefined : () => setIsReplaceDialogOpen(true)}
-            />
-          )}
-
           <Tooltip>
             <TooltipTrigger asChild>
               {/* Wrapper span so the tooltip still fires while the button is disabled */}
               <span tabIndex={0}>
-                <Button variant="default" size="xs" onClick={handleDownloadClick} disabled={!hasDocx || isDownloading}>
+                <Button
+                  variant={downloadVariant}
+                  size="xs"
+                  onClick={handleDownloadClick}
+                  disabled={!hasDocx || isDownloading}
+                >
                   <Download />
                   {isDownloading ? 'Downloading...' : downloadLabel}
                 </Button>
@@ -182,6 +180,16 @@ export function AnalysisOptionsMenu({
                 : 'DOCX export is only available when the source document is a Word file (.docx or .doc)'}
             </TooltipContent>
           </Tooltip>
+
+          {selectedRevision && onRevisionChange && (
+            <RevisionSwitcher
+              currentRevision={project.current_revision ?? 1}
+              totalRevisions={project.current_revision ?? 1}
+              selectedRevision={selectedRevision}
+              onRevisionChange={onRevisionChange}
+              onCreateRevision={readOnly ? undefined : () => setIsReplaceDialogOpen(true)}
+            />
+          )}
         </div>
 
         {!readOnly && (

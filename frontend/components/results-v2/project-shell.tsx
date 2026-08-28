@@ -15,6 +15,7 @@ import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { ReactNode, useMemo } from 'react';
 import { AppBar } from './app-bar';
+import { NewAssessmentButton } from './new-assessment-button';
 import { ProjectTab, ProjectTabs } from './project-tabs';
 import { ReferenceReviewBanner } from './reference-review-banner';
 
@@ -127,6 +128,7 @@ export function ProjectShellV2({
                   Read-only view
                 </Badge>
               )}
+              {!readOnly && <NewAssessmentButton projectId={projectDetail.project.id} />}
               <AnalysisOptionsMenu
                 project={projectDetail.project}
                 results={results}
@@ -135,6 +137,7 @@ export function ProjectShellV2({
                 onRevisionChange={onRevisionChange}
                 onRevisionCreated={onRevisionCreated}
                 downloadLabel="Export"
+                downloadVariant="outline"
               />
             </div>
           </header>

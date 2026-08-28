@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { getDisplayStatus } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
-import { ArrowRight, PanelLeft, PlusIcon } from 'lucide-react';
+import { ArrowRight, PanelLeft, PlayIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -174,18 +174,6 @@ export function AssessmentsTabV2({
                   }
                 />
               ))}
-
-            {!readOnly && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button size="xs" variant="outline" onClick={() => setConfigOpen(true)}>
-                    <PlusIcon className="size-3" />
-                    New assessment
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Choose assessments to run on this document</TooltipContent>
-              </Tooltip>
-            )}
           </div>
         </div>
 
@@ -230,8 +218,8 @@ export function AssessmentsTabV2({
                 </p>
                 {!readOnly && (
                   <Button size="sm" className="mt-1" onClick={() => setConfigOpen(true)}>
-                    <PlusIcon className="size-3.5" />
-                    Start an assessment
+                    <PlayIcon className="size-3.5" />
+                    Run an assessment
                   </Button>
                 )}
               </div>
