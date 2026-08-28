@@ -7,7 +7,7 @@ from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.methodology_extractor import ReproducibilityCategoryResponse
-from lib.config.llm_models import gpt_5_4_model
+from lib.config.llm_models import gpt_5_6_terra_model, web_search_tool
 from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
 from lib.workflows.context import ContextSchema
@@ -101,7 +101,7 @@ class MethodologyComparisonAgent(LangChainAgent):
         "Compare an extracted paper methodology to typical methods used in the broader field, "
         "using web search to find field methods context, and return a structured text comparison."
     )
-    model = gpt_5_4_model
+    model = gpt_5_6_terra_model
     temperature = 0.3
     timeout = 600
     reasoning = {"effort": "low", "summary": "auto"}
@@ -126,7 +126,7 @@ class MethodologyComparisonAgent(LangChainAgent):
 
         agent = create_agent(
             self.llm,
-            [{"type": "web_search"}],
+            [web_search_tool(self.model)],
             context_schema=ContextSchema,
             response_format=MethodologyComparisonResponse,
         )

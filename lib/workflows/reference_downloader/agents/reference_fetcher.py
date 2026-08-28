@@ -7,7 +7,7 @@ from langchain_core.messages import BaseMessage
 from langgraph.graph.state import RunnableConfig
 from pydantic import BaseModel, ConfigDict, Field
 
-from lib.config.llm_models import gpt_5_4_model
+from lib.config.llm_models import gpt_5_6_terra_model, web_search_tool
 from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
 
@@ -79,7 +79,7 @@ Map the outcome to your structured result:
 class ReferenceFetcherAgent(LangChainAgent):
     name = "Reference Fetcher"
     description = "Fetch a reference from the internet"
-    model = gpt_5_4_model
+    model = gpt_5_6_terra_model
     temperature = 0.0
     reasoning = {"effort": "low", "summary": "auto"}
 
@@ -90,7 +90,7 @@ class ReferenceFetcherAgent(LangChainAgent):
     ) -> tuple[ReferenceFetchItem, list[BaseMessage]]:
         agent = create_agent(
             self.llm,
-            [{"type": "web_search"}, download_file_from_url, read_file_content],
+            [web_search_tool(self.model), download_file_from_url, read_file_content],
             system_prompt=load_skill_prompt("reference-download") + _ENV_GUIDANCE,
             context_schema=ContextSchema,
             response_format=ReferenceFetchItem,

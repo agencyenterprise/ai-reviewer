@@ -9,7 +9,7 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.config.llm_models import gpt_5_5_model
+from lib.config.llm_models import gpt_5_6_terra_model, web_search_tool
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
 
@@ -92,7 +92,7 @@ final outcome.\
 class ReferenceValidatorV2Agent(LangChainAgent):
     name = "Reference Validator V2"
     description = "Validate a list of references in a document, by searching for their online presence."
-    model = gpt_5_5_model
+    model = gpt_5_6_terra_model
     temperature = 0.0
     reasoning = {"effort": "low", "summary": "auto"}
 
@@ -103,7 +103,7 @@ class ReferenceValidatorV2Agent(LangChainAgent):
     ) -> tuple[BibliographyItemValidationV2, list[BaseMessage]]:
         deep_agent = create_deep_agent(
             model=self.llm,
-            tools=[{"type": "web_search"}],
+            tools=[web_search_tool(self.model)],
             context_schema=ContextSchema,
             response_format=AutoStrategy(BibliographyItemValidationV2),
             skills=["/skills/"],
