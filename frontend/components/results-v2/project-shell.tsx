@@ -145,6 +145,7 @@ export function ProjectShellV2({
                 onRevisionCreated={onRevisionCreated}
                 downloadLabel="Export"
                 downloadVariant="outline"
+                compact
               />
             </div>
           </header>

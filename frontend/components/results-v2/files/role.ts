@@ -24,7 +24,7 @@ export const GROUP: Record<FileGroup, { label: string; plural: string; descripti
   },
 };
 
-/** Supporting candidates read as sources too — the distinction is internal. */
+/** Supporting candidates are filtered out before this, and read as sources if any slip through. */
 export function fileGroup(role: FileRole): FileGroup {
   if (role === FileRole.Main) return 'main';
   if (role === FileRole.ReviewerMemo) return 'memo';

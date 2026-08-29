@@ -21,6 +21,7 @@ import {
   WorkflowRunType,
 } from '@/lib/generated-api';
 import { useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
+import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { getErrorMessage } from '@/lib/api-error';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -47,6 +48,11 @@ export interface AnalysisOptionsMenuProps {
   downloadLabel?: string;
   /** Drops the download button to secondary where another action leads the row. */
   downloadVariant?: 'default' | 'outline';
+  /**
+   * Labels give way to icons on narrow screens. For headers that carry other
+   * controls beside this one and would otherwise run off a phone screen.
+   */
+  compact?: boolean;
 }
 
 export function AnalysisOptionsMenu({
@@ -58,6 +64,7 @@ export function AnalysisOptionsMenu({
   onRevisionCreated,
   downloadLabel = 'Download DOCX',
   downloadVariant = 'default',
+  compact = false,
 }: AnalysisOptionsMenuProps) {
   const { filter } = useDocumentExplorerStore();
   const router = useRouter();
@@ -182,9 +189,12 @@ export function AnalysisOptionsMenu({
                   size="xs"
                   onClick={handleDownloadClick}
                   disabled={!hasDocx || isDownloading}
+                  aria-label={downloadLabel}
                 >
                   <Download />
-                  {isDownloading ? 'Downloading...' : downloadLabel}
+                  <span className={cn(compact && 'hidden sm:inline')}>
+                    {isDownloading ? 'Downloading...' : downloadLabel}
+                  </span>
                 </Button>
               </span>
             </TooltipTrigger>
@@ -202,6 +212,7 @@ export function AnalysisOptionsMenu({
               selectedRevision={selectedRevision}
               onRevisionChange={onRevisionChange}
               onCreateRevision={readOnly ? undefined : () => setIsReplaceDialogOpen(true)}
+              compact={compact}
             />
           )}
         </div>

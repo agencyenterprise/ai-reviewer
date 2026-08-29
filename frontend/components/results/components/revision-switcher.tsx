@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 import { Check, ChevronDown, Plus } from 'lucide-react';
 
 interface RevisionSwitcherProps {
@@ -18,6 +19,8 @@ interface RevisionSwitcherProps {
   onRevisionChange: (revision: number) => void;
   /** Opens the dialog for uploading a new revision of the main document. */
   onCreateRevision?: () => void;
+  /** Abbreviates the trigger on narrow screens, for headers short of room. */
+  compact?: boolean;
 }
 
 /**
@@ -33,6 +36,7 @@ export function RevisionSwitcher({
   selectedRevision,
   onRevisionChange,
   onCreateRevision,
+  compact = false,
 }: RevisionSwitcherProps) {
   const revisions = Array.from({ length: totalRevisions }, (_, index) => totalRevisions - index);
 
@@ -41,8 +45,11 @@ export function RevisionSwitcher({
       <DropdownMenuTrigger asChild>
         {/* The trigger names the revision only; which one is current is a
             distinction that matters while choosing, not while reading. */}
-        <Button variant="outline" size="xs">
-          Revision {selectedRevision}
+        <Button variant="outline" size="xs" aria-label={`Revision ${selectedRevision}`}>
+          {/* Compact drops to "Rev 1" on a phone: the number is the part that
+              has to survive, and the row has no width for the rest. */}
+          {compact && <span className="sm:hidden">Rev {selectedRevision}</span>}
+          <span className={cn(compact && 'hidden sm:inline')}>Revision {selectedRevision}</span>
           <ChevronDown className="text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>

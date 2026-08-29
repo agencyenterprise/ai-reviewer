@@ -175,7 +175,10 @@ function FileTableRow({ file, projectId, currentRevision, matchedReference, onRe
 export function FilesTab({ projectDetail, readOnly = false, onRevisionCreated }: FilesTabProps) {
   const projectId = projectDetail.project.id;
   const currentRevision = projectDetail.project.current_revision ?? 1;
-  const files = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
+  const allFiles = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
+  // Supporting candidates are a staging role the reference downloader uses
+  // while it works, not files the project holds, so the tab does not list them.
+  const files = useMemo(() => allFiles.filter((file) => file.role !== FileRole.SupportingCandidate), [allFiles]);
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
@@ -192,8 +195,12 @@ export function FilesTab({ projectDetail, readOnly = false, onRevisionCreated }:
   // Compose references from extraction and file matching states
   const composedReferences = useMemo(
     () =>
-      composeReferences(referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, files),
-    [referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, files],
+      composeReferences(
+        referenceExtraction?.state?.extracted_references,
+        referenceFileMatching?.state?.matches,
+        allFiles,
+      ),
+    [referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, allFiles],
   );
 
   // Build a map of file_id to matched references once

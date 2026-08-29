@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
 import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
 import { buildReferenceByFileIdMap, composeReferences } from '@/lib/composed-references';
-import { FileListItem, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { FileListItem, FileRole, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { Download, FileText, Loader2, Search, Upload } from 'lucide-react';
@@ -35,7 +35,11 @@ interface FilesTabV2Props {
 export function FilesTabV2({ projectDetail, readOnly, onRevisionCreated }: FilesTabV2Props) {
   const projectId = projectDetail.project.id;
   const currentRevision = projectDetail.project.current_revision ?? 1;
-  const files = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
+  const allFiles = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
+  // Supporting candidates are a staging role the reference downloader uses
+  // while it works, not files the project holds, so the tab neither lists them
+  // nor puts them in the zip.
+  const files = useMemo(() => allFiles.filter((file) => file.role !== FileRole.SupportingCandidate), [allFiles]);
   const workflowRuns = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
 
   // Reviewer memos only feed the alpha Peer Review tab, so the role picker is
@@ -48,7 +52,14 @@ export function FilesTabV2({ projectDetail, readOnly, onRevisionCreated }: Files
   const [uploadOpen, setUploadOpen] = useState(false);
   const [replaceOpen, setReplaceOpen] = useState(false);
 
-  const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId);
+  // Every role this table lists, not the hook's default of main and support:
+  // reviewer memos are rows here too, and "Download all" would otherwise hand
+  // back a zip quietly missing them.
+  const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId, [
+    FileRole.Main,
+    FileRole.Support,
+    FileRole.ReviewerMemo,
+  ]);
 
   const referenceExtraction = getWorkflowRunByType(workflowRuns, WorkflowRunType.ReferenceExtraction);
   const referenceFileMatching = getWorkflowRunByType(workflowRuns, WorkflowRunType.ReferenceFileMatching);
@@ -59,10 +70,10 @@ export function FilesTabV2({ projectDetail, readOnly, onRevisionCreated }: Files
         composeReferences(
           referenceExtraction?.state?.extracted_references,
           referenceFileMatching?.state?.matches,
-          files,
+          allFiles,
         ),
       ),
-    [referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, files],
+    [referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, allFiles],
   );
 
   const sorted = useMemo(() => sortFiles(files), [files]);

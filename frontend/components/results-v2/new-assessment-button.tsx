@@ -49,9 +49,11 @@ export function NewAssessmentButton({ projectId }: { projectId: string }) {
 
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button size="xs" onClick={() => setOpen(true)}>
+          <Button size="xs" onClick={() => setOpen(true)} aria-label="Run assessments">
             <PlayIcon />
-            Run assessments
+            {/* A phone header cannot carry five labelled controls; here the
+                icon and its tooltip say it instead. */}
+            <span className="hidden sm:inline">Run assessments</span>
           </Button>
         </TooltipTrigger>
         <TooltipContent>Choose assessments to run on this document</TooltipContent>

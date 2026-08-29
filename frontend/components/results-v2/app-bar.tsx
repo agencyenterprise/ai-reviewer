@@ -2,6 +2,7 @@
 
 import { ProfileDropdown } from '@/components/layout/profile-dropdown';
 import { Button } from '@/components/ui/button';
+import { useMediaQuery } from '@/lib/use-media-query';
 import { cn } from '@/lib/utils';
 import { LogInIcon, Moon, Plus, Sun } from 'lucide-react';
 import { useSession } from 'next-auth/react';
@@ -9,6 +10,12 @@ import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ReactNode } from 'react';
+
+/**
+ * Below this the bar is too narrow to float a centred title clear of the
+ * wordmark on one side and the account controls on the other.
+ */
+const WIDE_ENOUGH_TO_CENTRE_TITLE = '(min-width: 52rem)';
 
 const navigation = [
   { name: 'Projects', href: '/projects' },
@@ -32,6 +39,7 @@ export function AppBar({ title }: AppBarProps) {
   const session = useSession();
   const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
+  const canCentreTitle = useMediaQuery(WIDE_ENOUGH_TO_CENTRE_TITLE);
   const user = session.data?.user;
   const isLoadingUser = session.status === 'loading';
 
@@ -44,13 +52,20 @@ export function AppBar({ title }: AppBarProps) {
       </Link>
 
       {title ? (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          {/* A definite width, so the rename input has room to be typed in
-              rather than shrinking to fit the finished title. */}
-          <div className="pointer-events-auto flex w-full max-w-md min-w-0 items-center justify-center px-2">
-            {title}
+        canCentreTitle ? (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            {/* A definite width, so the rename input has room to be typed in
+                rather than shrinking to fit the finished title. */}
+            <div className="pointer-events-auto flex w-full max-w-md min-w-0 items-center justify-center px-2">
+              {title}
+            </div>
           </div>
-        </div>
+        ) : (
+          // Too narrow to centre over the bar: the layer would cover the
+          // wordmark and the account controls, and swallow their clicks. The
+          // title takes its own space in the row instead.
+          <div className="ml-1 flex min-w-0 flex-1 items-center">{title}</div>
+        )
       ) : (
         <>
           <nav className="flex h-full items-center gap-1" aria-label="Main">

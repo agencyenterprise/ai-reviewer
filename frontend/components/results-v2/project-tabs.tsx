@@ -89,8 +89,15 @@ function ProjectTabsMenu({ tabs, activeTab, activeLabel, onTabChange }: ProjectT
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-8 shrink-0 px-2 text-[13px] font-medium lg:hidden">
-          {activeLabel}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 max-w-64 min-w-0 flex-1 justify-start px-2 text-[13px] font-medium lg:hidden"
+        >
+          {/* Takes the room that is going spare and gives it back when the
+              project's actions need it: "Document Explorer" is wide enough to
+              push them off a phone screen on its own. */}
+          <span className="truncate">{activeLabel}</span>
           {/* Something elsewhere is waiting; the strip would have shown its own
               dot, and folding the tabs away must not fold that away with them. */}
           {needsAttention && <span className="size-1.5 shrink-0 rounded-full bg-amber-500" />}
