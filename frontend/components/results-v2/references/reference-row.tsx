@@ -30,6 +30,10 @@ export function ReferenceRow({ reference, active, onSelect }: ReferenceRowProps)
       aria-pressed={active}
       onClick={onSelect}
       onKeyDown={(event) => {
+        // Only when the row itself has focus. The citation renders as markdown
+        // and its DOI links are focusable, and swallowing their Enter would
+        // select the row instead of following the link.
+        if (event.target !== event.currentTarget) return;
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
           onSelect();

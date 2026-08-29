@@ -134,6 +134,10 @@ function IssueRow({
       tabIndex={0}
       aria-expanded={active}
       onKeyDown={(event) => {
+        // Only when the row itself has focus: an expanded row holds Resolve and
+        // feedback buttons, and swallowing their Enter would collapse the row
+        // rather than press them.
+        if (event.target !== event.currentTarget) return;
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
           onSelect(issue);
