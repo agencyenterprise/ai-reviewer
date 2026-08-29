@@ -33,8 +33,6 @@ interface DocumentViewProps {
   issues: Issue[];
   selectedLineRange: [number, number] | null;
   onIssueSelect: (issue: Issue | null) => void;
-  /** Optional content rendered inside the scroll area, above the document. */
-  header?: React.ReactNode;
   /**
    * When set, issues are rendered in a margin column beside the paragraph they
    * belong to, sharing this pane's scroll. Omit for a plain document.
@@ -254,15 +252,7 @@ const BLOCK_COMPONENTS = {
     ),
 };
 
-export function DocumentView({
-  ref,
-  markdown,
-  issues,
-  selectedLineRange,
-  onIssueSelect,
-  header,
-  margin,
-}: DocumentViewProps) {
+export function DocumentView({ ref, markdown, issues, selectedLineRange, onIssueSelect, margin }: DocumentViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -389,7 +379,6 @@ export function DocumentView({
         '[&_math]:inline-block [&_math]:max-w-full [&_math]:overflow-x-auto [&_math]:align-middle',
       )}
     >
-      {header && <div className="mb-4">{header}</div>}
       <MarginContext.Provider value={marginState}>
         <div className={cn('mx-auto', WIDTH_BASE, marginState && WIDTH_WITH_MARGIN)}>{renderedMarkdown}</div>
       </MarginContext.Provider>

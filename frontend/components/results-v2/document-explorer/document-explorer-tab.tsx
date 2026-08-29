@@ -21,7 +21,7 @@ import {
 } from '@/lib/workflow-state';
 import { WIDE_ENOUGH_FOR_PANE, useMediaQuery } from '@/lib/use-media-query';
 import { cn } from '@/lib/utils';
-import { AlertTriangleIcon, Columns2, History, ListFilter, Loader2 } from 'lucide-react';
+import { AlertTriangleIcon, Columns2, ListFilter, Loader2 } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { DocumentView, DocumentViewHandle } from './document-view';
 import { IssuesColumn, IssuesColumnHandle, issueCountLabel } from './issues-column';
@@ -44,10 +44,6 @@ interface DocumentExplorerTabProps {
   projectDetail: ProjectDetailed;
   readOnly?: boolean;
   onNavigateToAnalyses: () => void;
-  /** Currently displayed revision (for the non-current revision notice). */
-  selectedRevision?: number;
-  /** Callback to switch revisions (used by the "View current revision" action). */
-  onRevisionChange?: (revision: number) => void;
 }
 
 type IssueWithLines = Issue & { start_line?: number | null; end_line?: number | null };
@@ -62,8 +58,6 @@ export function DocumentExplorerTabV2({
   projectDetail,
   readOnly = false,
   onNavigateToAnalyses,
-  selectedRevision,
-  onRevisionChange,
 }: DocumentExplorerTabProps) {
   const { selectedLineRange, selectLineRange, clearLineSelection, filter, setFilter, clearFilters } =
     useDocumentExplorerStore();
@@ -81,8 +75,6 @@ export function DocumentExplorerTabV2({
   const [openIssueId, setOpenIssueId] = useState<string | null>(null);
 
   const mainDocumentMarkdown = projectDetail.main_document_markdown ?? '';
-  const currentRevision = projectDetail.project.current_revision ?? 1;
-  const isViewingOlderRevision = selectedRevision != null && selectedRevision !== currentRevision;
 
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
   const issues = useMemo(() => projectDetail.issues ?? [], [projectDetail.issues]);
@@ -323,27 +315,6 @@ export function DocumentExplorerTabV2({
               selectedLineRange={selectedLineRange}
               onIssueSelect={handleIssueSelectFromDocument}
               margin={mode === 'margin' ? { activeIssueId, readOnly, onSelect: handleToggleMarginNote } : undefined}
-              header={
-                isViewingOlderRevision ? (
-                  <Callout variant="info" icon={History} title={`Viewing revision ${selectedRevision}`}>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <p className="min-w-0 text-sm">
-                        You are viewing a previous revision of the main document (revision {selectedRevision}).
-                      </p>
-                      {onRevisionChange && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="shrink-0"
-                          onClick={() => onRevisionChange(currentRevision)}
-                        >
-                          View current
-                        </Button>
-                      )}
-                    </div>
-                  </Callout>
-                ) : undefined
-              }
             />
           </div>
         </main>

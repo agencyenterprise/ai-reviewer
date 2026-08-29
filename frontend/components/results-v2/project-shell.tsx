@@ -17,6 +17,7 @@ import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { ReactNode, useMemo } from 'react';
 import { AppBar } from './app-bar';
 import { NewAssessmentButton } from './new-assessment-button';
+import { OldRevisionBanner } from './old-revision-banner';
 import { ProjectTab, ProjectTabs } from './project-tabs';
 import { ReferenceReviewBanner } from './reference-review-banner';
 
@@ -61,6 +62,7 @@ export function ProjectShellV2({
   const results = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
   const { isWorkflowTypeVisible } = useWorkflowTypes();
 
+  const currentRevision = projectDetail.project.current_revision ?? 1;
   const referenceExtraction = getWorkflowRunByType(results, WorkflowRunType.ReferenceExtraction);
 
   const { showExperimentalFeatures } = useExperimentalFeatures();
@@ -152,6 +154,16 @@ export function ProjectShellV2({
 
           {needsReferenceReview && (
             <ReferenceReviewBanner projectDetail={projectDetail} onReviewReferences={() => onTabChange('references')} />
+          )}
+
+          {/* An older revision governs every tab, not just the document, so the
+              notice belongs to the view rather than to the reader. */}
+          {selectedRevision != null && selectedRevision < currentRevision && (
+            <OldRevisionBanner
+              selectedRevision={selectedRevision}
+              currentRevision={currentRevision}
+              onViewCurrent={onRevisionChange ? () => onRevisionChange(currentRevision) : undefined}
+            />
           )}
 
           <div className="min-h-0 flex-1">
