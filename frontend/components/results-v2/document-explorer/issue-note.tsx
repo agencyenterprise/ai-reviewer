@@ -21,6 +21,34 @@ export function lineLabel(issue: Issue): string | null {
   return start === end ? `L${start}` : `L${start}–${end}`;
 }
 
+/**
+ * The description as one line of plain prose, for a note that is closed.
+ *
+ * Descriptions are markdown, and a preview cannot render it: block elements
+ * would break the single line, and the raw source would show its own asterisks
+ * and brackets. So the markup is flattened to the text it stands for, and the
+ * line is cut by CSS rather than by counting characters, which keeps the cut at
+ * the edge of whatever width the note happens to have.
+ */
+function previewText(description: string): string {
+  return description
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`([^`]*)`/g, '$1')
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/[*_]{1,3}([^*_]+)[*_]{1,3}/g, '$1')
+    .replace(/^\s*(?:[#>]+|[-+*]|\d+\.)\s*/gm, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** One line of the description, shown under the title while the note is closed. */
+export function IssuePreview({ issue }: { issue: Issue }) {
+  const text = previewText(issue.description ?? '');
+  if (!text) return null;
+
+  return <span className="mt-0.5 block truncate text-[12px] leading-snug text-muted-foreground">{text}</span>;
+}
+
 /** The line above an issue's title: its severity, where it came from, where it lands. */
 export function IssueMeta({ issue }: { issue: Issue }) {
   const { getWorkflowTypeName } = useWorkflowTypes();

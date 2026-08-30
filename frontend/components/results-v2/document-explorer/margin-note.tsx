@@ -4,7 +4,7 @@ import { Issue, SeverityEnum } from '@/lib/generated-api';
 import { isIssueResolved } from '@/lib/stores/document-explorer-store';
 import { cn } from '@/lib/utils';
 import { SEVERITY } from '@/lib/severity-style';
-import { IssueBody, IssueMeta } from './issue-note';
+import { IssueBody, IssueMeta, IssuePreview } from './issue-note';
 
 interface MarginNoteProps {
   issue: Issue;
@@ -69,6 +69,7 @@ export function MarginNote({ issue, active, readOnly, onSelect, anchored = true 
       >
         <IssueMeta issue={issue} />
         <span className="mt-0.5 block text-[13px] leading-snug font-medium">{issue.title}</span>
+        <IssuePreview issue={issue} />
       </button>
     </div>
   );

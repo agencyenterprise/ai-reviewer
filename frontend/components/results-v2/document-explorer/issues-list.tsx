@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Ref, useImperativeHandle, useMemo } from 'react';
 import { SEVERITY } from '@/lib/severity-style';
-import { IssueBody, IssueMeta } from './issue-note';
+import { IssueBody, IssueMeta, IssuePreview } from './issue-note';
 
 /** Worst first, matching the order the store already sorts issues into. */
 const SEVERITY_ORDER: SeverityEnum[] = [SeverityEnum.High, SeverityEnum.Medium, SeverityEnum.Low, SeverityEnum.None];
@@ -154,6 +154,7 @@ function IssueRow({
         <span className="flex-1 text-[13.5px] leading-snug font-medium">{issue.title}</span>
         {active && <span className={cn('shrink-0 font-mono text-[10px] uppercase', style.text)}>{style.label}</span>}
       </span>
+      {!active && <IssuePreview issue={issue} />}
       {active && (
         <div className="mt-2">
           <IssueBody issue={issue} readOnly={readOnly} />
