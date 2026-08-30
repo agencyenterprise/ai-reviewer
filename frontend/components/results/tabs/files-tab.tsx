@@ -177,7 +177,8 @@ export function FilesTab({ projectDetail, readOnly = false, onRevisionCreated }:
   const currentRevision = projectDetail.project.current_revision ?? 1;
   const allFiles = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
   // Supporting candidates are a staging role the reference downloader uses
-  // while it works, not files the project holds, so the tab does not list them.
+  // while it works, not files the project holds. The API already excludes them
+  // from projectDetail.files; this only guards against that changing.
   const files = useMemo(() => allFiles.filter((file) => file.role !== FileRole.SupportingCandidate), [allFiles]);
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
   const [searchQuery, setSearchQuery] = useState('');

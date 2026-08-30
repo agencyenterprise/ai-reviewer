@@ -38,8 +38,10 @@ export function FilesTabV2({ projectDetail, readOnly, onRevisionCreated }: Files
   const currentRevision = projectDetail.project.current_revision ?? 1;
   const allFiles = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
   // Supporting candidates are a staging role the reference downloader uses
-  // while it works, not files the project holds, so the tab neither lists them
-  // nor puts them in the zip.
+  // while it works, not files the project holds. The API already leaves them
+  // out of projectDetail.files — get_project_files_list_items filters the role
+  // in SQL — so this is belt and braces, and the tab's counts match the badge
+  // in the header because both read this same list.
   const files = useMemo(() => allFiles.filter((file) => file.role !== FileRole.SupportingCandidate), [allFiles]);
   const workflowRuns = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
 
