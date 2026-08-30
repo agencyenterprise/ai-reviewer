@@ -96,8 +96,11 @@ export function DocumentExplorerTabV2({
   // Falls back to the first issue on the selected lines, so arriving on a #L… hash
   // from another tab still opens something.
   const activeIssueId = useMemo(() => {
-    if (!selectedLineRange) return null;
+    // Before the range check: an issue the reader opened stays open even when it
+    // has no lines to select, which is the only way to read one that carries
+    // none — nothing anchors it in the document for the fallback below to find.
     if (openIssueId && highlightIssues.some((issue) => issue.id === openIssueId)) return openIssueId;
+    if (!selectedLineRange) return null;
     const match = highlightIssues.find((issue) => {
       const range = getIssueLineRange(issue);
       return range !== null && range[0] <= selectedLineRange[1] && range[1] >= selectedLineRange[0];
@@ -125,13 +128,14 @@ export function DocumentExplorerTabV2({
   const handleSelectIssue = useCallback(
     (issue: Issue) => {
       const range = getIssueLineRange(issue);
+      // Opening the issue does not depend on it having a range: start_line is
+      // nullable, and an issue with none can only be read here.
+      setOpenIssueId(issue.id);
+      issuesRef.current?.scrollToIssue(issue);
       if (range) {
-        setOpenIssueId(issue.id);
         selectLineRange(range);
-        issuesRef.current?.scrollToIssue(issue);
         documentRef.current?.scrollToLineRange(range);
       } else {
-        setOpenIssueId(null);
         clearLineSelection();
       }
     },
