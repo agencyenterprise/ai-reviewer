@@ -7,6 +7,7 @@ import { Issue, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { SEVERITY } from '@/lib/severity-style';
 import { DocumentExplorerFilter, hasActiveFilters } from '@/lib/stores/document-explorer-store';
+import { RAIL_ITEM_ACTIVE, RAIL_ITEM_IDLE } from '@/lib/rail-style';
 import { cn } from '@/lib/utils';
 import { CircleHelp } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -113,7 +114,7 @@ export function OutlineRail({
                 aria-pressed={on}
                 className={cn(
                   'flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
-                  on ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/60',
+                  on ? RAIL_ITEM_ACTIVE : RAIL_ITEM_IDLE,
                 )}
               >
                 <span className={cn('block size-2 rounded-[2px]', SEVERITY[severity].dot)} />
@@ -198,7 +199,7 @@ export function OutlineRail({
                     onClick={() => onJump(entry)}
                     className={cn(
                       'flex w-full cursor-pointer items-center gap-2 rounded-md py-1.5 pr-2 text-left text-sm transition-colors',
-                      isActive ? 'bg-accent text-accent-foreground font-medium' : 'hover:bg-accent/60',
+                      isActive ? RAIL_ITEM_ACTIVE : RAIL_ITEM_IDLE,
                     )}
                     style={{ paddingLeft: `${0.5 + (entry.level - 1) * 0.75}rem` }}
                   >

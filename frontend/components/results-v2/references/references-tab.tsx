@@ -20,6 +20,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { WorkflowConfigDialog } from '@/components/workflows/workflow-config-dialog';
 import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
 import { FileRole, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { RAIL_ITEM_ACTIVE, RAIL_ITEM_IDLE } from '@/lib/rail-style';
 import { cn } from '@/lib/utils';
 import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
 import { Copy, Download, FileText, GlobeIcon, Loader2, MoreHorizontal, Search, Upload } from 'lucide-react';
@@ -186,6 +187,7 @@ export function ReferencesTabV2({ projectDetail, readOnly }: ReferencesTabV2Prop
                   <Button
                     size="xs"
                     variant="outline"
+                    aria-label="Fetch all missing"
                     disabled={isFetchingAll || isProcessingFiles || counts.unmatched === 0}
                     onClick={() => setFetchAllOpen(true)}
                   >
@@ -206,6 +208,7 @@ export function ReferencesTabV2({ projectDetail, readOnly }: ReferencesTabV2Prop
                   <Button
                     size="xs"
                     variant="outline"
+                    aria-label="Upload sources"
                     disabled={isProcessingFiles}
                     onClick={() => setBatchUploadOpen(true)}
                   >
@@ -383,7 +386,7 @@ function LensRail({
                 aria-pressed={lens === entry.id}
                 className={cn(
                   'flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors',
-                  lens === entry.id ? 'bg-accent text-accent-foreground font-medium' : 'hover:bg-accent/60',
+                  lens === entry.id ? RAIL_ITEM_ACTIVE : RAIL_ITEM_IDLE,
                 )}
               >
                 <span className="flex-1 truncate">{entry.label}</span>

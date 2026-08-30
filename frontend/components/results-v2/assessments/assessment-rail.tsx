@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Issue, WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
 import { summarizeReportedIssues } from '@/lib/health-status';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
+import { RAIL_ITEM_ACTIVE, RAIL_ITEM_IDLE } from '@/lib/rail-style';
 import { cn } from '@/lib/utils';
 import {
   getDisplayStatus,
@@ -147,13 +148,32 @@ function AssessmentRow({
   // A run still working has nothing final to count.
   const summary = processing ? null : summarizeReportedIssues(issues, detail.run.type);
 
-  return (
+  const name = getWorkflowTypeName(detail.run.type);
+  const flag = failed
+    ? {
+        tone: 'error' as const,
+        message: detail.run.failure_message ?? 'This assessment failed before it could finish. Try running it again.',
+      }
+    : errored
+      ? { tone: 'error' as const, message: 'This assessment finished with errors. Check them and run it again.' }
+      : warned
+        ? {
+            tone: 'warning' as const,
+            message: 'This assessment finished, but parts of it returned incomplete results.',
+          }
+        : null;
+
+  const row = (
     <button
       onClick={onSelect}
       aria-pressed={active}
+      // The flag's explanation belongs to the row it marks, so it goes in the
+      // row's own name rather than a control of its own: a button inside this
+      // button would be invalid, and the icon alone takes no focus.
+      aria-label={flag ? `${name}. ${flag.message}` : undefined}
       className={cn(
         'flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors',
-        active ? 'bg-accent text-accent-foreground font-medium' : 'hover:bg-accent/60',
+        active ? RAIL_ITEM_ACTIVE : RAIL_ITEM_IDLE,
       )}
     >
       {processing ? (
@@ -162,39 +182,30 @@ function AssessmentRow({
         <span className={cn('block size-2 shrink-0 rounded-full', STATUS_DOT[status] ?? 'bg-muted-foreground/40')} />
       )}
 
-      <span className="flex-1 truncate">{getWorkflowTypeName(detail.run.type)}</span>
+      <span className="flex-1 truncate">{name}</span>
 
-      {failed && (
-        <FlagIcon
-          tone="error"
-          message={detail.run.failure_message ?? 'This assessment failed before it could finish. Try running it again.'}
-        />
-      )}
-      {errored && !failed && (
-        <FlagIcon tone="error" message="This assessment finished with errors. Check them and run it again." />
-      )}
-      {warned && (
-        <FlagIcon tone="warning" message="This assessment finished, but parts of it returned incomplete results." />
-      )}
+      {flag && <FlagIcon tone={flag.tone} />}
 
       {summary && <IssueCountBadge summary={summary} />}
     </button>
   );
-}
 
-function FlagIcon({ tone, message }: { tone: 'error' | 'warning'; message: string }) {
-  const Icon = tone === 'error' ? XCircleIcon : AlertTriangleIcon;
+  if (!flag) return row;
+
+  // On the row rather than the icon, so the message arrives on focus as well as
+  // on hover.
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        {/* A button rather than the icon itself: `asChild` would make the SVG
-            the trigger, and an SVG takes no focus, so the explanation would be
-            hover-only. */}
-        <button type="button" aria-label={message} className="inline-flex shrink-0 cursor-help">
-          <Icon className={cn('size-3.5', tone === 'error' ? 'text-destructive' : 'text-amber-600')} />
-        </button>
-      </TooltipTrigger>
-      <TooltipContent className="max-w-xs">{message}</TooltipContent>
+      <TooltipTrigger asChild>{row}</TooltipTrigger>
+      <TooltipContent className="max-w-xs">{flag.message}</TooltipContent>
     </Tooltip>
+  );
+}
+
+/** Marks the row; the message it stands for is carried by the row itself. */
+function FlagIcon({ tone }: { tone: 'error' | 'warning' }) {
+  const Icon = tone === 'error' ? XCircleIcon : AlertTriangleIcon;
+  return (
+    <Icon aria-hidden className={cn('size-3.5 shrink-0', tone === 'error' ? 'text-destructive' : 'text-amber-600')} />
   );
 }

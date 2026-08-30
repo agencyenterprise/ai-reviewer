@@ -2,6 +2,7 @@
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
+import { RAIL_ITEM_ACTIVE } from '@/lib/rail-style';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { HELP_TOPICS, HelpTopicId } from './topics';
@@ -69,7 +70,7 @@ function HelpCenterBody({
             className={cn(
               'flex shrink-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors',
               entry.id === topicId
-                ? 'bg-accent text-accent-foreground font-medium'
+                ? RAIL_ITEM_ACTIVE
                 : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
             )}
           >

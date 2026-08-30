@@ -3,6 +3,7 @@
 import { HelpLink } from '@/components/help/help-link';
 import { StatusIndicator } from '@/components/ui/status-indicator';
 import { WorkflowRunStatus } from '@/lib/generated-api';
+import { RAIL_ITEM_ACTIVE, RAIL_ITEM_IDLE } from '@/lib/rail-style';
 import { cn } from '@/lib/utils';
 import { getDisplayStatus } from '@/lib/workflow-state';
 import { Check } from 'lucide-react';
@@ -36,7 +37,7 @@ export function StepRail({ states, activeStep, onSelectStep }: StepRailProps) {
                   aria-current={active ? 'step' : undefined}
                   className={cn(
                     'flex w-full cursor-pointer gap-2.5 rounded-md px-2 py-2 text-left transition-colors',
-                    active ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/60',
+                    active ? RAIL_ITEM_ACTIVE : RAIL_ITEM_IDLE,
                   )}
                 >
                   <StepMarker index={index + 1} complete={state.complete} blocked={state.blockedReason !== null} />
