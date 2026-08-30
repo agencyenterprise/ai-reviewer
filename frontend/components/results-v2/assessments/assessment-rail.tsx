@@ -187,9 +187,12 @@ function FlagIcon({ tone, message }: { tone: 'error' | 'warning'; message: strin
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Icon
-          className={cn('size-3.5 shrink-0 cursor-help', tone === 'error' ? 'text-destructive' : 'text-amber-600')}
-        />
+        {/* A button rather than the icon itself: `asChild` would make the SVG
+            the trigger, and an SVG takes no focus, so the explanation would be
+            hover-only. */}
+        <button type="button" aria-label={message} className="inline-flex shrink-0 cursor-help">
+          <Icon className={cn('size-3.5', tone === 'error' ? 'text-destructive' : 'text-amber-600')} />
+        </button>
       </TooltipTrigger>
       <TooltipContent className="max-w-xs">{message}</TooltipContent>
     </Tooltip>

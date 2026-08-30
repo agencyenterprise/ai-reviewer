@@ -283,17 +283,12 @@ function FileRow({
   const superseded = group === 'main' && file.revision !== currentRevision;
 
   return (
+    // The row keeps its own role: overriding it with `button` leaves the cells
+    // without a row parent in the accessibility tree. Clicking anywhere is a
+    // convenience; the file name is the real control, and the one keyboards and
+    // screen readers reach.
     <tr
-      role="button"
-      tabIndex={0}
-      aria-pressed={active}
       onClick={onSelect}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onSelect();
-        }
-      }}
       className={cn(
         'cursor-pointer border-b transition-colors',
         active
@@ -302,10 +297,19 @@ function FileRow({
       )}
     >
       <td className="py-2.5 pl-4">
-        <span className="flex min-w-0 items-center gap-2">
+        <button
+          type="button"
+          aria-pressed={active}
+          onClick={(event) => {
+            // The row handles it; without this the click would select twice.
+            event.stopPropagation();
+            onSelect();
+          }}
+          className="flex w-full min-w-0 cursor-pointer items-center gap-2 text-left"
+        >
           <FileTypeIcon fileType={file.file_type} className="size-3.5 shrink-0 text-muted-foreground" />
           <span className={cn('truncate text-[13px]', superseded && 'text-muted-foreground')}>{file.file_name}</span>
-        </span>
+        </button>
         {matchedReferenceText && (
           <span className="mt-0.5 ml-[1.375rem] block truncate text-[11.5px] text-muted-foreground">
             {matchedReferenceText}

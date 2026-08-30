@@ -145,9 +145,14 @@ export function AssessmentsTabV2({
                   workflow={selectedWorkflowRun.run}
                   size="xs"
                   startLabel={
-                    selectedWorkflowRun.run.started_at
-                      ? `Re-run ${getWorkflowTypeName(selectedWorkflowRun.run.type)}`
-                      : undefined
+                    selectedWorkflowRun.run.started_at ? (
+                      <>
+                        {/* The name only where it fits: an assessment called
+                            "Claim Reference Validation" is wider than a phone. */}
+                        Re-run
+                        <span className="hidden sm:inline"> {getWorkflowTypeName(selectedWorkflowRun.run.type)}</span>
+                      </>
+                    ) : undefined
                   }
                   tooltip="Running an assessment again replaces what the document explorer shows for it."
                   onConfirm={() =>

@@ -57,7 +57,7 @@ export function Rail({ state, label, children }: { state: RailState; label: stri
 
   return (
     <Sheet open={state.isOpen} onOpenChange={(open) => !open && state.close()}>
-      <SheetContent side="left" showCloseButton={false} className="bg-sidebar w-80 gap-0 p-0 sm:max-w-sm">
+      <SheetContent side="left" showCloseButton={false} className="bg-sidebar w-full max-w-80 gap-0 p-0">
         <div className="flex h-10 shrink-0 items-center gap-2 border-b px-4">
           <SheetTitle className="text-xs font-medium">{label}</SheetTitle>
           <SheetDescription className="sr-only">{label}</SheetDescription>
@@ -142,7 +142,9 @@ export function SidePane({ open, onClose, label, empty, className, children }: S
       {/* Its own titled bar rather than the sheet's floating close button: that
           button sits exactly where these panes put their own header content,
           and overlapped it. */}
-      <SheetContent side="right" showCloseButton={false} className="w-[26rem] gap-0 p-0 sm:max-w-md">
+      {/* Width capped by the viewport: a fixed 26rem runs off the left edge of a
+          phone, putting part of every detail pane out of reach. */}
+      <SheetContent side="right" showCloseButton={false} className="w-full max-w-[26rem] gap-0 p-0">
         <div className="flex h-10 shrink-0 items-center gap-2 border-b px-4">
           <SheetTitle className="text-xs font-medium">{label}</SheetTitle>
           <SheetDescription className="sr-only">{label}</SheetDescription>

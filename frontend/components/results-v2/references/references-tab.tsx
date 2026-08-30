@@ -190,7 +190,9 @@ export function ReferencesTabV2({ projectDetail, readOnly }: ReferencesTabV2Prop
                     onClick={() => setFetchAllOpen(true)}
                   >
                     {isFetchingAll ? <Loader2 className="size-3 animate-spin" /> : <GlobeIcon className="size-3" />}
-                    Fetch all missing
+                    {/* Labels give way below sm: this row needs 430px of them,
+                        which is wider than the phone it sits on. */}
+                    <span className="hidden sm:inline">Fetch all missing</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -208,7 +210,7 @@ export function ReferencesTabV2({ projectDetail, readOnly }: ReferencesTabV2Prop
                     onClick={() => setBatchUploadOpen(true)}
                   >
                     <Upload className="size-3" />
-                    Upload sources
+                    <span className="hidden sm:inline">Upload sources</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Upload source files, and we match each one to its reference</TooltipContent>

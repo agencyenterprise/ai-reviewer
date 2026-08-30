@@ -5,27 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Issue, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
+import { SEVERITY } from '@/lib/severity-style';
 import { DocumentExplorerFilter, hasActiveFilters } from '@/lib/stores/document-explorer-store';
 import { cn } from '@/lib/utils';
 import { CircleHelp } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { OutlineEntry, issuesInSection } from './outline';
 
-const SEVERITY_ROWS = [
-  { value: SeverityEnum.High, label: 'High', dot: 'bg-red-500' },
-  { value: SeverityEnum.Medium, label: 'Medium', dot: 'bg-amber-500' },
-  { value: SeverityEnum.Low, label: 'Low', dot: 'bg-blue-500' },
-] as const;
+/** The severities this rail filters by, worst first. Their colours and labels
+ *  come from the shared palette so the rail cannot drift from the margin. */
+const SEVERITY_ROWS = [SeverityEnum.High, SeverityEnum.Medium, SeverityEnum.Low] as const;
 
 /** Assessments shown before the list is collapsed behind a toggle. */
 const VISIBLE_ASSESSMENTS = 4;
-
-const SEVERITY_DOT: Record<SeverityEnum, string> = {
-  [SeverityEnum.High]: 'bg-red-500',
-  [SeverityEnum.Medium]: 'bg-amber-500',
-  [SeverityEnum.Low]: 'bg-blue-500',
-  [SeverityEnum.None]: 'bg-green-500',
-};
 
 interface OutlineRailProps {
   outline: OutlineEntry[];
@@ -111,21 +103,21 @@ export function OutlineRail({
         </div>
 
         <div className="mt-2 space-y-px">
-          {SEVERITY_ROWS.map((row) => {
-            const count = visibleIssues.filter((i) => i.severity === row.value).length;
-            const on = filter.severity.includes(row.value);
+          {SEVERITY_ROWS.map((severity) => {
+            const count = visibleIssues.filter((i) => i.severity === severity).length;
+            const on = filter.severity.includes(severity);
             return (
               <button
-                key={row.value}
-                onClick={() => toggleSeverity(row.value)}
+                key={severity}
+                onClick={() => toggleSeverity(severity)}
                 aria-pressed={on}
                 className={cn(
                   'flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
                   on ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/60',
                 )}
               >
-                <span className={cn('block size-2 rounded-[2px]', row.dot)} />
-                <span className="flex-1 text-left">{row.label}</span>
+                <span className={cn('block size-2 rounded-[2px]', SEVERITY[severity].dot)} />
+                <span className="flex-1 text-left">{SEVERITY[severity].label}</span>
                 <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{count}</span>
               </button>
             );
@@ -216,7 +208,7 @@ export function OutlineRail({
                     <span className="min-w-0 flex-1 truncate">{entry.text}</span>
                     <span className="flex shrink-0 items-center gap-[3px]">
                       {marks.slice(0, 4).map((m) => (
-                        <span key={m.id} className={cn('block size-1.5 rounded-full', SEVERITY_DOT[m.severity])} />
+                        <span key={m.id} className={cn('block size-1.5 rounded-full', SEVERITY[m.severity].dot)} />
                       ))}
                     </span>
                   </button>

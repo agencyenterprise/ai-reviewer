@@ -8,7 +8,7 @@ import { getErrorMessage } from '@/lib/api-error';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2Icon, PlayIcon, XIcon } from 'lucide-react';
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -32,7 +32,7 @@ export interface StartWorkflowButtonProps {
   /** Match the button to the toolbar it sits in. */
   size?: 'sm' | 'xs';
   /** Overrides the idle label, e.g. "Re-run Abbreviation Scan". */
-  startLabel?: string;
+  startLabel?: ReactNode;
   /** Shown on hover while the button is idle. */
   tooltip?: React.ReactNode;
 }

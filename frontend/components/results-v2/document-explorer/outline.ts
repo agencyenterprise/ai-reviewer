@@ -10,7 +10,7 @@ export interface OutlineEntry {
 }
 
 const HEADING = /^(#{1,3})\s+(.*\S)\s*$/;
-const FENCE = /^\s*(```|~~~)/;
+const FENCE = /^\s*(`{3,}|~{3,})/;
 
 /**
  * Reads the document outline straight off the markdown source so heading line
@@ -19,14 +19,24 @@ const FENCE = /^\s*(```|~~~)/;
  */
 export function extractOutline(markdown: string): OutlineEntry[] {
   const entries: OutlineEntry[] = [];
-  let inFence = false;
+  // The delimiter that opened the current fence, or null outside one. Markdown
+  // closes a fence only on the same character, at least as long as the opener,
+  // so a ~~~ line inside a ``` block is content rather than the end of it.
+  let fence: { char: string; length: number } | null = null;
 
   markdown.split('\n').forEach((raw, index) => {
-    if (FENCE.test(raw)) {
-      inFence = !inFence;
-      return;
+    const delimiter = FENCE.exec(raw)?.[1];
+    if (delimiter) {
+      if (!fence) {
+        fence = { char: delimiter[0], length: delimiter.length };
+        return;
+      }
+      if (delimiter[0] === fence.char && delimiter.length >= fence.length) {
+        fence = null;
+        return;
+      }
     }
-    if (inFence) return;
+    if (fence) return;
 
     const match = HEADING.exec(raw);
     if (!match) return;
