@@ -79,6 +79,14 @@ export function ReferencesTabV2({ projectDetail, readOnly }: ReferencesTabV2Prop
     [references],
   );
 
+  // What the zip will actually hold. Counting matched references instead reports
+  // a different number: a source can sit in the project without any reference
+  // claiming it, and the download asks the API for the role, not for the matches.
+  const sourceFileCount = useMemo(
+    () => (projectDetail.files ?? []).filter((file) => file.role === FileRole.Support).length,
+    [projectDetail.files],
+  );
+
   const shown = useMemo(() => {
     const query = search.trim().toLowerCase();
     return references.filter((reference) => {
@@ -221,9 +229,11 @@ export function ReferencesTabV2({ projectDetail, readOnly }: ReferencesTabV2Prop
                     <Copy className="size-4" />
                     Copy all references
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => downloadAll()} disabled={counts.withFile === 0 || isDownloading}>
+                  <DropdownMenuItem onSelect={() => downloadAll()} disabled={sourceFileCount === 0 || isDownloading}>
                     {isDownloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-                    {isDownloading ? 'Preparing zip…' : `Download ${counts.withFile} source files (.zip)`}
+                    {isDownloading
+                      ? 'Preparing zip…'
+                      : `Download ${sourceFileCount} source file${sourceFileCount === 1 ? '' : 's'} (.zip)`}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
