@@ -18,6 +18,7 @@ import { AnalysisOptionsMenu } from './components/analysis-options-menu';
 import { TabType } from './constants';
 import { ProjectViewProvider } from './project-view-context';
 import { derivePeerReviewFacts, peerReviewNeedsAttention } from './tabs/peer-review/peer-review-derive';
+import { PageTitle } from '@/components/shared/page-title';
 import { HelpCenter } from '@/components/help/help-center';
 import { UnmatchedReferencesApproveDialog } from './tabs/reference-review/unmatched-references-approve-dialog';
 import { useReferenceApprovalFlow } from './tabs/reference-review/use-reference-approval-flow';
@@ -100,6 +101,8 @@ export function ProjectResultsShell({
       projectId={readOnly ? undefined : projectDetail.project.id}
       feedbackVisibility={readOnly ? null : (projectDetail.project.feedback_visibility ?? null)}
     >
+      <PageTitle title={projectDetail.project.title} />
+
       <ProjectViewProvider value={projectView}>
         <div className="space-y-3">
           {/* Header */}

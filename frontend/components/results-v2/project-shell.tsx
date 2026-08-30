@@ -18,6 +18,7 @@ import { ReactNode, useMemo } from 'react';
 import { AppBar } from './app-bar';
 import { NewAssessmentButton } from './new-assessment-button';
 import { OldRevisionBanner } from './old-revision-banner';
+import { PageTitle } from '@/components/shared/page-title';
 import { ProjectTab, ProjectTabs } from './project-tabs';
 import { ReferenceReviewBanner } from './reference-review-banner';
 
@@ -112,6 +113,8 @@ export function ProjectShellV2({
       projectId={readOnly ? undefined : projectDetail.project.id}
       feedbackVisibility={readOnly ? null : (projectDetail.project.feedback_visibility ?? null)}
     >
+      <PageTitle title={projectDetail.project.title} />
+
       <ProjectViewProvider
         value={{
           projectDetail,
