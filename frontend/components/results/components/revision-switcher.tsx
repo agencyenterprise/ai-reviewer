@@ -1,12 +1,18 @@
 'use client';
 
-import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { HelpCenter } from '@/components/help/help-center';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { HelpCircle, Plus } from 'lucide-react';
-
-// Sentinel value for the "Create new revision..." action so it can live inside
-// the same Select without being mistaken for a revision number.
-const CREATE_REVISION_VALUE = '__create_revision__';
+import { cn } from '@/lib/utils';
+import { useState } from 'react';
+import { Check, ChevronDown, CircleHelp, Plus } from 'lucide-react';
 
 interface RevisionSwitcherProps {
   currentRevision: number;
@@ -15,62 +21,79 @@ interface RevisionSwitcherProps {
   onRevisionChange: (revision: number) => void;
   /** Opens the dialog for uploading a new revision of the main document. */
   onCreateRevision?: () => void;
+  /** Abbreviates the trigger on narrow screens, for headers short of room. */
+  compact?: boolean;
 }
 
+/**
+ * Which revision of the main document is on screen.
+ *
+ * A menu rather than a select: it sits in a row of buttons, and a select's
+ * trigger reads as a form field among them. It is also not really a form
+ * field — one of its entries uploads a document rather than choosing a value.
+ */
 export function RevisionSwitcher({
   currentRevision,
   totalRevisions,
   selectedRevision,
   onRevisionChange,
   onCreateRevision,
+  compact = false,
 }: RevisionSwitcherProps) {
-  const handleChange = (value: string) => {
-    if (value === CREATE_REVISION_VALUE) {
-      onCreateRevision?.();
-      return;
-    }
-    onRevisionChange(Number(value));
-  };
+  const revisions = Array.from({ length: totalRevisions }, (_, index) => totalRevisions - index);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   return (
-    <Select value={String(selectedRevision)} onValueChange={handleChange}>
-      <SelectTrigger className="h-7 w-auto gap-1 text-xs">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {Array.from({ length: totalRevisions }, (_, i) => totalRevisions - i).map((rev) => (
-          <SelectItem key={rev} value={String(rev)}>
-            Revision {rev}
-            {rev === currentRevision ? ' (current)' : ''}
-          </SelectItem>
-        ))}
-        {onCreateRevision && (
-          <>
-            <SelectSeparator />
-            <SelectItem value={CREATE_REVISION_VALUE}>
-              <span className="flex items-center gap-1.5 text-muted-foreground text-xs">
-                <Plus className="size-3.5" />
-                Create new revision...
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span
-                      className="inline-flex"
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <HelpCircle className="size-3.5" />
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    A revision is a version of the main document. Creating one uploads a new version and makes it
-                    current; earlier revisions and their results are kept.
-                  </TooltipContent>
-                </Tooltip>
-              </span>
-            </SelectItem>
-          </>
-        )}
-      </SelectContent>
-    </Select>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          {/* The trigger names the revision only; which one is current is a
+              distinction that matters while choosing, not while reading. */}
+          <Button variant="outline" size="xs" aria-label={`Revision ${selectedRevision}`}>
+            {/* Compact drops to "Rev 1" on a phone: the number is the part that
+                has to survive, and the row has no width for the rest. */}
+            {compact && <span className="sm:hidden">Rev {selectedRevision}</span>}
+            <span className={cn(compact && 'hidden sm:inline')}>Revision {selectedRevision}</span>
+            <ChevronDown className="text-muted-foreground" />
+          </Button>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent align="end">
+          {revisions.map((revision) => (
+            <DropdownMenuItem key={revision} onSelect={() => onRevisionChange(revision)}>
+              Revision {revision}
+              {revision === currentRevision && <span className="text-muted-foreground">(current)</span>}
+              {revision === selectedRevision && <Check className="ml-auto size-3.5" />}
+            </DropdownMenuItem>
+          ))}
+
+          <DropdownMenuSeparator />
+
+          {onCreateRevision && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuItem onSelect={onCreateRevision}>
+                  <Plus />
+                  Create new revision...
+                </DropdownMenuItem>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                A revision is a version of the main document. Creating one uploads a new version and makes it current;
+                earlier revisions and their results are kept.
+              </TooltipContent>
+            </Tooltip>
+          )}
+
+          <DropdownMenuItem onSelect={() => setHelpOpen(true)}>
+            <CircleHelp />
+            About revisions
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Outside the menu: Radix unmounts its content on close, which would take
+          the dialog with it the moment the item that opens it is chosen. */}
+      <HelpCenter open={helpOpen} onOpenChange={setHelpOpen} topic="revisions" />
+    </>
   );
 }

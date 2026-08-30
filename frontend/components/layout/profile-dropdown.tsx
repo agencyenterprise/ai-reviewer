@@ -4,6 +4,7 @@ import { useExperimentalFeatures } from '@/context/experimental-features-context
 import { UserRole } from '@/lib/generated-api';
 import { useUserMe } from '@/lib/hooks/use-user-me';
 import { DisclosureButton, Menu, MenuButton, MenuItem, MenuItems, MenuSection, MenuSeparator } from '@headlessui/react';
+import { ChevronDown } from 'lucide-react';
 import Image from 'next/image';
 import { ThemeToggle } from '../theme-toggle';
 import { Switch } from '../ui/switch';
@@ -31,24 +32,55 @@ interface User {
 
 interface ProfileDropdownProps {
   user: User;
+  /** Avatar diameter in px. */
+  size?: number;
+  /** Shows a chevron beside the avatar, for bars where the trigger needs to read as a menu. */
+  showChevron?: boolean;
+  /** Set false where dark mode is offered outside the menu. */
+  includeThemeToggle?: boolean;
 }
 
-export function ProfileDropdown({ user }: ProfileDropdownProps) {
+/** Initials from a name or email, for accounts with no picture. */
+function initialsOf(name?: string | null, email?: string | null): string {
+  const source = name?.trim() || email?.split('@')[0] || '';
+  const parts = source.split(/[\s._-]+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  return (parts[0][0] + (parts[1]?.[0] ?? '')).toUpperCase();
+}
+
+export function ProfileDropdown({
+  user,
+  size = 32,
+  showChevron = false,
+  includeThemeToggle = true,
+}: ProfileDropdownProps) {
   const { showExperimentalFeatures, setShowExperimentalFeatures, isUpdating } = useExperimentalFeatures();
   const { data: userMe } = useUserMe();
 
   return (
     <Menu as="div" className="relative ml-3">
-      <MenuButton className="relative flex max-w-xs items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+      <MenuButton className="relative flex max-w-xs items-center gap-1 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
         <span className="absolute -inset-1.5" />
         <span className="sr-only">Open user menu</span>
-        <Image
-          alt={user.name ?? 'User'}
-          src={user.image ?? 'https://ui-avatars.com/api/?name=' + user.name}
-          className="size-8 rounded-full outline -outline-offset-1 outline-black/5"
-          width={32}
-          height={32}
-        />
+        {user.image ? (
+          <Image
+            alt={user.name ?? 'User'}
+            src={user.image}
+            className="rounded-full outline -outline-offset-1 outline-black/5"
+            width={size}
+            height={size}
+            style={{ width: size, height: size }}
+          />
+        ) : (
+          <span
+            aria-hidden
+            className="flex items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground"
+            style={{ width: size, height: size, fontSize: Math.round(size * 0.4) }}
+          >
+            {initialsOf(user.name, user.email)}
+          </span>
+        )}
+        {showChevron && <ChevronDown className="size-3.5 text-muted-foreground" />}
       </MenuButton>
 
       <MenuItems
@@ -75,12 +107,14 @@ export function ProfileDropdown({ user }: ProfileDropdownProps) {
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        <MenuItem>
-          <label className="flex items-center justify-between px-4 py-2 text-sm text-popover-foreground cursor-pointer data-focus:bg-accent data-focus:outline-hidden">
-            <span>Dark mode</span>
-            <ThemeToggle />
-          </label>
-        </MenuItem>
+        {includeThemeToggle && (
+          <MenuItem>
+            <label className="flex items-center justify-between px-4 py-2 text-sm text-popover-foreground cursor-pointer data-focus:bg-accent data-focus:outline-hidden">
+              <span>Dark mode</span>
+              <ThemeToggle />
+            </label>
+          </MenuItem>
+        )}
         <MenuSeparator className="my-1 h-px bg-border" />
         {userNavigation.map((item) => (
           <MenuItem key={item.name}>

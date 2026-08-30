@@ -8,7 +8,7 @@ import { getErrorMessage } from '@/lib/api-error';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2Icon, PlayIcon, XIcon } from 'lucide-react';
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -29,9 +29,23 @@ export interface StartWorkflowButtonProps {
   projectId: string;
   workflow?: WorkflowRun;
   onConfirm: (values: WorkflowConfigFormValues) => Promise<unknown>;
+  /** Match the button to the toolbar it sits in. */
+  size?: 'sm' | 'xs';
+  /** Overrides the idle label, e.g. "Re-run Abbreviation Scan". */
+  startLabel?: ReactNode;
+  /** Shown on hover while the button is idle. */
+  tooltip?: React.ReactNode;
 }
 
-export function StartWorkflowButton({ type, projectId, workflow, onConfirm }: StartWorkflowButtonProps) {
+export function StartWorkflowButton({
+  type,
+  projectId,
+  workflow,
+  onConfirm,
+  size = 'sm',
+  startLabel,
+  tooltip,
+}: StartWorkflowButtonProps) {
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -72,15 +86,41 @@ export function StartWorkflowButton({ type, projectId, workflow, onConfirm }: St
 
   const isActive = workflow?.status === WorkflowRunStatus.Running || workflow?.status === WorkflowRunStatus.Pending;
 
+  const startButton = (
+    <Button
+      size={size}
+      variant="outline"
+      onClick={() => setIsConfigDialogOpen(true)}
+      disabled={startWorkflowMutation.isPending || isActive}
+    >
+      {startWorkflowMutation.isPending ? (
+        <>
+          <Loader2Icon className="animate-spin" />
+          Starting...
+        </>
+      ) : isActive ? (
+        <>
+          <Loader2Icon className="animate-spin" />
+          Running...
+        </>
+      ) : (
+        <>
+          <PlayIcon />
+          {startLabel ?? `Start ${workflowName}`}
+        </>
+      )}
+    </Button>
+  );
+
   return (
     <>
       <AlertDialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Cancel {workflowName} workflow?</AlertDialogTitle>
+            <AlertDialogTitle>Cancel {workflowName}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will stop the currently running workflow. Any other workflows that depend on it will also be
-              cancelled. You can retrigger it at any time.
+              This stops the run in progress. Any assessment waiting on it is cancelled too. You can run it again at any
+              time.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -99,44 +139,28 @@ export function StartWorkflowButton({ type, projectId, workflow, onConfirm }: St
       />
 
       <div className="flex items-center gap-1">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setIsConfigDialogOpen(true)}
-          disabled={startWorkflowMutation.isPending || isActive}
-        >
-          {startWorkflowMutation.isPending ? (
-            <>
-              <Loader2Icon className="animate-spin" />
-              Starting...
-            </>
-          ) : isActive ? (
-            <>
-              <Loader2Icon className="animate-spin" />
-              Running...
-            </>
-          ) : (
-            <>
-              <PlayIcon />
-              Start {workflowName}
-            </>
-          )}
-        </Button>
+        {tooltip && !startWorkflowMutation.isPending && !isActive ? (
+          <Tooltip>
+            <TooltipTrigger asChild>{startButton}</TooltipTrigger>
+            <TooltipContent className="max-w-xs">{tooltip}</TooltipContent>
+          </Tooltip>
+        ) : (
+          startButton
+        )}
 
         {isActive && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                size="sm"
+                size={size}
                 variant="ghost"
-                className=""
                 onClick={() => setIsCancelDialogOpen(true)}
                 disabled={cancelWorkflowMutation.isPending}
               >
                 {cancelWorkflowMutation.isPending ? <Loader2Icon className="animate-spin" /> : <XIcon />}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Cancel workflow</TooltipContent>
+            <TooltipContent>Cancel this run</TooltipContent>
           </Tooltip>
         )}
       </div>

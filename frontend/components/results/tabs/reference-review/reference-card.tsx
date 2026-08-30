@@ -188,6 +188,10 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
       <WorkflowConfigDialog
         isOpen={isFetchDialogOpen}
         type={WorkflowRunType.ReferenceDownloader}
+        title="Fetch this source from the web"
+        description="Draft Detective searches for this reference and downloads the full text if it finds one it can read."
+        helpTopic="source-files"
+        submitLabel="Fetch source"
         projectId={projectId}
         onConfirm={handleFetchFromWebConfirm}
         onCancel={() => setIsFetchDialogOpen(false)}

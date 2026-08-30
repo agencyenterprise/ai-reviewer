@@ -14,7 +14,7 @@ const claudeCodeCommand = `claude mcp add-json "draft-detective" '{"type":"http"
 const codexCommand = `codex mcp add draft-detective --url ${mcpUrl}`;
 
 const sampleTriggers = [
-  'List the available Draft Detective workflows and recommend which ones to run on this draft.',
+  'List the available Draft Detective assessments and recommend which ones to run on this draft.',
   'Check figures and tables in this document using Draft Detective and summarize the findings.',
   'Run a reference validation review on this manuscript with Draft Detective.',
   'Validate the inferences in this manuscript with Draft Detective and flag any unsupported claims.',

@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { FileUpload } from '@/components/ui/file-upload';
 import { RadioGroup, RadioGroupItemWithDescription } from '@/components/ui/radio-group-with-description';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { HelpLink } from '@/components/help/help-link';
 import { FileListItem } from '@/components/analysis-form/file-list-item';
 import { UploadProgressList } from '@/components/ui/upload-progress-list';
 import { useUpload } from '@/lib/hooks/upload';
@@ -89,7 +90,9 @@ export function FileUploadDialog({
   // Reference matching only applies to supporting documents (that aren't
   // already tied to a specific reference); other roles skip it.
   const activeSkipMatching = activeRole !== FileRole.Support;
-  const activeSuccessMessage = isMemoUpload ? 'Reviewer memos uploaded.' : 'Files uploaded. Matching workflow started.';
+  const activeSuccessMessage = isMemoUpload
+    ? 'Reviewer memos uploaded.'
+    : 'Files uploaded. Matching them to your references.';
   // Only memos carry a revision; sending one for any other role is a 400.
   const activeRevision = isMemoUpload ? selectedRevision : undefined;
   // Shown even when there is only one revision: memos are always bound to a
@@ -125,7 +128,7 @@ export function FileUploadDialog({
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
       toast.success(activeSuccessMessage);
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to start file matching workflow'));
+      toast.error(getErrorMessage(error, 'Failed to match the files to your references'));
     } finally {
       setIsStartingWorkflow(false);
       onComplete?.();
@@ -208,7 +211,7 @@ export function FileUploadDialog({
               <DialogTitle>{isStartingWorkflow ? 'Starting file matching...' : 'Uploading files'}</DialogTitle>
               <DialogDescription>
                 {isStartingWorkflow
-                  ? 'Starting the file matching workflow to match uploaded files to references.'
+                  ? 'Matching the uploaded files to your references.'
                   : 'Your files are being uploaded. You can cancel at any time.'}
               </DialogDescription>
             </DialogHeader>
@@ -258,6 +261,7 @@ export function FileUploadDialog({
                       label="Supporting document"
                       description="Reference material cited by the document. Supporting files are matched against the document's references."
                       disabled={isUploading}
+                      help={<HelpLink topic="source-files">What a source file is used for</HelpLink>}
                     />
                     <RadioGroupItemWithDescription
                       id={FileRole.ReviewerMemo}
@@ -265,6 +269,7 @@ export function FileUploadDialog({
                       label="Reviewer memo"
                       description="Peer-review feedback on a specific draft. Used by the Peer Review assessments."
                       disabled={isUploading}
+                      help={<HelpLink topic="peer-review">What peer review does with these</HelpLink>}
                     />
                   </RadioGroup>
                 </div>

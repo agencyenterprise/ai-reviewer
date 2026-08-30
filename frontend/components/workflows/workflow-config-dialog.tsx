@@ -7,6 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { HelpLink } from '@/components/help/help-link';
+import { HelpTopicId } from '@/components/help/topics';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
@@ -27,6 +29,16 @@ interface WorkflowConfigDialogProps {
   projectId: string;
   onConfirm: (values: WorkflowConfigFormValues) => void;
   onCancel: () => void;
+  /**
+   * Names the action in the caller's own words. Without these the dialog talks
+   * about running an assessment, which is wrong for the internal workflows —
+   * nobody asked to "run Reference Downloader", they asked to fetch a source.
+   */
+  title?: string;
+  description?: string;
+  submitLabel?: string;
+  /** The help topic the dialog's link opens. Follows what the dialog is for. */
+  helpTopic?: HelpTopicId;
 }
 
 export interface WorkflowConfigFormValues {
@@ -35,12 +47,26 @@ export interface WorkflowConfigFormValues {
   workflowTypes: WorkflowRunType[];
 }
 
-export function WorkflowConfigDialog({ isOpen, type, projectId, onConfirm, onCancel }: WorkflowConfigDialogProps) {
+export function WorkflowConfigDialog({
+  isOpen,
+  type,
+  projectId,
+  onConfirm,
+  onCancel,
+  title,
+  description,
+  submitLabel,
+  helpTopic = 'assessments',
+}: WorkflowConfigDialogProps) {
   const [storedWebSearchConsent] = useWebSearchConsent(projectId);
   const { showExperimentalFeatures } = useExperimentalFeatures();
   const { data: user } = useUserMe();
 
-  const { workflowTypes } = useWorkflowTypes();
+  const { workflowTypes, getWorkflowTypeName } = useWorkflowTypes();
+
+  // Named when the dialog is opened for one assessment; otherwise it is the
+  // picker over all of them.
+  const assessmentName = type ? getWorkflowTypeName(type) : null;
 
   const needsPublicationDate = type ? hasPublicationDateRequirement([type]) : false;
 
@@ -92,8 +118,16 @@ export function WorkflowConfigDialog({ isOpen, type, projectId, onConfirm, onCan
           no specific `type` is given. */}
       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Start Workflow</DialogTitle>
-          <DialogDescription>Please select the workflow configuration to start.</DialogDescription>
+          <DialogTitle>{title ?? (assessmentName ? `Run ${assessmentName}` : 'Run assessments')}</DialogTitle>
+          <DialogDescription>
+            {description ??
+              (assessmentName
+                ? 'Confirm how this assessment should run on your document.'
+                : 'Choose which assessments to run on your document.')}{' '}
+            <HelpLink topic={helpTopic}>
+              {helpTopic === 'assessments' ? 'How assessments work' : 'What this is for'}
+            </HelpLink>
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -179,7 +213,9 @@ export function WorkflowConfigDialog({ isOpen, type, projectId, onConfirm, onCan
                 Cancel
               </Button>
               <Button onClick={() => form.handleSubmit()} disabled={!canSubmit || isSubmitting}>
-                {isSubmitting ? 'Starting...' : 'Start Workflow'}
+                {isSubmitting
+                  ? 'Starting...'
+                  : (submitLabel ?? (assessmentName ? 'Run assessment' : 'Run assessments'))}
               </Button>
             </DialogFooter>
           )}

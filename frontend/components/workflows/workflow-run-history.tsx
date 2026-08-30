@@ -7,6 +7,7 @@ import { History, CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { StatusIndicator } from '@/components/ui/status-indicator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   WorkflowRunDetail,
   WorkflowRunType,
@@ -23,6 +24,10 @@ interface WorkflowRunHistoryProps {
   onSelectRun: (run: WorkflowRunDetail) => void;
   /** Pre-loaded history data to avoid fetching on popover open */
   historyData?: WorkflowRunDetail[];
+  /** Match the button to the toolbar it sits in. */
+  size?: 'sm' | 'xs';
+  /** Shown on hover. */
+  tooltip?: React.ReactNode;
 }
 
 export function WorkflowRunHistory({
@@ -31,6 +36,8 @@ export function WorkflowRunHistory({
   currentRunId,
   onSelectRun,
   historyData,
+  size = 'sm',
+  tooltip,
 }: WorkflowRunHistoryProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -54,15 +61,26 @@ export function WorkflowRunHistory({
   // Don't show history button if there's only one run or less
   const runCount = runDetails?.length ?? 0;
 
+  const trigger = (
+    <PopoverTrigger asChild>
+      <Button variant="ghost" size={size} className="gap-1.5">
+        <History className={size === 'xs' ? 'size-3' : 'h-4 w-4'} />
+        History
+        {runCount > 1 && <span className="text-muted-foreground">({runCount})</span>}
+      </Button>
+    </PopoverTrigger>
+  );
+
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-1.5">
-          <History className="h-4 w-4" />
-          History
-          {runCount > 1 && <span className="text-muted-foreground">({runCount})</span>}
-        </Button>
-      </PopoverTrigger>
+      {tooltip ? (
+        <Tooltip>
+          <TooltipTrigger asChild>{trigger}</TooltipTrigger>
+          <TooltipContent className="max-w-xs">{tooltip}</TooltipContent>
+        </Tooltip>
+      ) : (
+        trigger
+      )}
       <PopoverContent align="end" className="w-80 p-0">
         <div className="p-3 border-b">
           <h4 className="font-medium text-sm">Run History</h4>

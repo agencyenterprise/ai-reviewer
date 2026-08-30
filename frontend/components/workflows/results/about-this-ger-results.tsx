@@ -168,7 +168,7 @@ export function AboutThisGerResults({ workflowDetail }: AboutThisGerResultsProps
   const state = workflowDetail.state as AboutThisGerState | undefined;
 
   if (!state) {
-    return <EmptyState message="No results available for this workflow run." />;
+    return <EmptyState message="No results available for this run." />;
   }
 
   return <AboutThisGerContent state={state} />;

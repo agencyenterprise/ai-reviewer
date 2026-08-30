@@ -70,7 +70,8 @@ export const severityColorMap: Record<
   },
 };
 
-function IssueFeedbackButtons({ issueId }: { issueId: string }) {
+/** Thumbs up/down with the "what could be improved" popover. Shared with the v2 margin note. */
+export function IssueFeedbackButtons({ issueId }: { issueId: string }) {
   const { feedback, submitFeedback, isSubmitting } = useIssueFeedbackFromContext(issueId);
   const [feedbackText, setFeedbackText] = useState('');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);

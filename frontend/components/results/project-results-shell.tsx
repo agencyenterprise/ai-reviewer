@@ -13,11 +13,13 @@ import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { format } from 'date-fns';
 import { BookOpen, Loader2 } from 'lucide-react';
-import { ReactNode, useMemo } from 'react';
+import { ReactNode, useMemo, useState } from 'react';
 import { AnalysisOptionsMenu } from './components/analysis-options-menu';
 import { TabType } from './constants';
 import { ProjectViewProvider } from './project-view-context';
 import { derivePeerReviewFacts, peerReviewNeedsAttention } from './tabs/peer-review/peer-review-derive';
+import { PageTitle } from '@/components/shared/page-title';
+import { HelpCenter } from '@/components/help/help-center';
 import { UnmatchedReferencesApproveDialog } from './tabs/reference-review/unmatched-references-approve-dialog';
 import { useReferenceApprovalFlow } from './tabs/reference-review/use-reference-approval-flow';
 
@@ -72,6 +74,7 @@ export function ProjectResultsShell({
   const { showExperimentalFeatures } = useExperimentalFeatures();
 
   const referenceApproval = useReferenceApprovalFlow(projectDetail, projectDetail.project.id);
+  const [showExplanation, setShowExplanation] = useState(false);
 
   // Find the main document summary from the summaries list
   const mainFileId = documentProcessing?.state?.file?.file_id;
@@ -98,6 +101,8 @@ export function ProjectResultsShell({
       projectId={readOnly ? undefined : projectDetail.project.id}
       feedbackVisibility={readOnly ? null : (projectDetail.project.feedback_visibility ?? null)}
     >
+      <PageTitle title={projectDetail.project.title} />
+
       <ProjectViewProvider value={projectView}>
         <div className="space-y-3">
           {/* Header */}
@@ -124,9 +129,14 @@ export function ProjectResultsShell({
             <Callout variant="warning" icon={BookOpen} title="Reference review required">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm min-w-0">
-                  Go to the <strong>References tab</strong> to upload source documents or fetch them from the web. When
-                  you&apos;re ready, use <strong>Approve and start assessment</strong> here or at the bottom of that
-                  tab.
+                  Claim Reference Validation reads each citation against the source it cites, and needs those sources
+                  first.{' '}
+                  <button
+                    onClick={() => setShowExplanation(true)}
+                    className="cursor-pointer underline underline-offset-2"
+                  >
+                    Why this is needed
+                  </button>
                 </p>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
                   <Button size="sm" variant="outline" onClick={() => onTabChange('references')}>
@@ -149,6 +159,15 @@ export function ProjectResultsShell({
                 onOpenChange={referenceApproval.setShowUnmatchedWarning}
                 unmatchedCount={referenceApproval.unmatchedCount}
                 onConfirmApprove={referenceApproval.handleConfirmApprove}
+              />
+              <HelpCenter
+                open={showExplanation}
+                onOpenChange={setShowExplanation}
+                topic="source-files"
+                onReviewReferences={() => {
+                  setShowExplanation(false);
+                  onTabChange('references');
+                }}
               />
             </Callout>
           )}

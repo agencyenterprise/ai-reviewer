@@ -1,0 +1,147 @@
+'use client';
+
+import { Markdown } from '@/components/markdown';
+import { IssueFeedbackButtons } from '@/components/results/components/document-issue-card';
+import { Button } from '@/components/ui/button';
+import { Issue } from '@/lib/generated-api';
+import { useIssueActions } from '@/lib/hooks/use-issue-actions';
+import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
+import { SEVERITY } from '@/lib/severity-style';
+import { isIssueResolved } from '@/lib/stores/document-explorer-store';
+import { cn } from '@/lib/utils';
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon, LightbulbIcon, UndoIcon } from 'lucide-react';
+import { useState } from 'react';
+
+export function lineLabel(issue: Issue): string | null {
+  const { start_line: start, end_line: end } = issue as Issue & {
+    start_line?: number | null;
+    end_line?: number | null;
+  };
+  if (typeof start !== 'number' || typeof end !== 'number') return null;
+  return start === end ? `L${start}` : `L${start}–${end}`;
+}
+
+/**
+ * The description as one line of plain prose, for a note that is closed.
+ *
+ * Descriptions are markdown, and a preview cannot render it: block elements
+ * would break the single line, and the raw source would show its own asterisks
+ * and brackets. So the markup is flattened to the text it stands for, and the
+ * line is cut by CSS rather than by counting characters, which keeps the cut at
+ * the edge of whatever width the note happens to have.
+ */
+function previewText(description: string): string {
+  return description
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`([^`]*)`/g, '$1')
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/[*_]{1,3}([^*_]+)[*_]{1,3}/g, '$1')
+    .replace(/^\s*(?:[#>]+|[-+*]|\d+\.)\s*/gm, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** One line of the description, shown under the title while the note is closed. */
+export function IssuePreview({ issue }: { issue: Issue }) {
+  const text = previewText(issue.description ?? '');
+  if (!text) return null;
+
+  return <span className="mt-0.5 block truncate text-[12px] leading-snug text-muted-foreground">{text}</span>;
+}
+
+/** The line above an issue's title: its severity, where it came from, where it lands. */
+export function IssueMeta({ issue }: { issue: Issue }) {
+  const { getWorkflowTypeName } = useWorkflowTypes();
+  const resolved = isIssueResolved(issue);
+  const line = lineLabel(issue);
+
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className={cn('block size-1.5 shrink-0 rounded-full', SEVERITY[issue.severity].dot)} />
+      <span className="truncate font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
+        {getWorkflowTypeName(issue.workflow_type)}
+      </span>
+      {resolved && (
+        <span className="inline-flex shrink-0 items-center gap-0.5 font-mono text-[10px] text-muted-foreground uppercase">
+          <CheckIcon className="size-3" />
+          Resolved
+        </span>
+      )}
+      {line && (
+        <span className="ml-auto shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">{line}</span>
+      )}
+    </span>
+  );
+}
+
+/**
+ * Everything an open issue shows below its title — description, suggested
+ * action, details, and the actions that change it. Shared so the margin note and
+ * the list row cannot drift apart.
+ */
+export function IssueBody({ issue, readOnly }: { issue: Issue; readOnly: boolean }) {
+  const { resolveIssue, unresolveIssue, isResolving, isUnresolving } = useIssueActions();
+  const [showDetails, setShowDetails] = useState(false);
+
+  const resolved = isIssueResolved(issue);
+  const busy = isResolving || isUnresolving;
+
+  return (
+    <div className="space-y-2">
+      <div className="text-foreground/80 text-xs leading-relaxed [&_p]:mb-1 [&_p:last-child]:mb-0">
+        <Markdown>{issue.description}</Markdown>
+      </div>
+
+      {issue.suggested_action && (
+        <div className="bg-background/60 rounded border border-dashed px-2 py-1.5">
+          <p className="mb-1 flex items-center gap-1 font-mono text-[9.5px] tracking-wide text-muted-foreground uppercase">
+            <LightbulbIcon className="size-3" />
+            Suggested action
+          </p>
+          <div className="text-xs leading-relaxed [&_p]:mb-1 [&_p:last-child]:mb-0">
+            <Markdown>{issue.suggested_action}</Markdown>
+          </div>
+        </div>
+      )}
+
+      {issue.long_description && (
+        <>
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              setShowDetails(!showDetails);
+            }}
+            aria-expanded={showDetails}
+            className="flex cursor-pointer items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+          >
+            {showDetails ? <ChevronUpIcon className="size-3" /> : <ChevronDownIcon className="size-3" />}
+            {showDetails ? 'Hide details' : 'Show details'}
+          </button>
+          {showDetails && (
+            <div className="text-foreground/80 text-xs leading-relaxed [&_p]:mb-1 [&_p:last-child]:mb-0">
+              <Markdown>{issue.long_description}</Markdown>
+            </div>
+          )}
+        </>
+      )}
+
+      {!readOnly && issue.id && (
+        <div className="flex items-center gap-1.5 pt-0.5" onClick={(event) => event.stopPropagation()}>
+          <Button
+            size="sm"
+            variant={resolved ? 'outline' : 'default'}
+            className="h-6 px-2 text-[11px]"
+            disabled={busy}
+            onClick={() => (resolved ? unresolveIssue(issue.id) : resolveIssue(issue.id))}
+          >
+            {resolved ? <UndoIcon className="size-3" /> : <CheckIcon className="size-3" />}
+            {resolved ? 'Mark unresolved' : 'Mark resolved'}
+          </Button>
+          <span className="ml-auto">
+            <IssueFeedbackButtons issueId={issue.id} />
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}

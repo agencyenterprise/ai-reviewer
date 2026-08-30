@@ -72,11 +72,11 @@ export function AnalysesTab({
       });
     },
     onSuccess: () => {
-      toast.success('Workflows started');
+      toast.success('Assessments started');
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
     },
     onError: (error) => {
-      toast.error(getErrorMessage(error, 'Failed to start workflows'));
+      toast.error(getErrorMessage(error, 'Failed to start assessments'));
     },
   });
 
