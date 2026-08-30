@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.2] - 2026-08-30
+
+### Added
+- Added a redesigned v2 project view under `/v2/projects/[projectId]` with redesigned tabs for Document Explorer, References, Files, Assessments, and Peer Review, plus a header menu switch to toggle between classic and new layouts while preserving tab and URL hash.
+- Added per-tab routes for the project view on both authenticated and shared views (with Document Explorer remaining at the root path to preserve existing links).
+- Added a new eval API client helper `link_reference_file` wrapping `POST /api/project/{project_id}/references/{reference_id}/files`.
+- Added `GET /api/workflows/{id}/raw-state` and a UI notice for unreadable workflow state that includes a “View raw data” expander.
+
+### Changed
+- Moved all agents from the `gpt-5.4-mini` / `gpt-5.4` / `gpt-5.5` stack to a single model, `gpt-5.6-terra`, and re-recorded `docs/eval-scores.md` against it while keeping the superseded numbers in a separate file.
+- Updated web-search call sites to use a shared `web_search_tool(model)` helper instead of declaring `{"type": "web_search"}` inline.
+- Hid the Peer Review tab, its route, and the reviewer-memo upload role unless the user has Alpha features enabled.
+- Changed the DOCX download dialog to default to Regular comments and temporarily hid the Draft Detective add-in export option.
+- Rebuilt Internal Inference Validation (`inference_validation_v2`) on the shared simple-deep-agent machinery while keeping its type, name, description, and three-pass + adjudicator behaviour.
+- Refreshed eval documentation by re-recording `literature_review_v2` and re-recording seven eval rows previously scored before the tool-call refactor.
+- Pinned pnpm in the frontend Docker image and moved the frontend base image to Node 22.
+
+### Fixed
+- Fixed project title edits to update the UI immediately by correcting the React Query cache update and invalidating the projects list query.
+- Fixed document line-jump navigation so jumping to a document line scrolls the document pane from both entry points.
+- Fixed workflow read/start behavior by filtering issues to workflow types that still have a manifest, removing orphan workflow enum members, and returning clearer status for absent vs schema-mismatched workflow state.
+- Fixed an uncaught error path when starting removed-but-enum-valid workflow types and fixed revision creation to skip workflow type strings that are no longer enum members.
+
+### Removed
+- Removed reporting of `"Missing supporting document for reference"` issues from the reference file matching workflow.
+- Removed `chunk_splitting` and the chunk-to-line-range machinery, along with related dependencies and documentation references.
+- Removed superseded v1 workflows (`literature_review`, `live_reports`, `advocacy_tone`, `claim_reference_validation`, `reference_validation`) and the deprecated `citation_suggester`, plus related agents and eval content.
+- Removed `claim_extraction`, `citation_detection`, and `footnote_extraction` workflows and related agents, models, and helpers.
+- Deleted unreferenced backend symbols and frontend utilities left behind by workflow and module removals.
+- Deleted five unreferenced frontend modules as a dead-code sweep after the workflow-removal series.
+
+
 ## [v1.0.1] - 2026-08-25
 
 ### Added
