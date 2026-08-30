@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ProjectDetailed, SimpleDeepAgentState } from '@/lib/generated-api';
 import {
   isWorkflowCancelled,
@@ -106,7 +107,7 @@ export function SimpleDeepAgentResults({
   const state = workflowDetail.state as SimpleDeepAgentState | undefined;
 
   if (!state?.result) {
-    return <EmptyState message="No results available for this workflow run." />;
+    return <EmptyState message="No results available for this run." />;
   }
 
   const { result } = state;
@@ -115,14 +116,35 @@ export function SimpleDeepAgentResults({
     <Tabs value={activeTab} onValueChange={setActiveTab}>
       <div className="flex items-center justify-between gap-2">
         <TabsList>
-          <TabsTrigger value="results" className="gap-1.5">
-            <ClipboardList className="h-3.5 w-3.5" />
-            Results
-          </TabsTrigger>
-          <TabsTrigger value="messages" className="gap-1.5">
-            <MessageSquare className="h-3.5 w-3.5" />
-            Messages
-          </TabsTrigger>
+          {/* The tooltip hangs off a wrapper, not the trigger itself: Radix
+              writes data-state="closed" on whatever it is attached to, which
+              would overwrite the data-state="active" the tab styles itself by. */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex h-full flex-1">
+                <TabsTrigger value="results" className="gap-1.5">
+                  <ClipboardList className="h-3.5 w-3.5" />
+                  Results
+                </TabsTrigger>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              What this assessment concluded: its report and the issues it raised.
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex h-full flex-1">
+                <TabsTrigger value="messages" className="gap-1.5">
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  Messages
+                </TabsTrigger>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              The agent&apos;s own transcript: what it read and how it worked its way to those results.
+            </TooltipContent>
+          </Tooltip>
         </TabsList>
         {/* Only on the Results tab: the other tab unmounts the frame, which
             would leave this printing nothing. */}

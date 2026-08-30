@@ -12,7 +12,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 
-from lib.config.llm_models import gpt_5_5_model
+from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent, ReasoningDict
 from lib.workflows.context import ContextSchema
 from lib.workflows.simple_deep_agent.agent_types import (
@@ -59,7 +59,7 @@ class SimpleDeepAgent(LangChainAgent):
 
     name = "Simple Deep Agent"
     description = "Runs a deep-agent validation pass and records issues through tools"
-    model = gpt_5_5_model
+    model = gpt_5_6_terra_model
     temperature = 0.0
     reasoning = {"effort": "medium", "summary": "auto"}
 

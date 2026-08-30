@@ -10,30 +10,6 @@ from lib.workflows.simple_deep_agent.state import (
     SimpleDeepAgentConfig,
     SimpleDeepAgentState,
 )
-from lib.workflows.advocacy_tone.state import (
-    AdvocacyToneState,
-    AdvocacyToneWorkflowConfig,
-)
-from lib.workflows.chunk_splitting.state import (
-    ChunkSplittingState,
-    ChunkSplittingWorkflowConfig,
-)
-from lib.workflows.citation_detection.state import (
-    CitationDetectionConfig,
-    CitationDetectionState,
-)
-from lib.workflows.citation_suggester.state import (
-    CitationSuggesterState,
-    CitationSuggesterWorkflowConfig,
-)
-from lib.workflows.claim_extraction.state import (
-    ClaimExtractionState,
-    ClaimExtractionWorkflowConfig,
-)
-from lib.workflows.claim_reference_validation.state import (
-    ClaimReferenceValidationState,
-    ClaimReferenceValidationWorkflowConfig,
-)
 from lib.workflows.claim_reference_validation_v2.state import (
     ClaimReferenceValidationV2Config,
     ClaimReferenceValidationV2State,
@@ -46,23 +22,10 @@ from lib.workflows.document_summarization.state import (
     DocumentSummarizationState,
     DocumentSummarizationWorkflowConfig,
 )
-from lib.workflows.footnote_extraction.state import (
-    FootnoteExtractionConfig,
-    FootnoteExtractionState,
-)
 from lib.workflows.human_approval.state import (
     HumanApprovalConfig,
     HumanApprovalState,
 )
-from lib.workflows.inference_validation_v2.state import (
-    InferenceValidationV2State,
-    InferenceValidationV2WorkflowConfig,
-)
-from lib.workflows.literature_review.state import (
-    LiteratureReviewState,
-    LiteratureReviewWorkflowConfig,
-)
-from lib.workflows.live_reports.state import LiveReportsState, LiveReportsWorkflowConfig
 from lib.workflows.methodological_alignment.state import (
     MethodologicalAlignmentState,
     MethodologicalAlignmentWorkflowConfig,
@@ -79,10 +42,6 @@ from lib.workflows.reference_file_matching.state import (
     ReferenceFileMatchingConfig,
     ReferenceFileMatchingState,
 )
-from lib.workflows.reference_validation.state import (
-    ReferenceValidationState,
-    ReferenceValidationWorkflowConfig,
-)
 from lib.workflows.reference_validation_v2.state import (
     ReferenceValidationV2State,
     ReferenceValidationV2WorkflowConfig,
@@ -98,27 +57,16 @@ from lib.workflows.reviewer_2.state import (
 
 WorkflowState = (
     AboutThisGerState
-    | AdvocacyToneState
     | DocumentProcessingState
-    | ChunkSplittingState
     | DocumentSummarizationState
     | ReferenceExtractionState
     | ReferenceFileMatchingState
-    | FootnoteExtractionState
-    | ClaimExtractionState
-    | ClaimReferenceValidationState
     | ClaimReferenceValidationV2State
-    | CitationDetectionState
     | AbbreviationScanV2State
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
-    | LiteratureReviewState
-    | LiveReportsState
-    | ReferenceValidationState
     | ReferenceValidationV2State
-    | CitationSuggesterState
     | ResultsExtractionState
-    | InferenceValidationV2State
     | HumanApprovalState
     | Reviewer2State
     | SimpleDeepAgentState
@@ -126,27 +74,16 @@ WorkflowState = (
 
 WorkflowConfig = (
     AboutThisGerConfig
-    | AdvocacyToneWorkflowConfig
     | DocumentProcessingWorkflowConfig
-    | ChunkSplittingWorkflowConfig
     | DocumentSummarizationWorkflowConfig
     | ReferenceExtractionConfig
     | ReferenceFileMatchingConfig
-    | FootnoteExtractionConfig
-    | ClaimExtractionWorkflowConfig
-    | CitationDetectionConfig
-    | ClaimReferenceValidationWorkflowConfig
     | ClaimReferenceValidationV2Config
     | AbbreviationScanV2Config
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
-    | LiteratureReviewWorkflowConfig
-    | LiveReportsWorkflowConfig
-    | ReferenceValidationWorkflowConfig
     | ReferenceValidationV2WorkflowConfig
-    | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
-    | InferenceValidationV2WorkflowConfig
     | HumanApprovalConfig
     | Reviewer2Config
     | SimpleDeepAgentConfig

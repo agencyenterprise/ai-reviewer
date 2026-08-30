@@ -157,7 +157,7 @@ interface StageActionProps {
   isStarting: boolean;
   variant?: 'default' | 'outline';
   /** CTA buttons render at the default size; toolbar ones stay small. */
-  size?: 'sm' | 'default';
+  size?: 'xs' | 'sm' | 'default';
   onStart: () => void;
   onCancel: (runId: string) => void;
 }
@@ -183,9 +183,9 @@ export function PeerReviewStageAction({
   if (run && isWorkflowProcessing(run)) {
     return (
       <Button variant="outline" size={size} onClick={() => onCancel(run.run.id)}>
-        <Loader2 className="size-4 animate-spin" />
+        <Loader2 className={size === 'xs' ? 'size-3 animate-spin' : 'size-4 animate-spin'} />
         Running
-        <X className="size-4" />
+        <X className={size === 'xs' ? 'size-3' : 'size-4'} />
       </Button>
     );
   }
@@ -193,7 +193,7 @@ export function PeerReviewStageAction({
   const hasResult = !!run;
   return (
     <Button variant={hasResult ? 'outline' : variant} size={size} disabled={disabled || isStarting} onClick={onStart}>
-      {isStarting && <Loader2 className="size-4 animate-spin" />}
+      {isStarting && <Loader2 className={size === 'xs' ? 'size-3 animate-spin' : 'size-4 animate-spin'} />}
       {hasResult ? (reRunLabel ?? 'Re-run') : label}
     </Button>
   );

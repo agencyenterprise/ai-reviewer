@@ -8,7 +8,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.config.llm_models import gpt_5_4_model
+from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
 from lib.workflows.context import ContextSchema
@@ -44,7 +44,7 @@ class Reviewer2Output(BaseModel):
 class Reviewer2Agent(LangChainAgent):
     name = "Reviewer 2"
     description = "Produce a rigorous peer review and rebuttal of a research document"
-    model = gpt_5_4_model
+    model = gpt_5_6_terra_model
     temperature = 0.3
     reasoning = {"effort": "medium", "summary": "auto"}
 

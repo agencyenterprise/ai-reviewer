@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Check, SquarePenIcon, X } from 'lucide-react';
 import * as React from 'react';
@@ -115,9 +116,14 @@ export function EditableTitle({
     <div className={cn('flex items-center gap-2', className)}>
       <h1 className={cn(titleClassName)}>{title}</h1>
       {!disabled && !isLoading && (
-        <Button variant="ghost" size="icon" onClick={handleStartEdit} className="h-8 w-8" aria-label="Edit title">
-          <SquarePenIcon className="h-4 w-4" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={handleStartEdit} className="h-8 w-8" aria-label="Edit title">
+              <SquarePenIcon className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Rename this project</TooltipContent>
+        </Tooltip>
       )}
     </div>
   );

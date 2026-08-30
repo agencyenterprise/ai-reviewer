@@ -120,3 +120,22 @@
     @apply bg-background text-foreground;
   }
 }
+
+/**
+ * Shrinks the type scale one step for anything inside it.
+ *
+ * The v2 project view runs a denser chrome than the pages its result
+ * components were written for, and those components are shared with v1, so
+ * their sizes cannot simply be changed. Tailwind v4 resolves every `text-*`
+ * utility through these variables, so redefining them on a wrapper carries the
+ * whole subtree down without touching a single component. Line heights are
+ * unitless ratios in the default theme, so they follow on their own.
+ */
+.text-scale-compact {
+  --text-xs: 0.6875rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.875rem;
+  --text-lg: 1rem;
+  --text-xl: 1.125rem;
+  --text-2xl: 1.25rem;
+}

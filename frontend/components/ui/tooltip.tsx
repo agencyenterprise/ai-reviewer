@@ -3,9 +3,13 @@
 import * as React from 'react';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 
+import { TOOLTIP_DELAY } from '@/lib/tooltip';
 import { cn } from '@/lib/utils';
 
-function TooltipProvider({ delayDuration = 0, ...props }: React.ComponentProps<typeof TooltipPrimitive.Provider>) {
+function TooltipProvider({
+  delayDuration = TOOLTIP_DELAY,
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Provider>) {
   return <TooltipPrimitive.Provider data-slot="tooltip-provider" delayDuration={delayDuration} {...props} />;
 }
 

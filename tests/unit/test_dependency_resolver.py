@@ -29,26 +29,26 @@ def test_empty_and_simple_cases():
 def test_transitive_dependencies():
     """Test that all transitive dependencies are resolved in correct order."""
     # REFERENCE_VALIDATION -> REFERENCE_EXTRACTION -> DOCUMENT_PROCESSING
-    result = resolve_workflow_dependencies([WorkflowRunType.REFERENCE_VALIDATION])
+    result = resolve_workflow_dependencies([WorkflowRunType.REFERENCE_VALIDATION_V2])
 
     assert set(result) == {
         WorkflowRunType.DOCUMENT_PROCESSING,
         WorkflowRunType.REFERENCE_EXTRACTION,
-        WorkflowRunType.REFERENCE_VALIDATION,
+        WorkflowRunType.REFERENCE_VALIDATION_V2,
     }
     assert_order(
         result,
         WorkflowRunType.DOCUMENT_PROCESSING,
         WorkflowRunType.REFERENCE_EXTRACTION,
-        WorkflowRunType.REFERENCE_VALIDATION,
+        WorkflowRunType.REFERENCE_VALIDATION_V2,
     )
 
 
 def test_shared_dependencies():
     """Test that shared dependencies are not duplicated."""
-    # REFERENCE_VALIDATION and LITERATURE_REVIEW both depend on REFERENCE_EXTRACTION
+    # REFERENCE_VALIDATION and LITERATURE_REVIEW_V2 both depend on REFERENCE_EXTRACTION
     result = resolve_workflow_dependencies(
-        [WorkflowRunType.REFERENCE_VALIDATION, WorkflowRunType.LITERATURE_REVIEW]
+        [WorkflowRunType.REFERENCE_VALIDATION_V2, WorkflowRunType.LITERATURE_REVIEW_V2]
     )
 
     # No duplicates
@@ -66,18 +66,19 @@ def test_shared_dependencies():
 
 def test_optional_dependencies_excluded():
     """Test that optional dependencies are NOT automatically included."""
-    # CITATION_SUGGESTER optionally depends on LITERATURE_REVIEW
-    result = resolve_workflow_dependencies([WorkflowRunType.CITATION_SUGGESTER])
+    # REFERENCE_DOWNLOADER requires REFERENCE_EXTRACTION and optionally depends
+    # on REFERENCE_FILE_MATCHING.
+    result = resolve_workflow_dependencies([WorkflowRunType.REFERENCE_DOWNLOADER])
 
-    assert WorkflowRunType.CLAIM_EXTRACTION in result
-    assert WorkflowRunType.LITERATURE_REVIEW not in result
+    assert WorkflowRunType.REFERENCE_EXTRACTION in result
+    assert WorkflowRunType.REFERENCE_FILE_MATCHING not in result
 
 
 def test_deterministic_ordering():
     """Test that resolution is deterministic across multiple runs."""
     workflows = [
-        WorkflowRunType.REFERENCE_VALIDATION,
-        WorkflowRunType.LITERATURE_REVIEW,
+        WorkflowRunType.REFERENCE_VALIDATION_V2,
+        WorkflowRunType.LITERATURE_REVIEW_V2,
         WorkflowRunType.METHODOLOGICAL_ALIGNMENT,
     ]
 
@@ -147,7 +148,7 @@ def test_get_required_dependents_returns_direct_dependents():
         {
             WorkflowRunType.DOCUMENT_PROCESSING: [],
             WorkflowRunType.REFERENCE_EXTRACTION: [WorkflowRunType.DOCUMENT_PROCESSING],
-            WorkflowRunType.REFERENCE_VALIDATION: [WorkflowRunType.DOCUMENT_PROCESSING],
+            WorkflowRunType.REFERENCE_VALIDATION_V2: [WorkflowRunType.DOCUMENT_PROCESSING],
         }
     )
     with _patch_all_manifests(manifests):
@@ -155,7 +156,7 @@ def test_get_required_dependents_returns_direct_dependents():
 
     assert set(result) == {
         WorkflowRunType.REFERENCE_EXTRACTION,
-        WorkflowRunType.REFERENCE_VALIDATION,
+        WorkflowRunType.REFERENCE_VALIDATION_V2,
     }
 
 
@@ -165,7 +166,7 @@ def test_get_required_dependents_returns_transitive_dependents():
         {
             WorkflowRunType.DOCUMENT_PROCESSING: [],
             WorkflowRunType.REFERENCE_EXTRACTION: [WorkflowRunType.DOCUMENT_PROCESSING],
-            WorkflowRunType.REFERENCE_VALIDATION: [WorkflowRunType.REFERENCE_EXTRACTION],
+            WorkflowRunType.REFERENCE_VALIDATION_V2: [WorkflowRunType.REFERENCE_EXTRACTION],
         }
     )
     with _patch_all_manifests(manifests):
@@ -173,7 +174,7 @@ def test_get_required_dependents_returns_transitive_dependents():
 
     assert set(result) == {
         WorkflowRunType.REFERENCE_EXTRACTION,
-        WorkflowRunType.REFERENCE_VALIDATION,
+        WorkflowRunType.REFERENCE_VALIDATION_V2,
     }
 
 
@@ -193,15 +194,15 @@ def test_get_required_dependents_does_not_include_source_workflow():
 
 def test_get_required_dependents_no_duplicates_in_diamond_graph():
     """A workflow reached through multiple paths is returned only once."""
-    # DOCUMENT_PROCESSING is required by both REFERENCE_EXTRACTION and CHUNK_SPLITTING.
+    # DOCUMENT_PROCESSING is required by both REFERENCE_EXTRACTION and DOCUMENT_SUMMARIZATION.
     # REFERENCE_VALIDATION requires REFERENCE_EXTRACTION.
     # Cancelling DOCUMENT_PROCESSING should list both paths without duplicates.
     manifests = _make_all_manifests(
         {
             WorkflowRunType.DOCUMENT_PROCESSING: [],
             WorkflowRunType.REFERENCE_EXTRACTION: [WorkflowRunType.DOCUMENT_PROCESSING],
-            WorkflowRunType.CHUNK_SPLITTING: [WorkflowRunType.DOCUMENT_PROCESSING],
-            WorkflowRunType.REFERENCE_VALIDATION: [WorkflowRunType.REFERENCE_EXTRACTION],
+            WorkflowRunType.DOCUMENT_SUMMARIZATION: [WorkflowRunType.DOCUMENT_PROCESSING],
+            WorkflowRunType.REFERENCE_VALIDATION_V2: [WorkflowRunType.REFERENCE_EXTRACTION],
         }
     )
     with _patch_all_manifests(manifests):
@@ -210,6 +211,6 @@ def test_get_required_dependents_no_duplicates_in_diamond_graph():
     assert len(result) == len(set(result)), "No duplicates expected"
     assert set(result) == {
         WorkflowRunType.REFERENCE_EXTRACTION,
-        WorkflowRunType.CHUNK_SPLITTING,
-        WorkflowRunType.REFERENCE_VALIDATION,
+        WorkflowRunType.DOCUMENT_SUMMARIZATION,
+        WorkflowRunType.REFERENCE_VALIDATION_V2,
     }

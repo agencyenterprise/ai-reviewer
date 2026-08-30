@@ -118,7 +118,7 @@ export interface ReferenceCardProps {
 type DialogMode = 'upload' | 'replace' | null;
 
 export function ReferenceCard({ reference, projectId, readOnly, disabled = false }: ReferenceCardProps) {
-  const { id, index, text, status, matchedFile, source, fetchResult, validation } = reference;
+  const { id, index, text, status, matchedFile, source, fetchResult } = reference;
   const [dialogMode, setDialogMode] = useState<DialogMode>(null);
   const [isFetchDialogOpen, setIsFetchDialogOpen] = useState(false);
   // Track when fetch was initiated locally (optimistic UI)
@@ -188,6 +188,10 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
       <WorkflowConfigDialog
         isOpen={isFetchDialogOpen}
         type={WorkflowRunType.ReferenceDownloader}
+        title="Fetch this source from the web"
+        description="Draft Detective searches for this reference and downloads the full text if it finds one it can read."
+        helpTopic="source-files"
+        submitLabel="Fetch source"
         projectId={projectId}
         onConfirm={handleFetchFromWebConfirm}
         onCancel={() => setIsFetchDialogOpen(false)}
@@ -266,9 +270,6 @@ export function ReferenceCard({ reference, projectId, readOnly, disabled = false
 
           {/* Fetch Results Box */}
           {fetchResult && <FetchResultsBox fetchResult={fetchResult} />}
-
-          {/* Validation Results Box - hidden to reduce confusion with reference downloader results */}
-          {/* {validation && <ValidationResultsBox validation={validation} />} */}
         </div>
       </div>
     </div>

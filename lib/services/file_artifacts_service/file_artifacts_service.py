@@ -18,14 +18,11 @@ from lib.workflows.models import WorkflowRunType
 
 if TYPE_CHECKING:
     from lib.models.bibliography_item import BibliographyItem
-    from lib.models.footnote_item import FootnoteItem
-    from lib.workflows.chunk_utils import AnalyzedChunk
     from lib.workflows.document_processing.state import DocumentProcessingState
     from lib.workflows.document_summarization.state import (
         DocumentSummarizationState,
         FileSummary,
     )
-    from lib.workflows.footnote_extraction.state import FootnoteExtractionState
     from lib.workflows.reference_extraction.state import (
         ExtractedReference,
         ReferenceExtractionState,
@@ -400,49 +397,6 @@ class FileArtifactsService(FileArtifactsServiceType):
             )
 
         return references
-
-    async def get_chunks(self) -> list["AnalyzedChunk"]:
-        """Retrieve analyzed chunks from workflow states.
-
-        Builds analyzed chunks by extracting chunks from document processing state
-        and enriching them with claims, claim categories, and citations from their
-        respective workflow states (claim extraction, citation detection).
-
-        Returns:
-            A list of analyzed chunks with all available analysis results.
-            Returns empty list if document processing state is not found.
-
-        Raises:
-            ValueError: If no workflow runs are found for the project.
-        """
-        from lib.services.workflow_runs import get_project_workflow_runs
-        from lib.workflows.chunk_utils import build_analyzed_chunks
-
-        workflow_runs = await get_project_workflow_runs(
-            self.project_id, revision=self.revision, include_internal=True
-        )
-        states: list["WorkflowState"] = [
-            run.state for run in workflow_runs if run.state is not None
-        ]
-        return build_analyzed_chunks(states)
-
-    async def get_footnotes(self) -> list["FootnoteItem"]:
-        """Retrieve extracted footnotes from the footnote extraction workflow.
-
-        Returns:
-            A list of extracted footnote items from the footnote extraction
-            workflow state.
-
-        Raises:
-            ValueError: If no footnote extraction workflow run or state is found
-                for the project.
-        """
-
-        state = cast(
-            "FootnoteExtractionState",
-            await self._get_state_by_type(WorkflowRunType.FOOTNOTE_EXTRACTION),
-        )
-        return state.footnotes
 
     async def get_deepagent_backend_files(
         self,

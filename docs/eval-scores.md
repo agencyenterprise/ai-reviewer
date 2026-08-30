@@ -2,8 +2,16 @@
 
 Current Inspect AI eval numbers across every eval in `evals_inspectai/e2e/`.
 
-- **Last updated:** 2026-08-24
-- **Total:** 19 evals · 243 runnable samples · run at epochs=3
+- **Last updated:** 2026-08-28
+- **Model:** `gpt-5.6-terra`, on every agent
+- **Total:** 18 evals · 227 runnable samples · run at epochs=3
+
+> [!IMPORTANT]
+> **This is the current baseline, measured on `gpt-5.6-terra`.** On 28 Aug 2026
+> every agent moved off the three-tier `gpt-5.4-mini` / `gpt-5.4` / `gpt-5.5`
+> stack onto a single model. The numbers those tiers last scored are kept in
+> [`docs/eval-scores-gpt-5.4-5.5.md`](./eval-scores-gpt-5.4-5.5.md) for
+> comparison; they no longer describe the running system.
 
 > [!NOTE]
 > All evals are **end-to-end**: they trigger the real workflow through the API,
@@ -28,34 +36,80 @@ computed over every metric in the cell, not only the ones a reader expands. **Ov
 mean of that eval's per-scorer accuracies (a rough headline number: scorers
 measure different things, so it is not a rigorous aggregate). Model-graded
 scores use `openai/gpt-5.4` as the grader, except the two review-assistant
-suites (18 and 19), which pin `openai/gpt-5.6-terra`.
+suites (17 and 18), which pin `openai/gpt-5.6-terra`.
 
 Those two also report one metric per check rather than a single blended score,
 so every rule they enforce is listed separately. A broken rule is a defect and a
 lower judged score is a trend; averaging them together hides both.
 
+Every run below completed in full: no sample was dropped, errored or retried.
+
 | # | Eval | Samples | Epochs | Scorer results | Overall avg | Date | Log |
 |---|------|--------:|-------:|----------------|:-----------:|------|-----|
-| 1 | `abbreviation_checker` | 26 | 3 | <details><summary>2 deterministic 0.998–1.000 · 1 judged 0.981</summary>`structured_output_scorer` 0.998 ±0.001[^abbr-list]<br>`structured_output_scorer1` 1.000 ±0.000[^abbr-sect]<br>`model_graded_check` 0.981 ±0.014[^mg]</details> | **0.993** | 2026-07-09 | [`…_jHzP74HoUt2dKvWSSzCEWS.eval`](./evals/2026-07-09T14-58-26-00-00_abbreviation-checker-e2e_jHzP74HoUt2dKvWSSzCEWS.eval) |
-| 2 | `about_this_ger` | 13 | 3 | <details><summary>2 deterministic all 1.000 · 1 judged 0.987</summary>`structured_output_scorer` 1.000 ±0.000[^ger-preface]<br>`structured_output_scorer1` 1.000 ±0.000[^ger-authors]<br>`model_graded_check` 0.987 ±0.013[^mg]</details> | **0.996** | 2026-07-09 | [`…_kXXKYATn64JhsSM5t4TYF3.eval`](./evals/2026-07-09T16-03-16-00-00_about-this-ger-e2e_kXXKYATn64JhsSM5t4TYF3.eval) |
-| 3 | `advocacy_tone_v2` | 14 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 0.988</summary>`structured_output_scorer` 1.000 ±0.000[^advv2-titles]<br>`model_graded_check` 0.988 ±0.012[^mg]</details> | **0.994** | 2026-07-09 | [`…_7uj4JtsTMKfZvvux8hca9c.eval`](./evals/2026-07-09T16-07-17-00-00_advocacy-tone-v2-e2e_7uj4JtsTMKfZvvux8hca9c.eval) |
-| 4 | `citation_detection` | 17 | 3 | <details><summary>1 deterministic 0.773</summary>`structured_output_scorer` 0.773 ±0.046[^cit-detect]</details> | **0.773** | 2026-07-09 | [`…_gqybaRsNFVV8tXEpGHoZE3.eval`](./evals/2026-07-09T16-07-19-00-00_citation-detection-e2e_gqybaRsNFVV8tXEpGHoZE3.eval) |
-| 5 | `claim_reference_validation_v2` | 7 | 3 | <details><summary>2 deterministic all 1.000 · 1 judged 1.000</summary>`citation_alignment_match` 1.000 ±0.000[^cr-align]<br>`citation_count_match` 1.000 ±0.000[^cr-count]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-07-09 | [`…_HiRkyvQYCUuYJ3g8B8wa9L.eval`](./evals/2026-07-09T16-07-21-00-00_claim-reference-validation-v2-e2e_HiRkyvQYCUuYJ3g8B8wa9L.eval) |
-| 6 | `document_structure` | 5 | 3 | <details><summary>1 deterministic 0.911 · 1 judged 0.733</summary>`structured_output_scorer` 0.911 ±0.065[^issue-titles]<br>`model_graded_check` 0.733 ±0.194[^mg]</details> | **0.822** | 2026-07-09 | [`…_AvxR8yUFKqbrd7THBoA4PR.eval`](./evals/2026-07-09T16-13-30-00-00_document-structure-e2e_AvxR8yUFKqbrd7THBoA4PR.eval) |
-| 7 | `figures_tables_check` | 19 | 3 | <details><summary>1 deterministic 0.775 · 1 judged 0.956</summary>`structured_output_scorer` 0.775 ±0.060[^issue-titles]<br>`model_graded_check` 0.956 ±0.031[^mg]</details> | **0.866** | 2026-07-09 | [`…_R79SgLdDysAMuo8LcKMa2R.eval`](./evals/2026-07-09T16-13-33-00-00_figures-tables-check-e2e_R79SgLdDysAMuo8LcKMa2R.eval) |
-| 8 | `inference_validation_v2` | 6 | 3 | <details><summary>1 deterministic 0.889 · 1 judged 0.944</summary>`structured_output_scorer` 0.889 ±0.111[^inf-count]<br>`model_graded_check` 0.944 ±0.056[^mg]</details> | **0.917** | 2026-07-09 | [`…_bLkqc5z3WXq7u8fk65DLCd.eval`](./evals/2026-07-09T16-13-34-00-00_inference-validation-v2-e2e_bLkqc5z3WXq7u8fk65DLCd.eval) |
-| 9 | `literature_review_v2` | 3 | 3 | <details><summary>1 deterministic 0.963 · 1 judged 0.889</summary>`structured_output_scorer` 0.963 ±0.037[^score-structure]<br>`model_graded_check` 0.889 ±0.111[^mg]</details> | **0.926** | 2026-07-09 | [`…_fbZ4xxXFiswd9whZPLEEwp.eval`](./evals/2026-07-09T16-18-17-00-00_literature-review-v2-e2e_fbZ4xxXFiswd9whZPLEEwp.eval) |
-| 10 | `live_reports_v2` | 3 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 1.000</summary>`structured_output_scorer` 1.000 ±0.000[^score-structure]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-07-09 | [`…_dNcWGbnu4YMbQvWtqmdrL4.eval`](./evals/2026-07-09T16-18-20-00-00_live-reports-v2-e2e_dNcWGbnu4YMbQvWtqmdrL4.eval) |
-| 11 | `methodological_alignment` | 2 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 0.917</summary>`structured_output_scorer` 1.000 ±0.000[^meth-analysis]<br>`model_graded_check` 0.917 ±0.083[^mg]</details> | **0.958** | 2026-07-09 | [`…_Pb2TBcXsi4xTtgqGXz2Loo.eval`](./evals/2026-07-09T16-18-22-00-00_methodological-alignment-e2e_Pb2TBcXsi4xTtgqGXz2Loo.eval) |
-| 12 | `recommendation_check` | 6 | 3 | <details><summary>1 deterministic 0.994 · 1 judged 0.944</summary>`structured_output_scorer` 0.994 ±0.006[^rec-severity]<br>`model_graded_check` 0.944 ±0.035[^mg]</details> | **0.969** | 2026-07-09 | [`…_m49mXFHqKSEvnYaeTpfrAv.eval`](./evals/2026-07-09T16-35-09-00-00_recommendation-check-e2e_m49mXFHqKSEvnYaeTpfrAv.eval) |
-| 13 | `reference_downloader` | 31 | 3 | <details><summary>1 deterministic 0.903</summary>`structured_output_scorer` 0.903 ±0.044[^refdl-conclusion]</details> | **0.903** | 2026-07-09 | [`…_oN2efxg7PdxNHc4fqTrGrS.eval`](./evals/2026-07-09T16-35-10-00-00_reference-downloader-e2e_oN2efxg7PdxNHc4fqTrGrS.eval) |
-| 14 | `reference_text_extractor` | 7 | 3 | <details><summary>1 deterministic 0.922</summary>`structured_output_scorer` 0.922 ±0.051[^refext-refs]</details> | **0.922** | 2026-07-09 | [`…_J9X7AhUPtfGiQDHWUjLet4.eval`](./evals/2026-07-09T16-35-12-00-00_reference-text-extractor-e2e_J9X7AhUPtfGiQDHWUjLet4.eval) |
-| 15 | `reference_validation_v2` | 70 | 3 | <details><summary>1 deterministic 0.843 · 1 judged 0.852</summary>`structured_output_scorer` 0.843 ±0.042[^refval-result]<br>`model_graded_check` 0.852 ±0.030[^mg]</details> | **0.848** | 2026-07-09 | [`…_FHKPPCyJVbpmziCPy9ZMn9.eval`](./evals/2026-07-09T16-54-14-00-00_reference-validation-v2-e2e_FHKPPCyJVbpmziCPy9ZMn9.eval) |
-| 16 | `results_extraction` | 2 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 1.000</summary>`structured_output_scorer` 1.000 ±0.000[^res-check]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-07-09 | [`…_QgbmBhdvsYSiRup43bSRcG.eval`](./evals/2026-07-09T16-54-16-00-00_results-extraction-e2e_QgbmBhdvsYSiRup43bSRcG.eval) |
-| 17 | `reviewer_2` | 2 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 1.000</summary>`structured_output_scorer` 1.000 ±0.000[^rev-produced]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-07-09 | [`…_Hvsv4KmhjdSPMGFbKCjykd.eval`](./evals/2026-07-09T16-54-17-00-00_reviewer-2-e2e_Hvsv4KmhjdSPMGFbKCjykd.eval) |
-| 18 | `reviewer_coverage_report` | 5 | 3 | <details><summary>9 deterministic all 1.000 · 4 judged 0.833–0.967</summary>`verbatim` 1.000 ±0.000<br>`quoted` 1.000 ±0.000<br>`id_scheme` 1.000 ±0.000<br>`self_contained` 1.000 ±0.000<br>`two_part_layout` 1.000 ±0.000<br>`voice` 1.000 ±0.000[^ra-structure]<br>`verdict_table` 1.000 ±0.000<br>`verdict_vocabulary` 1.000 ±0.000<br>`recommendation` 1.000 ±0.000[^rcr-bookkeeping]<br>`verdicts_correct` 0.900 ±0.041<br>`part1_is_decision_grade` 0.933 ±0.041<br>`evidence_and_location` 0.967 ±0.033<br>`scenario_trap` 0.833 ±0.075[^rcr-rubric]</details> | **0.972** | 2026-08-24 | [`…_QQLyTtYCQDafkbvYJ6JSHE.eval`](./evals/2026-08-24T17-17-04-00-00_reviewer-coverage-report-e2e_QQLyTtYCQDafkbvYJ6JSHE.eval) |
-| 19 | `revision_planning_summary` | 5 | 3 | <details><summary>6 deterministic all 1.000 · 4 judged 0.833–1.000</summary>`verbatim` 1.000 ±0.000<br>`quoted` 1.000 ±0.000<br>`id_scheme` 1.000 ±0.000<br>`self_contained` 1.000 ±0.000<br>`two_part_layout` 1.000 ±0.000<br>`voice` 1.000 ±0.000[^ra-structure]<br>`locations_by_content` 0.933 ±0.041<br>`part1_triage` 0.900 ±0.067<br>`planning_notes` 1.000 ±0.000<br>`scenario_trap` 0.833 ±0.075[^rps-rubric]</details> | **0.967** | 2026-08-24 | [`…_FUKLiArqfTX2ebmzGjEHuQ.eval`](./evals/2026-08-24T17-12-20-00-00_revision-planning-summary-e2e_FUKLiArqfTX2ebmzGjEHuQ.eval) |
-| | **Mean across all evals** | | | | **0.938** | | |
+| 1 | `abbreviation_checker` | 26 | 3 | <details><summary>2 deterministic 0.999–1.000 · 1 judged 0.987</summary>`structured_output_scorer` 0.999 ±0.001[^abbr-list]<br>`structured_output_scorer1` 1.000 ±0.000[^abbr-sect]<br>`model_graded_check` 0.987 ±0.009[^mg]</details> | **0.995** | 2026-08-26 | [`…_9L7LFJgP4rM2Z6oAmDgCg8.eval`](./evals/2026-08-26T13-36-25-00-00_abbreviation-checker-e2e_9L7LFJgP4rM2Z6oAmDgCg8.eval) |
+| 2 | `about_this_ger` | 13 | 3 | <details><summary>2 deterministic 0.983–0.987 · 1 judged 0.936</summary>`structured_output_scorer` 0.983 ±0.017[^ger-preface]<br>`structured_output_scorer1` 0.987 ±0.013[^ger-authors]<br>`model_graded_check` 0.936 ±0.052[^mg]</details> | **0.969** | 2026-08-26 | [`…_RDABwXSRrsEUEeTGCDyPAX.eval`](./evals/2026-08-26T13-42-24-00-00_about-this-ger-e2e_RDABwXSRrsEUEeTGCDyPAX.eval) |
+| 3 | `advocacy_tone_v2` | 14 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 1.000</summary>`structured_output_scorer` 1.000 ±0.000[^advv2-titles]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-08-26 | [`…_TR6MVXLpKk5aABsjrrd3BG.eval`](./evals/2026-08-26T16-59-19-00-00_advocacy-tone-v2-e2e_TR6MVXLpKk5aABsjrrd3BG.eval) |
+| 4 | `claim_reference_validation_v2` | 7 | 3 | <details><summary>2 deterministic all 1.000 · 1 judged 1.000</summary>`citation_alignment_match` 1.000 ±0.000[^cr-align]<br>`citation_count_match` 1.000 ±0.000[^cr-count]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-08-26 | [`…_P6c7epQuUUuYnrhLJszKwY.eval`](./evals/2026-08-26T16-55-04-00-00_claim-reference-validation-v2-e2e_P6c7epQuUUuYnrhLJszKwY.eval) |
+| 5 | `document_structure` | 5 | 3 | <details><summary>1 deterministic 0.933 · 1 judged 0.800</summary>`structured_output_scorer` 0.933 ±0.067[^issue-titles]<br>`model_graded_check` 0.800 ±0.200[^mg]</details> | **0.867** | 2026-08-28 | [`…_gVQDPn5E5ru4cJJdYpuGBk.eval`](./evals/2026-08-28T18-11-07-00-00_document-structure-e2e_gVQDPn5E5ru4cJJdYpuGBk.eval) |
+| 6 | `figures_tables_check` | 19 | 3 | <details><summary>1 deterministic 0.710 · 1 judged 0.851</summary>`structured_output_scorer` 0.710 ±0.068[^issue-titles]<br>`model_graded_check` 0.851 ±0.044[^mg]</details> | **0.780** | 2026-08-28 | [`…_Z9HXQpWvUiJedwbjCZCXDn.eval`](./evals/2026-08-28T18-18-27-00-00_figures-tables-check-e2e_Z9HXQpWvUiJedwbjCZCXDn.eval) |
+| 7 | `inference_validation_v2` | 6 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 1.000</summary>`structured_output_scorer` 1.000 ±0.000[^inf-count]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-08-27 | [`…_ETnaSF9iyWUPQYf6Ac7VHm.eval`](./evals/2026-08-27T15-39-52-00-00_inference-validation-v2-e2e_ETnaSF9iyWUPQYf6Ac7VHm.eval) |
+| 8 | `literature_review_v2` | 4 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 0.958</summary>`structured_output_scorer` 1.000 ±0.000[^score-structure]<br>`model_graded_check` 0.958 ±0.042[^mg]</details> | **0.979** | 2026-08-26 | [`…_jkRHzj4yivsY66vtVbCo4a.eval`](./evals/2026-08-26T16-39-44-00-00_literature-review-v2-e2e_jkRHzj4yivsY66vtVbCo4a.eval) |
+| 9 | `live_reports_v2` | 3 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 1.000</summary>`structured_output_scorer` 1.000 ±0.000[^score-structure]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-08-26 | [`…_B8DravaK7UWAGrngodBEco.eval`](./evals/2026-08-26T16-36-22-00-00_live-reports-v2-e2e_B8DravaK7UWAGrngodBEco.eval) |
+| 10 | `methodological_alignment` | 2 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 1.000</summary>`structured_output_scorer` 1.000 ±0.000[^meth-analysis]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-08-26 | [`…_gUqTHjY4RMC2DJyPMuLers.eval`](./evals/2026-08-26T13-47-33-00-00_methodological-alignment-e2e_gUqTHjY4RMC2DJyPMuLers.eval) |
+| 11 | `recommendation_check` | 6 | 3 | <details><summary>1 deterministic 0.988 · 1 judged 0.917</summary>`structured_output_scorer` 0.988 ±0.012[^rec-severity]<br>`model_graded_check` 0.917 ±0.083[^mg]</details> | **0.953** | 2026-08-26 | [`…_4PUbGQZhFYt9PfBHf8TyXe.eval`](./evals/2026-08-26T16-52-03-00-00_recommendation-check-e2e_4PUbGQZhFYt9PfBHf8TyXe.eval) |
+| 12 | `reference_downloader` | 31 | 3 | <details><summary>1 deterministic 0.849</summary>`structured_output_scorer` 0.849 ±0.060[^refdl-conclusion]</details> | **0.849** | 2026-08-28 | [`…_YHhh9v2dMmLZVkBdoGLaNi.eval`](./evals/2026-08-28T18-24-42-00-00_reference-downloader-e2e_YHhh9v2dMmLZVkBdoGLaNi.eval) |
+| 13 | `reference_text_extractor` | 7 | 3 | <details><summary>1 deterministic 0.878</summary>`structured_output_scorer` 0.878 ±0.084[^refext-refs]</details> | **0.878** | 2026-08-28 | [`…_EcCoBLxfCqnUGhVwdMwCzR.eval`](./evals/2026-08-28T18-12-45-00-00_reference-text-extractor-e2e_EcCoBLxfCqnUGhVwdMwCzR.eval) |
+| 14 | `reference_validation_v2` | 70 | 3 | <details><summary>1 deterministic 0.814 · 1 judged 0.824</summary>`structured_output_scorer` 0.814 ±0.044[^refval-result]<br>`model_graded_check` 0.824 ±0.033[^mg]</details> | **0.819** | 2026-08-26 | [`…_LVNQd5h6f5bUWnD2eYogUb.eval`](./evals/2026-08-26T17-17-18-00-00_reference-validation-v2-e2e_LVNQd5h6f5bUWnD2eYogUb.eval) |
+| 15 | `results_extraction` | 2 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 1.000</summary>`structured_output_scorer` 1.000 ±0.000[^res-check]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-08-26 | [`…_55JiueDVQVnRwm9moinDG2.eval`](./evals/2026-08-26T16-35-35-00-00_results-extraction-e2e_55JiueDVQVnRwm9moinDG2.eval) |
+| 16 | `reviewer_2` | 2 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 1.000</summary>`structured_output_scorer` 1.000 ±0.000[^rev-produced]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-08-26 | [`…_i3Bm2FbzhmJAwqas6MUyri.eval`](./evals/2026-08-26T14-14-47-00-00_reviewer-2-e2e_i3Bm2FbzhmJAwqas6MUyri.eval) |
+| 17 | `reviewer_coverage_report` | 5 | 3 | <details><summary>9 deterministic all 1.000 · 4 judged 0.800–0.967</summary>`verbatim` 1.000 ±0.000<br>`quoted` 1.000 ±0.000<br>`id_scheme` 1.000 ±0.000<br>`self_contained` 1.000 ±0.000<br>`two_part_layout` 1.000 ±0.000<br>`voice` 1.000 ±0.000[^ra-structure]<br>`verdict_table` 1.000 ±0.000<br>`verdict_vocabulary` 1.000 ±0.000<br>`recommendation` 1.000 ±0.000[^rcr-bookkeeping]<br>`verdicts_correct` 0.800 ±0.062<br>`part1_is_decision_grade` 0.900 ±0.041<br>`evidence_and_location` 0.967 ±0.033<br>`scenario_trap` 0.800 ±0.133[^rcr-rubric]</details> | **0.959** | 2026-08-26 | [`…_nnzWgW7JK6KsFFqorqCSck.eval`](./evals/2026-08-26T15-01-34-00-00_reviewer-coverage-report-e2e_nnzWgW7JK6KsFFqorqCSck.eval) |
+| 18 | `revision_planning_summary` | 5 | 3 | <details><summary>6 deterministic all 1.000 · 4 judged 0.800–1.000</summary>`verbatim` 1.000 ±0.000<br>`quoted` 1.000 ±0.000<br>`id_scheme` 1.000 ±0.000<br>`self_contained` 1.000 ±0.000<br>`two_part_layout` 1.000 ±0.000<br>`voice` 1.000 ±0.000[^ra-structure]<br>`locations_by_content` 0.967 ±0.033<br>`part1_triage` 0.800 ±0.062<br>`planning_notes` 1.000 ±0.000<br>`scenario_trap` 0.800 ±0.097[^rps-rubric]</details> | **0.957** | 2026-08-26 | [`…_iUkias5YSUsBuY2EoRoKqm.eval`](./evals/2026-08-26T15-11-52-00-00_revision-planning-summary-e2e_iUkias5YSUsBuY2EoRoKqm.eval) |
+| | **Mean across all evals** | | | | **0.945** | | |
+
+## What the model switch changed
+
+Against the last gpt-5.4 / gpt-5.5 figures. Six evals are unchanged, four
+improved and eight fell, for a suite mean **0.009 lower**. Only one movement is
+large enough to matter on its own.
+
+| Eval | gpt-5.4 / gpt-5.5 | gpt-5.6-terra | Δ |
+|------|------------------:|--------------:|--:|
+| `abbreviation_checker` | 0.993 | 0.995 | +0.002 |
+| `about_this_ger` | 0.983 | 0.969 | -0.014 |
+| `advocacy_tone_v2` | 0.994 | 1.000 | +0.006 |
+| `claim_reference_validation_v2` | 1.000 | 1.000 | — |
+| `document_structure` | 0.867 | 0.867 | — |
+| `figures_tables_check` | 0.864 | 0.780 | -0.084 |
+| `inference_validation_v2` | 1.000 | 1.000 | — |
+| `literature_review_v2` | 0.944 | 0.979 | +0.035 |
+| `live_reports_v2` | 1.000 | 1.000 | — |
+| `methodological_alignment` | 0.958 | 1.000 | +0.042 |
+| `recommendation_check` | 0.955 | 0.953 | -0.002 |
+| `reference_downloader` | 0.903 | 0.849 | -0.054 |
+| `reference_text_extractor` | 0.922 | 0.878 | -0.044 |
+| `reference_validation_v2` | 0.848 | 0.819 | -0.029 |
+| `results_extraction` | 1.000 | 1.000 | — |
+| `reviewer_2` | 1.000 | 1.000 | — |
+| `reviewer_coverage_report` | 0.972 | 0.959 | -0.013 |
+| `revision_planning_summary` | 0.967 | 0.957 | -0.010 |
+| **Mean across all evals** | **0.954** | **0.945** | **-0.009** |
+
+Three things worth knowing before reading that table:
+
+- **`figures_tables_check` is the one real regression.** It fell 8.4 points, on
+  both of its scorers, and it is the only movement here that was measured twice
+  and held both times — 0.798 on 26 Aug and 0.780 on 28 Aug. The deterministic
+  issue-title match moving means terra flags different figures and tables, not
+  that a grader changed its mind. This is a known cost of the switch, not noise.
+- **The small evals swing.** `document_structure` read 0.778 on 26 Aug and
+  0.867 — exactly its old figure — on 28 Aug, with nothing changed between the
+  runs. At 15 runs with a judged scorer carrying ±0.200, single readings on the
+  sub-20-run evals should not be read as trends in either direction.
+- **The review-assistant suites now grade themselves.** `reviewer_coverage_report`
+  and `revision_planning_summary` pin `openai/gpt-5.6-terra` as their judge,
+  which is now also the model under test. Their judged criteria should be read
+  with that in mind; their deterministic rules, all of which still pass at 1.000,
+  are unaffected.
 
 ## Scorer reference
 
@@ -65,11 +119,10 @@ lower judged score is a trend; averaging them together hides both.
 [^ger-preface]: `about_this_ger` · deterministic match of the flagged preface / "About This" issue titles against the target.
 [^ger-authors]: `about_this_ger` · deterministic match of the flagged author-biography issue titles against the target.
 [^advv2-titles]: `advocacy_tone_v2` · deterministic match of the count of flagged issue titles against the target.
-[^cit-detect]: `citation_detection` · deterministic match of detected in-text citations against the target.
 [^cr-align]: `claim_reference_validation_v2` · checks each citation's support label aligns with the target (supported / partially / unsupported / unverifiable).
 [^cr-count]: `claim_reference_validation_v2` · checks the number of citations found matches the target.
 [^issue-titles]: `document_structure` and `figures_tables_check` · deterministic match of the detected issue titles against the target.
-[^inf-count]: `inference_validation_v2` · deterministic match of the count of invalid inferences against the target.
+[^inf-count]: `inference_validation_v2` · deterministic match of the count of reported invalid inferences against the target. An informational (`none`) issue fails the sample outright rather than counting towards the total: this assessment reports invalid inferences only, so sound reasoning is reported as nothing at all.
 [^score-structure]: `literature_review_v2` and `live_reports_v2` · structural checks averaged into a `[0,1]` score (result present with non-empty report, issue count within the expected band, sane line ranges, citation-like detail when recommendations are expected). Exact sources aren't asserted because web search is non-deterministic.
 [^meth-analysis]: `methodological_alignment` · shape check that the analysis ran and populated a reproducibility class plus the field-alignment section (comparison prose is free-form, so exact wording isn't scored).
 [^rec-severity]: `recommendation_check` · deterministic match of the counts of recommendations by severity against the target.

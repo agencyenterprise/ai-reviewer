@@ -24,7 +24,6 @@ from lib.services.files import (
     get_files_by_project_id,
     get_project_files_list_items,
 )
-from lib.services.chunk_line_matcher import find_line_range_by_chunks
 from lib.services.issue_persistence import get_project_issues
 from lib.services.references import (
     remove_fetch_result_for_file,
@@ -38,7 +37,7 @@ from lib.services.workflow_runs import (
 )
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.models import WorkflowRunType
-from lib.workflows.registry import get_all_manifests
+from lib.workflows.registry import available_workflow_type_values, get_all_manifests
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +127,10 @@ async def get_user_projects(user: User) -> List[ProjectListItem]:
                 and_(
                     col(WorkflowRun.project_id) == col(Project.id),
                     col(WorkflowRun.revision) == col(Project.current_revision),
+                    # Must stay in the join, not the WHERE: a predicate on the
+                    # right-hand table would make this an inner join and drop
+                    # projects with no live runs.
+                    col(WorkflowRun.type).in_(available_workflow_type_values()),
                 ),
             )
             .where(col(Project.user_id) == user.id)
@@ -141,6 +144,7 @@ async def get_user_projects(user: User) -> List[ProjectListItem]:
         for row in results:
             project, workflow_run = row.tuple()
             projects_by_id.setdefault(project.id, project)
+            # Retired types are excluded by the join; None means no runs.
             if workflow_run is not None:
                 runs_by_project[project.id].append(workflow_run)
 
@@ -207,11 +211,6 @@ async def get_project_detailed_from_project(
         uuid.UUID(str(project.id)), revision=resolved_revision
     )
 
-    # For issues persisted before the line-range migration, derive
-    # (start_line, end_line) on-the-fly from their chunk_indices so the
-    # markdown renderer can locate them.
-    _backfill_issue_line_ranges(issues, workflow_runs)
-
     feedbacks: list[FeedbackSummary] = []
     if user is not None:
         async with get_async_db_session() as session:
@@ -264,32 +263,6 @@ async def _get_main_document_markdown(project_id: str, revision: int) -> Optiona
     except ValueError:
         return None
     return file_document.markdown
-
-
-def _backfill_issue_line_ranges(
-    issues: Sequence[Issue], workflow_runs: List[WorkflowRunDetail]
-) -> None:
-    """Derive (start_line, end_line) from chunk_indices for issues persisted
-    before the line-range migration. Mutates issues in place."""
-    chunks = None
-    for detail in workflow_runs:
-        if (
-            detail.state is not None
-            and detail.state.type == WorkflowRunType.CHUNK_SPLITTING
-        ):
-            chunks = getattr(detail.state, "chunks", None) or None
-            break
-    if not chunks:
-        return
-
-    for issue in issues:
-        if issue.start_line is not None or issue.end_line is not None:
-            continue
-        if not issue.chunk_indices:
-            continue
-        line_range = find_line_range_by_chunks(chunks, issue.chunk_indices)
-        if line_range is not None:
-            issue.start_line, issue.end_line = line_range
 
 
 async def get_shared_project(project_id: str) -> Project:
@@ -491,22 +464,36 @@ async def create_new_revision(
             .distinct()
         )
         result = await session.execute(types_stmt)
-        ran_before = [
-            WorkflowRunType(row[0]) if isinstance(row[0], str) else row[0]
-            for row in result.all()
-        ]
+        ran_before: list[WorkflowRunType] = []
+        for row in result.all():
+            if not isinstance(row[0], str):
+                ran_before.append(row[0])
+                continue
+            try:
+                ran_before.append(WorkflowRunType(row[0]))
+            except ValueError:
+                # Retired/unknown type still present in old rows — there is no
+                # workflow left to re-run, so drop it instead of failing the
+                # whole revision.
+                logger.warning(
+                    f"Skipping unknown workflow type {row[0]!r} from revision "
+                    f"{old_revision} of project {project_id}"
+                )
         # Workflows can opt out of being re-run automatically. The peer-review
         # ones do: they read the *reviewed* revision against the current draft,
         # so firing them the moment a revision is created either wastes an
         # expensive run or returns a guard message. The user starts them from
         # the Peer Review tab once the new draft is in place.
+        #
+        # An enum value whose manifest has been retired has nothing left to run,
+        # so it is dropped here too — the enum member outlives the workflow so
+        # old rows keep deserializing.
         manifests = get_all_manifests()
         previous_workflow_types = [
             workflow_type
             for workflow_type in ran_before
-            if getattr(
-                manifests.get(workflow_type), "auto_rerun_on_new_revision", True
-            )
+            if workflow_type in manifests
+            and manifests[workflow_type].auto_rerun_on_new_revision
         ]
 
         # Increment project revision

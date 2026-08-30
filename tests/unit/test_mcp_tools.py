@@ -451,7 +451,7 @@ async def test_run_workflow_passes_approve_web_search_to_runner():
     ):
         await run_workflow(
             project_id="p1",
-            workflow_types=["reference_validation"],
+            workflow_types=["reference_validation_v2"],
             approve_web_search=True,
             token=_make_token(),
         )
@@ -469,7 +469,7 @@ async def test_run_workflow_returns_web_search_required_payload():
     err = WorkflowGateRequiredError(
         project_id="p1",
         pending_human_approval=[],
-        pending_web_search=[WorkflowRunType.REFERENCE_VALIDATION],
+        pending_web_search=[WorkflowRunType.REFERENCE_VALIDATION_V2],
     )
 
     with (
@@ -485,14 +485,14 @@ async def test_run_workflow_returns_web_search_required_payload():
     ):
         result = await run_workflow(
             project_id="p1",
-            workflow_types=["reference_validation"],
+            workflow_types=["reference_validation_v2"],
             token=_make_token(),
         )
 
     data = json.loads(result)
     assert data["status"] == "approval_required"
     assert data["pending_human_approval"] == []
-    assert data["pending_web_search"] == [WorkflowRunType.REFERENCE_VALIDATION.value]
+    assert data["pending_web_search"] == [WorkflowRunType.REFERENCE_VALIDATION_V2.value]
     assert "approve_web_search=true" in data["message"]
     assert "approve_human_steps=true" not in data["message"]
     mock_details.assert_not_awaited()
@@ -611,13 +611,13 @@ async def test_export_project_docx_passes_filters_to_service():
     ):
         await export_project_docx(
             project_id=project_id,
-            workflow_types=[WorkflowRunType.CLAIM_EXTRACTION],
+            workflow_types=[WorkflowRunType.RECOMMENDATION_CHECK],
             severities=[SeverityEnum.HIGH],
             token=_make_token(),
         )
 
     _, kwargs = mock_gen.call_args
-    assert kwargs["workflow_types"] == [WorkflowRunType.CLAIM_EXTRACTION]
+    assert kwargs["workflow_types"] == [WorkflowRunType.RECOMMENDATION_CHECK]
     assert kwargs["severities"] == [SeverityEnum.HIGH]
 
 
@@ -954,7 +954,7 @@ async def test_create_revision_with_content_returns_file_id():
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch("lib.api.mcp.tools.revisions.create_new_revision", new=AsyncMock(return_value=(2, ["claim_extraction"]))),
+        patch("lib.api.mcp.tools.revisions.create_new_revision", new=AsyncMock(return_value=(2, ["recommendation_check"]))),
         patch("lib.api.mcp.tools.revisions.finalize_file", new=AsyncMock(return_value=file_record)),
     ):
         raw = await create_revision(
@@ -966,7 +966,7 @@ async def test_create_revision_with_content_returns_file_id():
     data = json.loads(raw)
     assert data["revision"] == 2
     assert data["file_id"] == str(file_record.id)
-    assert data["previous_workflow_types"] == ["claim_extraction"]
+    assert data["previous_workflow_types"] == ["recommendation_check"]
 
 
 @pytest.mark.asyncio

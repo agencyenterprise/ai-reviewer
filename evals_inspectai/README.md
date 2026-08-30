@@ -11,7 +11,6 @@ evals_inspectai/
     ├── abbreviation_checker/
     ├── about_this_ger/
     ├── advocacy_tone_v2/
-    ├── citation_detection/
     ├── claim_reference_validation_v2/
     ├── document_structure/
     ├── figures_tables_check/
@@ -41,7 +40,6 @@ Each eval directory contains a task module (`<name>_e2e.py`) and its dataset. Ea
 | `e2e/abbreviation_checker` | Abbreviation compliance checks, run via the full workflow. |
 | `e2e/about_this_ger` | Validates the preface / "About This" section and author biographies against publication requirements. |
 | `e2e/advocacy_tone_v2` | Flags trigger words, advocacy language, and subjective tone. |
-| `e2e/citation_detection` | Detects in-text citations and maps them to their references. |
 | `e2e/claim_reference_validation_v2` | Judges whether each cited source supports its claim. |
 | `e2e/document_structure` | Checks that required sections are present (Document Contents). |
 | `e2e/figures_tables_check` | Verifies figures and tables are titled, numbered, and cross-referenced. |

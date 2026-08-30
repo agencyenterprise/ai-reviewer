@@ -25,7 +25,7 @@ from deepagents.backends.utils import create_file_data
 from langchain.chat_models import BaseChatModel, init_chat_model
 
 from lib.config.env import get_model_api_key
-from lib.config.llm_models import LLMModel, gpt_5_5_model
+from lib.config.llm_models import LLMModel, gpt_5_6_terra_model
 from lib.config.rate_limiter import get_rate_limiter, hash_api_key
 from lib.models.agent import ReasoningDict
 
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).parents[2]
 SKILLS_DIR = PROJECT_ROOT / "skills"
 
-DEFAULT_MODEL = gpt_5_5_model
+DEFAULT_MODEL = gpt_5_6_terra_model
 RECURSION_LIMIT = 60
 REQUEST_TIMEOUT = 120
 

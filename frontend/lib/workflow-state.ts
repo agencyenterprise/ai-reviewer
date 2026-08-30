@@ -1,23 +1,12 @@
 import {
   AbbreviationScanV2State,
-  AdvocacyToneState,
-  ChunkSplittingState,
-  CitationDetectionState,
-  CitationSuggesterState,
-  ClaimExtractionState,
-  ClaimReferenceValidationState,
   DocumentProcessingState,
   DocumentSummarizationState,
-  FootnoteExtractionState,
   HumanApprovalState,
-  InferenceValidationV2State,
-  LiteratureReviewState,
-  LiveReportsState,
   MethodologicalAlignmentState,
   ReferenceDownloaderState,
   ReferenceExtractionState,
   ReferenceFileMatchingState,
-  ReferenceValidationState,
   ResultsExtractionState,
   Reviewer2State,
   SimpleDeepAgentState,
@@ -34,28 +23,18 @@ import {
  */
 type WorkflowTypeToDetail = {
   [WorkflowRunType.DocumentProcessing]: DocumentProcessingState;
-  [WorkflowRunType.ChunkSplitting]: ChunkSplittingState;
   [WorkflowRunType.DocumentSummarization]: DocumentSummarizationState;
   [WorkflowRunType.ReferenceExtraction]: ReferenceExtractionState;
   [WorkflowRunType.ReferenceFileMatching]: ReferenceFileMatchingState;
   [WorkflowRunType.HumanApproval]: HumanApprovalState;
-  [WorkflowRunType.FootnoteExtraction]: FootnoteExtractionState;
-  [WorkflowRunType.ClaimExtraction]: ClaimExtractionState;
-  [WorkflowRunType.CitationDetection]: CitationDetectionState;
   [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentState;
   [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
-  [WorkflowRunType.LiteratureReview]: LiteratureReviewState;
-  [WorkflowRunType.LiveReports]: LiveReportsState;
-  [WorkflowRunType.ReferenceValidation]: ReferenceValidationState;
-  [WorkflowRunType.CitationSuggester]: CitationSuggesterState;
   [WorkflowRunType.ResultsExtraction]: ResultsExtractionState;
-  [WorkflowRunType.InferenceValidationV2]: InferenceValidationV2State;
-  [WorkflowRunType.ClaimReferenceValidation]: ClaimReferenceValidationState;
   [WorkflowRunType.AbbreviationScanV2]: AbbreviationScanV2State;
-  [WorkflowRunType.AdvocacyTone]: AdvocacyToneState;
   [WorkflowRunType.Reviewer2]: Reviewer2State;
   [WorkflowRunType.DocumentStructure]: SimpleDeepAgentState;
   [WorkflowRunType.FiguresTablesCheck]: SimpleDeepAgentState;
+  [WorkflowRunType.InferenceValidationV2]: SimpleDeepAgentState;
   [WorkflowRunType.AdvocacyToneV2]: SimpleDeepAgentState;
   [WorkflowRunType.RecommendationCheck]: SimpleDeepAgentState;
   [WorkflowRunType.LiteratureReviewV2]: SimpleDeepAgentState;
@@ -163,15 +142,6 @@ export function getWorkflowErrors(workflowRuns: WorkflowRunDetail[]): WorkflowEr
  */
 export function getBlockingWorkflowErrors(workflowRuns: WorkflowRunDetail[]): WorkflowError[] {
   return getWorkflowErrors(workflowRuns).filter(isBlockingError);
-}
-
-export function getChunkErrors(workflowRuns: WorkflowRunDetail[], chunkIndex: number): WorkflowError[] {
-  return workflowRuns
-    .flatMap((result) => {
-      const errors = result?.state?.errors ?? [];
-      return filterErrorsToCurrentRun(errors, result.run.id);
-    })
-    .filter((error) => error.chunk_index === chunkIndex);
 }
 
 export function isWorkflowProcessing(workflowRun: WorkflowRunDetail | undefined): boolean {

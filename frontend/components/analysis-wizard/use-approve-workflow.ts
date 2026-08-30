@@ -7,7 +7,7 @@ import { approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost } from '@/lib
 
 function approveRun(humanApprovalRunId: string | undefined) {
   if (!humanApprovalRunId) {
-    throw new Error('Human approval workflow not found');
+    throw new Error('There is no reference review waiting for approval.');
   }
   return approveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePost({
     path: { workflow_run_id: humanApprovalRunId },

@@ -13,6 +13,7 @@ from datetime import date
 from langgraph.runtime import Runtime
 
 from lib.agents.formatting_utils import format_bibliography
+from lib.config.llm_models import web_search_tool
 from lib.skills import load_skill_prompt
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
@@ -103,7 +104,7 @@ async def live_reports(
         context=runtime.context,
         system_prompt=_SYSTEM_PROMPT,
         user_prompt=user_prompt,
-        tools=[{"type": "web_search"}],
+        tools=[web_search_tool(LiveReportsV2Agent.model)],
     )
     run = await agent.ainvoke({})
 

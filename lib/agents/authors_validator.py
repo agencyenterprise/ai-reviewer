@@ -11,7 +11,7 @@ from deepagents import create_deep_agent
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 
-from lib.config.llm_models import gpt_5_4_model
+from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
 from lib.workflows.about_this_ger.state import AgentCheckResult
@@ -51,7 +51,7 @@ class AuthorsValidatorAgent(LangChainAgent):
 
     name = "Authors Validator"
     description = "Validate author biographies against publication rules"
-    model = gpt_5_4_model
+    model = gpt_5_6_terra_model
     temperature = 0.0
     reasoning = {"effort": "medium", "summary": "auto"}
 

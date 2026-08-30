@@ -4,7 +4,7 @@ from typing import Dict, List, Literal, Optional, Type, overload
 from langgraph.graph import StateGraph
 
 from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
+from lib.workflows.models import BaseWorkflowConfig, WorkflowRunType
 from lib.workflows.workflow_types import WorkflowConfig, WorkflowState
 
 logger = logging.getLogger(__name__)
@@ -16,6 +16,32 @@ _workflow_manifest_registry: Dict[WorkflowRunType, WorkflowManifest] = {}
 def get_all_manifests() -> Dict[WorkflowRunType, WorkflowManifest]:
     """Get all registered workflow manifests."""
     return dict(_workflow_manifest_registry)
+
+
+def is_available_workflow_type(workflow_type: WorkflowRunType | str) -> bool:
+    """Whether a persisted workflow type still has a manifest behind it.
+
+    Rows outlive the workflows that wrote them: `workflow_runs.type` and
+    `issues.workflow_type` keep whatever slug was current when they were
+    written, and nothing rewrites them when a workflow is retired. Anything that
+    loads such a row has to decide whether the workflow still exists before
+    handing it to a client — without a manifest there is no state model to
+    hydrate it with, no display name to label it, and nothing to re-run.
+
+    Accepts the raw `str` these columns actually yield as well as the enum:
+    `WorkflowRunType` is a `(str, Enum)`, so both hash and compare alike as dict
+    keys. Retired types are exactly the ones that miss.
+    """
+    return workflow_type in _workflow_manifest_registry
+
+
+def available_workflow_type_values() -> List[str]:
+    """Slugs of every workflow type that still has a manifest.
+
+    The collection form of `is_available_workflow_type`, for callers that filter
+    in SQL rather than in Python.
+    """
+    return [workflow_type.value for workflow_type in _workflow_manifest_registry]
 
 
 def register_workflow_manifest(manifest: WorkflowManifest) -> None:
@@ -61,15 +87,7 @@ def register_all_workflow_manifests():
     from lib.workflows.document_structure.manifest import DocumentStructureManifest
     from lib.workflows.figures_tables_check.manifest import FiguresTablesCheckManifest
     from lib.workflows.about_this_ger.manifest import AboutThisGerManifest
-    from lib.workflows.advocacy_tone.manifest import AdvocacyToneManifest
     from lib.workflows.advocacy_tone_v2.manifest import AdvocacyToneV2Manifest
-    from lib.workflows.chunk_splitting.manifest import ChunkSplittingManifest
-    from lib.workflows.citation_detection.manifest import CitationDetectionManifest
-    from lib.workflows.citation_suggester.manifest import CitationSuggesterManifest
-    from lib.workflows.claim_extraction.manifest import ClaimExtractionManifest
-    from lib.workflows.claim_reference_validation.manifest import (
-        ClaimReferenceValidationManifest,
-    )
     from lib.workflows.claim_reference_validation_v2.manifest import (
         ClaimReferenceValidationV2Manifest,
     )
@@ -77,14 +95,11 @@ def register_all_workflow_manifests():
     from lib.workflows.document_summarization.manifest import (
         DocumentSummarizationManifest,
     )
-    from lib.workflows.footnote_extraction.manifest import FootnoteExtractionManifest
     from lib.workflows.human_approval.manifest import HumanApprovalManifest
     from lib.workflows.inference_validation_v2.manifest import (
         InferenceValidationV2Manifest,
     )
-    from lib.workflows.literature_review.manifest import LiteratureReviewManifest
     from lib.workflows.literature_review_v2.manifest import LiteratureReviewV2Manifest
-    from lib.workflows.live_reports.manifest import LiveReportsManifest
     from lib.workflows.live_reports_v2.manifest import LiveReportsV2Manifest
     from lib.workflows.methodological_alignment.manifest import (
         MethodologicalAlignmentManifest,
@@ -94,7 +109,6 @@ def register_all_workflow_manifests():
     from lib.workflows.reference_file_matching.manifest import (
         ReferenceFileMatchingManifest,
     )
-    from lib.workflows.reference_validation.manifest import ReferenceValidationManifest
     from lib.workflows.recommendation_check.manifest import (
         RecommendationCheckManifest,
     )
@@ -115,29 +129,19 @@ def register_all_workflow_manifests():
 
     manifests = [
         DocumentProcessingManifest(),
-        ChunkSplittingManifest(),
         DocumentSummarizationManifest(),
         ReferenceExtractionManifest(),
         ReferenceFileMatchingManifest(),
         HumanApprovalManifest(),
-        FootnoteExtractionManifest(),
-        ClaimExtractionManifest(),
-        CitationDetectionManifest(),
-        ClaimReferenceValidationManifest(),
         ClaimReferenceValidationV2Manifest(),
-        CitationSuggesterManifest(),
         AbbreviationScanV2Manifest(),
         InferenceValidationV2Manifest(),
-        LiteratureReviewManifest(),
         LiteratureReviewV2Manifest(),
-        LiveReportsManifest(),
         LiveReportsV2Manifest(),
         MethodologicalAlignmentManifest(),
         ReferenceDownloaderManifest(),
-        ReferenceValidationManifest(),
         ReferenceValidationV2Manifest(),
         ResultsExtractionManifest(),
-        AdvocacyToneManifest(),
         AdvocacyToneV2Manifest(),
         AboutThisGerManifest(),
         Reviewer2Manifest(),
@@ -164,11 +168,6 @@ def create_graph(type: WorkflowRunType) -> StateGraph:
 def get_config_type(type: WorkflowRunType) -> Type[BaseWorkflowConfig]:
     manifest = get_workflow_manifest(type)
     return manifest.get_config_type()
-
-
-def get_state_type(type: WorkflowRunType) -> Type[BaseWorkflowState]:
-    manifest = get_workflow_manifest(type)
-    return manifest.get_state_type()
 
 
 async def create_state(

@@ -50,9 +50,13 @@ class LLMModel(BaseModel):
 
 
 # OpenAI models
-gpt_5_mini_model = LLMModel(provider="openai", name="gpt-5.4-mini")
-gpt_5_4_model = LLMModel(provider="openai", name="gpt-5.4")
-gpt_5_5_model = LLMModel(provider="openai", name="gpt-5.5")
+#
+# Every agent runs on gpt-5.6-terra. It replaced the gpt-5.4-mini / gpt-5.4 /
+# gpt-5.5 tiers on 28 Aug 2026, after a comparison found it flat against all three
+# on 17 of 18 evals at roughly half the premium tier's cost. `figures_tables_check`
+# is the one eval it scores below the old stack on. The superseded numbers are kept
+# in `docs/eval-scores-gpt-5.4-5.5.md`.
+gpt_5_6_terra_model = LLMModel(provider="openai", name="gpt-5.6-terra")
 gpt_4_1_model = LLMModel(provider="openai", name="gpt-4.1")
 
 # Anthropic models
@@ -68,9 +72,26 @@ gemini_2_flash_model = LLMModel(provider="google_genai", name="gemini-2.5-flash-
 # Key: model.name, Value: model instance
 ALL_MODELS = {
     "gpt-4.1": gpt_4_1_model,
-    "gpt-5-mini": gpt_5_mini_model,
-    "gpt-5.4": gpt_5_4_model,
-    "gpt-5.5": gpt_5_5_model,
+    "gpt-5.6-terra": gpt_5_6_terra_model,
     "claude-sonnet-4-5-20250929": claude_3_5_sonnet_model,
     "gemini-2.5-flash-lite": gemini_2_flash_model,
 }
+
+
+# Server-side web search is declared differently per provider: OpenAI's Responses API
+# takes a bare {"type": "web_search"}, while Anthropic needs a dated tool type and a
+# name. Passing the OpenAI shape to a Claude model raises KeyError('function') inside
+# LangChain's tool conversion, so the declaration has to follow the model. Build it
+# through this helper rather than writing the dict at the call site.
+def web_search_tool(model: LLMModel) -> dict:
+    """The server-side web-search tool declaration this model understands."""
+
+    if model.provider != "anthropic":
+        return {"type": "web_search"}
+    # Deliberately the basic variant even on models that support the newer
+    # web_search_20260209. That one performs dynamic filtering by running code
+    # execution internally, and LangChain does not round-trip the resulting
+    # `code_execution` blocks: the next turn is rejected with "code_execution tool use
+    # ... found without a corresponding code_execution_tool_result block". The basic
+    # variant returns only web_search blocks, which LangChain handles.
+    return {"type": "web_search_20250305", "name": "web_search"}

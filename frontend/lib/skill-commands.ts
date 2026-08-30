@@ -17,7 +17,7 @@ const MANIFEST_DESCRIPTIONS: Record<string, string> = {
   'about-this-preface':
     'Does the preface meet publication requirements? Checks that required elements are present: publication context, objectives, audience, funding, author bios.', // about_this_ger
   'advocacy-tone':
-    'Does your document use neutral, objective language? Flags advocacy language, trigger words, and subjective tone using fast pattern matching (regex) followed by LLM verification.', // advocacy_tone
+    'Does your document use neutral, objective language? Flags advocacy language, trigger words, and subjective tone.', // advocacy_tone_v2
   'citation-support':
     'Do your citations actually back up what you claim they say? Cross-checks claims against the full text of your reference PDFs. Provide your reference documents before running.', // claim_reference_validation
   'document-contents':

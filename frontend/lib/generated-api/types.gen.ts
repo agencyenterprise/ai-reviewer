@@ -256,59 +256,6 @@ export type AdminFeedbackItem = {
 };
 
 /**
- * AdvocacyToneState
- *
- * State for the advocacy and tone workflow.
- */
-export type AdvocacyToneState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'advocacy_tone';
-  config: AdvocacyToneWorkflowConfig;
-  /**
-   * Results
-   */
-  results?: Array<ChunkAdvocacyToneResult>;
-};
-
-/**
- * AdvocacyToneWorkflowConfig
- *
- * Configuration for the advocacy and tone workflow.
- */
-export type AdvocacyToneWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'advocacy_tone';
-};
-
-/**
  * AgentCheckResult
  *
  * Persisted result for a validation pass: issues plus a markdown report.
@@ -457,32 +404,6 @@ export type BaseMessage = {
 };
 
 /**
- * BibliographyFieldValidation
- */
-export type BibliographyFieldValidation = {
-  /**
-   * Category of the reference. Possible values: ['author', 'title', 'publisher', 'year', 'identifier']
-   */
-  category: FieldCategory;
-  /**
-   * Current Value
-   *
-   * Current value of the reference.
-   */
-  current_value: string;
-  /**
-   * Suggested Value
-   *
-   * Suggested value of the reference.
-   */
-  suggested_value: string;
-  /**
-   * Problem type of the reference. Must be CORRECT if the only differences are capitalization or minor punctuation. Possible values: ['correct', 'missing', 'incorrect', 'other']
-   */
-  problem_type: FieldProblemType;
-};
-
-/**
  * BibliographyFieldValidationV2
  */
 export type BibliographyFieldValidationV2 = {
@@ -506,52 +427,6 @@ export type BibliographyFieldValidationV2 = {
    * Problem type of the reference. Must be CORRECT if the only differences are capitalization or minor punctuation. Possible values: ['correct', 'missing', 'incorrect', 'other']
    */
   problem_type: FieldProblemTypeV2;
-};
-
-/**
- * BibliographyItemValidation
- */
-export type BibliographyItemValidation = {
-  /**
-   * Original Reference
-   *
-   * Original bibliographic item text.
-   */
-  original_reference: string;
-  /**
-   * Overall validation outcome. Possible values: ['valid', 'found_with_inconsistencies', 'not_found']
-   */
-  final_result: ReferenceValidationFinalResult;
-  /**
-   * Bibliography Field Validations
-   *
-   * List of reference field validations.
-   */
-  bibliography_field_validations: Array<BibliographyFieldValidation>;
-  /**
-   * Suggested Action
-   *
-   * Suggested action to take if the reference is not valid. A summary of the suggested changes to make the reference valid. If the reference is valid, return 'No changes needed'.
-   */
-  suggested_action: string;
-  /**
-   * Url
-   *
-   * Found URL for the reference.
-   */
-  url: string;
-  /**
-   * Reasoning
-   *
-   * Step-by-step reasoning describing your approach to validate the reference.
-   */
-  reasoning?: string;
-  /**
-   * Updated Reference
-   *
-   * Updated reference with the suggested changes made to make the reference valid, matching the format of the original reference. If the reference is already valid, return null.
-   */
-  updated_reference?: string | null;
 };
 
 /**
@@ -663,202 +538,6 @@ export type ChatThreadResponse = {
 };
 
 /**
- * ChunkAdvocacyToneResult
- *
- * Advocacy and tone analysis result for a single chunk.
- */
-export type ChunkAdvocacyToneResult = {
-  /**
-   * Chunk Index
-   *
-   * Index of the analyzed chunk
-   */
-  chunk_index: number;
-  /**
-   * Flags from procedural detection
-   */
-  procedural_flags?: ProceduralFlags;
-  /**
-   * LLM verification for trigger words
-   */
-  llm_trigger_words?: LlmVerificationResult | null;
-  /**
-   * LLM verification for advocacy language
-   */
-  llm_advocacy_language?: LlmVerificationResult | null;
-  /**
-   * LLM verification for subjective tone
-   */
-  llm_subjective_tone?: LlmVerificationResult | null;
-};
-
-/**
- * ChunkSplittingState
- *
- * State for chunk splitting workflow.
- */
-export type ChunkSplittingState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'chunk_splitting';
-  /**
-   * File Id
-   *
-   * ID of the main document to split into chunks
-   */
-  file_id: string;
-  config: ChunkSplittingWorkflowConfig;
-  /**
-   * Chunks
-   *
-   * Document chunks from main document
-   */
-  chunks?: Array<DocumentChunk>;
-};
-
-/**
- * ChunkSplittingWorkflowConfig
- *
- * Configuration model for chunk splitting workflow.
- */
-export type ChunkSplittingWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'chunk_splitting';
-};
-
-/**
- * Citation
- */
-export type Citation = {
-  /**
-   * Text
-   *
-   * The text of the citation or footnote mark, e.g., [1] or (Doe, et al., 2025), a url, etc. The bibliography/footnote itself is not a citation.
-   */
-  text: string;
-  /**
-   * The type of the citation. Possible values: ['bibliography', 'url', 'footnote', 'other']
-   */
-  type: CitationType;
-  /**
-   * Format
-   *
-   * The format of the citation or footnote mark, e.g., [number] or (Name, et al., Year), url, etc.
-   */
-  format: string;
-  /**
-   * Needs Bibliography
-   *
-   * A boolean value indicating whether the citation refers to a bibliography entry or footnote in the document so it expected to have an associated bibliography entry or footnote
-   */
-  needs_bibliography: boolean;
-  /**
-   * Associated Bibliography
-   *
-   * If the document includes a bibliography entry related to this citation, this will be an exact copy of that bibliography entry (do not include the entry number if there is one, just the full context of the bibliography entry), otherwise it will be an empty string.
-   */
-  associated_bibliography: string;
-  /**
-   * Index Of Associated Bibliography
-   *
-   * The index of the bibliography entry that this citation refers to, if any. Indices start at 1. If the citation does not refer to a bibliography entry, this should be -1.
-   */
-  index_of_associated_bibliography: number;
-  /**
-   * Rationale
-   *
-   * A very brief rationale for why you think this text is a citation
-   */
-  rationale: string;
-};
-
-/**
- * CitationDetectionConfig
- *
- * Configuration model for citation detection workflow
- */
-export type CitationDetectionConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'citation_detection';
-};
-
-/**
- * CitationDetectionState
- *
- * State for citation detection workflow.
- */
-export type CitationDetectionState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'citation_detection';
-  /**
-   * File Id
-   *
-   * File ID for backward compatibility
-   */
-  file_id?: string;
-  config: CitationDetectionConfig;
-  /**
-   * Citations
-   */
-  citations?: Array<CitationResponse>;
-};
-
-/**
  * CitationIssueItem
  *
  * Persisted workflow-state record for one validated citation.
@@ -904,224 +583,6 @@ export type CitationIssueItem = {
 };
 
 /**
- * CitationResponse
- */
-export type CitationResponse = {
-  /**
-   * Citations
-   *
-   * A list of citations found in the chunk of text
-   */
-  citations: Array<Citation>;
-  /**
-   * Rationale
-   *
-   * Very brief rationale for why you think the chunk of text includes these citations, if any
-   */
-  rationale: string;
-  /**
-   * Chunk Index
-   *
-   * The index of the chunk of text that contains the citations
-   */
-  chunk_index: number;
-};
-
-/**
- * CitationSuggesterState
- *
- * State for the citation suggester workflow.
- */
-export type CitationSuggesterState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'citation_suggester';
-  config: CitationSuggesterWorkflowConfig;
-  /**
-   * File Id
-   *
-   * ID of the main document
-   */
-  file_id: string;
-  literature_review?: LiteratureReviewResponse | null;
-  /**
-   * Citation Suggestions
-   *
-   * Citation suggestions for all chunks and claims
-   */
-  citation_suggestions?: Array<CitationSuggestionResultWithClaimIndex>;
-};
-
-/**
- * CitationSuggesterWorkflowConfig
- *
- * Configuration model for the citation suggester workflow.
- */
-export type CitationSuggesterWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'citation_suggester';
-};
-
-/**
- * CitationSuggestionResultWithClaimIndex
- */
-export type CitationSuggestionResultWithClaimIndex = {
-  /**
-   * Relevant References
-   *
-   * Ordered list of the most relevant references the author should consider when revising the paragraph
-   */
-  relevant_references: Array<Reference>;
-  /**
-   * Rationale
-   *
-   * High-level reasoning summarizing how the recommendations improve the paragraph's literature coverage
-   */
-  rationale: string;
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Claim Index
-   */
-  claim_index: number;
-};
-
-/**
- * CitationType
- */
-export const CitationType = {
-  Bibliography: 'bibliography',
-  Url: 'url',
-  Footnote: 'footnote',
-  Other: 'other',
-} as const;
-
-/**
- * CitationType
- */
-export type CitationType = (typeof CitationType)[keyof typeof CitationType];
-
-/**
- * Claim
- *
- * A single factual claim with verification properties.
- */
-export type Claim = {
-  /**
-   * Text
-   *
-   * The relevant part of the text within the chunk of text that is being decomposed into claims.
-   */
-  text: string;
-  /**
-   * Claim
-   *
-   * The claim made in the text
-   */
-  claim: string;
-  /**
-   * Rationale
-   *
-   * The rationale for why you think the chunk of text implies this claim
-   */
-  rationale: string;
-  /**
-   * Central
-   *
-   * Whether the claim is central to the argument of the document
-   */
-  central: boolean;
-  /**
-   * Centrality Rationale
-   *
-   * The rationale for why you think the claim is central or is not central to the argument of the document
-   */
-  centrality_rationale?: string | null;
-};
-
-/**
- * ClaimCategorizationResponseWithClaimIndex
- */
-export type ClaimCategorizationResponseWithClaimIndex = {
-  /**
-   * Claim
-   *
-   * Exact claim text as analyzed.
-   */
-  claim: string;
-  /**
-   * Assigned category. Possible values: ['established_reported_knowledge', 'methodology_procedural', 'empirical_analytical_results', 'inferential_interpretive_claims', 'meta_structural_evaluative', 'other']
-   */
-  claim_category: ClaimCategory;
-  /**
-   * Rationale
-   *
-   * Reason for the category assignment and for the needs_external_verification decision. Maximum two sentences.
-   */
-  rationale: string;
-  /**
-   * Needs External Verification
-   *
-   * True ONLY if the claim asserts a specific factual statement from external sources that is NOT common knowledge and CAN be verified by external sources. False for: common knowledge, authors' own work/results, inferences, interpretations, structural statements, or claims that cannot be externally verified. IMPORTANT: When uncertain, default to FALSE.
-   */
-  needs_external_verification: boolean;
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Claim Index
-   */
-  claim_index: number;
-};
-
-/**
- * ClaimCategory
- */
-export const ClaimCategory = {
-  EstablishedReportedKnowledge: 'established_reported_knowledge',
-  MethodologyProcedural: 'methodology_procedural',
-  EmpiricalAnalyticalResults: 'empirical_analytical_results',
-  InferentialInterpretiveClaims: 'inferential_interpretive_claims',
-  MetaStructuralEvaluative: 'meta_structural_evaluative',
-  Other: 'other',
-} as const;
-
-/**
- * ClaimCategory
- */
-export type ClaimCategory = (typeof ClaimCategory)[keyof typeof ClaimCategory];
-
-/**
  * ClaimEvidenceSource
  */
 export type ClaimEvidenceSource = {
@@ -1143,174 +604,6 @@ export type ClaimEvidenceSource = {
    * The ID of the reference file that was checked as provided in the citation-to-file mapping.
    */
   file_id: string;
-};
-
-/**
- * ClaimExtractionState
- *
- * State for claim extraction workflow.
- */
-export type ClaimExtractionState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'claim_extraction';
-  /**
-   * File Id
-   *
-   * File ID for backward compatibility
-   */
-  file_id?: string;
-  config: ClaimExtractionWorkflowConfig;
-  /**
-   * Claims
-   *
-   * List of extracted claims with chunk indices
-   */
-  claims?: Array<ClaimResponseWithChunkIndex>;
-  /**
-   * Claim Categories
-   *
-   * List of claim categorizations with claim indices
-   */
-  claim_categories?: Array<ClaimCategorizationResponseWithClaimIndex>;
-};
-
-/**
- * ClaimExtractionWorkflowConfig
- *
- * Configuration model for claim extraction workflow
- */
-export type ClaimExtractionWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'claim_extraction';
-};
-
-/**
- * ClaimReferenceFactors
- *
- * A newer source that provides evidence for or against a claim
- */
-export type ClaimReferenceFactors = {
-  /**
-   * Title
-   *
-   * Title of the source
-   */
-  title: string;
-  /**
-   * Authors
-   *
-   * Authors of the source
-   */
-  authors: string;
-  /**
-   * Publication Year
-   *
-   * Year of publication
-   */
-  publication_year: number;
-  /**
-   * Bibliography Info
-   *
-   * Bibliography entry formatted in the article's style
-   */
-  bibliography_info: string;
-  /**
-   * Link
-   *
-   * URL or DOI link to the source
-   */
-  link: string;
-  /**
-   * Reference Excerpt
-   *
-   * Relevant excerpt from the source
-   */
-  reference_excerpt: string;
-  /**
-   * Publication type of the source. Possible values: ['peer_reviewed_publication', 'preprint', 'book', 'government_ngo_report', 'data_software', 'news_media', 'reference', 'webpage']
-   */
-  reference_type: ReferenceType;
-  /**
-   * Type of source. Possible values: ['supporting', 'conflicting', 'mixed', 'contextual']
-   */
-  reference_direction: ReferenceDirection;
-  /**
-   * Source quality level. Possible values: ['high', 'medium', 'low']
-   */
-  quality: QualityLevel;
-  /**
-   * Political bias of the evidence. Possible values: ['conservative', 'liberal', 'other']
-   */
-  political_bias: PoliticalBias;
-  /**
-   * Rationale
-   *
-   * Why this source is relevant to the claim and the claim's evidence alignment and why does it have this quality level. In a maximum of THREE sentences.
-   */
-  rationale: string;
-  /**
-   * Methodology
-   *
-   * Notes about study methodology or data quality
-   */
-  methodology: string;
-};
-
-/**
- * ClaimReferenceValidationState
- *
- * State for the claim reference validation workflow.
- */
-export type ClaimReferenceValidationState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'claim_reference_validation';
-  config: ClaimReferenceValidationWorkflowConfig;
-  /**
-   * Paragraph Verifications
-   */
-  paragraph_verifications?: Array<ParagraphVerificationItem>;
-  /**
-   * Substantiations
-   *
-   * Claim substantiation results indexed by chunk_index and claim_index
-   */
-  substantiations?: Array<ClaimSubstantiationResultWithClaimIndex>;
 };
 
 /**
@@ -1365,128 +658,6 @@ export type ClaimReferenceValidationV2State = {
    */
   citation_issues?: Array<CitationIssueItem>;
 };
-
-/**
- * ClaimReferenceValidationWorkflowConfig
- *
- * Configuration model for claim reference validation workflow
- */
-export type ClaimReferenceValidationWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'claim_reference_validation';
-};
-
-/**
- * ClaimResponseWithChunkIndex
- */
-export type ClaimResponseWithChunkIndex = {
-  /**
-   * Claims
-   *
-   * A list of claims made in the chunk of text
-   */
-  claims: Array<Claim>;
-  /**
-   * Rationale
-   *
-   * Overall rationale for why you think the chunk of text implies these claims
-   */
-  rationale: string;
-  /**
-   * Chunk Index
-   *
-   * The index of the chunk of text that contains the claim
-   */
-  chunk_index: number;
-};
-
-/**
- * ClaimSubstantiationResultWithClaimIndex
- */
-export type ClaimSubstantiationResultWithClaimIndex = {
-  /**
-   * Key Sentence
-   *
-   * The key sentence that contains the claim to be substantiated. Should be a direct quote from the text.
-   */
-  key_sentence: string;
-  /**
-   * Claim Number
-   *
-   * The number of the claim from the provided numbered list
-   */
-  claim_number: number;
-  /**
-   * The degree of evidence that the supporting document(s) provides to support the claim. Possible values: ['unverifiable', 'supported', 'partially_supported', 'unsupported']
-   */
-  evidence_alignment: EvidenceAlignmentLevel;
-  /**
-   * Rationale
-   *
-   * A brief rationale for why you think the claim is substantiated or not substantiated by the cited supporting document(s)
-   */
-  rationale: string;
-  /**
-   * Feedback
-   *
-   * A brief suggestion on how the issue can be resolved, e.g., by adding more supporting documents or by rephrasing the original chunk, etc. Return 'No changes needed' if there are no significant issues with the substantiation of the claim.
-   */
-  feedback: string;
-  /**
-   * Evidence Sources
-   *
-   * The sources/documents that were checked in the validation process. If there are multiple sources, include all of them. If no sources were checked, return an empty list.
-   */
-  evidence_sources: Array<ClaimEvidenceSource>;
-  /**
-   * Citation To File Mapping
-   *
-   * A string representation of the citation-to-file mapping that was used to check the evidence. Do not include file IDs. Null if no citation-to-file mapping was provided.
-   */
-  citation_to_file_mapping?: string | null;
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Claim Index
-   */
-  claim_index: number;
-};
-
-/**
- * ConfidenceInRecommendation
- */
-export const ConfidenceInRecommendation = {
-  High: 'high',
-  Medium: 'medium',
-  Low: 'low',
-} as const;
-
-/**
- * ConfidenceInRecommendation
- */
-export type ConfidenceInRecommendation = (typeof ConfidenceInRecommendation)[keyof typeof ConfidenceInRecommendation];
 
 /**
  * CostBreakdown
@@ -1598,44 +769,6 @@ export type DeepAgentResult = {
 };
 
 /**
- * DocumentChunk
- *
- * Raw document chunk without analysis results.
- */
-export type DocumentChunk = {
-  /**
-   * Content
-   */
-  content: string;
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Paragraph Index
-   */
-  paragraph_index: number;
-  /**
-   * Headings
-   *
-   * The headings associated with the chunk, in order of hierarchy
-   */
-  headings?: Array<string> | null;
-  /**
-   * Start Line
-   *
-   * 1-indexed starting line in markdown
-   */
-  start_line: number;
-  /**
-   * End Line
-   *
-   * 1-indexed ending line in markdown
-   */
-  end_line: number;
-};
-
-/**
  * DocumentProcessingState
  *
  * State for document processing workflow.
@@ -1691,88 +824,6 @@ export type DocumentProcessingWorkflowConfig = {
    * Type
    */
   type?: 'document_processing';
-};
-
-/**
- * DocumentReferenceFactors
- *
- * A reference that should be cited or discussed in the article
- */
-export type DocumentReferenceFactors = {
-  /**
-   * Title
-   *
-   * The title of the reference
-   */
-  title: string;
-  /**
-   * Authors
-   *
-   * Authors of the source
-   */
-  authors: string;
-  /**
-   * Publication Year
-   *
-   * Year of publication
-   */
-  publication_year: number;
-  /**
-   * Bibliography Info
-   *
-   * Full bibliography citation text
-   */
-  bibliography_info: string;
-  /**
-   * Link
-   *
-   * URL or DOI link to the reference
-   */
-  link?: string | null;
-  /**
-   * Reference Excerpt
-   *
-   * Relevant excerpt from the reference that is why we should cite or discuss it
-   */
-  reference_excerpt: string;
-  /**
-   * Publication type. Possible values: ['peer_reviewed_publication', 'preprint', 'book', 'government_ngo_report', 'data_software', 'news_media', 'reference', 'webpage']
-   */
-  reference_type: ReferenceType;
-  /**
-   * Quality of the reference. Possible values: ['high', 'medium', 'low']
-   */
-  quality: QualityLevel;
-  /**
-   * Type of source. Possible values: ['supporting', 'conflicting', 'mixed', 'contextual']
-   */
-  reference_direction: ReferenceDirection;
-  /**
-   * Political bias of the evidence. Possible values: ['conservative', 'liberal', 'other']
-   */
-  political_bias: PoliticalBias;
-  /**
-   * Rationale
-   *
-   * Why this reference should be cited
-   */
-  rationale: string;
-  /**
-   * Main Document Excerpt
-   *
-   * Relevant excerpt from the main document that relates to this reference
-   */
-  main_document_excerpt: string;
-  /**
-   * What action to take. Possible values: ['add_new_citation', 'cite_existing_reference_in_new_place', 'replace_existing_reference', 'discuss_reference', 'no_action', 'other']
-   */
-  recommended_action: LitRecommendedAction;
-  /**
-   * Explanation For Recommended Action
-   *
-   * How to implement the recommended action
-   */
-  explanation_for_recommended_action: string;
 };
 
 /**
@@ -1913,127 +964,6 @@ export const EvidenceAlignmentLevel = {
  * EvidenceAlignmentLevel
  */
 export type EvidenceAlignmentLevel = (typeof EvidenceAlignmentLevel)[keyof typeof EvidenceAlignmentLevel];
-
-/**
- * EvidenceWeighterRecommendedAction
- */
-export const EvidenceWeighterRecommendedAction = {
-  UpdateClaim: 'update_claim',
-  AddCitation: 'add_citation',
-  NoUpdateNeeded: 'no_update_needed',
-} as const;
-
-/**
- * EvidenceWeighterRecommendedAction
- */
-export type EvidenceWeighterRecommendedAction =
-  (typeof EvidenceWeighterRecommendedAction)[keyof typeof EvidenceWeighterRecommendedAction];
-
-/**
- * EvidenceWeighterResponseWithClaimIndex
- */
-export type EvidenceWeighterResponseWithClaimIndex = {
-  /**
-   * Newer References
-   *
-   * Newer references found from the literature review report
-   */
-  newer_references: Array<ClaimReferenceFactors>;
-  /**
-   * Evidence alignment of the newer references. Possible values: ['unverifiable', 'supported', 'partially_supported', 'unsupported']
-   */
-  newer_references_alignment: ReferenceAlignmentLevel;
-  /**
-   * Recommended action for the claim. Possible values: ['update_claim', 'add_citation', 'no_update_needed']
-   */
-  claim_update_action: EvidenceWeighterRecommendedAction;
-  /**
-   * Rationale
-   *
-   * Explanation of the rationale for the claim update action in a maximum of TWO sentences.
-   */
-  rationale: string;
-  /**
-   * Confidence level in the claim update. Possible values: ['high', 'medium', 'low']
-   */
-  confidence_level: QualityLevel;
-  /**
-   * Rewritten Claim
-   *
-   * The rewritten claim that is more clear and accurate according to the recommended action and taking the newer sources into account.
-   */
-  rewritten_claim: string;
-  /**
-   * Chunk Index
-   */
-  chunk_index: number;
-  /**
-   * Claim Index
-   */
-  claim_index: number;
-};
-
-/**
- * ExtractedInferenceResult
- *
- * An inference result with document-derived chunk indices.
- */
-export type ExtractedInferenceResult = {
-  /**
-   * Key Sentence
-   *
-   * The key sentence that contains the incorrect inference, conclusion, or argument. Should be a direct quote from the text.
-   */
-  key_sentence: string;
-  /**
-   * The severity level of the inference analysis. HIGH if the inference problem leads the conclusion to be completely invalid. MEDIUM if the inference problem weakens the justification for the conclusion. LOW if the inference problem is a minor/tangential issue that does not significantly weaken the justification for the conclusion. NONE if the inference is valid and correct.
-   */
-  severity: SeverityEnum;
-  /**
-   * Inference Validity
-   *
-   * Whether the inference is valid or not.
-   */
-  inference_validity: boolean;
-  /**
-   * Short Form Argument Analysis
-   *
-   * A concise analysis what is wrong with the inference. In only TWO sentences.
-   */
-  short_form_argument_analysis: string;
-  /**
-   * Long Form Argument Analysis
-   *
-   * A detailed analysis what is wrong with the inference.
-   */
-  long_form_argument_analysis: string;
-  /**
-   * Suggested Action
-   *
-   * A suggested action to take to correct the wrong inference. In only TWO sentences.
-   */
-  suggested_action: string;
-  /**
-   * Chunk Indices
-   *
-   * Chunk indices that overlap with the inference (by line range).
-   */
-  chunk_indices?: Array<number>;
-};
-
-/**
- * ExtractedInferenceResultResponse
- *
- * Response containing extracted inference results with chunk indices.
- */
-export type ExtractedInferenceResultResponse = {
-  /**
-   * Results
-   *
-   * Extracted inference results with chunk indices and severity.
-   */
-  results: Array<ExtractedInferenceResult>;
-};
 
 /**
  * ExtractedReference
@@ -2208,22 +1138,6 @@ export const FeedbackVisibility = {
 export type FeedbackVisibility = (typeof FeedbackVisibility)[keyof typeof FeedbackVisibility];
 
 /**
- * FieldCategory
- */
-export const FieldCategory = {
-  Author: 'author',
-  Title: 'title',
-  Publisher: 'publisher',
-  Year: 'year',
-  Identifier: 'identifier',
-} as const;
-
-/**
- * FieldCategory
- */
-export type FieldCategory = (typeof FieldCategory)[keyof typeof FieldCategory];
-
-/**
  * FieldCategoryV2
  */
 export const FieldCategoryV2 = {
@@ -2238,21 +1152,6 @@ export const FieldCategoryV2 = {
  * FieldCategoryV2
  */
 export type FieldCategoryV2 = (typeof FieldCategoryV2)[keyof typeof FieldCategoryV2];
-
-/**
- * FieldProblemType
- */
-export const FieldProblemType = {
-  Correct: 'correct',
-  Missing: 'missing',
-  Incorrect: 'incorrect',
-  Other: 'other',
-} as const;
-
-/**
- * FieldProblemType
- */
-export type FieldProblemType = (typeof FieldProblemType)[keyof typeof FieldProblemType];
 
 /**
  * FieldProblemTypeV2
@@ -2534,119 +1433,6 @@ export type FileSummary = {
 };
 
 /**
- * FootnoteExtractionConfig
- *
- * Configuration for footnote extraction workflow.
- */
-export type FootnoteExtractionConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'footnote_extraction';
-};
-
-/**
- * FootnoteExtractionState
- *
- * State for footnote extraction workflow.
- */
-export type FootnoteExtractionState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'footnote_extraction';
-  config: FootnoteExtractionConfig;
-  /**
-   * File Id
-   *
-   * The ID of the main document
-   */
-  file_id: string;
-  /**
-   * Detected Sections
-   *
-   * Detected footnote sections
-   */
-  detected_sections?: Array<FootnoteSection>;
-  /**
-   * Footnotes
-   *
-   * Extracted footnote items
-   */
-  footnotes?: Array<FootnoteItem>;
-};
-
-/**
- * FootnoteItem
- *
- * Represents a footnote extracted from a document.
- */
-export type FootnoteItem = {
-  /**
-   * Marker
-   *
-   * The footnote number/marker (e.g., '160', '1', '107')
-   */
-  marker: string;
-  /**
-   * Text
-   *
-   * The full text content of the footnote
-   */
-  text: string;
-  /**
-   * Reference Code
-   *
-   * The reference code/anchor (e.g., '#footnote-ref-161'). Stored as metadata only, no document linking.
-   */
-  reference_code?: string | null;
-};
-
-/**
- * FootnoteSection
- *
- * A detected footnote section in the document.
- */
-export type FootnoteSection = {
-  /**
-   * Start Offset
-   *
-   * Character offset where section starts
-   */
-  start_offset: number;
-  /**
-   * End Offset
-   *
-   * Character offset where section ends
-   */
-  end_offset: number;
-};
-
-/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -2709,124 +1495,6 @@ export type HumanApprovalState = {
    * ISO timestamp when approved
    */
   approved_at?: string | null;
-};
-
-/**
- * InferenceAnalysis
- *
- * A single invalid-inference finding from one detection pass.
- */
-export type InferenceAnalysis = {
-  /**
-   * Key Sentence
-   *
-   * The key sentence that contains the incorrect inference, conclusion, or argument. Should be a direct quote from the text.
-   */
-  key_sentence: string;
-  /**
-   * Inference Validity
-   *
-   * Whether the inference is valid or not.
-   */
-  inference_validity: boolean;
-  /**
-   * Short Form Argument Analysis
-   *
-   * A concise analysis what is wrong with the inference. In only TWO sentences.
-   */
-  short_form_argument_analysis: string;
-  /**
-   * Long Form Argument Analysis
-   *
-   * A detailed analysis what is wrong with the inference.
-   */
-  long_form_argument_analysis: string;
-  /**
-   * Suggested Action
-   *
-   * A suggested action to take to correct the wrong inference. In only TWO sentences.
-   */
-  suggested_action: string;
-};
-
-/**
- * InferenceResultResponse
- *
- * Response containing the result of a single inference check pass.
- */
-export type InferenceResultResponse = {
-  /**
-   * Results
-   *
-   * The result of the inference check
-   */
-  results: Array<InferenceAnalysis>;
-};
-
-/**
- * InferenceValidationV2State
- *
- * State for the inference validation v2 workflow.
- */
-export type InferenceValidationV2State = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'inference_validation_v2';
-  /**
-   * File Id
-   *
-   * The ID of the main source document
-   */
-  file_id: string;
-  /**
-   * Validator Results
-   *
-   * Results from parallel inference validator runs keyed by run index (1, 2, 3, ...)
-   */
-  validator_results?: {
-    [key: string]: InferenceResultResponse;
-  };
-  /**
-   * Extracted inference analysis result with chunk indices and severity
-   */
-  inference_results?: ExtractedInferenceResultResponse | null;
-};
-
-/**
- * InferenceValidationV2WorkflowConfig
- *
- * Configuration model for the inference validation v2 workflow.
- */
-export type InferenceValidationV2WorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'inference_validation_v2';
 };
 
 /**
@@ -3096,32 +1764,6 @@ export const IssueStatus = { Active: 'active', Archived: 'archived' } as const;
 export type IssueStatus = (typeof IssueStatus)[keyof typeof IssueStatus];
 
 /**
- * LLMVerificationResult
- *
- * Result from LLM verification of a procedural flag.
- */
-export type LlmVerificationResult = {
-  /**
-   * Confirmed
-   *
-   * Whether the LLM confirmed the issue
-   */
-  confirmed: boolean;
-  /**
-   * Explanation
-   *
-   * LLM explanation of the finding
-   */
-  explanation: string;
-  /**
-   * Word Positions
-   *
-   * 0-indexed word positions that caused the issue
-   */
-  word_positions?: Array<number>;
-};
-
-/**
  * LinkReferenceFileRequest
  *
  * Request body for linking an already-uploaded file to a reference.
@@ -3149,162 +1791,6 @@ export type LinkReferenceFileResponse = {
    * File Id
    */
   file_id: string;
-};
-
-/**
- * LitRecommendedAction
- */
-export const LitRecommendedAction = {
-  AddNewCitation: 'add_new_citation',
-  CiteExistingReferenceInNewPlace: 'cite_existing_reference_in_new_place',
-  ReplaceExistingReference: 'replace_existing_reference',
-  DiscussReference: 'discuss_reference',
-  NoAction: 'no_action',
-  Other: 'other',
-} as const;
-
-/**
- * LitRecommendedAction
- */
-export type LitRecommendedAction = (typeof LitRecommendedAction)[keyof typeof LitRecommendedAction];
-
-/**
- * LiteratureReviewResponse
- */
-export type LiteratureReviewResponse = {
-  /**
-   * Relevant References
-   *
-   * List of relevant references to cite
-   */
-  relevant_references?: Array<DocumentReferenceFactors>;
-  /**
-   * Rationale
-   *
-   * Overall rationale for the literature review recommendations
-   */
-  rationale: string;
-};
-
-/**
- * LiteratureReviewState
- *
- * State for the literature review workflow.
- */
-export type LiteratureReviewState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'literature_review';
-  config: LiteratureReviewWorkflowConfig;
-  /**
-   * File Id
-   *
-   * ID of the main document
-   */
-  file_id: string;
-  literature_review?: LiteratureReviewResponse | null;
-};
-
-/**
- * LiteratureReviewWorkflowConfig
- *
- * Configuration model for the literature review workflow.
- */
-export type LiteratureReviewWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'literature_review';
-};
-
-/**
- * LiveReportsState
- *
- * State for the live reports workflow.
- */
-export type LiveReportsState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'live_reports';
-  config: LiveReportsWorkflowConfig;
-  /**
-   * File Id
-   *
-   * File ID for backward compatibility
-   */
-  file_id?: string;
-  /**
-   * Live Reports Analysis
-   *
-   * Live reports analysis results aggregated across chunks
-   */
-  live_reports_analysis?: Array<EvidenceWeighterResponseWithClaimIndex>;
-  /**
-   * Addendum report output for live reports
-   */
-  addendum_report?: ReportOutput | null;
-};
-
-/**
- * LiveReportsWorkflowConfig
- *
- * Configuration for the live reports workflow.
- */
-export type LiveReportsWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'live_reports';
 };
 
 /**
@@ -3478,76 +1964,6 @@ export type ModelCostBreakdown = {
 };
 
 /**
- * ParagraphVerificationItem
- *
- * Item for tracking individual paragraph verification with status.
- */
-export type ParagraphVerificationItem = {
-  /**
-   * Paragraph Index
-   *
-   * The paragraph index being verified.
-   */
-  paragraph_index: number;
-  /**
-   * Current status of this paragraph verification.
-   */
-  status?: ParagraphVerificationStatus;
-  /**
-   * Num Claims
-   *
-   * Number of claims being verified in this paragraph.
-   */
-  num_claims?: number;
-  /**
-   * Substantiations
-   *
-   * Verification results for claims in this paragraph.
-   */
-  substantiations?: Array<ClaimSubstantiationResultWithClaimIndex>;
-  /**
-   * Error
-   *
-   * Error message, present on failure.
-   */
-  error?: string | null;
-};
-
-/**
- * ParagraphVerificationStatus
- *
- * Status of a paragraph verification operation.
- */
-export const ParagraphVerificationStatus = {
-  Pending: 'pending',
-  Completed: 'completed',
-  Error: 'error',
-  Cancelled: 'cancelled',
-} as const;
-
-/**
- * ParagraphVerificationStatus
- *
- * Status of a paragraph verification operation.
- */
-export type ParagraphVerificationStatus =
-  (typeof ParagraphVerificationStatus)[keyof typeof ParagraphVerificationStatus];
-
-/**
- * PoliticalBias
- */
-export const PoliticalBias = {
-  Conservative: 'conservative',
-  Liberal: 'liberal',
-  Other: 'other',
-} as const;
-
-/**
- * PoliticalBias
- */
-export type PoliticalBias = (typeof PoliticalBias)[keyof typeof PoliticalBias];
-
-/**
  * PreflightRequest
  *
  * Request context for preflight validation.
@@ -3577,26 +1993,6 @@ export type PreflightResult = {
    * Issues
    */
   issues?: Array<ValidationIssue>;
-};
-
-/**
- * ProceduralFlags
- *
- * Flags from procedural (non-LLM) detection.
- */
-export type ProceduralFlags = {
-  /**
-   * Trigger Words
-   */
-  trigger_words?: boolean;
-  /**
-   * Advocacy Language
-   */
-  advocacy_language?: boolean;
-  /**
-   * Subjective Tone
-   */
-  subjective_tone?: boolean;
 };
 
 /**
@@ -3733,33 +2129,26 @@ export type ProjectListItem = {
 };
 
 /**
- * PublicationQuality
+ * RawWorkflowStateResponse
+ *
+ * A run's persisted state exactly as stored.
  */
-export const PublicationQuality = {
-  HighImpactPublication: 'high_impact_publication',
-  MediumImpactPublication: 'medium_impact_publication',
-  LowImpactPublication: 'low_impact_publication',
-  NotAPublication: 'not_a_publication',
-} as const;
-
-/**
- * PublicationQuality
- */
-export type PublicationQuality = (typeof PublicationQuality)[keyof typeof PublicationQuality];
-
-/**
- * QualityLevel
- */
-export const QualityLevel = {
-  High: 'high',
-  Medium: 'medium',
-  Low: 'low',
-} as const;
-
-/**
- * QualityLevel
- */
-export type QualityLevel = (typeof QualityLevel)[keyof typeof QualityLevel];
+export type RawWorkflowStateResponse = {
+  /**
+   * Workflow Run Id
+   */
+  workflow_run_id: string;
+  /**
+   * Type
+   */
+  type: string;
+  /**
+   * State Json
+   */
+  state_json: {
+    [key: string]: unknown;
+  } | null;
+};
 
 /**
  * RecentWorkflowSelectionResponse
@@ -3772,129 +2161,6 @@ export type RecentWorkflowSelectionResponse = {
    */
   workflow_types: Array<WorkflowRunType>;
 };
-
-/**
- * RecommendedAction
- */
-export const RecommendedAction = {
-  AddNewCitation: 'add_new_citation',
-  CiteExistingReferenceInNewPlace: 'cite_existing_reference_in_new_place',
-  ReplaceExistingReference: 'replace_existing_reference',
-  DiscussReference: 'discuss_reference',
-  NoAction: 'no_action',
-  Other: 'other',
-} as const;
-
-/**
- * RecommendedAction
- */
-export type RecommendedAction = (typeof RecommendedAction)[keyof typeof RecommendedAction];
-
-/**
- * Reference
- */
-export type Reference = {
-  /**
-   * Title
-   *
-   * Canonical title for the reference exactly as it should appear in the article's bibliography
-   */
-  title: string;
-  /**
-   * Format classification for the reference. Possible values: ['peer_reviewed_publication', 'preprint', 'book', 'government_ngo_report', 'data_software', 'news_media', 'reference', 'webpage']
-   */
-  type: ReferenceType;
-  /**
-   * Link
-   *
-   * Stable URL or DOI that lets the author retrieve the reference quickly
-   */
-  link: string;
-  /**
-   * Bibliography Info
-   *
-   * Bibliography entry formatted in the article's style; reuse the existing entry when the source is already in the bibliography
-   */
-  bibliography_info: string;
-  /**
-   * Is Already Cited Elsewhere
-   *
-   * A boolean value indicating whether the reference is already cited elsewhere in the document
-   */
-  is_already_cited_elsewhere: boolean;
-  /**
-   * Index Of Associated Existing Reference
-   *
-   * The index of the existing reference that this citation refers to, if any. Indices start at 1. If the citation does not refer to an existing reference in the bibliography, this should be -1.
-   */
-  index_of_associated_existing_reference: number;
-  /**
-   * The quality of the publication that carries the suggested reference. Possible values: ['high_impact_publication', 'medium_impact_publication', 'low_impact_publication', 'not_a_publication']
-   */
-  publication_quality: PublicationQuality;
-  /**
-   * Related Excerpt
-   *
-   * Exact sentence or excerpt from the full document that should cite or discuss this reference
-   */
-  related_excerpt: string;
-  /**
-   * Related Excerpt From Reference
-   *
-   * Exact sentence or excerpt from the reference that is why we should cite or discuss it
-   */
-  related_excerpt_from_reference: string;
-  /**
-   * Rationale
-   *
-   * Brief explanation of why the reference strengthens, updates, or contextualizes the focused paragraph
-   */
-  rationale: string;
-  /**
-   * Action to take for this reference. Possible values: ['add_new_citation', 'cite_existing_reference_in_new_place', 'replace_existing_reference', 'discuss_reference', 'no_action', 'other']
-   */
-  recommended_action: RecommendedAction;
-  /**
-   * Explanation For Recommended Action
-   *
-   * Specific guidance for applying the recommended action, including citation placement or text revisions
-   */
-  explanation_for_recommended_action: string;
-  /**
-   * The confidence in the recommendation. Possible values: ['high', 'medium', 'low']
-   */
-  confidence_in_recommendation: ConfidenceInRecommendation;
-};
-
-/**
- * ReferenceAlignmentLevel
- */
-export const ReferenceAlignmentLevel = {
-  Unverifiable: 'unverifiable',
-  Supported: 'supported',
-  PartiallySupported: 'partially_supported',
-  Unsupported: 'unsupported',
-} as const;
-
-/**
- * ReferenceAlignmentLevel
- */
-export type ReferenceAlignmentLevel = (typeof ReferenceAlignmentLevel)[keyof typeof ReferenceAlignmentLevel];
-
-/**
- * ReferenceDirection
- */
-export const ReferenceDirection = {
-  Supporting: 'supporting',
-  Conflicting: 'conflicting',
-  Mixed: 'mixed',
-  Contextual: 'contextual',
-} as const;
-
-/**
- * ReferenceDirection
- */
-export type ReferenceDirection = (typeof ReferenceDirection)[keyof typeof ReferenceDirection];
 
 /**
  * ReferenceDownloaderInputItem
@@ -4298,21 +2564,6 @@ export const ReferenceType = {
 export type ReferenceType = (typeof ReferenceType)[keyof typeof ReferenceType];
 
 /**
- * ReferenceValidationFinalResult
- */
-export const ReferenceValidationFinalResult = {
-  Valid: 'valid',
-  FoundWithInconsistencies: 'found_with_inconsistencies',
-  NotFound: 'not_found',
-} as const;
-
-/**
- * ReferenceValidationFinalResult
- */
-export type ReferenceValidationFinalResult =
-  (typeof ReferenceValidationFinalResult)[keyof typeof ReferenceValidationFinalResult];
-
-/**
  * ReferenceValidationFinalResultV2
  */
 export const ReferenceValidationFinalResultV2 = {
@@ -4326,90 +2577,6 @@ export const ReferenceValidationFinalResultV2 = {
  */
 export type ReferenceValidationFinalResultV2 =
   (typeof ReferenceValidationFinalResultV2)[keyof typeof ReferenceValidationFinalResultV2];
-
-/**
- * ReferenceValidationItem
- *
- * Item for tracking individual reference validation with status
- */
-export type ReferenceValidationItem = {
-  /**
-   * Reference Id
-   *
-   * The ID of the reference to validate.
-   */
-  reference_id: string;
-  /**
-   * Input Reference
-   *
-   * The original reference text.
-   */
-  input_reference: string;
-  /**
-   * Current status of this reference validation.
-   */
-  status?: ReferenceValidationStatus;
-  /**
-   * The validation result for the reference, present on success.
-   */
-  validation_result?: BibliographyItemValidation | null;
-  /**
-   * Error
-   *
-   * Error message, present on failure.
-   */
-  error?: string | null;
-  /**
-   * Messages
-   *
-   * LLM conversation messages from the agent invocation.
-   */
-  messages?: Array<{
-    [key: string]: unknown;
-  }>;
-};
-
-/**
- * ReferenceValidationState
- *
- * State for the reference validation workflow.
- */
-export type ReferenceValidationState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'reference_validation';
-  config: ReferenceValidationWorkflowConfig;
-  /**
-   * Reference Validations
-   */
-  reference_validations?: Array<ReferenceValidationItem>;
-};
-
-/**
- * ReferenceValidationStatus
- *
- * Status of a reference validation operation
- */
-export const ReferenceValidationStatus = {
-  Pending: 'pending',
-  Completed: 'completed',
-  Error: 'error',
-  Cancelled: 'cancelled',
-} as const;
-
-/**
- * ReferenceValidationStatus
- *
- * Status of a reference validation operation
- */
-export type ReferenceValidationStatus = (typeof ReferenceValidationStatus)[keyof typeof ReferenceValidationStatus];
 
 /**
  * ReferenceValidationV2Item
@@ -4524,77 +2691,6 @@ export type ReferenceValidationV2WorkflowConfig = {
    * Type
    */
   type?: 'reference_validation_v2';
-};
-
-/**
- * ReferenceValidationWorkflowConfig
- *
- * Configuration model for the reference validation workflow.
- */
-export type ReferenceValidationWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'reference_validation';
-};
-
-/**
- * ReportMetadata
- */
-export type ReportMetadata = {
-  /**
-   * The type of update. Possible values: ['no_update_needed', 'minor_factual_update', 'moderate_update', 'major_update_required', 'outdated_or_invalidated']
-   */
-  update_type: UpdateType;
-  /**
-   * Title
-   *
-   * Newspaper-style title summarizing the changes (or lack of changes) suggested by the report
-   */
-  title: string;
-  /**
-   * Sentence Summary
-   *
-   * A single sentence summary of what the authors should update in the report
-   */
-  sentence_summary: string;
-  /**
-   * Date Generated
-   *
-   * The date the report was generated in YYYY-MM-DD format
-   */
-  date_generated: string;
-};
-
-/**
- * ReportOutput
- */
-export type ReportOutput = {
-  /**
-   * Report Markdown
-   *
-   * The markdown formatted report
-   */
-  report_markdown: string;
-  report_metadata: ReportMetadata;
 };
 
 /**
@@ -5189,26 +3285,6 @@ export type UpdateThreadRequest = {
 };
 
 /**
- * UpdateType
- *
- * Defines the classification and metadata for a report update.
- */
-export const UpdateType = {
-  NoUpdateNeeded: 'no_update_needed',
-  MinorFactualUpdate: 'minor_factual_update',
-  ModerateUpdate: 'moderate_update',
-  MajorUpdateRequired: 'major_update_required',
-  OutdatedOrInvalidated: 'outdated_or_invalidated',
-} as const;
-
-/**
- * UpdateType
- *
- * Defines the classification and metadata for a report update.
- */
-export type UpdateType = (typeof UpdateType)[keyof typeof UpdateType];
-
-/**
  * UpdateUserPreferencesRequest
  *
  * Request model for updating user preferences
@@ -5613,32 +3689,22 @@ export type WorkflowRunDetail = {
    */
   state:
     | AboutThisGerState
-    | AdvocacyToneState
     | DocumentProcessingState
-    | ChunkSplittingState
     | DocumentSummarizationState
     | ReferenceExtractionState
     | ReferenceFileMatchingState
-    | FootnoteExtractionState
-    | ClaimExtractionState
-    | ClaimReferenceValidationState
     | ClaimReferenceValidationV2State
-    | CitationDetectionState
     | AbbreviationScanV2State
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
-    | LiteratureReviewState
-    | LiveReportsState
-    | ReferenceValidationState
     | ReferenceValidationV2State
-    | CitationSuggesterState
     | ResultsExtractionState
-    | InferenceValidationV2State
     | HumanApprovalState
     | Reviewer2State
     | SimpleDeepAgentState
     | null;
   cost?: CostBreakdown | null;
+  state_status?: WorkflowStateStatus;
 };
 
 /**
@@ -5689,29 +3755,19 @@ export type WorkflowRunStatus = (typeof WorkflowRunStatus)[keyof typeof Workflow
  */
 export const WorkflowRunType = {
   DocumentProcessing: 'document_processing',
-  ChunkSplitting: 'chunk_splitting',
   DocumentSummarization: 'document_summarization',
   ReferenceExtraction: 'reference_extraction',
   ReferenceFileMatching: 'reference_file_matching',
   HumanApproval: 'human_approval',
-  FootnoteExtraction: 'footnote_extraction',
-  ClaimExtraction: 'claim_extraction',
-  CitationDetection: 'citation_detection',
   MethodologicalAlignment: 'methodological_alignment',
   ReferenceDownloader: 'reference_downloader',
-  LiteratureReview: 'literature_review',
   LiteratureReviewV2: 'literature_review_v2',
-  LiveReports: 'live_reports',
   LiveReportsV2: 'live_reports_v2',
-  ReferenceValidation: 'reference_validation',
   ReferenceValidationV2: 'reference_validation_v2',
-  CitationSuggester: 'citation_suggester',
   ResultsExtraction: 'results_extraction',
   InferenceValidationV2: 'inference_validation_v2',
-  ClaimReferenceValidation: 'claim_reference_validation',
   ClaimReferenceValidationV2: 'claim_reference_validation_v2',
   AbbreviationScanV2: 'abbreviation_scan_v2',
-  AdvocacyTone: 'advocacy_tone',
   AdvocacyToneV2: 'advocacy_tone_v2',
   AboutThisGer: 'about_this_ger',
   Reviewer2: 'reviewer_2',
@@ -5727,6 +3783,34 @@ export const WorkflowRunType = {
  * WorkflowRunType
  */
 export type WorkflowRunType = (typeof WorkflowRunType)[keyof typeof WorkflowRunType];
+
+/**
+ * WorkflowStateStatus
+ *
+ * Why a run's state is or isn't available to render.
+ *
+ * `state` alone cannot express this: it is None both for a run that never
+ * persisted state and for one whose persisted state no longer matches the
+ * current model. The UI needs to tell those apart — the first is "nothing to
+ * show", the second is "your data is here but the assessment changed".
+ */
+export const WorkflowStateStatus = {
+  Ok: 'ok',
+  Absent: 'absent',
+  SchemaMismatch: 'schema_mismatch',
+} as const;
+
+/**
+ * WorkflowStateStatus
+ *
+ * Why a run's state is or isn't available to render.
+ *
+ * `state` alone cannot express this: it is None both for a run that never
+ * persisted state and for one whose persisted state no longer matches the
+ * current model. The UI needs to tell those apart — the first is "nothing to
+ * show", the second is "your data is here but the assessment changed".
+ */
+export type WorkflowStateStatus = (typeof WorkflowStateStatus)[keyof typeof WorkflowStateStatus];
 
 /**
  * WorkflowTypeDescription
@@ -6191,27 +4275,16 @@ export type StartWorkflowApiWorkflowsStartPostData = {
    */
   body:
     | AboutThisGerConfig
-    | AdvocacyToneWorkflowConfig
     | DocumentProcessingWorkflowConfig
-    | ChunkSplittingWorkflowConfig
     | DocumentSummarizationWorkflowConfig
     | ReferenceExtractionConfig
     | ReferenceFileMatchingConfig
-    | FootnoteExtractionConfig
-    | ClaimExtractionWorkflowConfig
-    | CitationDetectionConfig
-    | ClaimReferenceValidationWorkflowConfig
     | ClaimReferenceValidationV2Config
     | AbbreviationScanV2Config
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
-    | LiteratureReviewWorkflowConfig
-    | LiveReportsWorkflowConfig
-    | ReferenceValidationWorkflowConfig
     | ReferenceValidationV2WorkflowConfig
-    | CitationSuggesterWorkflowConfig
     | ResultsExtractionWorkflowConfig
-    | InferenceValidationV2WorkflowConfig
     | HumanApprovalConfig
     | Reviewer2Config
     | SimpleDeepAgentConfig;
@@ -6298,6 +4371,45 @@ export type GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses = {
 
 export type GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponse =
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses[keyof GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponses];
+
+export type GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetData = {
+  body?: never;
+  path: {
+    /**
+     * Workflow Run Id
+     */
+    workflow_run_id: string;
+  };
+  query?: {
+    /**
+     * Share Token
+     *
+     * Share token, for viewers reading the project through a share link.
+     */
+    share_token?: string | null;
+  };
+  url: '/api/workflows/{workflow_run_id}/raw-state';
+};
+
+export type GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetError =
+  GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetErrors[keyof GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetErrors];
+
+export type GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: RawWorkflowStateResponse;
+};
+
+export type GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetResponse =
+  GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetResponses[keyof GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetResponses];
 
 export type ApproveWorkflowRunApiWorkflowRunsWorkflowRunIdApprovePostData = {
   body?: never;

@@ -14,8 +14,8 @@ export function hasWebSearchRequirement(
  * Workflow types that require a publication date to be specified.
  */
 const WORKFLOWS_REQUIRING_PUBLICATION_DATE: WorkflowRunType[] = [
-  WorkflowRunType.LiteratureReview,
-  WorkflowRunType.LiveReports,
+  WorkflowRunType.LiteratureReviewV2,
+  WorkflowRunType.LiveReportsV2,
 ];
 
 /**
@@ -28,11 +28,7 @@ export function hasPublicationDateRequirement(selectedTypes: WorkflowRunType[]):
 /**
  * Workflow types that require supporting documents.
  */
-export const WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS: WorkflowRunType[] = [
-  WorkflowRunType.ClaimReferenceValidation,
-  WorkflowRunType.ClaimReferenceValidationV2,
-  WorkflowRunType.CitationSuggester,
-];
+export const WORKFLOWS_REQUIRING_SUPPORTING_DOCUMENTS: WorkflowRunType[] = [WorkflowRunType.ClaimReferenceValidationV2];
 
 /**
  * Checks if any of the selected workflow types require supporting documents.

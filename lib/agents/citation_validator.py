@@ -14,7 +14,7 @@ from lib.agents.structured_output_salvage import ai_message_text, salvage_models
 from lib.agents.tools.read_document import read_document
 from lib.agents.tools.search_document import search_document
 from lib.agents.tools.vector_search import vector_search
-from lib.config.llm_models import gpt_5_5_model
+from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
 from lib.workflows.context import ContextSchema
@@ -166,7 +166,7 @@ _USER_MESSAGE = "Please validate all citations in your assigned section."
 class CitationValidatorAgent(LangChainAgent):
     name = "Citation Validator"
     description = "Validate citations in a document section against reference files"
-    model = gpt_5_5_model
+    model = gpt_5_6_terra_model
     temperature = 0.0
     reasoning = {"effort": "medium", "summary": "auto"}
 

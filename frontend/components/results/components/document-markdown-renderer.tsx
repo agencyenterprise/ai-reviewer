@@ -101,6 +101,22 @@ function rangesOverlap(a: [number, number], b: [number, number]): boolean {
   return a[0] <= b[1] && a[1] >= b[0];
 }
 
+const SCROLL_RETRY_MS = 50;
+const SCROLL_MAX_ATTEMPTS = 20;
+
+/** First rendered block whose source lines overlap `range`, or null while none is laid out. */
+function findBlockForRange(container: HTMLElement, range: [number, number]): HTMLElement | null {
+  const blocks = container.querySelectorAll<HTMLElement>('[data-line-start][data-line-end]');
+  for (const block of blocks) {
+    const start = Number(block.getAttribute('data-line-start'));
+    const end = Number(block.getAttribute('data-line-end'));
+    if (Number.isFinite(start) && Number.isFinite(end) && rangesOverlap([start, end], range)) {
+      return block;
+    }
+  }
+  return null;
+}
+
 export function DocumentMarkdownRenderer({
   ref,
   markdown,
@@ -113,19 +129,27 @@ export function DocumentMarkdownRenderer({
 
   useImperativeHandle(ref, () => ({
     scrollToLineRange: (range: [number, number]) => {
-      requestAnimationFrame(() => {
+      // Retried on a timer rather than via requestAnimationFrame: rAF never fires while
+      // the tab is hidden, and the document can still be laying out when a line jump
+      // arrives from another tab's route.
+      let attempts = 0;
+      const attempt = () => {
         const container = containerRef.current;
         if (!container) return;
-        const blocks = container.querySelectorAll<HTMLElement>('[data-line-start][data-line-end]');
-        for (const block of blocks) {
-          const start = Number(block.getAttribute('data-line-start'));
-          const end = Number(block.getAttribute('data-line-end'));
-          if (Number.isFinite(start) && Number.isFinite(end) && rangesOverlap([start, end], range)) {
-            block.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return;
-          }
+
+        const block = findBlockForRange(container, range);
+        if (!block || container.clientHeight === 0) {
+          if (attempts++ < SCROLL_MAX_ATTEMPTS) setTimeout(attempt, SCROLL_RETRY_MS);
+          return;
         }
-      });
+
+        // Scroll the container itself rather than block.scrollIntoView(), which would also
+        // scroll ancestors and move the page around the document pane. `container` is
+        // positioned, so offsetTop is already relative to it.
+        const top = block.offsetTop - container.clientHeight / 2 + block.offsetHeight / 2;
+        container.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      };
+      attempt();
     },
   }));
 

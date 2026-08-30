@@ -143,7 +143,7 @@ async def test_strips_internal_and_dependency_runs(seeder):
         age_days=1,
         runs=[
             (WorkflowRunType.DOCUMENT_PROCESSING, 1),
-            (WorkflowRunType.CHUNK_SPLITTING, 1),
+            (WorkflowRunType.DOCUMENT_SUMMARIZATION, 1),
             (WorkflowRunType.REFERENCE_EXTRACTION, 1),
             (WorkflowRunType.REFERENCE_FILE_MATCHING, 1),
             (WorkflowRunType.HUMAN_APPROVAL, 1),

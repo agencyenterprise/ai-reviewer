@@ -58,7 +58,7 @@ def _make_issue(**kwargs) -> Issue:
         description="Short description.",
         long_description="Long description.",
         severity=SeverityEnum.HIGH,
-        workflow_type=WorkflowRunType.CITATION_DETECTION,
+        workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
         status=IssueStatus.ACTIVE,
         chunk_indices=[0, 2],
         created_at=_NOW,
@@ -163,7 +163,7 @@ async def test_csv_row_values():
         description="The citation is incorrect.",
         long_description="Detailed explanation here.",
         severity=SeverityEnum.MEDIUM,
-            workflow_type=WorkflowRunType.CITATION_DETECTION,
+            workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
             status=IssueStatus.ACTIVE,
             chunk_indices=[1, 3],
     )
@@ -203,7 +203,7 @@ async def test_csv_row_values():
     assert row["Issue Description"] == "The citation is incorrect."
     assert row["Issue Long Description"] == "Detailed explanation here."
     assert row["Issue Severity"] == SeverityEnum.MEDIUM.value
-    assert row["Issue Workflow Type"] == WorkflowRunType.CITATION_DETECTION.value
+    assert row["Issue Workflow Type"] == WorkflowRunType.RECOMMENDATION_CHECK.value
 
 
 @pytest.mark.asyncio

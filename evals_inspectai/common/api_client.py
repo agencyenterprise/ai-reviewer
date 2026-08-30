@@ -240,6 +240,31 @@ async def tus_upload_file(
         )
 
 
+async def link_reference_file(
+    project_id: str, reference_id: str, file_id: str
+) -> None:
+    """Link an already-uploaded supporting file to an extracted reference.
+
+    Records a MANUAL_UPLOAD match, the same one the app creates when a user
+    supplies the source for a reference themselves. Use it when the correct
+    reference->file pairing is known up front and running the automatic matcher
+    would only add noise.
+    """
+    async with _build_client() as client:
+        resp = await client.post(
+            f"/api/project/{project_id}/references/{reference_id}/files",
+            json={"file_id": file_id},
+        )
+        resp.raise_for_status()
+
+    logger.info(
+        "Linked file %s to reference %s on project %s",
+        file_id,
+        reference_id,
+        project_id,
+    )
+
+
 async def approve_workflow_run(workflow_run_id: str) -> None:
     """Trigger the human-approval gate for a workflow run."""
     async with _build_client() as client:

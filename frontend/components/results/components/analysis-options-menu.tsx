@@ -8,6 +8,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -20,10 +21,12 @@ import {
   WorkflowRunType,
 } from '@/lib/generated-api';
 import { useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
+import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { getErrorMessage } from '@/lib/api-error';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Download, EllipsisVerticalIcon, Link, Pencil, Plus } from 'lucide-react';
+import { ArrowLeftRight, Download, EllipsisVerticalIcon, Link, Pencil, Plus } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { downloadDocxFile, DocxType, useDownloadDocx } from './use-download-docx';
@@ -41,6 +44,15 @@ export interface AnalysisOptionsMenuProps {
   selectedRevision?: number;
   onRevisionChange?: (revision: number) => void;
   onRevisionCreated?: () => void;
+  /** Label for the download button. */
+  downloadLabel?: string;
+  /** Drops the download button to secondary where another action leads the row. */
+  downloadVariant?: 'default' | 'outline';
+  /**
+   * Labels give way to icons on narrow screens. For headers that carry other
+   * controls beside this one and would otherwise run off a phone screen.
+   */
+  compact?: boolean;
 }
 
 export function AnalysisOptionsMenu({
@@ -50,9 +62,24 @@ export function AnalysisOptionsMenu({
   selectedRevision,
   onRevisionChange,
   onRevisionCreated,
+  downloadLabel = 'Download DOCX',
+  downloadVariant = 'default',
+  compact = false,
 }: AnalysisOptionsMenuProps) {
   const { filter } = useDocumentExplorerStore();
+  const router = useRouter();
+  const pathname = usePathname();
   const projectId = project.id;
+
+  // The two layouts are the same routes under a /v2 prefix, so switching is
+  // adding or dropping it. Only offered on the project routes: the share view
+  // has no v2 counterpart.
+  const isNewLayout = pathname.startsWith('/v2/projects/');
+  const layoutSwitchPath = isNewLayout
+    ? pathname.slice('/v2'.length)
+    : pathname.startsWith('/projects/')
+      ? `/v2${pathname}`
+      : null;
   const share = useShareStatus(projectId, !readOnly);
   const shareContext = useShare();
   const queryClient = useQueryClient();
@@ -153,23 +180,21 @@ export function AnalysisOptionsMenu({
         <div className="flex items-center gap-2">
           {!readOnly && <ShareStatusBadge isEnabled={share.isEnabled} onClick={() => share.setIsDialogOpen(true)} />}
 
-          {selectedRevision && onRevisionChange && (
-            <RevisionSwitcher
-              currentRevision={project.current_revision ?? 1}
-              totalRevisions={project.current_revision ?? 1}
-              selectedRevision={selectedRevision}
-              onRevisionChange={onRevisionChange}
-              onCreateRevision={readOnly ? undefined : () => setIsReplaceDialogOpen(true)}
-            />
-          )}
-
           <Tooltip>
             <TooltipTrigger asChild>
               {/* Wrapper span so the tooltip still fires while the button is disabled */}
               <span tabIndex={0}>
-                <Button variant="default" size="xs" onClick={handleDownloadClick} disabled={!hasDocx || isDownloading}>
+                <Button
+                  variant={downloadVariant}
+                  size="xs"
+                  onClick={handleDownloadClick}
+                  disabled={!hasDocx || isDownloading}
+                  aria-label={downloadLabel}
+                >
                   <Download />
-                  {isDownloading ? 'Downloading...' : 'Download DOCX'}
+                  <span className={cn(compact && 'hidden sm:inline')}>
+                    {isDownloading ? 'Downloading...' : downloadLabel}
+                  </span>
                 </Button>
               </span>
             </TooltipTrigger>
@@ -179,9 +204,23 @@ export function AnalysisOptionsMenu({
                 : 'DOCX export is only available when the source document is a Word file (.docx or .doc)'}
             </TooltipContent>
           </Tooltip>
+
+          {selectedRevision && onRevisionChange && (
+            <RevisionSwitcher
+              currentRevision={project.current_revision ?? 1}
+              totalRevisions={project.current_revision ?? 1}
+              selectedRevision={selectedRevision}
+              onRevisionChange={onRevisionChange}
+              onCreateRevision={readOnly ? undefined : () => setIsReplaceDialogOpen(true)}
+              compact={compact}
+            />
+          )}
         </div>
 
-        {!readOnly && (
+        {/* The menu also carries the way back to the other layout, which a
+            read-only reader needs as much as an owner does — so it opens for
+            them too, holding only that entry. */}
+        {(!readOnly || layoutSwitchPath) && (
           <DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -195,29 +234,50 @@ export function AnalysisOptionsMenu({
             </Tooltip>
 
             <DropdownMenuContent className="w-56">
-              <MenuItemWithTooltip
-                icon={Pencil}
-                onClick={() => setIsEditDialogOpen(true)}
-                tooltip="Edit project details"
-              >
-                Edit project details
-              </MenuItemWithTooltip>
+              {!readOnly && (
+                <>
+                  <MenuItemWithTooltip
+                    icon={Pencil}
+                    onClick={() => setIsEditDialogOpen(true)}
+                    tooltip="Edit project details"
+                  >
+                    Edit project details
+                  </MenuItemWithTooltip>
 
-              <MenuItemWithTooltip
-                icon={Plus}
-                onClick={() => setIsReplaceDialogOpen(true)}
-                tooltip="Upload a new version of the main document as a new revision. Previous revisions, their reviewer memos, and results are kept."
-              >
-                Create new revision
-              </MenuItemWithTooltip>
+                  <MenuItemWithTooltip
+                    icon={Plus}
+                    onClick={() => setIsReplaceDialogOpen(true)}
+                    tooltip="Upload a new version of the main document as a new revision. Previous revisions, their reviewer memos, and results are kept."
+                  >
+                    Create new revision
+                  </MenuItemWithTooltip>
 
-              <MenuItemWithTooltip
-                icon={Link}
-                onClick={() => share.setIsDialogOpen(true)}
-                tooltip={share.isEnabled ? 'View or copy the share link' : 'Create a public link'}
-              >
-                {share.isEnabled ? 'Manage share link' : 'Share this assessment'}
-              </MenuItemWithTooltip>
+                  <MenuItemWithTooltip
+                    icon={Link}
+                    onClick={() => share.setIsDialogOpen(true)}
+                    tooltip={share.isEnabled ? 'View or copy the share link' : 'Create a public link'}
+                  >
+                    {share.isEnabled ? 'Manage share link' : 'Share this assessment'}
+                  </MenuItemWithTooltip>
+                </>
+              )}
+
+              {layoutSwitchPath && (
+                <>
+                  {!readOnly && <DropdownMenuSeparator />}
+                  <MenuItemWithTooltip
+                    icon={ArrowLeftRight}
+                    onClick={() => router.push(`${layoutSwitchPath}${window.location.hash}`)}
+                    tooltip={
+                      isNewLayout
+                        ? 'Return to the layout the rest of the app uses.'
+                        : 'The same project in the redesigned layout. Nothing changes about your data.'
+                    }
+                  >
+                    {isNewLayout ? 'Back to the classic layout' : 'Try the new layout'}
+                  </MenuItemWithTooltip>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}

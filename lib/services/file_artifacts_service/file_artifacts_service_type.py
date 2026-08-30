@@ -4,9 +4,7 @@ from typing import TYPE_CHECKING, Any, List
 from lib.models.file import FileRole
 
 if TYPE_CHECKING:
-    from lib.workflows.chunk_utils import AnalyzedChunk
     from lib.models.bibliography_item import BibliographyItem
-    from lib.models.footnote_item import FootnoteItem
     from lib.services.file import FileDocument
     from lib.workflows.document_summarization.state import FileSummary
     from lib.workflows.reference_extraction.state import ExtractedReference
@@ -37,30 +35,8 @@ class FileArtifactsServiceType(ABC):
     async def get_references(self) -> list["BibliographyItem"]: ...
 
     @abstractmethod
-    async def get_chunks(self) -> list["AnalyzedChunk"]: ...
-
-    @abstractmethod
-    async def get_footnotes(self) -> list["FootnoteItem"]: ...
-
-    @abstractmethod
     async def get_deepagent_backend_files(
         self,
         include_skills: bool = True,
     ) -> dict[str, Any]: ...
 
-    def get_paragraph_chunks(
-        self, chunks: List["AnalyzedChunk"], paragraph_index: int
-    ) -> List["AnalyzedChunk"]:
-        """Get all the chunks for a given paragraph index."""
-
-        return [chunk for chunk in chunks if chunk.paragraph_index == paragraph_index]
-
-    def get_paragraph_text(
-        self, chunks: List["AnalyzedChunk"], paragraph_index: int
-    ) -> str:
-        """Get the full paragraph text for a given paragraph index."""
-
-        paragraph_chunks = [
-            chunk for chunk in chunks if chunk.paragraph_index == paragraph_index
-        ]
-        return "\n".join([chunk.content for chunk in paragraph_chunks])

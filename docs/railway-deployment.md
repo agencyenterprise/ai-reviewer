@@ -51,9 +51,6 @@ FRONTEND_URL=https://<your-frontend-domain>.railway.app
 LANGFUSE_HOST=https://cloud.langfuse.com
 LANGFUSE_SECRET_KEY=<your-secret-key>
 LANGFUSE_PUBLIC_KEY=<your-public-key>
-
-# Custom workflow configuration (see below)
-WORKFLOW_CONFIG_PATH=/app/config/workflow_config.yaml
 ```
 
 #### Frontend Service
@@ -83,17 +80,17 @@ Railway automatically deploys when you push to your connected branch. The backen
 
 ## Custom Workflow Configuration
 
-The default workflow configuration (`lib/config/workflow_config.yaml`) is self-documented and works out of the box. To customize:
+Assessment rules live in `skills/<skill-name>/SKILL.md` at the repo root, which
+is the single source of truth for the prompt each workflow runs. To customize a
+check — for example the trigger words and advocacy phrases in
+`skills/advocacy-tone/SKILL.md` — edit that file in your fork and redeploy.
 
-### Add Config Volume
-
-1. Add a volume to your backend service in Railway dashboard
-2. Set mount path to `/app/config`
-3. Upload your custom `workflow_config.yaml` to the volume
-4. Set environment variable: `WORKFLOW_CONFIG_PATH=/app/config/workflow_config.yaml`
-
-> Railway doesn't allow scp or have a text editor, so use pbcopy with pipe to send changes through ssh.
-> You can use `tee /app/uploads/workflow_config.yaml` then `Cmd+V` to paste and `Ctrl+D` to save and close file.
+> **Note:** skills are resolved from the deployed source tree, so there is no
+> runtime override — no environment variable and no mounted volume. Changing a
+> check requires a fork and a redeploy.
+>
+> This replaces the `workflow_config.yaml` / `WORKFLOW_CONFIG_PATH` mechanism,
+> which was removed along with the v1 Advocacy & Tone workflow it configured.
 
 ## Troubleshooting
 
@@ -129,6 +126,5 @@ The backend health endpoint is `/api/health`. If health checks fail:
 | `OPENAI_API_KEY`            | ✅       | -                       | OpenAI API key for LLM operations        |
 | `DATABASE_URL`              | ✅       | -                       | PostgreSQL connection string             |
 | `FRONTEND_URL`              | ✅       | `http://localhost:3000` | Frontend URL for share links             |
-| `WORKFLOW_CONFIG_PATH`      | ❌       | Built-in config         | Path to custom workflow YAML             |
 | `LANGFUSE_*`                | ❌       | -                       | Langfuse observability config            |
 | `LANGGRAPH_MAX_CONCURRENCY` | ❌       | `30`                    | Max parallel workflow nodes              |

@@ -1,12 +1,6 @@
 import { formatFileSize } from '@/components/analysis-form/utils';
 import { composeReferences } from '@/lib/composed-references';
-import {
-  MatchSource,
-  ProjectDetailed,
-  ReferenceFetchStatus,
-  ReferenceValidationItem,
-  WorkflowRunType,
-} from '@/lib/generated-api';
+import { MatchSource, ProjectDetailed, ReferenceFetchStatus, WorkflowRunType } from '@/lib/generated-api';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { useMemo } from 'react';
 import { ReferenceReviewItem } from './types';
@@ -15,12 +9,11 @@ export function useReferenceReviewReferences(projectDetail: ProjectDetailed | un
   const files = useMemo(() => projectDetail?.files ?? [], [projectDetail?.files]);
   const workflowDetails = useMemo(() => projectDetail?.workflow_runs ?? [], [projectDetail?.workflow_runs]);
 
-  const { referenceExtraction, referenceFileMatching, referenceDownloader, referenceValidation } = useMemo(() => {
+  const { referenceExtraction, referenceFileMatching, referenceDownloader } = useMemo(() => {
     return {
       referenceExtraction: getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction),
       referenceFileMatching: getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching),
       referenceDownloader: getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceDownloader),
-      referenceValidation: getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceValidation),
     };
   }, [workflowDetails]);
 
@@ -30,17 +23,6 @@ export function useReferenceReviewReferences(projectDetail: ProjectDetailed | un
       composeReferences(referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, files),
     [referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, files],
   );
-
-  // Create validation map from reference validation workflow (keyed by reference_id)
-  const validationMap = useMemo(() => {
-    const map = new Map<string, ReferenceValidationItem>();
-    referenceValidation?.state?.reference_validations?.forEach((v) => {
-      if (v.reference_id) {
-        map.set(v.reference_id, v);
-      }
-    });
-    return map;
-  }, [referenceValidation?.state?.reference_validations]);
 
   const references = useMemo(() => {
     if (!referenceExtraction) {
@@ -77,10 +59,9 @@ export function useReferenceReviewReferences(projectDetail: ProjectDetailed | un
           : null,
         source: item.source,
         fetchResult: shouldShowFetchedResult ? fetchedReference : null,
-        validation: (item.id && validationMap.get(item.id)) || null,
       };
     });
-  }, [composedReferences, files, referenceExtraction, referenceDownloader, validationMap]);
+  }, [composedReferences, files, referenceExtraction, referenceDownloader]);
 
   return references;
 }
