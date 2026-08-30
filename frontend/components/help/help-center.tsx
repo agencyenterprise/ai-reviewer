@@ -1,6 +1,7 @@
 'use client';
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useExperimentalFeatures } from '@/context/experimental-features-context';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { HELP_TOPICS, HelpTopicId } from './topics';
@@ -44,7 +45,9 @@ function HelpCenterBody({
   onReviewReferences?: () => void;
 }) {
   const [topicId, setTopicId] = useState<HelpTopicId>(initialTopic);
-  const topic = HELP_TOPICS.find((entry) => entry.id === topicId) ?? HELP_TOPICS[0];
+  const { showExperimentalFeatures } = useExperimentalFeatures();
+  const topics = HELP_TOPICS.filter((entry) => showExperimentalFeatures || !entry.experimental);
+  const topic = topics.find((entry) => entry.id === topicId) ?? topics[0];
   const { Body } = topic;
 
   return (
@@ -58,7 +61,7 @@ function HelpCenterBody({
         <p className="hidden px-2 pb-1 font-mono text-[10px] tracking-wide text-muted-foreground uppercase sm:block">
           Help
         </p>
-        {HELP_TOPICS.map((entry) => (
+        {topics.map((entry) => (
           <button
             key={entry.id}
             onClick={() => setTopicId(entry.id)}

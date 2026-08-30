@@ -2,7 +2,8 @@
 
 import { Clock, History, LucideIcon, PlayIcon } from 'lucide-react';
 import { ReactNode } from 'react';
-import { SectionTitle } from '../help-primitives';
+import { SectionTitle, TopicLink } from '../help-primitives';
+import { HelpTopicBodyProps } from '../topics';
 
 /** What running one sets in motion, once you have picked from the list. */
 const MECHANICS: { icon: LucideIcon; title: string; body: string }[] = [
@@ -29,15 +30,20 @@ const MECHANICS: { icon: LucideIcon; title: string; body: string }[] = [
  * away in the dialog that starts them, and repeating it here would be a second
  * copy to keep true.
  */
-export function AssessmentsTopic() {
+export function AssessmentsTopic({ onOpenTopic }: HelpTopicBodyProps) {
   return (
     <div className="space-y-5">
       <section>
         <SectionTitle>One question each</SectionTitle>
         <p className="text-foreground/80 leading-relaxed">
           An assessment reads your draft looking for one kind of problem, and reports what it finds as{' '}
-          <strong className="text-foreground font-medium">issues in the document explorer</strong>, anchored to the
-          lines they are about. Nothing is changed in your document — an assessment only reads.
+          <strong className="text-foreground font-medium">
+            <TopicLink to="issues" onOpenTopic={onOpenTopic}>
+              issues
+            </TopicLink>{' '}
+            in the document explorer
+          </strong>
+          , anchored to the lines they are about. Nothing is changed in your document — an assessment only reads.
         </p>
       </section>
 
@@ -45,7 +51,11 @@ export function AssessmentsTopic() {
         <SectionTitle>Running them</SectionTitle>
         <p className="text-foreground/80 mb-2 leading-relaxed">
           <strong className="text-foreground font-medium">Run assessments</strong> in the header opens the list at any
-          time, from any tab. The Assessments tab is where their results are read.
+          time, from any tab. The Assessments tab is where their results are read, and every run is filed under the{' '}
+          <TopicLink to="revisions" onOpenTopic={onOpenTopic}>
+            revision
+          </TopicLink>{' '}
+          it read.
         </p>
         <div className="space-y-2">
           {MECHANICS.map((item) => (
@@ -55,8 +65,11 @@ export function AssessmentsTopic() {
           ))}
         </div>
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          One assessment waits for you rather than for another assessment: Claim Reference Validation needs the source
-          documents behind your citations, and holds until you say they are ready.
+          One assessment waits for you rather than for another assessment: Claim Reference Validation needs the{' '}
+          <TopicLink to="source-files" onOpenTopic={onOpenTopic}>
+            source documents
+          </TopicLink>{' '}
+          behind your citations, and holds until you say they are ready.
         </p>
       </section>
     </div>

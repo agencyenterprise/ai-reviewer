@@ -5,8 +5,7 @@ import { useReferenceApprovalFlow } from '@/components/results/tabs/reference-re
 import { Button } from '@/components/ui/button';
 import { ProjectDetailed } from '@/lib/generated-api';
 import { BookOpen, Loader2 } from 'lucide-react';
-import { useState } from 'react';
-import { HelpCenter } from '@/components/help/help-center';
+import { HelpLink } from '@/components/help/help-link';
 
 interface ReferenceReviewBannerProps {
   projectDetail: ProjectDetailed;
@@ -21,7 +20,6 @@ interface ReferenceReviewBannerProps {
  */
 export function ReferenceReviewBanner({ projectDetail, onReviewReferences }: ReferenceReviewBannerProps) {
   const approval = useReferenceApprovalFlow(projectDetail, projectDetail.project.id);
-  const [showExplanation, setShowExplanation] = useState(false);
 
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-3 border-b bg-amber-50 px-3 py-2 dark:bg-amber-950/30">
@@ -31,12 +29,9 @@ export function ReferenceReviewBanner({ projectDetail, onReviewReferences }: Ref
         <span className="text-muted-foreground">
           Claim Reference Validation reads each citation against the source it cites, and needs those sources first.
         </span>{' '}
-        <button
-          onClick={() => setShowExplanation(true)}
-          className="cursor-pointer text-muted-foreground underline underline-offset-2 hover:text-foreground"
-        >
+        <HelpLink topic="source-files" onReviewReferences={onReviewReferences}>
           Why this is needed
-        </button>
+        </HelpLink>
       </p>
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
@@ -54,16 +49,6 @@ export function ReferenceReviewBanner({ projectDetail, onReviewReferences }: Ref
         onOpenChange={approval.setShowUnmatchedWarning}
         unmatchedCount={approval.unmatchedCount}
         onConfirmApprove={approval.handleConfirmApprove}
-      />
-
-      <HelpCenter
-        open={showExplanation}
-        onOpenChange={setShowExplanation}
-        topic="source-files"
-        onReviewReferences={() => {
-          setShowExplanation(false);
-          onReviewReferences();
-        }}
       />
     </div>
   );

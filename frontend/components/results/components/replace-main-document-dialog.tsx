@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { HelpLink } from '@/components/help/help-link';
 import { Label } from '@/components/ui/label';
 import { FileUpload } from '@/components/ui/file-upload';
 import { FileListItem } from '@/components/analysis-form/file-list-item';
@@ -172,7 +173,8 @@ export function ReplaceMainDocumentDialog({
           <DialogTitle>Create a new revision</DialogTitle>
           <DialogDescription>
             A revision is a version of the main document. Uploading a new version here creates a new revision and makes
-            it the current one. Your previous revisions, with all their related results, are kept and stay available..
+            it the current one. Your previous revisions, with all their related results, are kept and stay available.{' '}
+            <HelpLink topic="revisions">More about revisions</HelpLink>
           </DialogDescription>
         </DialogHeader>
 

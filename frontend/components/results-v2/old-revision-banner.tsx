@@ -1,9 +1,8 @@
 'use client';
 
-import { HelpCenter } from '@/components/help/help-center';
+import { HelpLink } from '@/components/help/help-link';
 import { Button } from '@/components/ui/button';
 import { History } from 'lucide-react';
-import { useState } from 'react';
 
 interface OldRevisionBannerProps {
   selectedRevision: number;
@@ -18,8 +17,6 @@ interface OldRevisionBannerProps {
  * notice would otherwise scroll away and take the explanation with it.
  */
 export function OldRevisionBanner({ selectedRevision, currentRevision, onViewCurrent }: OldRevisionBannerProps) {
-  const [showExplanation, setShowExplanation] = useState(false);
-
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-3 border-b bg-blue-50 px-3 py-2 dark:bg-blue-950/30">
       <History className="size-4 shrink-0 text-blue-700 dark:text-blue-400" />
@@ -28,12 +25,7 @@ export function OldRevisionBanner({ selectedRevision, currentRevision, onViewCur
         <span className="text-muted-foreground">
           This is an earlier draft, kept as it was, so nothing here can be changed.
         </span>{' '}
-        <button
-          onClick={() => setShowExplanation(true)}
-          className="cursor-pointer text-muted-foreground underline underline-offset-2 hover:text-foreground"
-        >
-          What this is
-        </button>
+        <HelpLink topic="revisions">What this is</HelpLink>
       </p>
 
       {onViewCurrent && (
@@ -43,8 +35,6 @@ export function OldRevisionBanner({ selectedRevision, currentRevision, onViewCur
           </Button>
         </div>
       )}
-
-      <HelpCenter open={showExplanation} onOpenChange={setShowExplanation} topic="revisions" />
     </div>
   );
 }

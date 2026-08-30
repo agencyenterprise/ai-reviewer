@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { HelpLink } from '@/components/help/help-link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
@@ -93,7 +94,10 @@ export function WorkflowConfigDialog({ isOpen, type, projectId, onConfirm, onCan
       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Start Workflow</DialogTitle>
-          <DialogDescription>Please select the workflow configuration to start.</DialogDescription>
+          <DialogDescription>
+            Please select the workflow configuration to start.{' '}
+            <HelpLink topic="assessments">How assessments work</HelpLink>
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

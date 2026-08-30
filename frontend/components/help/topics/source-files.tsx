@@ -6,7 +6,7 @@ import { SEVERITY } from '@/lib/severity-style';
 import { cn } from '@/lib/utils';
 import { ArrowRight, FileText, FileX2, Globe, LucideIcon, Upload } from 'lucide-react';
 import { ReactNode } from 'react';
-import { SectionTitle } from '../help-primitives';
+import { SectionTitle, TopicLink } from '../help-primitives';
 import { HelpTopicBodyProps } from '../topics';
 
 interface Verdict {
@@ -79,16 +79,9 @@ export function SourceFilesTopic({ onReviewReferences, onOpenTopic }: HelpTopicB
         <SectionTitle>The document behind a reference</SectionTitle>
         <p className="text-foreground/80 leading-relaxed">
           A source file is the actual paper, report or page that one of your{' '}
-          {onOpenTopic ? (
-            <button
-              onClick={() => onOpenTopic('references')}
-              className="cursor-pointer underline underline-offset-2 hover:text-foreground"
-            >
-              references
-            </button>
-          ) : (
-            'references'
-          )}{' '}
+          <TopicLink to="references" onOpenTopic={onOpenTopic}>
+            references
+          </TopicLink>{' '}
           points at. It does not arrive with your draft, because{' '}
           <strong className="text-foreground font-medium">
             a bibliography entry names a source, it does not contain one
@@ -96,9 +89,12 @@ export function SourceFilesTopic({ onReviewReferences, onOpenTopic }: HelpTopicB
           . The References tab says, for each reference, whether one has been provided.
         </p>
         <p className="text-foreground/80 mt-2 leading-relaxed">
-          <strong className="text-foreground font-medium">Claim Reference Validation</strong> is the assessment that
-          needs them. It reads the document behind each citation and compares it to the claim you hung on it, which is
-          not something a bibliography entry can answer.
+          <strong className="text-foreground font-medium">Claim Reference Validation</strong> is the{' '}
+          <TopicLink to="assessments" onOpenTopic={onOpenTopic}>
+            assessment
+          </TopicLink>{' '}
+          that needs them. It reads the document behind each citation and compares it to the claim you hung on it, which
+          is not something a bibliography entry can answer.
         </p>
       </section>
 
@@ -117,6 +113,13 @@ export function SourceFilesTopic({ onReviewReferences, onOpenTopic }: HelpTopicB
 
       <section>
         <SectionTitle>What comes back</SectionTitle>
+        <p className="text-foreground/80 mb-2 leading-relaxed">
+          One verdict per citation, each arriving as an{' '}
+          <TopicLink to="issues" onOpenTopic={onOpenTopic}>
+            issue
+          </TopicLink>{' '}
+          on the line that carries the claim.
+        </p>
         <ul className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
           {OUTCOMES.map((outcome) => (
             <li key={outcome.label} className="flex items-baseline gap-2">
@@ -153,7 +156,11 @@ export function SourceFilesTopic({ onReviewReferences, onOpenTopic }: HelpTopicB
           runs normally.
         </p>
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          Source files are shared across revisions, so this is not work you repeat on the next draft.
+          Source files are shared across{' '}
+          <TopicLink to="revisions" onOpenTopic={onOpenTopic}>
+            revisions
+          </TopicLink>
+          , so this is not work you repeat on the next draft.
         </p>
 
         {onReviewReferences && (

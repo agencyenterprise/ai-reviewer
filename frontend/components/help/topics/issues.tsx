@@ -5,7 +5,8 @@ import { SEVERITY } from '@/lib/severity-style';
 import { cn } from '@/lib/utils';
 import { CheckIcon, LightbulbIcon, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { ReactNode } from 'react';
-import { SectionTitle } from '../help-primitives';
+import { SectionTitle, TopicLink } from '../help-primitives';
+import { HelpTopicBodyProps } from '../topics';
 
 /** What each level means, in the colours the document and the list use. */
 const LEVELS: { severity: SeverityEnum; gloss: string }[] = [
@@ -20,16 +21,19 @@ const LEVELS: { severity: SeverityEnum; gloss: string }[] = [
  * note the margin and the issue list render, so a reader meets the thing itself
  * before being told how to act on it.
  */
-export function IssuesTopic() {
+export function IssuesTopic({ onOpenTopic }: HelpTopicBodyProps) {
   return (
     <div className="space-y-5">
       <section>
         <SectionTitle>One finding, in one place</SectionTitle>
         <p className="text-foreground/80 leading-relaxed">
-          An issue is a single thing an assessment found, tied to{' '}
-          <strong className="text-foreground font-medium">the lines it is about</strong>. That anchor is what the
-          document explorer is built on: issues sit in the margin beside their paragraph, and selecting one moves the
-          document to it.
+          An issue is a single thing an{' '}
+          <TopicLink to="assessments" onOpenTopic={onOpenTopic}>
+            assessment
+          </TopicLink>{' '}
+          found, tied to <strong className="text-foreground font-medium">the lines it is about</strong>. That anchor is
+          what the document explorer is built on: issues sit in the margin beside their paragraph, and selecting one
+          moves the document to it.
         </p>
 
         <div className="mt-2 overflow-hidden rounded-md border">
@@ -111,8 +115,12 @@ export function IssuesTopic() {
           </Fact>
         </ul>
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          Issues belong to the revision they were found in. Re-running an assessment, or uploading a new draft, files
-          the old ones away rather than deleting them.
+          Issues belong to the{' '}
+          <TopicLink to="revisions" onOpenTopic={onOpenTopic}>
+            revision
+          </TopicLink>{' '}
+          they were found in. Re-running an assessment, or uploading a new draft, files the old ones away rather than
+          deleting them.
         </p>
       </section>
     </div>

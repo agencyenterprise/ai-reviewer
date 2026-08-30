@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { FileUpload } from '@/components/ui/file-upload';
 import { RadioGroup, RadioGroupItemWithDescription } from '@/components/ui/radio-group-with-description';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { HelpLink } from '@/components/help/help-link';
 import { FileListItem } from '@/components/analysis-form/file-list-item';
 import { UploadProgressList } from '@/components/ui/upload-progress-list';
 import { useUpload } from '@/lib/hooks/upload';
@@ -258,6 +259,7 @@ export function FileUploadDialog({
                       label="Supporting document"
                       description="Reference material cited by the document. Supporting files are matched against the document's references."
                       disabled={isUploading}
+                      help={<HelpLink topic="source-files">What a source file is used for</HelpLink>}
                     />
                     <RadioGroupItemWithDescription
                       id={FileRole.ReviewerMemo}
@@ -265,6 +267,7 @@ export function FileUploadDialog({
                       label="Reviewer memo"
                       description="Peer-review feedback on a specific draft. Used by the Peer Review assessments."
                       disabled={isUploading}
+                      help={<HelpLink topic="peer-review">What peer review does with these</HelpLink>}
                     />
                   </RadioGroup>
                 </div>

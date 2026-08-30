@@ -3,7 +3,8 @@
 import { cn } from '@/lib/utils';
 import { CircleStop, FileText, LucideIcon, PlayCircle, Upload } from 'lucide-react';
 import { ReactNode } from 'react';
-import { SectionTitle } from '../help-primitives';
+import { SectionTitle, TopicLink } from '../help-primitives';
+import { HelpTopicBodyProps } from '../topics';
 
 interface Version {
   label: string;
@@ -53,15 +54,18 @@ const STEPS: { icon: LucideIcon; title: string; body: string }[] = [
  * always the same — what happens to everything I have already done — so the
  * answer leads: the earlier draft and its results stay exactly where they were.
  */
-export function RevisionsTopic() {
+export function RevisionsTopic({ onOpenTopic }: HelpTopicBodyProps) {
   return (
     <div className="space-y-5">
       <section>
         <SectionTitle>One project, several drafts</SectionTitle>
         <p className="text-foreground/80 leading-relaxed">
           A revision is a version of the main document. Uploading a new one does not replace what came before it —{' '}
-          <strong className="text-foreground font-medium">every earlier revision stays readable</strong>, alongside the
-          issues and results it collected. The revision menu in the header is how you move between them.
+          <strong className="text-foreground font-medium">every earlier revision stays readable</strong>, alongside the{' '}
+          <TopicLink to="issues" onOpenTopic={onOpenTopic}>
+            issues
+          </TopicLink>{' '}
+          and results it collected. The revision menu in the header is how you move between them.
         </p>
 
         <div className="mt-2 overflow-hidden rounded-md border">
@@ -111,11 +115,23 @@ export function RevisionsTopic() {
       <section>
         <SectionTitle>What the other files do</SectionTitle>
         <ul className="space-y-1.5">
-          <Fact term="Source files">
+          <Fact
+            term={
+              <TopicLink to="source-files" onOpenTopic={onOpenTopic}>
+                Source files
+              </TopicLink>
+            }
+          >
             Shared by every revision. Provide a reference&apos;s source once and later drafts inherit it, so a new
             revision does not send you back to the References tab.
           </Fact>
-          <Fact term="Reviewer memos">
+          <Fact
+            term={
+              <TopicLink to="peer-review" onOpenTopic={onOpenTopic}>
+                Reviewer memos
+              </TopicLink>
+            }
+          >
             Belong to the revision they were written about, because that is the draft their author read.
           </Fact>
         </ul>
@@ -136,7 +152,7 @@ function Step({ icon: Icon, title, children }: { icon: LucideIcon; title: string
   );
 }
 
-function Fact({ term, children }: { term: string; children: ReactNode }) {
+function Fact({ term, children }: { term: ReactNode; children: ReactNode }) {
   return (
     <li className="text-xs leading-relaxed">
       <strong className="font-medium">{term}.</strong> <span className="text-muted-foreground">{children}</span>

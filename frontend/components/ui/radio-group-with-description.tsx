@@ -4,6 +4,7 @@ import * as React from 'react';
 import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
 import { CircleIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ReactNode } from 'react';
 
 export { RadioGroup } from './radio-group';
 
@@ -13,6 +14,8 @@ interface RadioGroupItemWithDescriptionProps {
   label: string;
   description: string;
   disabled?: boolean;
+  /** Rendered under the description, for options that need more than a line. */
+  help?: ReactNode;
 }
 
 export function RadioGroupItemWithDescription({
@@ -21,6 +24,7 @@ export function RadioGroupItemWithDescription({
   label,
   description,
   disabled = false,
+  help,
 }: RadioGroupItemWithDescriptionProps) {
   return (
     <label
@@ -51,6 +55,7 @@ export function RadioGroupItemWithDescription({
         <span className={cn('text-sm font-medium leading-none select-none', disabled && 'opacity-70')}>{label}</span>
       </div>
       <p className="text-sm text-muted-foreground pl-6">{description}</p>
+      {help && <p className="text-sm pl-6">{help}</p>}
     </label>
   );
 }

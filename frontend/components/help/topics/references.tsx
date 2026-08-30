@@ -1,7 +1,7 @@
 'use client';
 
 import { ScanSearch } from 'lucide-react';
-import { SectionTitle } from '../help-primitives';
+import { SectionTitle, TopicLink } from '../help-primitives';
 import { HelpTopicBodyProps } from '../topics';
 
 /**
@@ -34,8 +34,11 @@ export function ReferencesTopic({ onOpenTopic }: HelpTopicBodyProps) {
           appear in the document.
         </p>
         <p className="text-foreground/80 mt-2 leading-relaxed">
-          Extraction runs on its own as soon as the document is processed, and again on each new revision, so the list
-          always describes the draft you are reading.
+          Extraction runs on its own as soon as the document is processed, and again on each new{' '}
+          <TopicLink to="revisions" onOpenTopic={onOpenTopic}>
+            revision
+          </TopicLink>
+          , so the list always describes the draft you are reading.
         </p>
       </section>
 
@@ -71,7 +74,15 @@ export function ReferencesTopic({ onOpenTopic }: HelpTopicBodyProps) {
           </div>
         </div>
         <p className="text-foreground/80 mt-2 leading-relaxed">
-          This one needs nothing from you: the reference is all it reads.
+          This one needs nothing from you: the reference is all it reads. It is one of the{' '}
+          <TopicLink to="assessments" onOpenTopic={onOpenTopic}>
+            assessments
+          </TopicLink>
+          , and what it finds arrives as{' '}
+          <TopicLink to="issues" onOpenTopic={onOpenTopic}>
+            issues
+          </TopicLink>{' '}
+          like everything else.
         </p>
       </section>
 
@@ -83,16 +94,9 @@ export function ReferencesTopic({ onOpenTopic }: HelpTopicBodyProps) {
             A bibliography entry names a source, it does not contain one
           </strong>
           , so checking whether the work you cite actually says what you say it says takes the document itself —{' '}
-          {onOpenTopic ? (
-            <button
-              onClick={() => onOpenTopic('source-files')}
-              className="cursor-pointer underline underline-offset-2 hover:text-foreground"
-            >
-              a source file
-            </button>
-          ) : (
-            'a source file'
-          )}
+          <TopicLink to="source-files" onOpenTopic={onOpenTopic}>
+            a source file
+          </TopicLink>
           .
         </p>
       </section>

@@ -1,11 +1,14 @@
 'use client';
 
+import { HelpCenter } from '@/components/help/help-center';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
-import { LogInIcon, MenuIcon, XIcon } from 'lucide-react';
+import { CircleHelp, LogInIcon, MenuIcon, XIcon } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import { Button } from '../ui/button';
 import { MobileProfileMenu, ProfileDropdown } from './profile-dropdown';
 
@@ -24,6 +27,7 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
   const isLoadingUser = session.status === 'loading';
   const user = session.data?.user;
   const pathname = usePathname();
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const navigationWithCurrent = navigation.map((item) => ({
     ...item,
@@ -74,6 +78,17 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
               </div>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:items-center sm:gap-3">
+              {/* Beside the account menu, where the application's own controls
+                  live rather than the current page's. */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={() => setHelpOpen(true)} aria-label="Help">
+                    <CircleHelp />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Help</TooltipContent>
+              </Tooltip>
+
               {user ? (
                 <ProfileDropdown user={user} />
               ) : !isLoadingUser ? (
@@ -126,6 +141,18 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
                 Start new project
               </DisclosureButton>
             </div>
+            <div className="px-4 pb-3">
+              {/* The desktop cluster is hidden at this width, so the panel
+                  carries the same door. */}
+              <DisclosureButton
+                as="button"
+                onClick={() => setHelpOpen(true)}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <CircleHelp className="size-5" />
+                Help
+              </DisclosureButton>
+            </div>
             {user ? (
               <MobileProfileMenu user={user} />
             ) : !isLoadingUser ? (
@@ -144,6 +171,10 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
       </Disclosure>
 
       <main>{isFullBleed ? children : <div className="mx-auto max-w-7xl p-4 sm:px-6 lg:px-8">{children}</div>}</main>
+
+      {/* Outside the Disclosure: its panel unmounts when the menu closes, which
+          on mobile is the same click that asks for this dialog. */}
+      <HelpCenter open={helpOpen} onOpenChange={setHelpOpen} topic="assessments" />
     </div>
   );
 }
