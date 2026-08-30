@@ -11,6 +11,12 @@ interface MarginNoteProps {
   active: boolean;
   readOnly: boolean;
   onSelect: (issue: Issue) => void;
+  /**
+   * Whether this note belongs to a paragraph. Document-level issues sit at the
+   * top of the margin with nothing beside them, so they drop the leader rather
+   * than point at a paragraph that is not theirs.
+   */
+  anchored?: boolean;
 }
 
 /**
@@ -23,14 +29,14 @@ interface MarginNoteProps {
  * it. Growing the row instead pushes the notes below it down and leaves the
  * anchored paragraph where it is, since the text cell sits at the row's top.
  */
-export function MarginNote({ issue, active, readOnly, onSelect }: MarginNoteProps) {
+export function MarginNote({ issue, active, readOnly, onSelect, anchored = true }: MarginNoteProps) {
   const resolved = isIssueResolved(issue);
   const style = SEVERITY[issue.severity];
 
   if (active) {
     return (
       <div className="relative mb-1.5">
-        <Leader severity={issue.severity} />
+        {anchored && <Leader severity={issue.severity} />}
         <div className={cn('rounded-md border', style.edge, style.wash)}>
           <button
             onClick={() => onSelect(issue)}

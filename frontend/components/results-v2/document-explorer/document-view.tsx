@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import type { Element } from 'hast';
 import { ImageOff } from 'lucide-react';
 import { SEVERITY } from '@/lib/severity-style';
+import { DocumentIssues } from './document-issues';
 import { MarginNote } from './margin-note';
 import React, { Ref, createContext, useContext, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import ReactMarkdown, { type ExtraProps } from 'react-markdown';
@@ -301,6 +302,10 @@ export function DocumentView({ ref, markdown, issues, selectedLineRange, onIssue
   }));
 
   const lineIssues = useMemo(() => issues.filter(hasLineRange) as IssueWithLines[], [issues]);
+  // The rest: findings about the document rather than a place in it, like a
+  // missing Abbreviations section. Nothing anchors them, so the margin would
+  // drop them entirely and the header would count issues that are not on screen.
+  const documentIssues = useMemo(() => issues.filter((issue) => !hasLineRange(issue)), [issues]);
 
   // The parsed tree only depends on the markdown; highlights and click handlers
   // are applied imperatively below so a filter change never reparses.
@@ -380,7 +385,25 @@ export function DocumentView({ ref, markdown, issues, selectedLineRange, onIssue
       )}
     >
       <MarginContext.Provider value={marginState}>
-        <div className={cn('mx-auto', WIDTH_BASE, marginState && WIDTH_WITH_MARGIN)}>{renderedMarkdown}</div>
+        <div className={cn('mx-auto', WIDTH_BASE, marginState && WIDTH_WITH_MARGIN)}>
+          {marginState && documentIssues.length > 0 && (
+            <div className={cn('grid', GRID_BASE, GRID_WITH_MARGIN)}>
+              {/* Empty gutter and text cells: these notes sit above the document
+                  rather than beside any part of it. */}
+              <div aria-hidden />
+              <div aria-hidden />
+              <div className="col-start-3 hidden self-start pb-4 pl-4 xl:block">
+                <DocumentIssues
+                  issues={documentIssues}
+                  activeIssueId={marginState.activeIssueId}
+                  readOnly={marginState.readOnly}
+                  onSelect={marginState.onSelect}
+                />
+              </div>
+            </div>
+          )}
+          {renderedMarkdown}
+        </div>
       </MarginContext.Provider>
     </div>
   );
