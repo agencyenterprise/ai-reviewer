@@ -113,6 +113,10 @@ export function ReferencesTabV2({ projectDetail, readOnly }: ReferencesTabV2Prop
       <WorkflowConfigDialog
         isOpen={fetchAllOpen}
         type={WorkflowRunType.ReferenceDownloader}
+        title="Fetch source files from the web"
+        description="Draft Detective searches for each reference without a source file and downloads the full text when it finds one it can read."
+        helpTopic="source-files"
+        submitLabel="Fetch sources"
         projectId={projectId}
         onConfirm={handleFetchAllConfirm}
         onCancel={() => setFetchAllOpen(false)}

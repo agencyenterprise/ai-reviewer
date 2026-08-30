@@ -117,10 +117,10 @@ export function StartWorkflowButton({
       <AlertDialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Cancel {workflowName} workflow?</AlertDialogTitle>
+            <AlertDialogTitle>Cancel {workflowName}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will stop the currently running workflow. Any other workflows that depend on it will also be
-              cancelled. You can retrigger it at any time.
+              This stops the run in progress. Any assessment waiting on it is cancelled too. You can run it again at any
+              time.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -160,7 +160,7 @@ export function StartWorkflowButton({
                 {cancelWorkflowMutation.isPending ? <Loader2Icon className="animate-spin" /> : <XIcon />}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Cancel workflow</TooltipContent>
+            <TooltipContent>Cancel this run</TooltipContent>
           </Tooltip>
         )}
       </div>

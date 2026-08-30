@@ -90,7 +90,9 @@ export function FileUploadDialog({
   // Reference matching only applies to supporting documents (that aren't
   // already tied to a specific reference); other roles skip it.
   const activeSkipMatching = activeRole !== FileRole.Support;
-  const activeSuccessMessage = isMemoUpload ? 'Reviewer memos uploaded.' : 'Files uploaded. Matching workflow started.';
+  const activeSuccessMessage = isMemoUpload
+    ? 'Reviewer memos uploaded.'
+    : 'Files uploaded. Matching them to your references.';
   // Only memos carry a revision; sending one for any other role is a 400.
   const activeRevision = isMemoUpload ? selectedRevision : undefined;
   // Shown even when there is only one revision: memos are always bound to a
@@ -126,7 +128,7 @@ export function FileUploadDialog({
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
       toast.success(activeSuccessMessage);
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to start file matching workflow'));
+      toast.error(getErrorMessage(error, 'Failed to match the files to your references'));
     } finally {
       setIsStartingWorkflow(false);
       onComplete?.();
@@ -209,7 +211,7 @@ export function FileUploadDialog({
               <DialogTitle>{isStartingWorkflow ? 'Starting file matching...' : 'Uploading files'}</DialogTitle>
               <DialogDescription>
                 {isStartingWorkflow
-                  ? 'Starting the file matching workflow to match uploaded files to references.'
+                  ? 'Matching the uploaded files to your references.'
                   : 'Your files are being uploaded. You can cancel at any time.'}
               </DialogDescription>
             </DialogHeader>

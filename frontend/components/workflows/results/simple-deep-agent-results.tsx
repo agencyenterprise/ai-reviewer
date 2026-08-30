@@ -107,7 +107,7 @@ export function SimpleDeepAgentResults({
   const state = workflowDetail.state as SimpleDeepAgentState | undefined;
 
   if (!state?.result) {
-    return <EmptyState message="No results available for this workflow run." />;
+    return <EmptyState message="No results available for this run." />;
   }
 
   const { result } = state;

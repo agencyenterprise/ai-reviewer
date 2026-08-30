@@ -144,14 +144,14 @@ export function WorkflowTypeSelector({
       )}
       <div className="space-y-3">
         {isLoadingWorkflowTypes ? (
-          <p className="text-sm text-muted-foreground">Loading available workflows...</p>
+          <p className="text-sm text-muted-foreground">Loading available assessments...</p>
         ) : restrictToType !== undefined ? (
           // Single-type mode: render from API types directly. Category config often omits internal workflows,
           // so walking categories would show nothing even when restrictToType is valid.
           workflowTypes.length > 0 ? (
             <div className="space-y-2">{workflowTypes.map(renderCheckbox)}</div>
           ) : (
-            <p className="text-sm text-muted-foreground">This workflow type is not available for your account.</p>
+            <p className="text-sm text-muted-foreground">This assessment is not available for your account.</p>
           )
         ) : (
           visibleGroups.map(({ category, workflows }) => (

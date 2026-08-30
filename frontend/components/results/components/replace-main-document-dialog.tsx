@@ -160,7 +160,7 @@ export function ReplaceMainDocumentDialog({
         }
         return 'Uploading document...';
       case 'starting-workflows':
-        return 'Starting assessment workflows...';
+        return 'Starting assessments...';
       default:
         return '';
     }

@@ -65,7 +65,7 @@ export function StepAnalyses() {
             <Loader2 className="w-12 h-12 animate-spin text-primary" />
             <div className="text-center space-y-2">
               <h2 className="text-xl font-semibold">Starting Assessment</h2>
-              <p className="text-sm text-muted-foreground">Starting workflows...</p>
+              <p className="text-sm text-muted-foreground">Starting assessments...</p>
             </div>
           </div>
         </CardContent>
