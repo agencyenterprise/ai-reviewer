@@ -4,7 +4,7 @@ import { CopyReferencesDialog } from '@/components/references/copy-references-di
 import { useFetchAllFromWebMutation } from '@/components/results/tabs/reference-review/mutations';
 import { useReferenceReviewReferences } from '@/components/results/tabs/reference-review/queries';
 import { ReferenceReviewStatus } from '@/components/results/tabs/reference-review/types';
-import { HelpCenter } from '@/components/help/help-center';
+import { HelpLink } from '@/components/help/help-link';
 import { UnmatchedReferencesApproveDialog } from '@/components/results/tabs/reference-review/unmatched-references-approve-dialog';
 import { useReferenceApprovalFlow } from '@/components/results/tabs/reference-review/use-reference-approval-flow';
 import { useScrollToReference } from '@/components/results/tabs/reference-review/use-scroll-to-reference';
@@ -53,7 +53,6 @@ export function ReferencesTabV2({ projectDetail, readOnly }: ReferencesTabV2Prop
   const [copyOpen, setCopyOpen] = useState(false);
   const [fetchAllOpen, setFetchAllOpen] = useState(false);
   const [batchUploadOpen, setBatchUploadOpen] = useState(false);
-  const [explainOpen, setExplainOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useScrollToReference();
@@ -135,7 +134,6 @@ export function ReferencesTabV2({ projectDetail, readOnly }: ReferencesTabV2Prop
         open={copyOpen}
         onOpenChange={setCopyOpen}
       />
-      <HelpCenter open={explainOpen} onOpenChange={setExplainOpen} topic="source-files" />
       <UnmatchedReferencesApproveDialog
         open={approval.showUnmatchedWarning}
         onOpenChange={approval.setShowUnmatchedWarning}
@@ -151,7 +149,6 @@ export function ReferencesTabV2({ projectDetail, readOnly }: ReferencesTabV2Prop
             rail.close();
           }}
           counts={counts}
-          onExplain={() => setExplainOpen(true)}
         />
       </Rail>
 
@@ -328,7 +325,6 @@ export function ReferencesTabV2({ projectDetail, readOnly }: ReferencesTabV2Prop
               projectId={projectId}
               readOnly={readOnly}
               disabled={approval.isProcessingFiles}
-              onExplain={() => setExplainOpen(true)}
             />
           )}
         </SidePane>
@@ -348,12 +344,10 @@ function LensRail({
   lens,
   onLensChange,
   counts,
-  onExplain,
 }: {
   lens: Lens;
   onLensChange: (lens: Lens) => void;
   counts: Record<'all' | 'unmatched' | 'matched' | 'fetching' | 'withFile', number>;
-  onExplain: () => void;
 }) {
   return (
     <div className="flex h-full flex-col">
@@ -390,10 +384,7 @@ function LensRail({
 
       <p className="shrink-0 border-t px-5 py-4 text-xs leading-relaxed text-muted-foreground">
         Some assessments — Claim Reference Validation among them — read the original source documents behind your
-        bibliographic references.{' '}
-        <button onClick={onExplain} className="cursor-pointer underline underline-offset-2 hover:text-foreground">
-          More details
-        </button>
+        bibliographic references. <HelpLink topic="source-files">More details</HelpLink>
       </p>
     </div>
   );

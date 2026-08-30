@@ -1,5 +1,6 @@
 'use client';
 
+import { HelpLink } from '@/components/help/help-link';
 import { StatusIndicator } from '@/components/ui/status-indicator';
 import { WorkflowRunStatus } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
@@ -64,7 +65,8 @@ export function StepRail({ states, activeStep, onSelectStep }: StepRailProps) {
 
       <p className="shrink-0 border-t px-5 py-4 text-xs leading-relaxed text-muted-foreground">
         Reviewer memos are documents peer reviewers wrote about your draft. These four steps read them, help you plan
-        and write the revision, and then report how fully each point was addressed.
+        and write the revision, and then report how fully each point was addressed.{' '}
+        <HelpLink topic="peer-review">More details</HelpLink>
       </p>
     </div>
   );

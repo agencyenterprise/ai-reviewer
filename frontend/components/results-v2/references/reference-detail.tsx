@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { FileDownloadLink } from '@/components/ui/file-download-link';
+import { HelpLink } from '@/components/help/help-link';
 import { WorkflowConfigDialog } from '@/components/workflows/workflow-config-dialog';
 import { MatchSource, WorkflowRunType } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
@@ -50,7 +51,6 @@ interface ReferenceDetailProps {
   /** Files are being processed project-wide, so edits here would race. */
   disabled: boolean;
   /** Opens the shared explanation of why source files are wanted. */
-  onExplain: () => void;
 }
 
 /**
@@ -59,7 +59,7 @@ interface ReferenceDetailProps {
  * the web fetch found. The list keeps only what you scan; this keeps what you
  * act on, so a row does not have to carry six controls.
  */
-export function ReferenceDetail({ reference, projectId, readOnly, disabled, onExplain }: ReferenceDetailProps) {
+export function ReferenceDetail({ reference, projectId, readOnly, disabled }: ReferenceDetailProps) {
   const { id, index, text, status, matchedFile, source, fetchResult } = reference;
   const [uploadMode, setUploadMode] = useState<'upload' | 'replace' | null>(null);
   const [fetchDialogOpen, setFetchDialogOpen] = useState(false);
@@ -192,12 +192,7 @@ export function ReferenceDetail({ reference, projectId, readOnly, disabled, onEx
                   {displayStatus === 'fetching'
                     ? 'We are searching the web for a copy of this source.'
                     : 'Source file has not been provided for this reference yet.'}{' '}
-                  <button
-                    onClick={onExplain}
-                    className="cursor-pointer text-muted-foreground underline underline-offset-2 hover:text-foreground"
-                  >
-                    What is this?
-                  </button>
+                  <HelpLink topic="source-files">What is this?</HelpLink>
                 </span>
               </p>
 

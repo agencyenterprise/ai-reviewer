@@ -1,5 +1,6 @@
 'use client';
 
+import { HelpLink } from '@/components/help/help-link';
 import { formatFileSize } from '@/components/analysis-form/utils';
 import { ReplaceMainDocumentDialog } from '@/components/results/components/replace-main-document-dialog';
 import { FileUploadDialog } from '@/components/results/tabs/reference-review/file-upload-dialog';
@@ -373,7 +374,7 @@ function KindRail({
 
       <p className="shrink-0 border-t px-5 py-4 text-xs leading-relaxed text-muted-foreground">
         Every file this project holds: the draft under review and the source documents behind its references.
-        Assessments read these files.
+        Assessments read these files. <HelpLink topic="source-files">More details</HelpLink>
       </p>
     </div>
   );

@@ -1,5 +1,6 @@
 'use client';
 
+import { HelpLink } from '@/components/help/help-link';
 import { IssueCountBadge } from '@/components/results/components/issue-count-badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -119,7 +120,7 @@ export function AssessmentRail({
 
       <p className="shrink-0 border-t px-5 py-4 text-xs leading-relaxed text-muted-foreground">
         Each assessment reads the document once and reports what it finds. Those findings are the issues the document
-        explorer marks up.
+        explorer marks up. <HelpLink topic="assessments">More details</HelpLink>
       </p>
     </div>
   );

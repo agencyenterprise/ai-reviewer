@@ -1,11 +1,13 @@
 'use client';
 
+import { HelpLink } from '@/components/help/help-link';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Issue, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { DocumentExplorerFilter, hasActiveFilters } from '@/lib/stores/document-explorer-store';
 import { cn } from '@/lib/utils';
+import { CircleHelp } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { OutlineEntry, issuesInSection } from './outline';
 
@@ -224,6 +226,18 @@ export function OutlineRail({
           </ol>
         )}
       </section>
+
+      {/* A row rather than a paragraph: this rail already carries filters and a
+          whole outline, and prose at the foot of it costs more than it explains. */}
+      <div className="shrink-0 border-t p-3">
+        <HelpLink
+          topic="issues"
+          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm no-underline transition-colors hover:bg-accent/60 hover:text-foreground"
+        >
+          <CircleHelp className="size-3.5 shrink-0" aria-hidden />
+          Help
+        </HelpLink>
+      </div>
     </div>
   );
 }
