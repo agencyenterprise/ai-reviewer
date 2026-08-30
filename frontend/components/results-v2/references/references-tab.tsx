@@ -4,7 +4,7 @@ import { CopyReferencesDialog } from '@/components/references/copy-references-di
 import { useFetchAllFromWebMutation } from '@/components/results/tabs/reference-review/mutations';
 import { useReferenceReviewReferences } from '@/components/results/tabs/reference-review/queries';
 import { ReferenceReviewStatus } from '@/components/results/tabs/reference-review/types';
-import { ReferenceReviewExplainer } from '@/components/results/tabs/reference-review/reference-review-explainer';
+import { HelpCenter } from '@/components/help/help-center';
 import { UnmatchedReferencesApproveDialog } from '@/components/results/tabs/reference-review/unmatched-references-approve-dialog';
 import { useReferenceApprovalFlow } from '@/components/results/tabs/reference-review/use-reference-approval-flow';
 import { useScrollToReference } from '@/components/results/tabs/reference-review/use-scroll-to-reference';
@@ -131,7 +131,7 @@ export function ReferencesTabV2({ projectDetail, readOnly }: ReferencesTabV2Prop
         open={copyOpen}
         onOpenChange={setCopyOpen}
       />
-      <ReferenceReviewExplainer open={explainOpen} onOpenChange={setExplainOpen} />
+      <HelpCenter open={explainOpen} onOpenChange={setExplainOpen} topic="source-files" />
       <UnmatchedReferencesApproveDialog
         open={approval.showUnmatchedWarning}
         onOpenChange={approval.setShowUnmatchedWarning}

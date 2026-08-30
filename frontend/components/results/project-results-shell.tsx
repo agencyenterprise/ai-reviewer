@@ -18,7 +18,7 @@ import { AnalysisOptionsMenu } from './components/analysis-options-menu';
 import { TabType } from './constants';
 import { ProjectViewProvider } from './project-view-context';
 import { derivePeerReviewFacts, peerReviewNeedsAttention } from './tabs/peer-review/peer-review-derive';
-import { ReferenceReviewExplainer } from './tabs/reference-review/reference-review-explainer';
+import { HelpCenter } from '@/components/help/help-center';
 import { UnmatchedReferencesApproveDialog } from './tabs/reference-review/unmatched-references-approve-dialog';
 import { useReferenceApprovalFlow } from './tabs/reference-review/use-reference-approval-flow';
 
@@ -157,9 +157,10 @@ export function ProjectResultsShell({
                 unmatchedCount={referenceApproval.unmatchedCount}
                 onConfirmApprove={referenceApproval.handleConfirmApprove}
               />
-              <ReferenceReviewExplainer
+              <HelpCenter
                 open={showExplanation}
                 onOpenChange={setShowExplanation}
+                topic="source-files"
                 onReviewReferences={() => {
                   setShowExplanation(false);
                   onTabChange('references');

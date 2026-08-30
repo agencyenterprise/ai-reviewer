@@ -1,15 +1,17 @@
 'use client';
 
+import { HelpCenter } from '@/components/help/help-center';
 import { ProfileDropdown } from '@/components/layout/profile-dropdown';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { cn } from '@/lib/utils';
-import { LogInIcon, Moon, Plus, Sun } from 'lucide-react';
+import { CircleHelp, LogInIcon, Moon, Plus, Sun } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 
 /**
  * Below this the bar is too narrow to float a centred title clear of the
@@ -40,6 +42,7 @@ export function AppBar({ title }: AppBarProps) {
   const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
   const canCentreTitle = useMediaQuery(WIDE_ENOUGH_TO_CENTRE_TITLE);
+  const [helpOpen, setHelpOpen] = useState(false);
   const user = session.data?.user;
   const isLoadingUser = session.status === 'loading';
 
@@ -101,6 +104,20 @@ export function AppBar({ title }: AppBarProps) {
       )}
 
       <div className="ml-auto flex items-center gap-1.5">
+        {/* Help belongs to the application, not to this project, so it sits in
+            this row rather than among the project's own actions — and stays
+            reachable from every tab. */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="size-7" onClick={() => setHelpOpen(true)} aria-label="Help">
+              <CircleHelp className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Help</TooltipContent>
+        </Tooltip>
+
+        <HelpCenter open={helpOpen} onOpenChange={setHelpOpen} topic="assessments" />
+
         {/* Dark mode sits in the bar rather than the account menu: it is a
             preference, not an account setting, and signed-out visitors want it too. */}
         <Button

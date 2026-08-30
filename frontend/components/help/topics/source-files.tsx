@@ -1,20 +1,13 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { SeverityEnum } from '@/lib/generated-api';
 import { SEVERITY } from '@/lib/severity-style';
 import { cn } from '@/lib/utils';
 import { ArrowRight, FileText, FileX2, Globe, LucideIcon, Upload } from 'lucide-react';
 import { ReactNode } from 'react';
+import { SectionTitle } from '../help-primitives';
+import { HelpTopicBodyProps } from '../topics';
 
 interface Verdict {
   severity: SeverityEnum;
@@ -74,94 +67,102 @@ const OUTCOMES: Verdict[] = [
   { severity: SeverityEnum.Medium, label: 'Unverifiable', gloss: 'There was nothing to check against.' },
 ];
 
-interface ReferenceReviewExplainerProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  /** Omitted when the reader is already on the References tab. */
-  onReviewReferences?: () => void;
-}
-
-export function ReferenceReviewExplainer({ open, onOpenChange, onReviewReferences }: ReferenceReviewExplainerProps) {
+/**
+ * The document behind a reference, and why one assessment cannot work without
+ * it. The examples carry the argument: side by side, the only thing separating
+ * a real verdict from an unverifiable one is whether we hold the source.
+ */
+export function SourceFilesTopic({ onReviewReferences, onOpenTopic }: HelpTopicBodyProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>Why Claim Reference Validation needs your sources</DialogTitle>
-          <DialogDescription>
-            This assessment reads your citations against the documents they cite. It waits here until you tell it the
-            sources are ready.
-          </DialogDescription>
-        </DialogHeader>
+    <div className="space-y-5">
+      <section>
+        <SectionTitle>The document behind a reference</SectionTitle>
+        <p className="text-foreground/80 leading-relaxed">
+          A source file is the actual paper, report or page that one of your{' '}
+          {onOpenTopic ? (
+            <button
+              onClick={() => onOpenTopic('references')}
+              className="cursor-pointer underline underline-offset-2 hover:text-foreground"
+            >
+              references
+            </button>
+          ) : (
+            'references'
+          )}{' '}
+          points at. It does not arrive with your draft, because{' '}
+          <strong className="text-foreground font-medium">
+            a bibliography entry names a source, it does not contain one
+          </strong>
+          . The References tab says, for each reference, whether one has been provided.
+        </p>
+        <p className="text-foreground/80 mt-2 leading-relaxed">
+          <strong className="text-foreground font-medium">Claim Reference Validation</strong> is the assessment that
+          needs them. It reads the document behind each citation and compares it to the claim you hung on it, which is
+          not something a bibliography entry can answer.
+        </p>
+      </section>
 
-        <div className="max-h-[65vh] space-y-5 overflow-y-auto text-sm">
-          <section>
-            <SectionTitle>The chain it follows</SectionTitle>
-            <div className="space-y-2">
-              {TRACES.map((trace) => (
-                <TraceCard key={trace.citation} trace={trace} />
-              ))}
-            </div>
-            <p className="text-foreground/80 mt-2 leading-relaxed">
-              Both citations are perfectly good. Only one can be checked, because{' '}
-              <strong className="text-foreground font-medium">
-                a bibliography entry names a source, it does not contain one
-              </strong>
-              .
-            </p>
-          </section>
-
-          <section>
-            <SectionTitle>What comes back</SectionTitle>
-            <ul className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
-              {OUTCOMES.map((outcome) => (
-                <li key={outcome.label} className="flex items-baseline gap-2">
-                  <span className={cn('mt-1.5 block size-1.5 shrink-0 rounded-full', SEVERITY[outcome.severity].dot)} />
-                  <span className="min-w-0 text-xs leading-snug">
-                    <strong className="font-medium">{outcome.label}</strong>{' '}
-                    <span className="text-muted-foreground">{outcome.gloss}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section>
-            <SectionTitle>What to do</SectionTitle>
-            <p className="text-foreground/80 leading-relaxed">
-              On the References tab, every reference we extracted is listed with the source matched to it. There are two
-              ways to close a gap.
-            </p>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              <Route icon={Globe} title="Fetch from the web">
-                Draft Detective searches the web for the reference and downloads the full text when it finds one it can
-                read.
-              </Route>
-              <Route icon={Upload} title="Upload it yourself">
-                Plenty of sources are private, paywalled, or closed to automated downloads. Add the file and we match it
-                to the reference.
-              </Route>
-            </div>
-            <p className="text-foreground/80 mt-2 leading-relaxed">
-              Then choose <strong className="text-foreground font-medium">Approve and Start Analysis</strong>. Approving
-              with gaps is fine: those claims come back{' '}
-              <strong className="text-foreground font-medium">unverifiable instead of checked</strong>, and everything
-              else runs normally.
-            </p>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Nothing else is waiting on this. Your other assessments work from the document alone, and their results
-              are already coming in.
-            </p>
-          </section>
+      <section>
+        <SectionTitle>Why the file matters</SectionTitle>
+        <div className="space-y-2">
+          {TRACES.map((trace) => (
+            <TraceCard key={trace.citation} trace={trace} />
+          ))}
         </div>
+        <p className="text-foreground/80 mt-2 leading-relaxed">
+          Both citations are perfectly good, and both would pass a check of the reference itself. Only one can be read
+          against its source.
+        </p>
+      </section>
 
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">Close</Button>
-          </DialogClose>
-          {onReviewReferences && <Button onClick={onReviewReferences}>Review references</Button>}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <section>
+        <SectionTitle>What comes back</SectionTitle>
+        <ul className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
+          {OUTCOMES.map((outcome) => (
+            <li key={outcome.label} className="flex items-baseline gap-2">
+              <span className={cn('mt-1.5 block size-1.5 shrink-0 rounded-full', SEVERITY[outcome.severity].dot)} />
+              <span className="min-w-0 text-xs leading-snug">
+                <strong className="font-medium">{outcome.label}</strong>{' '}
+                <span className="text-muted-foreground">{outcome.gloss}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section>
+        <SectionTitle>Giving a reference its source</SectionTitle>
+        <p className="text-foreground/80 leading-relaxed">
+          On the References tab, every reference is listed with the source matched to it. There are two ways to close a
+          gap.
+        </p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <Route icon={Globe} title="Fetch from the web">
+            Draft Detective searches the web for the reference and downloads the full text when it finds one it can
+            read.
+          </Route>
+          <Route icon={Upload} title="Upload it yourself">
+            Plenty of sources are private, paywalled, or closed to automated downloads. Add the file and we match it to
+            the reference.
+          </Route>
+        </div>
+        <p className="text-foreground/80 mt-2 leading-relaxed">
+          Then choose <strong className="text-foreground font-medium">Approve and Start Analysis</strong>. Approving
+          with gaps is fine: those claims come back{' '}
+          <strong className="text-foreground font-medium">unverifiable instead of checked</strong>, and everything else
+          runs normally.
+        </p>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          Source files are shared across revisions, so this is not work you repeat on the next draft.
+        </p>
+
+        {onReviewReferences && (
+          <Button size="sm" className="mt-3" onClick={onReviewReferences}>
+            Review references
+          </Button>
+        )}
+      </section>
+    </div>
   );
 }
 
@@ -234,8 +235,4 @@ function Route({ icon: Icon, title, children }: { icon: LucideIcon; title: strin
       <p className="text-xs leading-relaxed text-muted-foreground">{children}</p>
     </div>
   );
-}
-
-function SectionTitle({ children }: { children: ReactNode }) {
-  return <h3 className="mb-1.5 font-mono text-[10px] tracking-wide text-muted-foreground uppercase">{children}</h3>;
 }

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ProjectDetailed } from '@/lib/generated-api';
 import { BookOpen, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { ReferenceReviewExplainer } from '@/components/results/tabs/reference-review/reference-review-explainer';
+import { HelpCenter } from '@/components/help/help-center';
 
 interface ReferenceReviewBannerProps {
   projectDetail: ProjectDetailed;
@@ -56,9 +56,10 @@ export function ReferenceReviewBanner({ projectDetail, onReviewReferences }: Ref
         onConfirmApprove={approval.handleConfirmApprove}
       />
 
-      <ReferenceReviewExplainer
+      <HelpCenter
         open={showExplanation}
         onOpenChange={setShowExplanation}
+        topic="source-files"
         onReviewReferences={() => {
           setShowExplanation(false);
           onReviewReferences();
