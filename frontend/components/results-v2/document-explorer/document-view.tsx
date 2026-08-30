@@ -161,6 +161,9 @@ function blockFactory(Tag: string, spacing: string, className: string, isContain
     if (lineEnd !== undefined) dataProps['data-line-end'] = lineEnd;
 
     const isRow = !nested && lineStart !== undefined;
+    // The gutter rule belongs to the row, and a row is shared with every block
+    // nested inside it. Marking its owner keeps the others from writing to it.
+    if (isRow) dataProps['data-block-owner'] = '';
     const body = isContainer ? <NestedContext.Provider value>{children}</NestedContext.Provider> : children;
     const element = React.createElement(
       Tag,
@@ -330,7 +333,12 @@ export function DocumentView({ ref, markdown, issues, selectedLineRange, onIssue
       const lineEnd = Number(block.getAttribute('data-line-end'));
       if (!Number.isFinite(lineStart) || !Number.isFinite(lineEnd)) return;
 
-      const rule = block.closest('[data-block-row]')?.querySelector<HTMLElement>('[data-rule]');
+      // Only the row's own block. A list and each of its items resolve to the
+      // same row, so letting nested blocks write here meant the last item
+      // decided: an issue on the first bullet was cleared by the four below it.
+      const rule = block.hasAttribute('data-block-owner')
+        ? block.closest('[data-block-row]')?.querySelector<HTMLElement>('[data-rule]')
+        : null;
 
       block.classList.remove(...CLEARED_CLASSES);
       block.removeAttribute('data-issue-id');

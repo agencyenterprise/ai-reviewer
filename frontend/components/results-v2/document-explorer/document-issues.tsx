@@ -58,9 +58,12 @@ export function DocumentIssues({ issues, activeIssueId, readOnly, onSelect }: Do
         />
       ))}
 
-      {(hidden > 0 || (showAll && issues.length > COLLAPSED_COUNT)) && (
+      {/* Nothing to offer while the open issue is one of the folded ones:
+          collapsing would hide what the reader is reading, so the control would
+          be pressed and do nothing. */}
+      {!activeIsFolded && (hidden > 0 || (showAll && issues.length > COLLAPSED_COUNT)) && (
         <button
-          onClick={() => setExpanded(!showAll)}
+          onClick={() => setExpanded(!expanded)}
           aria-expanded={showAll}
           className="mt-0.5 flex cursor-pointer items-center gap-1 px-2 text-[11px] font-medium text-muted-foreground hover:text-foreground"
         >
