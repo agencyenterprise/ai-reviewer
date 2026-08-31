@@ -8,10 +8,12 @@ passed an incorrect one, in a recorded run:
 - the table counter required outer pipes, so a GFM table written without them
   counted zero rows, and it took the widest table, so a copied data table could
   mask a truncated inventory;
-- line ranges were checked for order but not against the document's length.
+- line ranges were checked for order but not against the document's length;
+- augmenting the matching freely could demote a title hit to a body hit, raising
+  the match count while attributing both classes to the wrong results.
 """
 
-from evals_inspectai.common.simple_deep_agent_types import IssueItem
+from evals_inspectai.common.simple_deep_agent_types import AgentCheckResult, IssueItem
 from evals_inspectai.e2e.results_extraction.results_extraction_e2e import (
     _inventory_checks,
     _match_expected,
@@ -61,6 +63,26 @@ class TestMatchExpected:
         ]
         assert _match_expected(issues, expected) == {"tab1": 1}
 
+    def test_a_title_match_is_never_demoted_to_a_body_match(self):
+        """Raising the match count is not worth mis-attributing a class.
+
+        The `alpha` issue mentions beta in its prose, and a second issue mentions
+        alpha only in its prose. Augmenting freely would move `alpha` onto that
+        second issue and hand its own titled issue to `beta` -- two matches
+        instead of one, both pointing at the wrong result. `alpha` keeps its
+        title hit and `beta` stays unmatched.
+        """
+        issues = [
+            _issue("Result: alpha measurement (Not Reproducible)", "compared against beta"),
+            _issue("Result: something unrelated (Not Reproducible)", "mentions alpha in passing"),
+        ]
+        expected = [
+            {"id": "alpha", "match": ["alpha"], "class": "not_reproducible", "importance": "central"},
+            {"id": "beta", "match": ["beta"], "class": "not_reproducible", "importance": "central"},
+        ]
+        matched = _match_expected(issues, expected)
+        assert matched == {"alpha": 0}, matched
+
     def test_two_results_merged_into_one_issue_leaves_one_unmatched(self):
         """One-to-one is what makes merging visible."""
         issues = [_issue("Result: alpha and beta together (Not Reproducible)")]
@@ -96,8 +118,6 @@ class TestTableRowCount:
 
 class TestLineRanges:
     def _checks(self, issue: IssueItem, document_lines: int):
-        from evals_inspectai.common.simple_deep_agent_types import AgentCheckResult
-
         result = AgentCheckResult(
             issues=[issue],
             report_markdown="x" * 500
@@ -124,8 +144,6 @@ class TestLineRanges:
         assert ok
 
     def test_duplicate_titles_are_caught(self):
-        from evals_inspectai.common.simple_deep_agent_types import AgentCheckResult
-
         duplicate = _issue("Result: alpha (Not Reproducible)", severity="high")
         result = AgentCheckResult(
             issues=[duplicate, duplicate.model_copy()],

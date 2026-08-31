@@ -9,14 +9,15 @@ inventory -- and writes the summary, inventory table and per-result detail to
 Scoring is in two parts, and every check is its own metric rather than one
 blended number, so a regression names itself in the results table:
 
-- `inventory_checks`: ten deterministic rules. Six are about the shape of the
-  delivery -- a substantive report, an inventory table covering every result,
+- `inventory_checks`: eleven deterministic rules. Seven are about the shape of
+  the delivery -- a substantive report, an inventory table covering every result,
   enough results found, a reproducibility label on every issue title, the
-  severity split the skill mandates, and usable line ranges. Four compare the
-  inventory against the dataset's ground truth: whether every expected result
-  was found, whether each was given the right reproducibility class, whether
-  anything was invented, and whether the severities of the non-reproducible
-  results are ordered by how much the document rests on them.
+  severity split the skill mandates, line ranges that land inside the document,
+  and no result reported twice. Four compare the inventory against the dataset's
+  ground truth: whether every expected result was found, whether each was given
+  the right reproducibility class, whether anything was invented, and whether the
+  severities of the non-reproducible results are ordered by how much the document
+  rests on them.
 - `rubric_criteria`: two judged criteria, each graded in its own call so a weak
   area cannot colour the rest -- whether each classification is grounded in
   what the document supplies, and the per-sample expectations from the dataset.
@@ -336,31 +337,45 @@ def _match_expected(
         title_edges.append(titles)
         body_edges.append(bodies)
 
+    combined = [title_edges[i] | body_edges[i] for i in range(len(expected))]
+
     # issue index -> expected index, the matching being built.
     owner: dict[int, int] = {}
 
-    def augment(e_index: int, edges: list[set[int]], seen: set[int]) -> bool:
-        """Match `e_index`, displacing already-matched results where possible."""
-        for i_index in sorted(edges[e_index]):
+    def augment(e_index: int, seen: set[int], allow_body: bool) -> bool:
+        """Match `e_index`, displacing already-matched results where possible.
+
+        `allow_body` is False for a result that currently holds a title hit: it
+        may be re-homed onto another title hit, but never demoted onto a body
+        hit. Without that restriction an unmatched result could push a
+        title-matched one onto a body-only issue, which raises the match count
+        while attributing both classifications to the wrong ground-truth
+        results -- a worse outcome than leaving the second result unmatched.
+        """
+        edges = combined[e_index] if allow_body else title_edges[e_index]
+        for i_index in sorted(edges):
             if i_index in seen:
                 continue
             seen.add(i_index)
-            if i_index not in owner or augment(owner[i_index], edges, seen):
+            holder = owner.get(i_index)
+            if holder is None:
+                owner[i_index] = e_index
+                return True
+            holder_on_title = i_index in title_edges[holder]
+            if augment(holder, seen, allow_body=not holder_on_title):
                 owner[i_index] = e_index
                 return True
         return False
 
-    # Pass 1: title hits only, so a strong pair is never displaced by a weak one.
+    # Pass 1: title hits only, so every title pairing that can be made, is.
     for e_index in range(len(expected)):
-        augment(e_index, title_edges, set())
+        augment(e_index, set(), allow_body=False)
 
-    # Pass 2: allow body hits, keeping every result matched in pass 1 matched.
-    combined = [title_edges[i] | body_edges[i] for i in range(len(expected))]
+    # Pass 2: the rest, by body hit, without disturbing any title pairing.
     matched_now = set(owner.values())
     for e_index in range(len(expected)):
-        if e_index not in matched_now:
-            if augment(e_index, combined, set()):
-                matched_now.add(e_index)
+        if e_index not in matched_now and augment(e_index, set(), allow_body=True):
+            matched_now.add(e_index)
 
     return {expected[e]["id"]: i for i, e in owner.items()}
 
@@ -616,9 +631,10 @@ def _inventory_checks(
 def inventory_checks() -> Scorer:
     """The deterministic rules, one metric per rule.
 
-    A single scorer returning a dict rather than six separate scorers: the
-    checks share the parse of the workflow state and the label extraction, and
-    Inspect reports each key as its own metric either way.
+    A single scorer returning a dict of eleven values rather than eleven separate
+    scorers: the checks share the parse of the workflow state, the label
+    extraction and the ground-truth matching, and Inspect reports each key as its
+    own metric either way.
     """
 
     async def score(state: TaskState, target: Target) -> Score:

@@ -275,11 +275,16 @@ async def grade_criteria(
     with themselves run to run. The default of 1 leaves existing callers exactly
     as they were.
     """
+    if calls_per_criterion < 1:
+        raise ValueError(
+            f"calls_per_criterion must be at least 1, got {calls_per_criterion}"
+        )
+
     rounds = await asyncio.gather(
         *(
             _grade_one(grader, criteria[key], answer, question, template)
             for key in keys
-            for _ in range(max(1, calls_per_criterion))
+            for _ in range(calls_per_criterion)
         )
     )
     per_key = [

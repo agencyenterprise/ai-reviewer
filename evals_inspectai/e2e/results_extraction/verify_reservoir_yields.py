@@ -10,17 +10,20 @@ replicates of a bisection, so it lives here instead.
 Every figure it prints should match the document. It exists because two of these
 documents shipped with numbers their own models could not produce.
 """
-import calendar, re
+import calendar
+import re
+from pathlib import Path
+from typing import Sequence
+
 import numpy as np
 import yaml
-from pathlib import Path
 
 records = yaml.safe_load(Path("evals_inspectai/e2e/results_extraction/dataset.yaml").read_text())
 doc = [r for r in records if r["id"] == "appendix_parameters"][0]["input"]
 
 rows = [(y, l) for y, l in re.findall(r"^\| (\d{4}-\d{2}) \| (.+) \|$", doc, re.M) if y[0] == "2"]
 WY_MONTHS = [10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-series = []                                   # (year, month, inflow Ml)
+series: list[tuple[int, int, float]] = []      # (year, month, inflow Ml)
 for label, line in rows:
     start = int(label[:4])
     vals = [int(x.strip().replace(",", "")) for x in line.split("|")]
@@ -34,11 +37,13 @@ CLIMATE = {m: v for m, v in enumerate(
     [1.08, 1.06, 1.02, 0.96, 0.91, 0.84, 0.79, 0.81, 0.88, 0.97, 1.04, 1.07], start=1)}
 
 
-def comp_rate(month):                          # Ml/d
+def comp_rate(month: int) -> float:            # Ml/d
     return 4.1 if 4 <= month <= 9 else 6.8
 
 
-def fails(months, demand, evap_scale=1.0):
+def fails(
+    months: Sequence[tuple[int, int, float]], demand: float, evap_scale: float = 1.0
+) -> int:
     """Count months whose mass balance would drive storage below zero."""
     storage, failures = SMAX, 0
     for year, month, inflow in months:
@@ -52,7 +57,11 @@ def fails(months, demand, evap_scale=1.0):
     return failures
 
 
-def yield_of(months, evap_scale=1.0, allowed_fraction=0.0):
+def yield_of(
+    months: Sequence[tuple[int, int, float]],
+    evap_scale: float = 1.0,
+    allowed_fraction: float = 0.0,
+) -> float:
     """Largest constant demand meeting the criterion, by bisection to 0.01 Ml/d."""
     allowed = int(len(months) * allowed_fraction)
     lo, hi = 0.0, 200.0
@@ -81,7 +90,7 @@ REPLICATES, YEARS = 1000, 60
 BURN = 12
 month_cycle = [(2001 + (k + 9) // 12, WY_MONTHS[k % 12]) for k in range(YEARS * 12 + BURN)]
 
-yields = []
+yields: list[float] = []
 for _ in range(REPLICATES):
     z, months = 0.0, []
     eps = rng.standard_normal(YEARS * 12 + BURN)
