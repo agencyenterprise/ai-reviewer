@@ -81,7 +81,11 @@ function ColumnChart({
           // Percentage of the plot height, reused to sit the tooltip on the bar's cap.
           const height = point.value === 0 ? '0px' : `max(2px, ${(point.value / max) * 100}%)`;
           return (
-            <div key={String(point.bucket)} className="group relative flex h-full flex-1 items-end" tabIndex={0}>
+            // Deliberately not focusable: a tab stop per bucket would put 273
+            // unnamed stops on the 90-day view between the reader and the rest
+            // of the page. The plot carries an aria-label and the data table
+            // below carries every value, which is the accessible path here.
+            <div key={String(point.bucket)} className="group relative flex h-full flex-1 items-end">
               {/*
                 The strip spans the full plot width so the bars stay under the
                 axis line and its end labels; the bar itself is capped and
@@ -92,7 +96,7 @@ function ColumnChart({
               <div className="mx-auto w-full max-w-6 rounded-t bg-[var(--viz-series-1)]" style={{ height }} />
               <div
                 className={cn(
-                  'pointer-events-none absolute z-20 hidden whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md group-hover:block group-focus-within:block',
+                  'pointer-events-none absolute z-20 hidden whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md group-hover:block',
                   alignment,
                 )}
                 style={{ bottom: `calc(${height} + 4px)` }}

@@ -1,6 +1,7 @@
 'use client';
 
 import { DashboardFeedbackSummary, WorkflowUsageItem } from '@/lib/generated-api';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { formatCompact, formatPercent } from './format';
 
@@ -91,7 +92,20 @@ export function RunOutcomes({
       </div>
 
       <div>
-        <h3 className="text-sm font-medium text-foreground">Feedback</h3>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <h3
+              tabIndex={0}
+              className="w-fit cursor-help text-sm font-medium text-foreground underline decoration-dotted underline-offset-2"
+            >
+              Feedback
+            </h3>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs">
+            Only feedback whose author chose to share it with administrators. Feedback left as private is never counted
+            here.
+          </TooltipContent>
+        </Tooltip>
         {feedbackTotal === 0 ? (
           <p className="mt-2 text-sm text-muted-foreground">No feedback in this period.</p>
         ) : (

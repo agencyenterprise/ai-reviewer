@@ -54,6 +54,17 @@ async def get_admin_dashboard(days: int) -> AdminDashboardResponse:
 
     async with _COMPUTATION_SLOT:
         async with get_async_db_session() as session:
+            # One snapshot for all eight aggregates. Without it they run under
+            # READ COMMITTED and each sees its own moment, so a run written
+            # mid-request can be counted by the activity series but not by the
+            # headline above it — the same quantity, disagreeing with itself on
+            # one screen. Read-only REPEATABLE READ cannot raise a
+            # serialization failure, so this costs nothing but the snapshot.
+            # Must precede any query in the transaction.
+            await session.execute(
+                text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+            )
+
             # SET LOCAL scopes the timeout to this transaction, so it is undone
             # when the session's connection returns to the shared pool.
             await session.execute(

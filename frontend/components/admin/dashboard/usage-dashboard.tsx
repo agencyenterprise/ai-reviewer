@@ -115,7 +115,7 @@ export function UsageDashboard() {
               comparisonLabel={comparisonLabel}
             />
             <StatTile
-              label="Feedback received"
+              label="Feedback shared"
               value={data.feedback_received.current}
               previous={data.feedback_received.previous}
               comparisonLabel={comparisonLabel}

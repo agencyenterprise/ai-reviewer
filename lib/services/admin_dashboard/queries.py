@@ -15,7 +15,7 @@ from sqlalchemy.sql.elements import ColumnElement
 from sqlmodel import col
 
 from lib.models.feedback import Feedback, FeedbackType
-from lib.models.project import Project
+from lib.models.project import FeedbackVisibility, Project
 from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.admin_dashboard.models import (
@@ -58,11 +58,35 @@ def _is_assessment() -> ColumnElement[bool]:
 
 
 def _in_current(window: DashboardWindow, ts: Mapped[datetime]) -> ColumnElement[bool]:
-    return ts >= window.start
+    """The selected window, upper bound included.
+
+    The bound is not decoration: without it a row written while the aggregates
+    are running lands in some of them and not others, and the payload can carry
+    counts for rows newer than the `period_end` it advertises.
+    """
+    return and_(ts >= window.start, ts < window.end)
 
 
 def _in_previous(window: DashboardWindow, ts: Mapped[datetime]) -> ColumnElement[bool]:
     return and_(ts >= window.previous_start, ts < window.start)
+
+
+def _is_shared_feedback() -> ColumnElement[bool]:
+    """Only feedback whose author allowed it to be shared with admins.
+
+    `PRIVATE` is the dialog's default and its copy is unambiguous — "Don't
+    share any information / Your feedback is visible only to you" — so private
+    feedback stays out of these aggregates entirely, sentiment and
+    has-a-comment included. Same predicate as the feedback listing endpoint
+    (`feedback_service.get_admin_feedbacks`), so the dashboard's totals and
+    that page cannot disagree about what an admin is allowed to see.
+
+    Requires the caller to have joined Feedback -> WorkflowRun -> Project.
+    """
+    return and_(
+        col(Project.feedback_visibility).is_not(None),
+        col(Project.feedback_visibility) != FeedbackVisibility.PRIVATE,
+    )
 
 
 def _current_and_previous_counts(
@@ -136,8 +160,9 @@ async def get_feedback_metrics(
 ) -> tuple[MetricWithDelta, DashboardFeedbackSummary]:
     """Feedback volume per window, and the thumbs split for the current one.
 
-    Counts only. Feedback text and its author stay behind the per-project
-    visibility rules the feedback listing endpoint enforces.
+    Counts only, and only over feedback its author agreed to share — see
+    `_is_shared_feedback`. Text and authorship never leave the listing
+    endpoint.
     """
     created_at = col(Feedback.created_at)
     feedback_type = col(Feedback.feedback_type)
@@ -166,7 +191,13 @@ async def get_feedback_metrics(
                 )
             )
         ),
-    ).where(created_at >= window.previous_start)
+    )
+    stmt = (
+        stmt.select_from(Feedback)
+        .join(WorkflowRun, col(Feedback.workflow_run_id) == col(WorkflowRun.id))
+        .join(Project, col(WorkflowRun.project_id) == col(Project.id))
+        .where(created_at >= window.previous_start, _is_shared_feedback())
+    )
 
     row = (await session.execute(stmt)).one()
     return (
@@ -203,7 +234,14 @@ async def get_activity(
     """Assessment runs, distinct active users, and new projects per bucket."""
     unit = window.granularity.value
 
-    run_bucket = func.date_trunc(unit, col(WorkflowRun.created_at))
+    # date_trunc on a timestamptz truncates in the session's TimeZone, which
+    # nothing here sets. Converting to UTC first makes the bucket keys match
+    # the UTC dates `_bucket_starts` generates whatever the database is set to;
+    # otherwise a non-UTC server shifts rows into a key the dense series has no
+    # slot for, and their counts silently vanish.
+    run_bucket = func.date_trunc(
+        unit, func.timezone("UTC", col(WorkflowRun.created_at))
+    )
     runs_stmt = (
         select(
             run_bucket.label("bucket"),
@@ -212,14 +250,16 @@ async def get_activity(
         )
         .select_from(WorkflowRun)
         .join(Project, col(WorkflowRun.project_id) == col(Project.id))
-        .where(col(WorkflowRun.created_at) >= window.start, _is_assessment())
+        .where(_in_current(window, col(WorkflowRun.created_at)), _is_assessment())
         .group_by(run_bucket)
     )
 
-    project_bucket = func.date_trunc(unit, col(Project.created_at))
+    project_bucket = func.date_trunc(
+        unit, func.timezone("UTC", col(Project.created_at))
+    )
     projects_stmt = (
         select(project_bucket.label("bucket"), func.count().label("projects"))
-        .where(col(Project.created_at) >= window.start)
+        .where(_in_current(window, col(Project.created_at)))
         .group_by(project_bucket)
     )
 
@@ -243,7 +283,11 @@ async def get_activity(
 async def _get_feedback_by_workflow_type(
     session: AsyncSession, window: DashboardWindow
 ) -> dict[str, tuple[int, int]]:
-    """Thumbs up/down per workflow type, keyed by the run's type slug."""
+    """Thumbs up/down per workflow type, keyed by the run's type slug.
+
+    Shared feedback only, for the same reason the totals are — a per-workflow
+    breakdown of private feedback discloses it just as surely.
+    """
     feedback_type = col(Feedback.feedback_type)
     stmt = (
         select(
@@ -253,7 +297,8 @@ async def _get_feedback_by_workflow_type(
         )
         .select_from(Feedback)
         .join(WorkflowRun, col(Feedback.workflow_run_id) == col(WorkflowRun.id))
-        .where(col(Feedback.created_at) >= window.start)
+        .join(Project, col(WorkflowRun.project_id) == col(Project.id))
+        .where(_in_current(window, col(Feedback.created_at)), _is_shared_feedback())
         .group_by(col(WorkflowRun.type))
     )
     rows = (await session.execute(stmt)).all()
@@ -289,7 +334,7 @@ async def get_workflow_usage(
             )
             .label("median_duration"),
         )
-        .where(col(WorkflowRun.created_at) >= window.start)
+        .where(_in_current(window, col(WorkflowRun.created_at)))
         .group_by(col(WorkflowRun.type))
         .order_by(func.count().desc())
     )
@@ -346,7 +391,7 @@ async def get_top_users(
         .select_from(WorkflowRun)
         .join(Project, col(WorkflowRun.project_id) == col(Project.id))
         .join(User, col(Project.user_id) == col(User.id))
-        .where(col(WorkflowRun.created_at) >= window.start, _is_assessment())
+        .where(_in_current(window, col(WorkflowRun.created_at)), _is_assessment())
         .group_by(col(User.id), col(User.name), col(User.email), col(User.role))
         .order_by(run_count.desc())
         .limit(limit)
