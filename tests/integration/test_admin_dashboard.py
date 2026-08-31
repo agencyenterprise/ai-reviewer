@@ -10,6 +10,7 @@ assessment slug: the two are counted differently, and that difference is the
 thing most likely to break.
 """
 
+import asyncio
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -230,3 +231,39 @@ async def test_fixture_rows_move_the_totals(dashboard_data):
     assert response.feedback.with_comment >= 1
     assert response.total_users >= 1
     assert response.period_days == 1
+
+
+@pytest.mark.asyncio
+async def test_only_one_computation_runs_at_a_time(dashboard_data, monkeypatch):
+    """The guard that keeps this page from slowing the rest of the app down.
+
+    Each computation holds one connection from a pool of 8 (+3 overflow) that
+    every other request shares, so concurrent callers have to queue rather than
+    compete. Without the semaphore in the service, 25 concurrent requests took
+    an ordinary /api/projects call from 24 ms to 780 ms.
+    """
+    in_flight = 0
+    peak = 0
+    real_get_user_metrics = queries.get_user_metrics
+
+    async def counting_get_user_metrics(session, window):
+        nonlocal in_flight, peak
+        in_flight += 1
+        peak = max(peak, in_flight)
+        try:
+            # An await point inside the guarded section: if two computations
+            # could overlap, this is where they would.
+            await asyncio.sleep(0.02)
+            return await real_get_user_metrics(session, window)
+        finally:
+            in_flight -= 1
+
+    monkeypatch.setattr(queries, "get_user_metrics", counting_get_user_metrics)
+
+    responses = await asyncio.gather(
+        *[get_admin_dashboard(days=1) for _ in range(6)]
+    )
+
+    assert peak == 1
+    assert len(responses) == 6
+    assert all(response.period_days == 1 for response in responses)
