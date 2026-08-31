@@ -1,5 +1,6 @@
+import asyncio
 import re
-from typing import Callable, TypeVar
+from typing import Any, Callable, Mapping, Sequence, TypeVar
 
 from inspect_ai.model import Model, get_model
 from inspect_ai.scorer import (
@@ -149,3 +150,134 @@ def structured_output_scorer(
         )
 
     return score
+
+
+# --- Per-check and per-criterion scoring -----------------------------------
+#
+# The helpers below back the "one metric per check" pattern: a scorer returns a
+# dict-valued Score and declares `metrics={name: [mean(), stderr()]}`, so every
+# check names itself in the results table instead of being averaged into a
+# single number a reader has to decode from an explanation string. Inspect
+# raises when a declared metric key is missing from any sample's score, so every
+# code path has to return the full key set -- which is what `failed_score` is
+# for.
+
+
+def failed_score(keys: Sequence[str], reason: str) -> Score:
+    """Score every key as failed, for an output there is nothing to check in."""
+    return Score(value={key: 0.0 for key in keys}, explanation=reason)
+
+
+def checks_to_score(checks: Mapping[str, tuple[bool | float, str]]) -> Score:
+    """Turn per-check results into a dict-valued Score.
+
+    A check is usually a bool, but may be a fraction when the check is over a
+    set of items (say, how many of the expected findings were located). Whole
+    values read as PASS / FAIL and anything between shows the number, so the
+    explanation stays scannable either way.
+    """
+
+    def label(ok: bool | float) -> str:
+        value = float(ok)
+        if value == 1.0:
+            return "PASS"
+        if value == 0.0:
+            return "FAIL"
+        return f"{value:.2f}"
+
+    return Score(
+        value={name: float(ok) for name, (ok, _) in checks.items()},
+        explanation=" | ".join(
+            f"{label(ok)} {name}: {detail}" for name, (ok, detail) in checks.items()
+        ),
+    )
+
+
+# --- Judged criteria -------------------------------------------------------
+
+# C / P / I as the grader returns them.
+GRADE_VALUES = {"C": 1.0, "P": 0.5, "I": 0.0}
+
+# Inspect's fact template asks "does the submission contain the content in the
+# expert answer?", which suits a criterion describing what the output should
+# say. It misgrades a criterion that states a *property* the output must have --
+# the grader looks for the submission to restate the rule and marks a compliant
+# output partial for not discussing it. This template asks for verification
+# instead, and is the one to pass for requirement-shaped criteria.
+REQUIREMENT_TEMPLATE = """
+You are checking whether a submitted document review satisfies one specific requirement.
+
+[BEGIN DATA]
+************
+[Document under review]: {question}
+************
+[Requirement]: {criterion}
+************
+[Submission]: {answer}
+************
+[END DATA]
+
+Decide whether the submission satisfies the requirement. Judge the submission's own
+content and decisions against the requirement. The submission is not expected to
+restate, quote or discuss the requirement itself, and must not be penalised for
+not doing so. Ignore differences of style, grammar and punctuation.
+
+{instructions}
+"""
+
+
+def criteria_for(state: TaskState, shared: dict[str, str]) -> dict[str, str]:
+    """Shared criteria, with any per-sample text from the dataset layered on."""
+    overrides = (state.metadata or {}).get("rubric") or {}
+    return {**shared, **overrides}
+
+
+async def _grade_one(
+    grader: Model, criterion: str, answer: str, question: str, template: str
+) -> tuple[float, str]:
+    """Grade a single criterion, returning its value and the grader's reasoning."""
+    prompt = template.format(
+        question=question,
+        answer=answer,
+        criterion=criterion,
+        instructions=default_instructions(partial_credit=True),
+    )
+    result = await grader.generate(prompt)
+    match = re.search(DEFAULT_GRADE_PATTERN, result.completion)
+    if not match:
+        return 0.0, f"grade not found in grader output: {result.completion[:300]}"
+    return GRADE_VALUES.get(match.group(1), 0.0), result.completion
+
+
+async def grade_criteria(
+    grader: Model,
+    keys: Sequence[str],
+    criteria: dict[str, str],
+    answer: str,
+    question: str,
+    template: str = DEFAULT_MODEL_GRADED_FACT_TEMPLATE,
+) -> Score:
+    """Grade each criterion in its own call, concurrently, into one Score.
+
+    One grader call per criterion rather than one call weighing all of them.
+    Judging them together lets a single weak area colour the rest, which is the
+    behaviour that made a single blended grade hard to act on. The calls run
+    concurrently, so the extra cost is tokens rather than wall clock.
+
+    `template` selects the prompt: the default fact template for criteria that
+    describe expected content, `REQUIREMENT_TEMPLATE` for criteria that state a
+    property the output must have.
+    """
+    graded = await asyncio.gather(
+        *(
+            _grade_one(grader, criteria[key], answer, question, template)
+            for key in keys
+        )
+    )
+    return Score(
+        value={key: value for key, (value, _) in zip(keys, graded)},
+        explanation="\n\n".join(
+            f"### {key}: {value}\n{reasoning}"
+            for key, (value, reasoning) in zip(keys, graded)
+        ),
+    )

@@ -18,6 +18,7 @@ class IssueItem(BaseModel):
     description: str = ""
     severity: str = "medium"
     long_description: Optional[str] = None
+    suggested_action: Optional[str] = None
     start_line: int = 0
     end_line: int = 0
 
