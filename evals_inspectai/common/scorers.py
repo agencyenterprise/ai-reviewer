@@ -1,5 +1,6 @@
 import asyncio
 import re
+import statistics
 from typing import Any, Callable, Mapping, Sequence, TypeVar
 
 from inspect_ai.model import Model, get_model
@@ -256,6 +257,7 @@ async def grade_criteria(
     answer: str,
     question: str,
     template: str = DEFAULT_MODEL_GRADED_FACT_TEMPLATE,
+    calls_per_criterion: int = 1,
 ) -> Score:
     """Grade each criterion in its own call, concurrently, into one Score.
 
@@ -267,17 +269,38 @@ async def grade_criteria(
     `template` selects the prompt: the default fact template for criteria that
     describe expected content, `REQUIREMENT_TEMPLATE` for criteria that state a
     property the output must have.
+
+    `calls_per_criterion` above 1 grades each criterion that many times and takes
+    the median, which is worth paying for on a criterion whose graders disagree
+    with themselves run to run. The default of 1 leaves existing callers exactly
+    as they were.
     """
-    graded = await asyncio.gather(
+    rounds = await asyncio.gather(
         *(
             _grade_one(grader, criteria[key], answer, question, template)
             for key in keys
+            for _ in range(max(1, calls_per_criterion))
         )
     )
+    per_key = [
+        rounds[i * calls_per_criterion : (i + 1) * calls_per_criterion]
+        for i in range(len(keys))
+    ]
+    values = {
+        key: statistics.median(value for value, _ in graded)
+        for key, graded in zip(keys, per_key)
+    }
     return Score(
-        value={key: value for key, (value, _) in zip(keys, graded)},
+        value=values,
         explanation="\n\n".join(
-            f"### {key}: {value}\n{reasoning}"
-            for key, (value, reasoning) in zip(keys, graded)
+            f"### {key}: {values[key]}"
+            + (
+                f" (median of {len(graded)}: {[v for v, _ in graded]})"
+                if len(graded) > 1
+                else ""
+            )
+            + "\n"
+            + "\n\n--- next grader call ---\n\n".join(r for _, r in graded)
+            for key, graded in zip(keys, per_key)
         ),
     )
