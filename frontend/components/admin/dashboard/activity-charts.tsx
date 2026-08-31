@@ -120,16 +120,29 @@ export function ActivityCharts({
 
   return (
     <div className="space-y-4">
+      {/*
+        Each series is its own panel, divided by a hairline: three plots sharing
+        a row read as one chart with three groups otherwise, and they have
+        neither a shared axis nor a shared scale. The rule turns into a
+        horizontal one once the panels stack.
+      */}
       <div className="grid gap-6 md:grid-cols-3">
-        {SERIES.map((series) => (
-          <ColumnChart
+        {SERIES.map((series, index) => (
+          <div
             key={series.key}
-            title={series.title}
-            unit={series.unit}
-            additive={series.additive}
-            granularity={bucketUnit}
-            points={activity.map((point) => ({ bucket: point.bucket, value: point[series.key] }))}
-          />
+            className={cn(
+              'min-w-0',
+              index > 0 && 'border-t border-border pt-6 md:border-t-0 md:border-l md:pt-0 md:pl-6',
+            )}
+          >
+            <ColumnChart
+              title={series.title}
+              unit={series.unit}
+              additive={series.additive}
+              granularity={bucketUnit}
+              points={activity.map((point) => ({ bucket: point.bucket, value: point[series.key] }))}
+            />
+          </div>
         ))}
       </div>
 
