@@ -73,12 +73,50 @@ export function IssueNav({ position, total, onStep }: IssueNavProps) {
   );
 }
 
+/**
+ * The things that hold the keyboard while they are up — menus and alerts as
+ * much as plain dialogs, since each brings its own typeahead and its own
+ * Escape.
+ *
+ * Roles rather than open-state attributes, because the app speaks two dialects:
+ * Radix stamps `data-state="open"`, Headless UI stamps `data-open`, and the
+ * user menu is the second kind. Whether one is up is asked of the focus
+ * instead, which is the thing at issue and which no library can spell
+ * differently. Tooltips are left out on purpose — one is open for as long as
+ * the pointer rests on a button, and they take no focus.
+ */
+const OVERLAYS = '[role="dialog"],[role="alertdialog"],[role="menu"],[role="listbox"]';
+
+function overlayHasKeyboard(target: EventTarget | null): boolean {
+  const focused = document.activeElement;
+  if (focused instanceof HTMLElement && focused.closest(OVERLAYS)) return true;
+  return target instanceof HTMLElement && !!target.closest(OVERLAYS);
+}
+
 /** Widgets that steer themselves with the arrow keys and must keep them. */
 const ARROW_OWNERS = '[role="menu"],[role="listbox"],[role="radiogroup"],[role="tablist"],[role="slider"]';
 
 function isTyping(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
+}
+
+/**
+ * Whether the arrows are already spoken for where the press landed.
+ *
+ * Either a widget that navigates itself with them, or a region with more to the
+ * side than it can show: the document gives wide tables, code and maths their
+ * own horizontal scroll, a browser lets the keyboard pan those, and taking Left
+ * and Right would strand the part hanging off the edge.
+ */
+function ownsArrows(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.closest(ARROW_OWNERS)) return true;
+
+  for (let node: HTMLElement | null = target; node; node = node.parentElement) {
+    if (node.scrollWidth > node.clientWidth && /auto|scroll/.test(getComputedStyle(node).overflowX)) return true;
+  }
+  return false;
 }
 
 /**
@@ -106,7 +144,7 @@ export function useIssueShortcuts({
       // Chords belong to the browser and the system, and an open dialog owns
       // the keyboard until it closes — the Escape that dismisses it included.
       if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
-      if (isTyping(event.target) || document.querySelector('[role="dialog"][data-state="open"]')) return;
+      if (isTyping(event.target) || overlayHasKeyboard(event.target)) return;
 
       const key = event.key.toLowerCase();
       if (event.key === 'Escape') {
@@ -116,8 +154,7 @@ export function useIssueShortcuts({
         return;
       }
 
-      const arrow = key.startsWith('arrow');
-      if (arrow && (event.target as HTMLElement | null)?.closest?.(ARROW_OWNERS)) return;
+      if (key.startsWith('arrow') && ownsArrows(event.target)) return;
 
       const delta = matches(KEYS.next, key) ? 1 : matches(KEYS.previous, key) ? -1 : null;
       if (delta === null) return;
