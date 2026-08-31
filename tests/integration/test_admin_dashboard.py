@@ -151,13 +151,16 @@ async def dashboard_data():
         _run(
             project.id, slug, WorkflowRunStatus.COMPLETED, NOW + timedelta(hours=6), 5
         ),
-        # 01:30 UTC yesterday: under a UTC-3 session this falls on the day
-        # before, which is what makes the bucketing test able to fail.
+        # 01:30 UTC two days back: under a UTC-3 session this falls on the day
+        # before, which is what makes the bucketing test able to fail. Two days
+        # rather than one so it is outside a one-day window whatever time of
+        # day the suite runs — at 00:30 UTC, "yesterday at 01:30" is 23 hours
+        # ago, and the exact counts below would pick it up.
         _run(
             project.id,
             ASSESSMENT_SLUG,
             WorkflowRunStatus.COMPLETED,
-            (NOW - timedelta(days=1)).replace(
+            (NOW - timedelta(days=2)).replace(
                 hour=1, minute=30, second=0, microsecond=0
             ),
             5,
@@ -423,3 +426,35 @@ async def test_buckets_do_not_move_with_the_database_timezone(dashboard_data):
         shifted = await queries.get_activity(session, window)
 
     assert shifted == in_utc
+
+
+@pytest.mark.asyncio
+async def test_the_transaction_carries_a_snapshot_and_a_timeout(
+    dashboard_data, monkeypatch
+):
+    """Both settings are load-bearing and both fail silently if removed.
+
+    Drop the isolation level and the aggregates go back to seeing eight
+    different moments; drop the timeout and a pathological plan pins the
+    connection every queued caller is waiting for. Neither loss breaks a test
+    that only checks numbers, so this one reads the settings off the session the
+    service actually opened.
+    """
+    observed: dict[str, str] = {}
+    real_get_user_metrics = queries.get_user_metrics
+
+    async def peeking_get_user_metrics(session, window):
+        observed["isolation"] = (
+            await session.execute(text("SHOW transaction_isolation"))
+        ).scalar_one()
+        observed["timeout"] = (
+            await session.execute(text("SHOW statement_timeout"))
+        ).scalar_one()
+        return await real_get_user_metrics(session, window)
+
+    monkeypatch.setattr(queries, "get_user_metrics", peeking_get_user_metrics)
+
+    await get_admin_dashboard(days=1)
+
+    assert observed["isolation"] == "repeatable read"
+    assert observed["timeout"] == "15s"
