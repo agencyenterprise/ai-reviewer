@@ -402,6 +402,15 @@ async def test_only_one_computation_runs_at_a_time(dashboard_data, monkeypatch):
     compete. Without the semaphore in the service, 25 concurrent requests took
     an ordinary /api/projects call from 24 ms to 780 ms.
     """
+    # A semaphore binds to the loop that first awaits it, and pytest-asyncio
+    # gives each test its own loop. Sharing the module-level one across the two
+    # tests that touch it raises "bound to a different event loop" for whichever
+    # runs second — masked today only because xdist usually puts them in
+    # different processes. A fresh slot per test keeps the property under test
+    # (the service serialises through whatever is in that attribute) without
+    # the cross-loop coupling.
+    monkeypatch.setattr(service, "_COMPUTATION_SLOT", asyncio.Semaphore(1))
+
     in_flight = 0
     peak = 0
     real_get_user_metrics = queries.get_user_metrics
@@ -572,14 +581,19 @@ async def test_issue_only_sharing_covers_the_issue_and_nothing_else(dashboard_da
 
 
 @pytest.mark.asyncio
-async def test_period_end_is_when_the_figures_were_computed(dashboard_data):
+async def test_period_end_is_when_the_figures_were_computed(
+    dashboard_data, monkeypatch
+):
     """Not when the request arrived, which is what the page would misreport.
 
     Requests queue behind the computation slot, so a caller that waited its
     turn would otherwise print an "as of" from before the wait — and its window
     would end there too, silently excluding anything that happened during it.
     """
-    async with service._COMPUTATION_SLOT:
+    slot = asyncio.Semaphore(1)  # this test's own loop; see the note above
+    monkeypatch.setattr(service, "_COMPUTATION_SLOT", slot)
+
+    async with slot:
         queued = asyncio.create_task(get_admin_dashboard(days=1))
         await asyncio.sleep(0.3)  # long enough for the task to reach the slot
         released_at = datetime.now(timezone.utc)
