@@ -29,6 +29,8 @@ export interface ScrollAnchor {
 export interface DocumentViewHandle {
   scrollToLineRange: (range: [number, number]) => void;
   scrollToLine: (line: number, behavior?: ScrollBehavior) => void;
+  /** Where the findings that belong to no paragraph are gathered. */
+  scrollToTop: () => void;
   /** Where the reader is, precisely enough to put them back after a reflow. */
   getScrollAnchor: () => ScrollAnchor | null;
   scrollToAnchor: (anchor: ScrollAnchor) => void;
@@ -317,6 +319,7 @@ export function DocumentView({
     scrollToLineRange: (range: [number, number]) => scrollToRange(range, { at: 'center' }),
     scrollToLine: (line: number, behavior: ScrollBehavior = 'smooth') =>
       scrollToRange([line, line], { at: 'top', offset: 12 }, behavior),
+    scrollToTop: () => containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' }),
     getScrollAnchor: () => {
       const container = containerRef.current;
       if (!container) return null;
