@@ -38,7 +38,7 @@ export default async function RootLayout({
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-full`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
           <PostHogProvider>
             <SessionProvider session={session}>
               <QueryProvider>
