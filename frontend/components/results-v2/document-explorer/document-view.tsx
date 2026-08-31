@@ -6,8 +6,7 @@ import { cn } from '@/lib/utils';
 import type { Element } from 'hast';
 import { ImageOff } from 'lucide-react';
 import { SEVERITY } from '@/lib/severity-style';
-import { DocumentIssues } from './document-issues';
-import { MarginNote } from './margin-note';
+import { MarginLayer } from './margin-layer';
 import React, { Ref, createContext, useContext, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import ReactMarkdown, { type ExtraProps } from 'react-markdown';
 import rehypeMathML from '@daiji256/rehype-mathml';
@@ -21,16 +20,36 @@ interface IssueWithLines extends Issue {
   end_line?: number | null;
 }
 
+/** The reader's place: a block, and where in the pane its top was sitting. */
+export interface ScrollAnchor {
+  line: number;
+  offset: number;
+}
+
 export interface DocumentViewHandle {
   scrollToLineRange: (range: [number, number]) => void;
   scrollToLine: (line: number, behavior?: ScrollBehavior) => void;
-  /** Source line of the block currently at the top of the pane. */
-  getTopVisibleLine: () => number | null;
+  /** Where the findings that belong to no paragraph are gathered. */
+  scrollToTop: () => void;
+  /** Where the reader is, precisely enough to put them back after a reflow. */
+  getScrollAnchor: () => ScrollAnchor | null;
+  scrollToAnchor: (anchor: ScrollAnchor) => void;
+}
+
+/** What the document says about itself, as extracted by the summarizer. */
+export interface DocumentHeader {
+  title?: string | null;
+  authors?: string | null;
 }
 
 interface DocumentViewProps {
   ref?: Ref<DocumentViewHandle>;
   markdown: string;
+  /**
+   * Title and authors shown above the text, scrolling with it. Omit when the
+   * document has not been summarized yet.
+   */
+  header?: DocumentHeader;
   issues: Issue[];
   selectedLineRange: [number, number] | null;
   onIssueSelect: (issue: Issue | null) => void;
@@ -83,6 +102,25 @@ function rangesOverlap(a: [number, number], b: [number, number]): boolean {
 const SCROLL_RETRY_MS = 50;
 const SCROLL_MAX_ATTEMPTS = 20;
 
+/**
+ * A block's top in the scrolling pane's own coordinates.
+ *
+ * Not `offsetTop`: the text column is positioned, since the margin layer is
+ * placed against it, so a block's offsets are measured from the column rather
+ * than from the pane, and every one of them is short by the pane's padding.
+ */
+function topInPane(container: HTMLElement, block: HTMLElement): number {
+  return (
+    block.getBoundingClientRect().top -
+    container.getBoundingClientRect().top -
+    container.clientTop +
+    container.scrollTop
+  );
+}
+
+/** Where a block should come to rest: centred, or its top this far down the pane. */
+type Placement = { at: 'center' } | { at: 'top'; offset: number };
+
 /** First rendered block whose source lines overlap `range`, or null while none is laid out. */
 function findBlockForRange(container: HTMLElement, range: [number, number]): HTMLElement | null {
   const blocks = container.querySelectorAll<HTMLElement>('[data-line-start][data-line-end]');
@@ -129,22 +167,6 @@ interface MarginState {
 const MarginContext = createContext<MarginState | null>(null);
 
 /**
- * Notes for one row: the issues that *begin* inside it. An issue can span several
- * blocks, so anchoring on its first line keeps each note in exactly one place —
- * and keeps this pure, which claiming into a shared set was not: React invokes a
- * component's render more than once, and the second pass would find its own
- * issues already taken.
- */
-function useRowNotes(lineStart: number | undefined, lineEnd: number | undefined) {
-  const margin = useContext(MarginContext);
-  if (!margin || lineStart === undefined || lineEnd === undefined) return null;
-
-  const notes = margin.issues.filter((issue) => issue.start_line! >= lineStart && issue.start_line! <= lineEnd);
-
-  return { notes, margin };
-}
-
-/**
  * `spacing` goes on the row rather than the element so the line number stays on
  * the first line of its block — a heading's top margin has to move both columns
  * or the number drifts above the text it belongs to.
@@ -179,12 +201,15 @@ function blockFactory(Tag: string, spacing: string, className: string, isContain
     );
 
     const content = scrollWrap ? <div className="max-w-full overflow-x-auto">{element}</div> : element;
-    const row = useRowNotes(isRow ? lineStart : undefined, isRow ? lineEnd : undefined);
+    // The column is still reserved in margin mode even though nothing is put in
+    // it here: the text column has to keep the same width in both modes, and the
+    // notes are placed over this column by MarginLayer.
+    const inMargin = useContext(MarginContext) !== null;
 
     if (!isRow) return content;
 
     return (
-      <div data-block-row className={cn('grid', spacing, GRID_BASE, row && GRID_WITH_MARGIN)}>
+      <div data-block-row className={cn('grid', spacing, GRID_BASE, inMargin && GRID_WITH_MARGIN)}>
         {/* The rule sits beside the text rather than in the gutter cell so it
             measures the paragraph, not the row — a row can be tall because its
             margin holds several notes. */}
@@ -197,19 +222,6 @@ function blockFactory(Tag: string, spacing: string, className: string, isContain
           <span data-rule className="w-[2px] shrink-0 rounded-full bg-transparent" />
           <div className="min-w-0 flex-1">{content}</div>
         </div>
-        {row && (
-          <div className="col-start-3 hidden self-start pl-4 xl:block">
-            {row.notes.map((issue) => (
-              <MarginNote
-                key={issue.id}
-                issue={issue}
-                active={row.margin.activeIssueId === issue.id}
-                readOnly={row.margin.readOnly}
-                onSelect={row.margin.onSelect}
-              />
-            ))}
-          </div>
-        )}
       </div>
     );
   }
@@ -242,6 +254,14 @@ const BLOCK_COMPONENTS = {
     <td className="border-t px-2 py-1.5 align-top">{children}</td>
   ),
   hr: blockFactory('hr', 'my-5', ''),
+  // Links are inert here: a click anywhere in the document picks the paragraph's
+  // issues, and following a link instead would take the reader off the page mid
+  // review. The destination still shows on hover.
+  a: ({ href, children }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+    <span className="underline decoration-muted-foreground/40 underline-offset-2" title={href}>
+      {children}
+    </span>
+  ),
   // DOCX extraction leaves images with no src behind; rendering them as <img>
   // makes the browser refetch the page, so show the alt text instead.
   img: ({ src, alt }: React.ImgHTMLAttributes<HTMLImageElement>) =>
@@ -256,7 +276,15 @@ const BLOCK_COMPONENTS = {
     ),
 };
 
-export function DocumentView({ ref, markdown, issues, selectedLineRange, onIssueSelect, margin }: DocumentViewProps) {
+export function DocumentView({
+  ref,
+  markdown,
+  header,
+  issues,
+  selectedLineRange,
+  onIssueSelect,
+  margin,
+}: DocumentViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -265,7 +293,7 @@ export function DocumentView({ ref, markdown, issues, selectedLineRange, onIssue
    * arrives from another tab's route. Scrolls the container itself rather than
    * block.scrollIntoView(), which would also scroll ancestors.
    */
-  const scrollToRange = (range: [number, number], align: 'center' | 'start', behavior: ScrollBehavior = 'smooth') => {
+  const scrollToRange = (range: [number, number], place: Placement, behavior: ScrollBehavior = 'smooth') => {
     let attempts = 0;
     const attempt = () => {
       const container = containerRef.current;
@@ -277,31 +305,40 @@ export function DocumentView({ ref, markdown, issues, selectedLineRange, onIssue
         return;
       }
 
-      // `container` is positioned, so offsetTop is already relative to it.
+      const blockTop = topInPane(container, block);
       const top =
-        align === 'center'
-          ? block.offsetTop - container.clientHeight / 2 + block.offsetHeight / 2
-          : block.offsetTop - 12;
+        place.at === 'center'
+          ? blockTop - container.clientHeight / 2 + block.offsetHeight / 2
+          : blockTop - place.offset;
       container.scrollTo({ top: Math.max(0, top), behavior });
     };
     attempt();
   };
 
   useImperativeHandle(ref, () => ({
-    scrollToLineRange: (range: [number, number]) => scrollToRange(range, 'center'),
-    scrollToLine: (line: number, behavior: ScrollBehavior = 'smooth') => scrollToRange([line, line], 'start', behavior),
-    getTopVisibleLine: () => {
+    scrollToLineRange: (range: [number, number]) => scrollToRange(range, { at: 'center' }),
+    scrollToLine: (line: number, behavior: ScrollBehavior = 'smooth') =>
+      scrollToRange([line, line], { at: 'top', offset: 12 }, behavior),
+    scrollToTop: () => containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' }),
+    getScrollAnchor: () => {
       const container = containerRef.current;
       if (!container) return null;
       const blocks = container.querySelectorAll<HTMLElement>('[data-line-start]');
       for (const block of blocks) {
-        if (block.offsetTop + block.offsetHeight > container.scrollTop) {
+        const top = topInPane(container, block);
+        if (top + block.offsetHeight > container.scrollTop) {
           const line = Number(block.getAttribute('data-line-start'));
-          return Number.isFinite(line) ? line : null;
+          if (!Number.isFinite(line)) return null;
+          // How far down the pane the block was sitting, kept so that restoring
+          // puts the reader back on the line they were reading rather than
+          // snapping the paragraph's top to the fold. Negative once the block
+          // has started scrolling off.
+          return { line, offset: top - container.scrollTop };
         }
       }
       return null;
     },
+    scrollToAnchor: ({ line, offset }: ScrollAnchor) => scrollToRange([line, line], { at: 'top', offset }, 'auto'),
   }));
 
   const lineIssues = useMemo(() => issues.filter(hasLineRange) as IssueWithLines[], [issues]);
@@ -393,26 +430,49 @@ export function DocumentView({ ref, markdown, issues, selectedLineRange, onIssue
       )}
     >
       <MarginContext.Provider value={marginState}>
-        <div className={cn('mx-auto', WIDTH_BASE, marginState && WIDTH_WITH_MARGIN)}>
-          {marginState && documentIssues.length > 0 && (
-            <div className={cn('grid', GRID_BASE, GRID_WITH_MARGIN)}>
-              {/* Empty gutter and text cells: these notes sit above the document
-                  rather than beside any part of it. */}
-              <div aria-hidden />
-              <div aria-hidden />
-              <div className="col-start-3 hidden self-start pb-4 pl-4 xl:block">
-                <DocumentIssues
-                  issues={documentIssues}
-                  activeIssueId={marginState.activeIssueId}
-                  readOnly={marginState.readOnly}
-                  onSelect={marginState.onSelect}
-                />
-              </div>
-            </div>
-          )}
+        <div className={cn('relative mx-auto', WIDTH_BASE, marginState && WIDTH_WITH_MARGIN)}>
+          <DocumentHeading header={header} inMargin={marginState !== null} />
           {renderedMarkdown}
+          {marginState && (
+            <MarginLayer
+              issues={lineIssues}
+              documentIssues={documentIssues}
+              activeIssueId={marginState.activeIssueId}
+              readOnly={marginState.readOnly}
+              onSelect={marginState.onSelect}
+            />
+          )}
         </div>
       </MarginContext.Provider>
     </div>
+  );
+}
+
+/**
+ * The document's own title block, in the text column and scrolling with it. The
+ * markdown starts at the abstract or the first heading, so without this the
+ * reader has no idea which document they are looking at once the shell's title
+ * is out of view.
+ */
+function DocumentHeading({ header, inMargin }: { header?: DocumentHeader; inMargin: boolean }) {
+  const title = header?.title?.trim();
+  const authors = header?.authors?.trim();
+  if (!title && !authors) return null;
+
+  return (
+    <header className={cn('grid', GRID_BASE, inMargin && GRID_WITH_MARGIN)}>
+      {/* The gutter stays empty: the heading is not part of the source text, so
+          there is no line number to put beside it. */}
+      <div aria-hidden />
+      {/* Matches a block row's rule and gap so the heading starts on the same
+          column as every paragraph below it. */}
+      <div className="flex min-w-0 gap-2">
+        <span className="w-[2px] shrink-0" aria-hidden />
+        <hgroup className="mb-6 min-w-0 flex-1 border-b pb-4">
+          {title && <h1 className="text-lg font-semibold tracking-tight text-balance">{title}</h1>}
+          {authors && <p className="mt-1 text-xs text-muted-foreground">{authors}</p>}
+        </hgroup>
+      </div>
+    </header>
   );
 }

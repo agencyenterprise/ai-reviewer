@@ -9,6 +9,7 @@ from lib.services.file import FileDocument
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     FileArtifactsServiceType,
 )
+from lib.skills import strip_interactive_only
 from lib.workflows.document_summarization.state import FileSummary
 from lib.workflows.reference_extraction.state import ExtractedReference
 
@@ -115,5 +116,7 @@ class MockFileArtifactsService(FileArtifactsServiceType):
                     virtual_path = (
                         "/" + skill_file.relative_to(project_root).as_posix()
                     )
-                    files[virtual_path] = create_file_data(skill_file.read_text())
+                    files[virtual_path] = create_file_data(
+                        strip_interactive_only(skill_file.read_text())
+                    )
         return files

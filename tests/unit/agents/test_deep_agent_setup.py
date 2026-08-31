@@ -51,6 +51,15 @@ class TestAgentFiles:
         assert "/main.md" not in files
         assert any(path.startswith("/skills/") for path in files)
 
+    def test_mounted_skills_drop_the_web_search_consent_step(self) -> None:
+        """Nobody is there to answer, and consent was settled before the run."""
+
+        files = build_skill_files()
+        mounted = str(files["/skills/reference-validation/SKILL.md"]["content"])
+        assert "interactive-only" not in mounted
+        assert "Do you consent" not in mounted
+        assert "# Reference Validation" in mounted
+
 
 class TestNumberingParagraphs:
     def test_each_paragraph_carries_its_index(self) -> None:

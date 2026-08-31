@@ -23,8 +23,9 @@ import { WIDE_ENOUGH_FOR_PANE, useMediaQuery } from '@/lib/use-media-query';
 import { cn } from '@/lib/utils';
 import { AlertTriangleIcon, Columns2, ListFilter, Loader2 } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { DocumentView, DocumentViewHandle } from './document-view';
+import { DocumentHeader, DocumentView, DocumentViewHandle } from './document-view';
 import { IssuesColumn, IssuesColumnHandle, issueCountLabel } from './issues-column';
+import { IssueNav, useIssueShortcuts } from './issue-nav';
 import { Rail, RailToggle, SidePane, useRailState } from '../panes';
 import { OutlineRail } from './outline-rail';
 import { OutlineEntry, extractOutline } from './outline';
@@ -79,6 +80,17 @@ export function DocumentExplorerTabV2({
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
   const issues = useMemo(() => projectDetail.issues ?? [], [projectDetail.issues]);
 
+  const documentSummarization = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentSummarization);
+  // What the summarizer read off the document itself, which is what the reader
+  // wants at the top of the page — not the project's name, which is editable
+  // and often just the uploaded file name.
+  const documentHeader = useMemo<DocumentHeader | undefined>(() => {
+    const state = documentSummarization?.state;
+    const summary = state?.summaries?.find((item) => item.file_id === state.main_file_id);
+    if (!summary) return undefined;
+    return { title: summary.title, authors: summary.authors };
+  }, [documentSummarization]);
+
   const documentProcessing = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
   const isDocumentProcessing = isWorkflowProcessing(documentProcessing);
   const isAnyProcessing = isAnyWorkflowProcessing(workflowDetails);
@@ -125,8 +137,22 @@ export function DocumentExplorerTabV2({
   // which is the same width the rail sits beside the text at.
   const issuesVisible = showIssuesColumn || (mode === 'margin' && rail.isWide);
 
+  /** Closing a finding, wherever the reader asked for it: a heading, or Escape. */
+  const handleCloseIssue = useCallback(() => {
+    setOpenIssueId(null);
+    clearLineSelection();
+  }, [clearLineSelection]);
+
   const handleSelectIssue = useCallback(
     (issue: Issue) => {
+      // Pressing the open row's heading closes it, as pressing the open note's
+      // does in the margin: the two are the same control on the same issue, so
+      // they cannot answer the same press differently.
+      if (openIssueId === issue.id) {
+        handleCloseIssue();
+        return;
+      }
+
       const range = getIssueLineRange(issue);
       // Opening the issue does not depend on it having a range: start_line is
       // nullable, and an issue with none can only be read here.
@@ -139,15 +165,14 @@ export function DocumentExplorerTabV2({
         clearLineSelection();
       }
     },
-    [selectLineRange, clearLineSelection],
+    [openIssueId, handleCloseIssue, selectLineRange, clearLineSelection],
   );
 
   /** Toggles a margin note without moving the document under the reader. */
   const handleToggleMarginNote = useCallback(
     (issue: Issue) => {
       if (openIssueId === issue.id) {
-        setOpenIssueId(null);
-        clearLineSelection();
+        handleCloseIssue();
         return;
       }
       const range = getIssueLineRange(issue);
@@ -155,8 +180,64 @@ export function DocumentExplorerTabV2({
       if (range) selectLineRange(range);
       else clearLineSelection();
     },
-    [openIssueId, selectLineRange, clearLineSelection],
+    [openIssueId, handleCloseIssue, selectLineRange, clearLineSelection],
   );
+
+  /**
+   * The issues in the order the reader meets them: the ones about the whole
+   * document first, since that is where the margin gathers them, then the rest
+   * by the line they mark. Not the severity order the list is grouped into —
+   * stepping through that would send the reader up and down the document.
+   */
+  const orderedIssues = useMemo(() => {
+    const anchored: Issue[] = [];
+    const unanchored: Issue[] = [];
+    for (const issue of highlightIssues) (getIssueLineRange(issue) ? anchored : unanchored).push(issue);
+    anchored.sort((a, b) => getIssueLineRange(a)![0] - getIssueLineRange(b)![0]);
+    return [...unanchored, ...anchored];
+  }, [highlightIssues]);
+
+  const activeIndex = useMemo(
+    () => (activeIssueId ? orderedIssues.findIndex((issue) => issue.id === activeIssueId) : -1),
+    [orderedIssues, activeIssueId],
+  );
+
+  /** Takes the reader to an issue, wherever in the document it sits. */
+  const goToIssue = useCallback(
+    (issue: Issue) => {
+      const range = getIssueLineRange(issue);
+      setOpenIssueId(issue.id);
+      issuesRef.current?.scrollToIssue(issue);
+      if (range) {
+        selectLineRange(range);
+        documentRef.current?.scrollToLineRange(range);
+        return;
+      }
+      // Nothing anchors this one, so the margin keeps it above the first
+      // paragraph and that is the only place it can be shown.
+      clearLineSelection();
+      documentRef.current?.scrollToTop();
+    },
+    [selectLineRange, clearLineSelection],
+  );
+
+  // No issue open leaves the index at -1, so the first step forwards lands on
+  // the first issue and the first step back falls off the front and does nothing.
+  const handleStepIssue = useCallback(
+    (delta: 1 | -1) => {
+      const issue = orderedIssues[activeIndex + delta];
+      if (issue) goToIssue(issue);
+    },
+    [orderedIssues, activeIndex, goToIssue],
+  );
+
+  // Bound on the same condition the stepper is drawn on, so the keys and the
+  // control it belongs to arrive and leave together.
+  useIssueShortcuts({
+    enabled: issuesVisible && orderedIssues.length > 0,
+    onStep: handleStepIssue,
+    onClose: handleCloseIssue,
+  });
 
   const handleIssueSelectFromDocument = useCallback(
     (issue: Issue | null) => {
@@ -185,17 +266,20 @@ export function DocumentExplorerTabV2({
   );
 
   /**
-   * Margin rows grow to fit the notes beside them, so the document is taller in
-   * margin mode than in list mode. Switching therefore lands on a different part
-   * of the text unless the reader's place is carried across.
+   * The two modes give the text column all but the same width, so the document
+   * rewraps a little on the way across and the reader's place drifts. Carrying
+   * a block and its offset moves them back to the line they were on — the line
+   * alone would have been enough while margin rows still grew to fit their
+   * notes, but now that the notes float, snapping a paragraph's top to the fold
+   * would move the reader further than the drift it corrects.
    */
   const handleModeChange = useCallback(
     (next: 'margin' | 'list') => {
       if (next === mode) return;
-      const line = documentRef.current?.getTopVisibleLine() ?? null;
+      const anchor = documentRef.current?.getScrollAnchor() ?? null;
       setMode(next);
-      if (line !== null) {
-        setTimeout(() => documentRef.current?.scrollToLine(line, 'auto'), 0);
+      if (anchor) {
+        setTimeout(() => documentRef.current?.scrollToAnchor(anchor), 0);
       }
     },
     [mode],
@@ -275,39 +359,53 @@ export function DocumentExplorerTabV2({
               </Tooltip>
             )}
 
-            {!issuesVisible && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button size="xs" variant="outline" className="ml-auto" onClick={() => setIssuesOpen(true)}>
-                    <ListFilter className="size-3" />
-                    Issues
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Every issue found in this document</TooltipContent>
-              </Tooltip>
-            )}
+            <div className="ml-auto flex shrink-0 items-center gap-2">
+              {/* Only while something on screen can show what it steps to.
+                  Below the width the margin and the column arrive at, the
+                  issues live in a sheet the reader opens, and stepping would
+                  move the document without ever showing them the finding. */}
+              {issuesVisible && (
+                <IssueNav
+                  position={activeIndex >= 0 ? activeIndex + 1 : null}
+                  total={orderedIssues.length}
+                  onStep={handleStepIssue}
+                />
+              )}
 
-            <div className="ml-auto hidden items-center gap-1 rounded-md border p-0.5 xl:flex">
-              {MODES.map((option) => (
-                <Tooltip key={option.id}>
+              {!issuesVisible && (
+                <Tooltip>
                   <TooltipTrigger asChild>
-                    <button
-                      onClick={() => handleModeChange(option.id)}
-                      aria-pressed={mode === option.id}
-                      className={cn(
-                        'flex cursor-pointer items-center gap-1.5 rounded-sm px-2 py-0.5 text-xs font-medium transition-colors',
-                        mode === option.id
-                          ? 'bg-accent text-accent-foreground'
-                          : 'text-muted-foreground hover:bg-accent/60',
-                      )}
-                    >
-                      <option.icon className="size-3.5" />
-                      {option.label}
-                    </button>
+                    <Button size="xs" variant="outline" onClick={() => setIssuesOpen(true)}>
+                      <ListFilter className="size-3" />
+                      Issues
+                    </Button>
                   </TooltipTrigger>
-                  <TooltipContent>{option.hint}</TooltipContent>
+                  <TooltipContent>Every issue found in this document</TooltipContent>
                 </Tooltip>
-              ))}
+              )}
+
+              <div className="hidden items-center gap-1 rounded-md border p-0.5 xl:flex">
+                {MODES.map((option) => (
+                  <Tooltip key={option.id}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => handleModeChange(option.id)}
+                        aria-pressed={mode === option.id}
+                        className={cn(
+                          'flex cursor-pointer items-center gap-1.5 rounded-sm px-2 py-0.5 text-xs font-medium transition-colors',
+                          mode === option.id
+                            ? 'bg-accent text-accent-foreground'
+                            : 'text-muted-foreground hover:bg-accent/60',
+                        )}
+                      >
+                        <option.icon className="size-3.5" />
+                        {option.label}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>{option.hint}</TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -315,6 +413,7 @@ export function DocumentExplorerTabV2({
             <DocumentView
               ref={documentRef}
               markdown={mainDocumentMarkdown}
+              header={documentHeader}
               issues={highlightIssues}
               selectedLineRange={selectedLineRange}
               onIssueSelect={handleIssueSelectFromDocument}

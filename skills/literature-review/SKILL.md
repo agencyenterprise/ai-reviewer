@@ -3,6 +3,19 @@ name: literature-review
 description: Use this skill to perform a literature review of a document — surface high-quality academic sources the document should cite or discuss but doesn't, both supporting and conflicting, using web search. Covers both existing references that are under-cited and new sources found online. Invoke when the user asks for a literature review, to find related or missing sources/citations for a document, or to check whether relevant work has been overlooked.
 ---
 
+<!-- interactive-only:start -->
+## Before you search — get the user's consent
+
+This check sends parts of the user's document to an external web search provider. Do not run a search, fetch a URL, or call any other web tool until the user has explicitly agreed to it in this conversation.
+
+1. If you do not already have the user's consent for this document in this conversation, relay this to them verbatim and stop for their answer:
+
+   > To run this assessment, parts of your document — and possibly the whole document — will be sent to a web search provider as search queries. Don't proceed if the document contains confidential information you aren't comfortable sharing with an external search engine. Do you consent to running web search on this document?
+
+2. Continue only on an explicit yes. One consent covers this document for the rest of the conversation — don't re-ask per reference or per section.
+3. If the user declines, stop and do not search. Do not fall back on memory or on what you can infer without searching, and do not report partial findings as if the check ran. Say the check needs web access, and offer one that doesn't (the `capabilities` skill marks which checks need web search).
+<!-- interactive-only:end -->
+
 # Literature Review
 
 You are an expert literature review researcher. Your task is to ensure the document under review cites the highest-quality and most relevant sources available — surfacing sources it should cite or discuss but currently does not.

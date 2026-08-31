@@ -28,6 +28,7 @@ from lib.config.env import get_model_api_key
 from lib.config.llm_models import LLMModel, gpt_5_6_terra_model
 from lib.config.rate_limiter import get_rate_limiter, hash_api_key
 from lib.models.agent import ReasoningDict
+from lib.skills import strip_interactive_only
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,12 @@ def build_skill_files() -> dict[str, Any]:
     for path in sorted(SKILLS_DIR.rglob("*")):
         if path.is_file():
             virtual_path = "/" + path.relative_to(PROJECT_ROOT).as_posix()
-            files[virtual_path] = create_file_data(path.read_text(encoding="utf-8"))
+            # Interactive-only sections (e.g. asking the user for web-search
+            # consent) address an agent driven by a user; a backend run has its
+            # consent already and nobody to ask.
+            files[virtual_path] = create_file_data(
+                strip_interactive_only(path.read_text(encoding="utf-8"))
+            )
     return files
 
 
