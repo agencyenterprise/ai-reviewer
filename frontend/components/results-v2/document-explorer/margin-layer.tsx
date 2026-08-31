@@ -1,7 +1,7 @@
 'use client';
 
 import { Issue } from '@/lib/generated-api';
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { DocumentIssues } from './document-issues';
 import { MarginNote } from './margin-note';
 
@@ -65,17 +65,26 @@ export function MarginLayer({ issues, documentIssues, activeIssueId, readOnly, o
       : anchored;
   }, [issues, documentIssues]);
 
-  useLayoutEffect(() => {
-    const layer = layerRef.current;
-    const body = layer?.parentElement;
-    if (!layer || !body) return;
+  const layout = useCallback(() => {
+    const body = layerRef.current?.parentElement;
+    if (!body) return;
 
-    const layout = () => {
+    {
       const bodyTop = body.getBoundingClientRect().top;
-      const owners = Array.from(body.querySelectorAll<HTMLElement>('[data-block-owner]'));
+
+      // Ranges read once per pass rather than per note. Both lists are in
+      // document order — owners because the DOM is, entries because they were
+      // sorted — so one moving index walks them together instead of rescanning
+      // every paragraph for every note.
+      const owners = Array.from(body.querySelectorAll<HTMLElement>('[data-block-owner]')).map((element) => ({
+        element,
+        start: Number(element.dataset.lineStart),
+        end: Number(element.dataset.lineEnd),
+      }));
 
       const next: Record<string, number> = {};
       let cursor = 0;
+      let owner = 0;
 
       for (const entry of entries) {
         const element = noteRefs.current.get(entry.id);
@@ -84,12 +93,13 @@ export function MarginLayer({ issues, documentIssues, activeIssueId, readOnly, o
         // Where it would like to be: level with the top of its paragraph.
         let wanted = cursor;
         if (entry.line !== null) {
-          const anchor = owners.find((owner) => {
-            const start = Number(owner.dataset.lineStart);
-            const end = Number(owner.dataset.lineEnd);
-            return Number.isFinite(start) && Number.isFinite(end) && entry.line! >= start && entry.line! <= end;
-          });
-          if (anchor) wanted = anchor.getBoundingClientRect().top - bodyTop;
+          while (owner < owners.length && owners[owner].end < entry.line) owner += 1;
+          const anchor = owners[owner];
+          // Only the paragraph that actually contains the line; a note whose
+          // line falls in a gap keeps its place in the stack instead.
+          if (anchor && entry.line >= anchor.start && entry.line <= anchor.end) {
+            wanted = anchor.element.getBoundingClientRect().top - bodyTop;
+          }
         }
 
         // Where it can be: never overlapping the note above it.
@@ -99,16 +109,28 @@ export function MarginLayer({ issues, documentIssues, activeIssueId, readOnly, o
       }
 
       setTops((previous) => (sameTops(previous, next) ? previous : next));
-    };
+    }
+  }, [entries]);
 
-    layout();
+  // Watching is separate from laying out, so that choosing a note re-runs the
+  // one and leaves the other alone: rebuilding an observation over every note
+  // on each change of selection is work for nothing.
+  useLayoutEffect(() => {
+    const body = layerRef.current?.parentElement;
+    if (!body) return;
 
-    // The document reflows on resize, and a note changes height when it opens.
     const observer = new ResizeObserver(layout);
     observer.observe(body);
     noteRefs.current.forEach((element) => observer.observe(element));
     return () => observer.disconnect();
-  }, [entries, activeIssueId]);
+  }, [layout]);
+
+  // A note's height is a function of whether it is the open one, so the layout
+  // reacts to that directly rather than waiting to be told about it: the
+  // observer is for reflow the component cannot see coming.
+  useLayoutEffect(() => {
+    layout();
+  }, [layout, activeIssueId]);
 
   if (entries.length === 0) return null;
 
