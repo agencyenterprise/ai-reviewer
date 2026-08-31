@@ -32,9 +32,14 @@ export function ProjectsView() {
 
   const shown = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return items
-      .filter((item) => !query || item.project.title.toLowerCase().includes(query))
-      .sort((a, b) => new Date(b.project.last_updated_at).getTime() - new Date(a.project.last_updated_at).getTime());
+    return (
+      items
+        .filter((item) => !query || item.project.title.toLowerCase().includes(query))
+        // new Date() is load-bearing despite the generated type saying Date: the
+        // date transformers hey-api generates are never wired into the SDK, so
+        // what actually arrives is an ISO string, and .getTime() on one is NaN.
+        .sort((a, b) => new Date(b.project.last_updated_at).getTime() - new Date(a.project.last_updated_at).getTime())
+    );
   }, [items, search]);
 
   const filtered = search.trim() !== '';

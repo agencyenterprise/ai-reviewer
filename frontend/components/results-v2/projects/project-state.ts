@@ -23,7 +23,11 @@ export function readProjectState(item: ProjectListItem): ProjectState {
 
   if (runs.some((run) => ACTIVE.includes(run.status))) return 'running';
   if (runs.some((run) => run.status === WorkflowRunStatus.Failed)) return 'failed';
-  return 'done';
+  // Ready to read has to mean something finished. A project whose runs were all
+  // cancelled has produced nothing, and calling it ready would send the reader
+  // to an empty document explorer.
+  if (runs.some((run) => run.status === WorkflowRunStatus.Completed)) return 'done';
+  return 'empty';
 }
 
 export const PROJECT_STATE: Record<ProjectState, { label: string; dot: string; text: string }> = {

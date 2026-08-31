@@ -45,7 +45,12 @@ const STEPS = [
  */
 export function HomeView() {
   const session = useSession();
-  const signedIn = !!session.data?.user;
+  // Only what we know. The session starts out loading, and reading that as
+  // signed out flashed "Sign in to start" at people who are already signed in.
+  // The call to action does not need the answer: /new is behind the
+  // authenticated layout, which sends a signed-out visitor to sign in and back
+  // again, so it is the right destination either way.
+  const knownSignedIn = session.status === 'authenticated';
   const { workflowTypes } = useWorkflowTypes();
   const available = workflowTypes.filter((type) => !type.is_internal && !type.is_experimental).length;
 
@@ -67,12 +72,12 @@ export function HomeView() {
 
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <Button size="lg" asChild>
-              <Link href={signedIn ? '/new' : '/api/auth/signin'}>
-                {signedIn ? 'Start a project' : 'Sign in to start'}
+              <Link href="/new">
+                Start a project
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
-            {signedIn && (
+            {knownSignedIn && (
               <Button size="lg" variant="outline" asChild>
                 <Link href="/v2/projects">Your projects</Link>
               </Button>
@@ -125,8 +130,8 @@ export function HomeView() {
             draft alone.
           </p>
           <Button className="mt-4" asChild>
-            <Link href={signedIn ? '/new' : '/api/auth/signin'}>
-              {signedIn ? 'Start a project' : 'Sign in to start'}
+            <Link href="/new">
+              Start a project
               <ArrowRight className="size-4" />
             </Link>
           </Button>
