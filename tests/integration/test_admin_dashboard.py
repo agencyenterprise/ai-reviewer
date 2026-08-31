@@ -21,16 +21,17 @@ from sqlmodel import col
 
 from lib.config.database import get_async_db_session
 from lib.models.feedback import Feedback, FeedbackType
+from lib.models.issue import Issue, IssueStatus
 from lib.models.project import FeedbackVisibility, Project
 from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
-from lib.services.admin_dashboard import queries
+from lib.services.admin_dashboard import queries, service
 from lib.services.admin_dashboard.service import (
     CACHE_TTL_SECONDS,
     get_admin_dashboard,
 )
 from lib.services.admin_dashboard.window import DashboardWindow
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.models import SeverityEnum, WorkflowRunType
 
 NOW = datetime.now(timezone.utc)
 
@@ -42,11 +43,17 @@ class _Fixture:
     """Everything the fixture inserted, plus the slug that isolates it."""
 
     def __init__(
-        self, user: User, project: Project, private_project: Project, slug: str
+        self,
+        user: User,
+        project: Project,
+        private_project: Project,
+        issue_only_project: Project,
+        slug: str,
     ):
         self.user = user
         self.project = project
         self.private_project = private_project
+        self.issue_only_project = issue_only_project
         self.slug = slug
 
 
@@ -102,6 +109,16 @@ async def dashboard_data():
         created_at=NOW - timedelta(hours=1),
         last_updated_at=NOW - timedelta(hours=1),
         feedback_visibility=FeedbackVisibility.FULL_PROJECT,
+    )
+    # "Share only this issue information": issue feedback is shared, feedback
+    # on a chunk or a claim is not.
+    issue_only_project = Project(
+        id=uuid.uuid4(),
+        title=f"Issue-only project {tag}",
+        user_id=user.id,
+        created_at=NOW - timedelta(hours=1),
+        last_updated_at=NOW - timedelta(hours=1),
+        feedback_visibility=FeedbackVisibility.ISSUE_ONLY,
     )
     # The dialog's default: "Don't share any information."
     private_project = Project(
@@ -174,7 +191,29 @@ async def dashboard_data():
             NOW - timedelta(hours=2),
             5,
         ),
+        # Carries the issue-only project's two feedback rows. Ten seconds, the
+        # same as an existing run, so the median duration does not move.
+        _run(
+            issue_only_project.id,
+            slug,
+            WorkflowRunStatus.COMPLETED,
+            NOW - timedelta(hours=2),
+            10,
+        ),
     ]
+    issue = Issue(
+        id=uuid.uuid4(),
+        project_id=issue_only_project.id,
+        workflow_run_id=runs[-1].id,
+        issue_hash=f"hash-{tag}",
+        title=f"Issue {tag}",
+        description="Something to leave feedback on",
+        severity=SeverityEnum.LOW,
+        workflow_type=WorkflowRunType.FIGURES_TABLES_CHECK,
+        status=IssueStatus.ACTIVE,
+        revision=1,
+        created_at=NOW - timedelta(minutes=30),
+    )
     feedbacks = [
         Feedback(
             id=uuid.uuid4(),
@@ -199,13 +238,36 @@ async def dashboard_data():
         # count or as "one of these has a written comment".
         Feedback(
             id=uuid.uuid4(),
-            workflow_run_id=runs[-1].id,
+            workflow_run_id=runs[-2].id,
             user_id=user.id,
             entity_path={},
             feedback_type=FeedbackType.THUMBS_DOWN,
             feedback_text="Private, and not for admin eyes",
             created_at=NOW - timedelta(minutes=5),
             updated_at=NOW - timedelta(minutes=5),
+        ),
+        # Issue-only project, attached to an issue: shared, so counted.
+        Feedback(
+            id=uuid.uuid4(),
+            workflow_run_id=runs[-1].id,
+            user_id=user.id,
+            issue_id=issue.id,
+            entity_path={},
+            feedback_type=FeedbackType.THUMBS_UP,
+            created_at=NOW - timedelta(minutes=4),
+            updated_at=NOW - timedelta(minutes=4),
+        ),
+        # Issue-only project, on a chunk: "only this issue information" does
+        # not cover it, and the listing endpoint drops it too.
+        Feedback(
+            id=uuid.uuid4(),
+            workflow_run_id=runs[-1].id,
+            user_id=user.id,
+            entity_path={"chunk_index": 2},
+            feedback_type=FeedbackType.THUMBS_DOWN,
+            feedback_text="Not covered by issue-only sharing",
+            created_at=NOW - timedelta(minutes=3),
+            updated_at=NOW - timedelta(minutes=3),
         ),
     ]
 
@@ -216,21 +278,25 @@ async def dashboard_data():
         await session.commit()
         session.add(project)
         session.add(private_project)
+        session.add(issue_only_project)
         await session.commit()
         for run in runs:
             session.add(run)
+        await session.commit()
+        session.add(issue)
         await session.commit()
         for feedback in feedbacks:
             session.add(feedback)
         await session.commit()
 
-    yield _Fixture(user, project, private_project, slug)
+    yield _Fixture(user, project, private_project, issue_only_project, slug)
 
     async with get_async_db_session() as session:
         for model, ids in (
             (Feedback, [f.id for f in feedbacks]),
+            (Issue, [issue.id]),
             (WorkflowRun, [r.id for r in runs]),
-            (Project, [project.id, private_project.id]),
+            (Project, [project.id, private_project.id, issue_only_project.id]),
             (User, [user.id]),
         ):
             for row_id in ids:
@@ -248,14 +314,14 @@ async def test_workflow_usage_reports_outcomes_and_median_duration(dashboard_dat
 
     item = next(w for w in response.workflows if w.type == dashboard_data.slug)
 
-    # Seven runs carry this slug: five inside the window (one of them on the
-    # private project), one ten days back, and one six hours ahead. Both bounds
-    # of the window are load-bearing here.
-    assert item.runs == 5
-    assert item.statuses.completed == 3
+    # Eight runs carry this slug: six inside the window (one each on the
+    # private and issue-only projects), one ten days back, and one six hours
+    # ahead. Both bounds of the window are load-bearing here.
+    assert item.runs == 6
+    assert item.statuses.completed == 4
     assert item.statuses.failed == 1
     assert item.statuses.running == 1
-    # Completed durations inside the window are 5, 10 and 30 seconds.
+    # Completed durations inside the window are 5, 10, 10 and 30 seconds.
     assert item.median_duration_seconds == pytest.approx(10.0)
     assert item.is_retired is True
     assert item.is_internal is False
@@ -268,8 +334,11 @@ async def test_workflow_usage_attributes_feedback_to_the_run_type(dashboard_data
 
     item = next(w for w in response.workflows if w.type == dashboard_data.slug)
 
-    assert item.thumbs_up == 1
-    assert item.thumbs_down == 1  # the private project's thumbs-down is excluded
+    # Shared: one up on the full-project one, one up on the issue-only one's
+    # issue. Excluded: the private project's down, and the issue-only
+    # project's chunk-level down.
+    assert item.thumbs_up == 2
+    assert item.thumbs_down == 1
 
 
 @pytest.mark.asyncio
@@ -377,7 +446,7 @@ async def test_private_feedback_stays_out_of_every_aggregate(dashboard_data):
 
     async with get_async_db_session() as session:
         by_type = await queries._get_feedback_by_workflow_type(session, window)
-        assert by_type[dashboard_data.slug] == (1, 1)
+        assert by_type[dashboard_data.slug] == (2, 1)
 
     async with get_async_db_session() as session:
         await session.execute(text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"))
@@ -401,7 +470,7 @@ async def test_private_feedback_stays_out_of_every_aggregate(dashboard_data):
     assert after_summary.thumbs_down == before_summary.thumbs_down + 1
     assert after_summary.with_comment == before_summary.with_comment + 1
     assert after_summary.thumbs_up == before_summary.thumbs_up
-    assert after_by_type[dashboard_data.slug] == (1, 2)
+    assert after_by_type[dashboard_data.slug] == (2, 2)
 
 
 @pytest.mark.asyncio
@@ -458,3 +527,63 @@ async def test_the_transaction_carries_a_snapshot_and_a_timeout(
 
     assert observed["isolation"] == "repeatable read"
     assert observed["timeout"] == "15s"
+
+
+@pytest.mark.asyncio
+async def test_issue_only_sharing_covers_the_issue_and_nothing_else(dashboard_data):
+    """ "Share only this issue information" is narrower than "share".
+
+    The fixture leaves two rows on an ISSUE_ONLY project: a thumbs-up attached
+    to an issue, and a thumbs-down on a chunk. Only the first is what the author
+    agreed to share, and it is the only one the listing endpoint would return.
+    """
+    window = DashboardWindow.for_days(1)
+
+    async with get_async_db_session() as session:
+        shared = (
+            await session.execute(
+                select(Feedback.id)
+                .join(WorkflowRun, col(Feedback.workflow_run_id) == col(WorkflowRun.id))
+                .join(Project, col(WorkflowRun.project_id) == col(Project.id))
+                .where(
+                    col(WorkflowRun.project_id) == dashboard_data.issue_only_project.id,
+                    queries._is_shared_feedback(),
+                )
+            )
+        ).scalars()
+        shared_ids = list(shared)
+
+        issue_feedback = (
+            await session.execute(
+                select(Feedback.id).where(col(Feedback.issue_id).is_not(None))
+            )
+        ).scalars()
+        issue_feedback_ids = set(issue_feedback)
+
+    assert len(shared_ids) == 1
+    assert shared_ids[0] in issue_feedback_ids
+
+    # And the chunk-level row moves no count: the up/down split for this slug
+    # holds at two shared ups and one shared down.
+    async with get_async_db_session() as session:
+        by_type = await queries._get_feedback_by_workflow_type(session, window)
+
+    assert by_type[dashboard_data.slug] == (2, 1)
+
+
+@pytest.mark.asyncio
+async def test_period_end_is_when_the_figures_were_computed(dashboard_data):
+    """Not when the request arrived, which is what the page would misreport.
+
+    Requests queue behind the computation slot, so a caller that waited its
+    turn would otherwise print an "as of" from before the wait — and its window
+    would end there too, silently excluding anything that happened during it.
+    """
+    async with service._COMPUTATION_SLOT:
+        queued = asyncio.create_task(get_admin_dashboard(days=1))
+        await asyncio.sleep(0.3)  # long enough for the task to reach the slot
+        released_at = datetime.now(timezone.utc)
+
+    response = await queued
+
+    assert response.period_end >= released_at

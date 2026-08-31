@@ -50,9 +50,13 @@ async def get_admin_dashboard(days: int) -> AdminDashboardResponse:
     Callers reaching the endpoint go through its TTL cache; this function
     always recomputes.
     """
-    window = DashboardWindow.for_days(days)
-
     async with _COMPUTATION_SLOT:
+        # Inside the slot, not before it: `period_end` is what the page prints
+        # as "as of", so it has to be the moment the figures were computed. A
+        # request that waited its turn behind several others would otherwise
+        # advertise the moment it joined the queue.
+        window = DashboardWindow.for_days(days)
+
         async with get_async_db_session() as session:
             # One snapshot for all eight aggregates. Without it they run under
             # READ COMMITTED and each sees its own moment, so a run written

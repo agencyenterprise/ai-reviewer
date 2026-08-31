@@ -8,7 +8,7 @@ preceding one are produced by a single query using conditional aggregation.
 
 from datetime import date, datetime, timedelta
 
-from sqlalchemy import and_, case, distinct, func, select
+from sqlalchemy import and_, case, distinct, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped
 from sqlalchemy.sql.elements import ColumnElement
@@ -74,18 +74,32 @@ def _in_previous(window: DashboardWindow, ts: Mapped[datetime]) -> ColumnElement
 def _is_shared_feedback() -> ColumnElement[bool]:
     """Only feedback whose author allowed it to be shared with admins.
 
-    `PRIVATE` is the dialog's default and its copy is unambiguous — "Don't
-    share any information / Your feedback is visible only to you" — so private
-    feedback stays out of these aggregates entirely, sentiment and
-    has-a-comment included. Same predicate as the feedback listing endpoint
-    (`feedback_service.get_admin_feedbacks`), so the dashboard's totals and
-    that page cannot disagree about what an admin is allowed to see.
+    The two sharing levels do not grant the same thing, so neither does this:
+
+    - `FULL_PROJECT` — "Administrators will be able to view the project, all
+      uploaded files, and all analysis results." Broad consent; every feedback
+      row on the project counts.
+    - `ISSUE_ONLY` — "Share only this issue information." Feedback that hangs
+      off an issue counts; feedback on a chunk or a claim (`issue_id IS NULL`)
+      does not, and the listing endpoint drops those rows too, through its
+      `Issue` join.
+    - `PRIVATE`, the dialog's default — "Don't share any information / Your
+      feedback is visible only to you." Nothing counts, sentiment and
+      has-a-comment included.
+
+    Written as an allowlist of what each level grants rather than "not
+    private", so a visibility level added later is excluded until someone
+    decides what it shares.
 
     Requires the caller to have joined Feedback -> WorkflowRun -> Project.
     """
-    return and_(
-        col(Project.feedback_visibility).is_not(None),
-        col(Project.feedback_visibility) != FeedbackVisibility.PRIVATE,
+    visibility = col(Project.feedback_visibility)
+    return or_(
+        visibility == FeedbackVisibility.FULL_PROJECT,
+        and_(
+            visibility == FeedbackVisibility.ISSUE_ONLY,
+            col(Feedback.issue_id).is_not(None),
+        ),
     )
 
 
