@@ -202,6 +202,8 @@ class AdminFeedbackItem(BaseModel):
     user_email: str
     project_id: UUID
     project_title: str
+    project_current_revision: int
+    revision: int
     visibility: FeedbackVisibility
     issue: Issue
 
@@ -254,6 +256,8 @@ async def get_admin_feedbacks(
                 user_email=row["user"].email,
                 project_id=row["project"].id,
                 project_title=row["project"].title,
+                project_current_revision=row["project"].current_revision,
+                revision=row["workflow_run"].revision,
                 visibility=row["project"].feedback_visibility,
                 issue=row["issue"],
             )
@@ -301,6 +305,8 @@ async def export_admin_feedbacks_csv(
                 "User Email",
                 "Project ID",
                 "Project Title",
+                "Revision",
+                "Project Current Revision",
                 "Visibility",
                 "Issue ID",
                 "Issue Title",
@@ -322,6 +328,8 @@ async def export_admin_feedbacks_csv(
                     row["user"].email,
                     str(row["project"].id),
                     row["project"].title,
+                    row["workflow_run"].revision,
+                    row["project"].current_revision,
                     row["project"].feedback_visibility.value,
                     str(issue.id) if issue else "",
                     issue.title if issue else "",

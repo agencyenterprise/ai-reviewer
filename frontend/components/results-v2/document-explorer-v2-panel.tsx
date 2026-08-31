@@ -10,13 +10,7 @@ import { DocumentExplorerTabV2 } from './document-explorer/document-explorer-tab
  * the explorer itself.
  */
 export function DocumentExplorerV2Panel() {
-  const { projectDetail, readOnly, navigateToTab } = useProjectView();
+  const { projectDetail, navigateToTab } = useProjectView();
 
-  return (
-    <DocumentExplorerTabV2
-      projectDetail={projectDetail}
-      readOnly={readOnly}
-      onNavigateToAnalyses={() => navigateToTab('analyses')}
-    />
-  );
+  return <DocumentExplorerTabV2 projectDetail={projectDetail} onNavigateToAnalyses={() => navigateToTab('analyses')} />;
 }

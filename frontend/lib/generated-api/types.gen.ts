@@ -377,6 +377,14 @@ export type AdminFeedbackItem = {
    * Project Title
    */
   project_title: string;
+  /**
+   * Project Current Revision
+   */
+  project_current_revision: number;
+  /**
+   * Revision
+   */
+  revision: number;
   visibility: FeedbackVisibility;
   issue: Issue;
 };

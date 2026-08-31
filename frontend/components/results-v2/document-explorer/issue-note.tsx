@@ -1,15 +1,25 @@
 'use client';
 
 import { Markdown } from '@/components/markdown';
-import { IssueFeedbackButtons } from '@/components/results/components/document-issue-card';
+import { feedbackLabel, IssueFeedbackButtons } from '@/components/results/components/document-issue-card';
+import { useIsIssueFeedbackVisible, useIssueFeedbackFromContext } from '@/lib/contexts/project-feedback-context';
 import { Button } from '@/components/ui/button';
-import { Issue } from '@/lib/generated-api';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { FeedbackType, Issue } from '@/lib/generated-api';
 import { useIssueActions } from '@/lib/hooks/use-issue-actions';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { SEVERITY } from '@/lib/severity-style';
 import { isIssueResolved } from '@/lib/stores/document-explorer-store';
 import { cn } from '@/lib/utils';
-import { CheckIcon, ChevronDownIcon, ChevronUpIcon, LightbulbIcon, UndoIcon } from 'lucide-react';
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  LightbulbIcon,
+  ThumbsDownIcon,
+  ThumbsUpIcon,
+  UndoIcon,
+} from 'lucide-react';
 import { useState } from 'react';
 
 export function lineLabel(issue: Issue): string | null {
@@ -49,11 +59,44 @@ export function IssuePreview({ issue }: { issue: Issue }) {
   return <span className="mt-0.5 block truncate text-[12px] leading-snug text-muted-foreground">{text}</span>;
 }
 
+/**
+ * A closed issue says nothing about whether it was rated, so a whole margin of them hides
+ * where the reader has already been. This marks the ones carrying feedback, and its
+ * tooltip carries the note that was written with it — the thumb alone says a judgement
+ * was made but not what it was about.
+ *
+ * The trigger is a span, not the button Radix renders by default: this sits inside the
+ * heading button that opens the issue, and a button within a button is invalid markup.
+ * The padding is there to give a 12px icon something to hover.
+ */
+function IssueFeedbackIndicator({ issueId }: { issueId: string }) {
+  const { feedback } = useIssueFeedbackFromContext(issueId);
+  if (!feedback) return null;
+
+  const label = feedbackLabel(feedback.feedback_type, feedback.feedback_text);
+  const Icon = feedback.feedback_type === FeedbackType.ThumbsUp ? ThumbsUpIcon : ThumbsDownIcon;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          aria-label={label}
+          className="-my-1 inline-flex shrink-0 items-center px-0.5 py-1 text-muted-foreground hover:text-foreground"
+        >
+          <Icon className="size-3" />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 /** The line above an issue's title: its severity, where it came from, where it lands. */
 export function IssueMeta({ issue }: { issue: Issue }) {
   const { getWorkflowTypeName } = useWorkflowTypes();
   const resolved = isIssueResolved(issue);
   const line = lineLabel(issue);
+  const feedbackVisible = useIsIssueFeedbackVisible(issue.id);
 
   return (
     <span className="flex items-center gap-1.5">
@@ -67,6 +110,7 @@ export function IssueMeta({ issue }: { issue: Issue }) {
           Resolved
         </span>
       )}
+      {feedbackVisible && issue.id && <IssueFeedbackIndicator issueId={issue.id} />}
       {line && (
         <span className="ml-auto shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">{line}</span>
       )}
@@ -81,6 +125,7 @@ export function IssueMeta({ issue }: { issue: Issue }) {
  */
 export function IssueBody({ issue, readOnly }: { issue: Issue; readOnly: boolean }) {
   const { resolveIssue, unresolveIssue, isResolving, isUnresolving } = useIssueActions();
+  const showFeedback = useIsIssueFeedbackVisible(issue.id);
   const [showDetails, setShowDetails] = useState(false);
 
   const resolved = isIssueResolved(issue);
@@ -122,21 +167,25 @@ export function IssueBody({ issue, readOnly }: { issue: Issue; readOnly: boolean
         </>
       )}
 
-      {!readOnly && issue.id && (
+      {issue.id && (!readOnly || showFeedback) && (
         <div className="flex items-center gap-1.5 pt-0.5">
-          <Button
-            size="sm"
-            variant={resolved ? 'outline' : 'default'}
-            className="h-6 px-2 text-[11px]"
-            disabled={busy}
-            onClick={() => (resolved ? unresolveIssue(issue.id) : resolveIssue(issue.id))}
-          >
-            {resolved ? <UndoIcon className="size-3" /> : <CheckIcon className="size-3" />}
-            {resolved ? 'Mark unresolved' : 'Mark resolved'}
-          </Button>
-          <span className="ml-auto">
-            <IssueFeedbackButtons issueId={issue.id} />
-          </span>
+          {!readOnly && (
+            <Button
+              size="sm"
+              variant={resolved ? 'outline' : 'default'}
+              className="h-6 px-2 text-[11px]"
+              disabled={busy}
+              onClick={() => (resolved ? unresolveIssue(issue.id) : resolveIssue(issue.id))}
+            >
+              {resolved ? <UndoIcon className="size-3" /> : <CheckIcon className="size-3" />}
+              {resolved ? 'Mark unresolved' : 'Mark resolved'}
+            </Button>
+          )}
+          {showFeedback && (
+            <span className="ml-auto">
+              <IssueFeedbackButtons issueId={issue.id} />
+            </span>
+          )}
         </div>
       )}
     </div>

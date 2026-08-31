@@ -12,7 +12,7 @@ from lib.models.feedback import Feedback, FeedbackType
 from lib.models.issue import Issue, IssueStatus
 from lib.models.project import FeedbackVisibility, Project
 from lib.models.user import User, UserRole
-from lib.models.workflow_run import WorkflowRunType
+from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.workflows.models import SeverityEnum
 
 
@@ -82,6 +82,20 @@ def _make_feedback(**kwargs) -> Feedback:
     return Feedback(**{**defaults, **kwargs})
 
 
+def _make_workflow_run(**kwargs) -> WorkflowRun:
+    defaults = dict(
+        id=uuid.uuid4(),
+        project_id=uuid.uuid4(),
+        type=WorkflowRunType.RECOMMENDATION_CHECK,
+        langgraph_thread_id=str(uuid.uuid4()),
+        status=WorkflowRunStatus.COMPLETED,
+        revision=1,
+        created_at=_NOW,
+        last_updated_at=_NOW,
+    )
+    return WorkflowRun(**{**defaults, **kwargs})
+
+
 def _parse_csv(response_body: str) -> list[dict]:
     reader = csv.DictReader(io.StringIO(response_body))
     return list(reader)
@@ -123,6 +137,8 @@ async def test_csv_headers():
         "User Email",
         "Project ID",
         "Project Title",
+        "Revision",
+        "Project Current Revision",
         "Visibility",
         "Issue ID",
         "Issue Title",
@@ -174,7 +190,13 @@ async def test_csv_row_values():
     )
 
     mock_rows = [
-        {"feedback": feedback, "issue": issue, "project": project, "user": user}
+        {
+            "feedback": feedback,
+            "issue": issue,
+            "project": project,
+            "user": user,
+            "workflow_run": _make_workflow_run(revision=2),
+        }
     ]
 
     with patch(
@@ -197,6 +219,8 @@ async def test_csv_row_values():
     assert row["User Email"] == "bob@example.com"
     assert row["Project ID"] == str(project.id)
     assert row["Project Title"] == "Report"
+    assert row["Revision"] == "2"
+    assert row["Project Current Revision"] == str(project.current_revision)
     assert row["Visibility"] == FeedbackVisibility.FULL_PROJECT.value
     assert row["Issue ID"] == str(issue.id)
     assert row["Issue Title"] == "Wrong citation"
@@ -218,6 +242,7 @@ async def test_csv_empty_feedback_text():
             "issue": _make_issue(),
             "project": _make_project(),
             "user": _make_user(),
+            "workflow_run": _make_workflow_run(),
         }
     ]
 
@@ -264,12 +289,14 @@ async def test_csv_multiple_rows_ordered():
             "issue": _make_issue(title="Issue A"),
             "project": _make_project(title="Project A"),
             "user": _make_user(name="Alice"),
+            "workflow_run": _make_workflow_run(),
         },
         {
             "feedback": _make_feedback(feedback_type=FeedbackType.THUMBS_DOWN),
             "issue": _make_issue(title="Issue B"),
             "project": _make_project(title="Project B"),
             "user": _make_user(name="Bob"),
+            "workflow_run": _make_workflow_run(),
         },
     ]
 
