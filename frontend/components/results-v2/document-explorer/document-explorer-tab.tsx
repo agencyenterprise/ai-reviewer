@@ -25,6 +25,7 @@ import { AlertTriangleIcon, Columns2, ListFilter, Loader2 } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { DocumentHeader, DocumentView, DocumentViewHandle } from './document-view';
 import { IssuesColumn, IssuesColumnHandle, issueCountLabel } from './issues-column';
+import { IssueNav } from './issue-nav';
 import { Rail, RailToggle, SidePane, useRailState } from '../panes';
 import { OutlineRail } from './outline-rail';
 import { OutlineEntry, extractOutline } from './outline';
@@ -178,6 +179,54 @@ export function DocumentExplorerTabV2({
     [openIssueId, selectLineRange, clearLineSelection],
   );
 
+  /**
+   * The issues in the order the reader meets them: the ones about the whole
+   * document first, since that is where the margin gathers them, then the rest
+   * by the line they mark. Not the severity order the list is grouped into —
+   * stepping through that would send the reader up and down the document.
+   */
+  const orderedIssues = useMemo(() => {
+    const anchored: Issue[] = [];
+    const unanchored: Issue[] = [];
+    for (const issue of highlightIssues) (getIssueLineRange(issue) ? anchored : unanchored).push(issue);
+    anchored.sort((a, b) => getIssueLineRange(a)![0] - getIssueLineRange(b)![0]);
+    return [...unanchored, ...anchored];
+  }, [highlightIssues]);
+
+  const activeIndex = useMemo(
+    () => (activeIssueId ? orderedIssues.findIndex((issue) => issue.id === activeIssueId) : -1),
+    [orderedIssues, activeIssueId],
+  );
+
+  /** Takes the reader to an issue, wherever in the document it sits. */
+  const goToIssue = useCallback(
+    (issue: Issue) => {
+      const range = getIssueLineRange(issue);
+      setOpenIssueId(issue.id);
+      issuesRef.current?.scrollToIssue(issue);
+      if (range) {
+        selectLineRange(range);
+        documentRef.current?.scrollToLineRange(range);
+        return;
+      }
+      // Nothing anchors this one, so the margin keeps it above the first
+      // paragraph and that is the only place it can be shown.
+      clearLineSelection();
+      documentRef.current?.scrollToTop();
+    },
+    [selectLineRange, clearLineSelection],
+  );
+
+  // No issue open leaves the index at -1, so the first step forwards lands on
+  // the first issue and the first step back falls off the front and does nothing.
+  const handleStepIssue = useCallback(
+    (delta: 1 | -1) => {
+      const issue = orderedIssues[activeIndex + delta];
+      if (issue) goToIssue(issue);
+    },
+    [orderedIssues, activeIndex, goToIssue],
+  );
+
   const handleIssueSelectFromDocument = useCallback(
     (issue: Issue | null) => {
       if (!issue) {
@@ -298,39 +347,53 @@ export function DocumentExplorerTabV2({
               </Tooltip>
             )}
 
-            {!issuesVisible && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button size="xs" variant="outline" className="ml-auto" onClick={() => setIssuesOpen(true)}>
-                    <ListFilter className="size-3" />
-                    Issues
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Every issue found in this document</TooltipContent>
-              </Tooltip>
-            )}
+            <div className="ml-auto flex shrink-0 items-center gap-2">
+              {/* Only while something on screen can show what it steps to.
+                  Below the width the margin and the column arrive at, the
+                  issues live in a sheet the reader opens, and stepping would
+                  move the document without ever showing them the finding. */}
+              {issuesVisible && (
+                <IssueNav
+                  position={activeIndex >= 0 ? activeIndex + 1 : null}
+                  total={orderedIssues.length}
+                  onStep={handleStepIssue}
+                />
+              )}
 
-            <div className="ml-auto hidden items-center gap-1 rounded-md border p-0.5 xl:flex">
-              {MODES.map((option) => (
-                <Tooltip key={option.id}>
+              {!issuesVisible && (
+                <Tooltip>
                   <TooltipTrigger asChild>
-                    <button
-                      onClick={() => handleModeChange(option.id)}
-                      aria-pressed={mode === option.id}
-                      className={cn(
-                        'flex cursor-pointer items-center gap-1.5 rounded-sm px-2 py-0.5 text-xs font-medium transition-colors',
-                        mode === option.id
-                          ? 'bg-accent text-accent-foreground'
-                          : 'text-muted-foreground hover:bg-accent/60',
-                      )}
-                    >
-                      <option.icon className="size-3.5" />
-                      {option.label}
-                    </button>
+                    <Button size="xs" variant="outline" onClick={() => setIssuesOpen(true)}>
+                      <ListFilter className="size-3" />
+                      Issues
+                    </Button>
                   </TooltipTrigger>
-                  <TooltipContent>{option.hint}</TooltipContent>
+                  <TooltipContent>Every issue found in this document</TooltipContent>
                 </Tooltip>
-              ))}
+              )}
+
+              <div className="hidden items-center gap-1 rounded-md border p-0.5 xl:flex">
+                {MODES.map((option) => (
+                  <Tooltip key={option.id}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => handleModeChange(option.id)}
+                        aria-pressed={mode === option.id}
+                        className={cn(
+                          'flex cursor-pointer items-center gap-1.5 rounded-sm px-2 py-0.5 text-xs font-medium transition-colors',
+                          mode === option.id
+                            ? 'bg-accent text-accent-foreground'
+                            : 'text-muted-foreground hover:bg-accent/60',
+                        )}
+                      >
+                        <option.icon className="size-3.5" />
+                        {option.label}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>{option.hint}</TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
             </div>
           </div>
 
