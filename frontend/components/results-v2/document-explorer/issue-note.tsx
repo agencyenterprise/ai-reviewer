@@ -107,10 +107,7 @@ export function IssueBody({ issue, readOnly }: { issue: Issue; readOnly: boolean
       {issue.long_description && (
         <>
           <button
-            onClick={(event) => {
-              event.stopPropagation();
-              setShowDetails(!showDetails);
-            }}
+            onClick={() => setShowDetails(!showDetails)}
             aria-expanded={showDetails}
             className="flex cursor-pointer items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
           >
@@ -126,7 +123,7 @@ export function IssueBody({ issue, readOnly }: { issue: Issue; readOnly: boolean
       )}
 
       {!readOnly && issue.id && (
-        <div className="flex items-center gap-1.5 pt-0.5" onClick={(event) => event.stopPropagation()}>
+        <div className="flex items-center gap-1.5 pt-0.5">
           <Button
             size="sm"
             variant={resolved ? 'outline' : 'default'}

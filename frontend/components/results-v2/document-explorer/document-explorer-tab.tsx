@@ -138,6 +138,15 @@ export function DocumentExplorerTabV2({
 
   const handleSelectIssue = useCallback(
     (issue: Issue) => {
+      // Pressing the open row's heading closes it, as pressing the open note's
+      // does in the margin: the two are the same control on the same issue, so
+      // they cannot answer the same press differently.
+      if (openIssueId === issue.id) {
+        setOpenIssueId(null);
+        clearLineSelection();
+        return;
+      }
+
       const range = getIssueLineRange(issue);
       // Opening the issue does not depend on it having a range: start_line is
       // nullable, and an issue with none can only be read here.
@@ -150,7 +159,7 @@ export function DocumentExplorerTabV2({
         clearLineSelection();
       }
     },
-    [selectLineRange, clearLineSelection],
+    [openIssueId, selectLineRange, clearLineSelection],
   );
 
   /** Toggles a margin note without moving the document under the reader. */

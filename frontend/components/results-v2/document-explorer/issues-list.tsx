@@ -128,35 +128,28 @@ function IssueRow({
   const style = SEVERITY[issue.severity];
 
   return (
-    <div
-      onClick={() => onSelect(issue)}
-      role="button"
-      tabIndex={0}
-      aria-expanded={active}
-      onKeyDown={(event) => {
-        // Only when the row itself has focus: an expanded row holds Resolve and
-        // feedback buttons, and swallowing their Enter would collapse the row
-        // rather than press them.
-        if (event.target !== event.currentTarget) return;
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onSelect(issue);
-        }
-      }}
-      className={cn(
-        'w-full cursor-pointer border-b px-4 py-3 text-left transition-colors',
-        active ? style.wash : 'hover:bg-accent/50',
-        resolved && !active && 'opacity-60',
-      )}
-    >
-      <IssueMeta issue={issue} />
-      <span className="mt-1 flex items-start gap-2">
-        <span className="flex-1 text-[13.5px] leading-snug font-medium">{issue.title}</span>
-        {active && <span className={cn('shrink-0 font-mono text-[10px] uppercase', style.text)}>{style.label}</span>}
-      </span>
-      {!active && <IssuePreview issue={issue} />}
+    <div className={cn('border-b transition-colors', active && style.wash, resolved && !active && 'opacity-60')}>
+      {/* Only the heading toggles the row, as in the margin. The whole row used
+          to be the control, so clicking the description collapsed it — which
+          also took away any attempt to select the text or follow a link in it —
+          and the buttons an open row carries sat inside another button. */}
+      <button
+        onClick={() => onSelect(issue)}
+        aria-expanded={active}
+        className={cn(
+          'block w-full cursor-pointer px-4 pt-3 text-left transition-colors',
+          active ? 'pb-2' : 'hover:bg-accent/50 pb-3',
+        )}
+      >
+        <IssueMeta issue={issue} />
+        <span className="mt-1 flex items-start gap-2">
+          <span className="flex-1 text-[13.5px] leading-snug font-medium">{issue.title}</span>
+          {active && <span className={cn('shrink-0 font-mono text-[10px] uppercase', style.text)}>{style.label}</span>}
+        </span>
+        {!active && <IssuePreview issue={issue} />}
+      </button>
       {active && (
-        <div className="mt-2">
+        <div className="px-4 pb-3">
           <IssueBody issue={issue} readOnly={readOnly} />
         </div>
       )}
