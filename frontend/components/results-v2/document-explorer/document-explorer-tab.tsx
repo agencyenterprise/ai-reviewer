@@ -23,7 +23,7 @@ import { WIDE_ENOUGH_FOR_PANE, useMediaQuery } from '@/lib/use-media-query';
 import { cn } from '@/lib/utils';
 import { AlertTriangleIcon, Columns2, ListFilter, Loader2 } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { DocumentView, DocumentViewHandle } from './document-view';
+import { DocumentHeader, DocumentView, DocumentViewHandle } from './document-view';
 import { IssuesColumn, IssuesColumnHandle, issueCountLabel } from './issues-column';
 import { Rail, RailToggle, SidePane, useRailState } from '../panes';
 import { OutlineRail } from './outline-rail';
@@ -79,6 +79,17 @@ export function DocumentExplorerTabV2({
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
   const issues = useMemo(() => projectDetail.issues ?? [], [projectDetail.issues]);
 
+  const documentSummarization = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentSummarization);
+  // What the summarizer read off the document itself, which is what the reader
+  // wants at the top of the page — not the project's name, which is editable
+  // and often just the uploaded file name.
+  const documentHeader = useMemo<DocumentHeader | undefined>(() => {
+    const state = documentSummarization?.state;
+    const summary = state?.summaries?.find((item) => item.file_id === state.main_file_id);
+    if (!summary) return undefined;
+    return { title: summary.title, authors: summary.authors };
+  }, [documentSummarization]);
+
   const documentProcessing = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
   const isDocumentProcessing = isWorkflowProcessing(documentProcessing);
   const isAnyProcessing = isAnyWorkflowProcessing(workflowDetails);
@@ -127,6 +138,15 @@ export function DocumentExplorerTabV2({
 
   const handleSelectIssue = useCallback(
     (issue: Issue) => {
+      // Pressing the open row's heading closes it, as pressing the open note's
+      // does in the margin: the two are the same control on the same issue, so
+      // they cannot answer the same press differently.
+      if (openIssueId === issue.id) {
+        setOpenIssueId(null);
+        clearLineSelection();
+        return;
+      }
+
       const range = getIssueLineRange(issue);
       // Opening the issue does not depend on it having a range: start_line is
       // nullable, and an issue with none can only be read here.
@@ -139,7 +159,7 @@ export function DocumentExplorerTabV2({
         clearLineSelection();
       }
     },
-    [selectLineRange, clearLineSelection],
+    [openIssueId, selectLineRange, clearLineSelection],
   );
 
   /** Toggles a margin note without moving the document under the reader. */
@@ -185,17 +205,20 @@ export function DocumentExplorerTabV2({
   );
 
   /**
-   * Margin rows grow to fit the notes beside them, so the document is taller in
-   * margin mode than in list mode. Switching therefore lands on a different part
-   * of the text unless the reader's place is carried across.
+   * The two modes give the text column all but the same width, so the document
+   * rewraps a little on the way across and the reader's place drifts. Carrying
+   * a block and its offset moves them back to the line they were on — the line
+   * alone would have been enough while margin rows still grew to fit their
+   * notes, but now that the notes float, snapping a paragraph's top to the fold
+   * would move the reader further than the drift it corrects.
    */
   const handleModeChange = useCallback(
     (next: 'margin' | 'list') => {
       if (next === mode) return;
-      const line = documentRef.current?.getTopVisibleLine() ?? null;
+      const anchor = documentRef.current?.getScrollAnchor() ?? null;
       setMode(next);
-      if (line !== null) {
-        setTimeout(() => documentRef.current?.scrollToLine(line, 'auto'), 0);
+      if (anchor) {
+        setTimeout(() => documentRef.current?.scrollToAnchor(anchor), 0);
       }
     },
     [mode],
@@ -315,6 +338,7 @@ export function DocumentExplorerTabV2({
             <DocumentView
               ref={documentRef}
               markdown={mainDocumentMarkdown}
+              header={documentHeader}
               issues={highlightIssues}
               selectedLineRange={selectedLineRange}
               onIssueSelect={handleIssueSelectFromDocument}
