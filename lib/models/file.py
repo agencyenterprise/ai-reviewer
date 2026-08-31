@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import Enum
 
 from pydantic import BaseModel
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlmodel import Field, SQLModel
 
@@ -19,6 +19,19 @@ class FileRole(str, Enum):
 
 class File(SQLModel, table=True):
     __tablename__ = "files"
+    # One MAIN document per (project, revision), enforced at the DB layer so
+    # concurrent uploads racing past the application-level check cannot both
+    # insert. Partial index: other roles are unconstrained, and MAIN files
+    # always carry a revision.
+    __table_args__ = (
+        Index(
+            "uq_files_one_main_per_project_revision",
+            "project_id",
+            "revision",
+            unique=True,
+            postgresql_where=text("role = 'main'"),
+        ),
+    )
 
     id: uuid.UUID = Field(
         sa_column=Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
