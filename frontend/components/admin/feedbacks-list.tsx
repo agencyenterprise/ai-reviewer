@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { UserCombobox } from '@/components/admin/user-combobox';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DocumentIssueCard } from '@/components/results/components/document-issue-card';
 import {
   AdminFeedbackItem,
@@ -41,6 +42,26 @@ function VisibilityBadge({ visibility }: { visibility: FeedbackVisibility }) {
     return <Badge variant="default">{VISIBILITY_LABELS[visibility]}</Badge>;
   }
   return <Badge variant="secondary">{VISIBILITY_LABELS[visibility]}</Badge>;
+}
+
+/** Shows which project revision the feedback was given on, and whether that is still the latest one. */
+function RevisionBadge({ revision, currentRevision }: { revision: number; currentRevision: number }) {
+  const isLatest = revision >= currentRevision;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge variant="outline" className="font-normal whitespace-nowrap">
+          Rev {revision}
+          {!isLatest && <span className="text-muted-foreground">of {currentRevision}</span>}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs">
+        {isLatest
+          ? `This feedback is about revision ${revision} of the document, which is still the latest one.`
+          : `This feedback is about revision ${revision} of the document. The project has since moved on to revision ${currentRevision}.`}
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
 function FeedbackDetailSheet({ item, onClose }: { item: AdminFeedbackItem | null; onClose: () => void }) {
@@ -86,6 +107,14 @@ function FeedbackDetailSheet({ item, onClose }: { item: AdminFeedbackItem | null
                       <ExternalLinkIcon className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
                     </Link>
                   )}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <RevisionBadge revision={item.revision} currentRevision={item.project_current_revision} />
+                  <span className="text-xs text-muted-foreground">
+                    {item.revision >= item.project_current_revision
+                      ? 'Latest revision of the document'
+                      : `The document has since moved on to revision ${item.project_current_revision}`}
+                  </span>
                 </div>
               </section>
 
@@ -301,7 +330,8 @@ export function FeedbacksList() {
                           User <span className="text-xs text-muted-foreground"> (Name / Email)</span>
                         </TableHead>
                         <TableHead>
-                          Project <span className="text-xs text-muted-foreground"> (Title / Visibility)</span>
+                          Project{' '}
+                          <span className="text-xs text-muted-foreground"> (Title / Visibility / Revision)</span>
                         </TableHead>
                         <TableHead>
                           Issue <span className="text-xs text-muted-foreground"> (Title / Workflow type)</span>
@@ -324,7 +354,7 @@ export function FeedbacksList() {
                             <div className="font-medium text-sm">{item.user_name}</div>
                             <div className="text-xs text-muted-foreground">{item.user_email}</div>
                           </TableCell>
-                          <TableCell className="max-w-[180px]">
+                          <TableCell className="max-w-[200px]">
                             <div className="flex items-center gap-1 min-w-0">
                               <span className="text-sm truncate">{item.project_title}</span>
                               {item.visibility === FeedbackVisibility.FullProject && (
@@ -338,8 +368,9 @@ export function FeedbacksList() {
                                 </Link>
                               )}
                             </div>
-                            <div className="mt-0.5">
+                            <div className="mt-0.5 flex flex-wrap items-center gap-1">
                               <VisibilityBadge visibility={item.visibility} />
+                              <RevisionBadge revision={item.revision} currentRevision={item.project_current_revision} />
                             </div>
                           </TableCell>
                           <TableCell className="max-w-[220px]">

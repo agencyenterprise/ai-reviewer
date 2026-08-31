@@ -294,7 +294,28 @@ async def test_get_admin_feedbacks_row_structure(thumbs_down_feedback, issue):
 
     assert len(rows) >= 1
     row = next(r for r in rows if r["feedback"].id == thumbs_down_feedback.id)
-    assert set(row.keys()) == {"feedback", "issue", "project", "user"}
+    assert set(row.keys()) == {"feedback", "issue", "project", "user", "workflow_run"}
+
+
+@pytest.mark.asyncio
+async def test_get_admin_feedbacks_exposes_revision(
+    thumbs_down_feedback, shared_project, workflow_run, issue
+):
+    """The row carries the workflow run the feedback was given on, so admins can
+    tell which document revision it refers to."""
+    async with get_async_db_session() as session:
+        run = await session.get(WorkflowRun, workflow_run.id)
+        assert run is not None
+        run.revision = 3
+        session.add(run)
+        await session.commit()
+
+        rows = await feedback_service.get_admin_feedbacks(session=session)
+
+    row = next(r for r in rows if r["feedback"].id == thumbs_down_feedback.id)
+    assert row["workflow_run"].id == workflow_run.id
+    assert row["workflow_run"].revision == 3
+    assert row["project"].current_revision == shared_project.current_revision
 
 
 # ---------------------------------------------------------------------------

@@ -331,7 +331,7 @@ async def get_admin_feedbacks(
     from lib.models.user import User
 
     stmt = (
-        select(Feedback, Issue, Project, User)
+        select(Feedback, Issue, Project, User, WorkflowRun)
         .join(Issue, col(Feedback.issue_id) == col(Issue.id))
         .join(WorkflowRun, col(Feedback.workflow_run_id) == col(WorkflowRun.id))
         .join(Project, col(WorkflowRun.project_id) == col(Project.id))
@@ -369,13 +369,14 @@ async def get_admin_feedbacks(
 
     items = []
     for row in rows:
-        feedback, issue, project, user = row.tuple()
+        feedback, issue, project, user, workflow_run = row.tuple()
         items.append(
             {
                 "feedback": feedback,
                 "issue": issue,
                 "project": project,
                 "user": user,
+                "workflow_run": workflow_run,
             }
         )
     return items
