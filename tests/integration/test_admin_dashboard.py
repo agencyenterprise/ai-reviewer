@@ -25,7 +25,10 @@ from lib.models.project import FeedbackVisibility, Project
 from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.admin_dashboard import queries
-from lib.services.admin_dashboard.service import get_admin_dashboard
+from lib.services.admin_dashboard.service import (
+    CACHE_TTL_SECONDS,
+    get_admin_dashboard,
+)
 from lib.services.admin_dashboard.window import DashboardWindow
 from lib.workflows.models import WorkflowRunType
 
@@ -231,6 +234,14 @@ async def test_fixture_rows_move_the_totals(dashboard_data):
     assert response.feedback.with_comment >= 1
     assert response.total_users >= 1
     assert response.period_days == 1
+
+
+@pytest.mark.asyncio
+async def test_response_advertises_the_real_cache_window(dashboard_data):
+    """The page prints this number to the reader, so it cannot be a guess."""
+    response = await get_admin_dashboard(days=1)
+
+    assert response.cache_ttl_seconds == CACHE_TTL_SECONDS
 
 
 @pytest.mark.asyncio

@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { getDashboardApiAdminDashboardGet } from '@/lib/generated-api';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -12,7 +13,7 @@ import { ActivityCharts } from './activity-charts';
 import { AssessmentUsage } from './assessment-usage';
 import { AssessmentsTable } from './assessments-table';
 import { RunOutcomes } from './run-outcomes';
-import { toDate } from './format';
+import { formatCacheWindow, toDate } from './format';
 import { StatTile } from './stat-tile';
 import { TopUsersTable } from './top-users-table';
 
@@ -41,10 +42,24 @@ export function UsageDashboard() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Usage</h1>
-          <p className="text-sm text-muted-foreground">
-            How Draft Detective is being used over the last {rangeLabel}
-            {data && <> · as of {format(toDate(data.period_end), 'MMM d, HH:mm')}</>}
-          </p>
+          <p className="text-sm text-muted-foreground">How Draft Detective is being used over the last {rangeLabel}</p>
+          {data && (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              As of {format(toDate(data.period_end), 'MMM d, HH:mm')} · figures refresh at most every{' '}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span tabIndex={0} className="cursor-help underline decoration-dotted underline-offset-2">
+                    {formatCacheWindow(data.cache_ttl_seconds)}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  These figures are aggregated across every project and run, so they are computed at most once every{' '}
+                  {formatCacheWindow(data.cache_ttl_seconds)} and served from a cache in between. A run that finished
+                  moments ago can take that long to show up here.
+                </TooltipContent>
+              </Tooltip>
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {isFetching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}

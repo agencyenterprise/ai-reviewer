@@ -30,6 +30,12 @@ _TOP_USERS_LIMIT = 10
 # handful of admins open.
 _COMPUTATION_SLOT = asyncio.Semaphore(1)
 
+# How long the endpoint may serve a computed payload before recomputing. Lives
+# here rather than in the router so the router's cache decorator and the
+# `cache_ttl_seconds` the response advertises to the UI cannot drift apart: the
+# page tells the reader this number, and it has to be the real one.
+CACHE_TTL_SECONDS = 300
+
 # A pathological plan (a much larger table, a bad statistics day) must not pin
 # the connection indefinitely, since callers are queued behind it. Nothing here
 # comes close: the widest window measures ~225 ms.
@@ -73,6 +79,7 @@ async def get_admin_dashboard(days: int) -> AdminDashboardResponse:
         period_start=window.start,
         period_end=window.end,
         granularity=window.granularity,
+        cache_ttl_seconds=CACHE_TTL_SECONDS,
         total_users=total_users,
         active_users=active_users,
         new_users=new_users,

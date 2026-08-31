@@ -110,6 +110,13 @@ class AdminDashboardResponse(BaseModel):
     period_start: datetime
     period_end: datetime
     granularity: ActivityGranularity
+    cache_ttl_seconds: int = Field(
+        description=(
+            "How long these figures may be served before being recomputed. "
+            "`period_end` is the moment they were computed, so the two together "
+            "tell the reader how stale what they are looking at can be."
+        )
+    )
 
     total_users: int = Field(description="All-time registered users")
     active_users: MetricWithDelta

@@ -69,6 +69,16 @@ export function formatBucketFull(bucket: Date | string, granularity: 'day' | 'we
   return granularity === 'week' ? `Week of ${label}` : label;
 }
 
+/**
+ * The cache window, in words. Driven by `cache_ttl_seconds` from the API so the
+ * page can never advertise a staleness the server does not actually have.
+ */
+export function formatCacheWindow(seconds: number): string {
+  if (seconds < 60) return `${Math.round(seconds)} seconds`;
+  const minutes = Math.round(seconds / 60);
+  return minutes === 1 ? '1 minute' : `${minutes} minutes`;
+}
+
 export interface Delta {
   /** e.g. "+18%" — absolute when there is no previous value to compare against. */
   label: string;

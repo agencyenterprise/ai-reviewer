@@ -307,6 +307,12 @@ export type AdminDashboardResponse = {
   period_end: Date;
   granularity: ActivityGranularity;
   /**
+   * Cache Ttl Seconds
+   *
+   * How long these figures may be served before being recomputed. `period_end` is the moment they were computed, so the two together tell the reader how stale what they are looking at can be.
+   */
+  cache_ttl_seconds: number;
+  /**
    * Total Users
    *
    * All-time registered users

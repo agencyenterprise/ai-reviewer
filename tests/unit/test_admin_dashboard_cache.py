@@ -80,7 +80,7 @@ def test_cache_is_bounded():
 
 @pytest.mark.asyncio
 async def test_entries_are_recomputed_once_the_ttl_passes():
-    """The property `_CACHE_TTL_SECONDS` relies on, at a testable timescale.
+    """The property `CACHE_TTL_SECONDS` relies on, at a testable timescale.
 
     `cache_parameters()` does not report the TTL, so the expiry semantics the
     endpoint depends on are pinned here against the same decorator instead.

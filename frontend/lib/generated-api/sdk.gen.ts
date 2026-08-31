@@ -266,6 +266,10 @@ export const getAboutContentApiAboutGet = <ThrowOnError extends boolean = true>(
  * Counts are paired with the equal-length window that preceded them so the UI
  * can show a trend. Feedback is reported as counts only; text and authorship
  * remain behind the per-project visibility rules of `/api/admin/feedbacks`.
+ *
+ * Served from a short cache (see `_cached_dashboard`); the response carries
+ * both the moment the figures were computed and the cache window, so the UI
+ * can say how stale they may be.
  */
 export const getDashboardApiAdminDashboardGet = <ThrowOnError extends boolean = true>(
   options?: Options<GetDashboardApiAdminDashboardGetData, ThrowOnError>,
