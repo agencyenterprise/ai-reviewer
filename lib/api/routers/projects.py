@@ -398,9 +398,9 @@ async def create_revision_endpoint(
     """
     Create a new revision for a project.
 
-    Archives active issues from the current revision, cancels running workflows,
-    and increments the revision counter. The new main document should be uploaded
-    via the TUS upload endpoint after this call.
+    Increments the revision counter and cancels workflows still running for
+    prior revisions. The new main document should be uploaded via the TUS
+    upload endpoint after this call, passing the returned revision explicitly.
     """
     new_revision, previous_types = await create_new_revision(project_id, current_user)
     return CreateRevisionResponse(

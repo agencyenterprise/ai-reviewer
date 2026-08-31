@@ -428,9 +428,11 @@ async def create_new_revision(
     """
     Create a new revision for a project.
 
-    Archives active issues from the current revision, cancels running workflows,
-    increments the revision counter, and returns the new revision number along with
-    the workflow types that were previously run (for re-triggering).
+    Increments the revision counter, cancels workflows still running for prior
+    revisions, and returns the new revision number along with the workflow types
+    that were previously run (for re-triggering). Issues are not touched: they
+    stay attached to their revision, and per-type archiving happens when a
+    workflow persists new issues (see lib/services/issue_persistence.py).
     """
     project, _ = await get_project_access(
         project_id, user=user, required_level=AccessLevel.WRITE
@@ -454,10 +456,13 @@ async def create_new_revision(
     old_revision = new_revision - 1
 
     async with get_async_db_session() as session:
-        # Cancel any active workflows for the old revision
+        # Cancel any active workflows for prior revisions. Scoped to
+        # `< new_revision` rather than `== old_revision` so that a retry after
+        # a failure here (the counter is already bumped at that point) still
+        # picks up runs the failed attempt left active.
         active_runs_stmt = select(WorkflowRun).where(
             col(WorkflowRun.project_id) == project_id,
-            col(WorkflowRun.revision) == old_revision,
+            col(WorkflowRun.revision) < new_revision,
             col(WorkflowRun.status).in_(
                 [WorkflowRunStatus.PENDING, WorkflowRunStatus.RUNNING]
             ),

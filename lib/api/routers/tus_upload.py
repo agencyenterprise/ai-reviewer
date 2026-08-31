@@ -35,12 +35,18 @@ def _parse_role(metadata: dict) -> FileRole:
 def _resolve_file_revision(metadata: dict, role: FileRole, project: Project) -> int | None:
     """Resolve the revision an uploaded file belongs to.
 
-    Supporting documents are shared across revisions (``None``). A main document
-    always defines the current revision. Reviewer memos review a *specific*
-    draft, which is not always the current one — an author may replace the main
-    document before uploading the memos that reviewed the previous draft — so
-    clients may target that draft with a ``revision`` metadata field. Omitting it
-    keeps the historical behaviour of attaching to the current revision.
+    Supporting documents are shared across revisions (``None``). Reviewer memos
+    review a *specific* draft, which is not always the current one — an author
+    may replace the main document before uploading the memos that reviewed the
+    previous draft — so clients may target that draft with a ``revision``
+    metadata field. Omitting it attaches to the current revision.
+
+    A main document defaults to the current revision, but clients may pass the
+    revision returned by create_revision explicitly: it pins the upload to that
+    revision even if another revision is created mid-upload, and lets an empty
+    revision (one whose main was never uploaded) be filled in later. A revision
+    that already has a main is rejected with a 409 by the one-main-per-revision
+    unique index when the record is inserted.
     """
     raw = metadata.get("revision")
     has_explicit_revision = raw is not None and str(raw).strip() != ""
@@ -50,16 +56,6 @@ def _resolve_file_revision(metadata: dict, role: FileRole, project: Project) -> 
     # reference downloader uses before promoting a file to SUPPORT.
     if role not in (FileRole.MAIN, FileRole.REVIEWER_MEMO):
         return None
-
-    if role == FileRole.MAIN:
-        # A main document defines its revision; back-dating one would collide
-        # with the one-main-per-revision guard below and corrupt the timeline.
-        if has_explicit_revision and str(raw).strip() != str(project.current_revision):
-            raise HTTPException(
-                status_code=400,
-                detail="revision cannot be set for main documents",
-            )
-        return project.current_revision
 
     if not has_explicit_revision:
         return project.current_revision

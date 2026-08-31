@@ -106,8 +106,24 @@ class TestOtherRoles:
             _resolve_file_revision({"revision": "3"}, FileRole.MAIN, _project(3)) == 3
         )
 
-    def test_main_rejects_a_back_dated_revision(self):
+    def test_main_honours_an_explicit_earlier_revision(self):
+        # A client uploading to the revision returned by create_revision must
+        # land there even if another revision was created mid-upload. Filling a
+        # revision that already has a main is rejected later by the DB's
+        # one-main-per-revision unique index (409), not here.
+        assert (
+            _resolve_file_revision({"revision": "1"}, FileRole.MAIN, _project(3)) == 1
+        )
+
+    @pytest.mark.parametrize("value", ["0", "-1", "4", "99"])
+    def test_main_rejects_an_out_of_range_revision(self, value: str):
         with pytest.raises(HTTPException) as exc:
-            _resolve_file_revision({"revision": "1"}, FileRole.MAIN, _project(3))
+            _resolve_file_revision({"revision": value}, FileRole.MAIN, _project(3))
         assert exc.value.status_code == 400
-        assert "main documents" in exc.value.detail
+        assert "between 1 and 3" in exc.value.detail
+
+    def test_main_rejects_a_non_integer_revision(self):
+        with pytest.raises(HTTPException) as exc:
+            _resolve_file_revision({"revision": "abc"}, FileRole.MAIN, _project(3))
+        assert exc.value.status_code == 400
+        assert "integer" in exc.value.detail

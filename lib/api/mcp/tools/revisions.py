@@ -34,14 +34,16 @@ async def create_revision(
     that was already analyzed (e.g. after fixing issues found in a previous revision).
     This keeps all history in one project so the user can compare revisions.
 
-    This archives all active issues from the current revision, cancels any running
-    workflows, and increments the revision counter.
+    This increments the revision counter and cancels any workflows still running
+    for prior revisions.
 
     content_markdown: the updated document content as markdown. For small/medium
         documents, pass the content directly here and the revision is ready for
         run_workflow immediately. For large files or non-markdown formats (PDF, DOCX),
         omit this and use get_tus_upload_credentials with role="main" to upload
-        the file after revision creation.
+        the file after revision creation, passing the returned revision as the
+        upload's revision metadata so the upload targets it even if another
+        revision is created in the meantime.
 
     After creating the revision (and uploading the document if not passed inline),
     call run_workflow to start analyses. Use previous_workflow_types from the
@@ -71,7 +73,8 @@ async def create_revision(
         result["file_id"] = str(file_record.id)
     else:
         result["next_step"] = (
-            "Upload the new document using get_tus_upload_credentials with role='main'"
+            "Upload the new document using get_tus_upload_credentials with "
+            f"role='main' and revision={new_revision}"
         )
 
     return json.dumps(result)

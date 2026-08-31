@@ -7,17 +7,49 @@ Used by both direct multipart uploads and TUS resumable uploads.
 
 import logging
 import os
+import shutil
 import uuid
 
 import aiofiles
 import magic
+from sqlalchemy import func, or_, select
+from sqlmodel import col
 from xxhash import xxh128
 
+from lib.config.database import get_async_db_session
 from lib.config.env import config
 from lib.models.file import File, FileRole
 from lib.services.files import create_file_record
 
 logger = logging.getLogger(__name__)
+
+
+async def _remove_upload_if_unreferenced(file_path: str) -> None:
+    """Best-effort cleanup of a freshly stored upload whose DB record was never
+    created — e.g. it lost the one-main-per-revision race and got a 409.
+
+    Only removes the file when no File row references the path, so content
+    deduplicated against other records is left alone.
+    """
+    async with get_async_db_session() as session:
+        stmt = (
+            select(func.count())
+            .select_from(File)
+            .where(
+                or_(
+                    col(File.file_path) == file_path,
+                    col(File.original_file_path) == file_path,
+                )
+            )
+        )
+        referenced = (await session.execute(stmt)).scalar_one() > 0
+
+    if referenced:
+        return
+    try:
+        os.remove(file_path)
+    except OSError:
+        pass
 
 
 def validate_filename(filename: str) -> None:
@@ -46,7 +78,8 @@ async def finalize_file(
     file_path = os.path.join(config.FILE_UPLOADS_MOUNT_PATH, content_hash + file_extension)
     file_size = len(content)
 
-    if os.path.exists(file_path):
+    stored_fresh = not os.path.exists(file_path)
+    if not stored_fresh:
         logger.info("File %s already exists (hash: %s), reusing", filename, content_hash)
     else:
         if file_size == 0:
@@ -57,17 +90,22 @@ async def finalize_file(
 
     file_type = magic.from_buffer(content, mime=True)
 
-    return await create_file_record(
-        project_id=project_id,
-        file_name=filename,
-        file_path=file_path,
-        file_type=file_type,
-        file_size=file_size,
-        content_hash=content_hash,
-        role=role,
-        uploaded_by=user_id,
-        revision=revision,
-    )
+    try:
+        return await create_file_record(
+            project_id=project_id,
+            file_name=filename,
+            file_path=file_path,
+            file_type=file_type,
+            file_size=file_size,
+            content_hash=content_hash,
+            role=role,
+            uploaded_by=user_id,
+            revision=revision,
+        )
+    except Exception:
+        if stored_fresh:
+            await _remove_upload_if_unreferenced(file_path)
+        raise
 
 
 async def finalize_file_from_path(
@@ -94,23 +132,27 @@ async def finalize_file_from_path(
 
     was_deduplicated = os.path.exists(permanent_path)
     if not was_deduplicated:
-        import shutil
         shutil.move(file_path, permanent_path)
         logger.info("Moved %s to permanent location (hash: %s)", filename, content_hash)
 
     file_type = magic.from_buffer(content, mime=True)
 
-    file_record = await create_file_record(
-        project_id=project_id,
-        file_name=filename,
-        file_path=permanent_path,
-        file_type=file_type,
-        file_size=len(content),
-        content_hash=content_hash,
-        role=role,
-        uploaded_by=user_id,
-        revision=revision,
-    )
+    try:
+        file_record = await create_file_record(
+            project_id=project_id,
+            file_name=filename,
+            file_path=permanent_path,
+            file_type=file_type,
+            file_size=len(content),
+            content_hash=content_hash,
+            role=role,
+            uploaded_by=user_id,
+            revision=revision,
+        )
+    except Exception:
+        if not was_deduplicated:
+            await _remove_upload_if_unreferenced(permanent_path)
+        raise
 
     return file_record, was_deduplicated
 
