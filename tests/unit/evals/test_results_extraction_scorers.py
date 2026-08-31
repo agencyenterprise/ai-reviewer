@@ -14,11 +14,9 @@ passed an incorrect one, in a recorded run:
 """
 
 from evals_inspectai.common.simple_deep_agent_types import AgentCheckResult, IssueItem
-from evals_inspectai.e2e.results_extraction.results_extraction_e2e import (
-    _inventory_checks,
-    _match_expected,
-    _table_row_count,
-)
+from evals_inspectai.e2e.results_extraction.checks import inventory_check_results
+from evals_inspectai.e2e.results_extraction.matching import match_expected
+from evals_inspectai.e2e.results_extraction.parsing import table_row_count
 
 
 def _issue(title: str, description: str = "", severity: str = "none") -> IssueItem:
@@ -47,7 +45,7 @@ class TestMatchExpected:
             {"id": "wide", "match": ["beta"], "class": "fully_reproducible", "importance": "central"},
             {"id": "narrow", "match": ["alpha"], "class": "fully_reproducible", "importance": "central"},
         ]
-        matched = _match_expected(issues, expected)
+        matched = match_expected(issues, expected)
         assert set(matched) == {"wide", "narrow"}
         assert matched["narrow"] == 0
         assert matched["wide"] == 1
@@ -61,7 +59,7 @@ class TestMatchExpected:
         expected = [
             {"id": "tab1", "match": ["table 1"], "class": "not_reproducible", "importance": "central"},
         ]
-        assert _match_expected(issues, expected) == {"tab1": 1}
+        assert match_expected(issues, expected) == {"tab1": 1}
 
     def test_a_title_match_is_never_demoted_to_a_body_match(self):
         """Raising the match count is not worth mis-attributing a class.
@@ -80,7 +78,7 @@ class TestMatchExpected:
             {"id": "alpha", "match": ["alpha"], "class": "not_reproducible", "importance": "central"},
             {"id": "beta", "match": ["beta"], "class": "not_reproducible", "importance": "central"},
         ]
-        matched = _match_expected(issues, expected)
+        matched = match_expected(issues, expected)
         assert matched == {"alpha": 0}, matched
 
     def test_two_results_merged_into_one_issue_leaves_one_unmatched(self):
@@ -90,13 +88,13 @@ class TestMatchExpected:
             {"id": "a", "match": ["alpha"], "class": "not_reproducible", "importance": "central"},
             {"id": "b", "match": ["beta"], "class": "not_reproducible", "importance": "central"},
         ]
-        assert len(_match_expected(issues, expected)) == 1
+        assert len(match_expected(issues, expected)) == 1
 
 
 class TestTableRowCount:
     def test_outer_pipes_are_optional(self):
         report = "Title | Location | Reproducibility\n--- | --- | ---\nA | Fig 1 | Not Reproducible\nB | Tab 1 | Fully Reproducible\n"
-        rows, _ = _table_row_count(report)
+        rows, _ = table_row_count(report)
         assert rows == 2
 
     def test_the_inventory_table_wins_over_a_bigger_one(self):
@@ -108,12 +106,12 @@ class TestTableRowCount:
             "| Title | Location | Reproducibility |\n|---|---|---|\n"
             "| A | Figure 1 | Not Reproducible |\n"
         )
-        rows, how = _table_row_count(report)
+        rows, how = table_row_count(report)
         assert rows == 1, "should count the inventory table, not the 10-row data table"
         assert "reproducibility" in how
 
     def test_no_table_at_all(self):
-        assert _table_row_count("just prose")[0] == 0
+        assert table_row_count("just prose")[0] == 0
 
 
 class TestLineRanges:
@@ -128,7 +126,7 @@ class TestLineRanges:
                 {"id": "a", "match": ["alpha"], "class": "not_reproducible", "importance": "central"}
             ]
         }
-        return _inventory_checks(result, meta, document_lines)
+        return inventory_check_results(result, meta, document_lines)
 
     def test_a_range_past_the_end_of_the_document_fails(self):
         issue = _issue("Result: alpha (Not Reproducible)", severity="high")
@@ -150,6 +148,6 @@ class TestLineRanges:
             report_markdown="x" * 500,
         )
         meta = {"expected_results": [{"id": "a", "match": ["alpha"], "class": "not_reproducible", "importance": "central"}]}
-        ok, detail = _inventory_checks(result, meta, 100)["no_duplicates"]
+        ok, detail = inventory_check_results(result, meta, 100)["no_duplicates"]
         assert not ok
         assert "2 times" in detail

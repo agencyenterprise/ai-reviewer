@@ -48,6 +48,7 @@ _MARKDOWN_WORKFLOWS = [
     WorkflowRunType.LITERATURE_REVIEW_V2,
     WorkflowRunType.LIVE_REPORTS_V2,
     WorkflowRunType.RECOMMENDATION_CHECK,
+    WorkflowRunType.RESULTS_EXTRACTION,
 ]
 
 _HTML_REPORT = "<!doctype html><html><body><h1>Report</h1></body></html>"
