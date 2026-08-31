@@ -436,8 +436,22 @@ async def create_new_revision(
         project_id, user=user, required_level=AccessLevel.WRITE
     )
 
-    old_revision = project.current_revision
-    new_revision = old_revision + 1
+    # Increment atomically in the database (not read-then-write in Python) so
+    # concurrent calls get distinct revision numbers instead of both computing
+    # the same one. Bumping first also means any workflow started concurrently
+    # from here on targets the new revision rather than slipping onto the old
+    # one after we cancel its runs below.
+    async with get_async_db_session() as session:
+        result = await session.execute(
+            update(Project)
+            .where(col(Project.id) == project_id)
+            .values(current_revision=col(Project.current_revision) + 1)
+            .returning(col(Project.current_revision))
+        )
+        new_revision = result.scalar_one()
+        await session.commit()
+
+    old_revision = new_revision - 1
 
     async with get_async_db_session() as session:
         # Cancel any active workflows for the old revision
@@ -495,15 +509,6 @@ async def create_new_revision(
             if workflow_type in manifests
             and manifests[workflow_type].auto_rerun_on_new_revision
         ]
-
-        # Increment project revision
-        await session.execute(
-            update(Project)
-            .where(col(Project.id) == project_id)
-            .values(current_revision=new_revision)
-        )
-
-        await session.commit()
 
     logger.info(
         f"Created revision {new_revision} for project {project_id} "

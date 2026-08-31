@@ -40,9 +40,10 @@ def _make_run(
 class _FakeSession:
     """Minimal async session stub that records execute calls."""
 
-    def __init__(self, scalars_result=None, all_result=None):
+    def __init__(self, scalars_result=None, all_result=None, scalar_one_result=None):
         self._scalars_result = scalars_result or []
         self._all_result = all_result or []
+        self._scalar_one_result = scalar_one_result
         self.executed = []
 
     async def execute(self, stmt):
@@ -52,6 +53,7 @@ class _FakeSession:
         mock_scalars.all.return_value = self._scalars_result
         mock_result.scalars.return_value = mock_scalars
         mock_result.all.return_value = self._all_result
+        mock_result.scalar_one.return_value = self._scalar_one_result
         return mock_result
 
     async def commit(self):
@@ -69,9 +71,11 @@ async def test_create_new_revision_increments_revision():
     """create_new_revision should return old_revision + 1."""
     project = _make_project(current_revision=1)
 
-    # First session: fetching active runs (none)
-    # Second session: collecting types, archiving issues, updating project
+    # First session: atomic revision increment (returns the new revision)
+    # Second session: fetching active runs (none)
+    # Third session: collecting types
     sessions = [
+        _FakeSession(scalar_one_result=2),
         _FakeSession(scalars_result=[]),
         _FakeSession(all_result=[]),
     ]
@@ -98,6 +102,7 @@ async def test_create_new_revision_from_revision_3():
     project = _make_project(current_revision=3)
 
     sessions = [
+        _FakeSession(scalar_one_result=4),
         _FakeSession(scalars_result=[]),
         _FakeSession(all_result=[]),
     ]
@@ -130,6 +135,7 @@ async def test_create_new_revision_cancels_active_workflows():
     )
 
     sessions = [
+        _FakeSession(scalar_one_result=2),
         _FakeSession(scalars_result=[pending_run, running_run]),
         _FakeSession(all_result=[]),
     ]
@@ -170,6 +176,7 @@ async def test_create_new_revision_returns_previous_workflow_types():
     ]
 
     sessions = [
+        _FakeSession(scalar_one_result=2),
         _FakeSession(scalars_result=[]),
         _FakeSession(all_result=previous_types),
     ]
@@ -211,6 +218,7 @@ async def test_create_new_revision_excludes_workflows_opted_out_of_auto_rerun():
     ]
 
     sessions = [
+        _FakeSession(scalar_one_result=2),
         _FakeSession(scalars_result=[]),
         _FakeSession(all_result=previous_types),
     ]
@@ -264,6 +272,7 @@ async def test_create_new_revision_skips_retired_workflow_types():
     ]
 
     sessions = [
+        _FakeSession(scalar_one_result=2),
         _FakeSession(scalars_result=[]),
         _FakeSession(all_result=previous_types),
     ]
