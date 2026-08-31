@@ -27,6 +27,8 @@ Install the plugin from the marketplace inside Claude Code:
 
 Then invoke a check in plain language (e.g. _"validate the references in this document with Draft Detective"_), or ask _"what can Draft Detective check?"_ to see the full menu.
 
+Any check that reaches the internet asks for your consent before its first search, because parts of the document travel to a web search provider as queries; the menu marks which ones do. That mirrors the gate the web app and the MCP server enforce.
+
 ### 2. MCP server
 
 Connect Draft Detective to Claude, Codex, Opencode, or any MCP-compatible client and run reviews directly from your AI assistant. The backend mounts a [Model Context Protocol](https://modelcontextprotocol.io/) server at `/mcp` with OAuth authentication.

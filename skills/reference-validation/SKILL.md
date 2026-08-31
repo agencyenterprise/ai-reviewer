@@ -3,6 +3,19 @@ name: reference-validation
 description: Use this skill to validate a bibliographic reference (journal article, preprint, book, webpage, press release, government report, etc.) by searching for it online and comparing the citation to authoritative sources. Invoke when the user asks to check, verify, fact-check, or validate a citation or list of references — confirming author, title, publisher, year, and identifier (DOI / arXiv ID / ISBN / ISSN) against the actual published work.
 ---
 
+<!-- interactive-only:start -->
+## Before you search — get the user's consent
+
+This check sends parts of the user's document to an external web search provider. Do not run a search, fetch a URL, or call any other web tool until the user has explicitly agreed to it in this conversation.
+
+1. If you do not already have the user's consent for this document in this conversation, relay this to them verbatim and stop for their answer:
+
+   > To run this assessment, parts of your document — and possibly the whole document — will be sent to a web search provider as search queries. Don't proceed if the document contains confidential information you aren't comfortable sharing with an external search engine. Do you consent to running web search on this document?
+
+2. Continue only on an explicit yes. One consent covers this document for the rest of the conversation — don't re-ask per reference or per section.
+3. If the user declines, stop and do not search. Do not fall back on memory or on what you can infer without searching, and do not report partial findings as if the check ran. Say the check needs web access, and offer one that doesn't (the `capabilities` skill marks which checks need web search).
+<!-- interactive-only:end -->
+
 # Reference Validation
 
 Validate a single bibliographic reference by finding the cited work online and comparing it to the reference. Follow the six-step procedure below for each reference. Web search (or URL fetching) is required — never validate from memory.

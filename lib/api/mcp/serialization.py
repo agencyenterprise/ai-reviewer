@@ -31,6 +31,19 @@ async def get_project_details_json(
     return json.dumps(data)
 
 
+# The one wording every surface uses to ask for web-search consent: this gate
+# relays it, and the portable skills under `skills/` quote it for the agents
+# that run a check without the app in front of them. Keep the two in step —
+# tests/unit/test_skills.py compares them.
+WEB_SEARCH_CONSENT_QUESTION = (
+    "To run this assessment, parts of your document — and possibly the whole "
+    "document — will be sent to a web search provider as search queries. "
+    "Don't proceed if the document contains confidential information you "
+    "aren't comfortable sharing with an external search engine. Do you "
+    "consent to running web search on this document?"
+)
+
+
 def build_gate_required_payload(exc: WorkflowGateRequiredError) -> dict:
     """Build the JSON payload returned to the MCP client when consent is missing."""
     pending_human_approval = [w.value for w in exc.pending_human_approval]
@@ -67,12 +80,7 @@ def build_gate_required_payload(exc: WorkflowGateRequiredError) -> dict:
             "Web-search consent is required for these workflows: "
             f"{pending_web_search}. Before retrying, relay the following to "
             "the user verbatim and get their explicit OK:\n\n"
-            "  \"To run this assessment, parts of your document — and possibly "
-            "the whole document — will be sent to a web search provider as "
-            "search queries. Don't proceed if the document contains "
-            "confidential information you aren't comfortable sharing with an "
-            "external search engine. Do you consent to running web search on "
-            "this document?\"\n\n"
+            f'  "{WEB_SEARCH_CONSENT_QUESTION}"\n\n'
             "Only retry with approve_web_search=true after the user "
             "explicitly consents. If they decline, do not retry — instead "
             "offer to run a different workflow that doesn't need web access "
