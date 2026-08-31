@@ -12,8 +12,9 @@ is wrong scores the system down for being right.
 So the numbers a `fully_reproducible` expectation rests on are checked here, by
 redoing them from the document text the way a reader would. The stochastic
 reservoir arm is left out on purpose: reproducing it means 1,000 replicates of a
-bisection, which belongs in a script rather than the unit suite. Its value was
-verified the same way, offline.
+bisection, too slow for the unit suite. That arm is checked by
+`evals_inspectai/e2e/results_extraction/verify_reservoir_yields.py`, which is in
+the repo and runs the same model over every inflow assumption.
 """
 
 import calendar
@@ -63,19 +64,27 @@ def test_anchors_are_unique_within_a_sample(expectations: dict[str, list[dict]])
     The scorer assigns expected results to reported issues one-to-one, so an
     anchor that appears in two results' text lets the first entry capture the
     other's issue: the sibling then reads as missing and the captured issue as an
-    invention, from one duplicated string. Two such collisions have already cost
-    real runs, so they are a test failure rather than a review comment.
+    invention, from one duplicated string. Four such collisions have already cost
+    real runs -- two exact duplicates and two by substring -- so they are a test
+    failure rather than a review comment.
     """
     for sample, entries in expectations.items():
-        owner: dict[str, str] = {}
-        for entry in entries:
-            for anchor in entry["match"]:
-                key = anchor.lower()
-                assert key not in owner, (
-                    f"{sample}: anchor {anchor!r} is claimed by both "
-                    f"{owner[key]!r} and {entry['id']!r}"
+        anchors = [
+            (entry["id"], anchor.lower())
+            for entry in entries
+            for anchor in entry["match"]
+        ]
+        for index, (owner, anchor) in enumerate(anchors):
+            for other_owner, other in anchors[index + 1 :]:
+                if owner == other_owner:
+                    continue
+                # Containment, not just equality: anchors are matched as raw
+                # substrings, so '0.4' silently matches "10.43 ms" and steals
+                # that issue from whichever result it belongs to.
+                assert anchor not in other and other not in anchor, (
+                    f"{sample}: anchor {anchor!r} ({owner}) and {other!r} "
+                    f"({other_owner}) are substrings of one another"
                 )
-                owner[key] = entry["id"]
 
 
 def test_inline_simulation_load_is_stable(documents: dict[str, str]):

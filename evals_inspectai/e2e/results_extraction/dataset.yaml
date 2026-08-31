@@ -195,7 +195,7 @@
     importance: central
   - id: validation
     match:
-    - '0.4'
+    - 0.4%
     class: fully_reproducible
     importance: incidental
     required: false
@@ -206,7 +206,15 @@
     class: fully_reproducible
     importance: incidental
     required: false
-  target_answer: 'Every result is fully reproducible: the document is a simulation study whose arrival and service distributions, utilisation, replication count, seeds (1001-1010), software version and percentile method are all stated in the text, and no external data is used. The three results are Equation 1 (the Pollaczek-Khinchine check), Table 1 (waiting-time percentiles by discipline) and the textual finding that LIFO improves the median by 87% while worsening p99.9 by 4.2x. All three should be reported as informational (severity none), with no missing ingredients claimed.'
+  - id: work_conservation
+    match:
+    - work conserving
+    - work-conserving
+    - matches FIFO's
+    class: fully_reproducible
+    importance: incidental
+    required: false
+  target_answer: 'Every result is fully reproducible: the document is a simulation study whose arrival and service distributions, utilisation, replication count, seeds (1001-1010), software version and percentile method are all stated in the text, and no external data is used. The results that must appear are Table 1 (waiting-time percentiles by discipline) and the textual finding that LIFO improves the median by 87% while worsening p99.9 by 4.2x. Equation 1 is the Pollaczek-Khinchine formula used as a check, so reporting it is reasonable but not required. Whatever is reported should be informational (severity none), with no missing ingredients claimed.'
 - id: web_retrievable_params
   input: |
     # Levelised Cost of Onshore Wind at Three Candidate Sites
@@ -231,20 +239,23 @@
 
     Parameter values are taken as follows, and not re-derived here:
 
-    - Capital cost, fixed and variable O&M, and economic life: the onshore wind
-      rows of the NREL Annual Technology Baseline 2024, Moderate scenario.
-    - Discount rate: the real weighted average cost of capital for onshore wind
-      reported in IEA/NEA *Projected Costs of Generating Electricity 2020*, Table
-      3.2.
-    - Power curve: the reference 3.0 MW turbine power curve published in IEC
-      61400-12-1:2017, Annex D, Table D.1.
+    Every source below is openly published and free to read; nothing here sits
+    behind a paywall or a licence.
+
+    - Capital cost, fixed and variable O&M, economic life, and the real weighted
+      average cost of capital: the onshore wind rows of the NREL Annual Technology
+      Baseline 2024, Moderate scenario, and its published financial assumptions.
+    - Power curve: the 3.0 MW reference turbine power curve in the NREL reference
+      turbine series (technical report NREL/TP-5000-38060), scaled to 3.0 MW by
+      rated power as that report describes.
     - Long-term wind speed distribution at each site: the Global Wind Atlas 3.3
       100 m Weibull parameters for the site coordinates listed in Table 1.
     - Site air density: the Global Wind Atlas 3.3 mean air density layer at 100 m
-      for the site coordinates listed in Table 1, with the correction itself
-      performed per IEC 61400-12-1:2017 §9.1.3.
-    - Wake and availability losses: the 12.0% combined default from Bosch et al.
-      (2018), *Energy* 163, 766–781, doi:10.1016/j.energy.2018.08.153, Table 4.
+      for the same coordinates. Power is corrected for density by scaling the
+      power-curve wind speeds by $(\rho / 1.225)^{1/3}$, with 1.225 kg/m³ as the
+      reference density.
+    - Wake and availability losses: the 12.0% combined default in the NREL Annual
+      Technology Baseline 2024 methodology documentation.
 
     Net annual generation is obtained by convolving the site Weibull distribution
     with the density-corrected power curve at 0.5 m/s bins, then applying the
@@ -268,9 +279,10 @@
     considered.
 
     A third result concerns the loss assumption. Substituting the site-specific
-    wake losses given in Bosch et al. Table 5 for the 12.0% default -- 13.4% for
-    Ridge A, 10.9% for Plateau B and 14.1% for Coastal C, matched to sites by the
-    terrain class each is assigned in Table 1 of that paper -- gives LCOE values of
+    wake losses in that same NREL methodology documentation for the 12.0% default
+    -- 13.4% for Ridge A, 10.9% for Plateau B and 14.1% for Coastal C, matched to
+    sites by the terrain class each is assigned in Table 1 above -- gives LCOE
+    values of
     38.71, 48.98 and 34.65 USD/MWh respectively. Every site moves by less than 1.20
     USD/MWh and the ranking is unchanged, so the result is insensitive to that
     choice.
@@ -302,7 +314,7 @@
     - wake
     class: reproducible_with_web_search
     importance: incidental
-  target_answer: 'The LCOE calculation is fully specified by Equation 1 and the procedure, but every input parameter lives in a named public source rather than in the document: the NREL ATB 2024, IEA/NEA Table 3.2, IEC 61400-12-1 Annex D, Global Wind Atlas, and a DOI''d paper''s Table 4. Those are individual published values a reader can look up, so the results are reproducible with web search, not fully reproducible and not dependent on a bulk data upload. All results should be informational (severity none), and each rationale should name the external sources that have to be retrieved.'
+  target_answer: 'The LCOE calculation is fully specified by Equation 1 and the procedure, but every input parameter lives in a named public source rather than in the document: the NREL ATB 2024 and its methodology documentation, an NREL reference-turbine report, and the Global Wind Atlas. Every one is openly published, so these are individual public values a reader can look up, so the results are reproducible with web search, not fully reproducible and not dependent on a bulk data upload. All results should be informational (severity none), and each rationale should name the external sources that have to be retrieved.'
 - id: public_dataset_uploads
   input: |
     # Interconnection Queue Duration and Project Withdrawal, 2015–2023
@@ -359,8 +371,9 @@
 
     The headline finding, stated here rather than in a figure: a project submitted
     in 2023 faces a withdrawal hazard 1.9 times that of an otherwise identical
-    project submitted in 2015, and the increase is monotone across the nine
-    submission cohorts.
+    project submitted in 2015. The year term is fitted as a single linear
+    coefficient, so monotonicity across the nine submission cohorts follows by
+    construction rather than being an independent finding.
 
     ## Conclusion
 
@@ -466,6 +479,12 @@
     - not being bought
     class: not_reproducible
     importance: supporting
+  - id: segments
+    match:
+    - segment
+    class: not_reproducible
+    importance: incidental
+    required: false
   target_answer: 'Nothing here is reproducible: the subscriber and billing data are confidential and withheld, group sizes are redacted, assignment was done by an unspecified targeting system, and the churn definition, the controls, the significance test and the ''standard internal pipeline'' are all referred to without being stated. Each result should carry a real severity, and the rationales should name the missing data and the missing procedural detail rather than only observing that the data is confidential.'
 - id: mixed_classes
   input: |
@@ -530,7 +549,8 @@
     The survey estimate re-analyses the English Housing Survey household file,
     2022–23. Households are matched to the reference dwelling on four variables:
     dwelling type (detached), floor-area band (90–119 m²), construction-age band
-    (1945–1980) and Government Office Region. The outcome is the household's total
+    (1945–1980) and Government Office Region, which for the reference dwelling is
+    the South West. The outcome is the household's total
     reported heating-system replacement expenditure; households that report a
     replacement but no figure are dropped rather than imputed, and that drop is
     modelled below rather than ignored. Each matched household is weighted by the
@@ -602,6 +622,14 @@
     match:
     - 31%
     class: fully_reproducible
+    importance: incidental
+    required: false
+  - id: spread_interpretation
+    match:
+    - tracks how much
+    - publicly checkable
+    - not noise
+    class: not_reproducible
     importance: incidental
     required: false
   target_answer: This document carries one result per reproducibility class and they must not be collapsed together. Estimate 1 is fully reproducible (Equation 1 plus all 18 fitting examples in Table 1). Estimate 2 is reproducible with web search (published scheme median and a named ONS index series). Estimate 3 is reproducible with external uploads (the English Housing Survey microdata has to be downloaded). Estimate 4 is not reproducible (confidential quotations, unrecorded installer selection). Only the fourth should carry a real severity; the first three are informational.
@@ -724,7 +752,8 @@
     Figure 1 shows the storage trace for the critical drawdown period under each
     assumption, with the historical critical period highlighted. Each trace is
     drawn at that case's own yield demand from Table 1; the stochastic trace is
-    the replicate whose minimum storage is the median of the 1,000 replicates,
+    the replicate whose minimum storage is the 500th-lowest of the 1,000
+    replicates,
     plotted over its own critical drawdown period rather than aligned to the
     historical one.
 
@@ -872,7 +901,11 @@
     $$h_i(x) = \big((a_i x + c_i) \bmod p\big) \bmod 2^{32}$$
 
     with $p = 2^{61} - 1$, and $(a_i, c_i)$ for $i = 1 \ldots 200$ drawn once with
-    Python's `random.Random(90210)` over $[1, p-1]$ and then held fixed.
+    Python's `random.Random(90210)` over $[1, p-1]$ and then held fixed. A shingle
+    becomes the integer $x$ by taking the first 8 bytes of the SHA-256 digest of
+    its UTF-8 encoding, big-endian, modulo $p$. A band key is the first 16 hex
+    characters of the SHA-256 digest of that band's four MinHash values written as
+    decimal integers and joined by single commas.
     `EstimatedJaccard` is the fraction of the 200 MinHash positions on which the
     two sketches agree. The author check on line 13 compares case-folded surnames
     after stripping accents.
