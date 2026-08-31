@@ -174,6 +174,13 @@ def _load_dataset() -> MemoryDataset:
     """
     path = Path(__file__).parent / "dataset.yaml"
     records = yaml.safe_load(path.read_text())
+    for record in records:
+        if not record.get("expected_results"):
+            raise ValueError(
+                f"dataset record {record.get('id')!r} declares no expected_results; "
+                "four of the deterministic checks compare against that inventory "
+                "and have nothing to check without it"
+            )
     return MemoryDataset(
         samples=[_record_to_sample(record) for record in records],
         name="results_extraction",
@@ -304,12 +311,15 @@ def _ground_truth_checks(
 ) -> dict[str, tuple[bool | float, str]]:
     """Compare the reported inventory against the dataset's expected one."""
     if not expected:
-        # A sample may legitimately decline to state an inventory (a very long
-        # document, where only a floor is assertable). Say so rather than
-        # reporting a pass that was never tested.
-        note = "no expected inventory declared for this sample"
-        return {key: (1.0, note) for key in
-                ("completeness", "class_accuracy", "no_extras", "severity_ordering")}
+        # Every record is required to declare its inventory (`_load_dataset`
+        # enforces it), so reaching here means the dataset is malformed. Failing
+        # is the honest reading: scoring 1.0 would report four passes that were
+        # never tested, and a sample with no ground truth cannot be checked.
+        note = "no expected inventory declared -- this sample cannot be scored"
+        return {
+            key: (0.0, note)
+            for key in ("completeness", "class_accuracy", "no_extras", "severity_ordering")
+        }
 
     matched = _match_expected(issues, expected)
     by_id = {entry["id"]: entry for entry in expected}
@@ -541,7 +551,7 @@ def _answer_text(result: AgentCheckResult) -> str:
 
 @scorer(metrics={name: [mean(), stderr()] for name in RUBRIC_CRITERIA})
 def rubric_criteria(model: str | Model | None = None) -> Scorer:
-    """Grade this suite's four criteria, each in its own grader call."""
+    """Grade this suite's two criteria, each in its own grader call."""
 
     async def score(state: TaskState, target: Target) -> Score:
         result, reason = _extract_result(state)

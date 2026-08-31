@@ -22,7 +22,7 @@ The document may be long (e.g., 10,000+ words) and may NOT be cleanly structured
 
    Provide a rationale for this categorization and explain what would be needed to make the result fully reproducible.
 4. Describe the result in no more than five sentences
-5. Provide the location of the result.  This should be a description of the page number, figure number, table number, equation number, etc
+5. Provide the location of the result. This should be a description of the page number, figure number, table number, equation number, etc
 6. Provide a descriptive title for the result
 
 
