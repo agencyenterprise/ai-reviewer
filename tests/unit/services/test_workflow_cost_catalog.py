@@ -82,6 +82,32 @@ class TestParsing:
         _, model = entry
         assert model.prices == {"input": Decimal("2e-06")}
 
+    @pytest.mark.parametrize(
+        "bad_price", [float("nan"), float("inf"), "NaN", "Infinity"]
+    )
+    def test_non_finite_prices_are_dropped(self, bad_price):
+        """`Decimal` takes NaN/Infinity, and json.loads parses the bare literals.
+
+        A non-finite rate would poison every total it touches and serialize as
+        invalid JSON, breaking the response rather than just this model's cost.
+        """
+        record = _record(
+            "poisoned",
+            prices={"input": {"price": 2e-06}, "output": {"price": bad_price}},
+        )
+        entry = catalog._parse_record(record)
+        assert entry is not None
+        _, model = entry
+        assert model.prices == {"input": Decimal("2e-06")}
+
+    def test_a_model_priced_only_non_finitely_is_skipped(self):
+        assert (
+            catalog._parse_record(
+                _record("all-nan", prices={"input": {"price": float("nan")}})
+            )
+            is None
+        )
+
 
 class TestCaching:
     @pytest.mark.asyncio
@@ -127,6 +153,37 @@ class TestCaching:
         now += 2
         _stub_fetch(monkeypatch, [_record("gpt-5.6-terra")])
         assert len(await catalog.get_catalog()) == 1
+
+    @pytest.mark.asyncio
+    async def test_a_failed_refresh_keeps_serving_the_last_good_prices(
+        self, monkeypatch
+    ):
+        """Losing Langfuse for a moment must not blank out cost we already have."""
+        _stub_fetch(monkeypatch, [_record("gpt-5.6-terra")])
+        now = 1000.0
+        monkeypatch.setattr(catalog.time, "monotonic", lambda: now)
+        assert len(await catalog.get_catalog()) == 1
+
+        now += catalog._SUCCESS_TTL_SECONDS + 1
+        _stub_failing_fetch(monkeypatch)
+        entries = await catalog.get_catalog()
+        assert [model.model_name for _, model in entries] == ["gpt-5.6-terra"]
+        assert catalog._CACHE is not None
+        assert catalog._CACHE.expires_at == now + catalog._FAILURE_RETRY_SECONDS
+
+    @pytest.mark.asyncio
+    async def test_an_empty_successful_response_replaces_the_old_catalog(
+        self, monkeypatch
+    ):
+        """Unlike a failure, an empty answer is Langfuse telling us something."""
+        _stub_fetch(monkeypatch, [_record("gpt-5.6-terra")])
+        now = 1000.0
+        monkeypatch.setattr(catalog.time, "monotonic", lambda: now)
+        assert len(await catalog.get_catalog()) == 1
+
+        now += catalog._SUCCESS_TTL_SECONDS + 1
+        _stub_fetch(monkeypatch, [])
+        assert await catalog.get_catalog() == []
 
     @pytest.mark.asyncio
     async def test_unconfigured_langfuse_never_calls_out(self, monkeypatch):

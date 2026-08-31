@@ -79,14 +79,22 @@ def _parse_prices(raw_prices: Any, model_name: str) -> dict[str, Decimal]:
         if price is None:
             continue
         try:
-            prices[str(usage_type)] = Decimal(str(price))
+            rate = Decimal(str(price))
         except (InvalidOperation, ValueError):
+            rate = None
+        # `Decimal` happily accepts "NaN" and "Infinity", and json.loads parses
+        # the bare NaN/Infinity literals, so a non-finite rate can reach us. It
+        # would poison every total it touches and serialize as invalid JSON,
+        # breaking the whole response rather than just this model's cost.
+        if rate is None or not rate.is_finite():
             logger.warning(
-                "skipping unparseable Langfuse price %r for %s/%s",
+                "skipping unusable Langfuse price %r for %s/%s",
                 price,
                 model_name,
                 usage_type,
             )
+            continue
+        prices[str(usage_type)] = rate
     return prices
 
 
@@ -161,7 +169,13 @@ def _compile(records: list[Any]) -> list[CatalogEntry]:
     return entries
 
 
-async def _load() -> _CachedCatalog:
+async def _load(stale: Optional[_CachedCatalog]) -> _CachedCatalog:
+    """Refetch the catalog, falling back to `stale` if the fetch fails.
+
+    `stale` is the expired entry this load is replacing. Prices change rarely, so
+    serving them past their deadline while Langfuse is unreachable beats dropping
+    cost from every assessment for the length of the cooldown.
+    """
     if not _is_configured():
         logger.info("Langfuse not configured; cost calculation disabled")
         return _CachedCatalog(entries=[], expires_at=float("inf"))
@@ -171,19 +185,27 @@ async def _load() -> _CachedCatalog:
             _fetch_all_records(), timeout=_FETCH_TIMEOUT_SECONDS
         )
     except Exception as e:
+        kept = stale.entries if stale else []
         # Logged at error level because the only user-visible symptom is cost
         # quietly missing from every assessment.
         logger.error(
             "Failed to load Langfuse model pricing (%s: %s); "
-            "cost calculation is off until the next retry in %ds",
+            "%s until the next retry in %ds",
             type(e).__name__,
             e,
+            (
+                f"serving {len(kept)} stale price entries"
+                if kept
+                else "cost calculation is off"
+            ),
             int(_FAILURE_RETRY_SECONDS),
         )
         return _CachedCatalog(
-            entries=[], expires_at=time.monotonic() + _FAILURE_RETRY_SECONDS
+            entries=kept, expires_at=time.monotonic() + _FAILURE_RETRY_SECONDS
         )
 
+    # An empty catalog here is a successful answer, not a failure, so it replaces
+    # whatever we were holding.
     return _CachedCatalog(
         entries=_compile(records), expires_at=time.monotonic() + _SUCCESS_TTL_SECONDS
     )
@@ -200,5 +222,5 @@ async def get_catalog() -> list[CatalogEntry]:
         cached = _CACHE
         if cached is not None and cached.is_fresh():
             return cached.entries
-        _CACHE = await _load()
+        _CACHE = await _load(cached)
         return _CACHE.entries
