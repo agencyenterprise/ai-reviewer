@@ -169,8 +169,24 @@ def _compile(records: list[Any]) -> list[CatalogEntry]:
     return entries
 
 
+def _hold(stale: Optional[_CachedCatalog]) -> _CachedCatalog:
+    """Keep whatever prices we already have, and look again after the cooldown."""
+    return _CachedCatalog(
+        entries=stale.entries if stale else [],
+        expires_at=time.monotonic() + _FAILURE_RETRY_SECONDS,
+    )
+
+
+def _outcome(kept: list[CatalogEntry]) -> str:
+    return (
+        f"serving {len(kept)} stale price entries"
+        if kept
+        else "cost calculation is off"
+    )
+
+
 async def _load(stale: Optional[_CachedCatalog]) -> _CachedCatalog:
-    """Refetch the catalog, falling back to `stale` if the fetch fails.
+    """Refetch the catalog, falling back to `stale` if the refresh does not land.
 
     `stale` is the expired entry this load is replacing. Prices change rarely, so
     serving them past their deadline while Langfuse is unreachable beats dropping
@@ -185,29 +201,39 @@ async def _load(stale: Optional[_CachedCatalog]) -> _CachedCatalog:
             _fetch_all_records(), timeout=_FETCH_TIMEOUT_SECONDS
         )
     except Exception as e:
-        kept = stale.entries if stale else []
+        held = _hold(stale)
         # Logged at error level because the only user-visible symptom is cost
         # quietly missing from every assessment.
         logger.error(
-            "Failed to load Langfuse model pricing (%s: %s); "
-            "%s until the next retry in %ds",
+            "Failed to load Langfuse model pricing (%s: %s); %s until the next "
+            "retry in %ds",
             type(e).__name__,
             e,
-            (
-                f"serving {len(kept)} stale price entries"
-                if kept
-                else "cost calculation is off"
-            ),
+            _outcome(held.entries),
             int(_FAILURE_RETRY_SECONDS),
         )
-        return _CachedCatalog(
-            entries=kept, expires_at=time.monotonic() + _FAILURE_RETRY_SECONDS
-        )
+        return held
 
-    # An empty catalog here is a successful answer, not a failure, so it replaces
-    # whatever we were holding.
+    entries = _compile(records)
+    if records and not entries:
+        # Records arrived and not one of them was readable. That is a schema
+        # change across the whole catalog, not an empty catalog, so it gets the
+        # failure path: trusting the emptiness for an hour is precisely the
+        # blackout this module was written to end.
+        held = _hold(stale)
+        logger.error(
+            "Read none of the %d Langfuse model records; treating as a failed "
+            "refresh, %s until the next retry in %ds",
+            len(records),
+            _outcome(held.entries),
+            int(_FAILURE_RETRY_SECONDS),
+        )
+        return held
+
+    # A genuinely empty response is Langfuse answering, so it replaces whatever
+    # we were holding.
     return _CachedCatalog(
-        entries=_compile(records), expires_at=time.monotonic() + _SUCCESS_TTL_SECONDS
+        entries=entries, expires_at=time.monotonic() + _SUCCESS_TTL_SECONDS
     )
 
 

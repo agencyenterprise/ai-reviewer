@@ -186,6 +186,32 @@ class TestCaching:
         assert await catalog.get_catalog() == []
 
     @pytest.mark.asyncio
+    async def test_a_wholly_unreadable_response_counts_as_a_failure(self, monkeypatch):
+        """Records that all fail to parse mean a schema change, not an empty catalog."""
+        _stub_fetch(monkeypatch, [_record("gpt-5.6-terra")])
+        now = 1000.0
+        monkeypatch.setattr(catalog.time, "monotonic", lambda: now)
+        assert len(await catalog.get_catalog()) == 1
+
+        now += catalog._SUCCESS_TTL_SECONDS + 1
+        _stub_fetch(monkeypatch, [{"everythingRenamed": True} for _ in range(50)])
+        entries = await catalog.get_catalog()
+
+        assert [model.model_name for _, model in entries] == ["gpt-5.6-terra"]
+        assert catalog._CACHE is not None
+        assert catalog._CACHE.expires_at == now + catalog._FAILURE_RETRY_SECONDS
+
+    @pytest.mark.asyncio
+    async def test_a_first_load_that_reads_nothing_retries_soon(self, monkeypatch):
+        now = 1000.0
+        monkeypatch.setattr(catalog.time, "monotonic", lambda: now)
+        _stub_fetch(monkeypatch, [{"everythingRenamed": True}])
+
+        assert await catalog.get_catalog() == []
+        assert catalog._CACHE is not None
+        assert catalog._CACHE.expires_at == now + catalog._FAILURE_RETRY_SECONDS
+
+    @pytest.mark.asyncio
     async def test_unconfigured_langfuse_never_calls_out(self, monkeypatch):
         monkeypatch.setattr(config, "LANGFUSE_SECRET_KEY", None)
         calls: list = []
