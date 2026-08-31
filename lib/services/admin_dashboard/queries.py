@@ -1,11 +1,11 @@
 """Aggregation queries behind the admin usage dashboard.
 
-Each function owns one aggregate and takes the session, so the service layer can
-run them concurrently. Counts for the selected window and the preceding one are
-produced by a single query using conditional aggregation.
+Each function owns one aggregate and takes a session from its caller, which
+runs them one after another on a single connection — see the service for why
+this deliberately does not fan out. Counts for the selected window and the
+preceding one are produced by a single query using conditional aggregation.
 """
 
-import logging
 from datetime import date, datetime, timedelta
 
 from sqlalchemy import and_, case, distinct, func, select
@@ -29,8 +29,6 @@ from lib.services.admin_dashboard.models import (
 )
 from lib.services.admin_dashboard.window import DashboardWindow
 from lib.workflows.registry import get_all_manifests
-
-logger = logging.getLogger(__name__)
 
 # Median ≈ the typical run; a mean would be dragged around by the odd very slow
 # one. Same choice as the pre-run duration estimates.
@@ -59,15 +57,11 @@ def _is_assessment() -> ColumnElement[bool]:
     return col(WorkflowRun.type).in_(_assessment_type_values())
 
 
-def _in_current(
-    window: DashboardWindow, ts: Mapped[datetime]
-) -> ColumnElement[bool]:
+def _in_current(window: DashboardWindow, ts: Mapped[datetime]) -> ColumnElement[bool]:
     return ts >= window.start
 
 
-def _in_previous(
-    window: DashboardWindow, ts: Mapped[datetime]
-) -> ColumnElement[bool]:
+def _in_previous(window: DashboardWindow, ts: Mapped[datetime]) -> ColumnElement[bool]:
     return and_(ts >= window.previous_start, ts < window.start)
 
 
@@ -177,7 +171,9 @@ async def get_feedback_metrics(
     row = (await session.execute(stmt)).one()
     return (
         MetricWithDelta(current=row[0], previous=row[1]),
-        DashboardFeedbackSummary(thumbs_up=row[2], thumbs_down=row[3], with_comment=row[4]),
+        DashboardFeedbackSummary(
+            thumbs_up=row[2], thumbs_down=row[3], with_comment=row[4]
+        ),
     )
 
 
@@ -324,9 +320,7 @@ async def get_workflow_usage(
                     running=row[5],
                     pending=row[6],
                 ),
-                median_duration_seconds=(
-                    float(row[7]) if row[7] is not None else None
-                ),
+                median_duration_seconds=(float(row[7]) if row[7] is not None else None),
                 thumbs_up=thumbs_up,
                 thumbs_down=thumbs_down,
             )

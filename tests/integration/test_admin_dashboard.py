@@ -101,16 +101,39 @@ async def dashboard_data():
         feedback_visibility=FeedbackVisibility.FULL_PROJECT,
     )
     runs = [
-        _run(project.id, slug, WorkflowRunStatus.COMPLETED, NOW - timedelta(hours=3), 10),
-        _run(project.id, slug, WorkflowRunStatus.COMPLETED, NOW - timedelta(hours=2), 30),
+        _run(
+            project.id, slug, WorkflowRunStatus.COMPLETED, NOW - timedelta(hours=3), 10
+        ),
+        _run(
+            project.id, slug, WorkflowRunStatus.COMPLETED, NOW - timedelta(hours=2), 30
+        ),
         _run(project.id, slug, WorkflowRunStatus.FAILED, NOW - timedelta(hours=1)),
         _run(project.id, slug, WorkflowRunStatus.RUNNING, NOW - timedelta(minutes=30)),
         # Outside a one-day window: must not be counted.
-        _run(project.id, slug, WorkflowRunStatus.COMPLETED, NOW - timedelta(days=10), 99),
+        _run(
+            project.id, slug, WorkflowRunStatus.COMPLETED, NOW - timedelta(days=10), 99
+        ),
         # A live assessment type — the only runs here the assessment metrics count.
-        _run(project.id, ASSESSMENT_SLUG, WorkflowRunStatus.COMPLETED, NOW - timedelta(hours=2), 5),
-        _run(project.id, ASSESSMENT_SLUG, WorkflowRunStatus.COMPLETED, NOW - timedelta(hours=1), 7),
-        _run(project.id, ASSESSMENT_SLUG, WorkflowRunStatus.FAILED, NOW - timedelta(minutes=45)),
+        _run(
+            project.id,
+            ASSESSMENT_SLUG,
+            WorkflowRunStatus.COMPLETED,
+            NOW - timedelta(hours=2),
+            5,
+        ),
+        _run(
+            project.id,
+            ASSESSMENT_SLUG,
+            WorkflowRunStatus.COMPLETED,
+            NOW - timedelta(hours=1),
+            7,
+        ),
+        _run(
+            project.id,
+            ASSESSMENT_SLUG,
+            WorkflowRunStatus.FAILED,
+            NOW - timedelta(minutes=45),
+        ),
     ]
     feedbacks = [
         Feedback(
@@ -271,9 +294,7 @@ async def test_only_one_computation_runs_at_a_time(dashboard_data, monkeypatch):
 
     monkeypatch.setattr(queries, "get_user_metrics", counting_get_user_metrics)
 
-    responses = await asyncio.gather(
-        *[get_admin_dashboard(days=1) for _ in range(6)]
-    )
+    responses = await asyncio.gather(*[get_admin_dashboard(days=1) for _ in range(6)])
 
     assert peak == 1
     assert len(responses) == 6

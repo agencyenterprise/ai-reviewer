@@ -7,7 +7,9 @@ from lib.services.admin_dashboard.queries import _bucket_starts
 from lib.services.admin_dashboard.window import DashboardWindow
 
 
-def _window(days: int, granularity: ActivityGranularity, end: datetime) -> DashboardWindow:
+def _window(
+    days: int, granularity: ActivityGranularity, end: datetime
+) -> DashboardWindow:
     span = timedelta(days=days)
     return DashboardWindow(
         days=days,

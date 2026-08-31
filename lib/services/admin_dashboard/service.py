@@ -1,7 +1,6 @@
 """Assembles the admin usage dashboard payload."""
 
 import asyncio
-import logging
 
 from sqlalchemy import text
 
@@ -9,8 +8,6 @@ from lib.config.database import get_async_db_session
 from lib.services.admin_dashboard import queries
 from lib.services.admin_dashboard.models import AdminDashboardResponse
 from lib.services.admin_dashboard.window import DashboardWindow
-
-logger = logging.getLogger(__name__)
 
 # Enough rows to see who is driving usage without turning the card into the
 # user-management table, which already exists at /users.

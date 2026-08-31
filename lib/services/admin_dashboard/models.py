@@ -98,9 +98,7 @@ class DashboardFeedbackSummary(BaseModel):
 
     thumbs_up: int
     thumbs_down: int
-    with_comment: int = Field(
-        description="Feedback entries that carry written text"
-    )
+    with_comment: int = Field(description="Feedback entries that carry written text")
 
 
 class AdminDashboardResponse(BaseModel):
