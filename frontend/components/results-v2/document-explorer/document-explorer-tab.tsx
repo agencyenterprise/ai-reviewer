@@ -23,7 +23,7 @@ import { WIDE_ENOUGH_FOR_PANE, useMediaQuery } from '@/lib/use-media-query';
 import { cn } from '@/lib/utils';
 import { AlertTriangleIcon, Columns2, ListFilter, Loader2 } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { DocumentView, DocumentViewHandle } from './document-view';
+import { DocumentHeader, DocumentView, DocumentViewHandle } from './document-view';
 import { IssuesColumn, IssuesColumnHandle, issueCountLabel } from './issues-column';
 import { Rail, RailToggle, SidePane, useRailState } from '../panes';
 import { OutlineRail } from './outline-rail';
@@ -78,6 +78,17 @@ export function DocumentExplorerTabV2({
 
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
   const issues = useMemo(() => projectDetail.issues ?? [], [projectDetail.issues]);
+
+  const documentSummarization = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentSummarization);
+  // What the summarizer read off the document itself, which is what the reader
+  // wants at the top of the page — not the project's name, which is editable
+  // and often just the uploaded file name.
+  const documentHeader = useMemo<DocumentHeader | undefined>(() => {
+    const state = documentSummarization?.state;
+    const summary = state?.summaries?.find((item) => item.file_id === state.main_file_id);
+    if (!summary) return undefined;
+    return { title: summary.title, authors: summary.authors };
+  }, [documentSummarization]);
 
   const documentProcessing = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
   const isDocumentProcessing = isWorkflowProcessing(documentProcessing);
@@ -315,6 +326,7 @@ export function DocumentExplorerTabV2({
             <DocumentView
               ref={documentRef}
               markdown={mainDocumentMarkdown}
+              header={documentHeader}
               issues={highlightIssues}
               selectedLineRange={selectedLineRange}
               onIssueSelect={handleIssueSelectFromDocument}

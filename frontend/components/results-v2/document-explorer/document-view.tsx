@@ -27,9 +27,20 @@ export interface DocumentViewHandle {
   getTopVisibleLine: () => number | null;
 }
 
+/** What the document says about itself, as extracted by the summarizer. */
+export interface DocumentHeader {
+  title?: string | null;
+  authors?: string | null;
+}
+
 interface DocumentViewProps {
   ref?: Ref<DocumentViewHandle>;
   markdown: string;
+  /**
+   * Title and authors shown above the text, scrolling with it. Omit when the
+   * document has not been summarized yet.
+   */
+  header?: DocumentHeader;
   issues: Issue[];
   selectedLineRange: [number, number] | null;
   onIssueSelect: (issue: Issue | null) => void;
@@ -237,7 +248,15 @@ const BLOCK_COMPONENTS = {
     ),
 };
 
-export function DocumentView({ ref, markdown, issues, selectedLineRange, onIssueSelect, margin }: DocumentViewProps) {
+export function DocumentView({
+  ref,
+  markdown,
+  header,
+  issues,
+  selectedLineRange,
+  onIssueSelect,
+  margin,
+}: DocumentViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -375,6 +394,7 @@ export function DocumentView({ ref, markdown, issues, selectedLineRange, onIssue
     >
       <MarginContext.Provider value={marginState}>
         <div className={cn('relative mx-auto', WIDTH_BASE, marginState && WIDTH_WITH_MARGIN)}>
+          <DocumentHeading header={header} inMargin={marginState !== null} />
           {renderedMarkdown}
           {marginState && (
             <MarginLayer
@@ -388,5 +408,34 @@ export function DocumentView({ ref, markdown, issues, selectedLineRange, onIssue
         </div>
       </MarginContext.Provider>
     </div>
+  );
+}
+
+/**
+ * The document's own title block, in the text column and scrolling with it. The
+ * markdown starts at the abstract or the first heading, so without this the
+ * reader has no idea which document they are looking at once the shell's title
+ * is out of view.
+ */
+function DocumentHeading({ header, inMargin }: { header?: DocumentHeader; inMargin: boolean }) {
+  const title = header?.title?.trim();
+  const authors = header?.authors?.trim();
+  if (!title && !authors) return null;
+
+  return (
+    <header className={cn('grid', GRID_BASE, inMargin && GRID_WITH_MARGIN)}>
+      {/* The gutter stays empty: the heading is not part of the source text, so
+          there is no line number to put beside it. */}
+      <div aria-hidden />
+      {/* Matches a block row's rule and gap so the heading starts on the same
+          column as every paragraph below it. */}
+      <div className="flex min-w-0 gap-2">
+        <span className="w-[2px] shrink-0" aria-hidden />
+        <hgroup className="mb-6 min-w-0 flex-1 border-b pb-4">
+          {title && <h1 className="text-lg font-semibold tracking-tight text-balance">{title}</h1>}
+          {authors && <p className="mt-1 text-xs text-muted-foreground">{authors}</p>}
+        </hgroup>
+      </div>
+    </header>
   );
 }
