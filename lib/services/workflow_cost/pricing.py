@@ -1,101 +1,34 @@
-import asyncio
 import logging
-import re
 from decimal import Decimal
-from typing import Any, Iterable, Optional
+from typing import Iterable, Optional
 
 from lib.services.workflow_cost.breakdown import (
     CostBreakdown,
     ModelCostBreakdown,
     UsageRecord,
 )
+from lib.services.workflow_cost.catalog import CatalogEntry, ModelPricing, get_catalog
 
 logger = logging.getLogger(__name__)
 
-# Cached compiled (pattern, model) tuples loaded from Langfuse. None means not loaded.
-# Tests can set this directly to bypass the network fetch.
-_MODELS_CACHE: Optional[list[tuple[re.Pattern[str], Any]]] = None
-_MODELS_LOCK = asyncio.Lock()
-_MODELS_FETCH_TIMEOUT_SECONDS = 5.0
 
-
-async def _fetch_all_models(langfuse: Any) -> list:
-    models: list = []
-    page = 1
-    while True:
-        res = await langfuse.async_api.models.list(page=page, limit=100)
-        models.extend(res.data)
-        if len(models) >= res.meta.total_items:
-            return models
-        page += 1
-
-
-async def _ensure_models_loaded() -> list[tuple[re.Pattern[str], Any]]:
-    """Lazy-load and cache the Langfuse model price catalog for the process lifetime."""
-    global _MODELS_CACHE
-    cached = _MODELS_CACHE
-    if cached is not None:
-        return cached
-    async with _MODELS_LOCK:
-        cached = _MODELS_CACHE
-        if cached is not None:
-            return cached
-
-        # Imported lazily to avoid creating the Langfuse client at import time
-        # (langfuse is None when env vars are not configured).
-        from lib.config.langfuse import langfuse
-
-        if langfuse is None:
-            logger.info("Langfuse not configured; cost calculation disabled")
-            _MODELS_CACHE = []
-            return _MODELS_CACHE
-
-        try:
-            models = await asyncio.wait_for(
-                _fetch_all_models(langfuse), timeout=_MODELS_FETCH_TIMEOUT_SECONDS
-            )
-        except Exception:
-            # Cache the failure so we don't re-hang on every cost calculation.
-            logger.warning(
-                "Failed to load Langfuse model pricing; disabling cost calc for this process"
-            )
-            _MODELS_CACHE = []
-            return _MODELS_CACHE
-
-        compiled: list[tuple[re.Pattern[str], Any]] = []
-        for m in models:
-            try:
-                compiled.append((re.compile(m.match_pattern), m))
-            except re.error as e:
-                logger.warning(
-                    "skipping invalid Langfuse model pattern %r: %s",
-                    m.match_pattern,
-                    e,
-                )
-        logger.info("loaded %d model price entries from Langfuse", len(compiled))
-        _MODELS_CACHE = compiled
-        return _MODELS_CACHE
-
-
-def _match_model(
-    name: str, models: list[tuple[re.Pattern[str], Any]]
-) -> Optional[Any]:
+def _match_model(name: str, models: list[CatalogEntry]) -> Optional[ModelPricing]:
     for pattern, model in models:
         if pattern.fullmatch(name):
             return model
     return None
 
 
-def _rate(prices: dict, *keys: str) -> Decimal:
+def _rate(prices: dict[str, Decimal], *keys: str) -> Decimal:
     for k in keys:
         price = prices.get(k)
         if price is not None:
-            return Decimal(str(price.price))
+            return price
     return Decimal("0")
 
 
 def _cost_for_record(
-    record: UsageRecord, models: list[tuple[re.Pattern[str], Any]]
+    record: UsageRecord, models: list[CatalogEntry]
 ) -> ModelCostBreakdown | None:
     model = _match_model(record.model_name, models)
     if model is None:
@@ -145,7 +78,7 @@ async def compute_cost(records: Iterable[UsageRecord]) -> CostBreakdown | None:
     if not records_list:
         return None
 
-    models = await _ensure_models_loaded()
+    models = await get_catalog()
     if not models:
         return None
 

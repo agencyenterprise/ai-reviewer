@@ -1,43 +1,56 @@
 import re
 from decimal import Decimal
-from types import SimpleNamespace
 
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage
 from pydantic import BaseModel
 
-from lib.services.workflow_cost import pricing
+from lib.services.workflow_cost import catalog
+from lib.services.workflow_cost.catalog import ModelPricing, _CachedCatalog
 from lib.services.workflow_cost.extractor import walk_state_for_usage
 from lib.services.workflow_cost.pricing import compute_cost
-
 
 CLAUDE_MODEL = "claude-3-5-sonnet-20241022"
 
 
-def _fake_model(name: str, *, input_price: float, output_price: float, cache_read_price: float) -> object:
-    """Build a Langfuse-shaped model object with a regex pattern matching `name` exactly."""
-    return SimpleNamespace(
-        model_name=name,
-        match_pattern=f"(?i)^{re.escape(name)}$",
-        prices={
-            "input": SimpleNamespace(price=input_price),
-            "output": SimpleNamespace(price=output_price),
-            "input_cache_read": SimpleNamespace(price=cache_read_price),
-        },
+def _fake_entry(
+    name: str, *, input_price: float, output_price: float, cache_read_price: float
+) -> catalog.CatalogEntry:
+    """A compiled catalog entry whose pattern matches `name` exactly."""
+    return (
+        re.compile(f"(?i)^{re.escape(name)}$"),
+        ModelPricing(
+            model_name=name,
+            prices={
+                "input": Decimal(str(input_price)),
+                "output": Decimal(str(output_price)),
+                "input_cache_read": Decimal(str(cache_read_price)),
+            },
+        ),
     )
 
 
 @pytest.fixture(autouse=True)
 def _stub_models_cache(monkeypatch):
     """Bypass the Langfuse network fetch by populating the price cache with fixtures."""
-    fakes = [
-        _fake_model(CLAUDE_MODEL, input_price=3e-6, output_price=1.5e-5, cache_read_price=3e-7),
-        _fake_model("gpt-4o-2024-08-06", input_price=2.5e-6, output_price=1e-5, cache_read_price=1.25e-6),
+    entries = [
+        _fake_entry(
+            CLAUDE_MODEL, input_price=3e-6, output_price=1.5e-5, cache_read_price=3e-7
+        ),
+        _fake_entry(
+            "gpt-4o-2024-08-06",
+            input_price=2.5e-6,
+            output_price=1e-5,
+            cache_read_price=1.25e-6,
+        ),
     ]
-    compiled = [(re.compile(m.match_pattern), m) for m in fakes]
-    monkeypatch.setattr(pricing, "_MODELS_CACHE", compiled)
+    monkeypatch.setattr(
+        catalog,
+        "_CACHE",
+        _CachedCatalog(entries=entries, expires_at=float("inf")),
+    )
     yield
-    monkeypatch.setattr(pricing, "_MODELS_CACHE", None)
+    monkeypatch.setattr(catalog, "_CACHE", None)
 
 
 def _ai_message(
@@ -160,9 +173,7 @@ async def test_compute_cost_returns_none_when_empty():
 @pytest.mark.asyncio
 async def test_compute_cost_known_model():
     state = {
-        "messages": [
-            _ai_message(input_tokens=1000, output_tokens=500, cache_read=2000)
-        ]
+        "messages": [_ai_message(input_tokens=1000, output_tokens=500, cache_read=2000)]
     }
     records = walk_state_for_usage(state)
     breakdown = await compute_cost(records)
@@ -200,9 +211,7 @@ async def test_compute_cost_aggregates_multiple_models():
     state = {
         "messages": [
             _ai_message(input_tokens=100, output_tokens=50, model=CLAUDE_MODEL),
-            _ai_message(
-                input_tokens=200, output_tokens=80, model="gpt-4o-2024-08-06"
-            ),
+            _ai_message(input_tokens=200, output_tokens=80, model="gpt-4o-2024-08-06"),
         ]
     }
     records = walk_state_for_usage(state)
