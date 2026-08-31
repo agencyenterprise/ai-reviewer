@@ -215,6 +215,14 @@ const BLOCK_COMPONENTS = {
     <td className="border-t px-2 py-1.5 align-top">{children}</td>
   ),
   hr: blockFactory('hr', 'my-5', ''),
+  // Links are inert here: a click anywhere in the document picks the paragraph's
+  // issues, and following a link instead would take the reader off the page mid
+  // review. The destination still shows on hover.
+  a: ({ href, children }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+    <span className="underline decoration-muted-foreground/40 underline-offset-2" title={href}>
+      {children}
+    </span>
+  ),
   // DOCX extraction leaves images with no src behind; rendering them as <img>
   // makes the browser refetch the page, so show the alt text instead.
   img: ({ src, alt }: React.ImgHTMLAttributes<HTMLImageElement>) =>
