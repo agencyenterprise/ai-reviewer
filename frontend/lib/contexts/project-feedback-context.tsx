@@ -138,3 +138,14 @@ export function useIssueFeedbackFromContext(issueId: string) {
     isSubmitting,
   };
 }
+
+/**
+ * Whether feedback controls should render for an issue at all: only where there is a
+ * project whose feedback can be read and written. Shared projects and issues rendered
+ * outside the provider (the admin feedback sheet) have no feedback of the viewer's own,
+ * so they get no controls rather than dead ones.
+ */
+export function useIsIssueFeedbackVisible(issueId: string | undefined): boolean {
+  const { isEnabled } = useProjectFeedbackContext();
+  return !!issueId && isEnabled;
+}

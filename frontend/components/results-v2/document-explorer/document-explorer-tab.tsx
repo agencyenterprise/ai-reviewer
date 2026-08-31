@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Callout } from '@/components/ui/callout';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Issue, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { AccessLevel, Issue, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { useLineHashNavigation } from '@/lib/line-hash';
 import {
   getHighlightIssues,
@@ -62,6 +62,11 @@ export function DocumentExplorerTabV2({
 }: DocumentExplorerTabProps) {
   const { selectedLineRange, selectLineRange, clearLineSelection, filter, setFilter, clearFilters } =
     useDocumentExplorerStore();
+
+  // Resolving an issue and rating it are judgements about the analysis, not edits to the
+  // document, so they stay open on older revisions. `readOnly` covers both here, and only
+  // the half about not owning the project should reach the issue notes.
+  const canEditIssues = projectDetail.access_level === AccessLevel.Write;
 
   const rail = useRailState();
   const isWideEnoughForColumn = useMediaQuery(WIDE_ENOUGH_FOR_PANE);
@@ -417,7 +422,11 @@ export function DocumentExplorerTabV2({
               issues={highlightIssues}
               selectedLineRange={selectedLineRange}
               onIssueSelect={handleIssueSelectFromDocument}
-              margin={mode === 'margin' ? { activeIssueId, readOnly, onSelect: handleToggleMarginNote } : undefined}
+              margin={
+                mode === 'margin'
+                  ? { activeIssueId, readOnly: !canEditIssues, onSelect: handleToggleMarginNote }
+                  : undefined
+              }
             />
           </div>
         </main>
@@ -438,7 +447,7 @@ export function DocumentExplorerTabV2({
             issues={highlightIssues}
             activeIssueId={activeIssueId}
             isAnyProcessing={isAnyProcessing}
-            readOnly={readOnly}
+            readOnly={!canEditIssues}
             onSelectIssue={handleSelectIssue}
           />
         </SidePane>

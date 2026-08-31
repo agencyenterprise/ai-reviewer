@@ -1,6 +1,6 @@
 'use client';
 
-import { Issue, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { AccessLevel, Issue, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { useLineHashNavigation } from '@/lib/line-hash';
 import {
   getFilteredIssues,
@@ -54,6 +54,10 @@ export function DocumentExplorerTab({
   const mainDocumentMarkdown = projectDetail.main_document_markdown ?? '';
   const currentRevision = projectDetail.project.current_revision ?? 1;
   const isViewingOlderRevision = selectedRevision != null && selectedRevision !== currentRevision;
+  // Resolving an issue and rating it are judgements about the analysis, not edits to the
+  // document, so they stay open on older revisions. `readOnly` covers both here, and only
+  // the half about not owning the project should reach the issue cards.
+  const canEditIssues = projectDetail.access_level === AccessLevel.Write;
 
   const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
   const issues = useMemo(() => projectDetail.issues ?? [], [projectDetail.issues]);
@@ -215,7 +219,7 @@ export function DocumentExplorerTab({
           passingCount={passingCount}
           isAnyProcessing={isAnyProcessing}
           projectDetail={projectDetail}
-          readOnly={readOnly}
+          readOnly={!canEditIssues}
           onSelectIssue={handleSelectIssue}
           onClearSelection={handleClearSelection}
         />

@@ -7,7 +7,7 @@ import { EditableTitle } from '@/components/ui/editable-title';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
 import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
-import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { AccessLevel, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
@@ -81,6 +81,11 @@ export function ProjectResultsShell({
   const mainSummary = documentSummarization?.state?.summaries?.find((s) => s.file_id === mainFileId);
   const authors = mainSummary?.authors;
 
+  // Feedback is the user's own, so it loads whenever the project is theirs to write to,
+  // older revisions included — `readOnly` there is about editing the document, not about
+  // rating the issues it found. A shared project is somebody else's and has none to show.
+  const canAccessFeedback = projectDetail.access_level === AccessLevel.Write;
+
   const peerReviewFacts = derivePeerReviewFacts(projectDetail);
   const peerReviewAttention = peerReviewNeedsAttention(peerReviewFacts, readOnly);
 
@@ -98,8 +103,8 @@ export function ProjectResultsShell({
 
   return (
     <ProjectFeedbackProvider
-      projectId={readOnly ? undefined : projectDetail.project.id}
-      feedbackVisibility={readOnly ? null : (projectDetail.project.feedback_visibility ?? null)}
+      projectId={canAccessFeedback ? projectDetail.project.id : undefined}
+      feedbackVisibility={canAccessFeedback ? (projectDetail.project.feedback_visibility ?? null) : null}
     >
       <PageTitle title={projectDetail.project.title} />
 
