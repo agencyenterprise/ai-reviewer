@@ -23,7 +23,9 @@ Current Inspect AI eval numbers across every eval in `evals_inspectai/e2e/`.
 >
 > The raw Inspect `.eval` log for each recorded run is copied under
 > [`docs/evals/`](./evals/) and linked in the **Log** column. Open one with
-> `uv run inspect view --log-dir docs/evals`.
+> `uv run inspect view --log-dir docs/evals`. Where an eval is recorded from
+> more than one invocation of the same configuration, every log is linked and
+> the figures are pooled over all of their sample-runs.
 
 ## Results
 
@@ -44,6 +46,8 @@ every rule they enforce is listed separately. A broken rule is a defect and a
 lower judged score is a trend; averaging them together hides both.
 
 Every run below completed in full: no sample was dropped, errored or retried.
+`results_extraction` is recorded from three invocations of one configuration
+(90 sample-runs); every other eval is a single run.
 
 | # | Eval | Samples | Epochs | Scorer results | Overall avg | Date | Log |
 |---|------|--------:|-------:|----------------|:-----------:|------|-----|
@@ -61,11 +65,11 @@ Every run below completed in full: no sample was dropped, errored or retried.
 | 12 | `reference_downloader` | 31 | 3 | <details><summary>1 deterministic 0.849</summary>`structured_output_scorer` 0.849 ±0.060[^refdl-conclusion]</details> | **0.849** | 2026-08-28 | [`…_YHhh9v2dMmLZVkBdoGLaNi.eval`](./evals/2026-08-28T18-24-42-00-00_reference-downloader-e2e_YHhh9v2dMmLZVkBdoGLaNi.eval) |
 | 13 | `reference_text_extractor` | 7 | 3 | <details><summary>1 deterministic 0.878</summary>`structured_output_scorer` 0.878 ±0.084[^refext-refs]</details> | **0.878** | 2026-08-28 | [`…_EcCoBLxfCqnUGhVwdMwCzR.eval`](./evals/2026-08-28T18-12-45-00-00_reference-text-extractor-e2e_EcCoBLxfCqnUGhVwdMwCzR.eval) |
 | 14 | `reference_validation_v2` | 70 | 3 | <details><summary>1 deterministic 0.814 · 1 judged 0.824</summary>`structured_output_scorer` 0.814 ±0.044[^refval-result]<br>`model_graded_check` 0.824 ±0.033[^mg]</details> | **0.819** | 2026-08-26 | [`…_LVNQd5h6f5bUWnD2eYogUb.eval`](./evals/2026-08-26T17-17-18-00-00_reference-validation-v2-e2e_LVNQd5h6f5bUWnD2eYogUb.eval) |
-| 15 | `results_extraction` | 10 | 3 | <details><summary>10 deterministic 0.767–1.000 · 2 judged 0.833–0.850</summary>`report` 1.000 ±0.000<br>`inventory_table` 0.967 ±0.033<br>`result_count` 1.000 ±0.000<br>`labels` 0.967 ±0.033<br>`severity_split` 1.000 ±0.000<br>`line_ranges` 1.000 ±0.000[^res-shape]<br>`completeness` 0.964 ±0.026<br>`class_accuracy` 0.944 ±0.037<br>`no_extras` 0.767 ±0.132<br>`severity_ordering` 1.000 ±0.000[^res-truth]<br>`classification_grounded` 0.833 ±0.056<br>`sample_expectations` 0.850 ±0.098[^res-rubric]</details> | **0.941** | 2026-08-31 | [`…_FmZnCuvoxTou48UKAnm753.eval`](./evals/2026-08-31T17-01-04-00-00_results-extraction-e2e_FmZnCuvoxTou48UKAnm753.eval) |
+| 15 | `results_extraction`[^res-devsplit] | 10 | 3 ×3 | <details><summary>10 deterministic 0.800–1.000 · 2 judged 0.789–0.833</summary>`report` 1.000 ±0.000<br>`inventory_table` 0.989 ±0.011<br>`result_count` 1.000 ±0.000<br>`labels` 1.000 ±0.000<br>`severity_split` 1.000 ±0.000<br>`line_ranges` 1.000 ±0.000[^res-shape]<br>`completeness` 0.994 ±0.006<br>`class_accuracy` 0.899 ±0.026<br>`no_extras` 0.800 ±0.042<br>`severity_ordering` 1.000 ±0.000[^res-truth]<br>`classification_grounded` 0.833 ±0.026<br>`sample_expectations` 0.789 ±0.039[^res-rubric]</details> | **0.942** | 2026-08-31 | [`…_LZ9MY8H4Ten9FKMQ57m96q.eval`](./evals/2026-08-31T18-24-49-00-00_results-extraction-e2e_LZ9MY8H4Ten9FKMQ57m96q.eval)<br>[`…_8Z6BEypvdrDfKhjRNKWQ9t.eval`](./evals/2026-08-31T18-35-26-00-00_results-extraction-e2e_8Z6BEypvdrDfKhjRNKWQ9t.eval)<br>[`…_U2R77i6JKho5fAaUWtThVu.eval`](./evals/2026-08-31T18-41-34-00-00_results-extraction-e2e_U2R77i6JKho5fAaUWtThVu.eval) |
 | 16 | `reviewer_2` | 2 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 1.000</summary>`structured_output_scorer` 1.000 ±0.000[^rev-produced]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-08-26 | [`…_i3Bm2FbzhmJAwqas6MUyri.eval`](./evals/2026-08-26T14-14-47-00-00_reviewer-2-e2e_i3Bm2FbzhmJAwqas6MUyri.eval) |
 | 17 | `reviewer_coverage_report` | 5 | 3 | <details><summary>9 deterministic all 1.000 · 4 judged 0.800–0.967</summary>`verbatim` 1.000 ±0.000<br>`quoted` 1.000 ±0.000<br>`id_scheme` 1.000 ±0.000<br>`self_contained` 1.000 ±0.000<br>`two_part_layout` 1.000 ±0.000<br>`voice` 1.000 ±0.000[^ra-structure]<br>`verdict_table` 1.000 ±0.000<br>`verdict_vocabulary` 1.000 ±0.000<br>`recommendation` 1.000 ±0.000[^rcr-bookkeeping]<br>`verdicts_correct` 0.800 ±0.062<br>`part1_is_decision_grade` 0.900 ±0.041<br>`evidence_and_location` 0.967 ±0.033<br>`scenario_trap` 0.800 ±0.133[^rcr-rubric]</details> | **0.959** | 2026-08-26 | [`…_nnzWgW7JK6KsFFqorqCSck.eval`](./evals/2026-08-26T15-01-34-00-00_reviewer-coverage-report-e2e_nnzWgW7JK6KsFFqorqCSck.eval) |
 | 18 | `revision_planning_summary` | 5 | 3 | <details><summary>6 deterministic all 1.000 · 4 judged 0.800–1.000</summary>`verbatim` 1.000 ±0.000<br>`quoted` 1.000 ±0.000<br>`id_scheme` 1.000 ±0.000<br>`self_contained` 1.000 ±0.000<br>`two_part_layout` 1.000 ±0.000<br>`voice` 1.000 ±0.000[^ra-structure]<br>`locations_by_content` 0.967 ±0.033<br>`part1_triage` 0.800 ±0.062<br>`planning_notes` 1.000 ±0.000<br>`scenario_trap` 0.800 ±0.097[^rps-rubric]</details> | **0.957** | 2026-08-26 | [`…_iUkias5YSUsBuY2EoRoKqm.eval`](./evals/2026-08-26T15-11-52-00-00_revision-planning-summary-e2e_iUkias5YSUsBuY2EoRoKqm.eval) |
-| | **Mean across all evals** | | | | **0.941** | | |
+| | **Mean across all evals** | | | | **0.942** | | |
 
 ## What the model switch changed
 
@@ -101,11 +105,11 @@ Four things worth knowing before reading that table:
   columns read 1.000 because that is what its old scorers measured: 2 samples,
   every expected result not-reproducible, and a deterministic check that counted
   results and validated a class string. The eval was rebuilt on 31 Aug — 10
-  samples, ground-truth inventories, 12 per-check metrics — and now reads 0.941.
-  The two numbers measure different things and differencing them means nothing.
-  This is also why the suite mean in the table above (0.945) and the one in the
-  Results table (0.941) differ: the table above is a frozen record of the model
-  switch, the Results table is current.
+  samples, ground-truth inventories, 12 per-check metrics — and now reads 0.942,
+  pooled over three invocations. The two numbers measure different things and
+  differencing them means nothing. This is also why the suite mean in the table
+  above (0.945) and the one in the Results table (0.942) differ: the table above
+  is a frozen record of the model switch, the Results table is current.
 - **`figures_tables_check` is the one real regression.** It fell 8.4 points, on
   both of its scorers, and it is the only movement here that was measured twice
   and held both times — 0.798 on 26 Aug and 0.780 on 28 Aug. The deterministic
@@ -139,6 +143,7 @@ Four things worth knowing before reading that table:
 [^refdl-conclusion]: `reference_downloader` · deterministic match of the final download conclusion against the target.
 [^refext-refs]: `reference_text_extractor` · deterministic match of the extracted bibliographic references against the target.
 [^refval-result]: `reference_validation_v2` · deterministic match of the final validation result label against the target.
+[^res-devsplit]: `results_extraction` · **read this as a dev-split figure, not an unbiased estimate.** These ten samples were built and then tuned against this workflow over about a dozen runs on 31 Aug: three of the documents, the skill's class-selection guidance, the judged criteria and the workflow's reasoning effort were all edited while these same samples were being scored. Eight of the ten documents are synthetic and were written for the eval. An earlier single run scored 0.941 and did not survive scrutiny — an independent audit found two documents whose "fully reproducible" ground truth was arithmetically false, and in one of them the workflow had been marked *down* for correctly spotting the inconsistency. Those documents are fixed and `tests/unit/evals/test_reproducibility_dataset_arithmetic.py` now re-derives their numbers on every test run, but a number measured on samples this eval was tuned against is an upper bound. Held-out samples are the outstanding work: a full-length real report and a document that falsely claims reproducibility are the two most valuable additions.
 [^res-shape]: `results_extraction` · six deterministic checks on the shape of the delivery: a substantive markdown report, an inventory table in it with at least a row per reported result, at least as many results as the dataset declares, a recognised reproducibility label in every issue title, the severity split the skill mandates (anything reproducible is informational `none`; only not-reproducible carries a real severity), and usable line ranges. None of these say whether a classification is *right*.
 [^res-truth]: `results_extraction` · four deterministic checks against the dataset's own ground-truth inventory, which names every result each document presents together with the class it should be given and how much the document rests on it: whether every expected result was found, the fraction given the right reproducibility class, whether anything was reported that the document does not present as a result, and whether the severities of the non-reproducible results are ordered by importance. Which of low/medium/high a result earns is the agent's judgement, so only the ordering is asserted, not the level.
 [^res-rubric]: `results_extraction` · two judged criteria, each graded in its own call: whether each classification is grounded in what the document actually supplies (naming the ingredients present or missing rather than asserting the class), and the per-sample expectations written into the dataset. Both are graded with a requirement-shaped prompt rather than Inspect's model-graded-fact template, which asks whether the submission *contains* the expert answer and misgrades a criterion that states a property the output must have.
