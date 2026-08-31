@@ -43,7 +43,6 @@ const MODES = [
 
 interface DocumentExplorerTabProps {
   projectDetail: ProjectDetailed;
-  readOnly?: boolean;
   onNavigateToAnalyses: () => void;
 }
 
@@ -55,11 +54,7 @@ function getIssueLineRange(issue: Issue): [number, number] | null {
   return [start_line, end_line];
 }
 
-export function DocumentExplorerTabV2({
-  projectDetail,
-  readOnly = false,
-  onNavigateToAnalyses,
-}: DocumentExplorerTabProps) {
+export function DocumentExplorerTabV2({ projectDetail, onNavigateToAnalyses }: DocumentExplorerTabProps) {
   const { selectedLineRange, selectLineRange, clearLineSelection, filter, setFilter, clearFilters } =
     useDocumentExplorerStore();
 

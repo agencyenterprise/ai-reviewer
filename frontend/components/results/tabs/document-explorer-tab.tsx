@@ -26,7 +26,6 @@ import { DocumentMarkdownRenderer, DocumentMarkdownRendererHandle } from '../com
 
 interface DocumentExplorerTabProps {
   projectDetail: ProjectDetailed;
-  readOnly?: boolean;
   onNavigateToAnalyses: () => void;
   /** Currently displayed revision (for the non-current revision notice). */
   selectedRevision?: number;
@@ -44,7 +43,6 @@ function getIssueLineRange(issue: Issue): [number, number] | null {
 
 export function DocumentExplorerTab({
   projectDetail,
-  readOnly = false,
   onNavigateToAnalyses,
   selectedRevision,
   onRevisionChange,
