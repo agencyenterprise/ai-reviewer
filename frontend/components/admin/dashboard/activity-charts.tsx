@@ -65,7 +65,11 @@ function ColumnChart({
       <div
         className="mt-3 flex h-28 items-end gap-0.5"
         role="img"
-        aria-label={`${title} per ${granularity}. ${formatCompact(total)} ${unit} in total.`}
+        aria-label={
+          additive
+            ? `${title} per ${granularity}. ${formatCompact(total)} ${unit} in total.`
+            : `${title}, counted distinctly per ${granularity}. Peak ${formatCompact(peak?.value ?? 0)} ${unit}.`
+        }
       >
         {points.map((point, index) => {
           const alignment =

@@ -109,9 +109,14 @@ export function RunOutcomes({
               </span>
             </div>
             <div className="mt-3 h-2 w-full rounded-full bg-[var(--viz-good)]/20">
+              {/*
+                The exact ratio, not formatPercent: that returns "<1%" / ">99%"
+                at the extremes, which is not a CSS length, so the fill would
+                silently collapse to nothing under a label reading ">99%".
+              */}
               <div
                 className="h-2 rounded-full bg-[var(--viz-good)]"
-                style={{ width: formatPercent(feedback.thumbs_up / feedbackTotal) }}
+                style={{ width: `${(feedback.thumbs_up / feedbackTotal) * 100}%` }}
               />
             </div>
             <p className="mt-1.5 text-xs text-muted-foreground">
