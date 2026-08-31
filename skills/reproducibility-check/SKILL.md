@@ -62,10 +62,13 @@ Take each result in turn and work in this order.
 4. **Decide what kind of thing is missing.** A missing *procedural detail* is
    not the same as missing data, and it is where this classification most often
    goes wrong:
-   - If the step is defined in a source the document cites -- a clause of a
-     named standard, a published method, the documented default of a named
-     package or version -- then it can be looked up, and the result is at worst
-     **Reproducible with Web Search**.
+   - If the step is defined in a source the document cites *and that source is
+     openly accessible* -- a published method, the documented default of a named
+     package or version, a clause of a freely available standard -- then it can
+     be looked up, and the result is at worst **Reproducible with Web Search**.
+     A cited source that is itself paid-access or otherwise restricted does not
+     settle the step: route it through the availability rule below, the same way
+     as any other ingredient a reader cannot obtain.
    - If the step is a convention a competent practitioner in the field would
      resolve the same way -- a unit conversion, a standard estimator's default,
      the usual treatment of a boundary case -- it does not lower the class at
@@ -74,9 +77,11 @@ Take each result in turn and work in this order.
      shared convention settles, makes the result **Not Reproducible**.
 5. **Otherwise the class is decided by how the missing ingredient can be
    obtained**, not by the fact that something is missing:
-   - Individual published values -- a table in a named standard, a coefficient
-     from a cited paper, a figure from a public statistical release -- can be
-     looked up: **Reproducible with Web Search**.
+   - Individual published values that any reader can reach -- a coefficient from
+     an open-access paper, a figure from a public statistical release, a table in
+     a freely published standard -- can be looked up: **Reproducible with Web
+     Search**. A value that exists only behind a paywall or a restricted licence
+     is not "published" in this sense; it belongs in the last bullet.
    - A bulk dataset that is open to any reader -- a public register, a
      government microdata release, an open research dataset -- has to be
      downloaded and loaded: **Reproducible with External Uploads**. Naming the

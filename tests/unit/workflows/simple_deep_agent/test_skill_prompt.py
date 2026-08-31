@@ -18,6 +18,7 @@ _SKILL_BACKED_WORKFLOWS = [
     WorkflowRunType.DOCUMENT_STRUCTURE,
     WorkflowRunType.RECOMMENDATION_CHECK,
     WorkflowRunType.ADVOCACY_TONE_V2,
+    WorkflowRunType.RESULTS_EXTRACTION,
 ]
 
 
