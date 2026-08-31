@@ -22,10 +22,11 @@ function parseSkill(markdown) {
   // `description` is the last frontmatter key and may span the rest of the block.
   const description = frontmatter.split(/^description:\s*/m)[1]?.trim();
   if (!name || !description) return null;
-  // `<!-- interactive-only -->` marks sections that only apply when a user is
-  // there to answer (asking for web-search consent, for instance). The chat is
-  // exactly that setting, so the sections stay — only the markers go, since
-  // the backend loader (lib/skills.py) is what they exist for.
+  // A `<!-- interactive-only:start -->` / `<!-- interactive-only:end -->` pair
+  // marks sections that only apply when a user is there to answer (asking for
+  // web-search consent, for instance). The chat is exactly that setting, so the
+  // sections stay — only the markers go, since the backend loader
+  // (lib/skills.py) is what they exist for.
   const instructions = body.replace(/[ \t]*<!-- interactive-only:(?:start|end) -->[ \t]*\n?/g, '');
   return { name, description, instructions: instructions.trim() };
 }

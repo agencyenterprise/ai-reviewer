@@ -6,10 +6,14 @@ SimpleDeepAgentManifest prompt resolution is covered in
 tests/unit/workflows/simple_deep_agent/test_skill_prompt.py.
 """
 
+import re
+from pathlib import Path
+
 import pytest
 
 from lib.skills import (
     _SKILLS_DIR,
+    INTERACTIVE_ONLY_END,
     INTERACTIVE_ONLY_START,
     _strip_frontmatter,
     load_skill_prompt,
@@ -105,7 +109,28 @@ def test_web_search_skill_asks_for_consent(skill: str):
     """The consent step must be present, and marked interactive-only."""
     raw = (_SKILLS_DIR / skill / "SKILL.md").read_text()
     assert INTERACTIVE_ONLY_START in raw
+    assert INTERACTIVE_ONLY_END in raw
     assert "Do you consent to running web search on this document?" in raw
+
+
+@pytest.mark.parametrize(
+    "skill_file", sorted(_SKILLS_DIR.glob("*/SKILL.md")), ids=lambda p: p.parent.name
+)
+def test_interactive_only_markers_are_balanced(skill_file: Path):
+    """An unclosed section is not stripped, so it would leak into a prompt.
+
+    Stripping is deliberately lenient at runtime — a markdown typo shouldn't
+    break a workflow run — so the marker convention is enforced here instead.
+    """
+    markers = re.findall(
+        f"{re.escape(INTERACTIVE_ONLY_START)}|{re.escape(INTERACTIVE_ONLY_END)}",
+        skill_file.read_text(),
+    )
+    expected = [INTERACTIVE_ONLY_START, INTERACTIVE_ONLY_END] * (len(markers) // 2)
+    assert markers == expected, (
+        f"{skill_file.parent.name}: interactive-only markers must come in "
+        f"start/end pairs, got {markers}"
+    )
 
 
 @pytest.mark.parametrize("skill", _WEB_SEARCH_SKILLS)

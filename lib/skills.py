@@ -7,9 +7,11 @@ rather than duplicating the prompt text in Python.
 
 A skill may carry sections that only make sense when the skill is driven by an
 agent talking to a user (e.g. asking for web-search consent). Those are wrapped
-in ``<!-- interactive-only -->`` markers and stripped here: on the backend the
-same gate is already enforced before the run starts, by the UI or by the MCP
-consent gate, and there is nobody for the agent to ask mid-run.
+in a ``<!-- interactive-only:start -->`` / ``<!-- interactive-only:end -->``
+pair and stripped here: on the backend the same gate is already enforced before
+the run starts, by the UI or by the MCP consent gate, and there is nobody for
+the agent to ask mid-run. Both markers are required — an unclosed section is
+left in place, which `tests/unit/test_skills.py` fails on.
 """
 
 import re
