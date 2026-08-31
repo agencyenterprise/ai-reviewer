@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from lib.api.mcp.serialization import WEB_SEARCH_CONSENT_QUESTION
 from lib.skills import (
     _SKILLS_DIR,
     INTERACTIVE_ONLY_END,
@@ -110,7 +111,10 @@ def test_web_search_skill_asks_for_consent(skill: str):
     raw = (_SKILLS_DIR / skill / "SKILL.md").read_text()
     assert INTERACTIVE_ONLY_START in raw
     assert INTERACTIVE_ONLY_END in raw
-    assert "Do you consent to running web search on this document?" in raw
+    assert WEB_SEARCH_CONSENT_QUESTION in raw, (
+        f"{skill} must quote the MCP gate's consent question verbatim, so a "
+        "user meets the same wording whichever surface they came through"
+    )
 
 
 @pytest.mark.parametrize(

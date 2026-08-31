@@ -27,7 +27,7 @@ Install the plugin from the marketplace inside Claude Code:
 
 Then invoke a check in plain language (e.g. _"validate the references in this document with Draft Detective"_), or ask _"what can Draft Detective check?"_ to see the full menu.
 
-The checks that reach the internet — Reference Error Checker, Download References, Methodological Alignment — ask for your consent before their first search, because parts of the document travel to a web search provider as queries. That mirrors the gate the web app and the MCP server enforce.
+Any check that reaches the internet asks for your consent before its first search, because parts of the document travel to a web search provider as queries; the menu marks which ones do. That mirrors the gate the web app and the MCP server enforce.
 
 ### 2. MCP server
 
