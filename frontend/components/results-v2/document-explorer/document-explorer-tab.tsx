@@ -25,7 +25,7 @@ import { AlertTriangleIcon, Columns2, ListFilter, Loader2 } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { DocumentHeader, DocumentView, DocumentViewHandle } from './document-view';
 import { IssuesColumn, IssuesColumnHandle, issueCountLabel } from './issues-column';
-import { IssueNav } from './issue-nav';
+import { IssueNav, useIssueShortcuts } from './issue-nav';
 import { Rail, RailToggle, SidePane, useRailState } from '../panes';
 import { OutlineRail } from './outline-rail';
 import { OutlineEntry, extractOutline } from './outline';
@@ -137,14 +137,19 @@ export function DocumentExplorerTabV2({
   // which is the same width the rail sits beside the text at.
   const issuesVisible = showIssuesColumn || (mode === 'margin' && rail.isWide);
 
+  /** Closing a finding, wherever the reader asked for it: a heading, or Escape. */
+  const handleCloseIssue = useCallback(() => {
+    setOpenIssueId(null);
+    clearLineSelection();
+  }, [clearLineSelection]);
+
   const handleSelectIssue = useCallback(
     (issue: Issue) => {
       // Pressing the open row's heading closes it, as pressing the open note's
       // does in the margin: the two are the same control on the same issue, so
       // they cannot answer the same press differently.
       if (openIssueId === issue.id) {
-        setOpenIssueId(null);
-        clearLineSelection();
+        handleCloseIssue();
         return;
       }
 
@@ -160,15 +165,14 @@ export function DocumentExplorerTabV2({
         clearLineSelection();
       }
     },
-    [openIssueId, selectLineRange, clearLineSelection],
+    [openIssueId, handleCloseIssue, selectLineRange, clearLineSelection],
   );
 
   /** Toggles a margin note without moving the document under the reader. */
   const handleToggleMarginNote = useCallback(
     (issue: Issue) => {
       if (openIssueId === issue.id) {
-        setOpenIssueId(null);
-        clearLineSelection();
+        handleCloseIssue();
         return;
       }
       const range = getIssueLineRange(issue);
@@ -176,7 +180,7 @@ export function DocumentExplorerTabV2({
       if (range) selectLineRange(range);
       else clearLineSelection();
     },
-    [openIssueId, selectLineRange, clearLineSelection],
+    [openIssueId, handleCloseIssue, selectLineRange, clearLineSelection],
   );
 
   /**
@@ -226,6 +230,14 @@ export function DocumentExplorerTabV2({
     },
     [orderedIssues, activeIndex, goToIssue],
   );
+
+  // Bound on the same condition the stepper is drawn on, so the keys and the
+  // control it belongs to arrive and leave together.
+  useIssueShortcuts({
+    enabled: issuesVisible && orderedIssues.length > 0,
+    onStep: handleStepIssue,
+    onClose: handleCloseIssue,
+  });
 
   const handleIssueSelectFromDocument = useCallback(
     (issue: Issue | null) => {
