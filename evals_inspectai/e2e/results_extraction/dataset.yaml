@@ -176,6 +176,7 @@
     - equation 1
     class: fully_reproducible
     importance: supporting
+    required: false
   - id: tab1
     match:
     - table 1
@@ -460,8 +461,9 @@
     importance: central
   - id: arpu
     match:
-    - '2.8'
-    - secondary result
+    - arpu growth
+    - rose faster
+    - not being bought
     class: not_reproducible
     importance: supporting
   target_answer: 'Nothing here is reproducible: the subscriber and billing data are confidential and withheld, group sizes are redacted, assignment was done by an unspecified targeting system, and the churn definition, the controls, the significance test and the ''standard internal pipeline'' are all referred to without being stated. Each result should carry a real severity, and the rationales should name the missing data and the missing procedural detail rather than only observing that the data is confidential.'
@@ -483,34 +485,34 @@
     $$C = a \cdot Q_{\text{design}} + b \cdot A_{\text{emitter}} + c$$
 
     where $Q_{\text{design}}$ is design heat loss in kW, $A_{\text{emitter}}$ is
-    the total emitter area added in m², and the coefficients are $a = 620$ GBP/kW,
-    $b = 145$ GBP/m² and $c = 2{,}400$ GBP, fitted by ordinary least squares to the
+    the total emitter area added in m², and the coefficients are $a = 862$ GBP/kW,
+    $b = 272$ GBP/m² and $c = 3{,}018$ GBP, fitted by ordinary least squares to the
     18 worked examples listed in Table 1 below. Applying Equation 1 to the
     reference dwelling ($Q_{\text{design}} = 7.4$ kW, $A_{\text{emitter}} = 11.0$
-    m²) gives **12,583 GBP**. Table 1 gives all 18 examples with their heat loss,
+    m²) gives **12,389 GBP**. Table 1 gives all 18 examples with their heat loss,
     emitter area and installed cost, so both the fit and the point estimate can be
     recomputed from this document alone.
 
     | # | Heat loss (kW) | Emitter area (m²) | Installed cost (GBP) |
     |---|---|---|---|
-    | 1 | 4.1 | 6.0 | 5,980 |
-    | 2 | 4.8 | 7.5 | 6,720 |
-    | 3 | 5.2 | 6.5 | 6,540 |
-    | 4 | 5.6 | 9.0 | 7,910 |
-    | 5 | 6.0 | 8.0 | 7,480 |
-    | 6 | 6.3 | 10.5 | 8,830 |
-    | 7 | 6.9 | 9.5 | 8,910 |
-    | 8 | 7.1 | 12.0 | 10,140 |
-    | 9 | 7.4 | 11.0 | 9,860 |
-    | 10 | 7.8 | 13.5 | 11,300 |
-    | 11 | 8.2 | 12.5 | 11,150 |
-    | 12 | 8.9 | 15.0 | 12,940 |
-    | 13 | 9.4 | 14.0 | 12,760 |
-    | 14 | 10.1 | 17.0 | 14,880 |
-    | 15 | 10.8 | 16.0 | 14,610 |
-    | 16 | 11.5 | 19.5 | 17,020 |
-    | 17 | 12.2 | 18.0 | 16,540 |
-    | 18 | 13.0 | 21.0 | 18,700 |
+    | 1 | 4.1 | 6.0 | 8,320 |
+    | 2 | 4.6 | 7.8 | 9,360 |
+    | 3 | 5.1 | 8.6 | 9,660 |
+    | 4 | 5.7 | 8.3 | 10,020 |
+    | 5 | 6.2 | 9.3 | 11,130 |
+    | 6 | 6.7 | 10.0 | 11,520 |
+    | 7 | 7.2 | 11.7 | 12,070 |
+    | 8 | 7.8 | 12.1 | 12,970 |
+    | 9 | 8.3 | 13.6 | 13,840 |
+    | 10 | 8.8 | 12.6 | 13,940 |
+    | 11 | 9.3 | 15.9 | 15,050 |
+    | 12 | 9.9 | 15.6 | 15,890 |
+    | 13 | 10.4 | 17.1 | 16,870 |
+    | 14 | 10.9 | 17.4 | 17,160 |
+    | 15 | 11.4 | 18.1 | 17,670 |
+    | 16 | 12.0 | 19.6 | 18,800 |
+    | 17 | 12.5 | 20.7 | 19,580 |
+    | 18 | 13.0 | 20.9 | 19,870 |
 
     ## Estimate 2: National scheme statistics
 
@@ -526,14 +528,23 @@
     ## Estimate 3: Household survey re-analysis
 
     The survey estimate re-analyses the English Housing Survey household file,
-    2022–23, combining the retrofit expenditure variables with the dwelling
-    characteristics needed to match the reference dwelling. The estimate is the
-    inverse-probability-weighted mean cost among matched households, and comes to
-    **14,750 GBP** with a bootstrap 95% interval of 13,900–15,620 GBP. The survey
-    file is a large open microdata release obtained through the UK Data Service
-    under the standard end-user licence; the weighting and matching procedure is
-    given in full in the paragraph above, but the microdata itself is far too large
-    to include and has to be downloaded and loaded separately.
+    2022–23. Households are matched to the reference dwelling on four variables:
+    dwelling type (detached), floor-area band (90–119 m²), construction-age band
+    (1945–1980) and Government Office Region. The outcome is the household's total
+    reported heating-system replacement expenditure; households that report a
+    replacement but no figure are dropped rather than imputed, and that drop is
+    modelled below rather than ignored. Each matched household is weighted by the
+    survey's own grossing weight multiplied by the inverse of its predicted
+    probability of reporting a figure, from a logistic model fitted on the same
+    four matching variables plus tenure. The estimate is the weighted mean of
+    those expenditures, **14,750 GBP**, and the interval is a percentile bootstrap
+    over 2,000 resamples of the matched set, resampled at household level with the
+    weights recomputed within each resample, giving 13,900–15,620 GBP.
+
+    Every step above is stated, but the microdata itself is not: the household
+    file is a large open release obtained through the UK Data Service under the
+    standard end-user licence, far too large to include here, and it has to be
+    downloaded and loaded before any of this can be rerun.
 
     ## Estimate 4: Installer quotations
 
@@ -547,13 +558,13 @@
 
     ## Conclusion
 
-    The four estimates span 12,583 to 16,200 GBP, a spread of 29%. The spread is
+    The four estimates span 12,389 to 16,200 GBP, a spread of 31%. The spread is
     not noise: it tracks how much of each estimate's basis is publicly checkable.
   expected_results:
   - id: engineering
     match:
-    - 12,583
-    - '12583'
+    - 12,389
+    - '12389'
     class: fully_reproducible
     importance: central
   - id: scheme
@@ -583,13 +594,13 @@
     required: false
   - id: fitted_model
     match:
-    - '620'
+    - '862'
     class: fully_reproducible
     importance: supporting
     required: false
   - id: spread
     match:
-    - 29%
+    - 31%
     class: fully_reproducible
     importance: incidental
     required: false
@@ -706,9 +717,9 @@
 
     | Inflow assumption | Yield (Ml/d) | Change vs historical |
     |---|---|---|
-    | Historical (2011–2020) | 42.7 | — |
-    | Stochastic (1,000 × 60 years) | 38.9 | −8.9% |
-    | Climate-adjusted (2050s, central) | 35.2 | −17.6% |
+    | Historical (2011–2020) | 37.1 | — |
+    | Stochastic (1,000 × 60 years) | 32.8 | −11.6% |
+    | Climate-adjusted (2050s, central) | 36.5 | −1.6% |
 
     Figure 1 shows the storage trace for the critical drawdown period under each
     assumption, with the historical critical period highlighted. Each trace is
@@ -719,18 +730,20 @@
 
     A further result concerns the shape of the yield–reliability relationship:
     relaxing the requirement from every month to 99% of months raises the
-    historical yield to 46.1 Ml/d, an 8.0% increase, and the same relaxation raises
-    the climate-adjusted yield by 9.4%. The relaxation is therefore worth slightly
-    more under the drier series.
+    historical yield only to 37.2 Ml/d, a 0.3% increase, and the climate-adjusted
+    yield by 0.4%. The relaxation buys almost nothing here, which tells us the
+    binding constraint is a multi-month drawdown rather than any single dry month:
+    permitting 1% of months to fail does not shorten the critical period.
 
     ## Conclusion
 
     Two published yield figures exist for this reservoir: 48.0 Ml/d in the 1998
     drought review and 33.5 Ml/d in the 2019 water resource management plan, a
     spread of 14.5 Ml/d. Varying the inflow assumption alone, holding the reservoir
-    model fixed, moves yield by 7.5 Ml/d -- 52% of that spread -- so the choice of
-    inflow series accounts for about half of the disagreement between the two
-    published figures.
+    model fixed, moves yield by 4.3 Ml/d between the historical and stochastic
+    cases -- 30% of that spread -- so the choice of inflow series accounts for
+    under a third of the disagreement between the two published figures, and the
+    rest has to come from the reservoir model or the reliability standard.
 
     ## Appendix A: Parameter values
 
@@ -784,8 +797,8 @@
   - id: tab1
     match:
     - table 1
-    - '42.7'
-    - '38.9'
+    - '37.1'
+    - '32.8'
     class: fully_reproducible
     importance: central
   - id: fig1
@@ -796,14 +809,13 @@
     importance: supporting
   - id: reliability
     match:
-    - '46.1'
+    - '37.2'
     class: fully_reproducible
     importance: supporting
   - id: published_spread
     match:
-    - 52%
-    - '7.5'
-    - published
+    - 30%
+    - '4.3'
     class: fully_reproducible
     importance: incidental
     required: false
