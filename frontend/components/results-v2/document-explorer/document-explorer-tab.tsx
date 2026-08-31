@@ -205,17 +205,20 @@ export function DocumentExplorerTabV2({
   );
 
   /**
-   * Margin rows grow to fit the notes beside them, so the document is taller in
-   * margin mode than in list mode. Switching therefore lands on a different part
-   * of the text unless the reader's place is carried across.
+   * The two modes give the text column all but the same width, so the document
+   * rewraps a little on the way across and the reader's place drifts. Carrying
+   * a block and its offset moves them back to the line they were on — the line
+   * alone would have been enough while margin rows still grew to fit their
+   * notes, but now that the notes float, snapping a paragraph's top to the fold
+   * would move the reader further than the drift it corrects.
    */
   const handleModeChange = useCallback(
     (next: 'margin' | 'list') => {
       if (next === mode) return;
-      const line = documentRef.current?.getTopVisibleLine() ?? null;
+      const anchor = documentRef.current?.getScrollAnchor() ?? null;
       setMode(next);
-      if (line !== null) {
-        setTimeout(() => documentRef.current?.scrollToLine(line, 'auto'), 0);
+      if (anchor) {
+        setTimeout(() => documentRef.current?.scrollToAnchor(anchor), 0);
       }
     },
     [mode],

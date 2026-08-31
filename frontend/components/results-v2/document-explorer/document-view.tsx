@@ -20,11 +20,18 @@ interface IssueWithLines extends Issue {
   end_line?: number | null;
 }
 
+/** The reader's place: a block, and where in the pane its top was sitting. */
+export interface ScrollAnchor {
+  line: number;
+  offset: number;
+}
+
 export interface DocumentViewHandle {
   scrollToLineRange: (range: [number, number]) => void;
   scrollToLine: (line: number, behavior?: ScrollBehavior) => void;
-  /** Source line of the block currently at the top of the pane. */
-  getTopVisibleLine: () => number | null;
+  /** Where the reader is, precisely enough to put them back after a reflow. */
+  getScrollAnchor: () => ScrollAnchor | null;
+  scrollToAnchor: (anchor: ScrollAnchor) => void;
 }
 
 /** What the document says about itself, as extracted by the summarizer. */
@@ -92,6 +99,25 @@ function rangesOverlap(a: [number, number], b: [number, number]): boolean {
 
 const SCROLL_RETRY_MS = 50;
 const SCROLL_MAX_ATTEMPTS = 20;
+
+/**
+ * A block's top in the scrolling pane's own coordinates.
+ *
+ * Not `offsetTop`: the text column is positioned, since the margin layer is
+ * placed against it, so a block's offsets are measured from the column rather
+ * than from the pane, and every one of them is short by the pane's padding.
+ */
+function topInPane(container: HTMLElement, block: HTMLElement): number {
+  return (
+    block.getBoundingClientRect().top -
+    container.getBoundingClientRect().top -
+    container.clientTop +
+    container.scrollTop
+  );
+}
+
+/** Where a block should come to rest: centred, or its top this far down the pane. */
+type Placement = { at: 'center' } | { at: 'top'; offset: number };
 
 /** First rendered block whose source lines overlap `range`, or null while none is laid out. */
 function findBlockForRange(container: HTMLElement, range: [number, number]): HTMLElement | null {
@@ -265,7 +291,7 @@ export function DocumentView({
    * arrives from another tab's route. Scrolls the container itself rather than
    * block.scrollIntoView(), which would also scroll ancestors.
    */
-  const scrollToRange = (range: [number, number], align: 'center' | 'start', behavior: ScrollBehavior = 'smooth') => {
+  const scrollToRange = (range: [number, number], place: Placement, behavior: ScrollBehavior = 'smooth') => {
     let attempts = 0;
     const attempt = () => {
       const container = containerRef.current;
@@ -277,31 +303,39 @@ export function DocumentView({
         return;
       }
 
-      // `container` is positioned, so offsetTop is already relative to it.
+      const blockTop = topInPane(container, block);
       const top =
-        align === 'center'
-          ? block.offsetTop - container.clientHeight / 2 + block.offsetHeight / 2
-          : block.offsetTop - 12;
+        place.at === 'center'
+          ? blockTop - container.clientHeight / 2 + block.offsetHeight / 2
+          : blockTop - place.offset;
       container.scrollTo({ top: Math.max(0, top), behavior });
     };
     attempt();
   };
 
   useImperativeHandle(ref, () => ({
-    scrollToLineRange: (range: [number, number]) => scrollToRange(range, 'center'),
-    scrollToLine: (line: number, behavior: ScrollBehavior = 'smooth') => scrollToRange([line, line], 'start', behavior),
-    getTopVisibleLine: () => {
+    scrollToLineRange: (range: [number, number]) => scrollToRange(range, { at: 'center' }),
+    scrollToLine: (line: number, behavior: ScrollBehavior = 'smooth') =>
+      scrollToRange([line, line], { at: 'top', offset: 12 }, behavior),
+    getScrollAnchor: () => {
       const container = containerRef.current;
       if (!container) return null;
       const blocks = container.querySelectorAll<HTMLElement>('[data-line-start]');
       for (const block of blocks) {
-        if (block.offsetTop + block.offsetHeight > container.scrollTop) {
+        const top = topInPane(container, block);
+        if (top + block.offsetHeight > container.scrollTop) {
           const line = Number(block.getAttribute('data-line-start'));
-          return Number.isFinite(line) ? line : null;
+          if (!Number.isFinite(line)) return null;
+          // How far down the pane the block was sitting, kept so that restoring
+          // puts the reader back on the line they were reading rather than
+          // snapping the paragraph's top to the fold. Negative once the block
+          // has started scrolling off.
+          return { line, offset: top - container.scrollTop };
         }
       }
       return null;
     },
+    scrollToAnchor: ({ line, offset }: ScrollAnchor) => scrollToRange([line, line], { at: 'top', offset }, 'auto'),
   }));
 
   const lineIssues = useMemo(() => issues.filter(hasLineRange) as IssueWithLines[], [issues]);
