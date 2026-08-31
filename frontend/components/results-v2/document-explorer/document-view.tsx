@@ -6,8 +6,7 @@ import { cn } from '@/lib/utils';
 import type { Element } from 'hast';
 import { ImageOff } from 'lucide-react';
 import { SEVERITY } from '@/lib/severity-style';
-import { DocumentIssues } from './document-issues';
-import { MarginNote } from './margin-note';
+import { MarginLayer } from './margin-layer';
 import React, { Ref, createContext, useContext, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import ReactMarkdown, { type ExtraProps } from 'react-markdown';
 import rehypeMathML from '@daiji256/rehype-mathml';
@@ -129,22 +128,6 @@ interface MarginState {
 const MarginContext = createContext<MarginState | null>(null);
 
 /**
- * Notes for one row: the issues that *begin* inside it. An issue can span several
- * blocks, so anchoring on its first line keeps each note in exactly one place —
- * and keeps this pure, which claiming into a shared set was not: React invokes a
- * component's render more than once, and the second pass would find its own
- * issues already taken.
- */
-function useRowNotes(lineStart: number | undefined, lineEnd: number | undefined) {
-  const margin = useContext(MarginContext);
-  if (!margin || lineStart === undefined || lineEnd === undefined) return null;
-
-  const notes = margin.issues.filter((issue) => issue.start_line! >= lineStart && issue.start_line! <= lineEnd);
-
-  return { notes, margin };
-}
-
-/**
  * `spacing` goes on the row rather than the element so the line number stays on
  * the first line of its block — a heading's top margin has to move both columns
  * or the number drifts above the text it belongs to.
@@ -179,12 +162,15 @@ function blockFactory(Tag: string, spacing: string, className: string, isContain
     );
 
     const content = scrollWrap ? <div className="max-w-full overflow-x-auto">{element}</div> : element;
-    const row = useRowNotes(isRow ? lineStart : undefined, isRow ? lineEnd : undefined);
+    // The column is still reserved in margin mode even though nothing is put in
+    // it here: the text column has to keep the same width in both modes, and the
+    // notes are placed over this column by MarginLayer.
+    const inMargin = useContext(MarginContext) !== null;
 
     if (!isRow) return content;
 
     return (
-      <div data-block-row className={cn('grid', spacing, GRID_BASE, row && GRID_WITH_MARGIN)}>
+      <div data-block-row className={cn('grid', spacing, GRID_BASE, inMargin && GRID_WITH_MARGIN)}>
         {/* The rule sits beside the text rather than in the gutter cell so it
             measures the paragraph, not the row — a row can be tall because its
             margin holds several notes. */}
@@ -197,19 +183,6 @@ function blockFactory(Tag: string, spacing: string, className: string, isContain
           <span data-rule className="w-[2px] shrink-0 rounded-full bg-transparent" />
           <div className="min-w-0 flex-1">{content}</div>
         </div>
-        {row && (
-          <div className="col-start-3 hidden self-start pl-4 xl:block">
-            {row.notes.map((issue) => (
-              <MarginNote
-                key={issue.id}
-                issue={issue}
-                active={row.margin.activeIssueId === issue.id}
-                readOnly={row.margin.readOnly}
-                onSelect={row.margin.onSelect}
-              />
-            ))}
-          </div>
-        )}
       </div>
     );
   }
@@ -393,24 +366,17 @@ export function DocumentView({ ref, markdown, issues, selectedLineRange, onIssue
       )}
     >
       <MarginContext.Provider value={marginState}>
-        <div className={cn('mx-auto', WIDTH_BASE, marginState && WIDTH_WITH_MARGIN)}>
-          {marginState && documentIssues.length > 0 && (
-            <div className={cn('grid', GRID_BASE, GRID_WITH_MARGIN)}>
-              {/* Empty gutter and text cells: these notes sit above the document
-                  rather than beside any part of it. */}
-              <div aria-hidden />
-              <div aria-hidden />
-              <div className="col-start-3 hidden self-start pb-4 pl-4 xl:block">
-                <DocumentIssues
-                  issues={documentIssues}
-                  activeIssueId={marginState.activeIssueId}
-                  readOnly={marginState.readOnly}
-                  onSelect={marginState.onSelect}
-                />
-              </div>
-            </div>
-          )}
+        <div className={cn('relative mx-auto', WIDTH_BASE, marginState && WIDTH_WITH_MARGIN)}>
           {renderedMarkdown}
+          {marginState && (
+            <MarginLayer
+              issues={lineIssues}
+              documentIssues={documentIssues}
+              activeIssueId={marginState.activeIssueId}
+              readOnly={marginState.readOnly}
+              onSelect={marginState.onSelect}
+            />
+          )}
         </div>
       </MarginContext.Provider>
     </div>
