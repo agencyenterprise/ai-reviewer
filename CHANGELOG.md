@@ -6,6 +6,77 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.3] - 2026-08-31
+
+### Added
+- Added a projects list at `/v2/projects` and a public v2 home page at `/v2` using the redesigned layout chrome.
+- Added a previous/next stepper to the Document Explorer toolbar with a position count and keyboard shortcuts to navigate findings in document order.
+- Added a “Web search” column and a “Capabilities that use web search” section to the capabilities skill documentation.
+
+### Changed
+- Changed margin-mode notes in the v2 Document Explorer to float over the margin column instead of growing the paragraph row.
+- Changed web-search skills to ask for user consent before their first search and to stop if consent is refused.
+- Changed backend skill prompt loading and deep-agent skill file mounting to strip interactive-only consent sections.
+- Changed the frontend chat system prompt to include the web-search consent rule.
+- Changed the frontend skills generation to keep consent sections for chat while dropping only the marker comments.
+- Updated the README plugin section to note which checks ask for consent and why.
+
+### Security
+- Added a user-consent gate for skills that reach the internet before performing web search, URL fetch, or other web tool usage.
+
+### Removed
+- Removed `useRowNotes` from the v2 Document Explorer document view as part of the margin notes layout change.
+
+
+## [v1.0.2] - 2026-08-30
+
+### Added
+- Added a redesigned v2 project view under `/v2/projects/[projectId]` with redesigned tabs for Document Explorer, References, Files, Assessments, and Peer Review, plus a header menu switch to toggle between classic and new layouts while preserving tab and URL hash.
+- Added per-tab routes for the project view on both authenticated and shared views (with Document Explorer remaining at the root path to preserve existing links).
+- Added a new eval API client helper `link_reference_file` wrapping `POST /api/project/{project_id}/references/{reference_id}/files`.
+- Added `GET /api/workflows/{id}/raw-state` and a UI notice for unreadable workflow state that includes a “View raw data” expander.
+
+### Changed
+- Moved all agents from the `gpt-5.4-mini` / `gpt-5.4` / `gpt-5.5` stack to a single model, `gpt-5.6-terra`, and re-recorded `docs/eval-scores.md` against it while keeping the superseded numbers in a separate file.
+- Updated web-search call sites to use a shared `web_search_tool(model)` helper instead of declaring `{"type": "web_search"}` inline.
+- Hid the Peer Review tab, its route, and the reviewer-memo upload role unless the user has Alpha features enabled.
+- Changed the DOCX download dialog to default to Regular comments and temporarily hid the Draft Detective add-in export option.
+- Rebuilt Internal Inference Validation (`inference_validation_v2`) on the shared simple-deep-agent machinery while keeping its type, name, description, and three-pass + adjudicator behaviour.
+- Refreshed eval documentation by re-recording `literature_review_v2` and re-recording seven eval rows previously scored before the tool-call refactor.
+- Pinned pnpm in the frontend Docker image and moved the frontend base image to Node 22.
+
+### Fixed
+- Fixed project title edits to update the UI immediately by correcting the React Query cache update and invalidating the projects list query.
+- Fixed document line-jump navigation so jumping to a document line scrolls the document pane from both entry points.
+- Fixed workflow read/start behavior by filtering issues to workflow types that still have a manifest, removing orphan workflow enum members, and returning clearer status for absent vs schema-mismatched workflow state.
+- Fixed an uncaught error path when starting removed-but-enum-valid workflow types and fixed revision creation to skip workflow type strings that are no longer enum members.
+
+### Removed
+- Removed reporting of `"Missing supporting document for reference"` issues from the reference file matching workflow.
+- Removed `chunk_splitting` and the chunk-to-line-range machinery, along with related dependencies and documentation references.
+- Removed superseded v1 workflows (`literature_review`, `live_reports`, `advocacy_tone`, `claim_reference_validation`, `reference_validation`) and the deprecated `citation_suggester`, plus related agents and eval content.
+- Removed `claim_extraction`, `citation_detection`, and `footnote_extraction` workflows and related agents, models, and helpers.
+- Deleted unreferenced backend symbols and frontend utilities left behind by workflow and module removals.
+- Deleted five unreferenced frontend modules as a dead-code sweep after the workflow-removal series.
+
+
+## [v1.0.1] - 2026-08-25
+
+### Added
+- Added `POST /api/project/{project_id}/references/{reference_id}/files` to link an already-uploaded supporting file in a project to an extracted reference as a `MANUAL_UPLOAD` match.
+- Added `LinkReferenceFileRequest` and `LinkReferenceFileResponse` models.
+
+### Changed
+- Regenerated `frontend/lib/generated-api/*` via `pnpm run openapi-generate` after the API change.
+- Refactored Markdown-producing deep agents to deliver reports via file-based report delivery and a validated per-run `report_issue` tool.
+- Migrated six simple deep-agent workflows, the About This validators, and Reviewer 2 to the new report/issue delivery approach, with Reviewer 2 now writing `/peer-review.md` and `/rebuttal.md`.
+- Clarified the Literature Review eval boundary between local implementation notes and empirical user-outcome claims, including a positive counterexample.
+
+### Fixed
+- Fixed a docstring in `evals_inspectai/common/api_client.py` to reference `start_workflow_types` instead of the non-existent `start_workflow_by_type`.
+- Updated the new reference-file linking endpoint to return 404 when the file is not a `SUPPORT` file of the project's current revision and to map unknown reference or extraction-not-yet-run cases to 409.
+
+
 ## [v1.0.0] - 2026-08-24
 
 ### Added
