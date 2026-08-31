@@ -81,9 +81,9 @@ export function HomeView() {
         </header>
 
         <Section
-          eyebrow="What comes back"
+          eyebrow="What comes back from a review"
           title="A finding, on the line it is about"
-          lede="Nothing is changed in your document. Every assessment only reads, and answers where you are reading."
+          lede="Nothing is changed in your document. Every assessment only reads your document and reports potential issues."
         >
           <IssueAnatomy />
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
