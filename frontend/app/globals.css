@@ -76,6 +76,22 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /**
+   * Data-visualisation palette (admin dashboard).
+   *
+   * Steps are picked per mode against the surface they actually render on (the
+   * card, not the page), so the dark set below is a re-step of the same hues
+   * rather than an automatic flip. The single series hue clears 3:1 on both
+   * surfaces; the outcome colours are the fixed status palette and stay
+   * identical in both modes, always paired with a label so colour never
+   * carries the meaning alone.
+   */
+  --viz-series-1: #2a78d6;
+  --viz-grid: #e1e0d9;
+  --viz-good: #0ca30c;
+  --viz-critical: #d03b3b;
+  --viz-neutral: #898781;
 }
 
 .dark {
@@ -110,6 +126,12 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  --viz-series-1: #3987e5;
+  --viz-grid: #2c2c2a;
+  --viz-good: #0ca30c;
+  --viz-critical: #d03b3b;
+  --viz-neutral: #898781;
 }
 
 @layer base {

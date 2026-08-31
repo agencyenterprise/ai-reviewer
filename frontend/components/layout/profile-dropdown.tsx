@@ -16,6 +16,7 @@ const userNavigation = [
   { name: 'Sign out', href: '/api/auth/signout' },
 ];
 const adminNavigation = [
+  { name: 'Usage Dashboard', href: '/dashboard' },
   { name: 'Manage Users', href: '/users' },
   { name: 'User Feedback', href: '/feedbacks' },
   // App Settings (/settings) is hidden: the About page now reads from the
