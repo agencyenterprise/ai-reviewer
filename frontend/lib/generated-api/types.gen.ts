@@ -213,6 +213,132 @@ export const AccessLevel = { Read: 'read', Write: 'write' } as const;
 export type AccessLevel = (typeof AccessLevel)[keyof typeof AccessLevel];
 
 /**
+ * ActiveUserItem
+ *
+ * A user's activity within the window.
+ */
+export type ActiveUserItem = {
+  /**
+   * User Id
+   */
+  user_id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Email
+   */
+  email: string;
+  role: UserRole;
+  /**
+   * Workflow Runs
+   */
+  workflow_runs: number;
+  /**
+   * Projects
+   *
+   * Distinct projects the user ran assessments on
+   */
+  projects: number;
+  /**
+   * Last Active At
+   */
+  last_active_at: Date;
+};
+
+/**
+ * ActivityGranularity
+ *
+ * Bucket size of the activity series.
+ */
+export const ActivityGranularity = { Day: 'day', Week: 'week' } as const;
+
+/**
+ * ActivityGranularity
+ *
+ * Bucket size of the activity series.
+ */
+export type ActivityGranularity = (typeof ActivityGranularity)[keyof typeof ActivityGranularity];
+
+/**
+ * ActivityPoint
+ *
+ * One bucket of the activity series.
+ */
+export type ActivityPoint = {
+  /**
+   * Bucket
+   *
+   * Start of the day/week bucket (UTC)
+   */
+  bucket: Date;
+  /**
+   * Workflow Runs
+   */
+  workflow_runs: number;
+  /**
+   * Active Users
+   */
+  active_users: number;
+  /**
+   * Projects Created
+   */
+  projects_created: number;
+};
+
+/**
+ * AdminDashboardResponse
+ *
+ * Everything the admin usage dashboard renders.
+ */
+export type AdminDashboardResponse = {
+  /**
+   * Period Days
+   */
+  period_days: number;
+  /**
+   * Period Start
+   */
+  period_start: Date;
+  /**
+   * Period End
+   */
+  period_end: Date;
+  granularity: ActivityGranularity;
+  /**
+   * Cache Ttl Seconds
+   *
+   * How long these figures may be served before being recomputed. `period_end` is the moment they were computed, so the two together tell the reader how stale what they are looking at can be.
+   */
+  cache_ttl_seconds: number;
+  /**
+   * Total Users
+   *
+   * All-time registered users
+   */
+  total_users: number;
+  active_users: MetricWithDelta;
+  new_users: MetricWithDelta;
+  projects_created: MetricWithDelta;
+  assessments_run: MetricWithDelta;
+  feedback_received: MetricWithDelta;
+  /**
+   * Activity
+   */
+  activity: Array<ActivityPoint>;
+  /**
+   * Workflows
+   */
+  workflows: Array<WorkflowUsageItem>;
+  /**
+   * Top Users
+   */
+  top_users: Array<ActiveUserItem>;
+  feedback: DashboardFeedbackSummary;
+};
+
+/**
  * AdminFeedbackItem
  *
  * Feedback item returned to admins, respecting visibility settings.
@@ -741,6 +867,31 @@ export type CreateThreadRequest = {
    * Title
    */
   title?: string | null;
+};
+
+/**
+ * DashboardFeedbackSummary
+ *
+ * Aggregate feedback signal for the window.
+ *
+ * Counts only — feedback text and its authors stay behind the per-project
+ * visibility rules enforced by the feedback listing endpoint.
+ */
+export type DashboardFeedbackSummary = {
+  /**
+   * Thumbs Up
+   */
+  thumbs_up: number;
+  /**
+   * Thumbs Down
+   */
+  thumbs_down: number;
+  /**
+   * With Comment
+   *
+   * Feedback entries that carry written text
+   */
+  with_comment: number;
 };
 
 /**
@@ -1921,6 +2072,26 @@ export type MethodologyComparisonResponse = {
    * List of sources cited from web search
    */
   references?: Array<ReferenceMinimal>;
+};
+
+/**
+ * MetricWithDelta
+ *
+ * A count for the selected window alongside the preceding one.
+ */
+export type MetricWithDelta = {
+  /**
+   * Current
+   *
+   * Count within the selected window
+   */
+  current: number;
+  /**
+   * Previous
+   *
+   * Count within the window of equal length that preceded it
+   */
+  previous: number;
 };
 
 /**
@@ -3813,6 +3984,37 @@ export const WorkflowStateStatus = {
 export type WorkflowStateStatus = (typeof WorkflowStateStatus)[keyof typeof WorkflowStateStatus];
 
 /**
+ * WorkflowStatusCounts
+ *
+ * Run outcomes for a workflow type within the window.
+ *
+ * Every field is required: the query always produces all five, and an
+ * optional count would reach the client as `number | undefined`.
+ */
+export type WorkflowStatusCounts = {
+  /**
+   * Completed
+   */
+  completed: number;
+  /**
+   * Failed
+   */
+  failed: number;
+  /**
+   * Cancelled
+   */
+  cancelled: number;
+  /**
+   * Running
+   */
+  running: number;
+  /**
+   * Pending
+   */
+  pending: number;
+};
+
+/**
  * WorkflowTypeDescription
  *
  * Workflow type description for API responses.
@@ -3859,6 +4061,57 @@ export type WorkflowTypesResponse = {
    * Categories
    */
   categories: Array<WorkflowCategoryOrder>;
+};
+
+/**
+ * WorkflowUsageItem
+ *
+ * Usage of a single workflow type within the window.
+ */
+export type WorkflowUsageItem = {
+  /**
+   * Type
+   *
+   * Workflow type slug as persisted. Retired workflows keep their old slug and no longer resolve to a manifest.
+   */
+  type: string;
+  /**
+   * Name
+   *
+   * Display name from the manifest, or the slug
+   */
+  name: string;
+  /**
+   * Is Internal
+   *
+   * Internal workflows run as dependencies, not user selections
+   */
+  is_internal: boolean;
+  /**
+   * Is Retired
+   *
+   * No manifest is registered for this slug
+   */
+  is_retired: boolean;
+  /**
+   * Runs
+   */
+  runs: number;
+  statuses: WorkflowStatusCounts;
+  /**
+   * Median Duration Seconds
+   *
+   * Median wall-clock duration of COMPLETED runs, if any completed
+   */
+  median_duration_seconds: number | null;
+  /**
+   * Thumbs Up
+   */
+  thumbs_up: number;
+  /**
+   * Thumbs Down
+   */
+  thumbs_down: number;
 };
 
 /**
@@ -3950,6 +4203,40 @@ export type GetAboutContentApiAboutGetResponses = {
 
 export type GetAboutContentApiAboutGetResponse =
   GetAboutContentApiAboutGetResponses[keyof GetAboutContentApiAboutGetResponses];
+
+export type GetDashboardApiAdminDashboardGetData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Days
+     *
+     * Length of the rolling window, in days.
+     */
+    days?: number;
+  };
+  url: '/api/admin/dashboard';
+};
+
+export type GetDashboardApiAdminDashboardGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetDashboardApiAdminDashboardGetError =
+  GetDashboardApiAdminDashboardGetErrors[keyof GetDashboardApiAdminDashboardGetErrors];
+
+export type GetDashboardApiAdminDashboardGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: AdminDashboardResponse;
+};
+
+export type GetDashboardApiAdminDashboardGetResponse =
+  GetDashboardApiAdminDashboardGetResponses[keyof GetDashboardApiAdminDashboardGetResponses];
 
 export type ListAppConfigsApiAppConfigsGetData = {
   body?: never;

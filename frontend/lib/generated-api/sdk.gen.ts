@@ -88,6 +88,9 @@ import type {
   GetAppConfigApiAppConfigsKeyGetResponses,
   GetCurrentUserInfoApiUsersMeGetData,
   GetCurrentUserInfoApiUsersMeGetResponses,
+  GetDashboardApiAdminDashboardGetData,
+  GetDashboardApiAdminDashboardGetErrors,
+  GetDashboardApiAdminDashboardGetResponses,
   GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetData,
   GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetErrors,
   GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetResponses,
@@ -252,6 +255,39 @@ export const getAboutContentApiAboutGet = <ThrowOnError extends boolean = true>(
   (options?.client ?? client).get<GetAboutContentApiAboutGetResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
     url: '/api/about',
+    ...options,
+  });
+
+/**
+ * Get Dashboard
+ *
+ * Usage aggregates for the admin dashboard over a rolling window.
+ *
+ * Counts are paired with the equal-length window that preceded them so the UI
+ * can show a trend. Feedback is reported as counts only; text and authorship
+ * remain behind the per-project visibility rules of `/api/admin/feedbacks`.
+ *
+ * Served from a short cache (see `_cached_dashboard`); the response carries
+ * both the moment the figures were computed and the cache window, so the UI
+ * can say how stale they may be.
+ */
+export const getDashboardApiAdminDashboardGet = <ThrowOnError extends boolean = true>(
+  options?: Options<GetDashboardApiAdminDashboardGetData, ThrowOnError>,
+): RequestResult<
+  GetDashboardApiAdminDashboardGetResponses,
+  GetDashboardApiAdminDashboardGetErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options?.client ?? client).get<
+    GetDashboardApiAdminDashboardGetResponses,
+    GetDashboardApiAdminDashboardGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/admin/dashboard',
     ...options,
   });
 
