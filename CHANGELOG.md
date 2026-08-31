@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.3] - 2026-08-31
+
+### Added
+- Added a projects list at `/v2/projects` and a public v2 home page at `/v2` using the redesigned layout chrome.
+- Added a previous/next stepper to the Document Explorer toolbar with a position count and keyboard shortcuts to navigate findings in document order.
+- Added a “Web search” column and a “Capabilities that use web search” section to the capabilities skill documentation.
+
+### Changed
+- Changed margin-mode notes in the v2 Document Explorer to float over the margin column instead of growing the paragraph row.
+- Changed web-search skills to ask for user consent before their first search and to stop if consent is refused.
+- Changed backend skill prompt loading and deep-agent skill file mounting to strip interactive-only consent sections.
+- Changed the frontend chat system prompt to include the web-search consent rule.
+- Changed the frontend skills generation to keep consent sections for chat while dropping only the marker comments.
+- Updated the README plugin section to note which checks ask for consent and why.
+
+### Security
+- Added a user-consent gate for skills that reach the internet before performing web search, URL fetch, or other web tool usage.
+
+### Removed
+- Removed `useRowNotes` from the v2 Document Explorer document view as part of the margin notes layout change.
+
+
 ## [v1.0.2] - 2026-08-30
 
 ### Added
