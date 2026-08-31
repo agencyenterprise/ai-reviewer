@@ -121,30 +121,36 @@ export function IssueFeedbackButtons({ issueId }: { issueId: string }) {
 
   const isThumbsUp = selectedFeedback === FeedbackType.ThumbsUp;
   const isThumbsDown = selectedFeedback === FeedbackType.ThumbsDown;
+  // Both thumbs are icon-only, and the tooltip cannot name them: it describes the wrapper
+  // the trigger hangs off, and only while it is open. So each carries its own label.
+  const thumbsUpLabel = isThumbsUp ? feedbackLabel(FeedbackType.ThumbsUp) : 'Helpful';
+  const thumbsDownLabel = isThumbsDown
+    ? feedbackLabel(FeedbackType.ThumbsDown, feedback?.feedback_text)
+    : 'Not helpful';
 
   return (
     <div className="flex items-center gap-0.5">
-      <ThumbTooltip label={isThumbsUp ? feedbackLabel(FeedbackType.ThumbsUp) : 'Helpful'}>
+      <ThumbTooltip label={thumbsUpLabel}>
         <Button
           variant={isThumbsUp ? 'default' : 'ghost'}
           size="xs"
           onClick={handleThumbsUp}
           className="h-6 w-6 p-0"
           disabled={isSubmitting || isThumbsUp}
+          aria-label={thumbsUpLabel}
         >
           <ThumbsUp className="h-3 w-3" />
         </Button>
       </ThumbTooltip>
       <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-        <ThumbTooltip
-          label={isThumbsDown ? feedbackLabel(FeedbackType.ThumbsDown, feedback?.feedback_text) : 'Not helpful'}
-        >
+        <ThumbTooltip label={thumbsDownLabel}>
           <PopoverTrigger asChild>
             <Button
               variant={isThumbsDown ? 'default' : 'ghost'}
               size="xs"
               className="h-6 w-6 p-0"
               disabled={isThumbsDown}
+              aria-label={thumbsDownLabel}
             >
               <ThumbsDown className="h-3 w-3" />
             </Button>
