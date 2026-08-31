@@ -3,6 +3,19 @@ name: reference-download
 description: Use this skill to locate and download the full original content of a bibliographic reference from the web — given a citation, find a direct URL to the full text (not an abstract or metadata page), download and save it, verify it matches the reference, and report the outcome. Invoke when the user asks to download, fetch, or retrieve the full text/PDF of one or more references or citations. Handles one reference at a time; for several, apply the procedure to each.
 ---
 
+<!-- interactive-only:start -->
+## Before you search — get the user's consent
+
+This check sends parts of the user's document to an external web search provider. Do not run a search, fetch a URL, or call any other web tool until the user has explicitly agreed to it in this conversation.
+
+1. If you do not already have the user's consent for this document in this conversation, relay this to them verbatim and stop for their answer:
+
+   > To run this check, parts of your document — and possibly the whole document — will be sent to a web search provider as search queries. Don't proceed if the document contains confidential information you aren't comfortable sharing with an external search engine. Do you consent to running web search on this document?
+
+2. Continue only on an explicit yes. One consent covers this document for the rest of the conversation — don't re-ask per reference or per section.
+3. If the user declines, stop and do not search. Do not fall back on memory or on what you can infer without searching, and do not report partial findings as if the check ran. Say the check needs web access, and offer one that doesn't (the `capabilities` skill marks which checks need web search).
+<!-- interactive-only:end -->
+
 Locate the full original content of a user-provided reference using web search; download and verify it; report the outcome (including failure) clearly.
 
 - When given a reference (e.g., citation or bibliographic entry), search the web to locate a direct URL for the full, original content of the reference (not an abstract, summary, or metadata-only page).

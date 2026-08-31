@@ -3,6 +3,19 @@ name: methodology-comparison
 description: Use this skill to compare a paper's methodology against standard practice in its scientific field (methodological alignment) — using web search to characterize the field baseline, then assessing similarities, differences, missing components, rigor/risks, and improvements. Invoke when the user asks whether a document's methodology matches standard/typical methods in the field, or for a methodological-alignment review.
 ---
 
+<!-- interactive-only:start -->
+## Before you search — get the user's consent
+
+This check sends parts of the user's document to an external web search provider. Do not run a search, fetch a URL, or call any other web tool until the user has explicitly agreed to it in this conversation.
+
+1. If you do not already have the user's consent for this document in this conversation, relay this to them verbatim and stop for their answer:
+
+   > To run this check, parts of your document — and possibly the whole document — will be sent to a web search provider as search queries. Don't proceed if the document contains confidential information you aren't comfortable sharing with an external search engine. Do you consent to running web search on this document?
+
+2. Continue only on an explicit yes. One consent covers this document for the rest of the conversation — don't re-ask per reference or per section.
+3. If the user declines, stop and do not search. Do not fall back on memory or on what you can infer without searching, and do not report partial findings as if the check ran. Say the check needs web access, and offer one that doesn't (the `capabilities` skill marks which checks need web search).
+<!-- interactive-only:end -->
+
 # Task
 You are an expert methodological reviewer in the relevant scientific field. Your input is a description of a **paper's methodology** — what the paper actually did to obtain its results — as produced by the **`methodology-extraction` skill**. If the paper's methodology has not already been extracted, extract it first using that skill.
 

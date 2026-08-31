@@ -14,6 +14,7 @@ from lib.services.files import (
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     FileArtifactsServiceType,
 )
+from lib.skills import strip_interactive_only
 from lib.workflows.models import WorkflowRunType
 
 if TYPE_CHECKING:
@@ -443,6 +444,11 @@ class FileArtifactsService(FileArtifactsServiceType):
             for skill_file in sorted(skills_dir.rglob("*")):
                 if skill_file.is_file():
                     virtual_path = "/" + skill_file.relative_to(project_root).as_posix()
-                    files[virtual_path] = create_file_data(skill_file.read_text())
+                    # Interactive-only sections (e.g. asking the user for
+                    # web-search consent) are for agents driven by a user; a
+                    # backend run has its consent already and nobody to ask.
+                    files[virtual_path] = create_file_data(
+                        strip_interactive_only(skill_file.read_text())
+                    )
 
         return files
