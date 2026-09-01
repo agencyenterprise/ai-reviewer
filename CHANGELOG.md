@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.5] - 2026-09-01
+
+### Added
+- Images embedded in main documents are now extracted, stored as first-class file rows, and rendered in document viewers at the document’s intended size, including native Word charts and EMF/WMF metafiles.
+- A new Help Center **Feedback** topic was added, and help links were added from the feedback privacy dialog and the project edit dialog.
+- The v2 project header now includes a run activity indicator (with a popover list) and an in-header activity line to replace the floating progress toast.
+
+### Changed
+- The redesigned (“v2”) layout is now the default for the home page, projects list, and project view, and `/v2` routes were removed.
+- Share pages now render the redesigned read-only project shell and use a shared shell status screen for loading and “link not found” states.
+- Claim Reference Validation now reports the full citation resolution chain in its “Citation-to-file mapping” output.
+- The Reproducibility Check (`results_extraction`) was moved off structured output onto the simple deep agent, and its eval was rebuilt to expand samples and metrics.
+
+### Fixed
+- Extracted DOCX figures now apply Word’s declared crop before being written to disk to prevent squashed or stretched rendering.
+- The document explorer loading spinner no longer runs indefinitely while an approval gate is pending by using a gate-aware “active workflow” predicate.
+- The workflow progress toast now remains visible while assessments are running even when an approval gate exists.
+- v2 header notice banners and the share status badge were adjusted to remain legible and compact on narrow screens.
+
+### Removed
+- The classic (“v1”) pages, components, and the hidden Summary tab (and related routes) were deleted as part of making the redesigned layout the default.
+- The v2 progress toast was removed in favor of the new header run indicator.
+
+### Security
+- A database constraint was added to enforce at most one MAIN document per (project, revision), surfacing violations as the existing 409 Conflict response.
+
+
 ## [v1.0.4] - 2026-09-01
 
 ### Added
