@@ -6,6 +6,7 @@ import { Callout } from '@/components/ui/callout';
 import { EditableTitle } from '@/components/ui/editable-title';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
+import { useShare } from '@/context/share-context';
 import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
 import { AccessLevel, ProjectDetailed, UserRole, WorkflowRunType } from '@/lib/generated-api';
 import { useUserMe } from '@/lib/hooks/use-user-me';
@@ -86,11 +87,16 @@ export function ProjectResultsShell({
   // Feedback loads whenever the project is the user's to write to, older revisions
   // included — `readOnly` there is about editing the document, not about rating the
   // issues it found. Admins get it too, on projects shared with them: the ratings are
-  // the author's, so they are shown but not theirs to change. A share link carries no
-  // account, so it has no feedback to show.
+  // the author's, so they are shown but not theirs to change.
+  //
+  // Never on the share route, whoever is logged in. A share page has to render what its
+  // recipient renders, and the recipient is whoever holds the link — the public endpoint
+  // reports READ even to the owner for that reason. Keying off the account instead would
+  // make an owner or admin previewing their own link see feedback nobody else does.
+  const { shareToken } = useShare();
   const isAdmin = userMe?.role === UserRole.Admin;
   const isOwner = projectDetail.access_level === AccessLevel.Write;
-  const canAccessFeedback = isOwner || isAdmin;
+  const canAccessFeedback = shareToken === null && (isOwner || isAdmin);
 
   const peerReviewFacts = derivePeerReviewFacts(projectDetail);
   const peerReviewAttention = peerReviewNeedsAttention(peerReviewFacts, readOnly);

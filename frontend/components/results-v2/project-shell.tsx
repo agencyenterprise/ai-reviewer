@@ -10,6 +10,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { EditableTitle } from '@/components/ui/editable-title';
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
+import { useShare } from '@/context/share-context';
 import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
 import { AccessLevel, ProjectDetailed, UserRole, WorkflowRunType } from '@/lib/generated-api';
 import { useUserMe } from '@/lib/hooks/use-user-me';
@@ -108,10 +109,13 @@ export function ProjectShellV2({
     );
 
   // See the note in the v1 shell: own feedback stays available on older revisions, an
-  // admin reads the author's without being able to change it, and a share link has none.
+  // admin reads the author's without being able to change it, and the share route shows
+  // none whoever is logged in. No share route renders this shell yet; it is here so the
+  // rule does not go missing when v2 takes over from v1.
+  const { shareToken } = useShare();
   const { data: userMe } = useUserMe();
   const isOwner = projectDetail.access_level === AccessLevel.Write;
-  const canAccessFeedback = isOwner || userMe?.role === UserRole.Admin;
+  const canAccessFeedback = shareToken === null && (isOwner || userMe?.role === UserRole.Admin);
 
   const navigateToTab = (tab: TabType, hash?: string) => onTabChange(tab, hash);
 
