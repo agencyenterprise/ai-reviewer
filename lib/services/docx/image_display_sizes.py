@@ -20,7 +20,7 @@ from typing import Optional
 
 from docx import Document
 from docx.oxml.ns import qn
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from xxhash import xxh128
 
 logger = logging.getLogger(__name__)
@@ -33,24 +33,43 @@ _PERCENTAGE_UNITS_PER_WHOLE = 100_000
 
 
 class SourceRect(BaseModel):
-    """Fractions of a picture cropped off each edge (``a:srcRect``).
+    """Fractions of a picture inset on each edge (``a:srcRect``).
 
     Word keeps the full image bytes in the package and crops at display time,
     so an extracted image is the *uncropped* picture while the drawing's
     extent describes the cropped region.
+
+    An edge can be negative, which is an outset: Word pads that side rather
+    than trimming it, so the extent covers area the image does not contain.
+    Signs are kept rather than clamped — clamping a negative edge on its own
+    silently reshapes the region (``l="-10000" r="10000"`` describes a
+    full-width band shifted left, not a 90%-wide crop), which would put the
+    wrong pixels under a size that claims to describe them.
     """
 
-    left: float = Field(default=0.0, ge=0.0)
-    top: float = Field(default=0.0, ge=0.0)
-    right: float = Field(default=0.0, ge=0.0)
-    bottom: float = Field(default=0.0, ge=0.0)
+    left: float = 0.0
+    top: float = 0.0
+    right: float = 0.0
+    bottom: float = 0.0
+
+    @property
+    def has_outset(self) -> bool:
+        """Whether any edge pads the picture instead of trimming it.
+
+        Such a region cannot be expressed as a crop of the stored image, so
+        callers store the picture whole and declare no size for it.
+        """
+        return min(self.left, self.top, self.right, self.bottom) < 0
 
     def crop_box(self, width: int, height: int) -> Optional[tuple[int, int, int, int]]:
         """The ``(left, top, right, bottom)`` pixel box to crop to.
 
-        None when the crop is a no-op at this resolution or would leave
-        nothing behind — callers then keep the image as it is.
+        None when the region is not a crop at all (``has_outset``), when the
+        crop is a no-op at this resolution, or when it would leave nothing
+        behind — callers then keep the image as it is.
         """
+        if self.has_outset:
+            return None
         box = (
             round(width * self.left),
             round(height * self.top),
@@ -96,23 +115,22 @@ class DisplaySizes:
 
 
 def _crop_fraction(value: Optional[str]) -> float:
-    """One ``a:srcRect`` edge as a fraction of the source image.
+    """One ``a:srcRect`` edge as a signed fraction of the source image.
 
-    Negative edges are outsets (Word pads the picture rather than cropping
-    it); they have no crop to apply, so they read as zero.
+    Negative values are kept: they mark an outset, which ``SourceRect``
+    reports through ``has_outset`` so the region is not mistaken for a crop.
     """
     if not value:
         return 0.0
     text = value.strip()
     try:
-        fraction = (
+        return (
             float(text[:-1]) / 100
             if text.endswith("%")
             else int(text) / _PERCENTAGE_UNITS_PER_WHOLE
         )
     except ValueError:
         return 0.0
-    return max(fraction, 0.0)
 
 
 def _read_source_rect(blip) -> Optional[SourceRect]:

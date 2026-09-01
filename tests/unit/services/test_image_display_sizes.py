@@ -192,17 +192,30 @@ def test_percentage_string_crop_is_understood(tmp_path):
     assert placement.crop == SourceRect(left=0.125, right=0.25)
 
 
-def test_empty_and_outset_src_rects_read_as_uncropped(tmp_path):
-    """Word writes an empty srcRect for uncropped pictures, and negative
-    edges are outsets (padding), which crop nothing away."""
+def test_empty_src_rect_reads_as_uncropped(tmp_path):
+    """Word writes an empty srcRect for uncropped pictures."""
     png = _png_bytes("purple")
-    for src_rect in ("<a:srcRect/>", '<a:srcRect l="-5000" t="-5000"/>'):
-        path = _docx_with_src_rect(tmp_path, png, src_rect)
+    path = _docx_with_src_rect(tmp_path, png, "<a:srcRect/>")
 
-        placement = read_docx_image_display_sizes(path).take(xxh128(png).hexdigest())
+    placement = read_docx_image_display_sizes(path).take(xxh128(png).hexdigest())
 
-        assert placement is not None
-        assert placement.crop is None, src_rect
+    assert placement is not None
+    assert placement.crop is None
+
+
+def test_outset_edges_keep_their_sign(tmp_path):
+    """Negative edges are outsets (Word pads that side). Clamping them to zero
+    would silently reshape the region: `l="-10000" r="10000"` is a full-width
+    band shifted left, not a 90%-wide crop, so the signs have to survive the
+    read for `has_outset` to catch it."""
+    png = _png_bytes("purple")
+    path = _docx_with_src_rect(tmp_path, png, '<a:srcRect l="-10000" r="10000"/>')
+
+    placement = read_docx_image_display_sizes(path).take(xxh128(png).hexdigest())
+
+    assert placement is not None
+    assert placement.crop == SourceRect(left=-0.1, right=0.1)
+    assert placement.crop.has_outset
 
 
 def test_unparseable_crop_edge_reads_as_uncropped(tmp_path):
@@ -222,3 +235,11 @@ def test_crop_box_is_none_when_nothing_would_change_or_survive():
     assert SourceRect().crop_box(100, 100) is None
     assert SourceRect(left=0.6, right=0.6).crop_box(100, 100) is None
     assert SourceRect(top=0.25, bottom=0.25).crop_box(100, 100) == (0, 25, 100, 75)
+
+
+def test_crop_box_is_none_for_any_outset():
+    """An outset region is not a crop of the stored image at all, so no box
+    can represent it — mixed signs included."""
+    assert SourceRect(left=-0.1, right=0.1).crop_box(100, 100) is None
+    assert SourceRect(top=-0.05).crop_box(100, 100) is None
+    assert not SourceRect(left=0.1, right=0.1).has_outset

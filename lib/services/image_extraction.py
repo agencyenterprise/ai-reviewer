@@ -16,6 +16,7 @@ each image stays on the single markdown line mammoth produced, which is what
 keeps issue line anchors, ``#L`` links and the DOCX comment export valid.
 """
 
+import asyncio
 import base64
 import binascii
 import io
@@ -73,6 +74,12 @@ _MIME_EXTENSIONS = {
 _CROPPABLE_MIME_TYPES = frozenset(
     {"image/png", "image/jpeg", "image/bmp", "image/tiff", "image/webp"}
 )
+
+# Cropping decodes the whole image, at roughly three bytes per pixel plus the
+# cropped copy. 40 megapixels leaves room for a 600 dpi letter-size scan
+# (~34 MP) — far beyond any figure a document displays — while keeping a
+# decompression bomb from taking the worker down with it.
+_MAX_CROP_PIXELS = 40_000_000
 
 
 class ExtractedImage(BaseModel):
@@ -157,7 +164,7 @@ async def extract_data_uri_images(
         placement = (
             display_sizes.take(xxh128(content).hexdigest()) if display_sizes else None
         )
-        content, placement = _apply_declared_crop(content, mime_type, placement)
+        content, placement = await _apply_declared_crop(content, mime_type, placement)
         image_path, content_hash = await _write_image(images_dir, content, mime_type)
         size = (placement.width_px, placement.height_px) if placement else None
 
@@ -182,7 +189,7 @@ async def extract_data_uri_images(
     return ImageExtractionResult(markdown="".join(pieces), images=images)
 
 
-def _apply_declared_crop(
+async def _apply_declared_crop(
     content: bytes, mime_type: str, placement: Optional[ImagePlacement]
 ) -> tuple[bytes, Optional[ImagePlacement]]:
     """Crop ``content`` to the region the document displays.
@@ -201,8 +208,17 @@ def _apply_declared_crop(
     crop = placement.crop if placement else None
     if crop is None:
         return content, placement
+    if crop.has_outset:
+        # The extent covers padding, not just image; storing the picture whole
+        # under that size would stretch it.
+        logger.info("Not cropping image: the declared region outsets the picture")
+        return content, None
 
-    cropped = _crop_image(content, mime_type, crop)
+    # Decoding and re-encoding a print-resolution figure takes long enough to
+    # stall unrelated coroutines, and a document can hold several; the rest of
+    # the conversion pipeline offloads its Pillow and LibreOffice work the same
+    # way.
+    cropped = await asyncio.to_thread(_crop_image, content, mime_type, crop)
     if cropped is None:
         return content, None
     return cropped, placement
@@ -214,6 +230,9 @@ def _crop_image(content: bytes, mime_type: str, crop: SourceRect) -> Optional[by
     A no-op crop returns the bytes untouched rather than re-encoding them, so
     content addressing keeps deduplicating images that are merely declared
     cropped.
+
+    Runs on a worker thread (see ``_apply_declared_crop``); it must stay
+    synchronous.
     """
     if mime_type not in _CROPPABLE_MIME_TYPES:
         logger.info("Not cropping %s image: format does not support it", mime_type)
@@ -221,6 +240,19 @@ def _crop_image(content: bytes, mime_type: str, crop: SourceRect) -> Optional[by
     try:
         with Image.open(io.BytesIO(content)) as image:
             image_format = image.format
+            # `Image.open` reads the header only. Pillow's own bomb guard just
+            # warns until twice its threshold, while `crop` forces a full
+            # decode, so the pixel count is checked here first: a 450 KB
+            # 12000x12000 PNG otherwise costs a third of a gigabyte.
+            pixels = image.width * image.height
+            if pixels > _MAX_CROP_PIXELS:
+                logger.warning(
+                    "Not cropping %dx%d image: above the %d pixel crop limit",
+                    image.width,
+                    image.height,
+                    _MAX_CROP_PIXELS,
+                )
+                return None
             box = crop.crop_box(image.width, image.height)
             if box is None:
                 return content

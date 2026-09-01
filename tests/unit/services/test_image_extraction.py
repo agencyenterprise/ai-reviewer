@@ -19,6 +19,7 @@ from lib.services.docx.image_display_sizes import (
     ImagePlacement,
     SourceRect,
 )
+from lib.services import image_extraction
 from lib.services.image_extraction import (
     EXTRACTED_IMAGES_DIRNAME,
     extract_data_uri_images,
@@ -353,3 +354,99 @@ async def test_undecodable_image_bytes_drop_the_declared_size(tmp_path):
     with open(result.images[0].image_path, "rb") as f:
         assert f.read() == junk
     assert "?w=" not in result.markdown
+
+
+@pytest.mark.asyncio
+async def test_outset_region_stores_the_picture_whole_and_drops_the_size(tmp_path):
+    """A negative edge means Word pads that side, so the extent covers area
+    the image does not contain. Clamping the outset away and cropping the
+    opposite edge would store the wrong pixels under a size claiming to
+    describe them; store the picture whole and declare nothing instead."""
+    png = _png_of(400, 200)
+    # A full-width band shifted left, not a 90%-wide crop.
+    placement = ImagePlacement(
+        width_px=400, height_px=200, crop=SourceRect(left=-0.1, right=0.1)
+    )
+
+    with _uploads_patch(tmp_path):
+        result = await extract_data_uri_images(
+            _markdown_for(png), _sizes_for(png, placement)
+        )
+
+    with open(result.images[0].image_path, "rb") as f:
+        assert f.read() == png
+    assert "?w=" not in result.markdown
+
+
+@pytest.mark.asyncio
+async def test_pure_outset_also_drops_the_size(tmp_path):
+    """Padding on every side is still area the stored bytes do not cover."""
+    png = _png_of(200, 200)
+    placement = ImagePlacement(
+        width_px=220, height_px=220, crop=SourceRect(left=-0.05, top=-0.05)
+    )
+
+    with _uploads_patch(tmp_path):
+        result = await extract_data_uri_images(
+            _markdown_for(png), _sizes_for(png, placement)
+        )
+
+    with open(result.images[0].image_path, "rb") as f:
+        assert f.read() == png
+    assert "?w=" not in result.markdown
+
+
+@pytest.mark.asyncio
+async def test_oversized_image_is_not_decoded_for_a_crop(tmp_path):
+    """`Image.open` reads the header only, but `crop` forces a full decode:
+    Pillow's own bomb guard merely warns until twice its threshold, so a
+    small, highly compressed raster could allocate hundreds of megabytes and
+    take the worker down. Refuse the crop and drop the size instead."""
+    png = _png_of(64, 64)
+    placement = ImagePlacement(width_px=100, height_px=50, crop=SourceRect(bottom=0.5))
+
+    with (
+        _uploads_patch(tmp_path),
+        patch("lib.services.image_extraction._MAX_CROP_PIXELS", 64 * 64 - 1),
+    ):
+        result = await extract_data_uri_images(
+            _markdown_for(png), _sizes_for(png, placement)
+        )
+
+    with open(result.images[0].image_path, "rb") as f:
+        assert f.read() == png
+    assert "?w=" not in result.markdown
+
+
+def test_the_real_pixel_cap_admits_a_600_dpi_page_scan():
+    """The cap has to clear any figure a document can display; a 600 dpi
+    letter-size scan (~34 MP) is the generous end of that range."""
+    assert image_extraction._MAX_CROP_PIXELS >= 5100 * 6600
+    assert image_extraction._MAX_CROP_PIXELS < Image.MAX_IMAGE_PIXELS
+
+
+@pytest.mark.asyncio
+async def test_cropping_runs_off_the_event_loop(tmp_path):
+    """Decoding and re-encoding a print-resolution figure takes long enough to
+    stall unrelated coroutines, and a document can hold several."""
+    png = _png_of(400, 400)
+    placement = ImagePlacement(width_px=400, height_px=200, crop=SourceRect(bottom=0.5))
+    offloaded = []
+
+    async def recording_to_thread(fn, *args, **kwargs):
+        offloaded.append(fn)
+        return fn(*args, **kwargs)
+
+    with (
+        _uploads_patch(tmp_path),
+        patch.object(image_extraction.asyncio, "to_thread", recording_to_thread),
+    ):
+        result = await extract_data_uri_images(
+            _markdown_for(png), _sizes_for(png, placement)
+        )
+
+    assert image_extraction._crop_image in offloaded
+    # ...and the offload did not cost correctness.
+    with Image.open(result.images[0].image_path) as stored:
+        assert stored.size == (400, 200)
+    assert "?w=400&h=200" in result.markdown
