@@ -1,7 +1,7 @@
 'use client';
 
-import { ProjectTabPanel } from '@/components/results/project-tab-panel';
+import { AssessmentsPanel } from '@/components/results/assessments-panel';
 
 export default function Page() {
-  return <ProjectTabPanel tab="analyses" />;
+  return <AssessmentsPanel />;
 }

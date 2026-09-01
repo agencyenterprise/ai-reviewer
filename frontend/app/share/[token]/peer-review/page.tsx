@@ -1,7 +1,7 @@
 'use client';
 
-import { ProjectTabPanel } from '@/components/results/project-tab-panel';
+import { PeerReviewPanel } from '@/components/results/peer-review-panel';
 
 export default function Page() {
-  return <ProjectTabPanel tab="peer-review" />;
+  return <PeerReviewPanel />;
 }

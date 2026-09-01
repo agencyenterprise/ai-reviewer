@@ -29,7 +29,7 @@ export function documentUrlTransform(url: string): string {
 }
 
 /**
- * Image renderer for converted document markdown, shared by the v1 and v2
+ * Image renderer for converted document markdown, shared by the document explorer and the
  * document viewers.
  *
  * Documents converted before image extraction existed carry truncated

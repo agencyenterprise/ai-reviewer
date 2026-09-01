@@ -1,7 +1,8 @@
 'use client';
 
-import { ProjectTabPanel } from '@/components/results/project-tab-panel';
+import { DocumentExplorerPanel } from '@/components/results/document-explorer-panel';
 
+/** The document explorer is the root tab, so existing links to a project land on it. */
 export default function Page() {
-  return <ProjectTabPanel tab="document-explorer" />;
+  return <DocumentExplorerPanel />;
 }

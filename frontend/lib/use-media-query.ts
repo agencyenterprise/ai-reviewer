@@ -27,6 +27,6 @@ export function useMediaQuery(query: string, serverFallback = true): boolean {
   );
 }
 
-/** The widths the v2 panes appear at, matching Tailwind's xl and lg. */
+/** The widths the project view's panes appear at, matching Tailwind's xl and lg. */
 export const WIDE_ENOUGH_FOR_RAIL = '(min-width: 80rem)';
 export const WIDE_ENOUGH_FOR_PANE = '(min-width: 64rem)';

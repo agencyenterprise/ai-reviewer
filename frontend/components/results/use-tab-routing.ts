@@ -5,7 +5,7 @@ import { useCallback } from 'react';
 import { TabType, tabFromPathname, tabHref } from './constants';
 
 /**
- * Drives a {@link ProjectResultsShell}'s tabs from the URL, one route per tab.
+ * Drives a {@link ProjectShell}'s tabs from the URL, one route per tab.
  * `basePath` is the route holding the shell, e.g. `/projects/abc` or `/share/xyz`.
  */
 export function useTabRouting(basePath: string) {
