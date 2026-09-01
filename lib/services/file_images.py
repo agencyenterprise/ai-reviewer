@@ -11,12 +11,12 @@ import os
 import uuid
 from typing import List
 
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
 from lib.models.file import File, FileRole
-from lib.services.files import get_file_by_id
+from lib.services.files import _delete_file_from_disk, _is_path_shared, get_file_by_id
 from lib.services.image_extraction import ExtractedImage
 
 
@@ -27,14 +27,33 @@ async def replace_extracted_images(
 
     Wholesale replacement keeps reconversion idempotent: the parent's markdown
     references images by the ids generated at extraction time, so rows from a
-    previous conversion must never survive alongside new ones.
+    previous conversion must never survive alongside new ones. Their disk
+    files go too when nothing references them anymore — cleanup discovers
+    disk files only through rows, so skipping this would strand them forever
+    when a reconversion produces different bytes (e.g. rendering changed).
     """
     parent = await get_file_by_id(parent_file_id)
+    incoming_paths = {image.image_path for image in images}
 
     async with get_async_db_session() as session:
+        previous_stmt = select(File).where(col(File.parent_file_id) == parent.id)
+        previous = [
+            (row.file_path, row.id)
+            for row in (await session.execute(previous_stmt)).scalars()
+        ]
+
         await session.execute(
             delete(File).where(col(File.parent_file_id) == parent.id)
         )
+
+        for path, row_id in previous:
+            # The new rows are not inserted yet, so paths they will reference
+            # must be treated as still in use.
+            if path in incoming_paths:
+                continue
+            if not await _is_path_shared(session, path, row_id):
+                _delete_file_from_disk(path)
+
         for position, image in enumerate(images):
             extension = os.path.splitext(image.image_path)[1]
             session.add(

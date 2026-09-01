@@ -15,13 +15,17 @@ MODULE = "lib.services.file_images"
 
 
 class _FakeSession:
-    def __init__(self):
+    def __init__(self, previous_rows: list | None = None):
+        self.previous_rows = previous_rows or []
         self.executed: list = []
         self.added: list = []
         self.committed = False
 
     async def execute(self, stmt):
         self.executed.append(stmt)
+        if not isinstance(stmt, Delete):
+            result = SimpleNamespace(scalars=lambda: iter(self.previous_rows))
+            return result
 
     def add(self, obj):
         self.added.append(obj)
@@ -70,9 +74,9 @@ async def test_replaces_rows_and_inherits_parent_fields():
 
     # Old rows for this parent are deleted before the new ones go in, so a
     # reconversion never leaves stale images behind.
-    assert len(session.executed) == 1
-    assert isinstance(session.executed[0], Delete)
-    assert "parent_file_id" in str(session.executed[0])
+    deletes = [s for s in session.executed if isinstance(s, Delete)]
+    assert len(deletes) == 1
+    assert "parent_file_id" in str(deletes[0])
 
     assert [f.id for f in session.added] == [images[0].id, images[1].id]
     assert [f.file_name for f in session.added] == ["image-1.png", "image-2.png"]
@@ -101,6 +105,63 @@ async def test_no_images_still_clears_previous_rows():
     ):
         await replace_extracted_images(parent.id, [])
 
-    assert isinstance(session.executed[0], Delete)
+    assert any(isinstance(s, Delete) for s in session.executed)
     assert session.added == []
     assert session.committed
+
+
+def _previous_row(path: str) -> SimpleNamespace:
+    return SimpleNamespace(file_path=path, id=uuid.uuid4())
+
+
+@pytest.mark.asyncio
+async def test_stale_disk_file_of_replaced_row_is_removed():
+    """A reconversion that produced different bytes must not strand the old
+    files on disk — cleanup discovers disk files only through rows."""
+    parent = _parent()
+    session = _FakeSession(previous_rows=[_previous_row("/uploads/extracted_images/old.png")])
+
+    with (
+        patch(f"{MODULE}.get_file_by_id", new=AsyncMock(return_value=parent)),
+        patch(f"{MODULE}.get_async_db_session", return_value=session),
+        patch(f"{MODULE}._is_path_shared", new=AsyncMock(return_value=False)),
+        patch(f"{MODULE}._delete_file_from_disk") as disk_mock,
+    ):
+        await replace_extracted_images(parent.id, [_extracted()])
+
+    disk_mock.assert_called_once_with("/uploads/extracted_images/old.png")
+
+
+@pytest.mark.asyncio
+async def test_disk_file_reused_by_new_images_is_kept():
+    """Same-bytes reconversion reuses content-addressed paths; the new rows
+    are not inserted yet when the old ones are checked."""
+    parent = _parent()
+    image = _extracted()
+    session = _FakeSession(previous_rows=[_previous_row(image.image_path)])
+
+    with (
+        patch(f"{MODULE}.get_file_by_id", new=AsyncMock(return_value=parent)),
+        patch(f"{MODULE}.get_async_db_session", return_value=session),
+        patch(f"{MODULE}._is_path_shared", new=AsyncMock(return_value=False)),
+        patch(f"{MODULE}._delete_file_from_disk") as disk_mock,
+    ):
+        await replace_extracted_images(parent.id, [image])
+
+    disk_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_disk_file_shared_with_another_row_is_kept():
+    parent = _parent()
+    session = _FakeSession(previous_rows=[_previous_row("/uploads/extracted_images/shared.png")])
+
+    with (
+        patch(f"{MODULE}.get_file_by_id", new=AsyncMock(return_value=parent)),
+        patch(f"{MODULE}.get_async_db_session", return_value=session),
+        patch(f"{MODULE}._is_path_shared", new=AsyncMock(return_value=True)),
+        patch(f"{MODULE}._delete_file_from_disk") as disk_mock,
+    ):
+        await replace_extracted_images(parent.id, [_extracted()])
+
+    disk_mock.assert_not_called()
