@@ -6,7 +6,7 @@ import { useWorkflowProgressToast } from '@/hooks/use-workflow-progress-toast';
 import { getErrorMessage, isApiError } from '@/lib/api-error';
 import { AccessLevel, ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
-import { hasWorkflowProgressToShow, needsHumanApproval } from '@/lib/workflow-state';
+import { isAnyWorkflowActive, needsHumanApproval } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { FileXIcon, LockIcon } from 'lucide-react';
 import { useParams } from 'next/navigation';
@@ -41,8 +41,8 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
   }, []);
 
   // Show progress in toast while assessments are actually running. A pipeline
-  // parked on the reference-review gate doesn't count — see hasWorkflowProgressToShow.
-  useWorkflowProgressToast(projectId, hasWorkflowProgressToShow(workflowDetails));
+  // parked on the reference-review gate doesn't count — see isAnyWorkflowActive.
+  useWorkflowProgressToast(projectId, isAnyWorkflowActive(workflowDetails));
 
   const updateTitleMutation = useMutation({
     mutationFn: async (newTitle: string) => {

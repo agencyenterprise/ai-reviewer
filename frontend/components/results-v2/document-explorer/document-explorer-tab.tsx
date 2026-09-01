@@ -16,7 +16,7 @@ import {
 import {
   getBlockingWorkflowErrors,
   getWorkflowRunByType,
-  isAnyWorkflowProcessing,
+  isAnyWorkflowActive,
   isWorkflowProcessing,
 } from '@/lib/workflow-state';
 import { WIDE_ENOUGH_FOR_PANE, useMediaQuery } from '@/lib/use-media-query';
@@ -93,7 +93,7 @@ export function DocumentExplorerTabV2({ projectDetail, onNavigateToAnalyses }: D
 
   const documentProcessing = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
   const isDocumentProcessing = isWorkflowProcessing(documentProcessing);
-  const isAnyProcessing = isAnyWorkflowProcessing(workflowDetails);
+  const isAnyProcessing = isAnyWorkflowActive(workflowDetails);
 
   const issuesRef = useRef<IssuesColumnHandle>(null);
   const documentRef = useRef<DocumentViewHandle>(null);
