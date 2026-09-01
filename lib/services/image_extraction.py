@@ -171,6 +171,11 @@ async def _write_image(
     image_path = os.path.join(images_dir, content_hash + extension)
 
     if not os.path.exists(image_path):
-        async with aiofiles.open(image_path, "wb") as f:
+        # Concurrent conversions can extract identical bytes; write to a
+        # temporary name and move it into place atomically so a reader never
+        # sees a partially-written file.
+        temp_path = f"{image_path}.{uuid.uuid4().hex}.tmp"
+        async with aiofiles.open(temp_path, "wb") as f:
             await f.write(content)
+        os.replace(temp_path, image_path)
     return image_path, content_hash

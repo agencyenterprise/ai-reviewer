@@ -56,10 +56,16 @@ async def test_returns_cached_markdown_unchanged():
 async def test_converts_modern_docx_via_markitdown():
     doc = _file_document(file_path="/uploads/abc.docx")
 
-    with patch(
-        f"{MODULE}.convert_to_markdown_fn",
-        new=AsyncMock(return_value="# converted"),
-    ) as convert_mock:
+    with (
+        patch(f"{MODULE}.rasterize_docx_drawings", new=AsyncMock(return_value=None)),
+        patch(
+            f"{MODULE}.replace_extracted_images", new=AsyncMock()
+        ) as replace_images_mock,
+        patch(
+            f"{MODULE}.convert_to_markdown_fn",
+            new=AsyncMock(return_value="# converted"),
+        ) as convert_mock,
+    ):
         result = await convert_file_document_to_markdown(doc)
 
     convert_mock.assert_awaited_once_with(
@@ -69,6 +75,9 @@ async def test_converts_modern_docx_via_markitdown():
     assert result.markdown == "# converted"
     assert result.markdown_token_count > 0
     assert doc.markdown == ""  # original untouched (model_copy)
+    # Rows are replaced even when extraction finds nothing, so reconversion
+    # clears children a previous conversion created.
+    replace_images_mock.assert_awaited_once_with(doc.file_id, [])
 
 
 @pytest.mark.asyncio
@@ -83,6 +92,9 @@ async def test_legacy_doc_mime_is_preprocessed_to_docx():
     with (
         patch(f"{MODULE}.docx_preprocessor", preprocessor),
         patch(f"{MODULE}.rasterize_docx_drawings", new=AsyncMock(return_value=None)),
+        patch(
+            f"{MODULE}.replace_extracted_images", new=AsyncMock()
+        ) as replace_images_mock,
         patch(
             f"{MODULE}.convert_to_markdown_fn",
             new=AsyncMock(return_value="# legacy"),
@@ -110,6 +122,9 @@ async def test_legacy_doc_extension_without_msword_mime_uses_copy_path():
     with (
         patch(f"{MODULE}.shutil.copy") as copy_mock,
         patch(f"{MODULE}.rasterize_docx_drawings", new=AsyncMock(return_value=None)),
+        patch(
+            f"{MODULE}.replace_extracted_images", new=AsyncMock()
+        ) as replace_images_mock,
         patch(
             f"{MODULE}.convert_to_markdown_fn",
             new=AsyncMock(return_value="# copied"),

@@ -130,11 +130,12 @@ async def convert_file_document_to_markdown(
     if keep_data_uris:
         # Move embedded images out of the markdown before it is persisted or
         # token-counted; each src is rewritten in place, so line numbers match
-        # the un-extracted conversion exactly.
+        # the un-extracted conversion exactly. Rows are replaced even when
+        # nothing was extracted, so a reconversion clears children a previous
+        # conversion created.
         extraction = await extract_data_uri_images(markdown, display_sizes)
-        if extraction.images:
-            await replace_extracted_images(file_document.file_id, extraction.images)
-            markdown = extraction.markdown
+        await replace_extracted_images(file_document.file_id, extraction.images)
+        markdown = extraction.markdown
 
     return file_document.model_copy(
         update={
