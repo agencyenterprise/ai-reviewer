@@ -5,6 +5,7 @@ from typing import List, Optional, Sequence
 
 from fastapi import HTTPException
 from sqlalchemy import func, or_, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
@@ -65,7 +66,20 @@ async def create_file_record(
             revision=revision,
         )
         session.add(file)
-        await session.commit()
+        try:
+            await session.commit()
+        except IntegrityError as exc:
+            # Raced another upload past the application-level one-MAIN check;
+            # the partial unique index on files is the backstop.
+            if "uq_files_one_main_per_project_revision" in str(exc.orig):
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        "Project already has a main document for this revision. "
+                        "Create a new revision first."
+                    ),
+                ) from exc
+            raise
         await session.refresh(file)
         return file
 
