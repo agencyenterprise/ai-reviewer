@@ -161,3 +161,28 @@
   --text-xl: 1.125rem;
   --text-2xl: 1.25rem;
 }
+
+/**
+ * The v2 project header's activity line: a sweep that says work is happening
+ * without claiming to know how far along it is. Reduced motion gets a static
+ * filled line, which still reads as "busy".
+ */
+@keyframes run-activity-sweep {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(410%);
+  }
+}
+
+.run-activity-sweep {
+  animation: run-activity-sweep 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run-activity-sweep {
+    width: 100%;
+    animation: none;
+  }
+}

@@ -15,7 +15,7 @@ import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context
 import { AccessLevel, ProjectDetailed, UserRole, WorkflowRunType } from '@/lib/generated-api';
 import { useUserMe } from '@/lib/hooks/use-user-me';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
-import { getWorkflowRunByType } from '@/lib/workflow-state';
+import { getWorkflowRunByType, isAnyWorkflowActive } from '@/lib/workflow-state';
 import { ReactNode, useMemo } from 'react';
 import { AppBar } from './app-bar';
 import { NewAssessmentButton } from './new-assessment-button';
@@ -23,6 +23,8 @@ import { OldRevisionBanner } from './old-revision-banner';
 import { PageTitle } from '@/components/shared/page-title';
 import { ProjectTab, ProjectTabs } from './project-tabs';
 import { ReferenceReviewBanner } from './reference-review-banner';
+import { RunActivityIndicator } from './run-activity/run-activity-indicator';
+import { RunActivityLine } from './run-activity/run-activity-line';
 
 /** Tabs redesigned for the v2 frame, which manage their own scrolling. */
 /** Every redesigned tab manages its own scrolling; only Summary still does not. */
@@ -66,6 +68,9 @@ export function ProjectShellV2({
   const { isWorkflowTypeVisible } = useWorkflowTypes();
 
   const currentRevision = projectDetail.project.current_revision ?? 1;
+  // A pipeline parked on the reference-review gate isn't progressing — see
+  // isAnyWorkflowActive.
+  const runsActive = isAnyWorkflowActive(results);
   const referenceExtraction = getWorkflowRunByType(results, WorkflowRunType.ReferenceExtraction);
 
   const { showExperimentalFeatures } = useExperimentalFeatures();
@@ -152,6 +157,9 @@ export function ProjectShellV2({
                   Read-only view
                 </Badge>
               )}
+              {/* What is running sits next to what starts a run, so the answer to
+                  "did that go?" is where the question was asked. */}
+              <RunActivityIndicator projectId={projectDetail.project.id} workflowDetails={results} />
               {!readOnly && <NewAssessmentButton projectId={projectDetail.project.id} />}
               <AnalysisOptionsMenu
                 project={projectDetail.project}
@@ -166,6 +174,8 @@ export function ProjectShellV2({
               />
             </div>
           </header>
+
+          <RunActivityLine active={runsActive} />
 
           {needsReferenceReview && (
             <ReferenceReviewBanner projectDetail={projectDetail} onReviewReferences={() => onTabChange('references')} />
