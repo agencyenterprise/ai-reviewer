@@ -314,3 +314,172 @@ async def test_rasterize_swallows_failures(tmp_path):
         f.write(b"garbage")
 
     assert await rasterize_docx_drawings(broken) is None
+
+# --- render-target detection edge cases ---------------------------------------
+
+
+def test_drawing_without_graphic_data_is_not_renderable():
+    document = Document()
+    _append_paragraph(document, "<w:drawing><wp:inline/></w:drawing>")
+
+    assert _renderable_paragraphs(document) == []
+
+
+def test_unknown_graphic_uri_is_not_renderable():
+    document = Document()
+    _append_paragraph(
+        document,
+        _drawing_xml('<a:graphicData uri="http://example.com/diagram"/>'),
+    )
+
+    assert _renderable_paragraphs(document) == []
+
+
+def test_picture_without_blip_embed_is_not_renderable():
+    document = Document()
+    graphic_data = (
+        f'<a:graphicData uri="{PICTURE_GRAPHIC_URI}">'
+        "<pic:pic><pic:blipFill><a:blip/></pic:blipFill></pic:pic>"
+        "</a:graphicData>"
+    )
+    _append_paragraph(document, _drawing_xml(graphic_data))
+
+    assert _renderable_paragraphs(document) == []
+
+
+def test_picture_with_dangling_relationship_is_not_renderable():
+    document = Document()
+    _append_paragraph(document, _drawing_xml(_picture_graphic_data("rId404")))
+
+    assert _renderable_paragraphs(document) == []
+
+
+# --- rendering-failure guards --------------------------------------------------
+
+
+def _chart_docx(tmp_path) -> str:
+    document = Document()
+    _append_paragraph(document, _drawing_xml(_chart_graphic_data()))
+    path = str(tmp_path / "chart.docx")
+    document.save(path)
+    return path
+
+
+@pytest.mark.asyncio
+async def test_rasterize_returns_none_when_rendering_fails(tmp_path):
+    with patch(
+        f"{MODULE}._render_drawings_to_images", new=AsyncMock(return_value=None)
+    ):
+        assert await rasterize_docx_drawings(_chart_docx(tmp_path)) is None
+
+
+@pytest.mark.asyncio
+async def test_rasterize_returns_none_when_nothing_could_be_replaced(tmp_path):
+    """A renderable drawing whose splice fails (here: no extent) must not
+    produce a document identical to the original under a new name."""
+    document = Document()
+    _append_paragraph(document, _drawing_xml(_chart_graphic_data(), with_extent=False))
+    src = str(tmp_path / "no-extent.docx")
+    document.save(src)
+
+    render_dir = tempfile.mkdtemp()  # removed by the function under test
+    with patch(
+        f"{MODULE}._render_drawings_to_images",
+        new=AsyncMock(return_value=(render_dir, [_png_file(tmp_path)])),
+    ):
+        assert await rasterize_docx_drawings(src) is None
+    assert not os.path.exists(render_dir)
+
+
+@pytest.mark.asyncio
+async def test_render_returns_none_without_libreoffice(tmp_path):
+    with patch(f"{MODULE}.shutil.which", return_value=None):
+        assert await rasterize_docx_drawings(_chart_docx(tmp_path)) is None
+
+
+@pytest.mark.asyncio
+async def test_render_bails_on_render_source_count_mismatch(tmp_path):
+    with (
+        patch(f"{MODULE}.shutil.which", return_value="/usr/bin/soffice"),
+        patch(f"{MODULE}._write_render_source_docx", return_value=0),
+    ):
+        assert await rasterize_docx_drawings(_chart_docx(tmp_path)) is None
+
+
+def _fake_process(returncode: int = 0, communicate=None):
+    from unittest.mock import MagicMock
+
+    process = MagicMock()
+    process.returncode = returncode
+    process.communicate = communicate or AsyncMock(return_value=(b"", b"boom"))
+    process.kill = MagicMock()
+    process.wait = AsyncMock()
+    return process
+
+
+@pytest.mark.asyncio
+async def test_render_bails_when_libreoffice_fails(tmp_path):
+    with (
+        patch(f"{MODULE}.shutil.which", return_value="/usr/bin/soffice"),
+        patch(f"{MODULE}._write_render_source_docx", return_value=1),
+        patch(
+            f"{MODULE}.asyncio.create_subprocess_exec",
+            new=AsyncMock(return_value=_fake_process(returncode=1)),
+        ),
+    ):
+        assert await rasterize_docx_drawings(_chart_docx(tmp_path)) is None
+
+
+@pytest.mark.asyncio
+async def test_render_bails_on_page_count_mismatch(tmp_path):
+    def write_source_and_pdf(src_path, dst_path):
+        # Stand in for LibreOffice: the "PDF" appears next to the source.
+        with open(os.path.join(os.path.dirname(dst_path), "render-source.pdf"), "wb") as f:
+            f.write(b"%PDF-fake")
+        return 1
+
+    with (
+        patch(f"{MODULE}.shutil.which", return_value="/usr/bin/soffice"),
+        patch(
+            f"{MODULE}._write_render_source_docx", side_effect=write_source_and_pdf
+        ),
+        patch(
+            f"{MODULE}.asyncio.create_subprocess_exec",
+            new=AsyncMock(return_value=_fake_process(returncode=0)),
+        ),
+        patch(f"{MODULE}._render_pdf_pages", return_value=[]),
+    ):
+        assert await rasterize_docx_drawings(_chart_docx(tmp_path)) is None
+
+
+@pytest.mark.asyncio
+async def test_render_bails_on_libreoffice_timeout(tmp_path):
+    import asyncio as aio
+
+    process = _fake_process(communicate=AsyncMock(side_effect=aio.TimeoutError))
+    with (
+        patch(f"{MODULE}.shutil.which", return_value="/usr/bin/soffice"),
+        patch(f"{MODULE}._write_render_source_docx", return_value=1),
+        patch(
+            f"{MODULE}.asyncio.create_subprocess_exec",
+            new=AsyncMock(return_value=process),
+        ),
+    ):
+        assert await rasterize_docx_drawings(_chart_docx(tmp_path)) is None
+
+    process.kill.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_replace_drawing_survives_image_part_failure(tmp_path):
+    document = Document()
+    _append_paragraph(document, _drawing_xml(_chart_graphic_data()))
+    _, drawing = _renderable_paragraphs(document)[0]
+
+    with patch.object(
+        type(document.part), "get_or_add_image", side_effect=RuntimeError("disk full")
+    ):
+        assert not _replace_drawing_with_image(document, drawing, _png_file(tmp_path))
+
+    # The drawing is left untouched for the caller's replaced-count guard.
+    assert _graphic_uri(drawing) == CHART_GRAPHIC_URI

@@ -84,3 +84,46 @@ def test_reads_size_of_anchored_floating_image(tmp_path):
     sizes = read_docx_image_display_sizes(docx_path)
 
     assert sizes.take(xxh128(png).hexdigest()) == (61, 61)
+
+
+def test_malformed_drawings_are_skipped(tmp_path):
+    """Drawings without an extent, without a blip, or with a dangling
+    relationship id must be skipped rather than fail the read."""
+    from docx import Document
+    from docx.oxml import parse_xml
+    from docx.oxml.ns import nsdecls
+
+    doc = Document()
+    paragraphs = [
+        # No extent.
+        "<w:drawing><wp:inline><a:graphic><a:graphicData "
+        'uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+        '<pic:pic><pic:blipFill><a:blip r:embed="rId9"/></pic:blipFill></pic:pic>'
+        "</a:graphicData></a:graphic></wp:inline></w:drawing>",
+        # No blip at all.
+        '<w:drawing><wp:inline><wp:extent cx="9525" cy="9525"/>'
+        "<a:graphic><a:graphicData "
+        'uri="http://schemas.openxmlformats.org/drawingml/2006/picture"/>'
+        "</a:graphic></wp:inline></w:drawing>",
+        # Blip without an embed id.
+        '<w:drawing><wp:inline><wp:extent cx="9525" cy="9525"/>'
+        "<a:graphic><a:graphicData "
+        'uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+        "<pic:pic><pic:blipFill><a:blip/></pic:blipFill></pic:pic>"
+        "</a:graphicData></a:graphic></wp:inline></w:drawing>",
+        # Dangling relationship id.
+        '<w:drawing><wp:inline><wp:extent cx="9525" cy="9525"/>'
+        "<a:graphic><a:graphicData "
+        'uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+        '<pic:pic><pic:blipFill><a:blip r:embed="rId404"/></pic:blipFill></pic:pic>'
+        "</a:graphicData></a:graphic></wp:inline></w:drawing>",
+    ]
+    for inner in paragraphs:
+        xml = f'<w:p {nsdecls("w", "wp", "a", "r", "pic")}><w:r>{inner}</w:r></w:p>'
+        doc.element.body.get_or_add_sectPr().addprevious(parse_xml(xml))
+    path = str(tmp_path / "doc.docx")
+    doc.save(path)
+
+    sizes = read_docx_image_display_sizes(path)
+
+    assert sizes.take("any-hash") is None

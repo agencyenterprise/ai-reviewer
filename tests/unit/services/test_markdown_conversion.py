@@ -6,14 +6,17 @@ cached-markdown short-circuit, legacy `.doc` MIME / extension handling, and
 the cache-write path in ``convert_and_cache_file_markdown``.
 """
 
+import os
 import uuid
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from lib.models.file import FileRole
 from lib.services.file import FileDocument
 from lib.services.markdown_conversion import (
+    _converter_for,
     convert_and_cache_file_markdown,
     convert_file_document_to_markdown,
 )
@@ -209,3 +212,70 @@ async def test_cache_skips_write_when_conversion_yields_empty_markdown():
         await convert_and_cache_file_markdown(file_id)
 
     update_mock.assert_not_called()
+
+# --- _converter_for ---
+
+
+@pytest.mark.parametrize(
+    ("path", "role", "expected"),
+    [
+        ("/uploads/a.pdf", FileRole.MAIN, "markitdown"),
+        ("/uploads/a.pdf", FileRole.REVIEWER_MEMO, "markitdown"),
+        ("/uploads/a.pdf", FileRole.SUPPORT, "pypdfium"),
+        ("/uploads/a.docx", FileRole.SUPPORT, "markitdown"),
+    ],
+)
+def test_converter_for(path, role, expected):
+    assert _converter_for(path, role) == expected
+
+
+@pytest.mark.asyncio
+async def test_supporting_pdf_goes_through_pypdfium_without_extraction():
+    doc = _file_document(file_path="/uploads/ref.pdf", file_type="application/pdf")
+
+    with (
+        patch(
+            f"{MODULE}.convert_to_markdown_fn",
+            new=AsyncMock(return_value="pdf text"),
+        ) as convert_mock,
+        patch(f"{MODULE}.replace_extracted_images", new=AsyncMock()) as replace_mock,
+    ):
+        result = await convert_file_document_to_markdown(doc, role=FileRole.SUPPORT)
+
+    convert_mock.assert_awaited_once_with(
+        "/uploads/ref.pdf", converter="pypdfium", keep_data_uris=False
+    )
+    replace_mock.assert_not_awaited()
+    assert result.markdown == "pdf text"
+
+
+@pytest.mark.asyncio
+async def test_rasterized_temp_docx_is_used_and_removed(tmp_path):
+    """When charts were rendered, the conversion and the display-size read
+    both use the rasterized copy, which is deleted afterwards."""
+    doc = _file_document(file_path="/uploads/abc.docx")
+    rasterized_path = str(tmp_path / "rasterized.docx")
+    with open(rasterized_path, "wb") as f:
+        f.write(b"fake docx")
+
+    with (
+        patch(
+            f"{MODULE}.rasterize_docx_drawings",
+            new=AsyncMock(return_value=rasterized_path),
+        ),
+        patch(f"{MODULE}.replace_extracted_images", new=AsyncMock()),
+        patch(
+            f"{MODULE}.read_docx_image_display_sizes", return_value=None
+        ) as sizes_mock,
+        patch(
+            f"{MODULE}.convert_to_markdown_fn",
+            new=AsyncMock(return_value="# converted"),
+        ) as convert_mock,
+    ):
+        await convert_file_document_to_markdown(doc)
+
+    convert_mock.assert_awaited_once_with(
+        rasterized_path, converter="markitdown", keep_data_uris=True
+    )
+    sizes_mock.assert_called_once_with(rasterized_path)
+    assert not os.path.exists(rasterized_path)
