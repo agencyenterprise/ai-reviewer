@@ -6,6 +6,79 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.5] - 2026-09-01
+
+### Added
+- Images embedded in main documents are now extracted, stored as first-class file rows, and rendered in document viewers at the document’s intended size, including native Word charts and EMF/WMF metafiles.
+- A new Help Center **Feedback** topic was added, and help links were added from the feedback privacy dialog and the project edit dialog.
+- The v2 project header now includes a run activity indicator (with a popover list) and an in-header activity line to replace the floating progress toast.
+
+### Changed
+- The redesigned (“v2”) layout is now the default for the home page, projects list, and project view, and `/v2` routes were removed.
+- Share pages now render the redesigned read-only project shell and use a shared shell status screen for loading and “link not found” states.
+- Claim Reference Validation now reports the full citation resolution chain in its “Citation-to-file mapping” output.
+- The Reproducibility Check (`results_extraction`) was moved off structured output onto the simple deep agent, and its eval was rebuilt to expand samples and metrics.
+
+### Fixed
+- Extracted DOCX figures now apply Word’s declared crop before being written to disk to prevent squashed or stretched rendering.
+- The document explorer loading spinner no longer runs indefinitely while an approval gate is pending by using a gate-aware “active workflow” predicate.
+- The workflow progress toast now remains visible while assessments are running even when an approval gate exists.
+- v2 header notice banners and the share status badge were adjusted to remain legible and compact on narrow screens.
+
+### Removed
+- The classic (“v1”) pages, components, and the hidden Summary tab (and related routes) were deleted as part of making the redesigned layout the default.
+- The v2 progress toast was removed in favor of the new header run indicator.
+
+### Security
+- A database constraint was added to enforce at most one MAIN document per (project, revision), surfacing violations as the existing 409 Conflict response.
+
+
+## [v1.0.4] - 2026-09-01
+
+### Added
+- Added an admin-only usage dashboard at `/dashboard` with KPI, activity, assessment usage, health, and detail tables backed by `GET /api/admin/dashboard?days=N`.
+- Added revision context to admin feedback, including revision fields in the admin feedback API and CSV export, and UI badges showing revision status.
+- Added support to link an already-uploaded file to a reference.
+- Added a client helper for the manual reference-file link.
+- Added an option to step through findings from the document explorer toolbar.
+- Added a redesigned project view under `/v2`, including a projects list and a home page for the redesigned layout.
+- Added per-tab routing for project tabs.
+- Added gating for web-search skills based on the user's consent.
+
+### Changed
+- Changed the default theme to light mode and disabled following the operating system color-scheme preference until the user toggles it.
+- Changed the toast theming to use the resolved theme so it matches the page theme.
+- Changed DOCX export to default downloads to regular comments.
+- Changed the document explorer to float margin notes instead of growing the row.
+- Changed deep agents to deliver reports and issues via tools.
+- Changed internal inference validation to use the simple deep agent.
+- Changed models so every agent runs on `gpt-5.6-terra`.
+- Changed the Peer Review tab to be hidden behind Alpha features.
+
+### Fixed
+- Fixed admins being unable to see feedback on projects shared with them by making the feedback visible read-only where appropriate.
+- Fixed workflow run cost not rendering in the assessments tab by upgrading the Langfuse SDK and hardening the price-catalog loader.
+- Fixed feedback visibility and issue actions on older revisions, and surfaced which revision feedback was given on in admin feedback.
+- Fixed project title not refreshing in place after editing it.
+- Fixed CI by pinning pnpm and moving the frontend image to Node 22.
+- Fixed `start_workflow` docstring by correcting the function name.
+- Fixed workflows to stop surfacing retired workflows and to explain unreadable state.
+
+### Security
+- Restricted the new usage dashboard endpoint to admins only.
+- Ensured web-search skills are gated on the user's consent.
+
+### Removed
+- Removed superseded v1 workflows and the citation suggester.
+- Removed claim_extraction, citation_detection, and footnote_extraction workflows.
+- Removed chunk_splitting and chunk-derived issue locations.
+- Removed unreferenced modules and symbols left over after workflow removals.
+- Removed five unreferenced frontend modules.
+
+### Deprecated
+- Stopped reporting missing supporting document issues in reference-file matching.
+
+
 ## [v1.0.3] - 2026-08-31
 
 ### Added
