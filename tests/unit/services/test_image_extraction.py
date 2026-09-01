@@ -275,7 +275,9 @@ async def test_cropped_image_is_addressed_by_its_cropped_bytes(tmp_path):
         result = await extract_data_uri_images(markdown, sizes)
 
     top, left = result.images
-    assert top.content_hash != left.content_hash != content_hash
+    # Spelled out rather than chained: `a != b != c` would never compare a to c.
+    assert top.content_hash != left.content_hash
+    assert content_hash not in (top.content_hash, left.content_hash)
     assert top.image_path != left.image_path
     with Image.open(top.image_path) as stored:
         assert stored.size == (400, 200)

@@ -198,7 +198,7 @@ def test_outset_edges_keep_their_sign(tmp_path):
     """Negative edges are outsets (Word pads that side). Clamping them to zero
     would silently reshape the region: `l="-10000" r="10000"` is a full-width
     band shifted left, not a 90%-wide crop, so the signs have to survive the
-    read for `has_outset` to catch it."""
+    read for `is_applicable` to catch it."""
     png = _png_bytes("purple")
     path = _docx_with_src_rect(tmp_path, png, '<a:srcRect l="-10000" r="10000"/>')
 
