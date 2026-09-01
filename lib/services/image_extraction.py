@@ -70,8 +70,10 @@ _MIME_EXTENSIONS = {
 }
 
 # Formats a declared crop can be applied to. SVG and the metafiles are not
-# raster; animated GIFs would be flattened to their first frame, so a wrong
-# aspect ratio is the lesser damage there.
+# raster. GIF is left out wholesale because an animated one would be flattened
+# to a single frame; other formats carry multiple frames only occasionally, so
+# they are admitted here and rejected per image by frame count in
+# `_crop_decoded`.
 _CROPPABLE_MIME_TYPES = frozenset(
     {"image/png", "image/jpeg", "image/bmp", "image/tiff", "image/webp"}
 )
@@ -282,6 +284,20 @@ def _crop_decoded(content: bytes, crop: SourceRect) -> Optional[bytes]:
             )
             return None
         if not image_format:
+            return None
+        # `crop(...).save(...)` writes the current frame and nothing else, so
+        # an animated or multi-page picture would come back with its other
+        # frames silently gone. Same trade as the GIF exclusion above: a wrong
+        # aspect ratio beats discarding what the file holds. Checked by frame
+        # count rather than by format, which catches APNG and animated WebP
+        # too, not just the containers usually thought of as multi-frame.
+        frames = getattr(image, "n_frames", 1)
+        if frames > 1:
+            logger.info(
+                "Not cropping %s image: it has %d frames and cropping keeps one",
+                image_format,
+                frames,
+            )
             return None
 
         # Word and browsers both display an EXIF-oriented photo rotated, so

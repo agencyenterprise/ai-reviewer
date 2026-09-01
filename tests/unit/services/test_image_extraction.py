@@ -585,3 +585,67 @@ async def test_concurrent_crops_are_bounded_process_wide(tmp_path):
 
     assert peak > 0, "the crop path did not run"
     assert peak <= 2
+
+
+def _multi_frame(image_format: str, **save_options) -> bytes:
+    first = Image.new("RGB", (100, 100), "red")
+    second = Image.new("RGB", (100, 100), "blue")
+    buffer = io.BytesIO()
+    first.save(
+        buffer,
+        format=image_format,
+        save_all=True,
+        append_images=[second],
+        **save_options,
+    )
+    return buffer.getvalue()
+
+
+@pytest.mark.parametrize(
+    ("image_format", "mime_type", "save_options"),
+    [
+        ("WEBP", "image/webp", {"duration": 100}),
+        ("TIFF", "image/tiff", {}),
+        # APNG: a multi-frame PNG, which is easy to forget is one.
+        ("PNG", "image/png", {"duration": 100}),
+    ],
+)
+@pytest.mark.asyncio
+async def test_multi_frame_images_are_never_cropped(
+    tmp_path, image_format, mime_type, save_options
+):
+    """`crop(...).save(...)` writes one frame, so cropping an animated or
+    multi-page picture would silently discard the rest of it. Keep the file
+    whole and drop the size, as with an animated GIF."""
+    content = _multi_frame(image_format, **save_options)
+    placement = ImagePlacement(width_px=100, height_px=50, crop=SourceRect(bottom=0.5))
+    markdown = f"![a](data:{mime_type};base64,{base64.b64encode(content).decode()})\n"
+
+    with _uploads_patch(tmp_path):
+        result = await extract_data_uri_images(markdown, _sizes_for(content, placement))
+
+    with open(result.images[0].image_path, "rb") as f:
+        stored = f.read()
+    assert stored == content
+    with Image.open(io.BytesIO(stored)) as image:
+        assert image.n_frames == 2
+    assert "?w=" not in result.markdown
+
+
+@pytest.mark.asyncio
+async def test_single_frame_image_of_a_multi_frame_format_still_crops(tmp_path):
+    """The guard is per image, not per format: an ordinary one-frame WebP
+    must not lose its crop because the container *can* animate."""
+    image = Image.new("RGB", (100, 100), "red")
+    buffer = io.BytesIO()
+    image.save(buffer, format="WEBP")
+    content = buffer.getvalue()
+    placement = ImagePlacement(width_px=100, height_px=50, crop=SourceRect(bottom=0.5))
+    markdown = f"![a](data:image/webp;base64,{base64.b64encode(content).decode()})\n"
+
+    with _uploads_patch(tmp_path):
+        result = await extract_data_uri_images(markdown, _sizes_for(content, placement))
+
+    with Image.open(result.images[0].image_path) as stored:
+        assert stored.size == (100, 50)
+    assert "?w=100&h=50" in result.markdown
