@@ -178,7 +178,13 @@ export function AnalysisOptionsMenu({
     <>
       <div className="flex items-center gap-1">
         <div className="flex items-center gap-2">
-          {!readOnly && <ShareStatusBadge isEnabled={share.isEnabled} onClick={() => share.setIsDialogOpen(true)} />}
+          {!readOnly && (
+            <ShareStatusBadge
+              isEnabled={share.isEnabled}
+              onClick={() => share.setIsDialogOpen(true)}
+              compact={compact}
+            />
+          )}
 
           <Tooltip>
             <TooltipTrigger asChild>

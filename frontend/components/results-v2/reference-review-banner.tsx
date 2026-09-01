@@ -22,17 +22,19 @@ export function ReferenceReviewBanner({ projectDetail, onReviewReferences }: Ref
   const approval = useReferenceApprovalFlow(projectDetail, projectDetail.project.id);
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-3 border-b bg-amber-50 px-3 py-2 dark:bg-amber-950/30">
-      <BookOpen className="size-4 shrink-0 text-amber-700 dark:text-amber-400" />
-      <p className="min-w-0 text-sm">
-        <strong className="font-medium">Reference review required.</strong>{' '}
-        <span className="text-muted-foreground">
-          Claim Reference Validation reads each citation against the source it cites, and needs those sources first.
-        </span>{' '}
-        <HelpLink topic="source-files" onReviewReferences={onReviewReferences}>
-          Why this is needed
-        </HelpLink>
-      </p>
+    <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b bg-amber-50 px-3 py-2 dark:bg-amber-950/30">
+      <div className="flex min-w-0 grow basis-96 items-start gap-2">
+        <BookOpen className="mt-0.5 size-4 shrink-0 text-amber-700 dark:text-amber-400" />
+        <p className="min-w-0 text-sm">
+          <strong className="font-medium">Reference review required.</strong>{' '}
+          <span className="text-muted-foreground">
+            Claim Reference Validation reads each citation against the source it cites, and needs those sources first.
+          </span>{' '}
+          <HelpLink topic="source-files" onReviewReferences={onReviewReferences}>
+            Why this is needed
+          </HelpLink>
+        </p>
+      </div>
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
         <Button size="xs" variant="outline" className="h-6" onClick={onReviewReferences}>
