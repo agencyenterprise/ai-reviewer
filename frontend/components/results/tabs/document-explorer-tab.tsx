@@ -14,7 +14,7 @@ import {
 import {
   getBlockingWorkflowErrors,
   getWorkflowRunByType,
-  isAnyWorkflowProcessing,
+  isAnyWorkflowActive,
   isWorkflowProcessing,
 } from '@/lib/workflow-state';
 import { AlertTriangleIcon, History, Loader2 } from 'lucide-react';
@@ -62,7 +62,7 @@ export function DocumentExplorerTab({
 
   const documentProcessing = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
   const isDocumentProcessing = isWorkflowProcessing(documentProcessing);
-  const isAnyProcessing = isAnyWorkflowProcessing(workflowDetails);
+  const isAnyProcessing = isAnyWorkflowActive(workflowDetails);
 
   const sidebarRef = useRef<DocumentExplorerSidebarHandle>(null);
   const markdownRef = useRef<DocumentMarkdownRendererHandle>(null);
