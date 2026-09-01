@@ -1,10 +1,8 @@
 'use client';
 
-import { useWorkflowProgressToast } from '@/hooks/use-workflow-progress-toast';
 import { getErrorMessage } from '@/lib/api-error';
 import { AccessLevel, ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
-import { isAnyWorkflowActive } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
@@ -38,10 +36,6 @@ export function useProjectShellState(projectId: string) {
   const handleRevisionCreated = useCallback(() => {
     setSelectedRevision(null);
   }, []);
-
-  // A pipeline parked on the reference-review gate isn't progressing — see
-  // isAnyWorkflowActive.
-  useWorkflowProgressToast(projectId, isAnyWorkflowActive(workflowDetails));
 
   const updateTitleMutation = useMutation({
     mutationFn: async (newTitle: string) => {
