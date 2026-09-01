@@ -424,8 +424,10 @@ export function DocumentExplorerTab({ projectDetail, onNavigateToAnalyses }: Doc
         >
           <IssuesColumn
             ref={issuesRef}
+            projectId={projectDetail.project.id}
             visibleIssues={visibleIssues}
             issues={highlightIssues}
+            totalIssueCount={issues.length}
             activeIssueId={activeIssueId}
             isAnyProcessing={isAnyProcessing}
             readOnly={!canEditIssues}
