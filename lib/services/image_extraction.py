@@ -25,7 +25,7 @@ import os
 import re
 import threading
 import uuid
-from typing import Optional
+from typing import Any, Optional
 
 import aiofiles
 from PIL import Image, ImageOps
@@ -91,6 +91,11 @@ _CROP_SLOTS = threading.BoundedSemaphore(2)
 
 # Encoders for which Pillow's `quality` means anything.
 _LOSSY_SAVE_FORMATS = frozenset({"JPEG", "WEBP"})
+
+# The chunk that holds a lossless WebP bitstream. Pillow does not report which
+# encoding it decoded, and re-encoding a lossless source (a chart or a
+# screenshot, typically) as lossy would put artefacts around its text.
+_WEBP_LOSSLESS_CHUNK = b"VP8L"
 
 # EXIF tag 0x0112, "Orientation": how the photo should be rotated for display.
 _EXIF_ORIENTATION_TAG = 0x0112
@@ -285,13 +290,19 @@ def _crop_decoded(content: bytes, crop: SourceRect) -> Optional[bytes]:
             return None
         if not image_format:
             return None
+        # A JPEG carrying an MPF segment (an embedded thumbnail or depth map,
+        # which phone cameras add routinely) opens as MPO with the auxiliary
+        # pictures counted as frames. It displays as one picture everywhere,
+        # so it is cropped as the JPEG it is; only the primary frame is kept.
+        if image_format == "MPO":
+            image_format = "JPEG"
         # `crop(...).save(...)` writes the current frame and nothing else, so
         # an animated or multi-page picture would come back with its other
         # frames silently gone. Same trade as the GIF exclusion above: a wrong
         # aspect ratio beats discarding what the file holds. Checked by frame
         # count rather than by format, which catches APNG and animated WebP
         # too, not just the containers usually thought of as multi-frame.
-        frames = getattr(image, "n_frames", 1)
+        frames = 1 if image_format == "JPEG" else getattr(image, "n_frames", 1)
         if frames > 1:
             logger.info(
                 "Not cropping %s image: it has %d frames and cropping keeps one",
@@ -314,12 +325,31 @@ def _crop_decoded(content: bytes, crop: SourceRect) -> Optional[bytes]:
         if box is None:
             return content
         buffer = io.BytesIO()
-        # Quality only reaches the encoders it means something to. JPEG
-        # re-encoding is lossy; 95 keeps the crop visually indistinguishable
-        # from the source at document display sizes.
-        options = {"quality": 95} if image_format in _LOSSY_SAVE_FORMATS else {}
+        options = _save_options(content, image_format, image.info.get("icc_profile"))
         oriented.crop(box).save(buffer, format=image_format, **options)
     return buffer.getvalue()
+
+
+def _save_options(
+    content: bytes, image_format: str, icc_profile: Optional[bytes]
+) -> dict[str, Any]:
+    """Encoder settings that keep a cropped image looking like its source.
+
+    Quality only reaches the encoders it means something to. JPEG re-encoding
+    is lossy; 95 keeps the crop visually indistinguishable from the source at
+    document display sizes. A lossless WebP stays lossless. The ICC profile is
+    passed explicitly because the JPEG and WebP encoders read it from the save
+    arguments, not from the decoded image: dropping it shifts the colours of
+    every Display P3 phone photo and every CMYK JPEG.
+    """
+    options: dict[str, Any] = {}
+    if image_format == "WEBP" and _WEBP_LOSSLESS_CHUNK in content:
+        options["lossless"] = True
+    elif image_format in _LOSSY_SAVE_FORMATS:
+        options["quality"] = 95
+    if icc_profile:
+        options["icc_profile"] = icc_profile
+    return options
 
 
 async def _write_image(

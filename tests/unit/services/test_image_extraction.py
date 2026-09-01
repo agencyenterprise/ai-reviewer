@@ -14,7 +14,7 @@ import time
 from unittest.mock import patch
 
 import pytest
-from PIL import Image
+from PIL import Image, ImageCms
 from xxhash import xxh128
 
 from lib.services.docx.image_display_sizes import (
@@ -649,5 +649,73 @@ async def test_single_frame_image_of_a_multi_frame_format_still_crops(tmp_path):
         result = await extract_data_uri_images(markdown, _sizes_for(content, placement))
 
     with Image.open(result.images[0].image_path) as stored:
+        assert stored.size == (100, 50)
+    assert "?w=100&h=50" in result.markdown
+
+
+def _srgb_profile() -> bytes:
+    return ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
+
+
+@pytest.mark.parametrize(
+    ("image_format", "mime_type"),
+    [("JPEG", "image/jpeg"), ("WEBP", "image/webp"), ("PNG", "image/png")],
+)
+@pytest.mark.asyncio
+async def test_cropped_image_keeps_its_icc_profile(tmp_path, image_format, mime_type):
+    """The JPEG and WebP encoders read the profile from the save arguments,
+    not from the decoded image, so an unpassed profile is a dropped one — and
+    a Display P3 phone photo or a CMYK JPEG then renders with shifted colours."""
+    image = Image.new("RGB", (100, 100), "red")
+    buffer = io.BytesIO()
+    image.save(buffer, format=image_format, icc_profile=_srgb_profile())
+    content = buffer.getvalue()
+    placement = ImagePlacement(width_px=100, height_px=50, crop=SourceRect(bottom=0.5))
+    markdown = f"![a](data:{mime_type};base64,{base64.b64encode(content).decode()})\n"
+
+    with _uploads_patch(tmp_path):
+        result = await extract_data_uri_images(markdown, _sizes_for(content, placement))
+
+    with Image.open(result.images[0].image_path) as stored:
+        assert stored.size == (100, 50)
+        assert stored.info.get("icc_profile") == _srgb_profile()
+
+
+@pytest.mark.asyncio
+async def test_lossless_webp_stays_lossless_when_cropped(tmp_path):
+    """A lossless WebP is usually a chart or a screenshot; re-encoding it lossy
+    would put artefacts around its text."""
+    image = Image.new("RGB", (100, 100), "red")
+    buffer = io.BytesIO()
+    image.save(buffer, format="WEBP", lossless=True)
+    content = buffer.getvalue()
+    placement = ImagePlacement(width_px=100, height_px=50, crop=SourceRect(bottom=0.5))
+    markdown = f"![a](data:image/webp;base64,{base64.b64encode(content).decode()})\n"
+
+    with _uploads_patch(tmp_path):
+        result = await extract_data_uri_images(markdown, _sizes_for(content, placement))
+
+    with open(result.images[0].image_path, "rb") as f:
+        stored = f.read()
+    assert b"VP8L" in stored
+    with Image.open(io.BytesIO(stored)) as cropped:
+        assert cropped.size == (100, 50)
+        assert cropped.getpixel((0, 0)) == (255, 0, 0)  # lossless: exact colour
+
+
+@pytest.mark.asyncio
+async def test_jpeg_with_embedded_auxiliary_pictures_is_still_cropped(tmp_path):
+    """Pillow opens a JPEG carrying an MPF segment (an embedded thumbnail or
+    depth map, routine on phone cameras) as MPO with n_frames > 1. It displays
+    as one picture everywhere, so the frame guard must not refuse it."""
+    content = _multi_frame("MPO")
+    placement = ImagePlacement(width_px=100, height_px=50, crop=SourceRect(bottom=0.5))
+    markdown = f"![a](data:image/jpeg;base64,{base64.b64encode(content).decode()})\n"
+
+    with _uploads_patch(tmp_path):
+        result = await extract_data_uri_images(markdown, _sizes_for(content, placement))
+
+    with Image.open(result.images[0].image_path) as stored:
+        assert stored.format == "JPEG"
         assert stored.size == (100, 50)
     assert "?w=100&h=50" in result.markdown
