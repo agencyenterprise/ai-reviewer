@@ -4,16 +4,21 @@ markitdown (via mammoth) inlines DOCX images as base64 data URIs. Keeping those
 in the stored markdown would bloat the ``files.markdown`` column and every LLM
 prompt, so main-document conversion extracts the bytes to disk and rewrites
 each src to a ``draftdetective://{file_id}`` reference, addressed by the
-``files`` row the caller persists for it (role EXTRACTED_IMAGE). The scheme
-keeps persisted markdown independent of API routing: each consumer resolves it
-to its own retrieval mechanism (the frontend to the download endpoint, agents
-to an image tool). A rewrite never adds or removes lines: each image stays on
-the single markdown line mammoth produced, which is what keeps issue line
-anchors, ``#L`` links and the DOCX comment export valid.
+``files`` row the caller persists for it (role EXTRACTED_IMAGE). What lands on
+disk is what the document *shows*: a picture Word crops (``a:srcRect``) is
+stored cropped, because the size the reference declares describes the cropped
+region and not the whole picture.
+
+The scheme keeps persisted markdown independent of API routing: each consumer
+resolves it to its own retrieval mechanism (the frontend to the download
+endpoint, agents to an image tool). A rewrite never adds or removes lines:
+each image stays on the single markdown line mammoth produced, which is what
+keeps issue line anchors, ``#L`` links and the DOCX comment export valid.
 """
 
 import base64
 import binascii
+import io
 import logging
 import os
 import re
@@ -21,11 +26,16 @@ import uuid
 from typing import Optional
 
 import aiofiles
+from PIL import Image
 from pydantic import BaseModel, Field
 from xxhash import xxh128
 
 from lib.config.env import config
-from lib.services.docx.image_display_sizes import DisplaySizes
+from lib.services.docx.image_display_sizes import (
+    DisplaySizes,
+    ImagePlacement,
+    SourceRect,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +66,13 @@ _MIME_EXTENSIONS = {
     "image/wmf": ".wmf",
     "image/x-wmf": ".wmf",
 }
+
+# Formats a declared crop can be applied to. SVG and the metafiles are not
+# raster; animated GIFs would be flattened to their first frame, so a wrong
+# aspect ratio is the lesser damage there.
+_CROPPABLE_MIME_TYPES = frozenset(
+    {"image/png", "image/jpeg", "image/bmp", "image/tiff", "image/webp"}
+)
 
 
 class ExtractedImage(BaseModel):
@@ -107,10 +124,11 @@ async def extract_data_uri_images(
 
     Returns the markdown with each extracted image's src rewritten to
     ``image_reference`` plus the metadata needed to persist the images as
-    ``files`` rows. Images whose display size is known (``display_sizes``,
-    read from the source DOCX) carry it in the reference's query parameters
-    so the viewer shows them at the size the document intended. Images that
-    fail to decode are left untouched. Line count is preserved.
+    ``files`` rows. Images whose placement is known (``display_sizes``, read
+    from the source DOCX) are cropped to the region the document displays and
+    carry its size in the reference's query parameters, so the viewer shows
+    them the way the document does. Images that fail to decode are left
+    untouched. Line count is preserved.
     """
     matches = list(_DATA_URI_IMAGE_RE.finditer(markdown))
     if not matches:
@@ -133,8 +151,15 @@ async def extract_data_uri_images(
             continue
 
         mime_type = match.group("mime")
+        # The placement is keyed by the hash of the bytes Word embedded, so it
+        # is looked up before any crop is applied; the file on disk is then
+        # addressed by the hash of what actually lands there.
+        placement = (
+            display_sizes.take(xxh128(content).hexdigest()) if display_sizes else None
+        )
+        content, placement = _apply_declared_crop(content, mime_type, placement)
         image_path, content_hash = await _write_image(images_dir, content, mime_type)
-        size = display_sizes.take(content_hash) if display_sizes else None
+        size = (placement.width_px, placement.height_px) if placement else None
 
         image = ExtractedImage(
             image_path=image_path,
@@ -147,9 +172,7 @@ async def extract_data_uri_images(
         images.append(image)
 
         title = match.group("title") or ""
-        replacement = (
-            f"![{image.alt}]({image_reference(image.id, size)}{title})"
-        )
+        replacement = f"![{image.alt}]({image_reference(image.id, size)}{title})"
         pieces.append(markdown[cursor : match.start()])
         pieces.append(replacement)
         cursor = match.end()
@@ -157,6 +180,60 @@ async def extract_data_uri_images(
     pieces.append(markdown[cursor:])
     logger.info("Extracted %d embedded image(s) from markdown", len(images))
     return ImageExtractionResult(markdown="".join(pieces), images=images)
+
+
+def _apply_declared_crop(
+    content: bytes, mime_type: str, placement: Optional[ImagePlacement]
+) -> tuple[bytes, Optional[ImagePlacement]]:
+    """Crop ``content`` to the region the document displays.
+
+    Word keeps the whole picture in the package and crops at display time, so
+    an uncropped extraction paired with the drawing's extent stretches the
+    figure into a box shaped for a region it does not match. Cropping here
+    also gives the agents' image tool the same view a reader gets.
+
+    Returns the bytes to store and the placement to declare alongside them.
+    The placement is dropped when a declared crop could not be applied: the
+    reference's ``?w=&h=`` must always describe the region stored on disk, and
+    without it the viewer falls back to the image's own proportions rather than
+    distorting it.
+    """
+    crop = placement.crop if placement else None
+    if crop is None:
+        return content, placement
+
+    cropped = _crop_image(content, mime_type, crop)
+    if cropped is None:
+        return content, None
+    return cropped, placement
+
+
+def _crop_image(content: bytes, mime_type: str, crop: SourceRect) -> Optional[bytes]:
+    """``content`` cropped to ``crop``, or None when it cannot be applied.
+
+    A no-op crop returns the bytes untouched rather than re-encoding them, so
+    content addressing keeps deduplicating images that are merely declared
+    cropped.
+    """
+    if mime_type not in _CROPPABLE_MIME_TYPES:
+        logger.info("Not cropping %s image: format does not support it", mime_type)
+        return None
+    try:
+        with Image.open(io.BytesIO(content)) as image:
+            image_format = image.format
+            box = crop.crop_box(image.width, image.height)
+            if box is None:
+                return content
+            if not image_format:
+                return None
+            buffer = io.BytesIO()
+            # JPEG re-encoding is lossy; quality 95 keeps the crop visually
+            # indistinguishable from the source at document display sizes.
+            image.crop(box).save(buffer, format=image_format, quality=95)
+    except Exception:
+        logger.warning("Could not apply declared image crop", exc_info=True)
+        return None
+    return buffer.getvalue()
 
 
 async def _write_image(

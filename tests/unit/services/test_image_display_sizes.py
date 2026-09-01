@@ -1,4 +1,4 @@
-"""Unit tests for reading display sizes out of a DOCX."""
+"""Unit tests for reading image placements (size and crop) out of a DOCX."""
 
 import io
 
@@ -7,7 +7,11 @@ from docx.shared import Inches
 from PIL import Image
 from xxhash import xxh128
 
-from lib.services.docx.image_display_sizes import read_docx_image_display_sizes
+from lib.services.docx.image_display_sizes import (
+    ImagePlacement,
+    SourceRect,
+    read_docx_image_display_sizes,
+)
 
 
 def _png_bytes(color: str) -> bytes:
@@ -25,7 +29,10 @@ def test_reads_display_size_in_css_pixels(tmp_path):
 
     sizes = read_docx_image_display_sizes(path)
 
-    assert sizes.take(xxh128(png).hexdigest()) == (192, 96)  # 96 px per inch
+    # 96 px per inch, and no crop declared.
+    assert sizes.take(xxh128(png).hexdigest()) == ImagePlacement(
+        width_px=192, height_px=96
+    )
 
 
 def test_same_image_twice_yields_sizes_in_document_order(tmp_path):
@@ -39,8 +46,8 @@ def test_same_image_twice_yields_sizes_in_document_order(tmp_path):
     sizes = read_docx_image_display_sizes(path)
     content_hash = xxh128(png).hexdigest()
 
-    assert sizes.take(content_hash) == (192, 96)
-    assert sizes.take(content_hash) == (96, 96)
+    assert sizes.take(content_hash) == ImagePlacement(width_px=192, height_px=96)
+    assert sizes.take(content_hash) == ImagePlacement(width_px=96, height_px=96)
     assert sizes.take(content_hash) is None
 
 
@@ -52,6 +59,7 @@ def test_unreadable_docx_returns_empty_sizes(tmp_path):
     sizes = read_docx_image_display_sizes(path)
 
     assert sizes.take("anything") is None
+
 
 def test_reads_size_of_anchored_floating_image(tmp_path):
     """Floating images (wp:anchor) are not in `document.inline_shapes`; sizes
@@ -83,7 +91,9 @@ def test_reads_size_of_anchored_floating_image(tmp_path):
 
     sizes = read_docx_image_display_sizes(docx_path)
 
-    assert sizes.take(xxh128(png).hexdigest()) == (61, 61)
+    assert sizes.take(xxh128(png).hexdigest()) == ImagePlacement(
+        width_px=61, height_px=61
+    )
 
 
 def test_malformed_drawings_are_skipped(tmp_path):
@@ -127,3 +137,88 @@ def test_malformed_drawings_are_skipped(tmp_path):
     sizes = read_docx_image_display_sizes(path)
 
     assert sizes.take("any-hash") is None
+
+
+def _docx_with_src_rect(tmp_path, png: bytes, src_rect: str) -> str:
+    """A one-picture DOCX whose blipFill carries ``src_rect`` verbatim."""
+    from docx.oxml import parse_xml
+    from docx.oxml.ns import nsdecls
+
+    image_path = str(tmp_path / "img.png")
+    with open(image_path, "wb") as f:
+        f.write(png)
+
+    doc = Document()
+    embed_id, _ = doc.part.get_or_add_image(image_path)
+    xml = (
+        f'<w:p {nsdecls("w", "wp", "a", "r", "pic")}><w:r><w:drawing><wp:inline>'
+        '<wp:extent cx="1905000" cy="952500"/>'
+        '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+        '<pic:pic><pic:nvPicPr><pic:cNvPr id="0" name="fig"/><pic:cNvPicPr/></pic:nvPicPr>'
+        f'<pic:blipFill><a:blip r:embed="{embed_id}"/>{src_rect}</pic:blipFill>'
+        "<pic:spPr/></pic:pic>"
+        "</a:graphicData></a:graphic>"
+        "</wp:inline></w:drawing></w:r></w:p>"
+    )
+    doc.element.body.get_or_add_sectPr().addprevious(parse_xml(xml))
+    docx_path = str(tmp_path / "cropped.docx")
+    doc.save(docx_path)
+    return docx_path
+
+
+def test_reads_declared_crop(tmp_path):
+    """The extent describes the *cropped* region, so the crop has to come
+    along with it — reading one without the other squashes the figure."""
+    png = _png_bytes("teal")
+    path = _docx_with_src_rect(tmp_path, png, '<a:srcRect t="17222" b="3597"/>')
+
+    placement = read_docx_image_display_sizes(path).take(xxh128(png).hexdigest())
+
+    assert placement == ImagePlacement(
+        width_px=200,
+        height_px=100,
+        crop=SourceRect(top=0.17222, bottom=0.03597),
+    )
+
+
+def test_percentage_string_crop_is_understood(tmp_path):
+    """The strict schema writes ST_Percentage as a literal percentage."""
+    png = _png_bytes("olive")
+    path = _docx_with_src_rect(tmp_path, png, '<a:srcRect l="12.5%" r="25%"/>')
+
+    placement = read_docx_image_display_sizes(path).take(xxh128(png).hexdigest())
+
+    assert placement is not None
+    assert placement.crop == SourceRect(left=0.125, right=0.25)
+
+
+def test_empty_and_outset_src_rects_read_as_uncropped(tmp_path):
+    """Word writes an empty srcRect for uncropped pictures, and negative
+    edges are outsets (padding), which crop nothing away."""
+    png = _png_bytes("purple")
+    for src_rect in ("<a:srcRect/>", '<a:srcRect l="-5000" t="-5000"/>'):
+        path = _docx_with_src_rect(tmp_path, png, src_rect)
+
+        placement = read_docx_image_display_sizes(path).take(xxh128(png).hexdigest())
+
+        assert placement is not None
+        assert placement.crop is None, src_rect
+
+
+def test_unparseable_crop_edge_reads_as_uncropped(tmp_path):
+    png = _png_bytes("maroon")
+    path = _docx_with_src_rect(tmp_path, png, '<a:srcRect t="lots"/>')
+
+    placement = read_docx_image_display_sizes(path).take(xxh128(png).hexdigest())
+
+    assert placement is not None
+    assert placement.crop is None
+
+
+def test_crop_box_is_none_when_nothing_would_change_or_survive():
+    """A sub-pixel crop must not force callers to re-encode, and an
+    over-specified one must not produce an empty image."""
+    assert SourceRect(top=0.001, bottom=0.001).crop_box(100, 100) is None
+    assert SourceRect().crop_box(100, 100) is None
+    assert SourceRect(left=0.6, right=0.6).crop_box(100, 100) is None
+    assert SourceRect(top=0.25, bottom=0.25).crop_box(100, 100) == (0, 25, 100, 75)
