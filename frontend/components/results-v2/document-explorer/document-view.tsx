@@ -4,7 +4,7 @@ import type { Issue } from '@/lib/generated-api';
 import { SeverityEnum } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import type { Element } from 'hast';
-import { ImageOff } from 'lucide-react';
+import { DocumentImage } from '@/components/document-image';
 import { SEVERITY } from '@/lib/severity-style';
 import { MarginLayer } from './margin-layer';
 import React, { Ref, createContext, useContext, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
@@ -262,18 +262,7 @@ const BLOCK_COMPONENTS = {
       {children}
     </span>
   ),
-  // DOCX extraction leaves images with no src behind; rendering them as <img>
-  // makes the browser refetch the page, so show the alt text instead.
-  img: ({ src, alt }: React.ImgHTMLAttributes<HTMLImageElement>) =>
-    typeof src === 'string' && src.length > 0 ? (
-      // eslint-disable-next-line @next/next/no-img-element -- document content, not app chrome
-      <img src={src} alt={alt ?? ''} className="my-2 max-w-full rounded" />
-    ) : (
-      <span className="my-1 inline-flex items-center gap-1.5 rounded border border-dashed px-2 py-1 text-xs text-muted-foreground">
-        <ImageOff className="size-3" />
-        {alt || 'Image not extracted'}
-      </span>
-    ),
+  img: DocumentImage,
 };
 
 export function DocumentView({

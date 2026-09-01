@@ -62,7 +62,9 @@ async def test_converts_modern_docx_via_markitdown():
     ) as convert_mock:
         result = await convert_file_document_to_markdown(doc)
 
-    convert_mock.assert_awaited_once_with("/uploads/abc.docx", converter="markitdown")
+    convert_mock.assert_awaited_once_with(
+        "/uploads/abc.docx", converter="markitdown", keep_data_uris=True
+    )
     assert result is not doc
     assert result.markdown == "# converted"
     assert result.markdown_token_count > 0
@@ -89,7 +91,9 @@ async def test_legacy_doc_mime_is_preprocessed_to_docx():
         result = await convert_file_document_to_markdown(doc)
 
     preprocessor.convert_doc_to_docx.assert_awaited_once_with("/uploads/legacy.doc")
-    convert_mock.assert_awaited_once_with(converted_path, converter="markitdown")
+    convert_mock.assert_awaited_once_with(
+        converted_path, converter="markitdown", keep_data_uris=True
+    )
     remove_mock.assert_called_once_with(converted_path)
     assert result.markdown == "# legacy"
 
@@ -114,7 +118,7 @@ async def test_legacy_doc_extension_without_msword_mime_uses_copy_path():
 
     copy_mock.assert_called_once_with("/uploads/legacy.doc", "/uploads/legacy.docx")
     convert_mock.assert_awaited_once_with(
-        "/uploads/legacy.docx", converter="markitdown"
+        "/uploads/legacy.docx", converter="markitdown", keep_data_uris=True
     )
     remove_mock.assert_called_once_with("/uploads/legacy.docx")
     assert result.markdown == "# copied"

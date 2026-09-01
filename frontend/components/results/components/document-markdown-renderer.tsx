@@ -1,3 +1,4 @@
+import { DocumentImage } from '@/components/document-image';
 import type { Issue } from '@/lib/generated-api';
 import { SeverityEnum } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
@@ -95,6 +96,7 @@ const BLOCK_COMPONENTS = {
   pre: blockFactory('pre', 'mb-2 bg-muted px-2 py-1 rounded overflow-x-auto max-w-full'),
   table: blockFactory('table', 'mb-2 border-collapse block overflow-x-auto max-w-full'),
   hr: blockFactory('hr', 'my-4'),
+  img: DocumentImage,
 };
 
 function rangesOverlap(a: [number, number], b: [number, number]): boolean {

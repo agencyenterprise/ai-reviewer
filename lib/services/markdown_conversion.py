@@ -15,11 +15,13 @@ from lib.models.file import FileRole
 from lib.services.converters.base import convert_to_markdown as convert_to_markdown_fn
 from lib.services.converters.docx_preprocessor import docx_preprocessor
 from lib.services.file import FileDocument
+from lib.services.file_images import replace_extracted_images
 from lib.services.files import (
     get_file_by_id,
     load_file_document,
     update_file_artifacts,
 )
+from lib.services.image_extraction import extract_data_uri_images
 
 logger = logging.getLogger(__name__)
 
@@ -67,21 +69,40 @@ async def convert_file_document_to_markdown(
     is_legacy_doc_mime = file_document.file_type == "application/msword"
     is_legacy_doc_extension = file_path.endswith(".doc")
 
+    # Keep embedded images as full data URIs only where they get extracted
+    # below — everywhere else the truncated stub keeps the markdown small.
+    keep_data_uris = role == FileRole.MAIN and bool(file_document.file_id)
+
     if is_legacy_doc_mime:
         docx_file_path = await docx_preprocessor.convert_doc_to_docx(file_path)
         logger.info(f"Converted {file_path} to DOCX: {docx_file_path}")
-        markdown = await convert_to_markdown_fn(docx_file_path, converter="markitdown")
+        markdown = await convert_to_markdown_fn(
+            docx_file_path, converter="markitdown", keep_data_uris=keep_data_uris
+        )
         os.remove(docx_file_path)
     elif is_legacy_doc_extension:
         docx_file_path = file_path.replace(".doc", ".docx")
         shutil.copy(file_path, docx_file_path)
         logger.info(f"Copied {file_path} to {docx_file_path}")
-        markdown = await convert_to_markdown_fn(docx_file_path, converter="markitdown")
+        markdown = await convert_to_markdown_fn(
+            docx_file_path, converter="markitdown", keep_data_uris=keep_data_uris
+        )
         os.remove(docx_file_path)
     else:
         markdown = await convert_to_markdown_fn(
-            file_path, converter=_converter_for(file_path, role)
+            file_path,
+            converter=_converter_for(file_path, role),
+            keep_data_uris=keep_data_uris,
         )
+
+    if keep_data_uris:
+        # Move embedded images out of the markdown before it is persisted or
+        # token-counted; each src is rewritten in place, so line numbers match
+        # the un-extracted conversion exactly.
+        extraction = await extract_data_uri_images(markdown)
+        if extraction.images:
+            await replace_extracted_images(file_document.file_id, extraction.images)
+            markdown = extraction.markdown
 
     return file_document.model_copy(
         update={

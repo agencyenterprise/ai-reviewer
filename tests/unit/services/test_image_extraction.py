@@ -1,0 +1,125 @@
+"""Unit tests for `lib.services.image_extraction`.
+
+The invariant that matters most is line preservation: extraction rewrites each
+image src in place, and issue anchors, `#L` links and the DOCX comment export
+all assume the stored markdown's line numbers never move.
+"""
+
+import base64
+import os
+from unittest.mock import patch
+
+import pytest
+
+from lib.services.image_extraction import (
+    EXTRACTED_IMAGES_DIRNAME,
+    extract_data_uri_images,
+    image_endpoint_path,
+)
+
+PNG_BYTES = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+)
+PNG_B64 = base64.b64encode(PNG_BYTES).decode()
+
+
+def _uploads_patch(tmp_path):
+    return patch(
+        "lib.services.image_extraction.config.FILE_UPLOADS_MOUNT_PATH", str(tmp_path)
+    )
+
+
+@pytest.mark.asyncio
+async def test_extracts_image_and_rewrites_src(tmp_path):
+    markdown = f"Before.\n\n![Figure 1](data:image/png;base64,{PNG_B64})\n\nAfter."
+
+    with _uploads_patch(tmp_path):
+        result = await extract_data_uri_images(markdown)
+
+    assert len(result.images) == 1
+    image = result.images[0]
+    assert image.mime_type == "image/png"
+    assert image.file_size == len(PNG_BYTES)
+    assert image.line_number == 3
+    assert image.alt == "Figure 1"
+    assert os.path.isfile(image.image_path)
+    assert image.image_path.startswith(
+        os.path.join(str(tmp_path), EXTRACTED_IMAGES_DIRNAME)
+    )
+    with open(image.image_path, "rb") as f:
+        assert f.read() == PNG_BYTES
+
+    expected_src = image_endpoint_path(image.id)
+    assert result.markdown == f"Before.\n\n![Figure 1]({expected_src})\n\nAfter."
+
+
+@pytest.mark.asyncio
+async def test_line_count_is_preserved(tmp_path):
+    markdown = (
+        f"# Title\n\n![](data:image/png;base64,{PNG_B64})\n\n"
+        f"Middle paragraph.\n\n![alt text](data:image/png;base64,{PNG_B64})\n"
+    )
+
+    with _uploads_patch(tmp_path):
+        result = await extract_data_uri_images(markdown)
+
+    assert result.markdown.count("\n") == markdown.count("\n")
+    assert [img.line_number for img in result.images] == [3, 7]
+
+
+@pytest.mark.asyncio
+async def test_identical_images_share_one_disk_file_but_not_an_id(tmp_path):
+    markdown = (
+        f"![a](data:image/png;base64,{PNG_B64})\n"
+        f"![b](data:image/png;base64,{PNG_B64})\n"
+    )
+
+    with _uploads_patch(tmp_path):
+        result = await extract_data_uri_images(markdown)
+
+    assert len(result.images) == 2
+    assert result.images[0].image_path == result.images[1].image_path
+    assert result.images[0].content_hash == result.images[1].content_hash
+    # Each occurrence gets its own files row, so its own id and markdown src.
+    assert result.images[0].id != result.images[1].id
+
+
+@pytest.mark.asyncio
+async def test_legacy_truncated_stub_is_left_untouched(tmp_path):
+    """Documents converted before extraction existed carry `base64...` stubs."""
+    markdown = "Text.\n\n![old figure](data:image/png;base64...)\n"
+
+    with _uploads_patch(tmp_path):
+        result = await extract_data_uri_images(markdown)
+
+    assert result.images == []
+    assert result.markdown == markdown
+
+
+@pytest.mark.asyncio
+async def test_undecodable_payload_is_skipped(tmp_path):
+    """A corrupt base64 payload must not abort extraction of the others."""
+    markdown = (
+        "![bad](data:image/png;base64,AAAA=BADPADDING)\n"
+        f"![good](data:image/png;base64,{PNG_B64})\n"
+    )
+
+    with _uploads_patch(tmp_path):
+        result = await extract_data_uri_images(markdown)
+
+    assert len(result.images) == 1
+    assert result.images[0].line_number == 2
+    assert "![bad](data:image/png;base64,AAAA=BADPADDING)" in result.markdown
+    assert f"![good]({image_endpoint_path(result.images[0].id)})" in result.markdown
+
+
+@pytest.mark.asyncio
+async def test_markdown_without_images_is_returned_verbatim(tmp_path):
+    markdown = "# Just text\n\nNo images anywhere.\n"
+
+    with _uploads_patch(tmp_path):
+        result = await extract_data_uri_images(markdown)
+
+    assert result.markdown == markdown
+    assert result.images == []
+    assert not os.path.exists(os.path.join(str(tmp_path), EXTRACTED_IMAGES_DIRNAME))
