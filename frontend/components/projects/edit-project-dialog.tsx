@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { HelpLink } from '@/components/help/help-link';
 import { Label } from '@/components/ui/label';
 import { Callout } from '@/components/ui/callout';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -153,7 +154,8 @@ export function EditProjectDialog({
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">
-                Controls what administrators can see when you submit feedback on issues.
+                Controls what administrators can see when you submit feedback on issues.{' '}
+                <HelpLink topic="feedback">What each option shares</HelpLink>
               </p>
             </div>
           )}
