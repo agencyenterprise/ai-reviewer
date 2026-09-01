@@ -69,10 +69,27 @@ class CitationAssessment(BaseModel):
     citation_to_file_mapping: Optional[str] = Field(
         default=None,
         description=(
-            "Display-friendly summary of which bibliography entry was matched to "
-            "which supporting file when checking this citation, e.g. "
-            "'Smith (2020) → smith_2020.pdf'. Do not include file_id UUIDs in this "
-            "string; the file_id belongs in each entry of evidence_sources."
+            "The full resolution chain from the in-text citation to the supporting "
+            "file, with every intermediate jump you actually took, joined by ' → '. "
+            "Always start with the citation marker as it appears in the text and end "
+            "with the supporting file name. Include the bibliography entry as "
+            "'Reference: \"<text>\"', and — when the citation is a footnote marker — "
+            "the footnote entry it points to. Identify the bibliography entry by its "
+            "text, never by a number or position in the bibliography; truncate a very "
+            "long entry with ' [...]' but keep enough to identify it (authors, title, "
+            "publisher, year). Examples — an author-year citation, with the long entry "
+            "truncated: '(Appenzeller, Bornstein, and Casado, 2023) → Reference: "
+            "\"Appenzeller, Guido, Matt Bornstein, and Martin Casado, “Navigating the "
+            "High Cost of AI Compute,” Andreessen Horowitz, April 27, 2023 [...]\" → "
+            "navigating_the_high_cost_of_ai_compute.md'; and a footnote marker, whose "
+            "footnote entry is a jump of its own: '[^12] → Footnote 12: \"World Bank "
+            "Group, “World Bank Open Data,” 2024\" → Reference: \"World Bank Group, "
+            "“World Bank Open Data,” webpage, undated. As of October 15, 2024: "
+            "https://data.worldbank.org/\" → world_bank_open_data.md'. "
+            "When no supporting file was matched, end the chain with "
+            "'No supporting file available'. Do not "
+            "include file_id UUIDs in this string; the file_id belongs in each entry "
+            "of evidence_sources."
         ),
     )
 
@@ -141,7 +158,7 @@ Start by reading your assigned section with `read_document(main_file_id, {start_
 
 ## Bibliography-to-file mapping
 
-This table maps each bibliography entry to its supporting file. Use the file_id when calling the tools; a citation whose entry has no supporting file is `unverifiable`.
+This table maps each bibliography entry to its supporting file. Use the file_id when calling the tools; a citation whose entry has no supporting file is `unverifiable`. Identify an entry by its text when reporting `citation_to_file_mapping` — the order of this table is not stable, so never refer to an entry by its position in it.
 
 ```
 {reference_file_map}
@@ -156,7 +173,7 @@ Return `issues` — one `CitationAssessment` per citation you validate — each 
 - `rationale`: a brief explanation of the judgment;
 - `feedback`: an actionable suggestion for the author (`"No changes needed"` if the citation is correct);
 - `evidence_sources`: every reference file you checked for this citation (with a quote, location, and file_id each);
-- `citation_to_file_mapping`: a display-friendly summary of which bibliography entry matched which file (e.g. `"Smith (2020) → smith_2020.pdf"`; no file_id UUIDs here).
+- `citation_to_file_mapping`: every jump you took from the in-text marker to the supporting file, joined by ` → ` — see the field's own description for the exact shape.
 """
 
 
