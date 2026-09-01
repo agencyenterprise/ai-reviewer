@@ -2,9 +2,9 @@
 
 Current Inspect AI eval numbers across every eval in `evals_inspectai/e2e/`.
 
-- **Last updated:** 2026-08-28
+- **Last updated:** 2026-08-31
 - **Model:** `gpt-5.6-terra`, on every agent
-- **Total:** 18 evals · 227 runnable samples · run at epochs=3
+- **Total:** 18 evals · 235 runnable samples · run at epochs=3
 
 > [!IMPORTANT]
 > **This is the current baseline, measured on `gpt-5.6-terra`.** On 28 Aug 2026
@@ -38,8 +38,9 @@ measure different things, so it is not a rigorous aggregate). Model-graded
 scores use `openai/gpt-5.4` as the grader, except the two review-assistant
 suites (17 and 18), which pin `openai/gpt-5.6-terra`.
 
-Those two also report one metric per check rather than a single blended score,
-so every rule they enforce is listed separately. A broken rule is a defect and a
+Three suites — `results_extraction` (15) and the two review-assistant ones
+(17 and 18) — report one metric per check rather than a single blended score, so
+every rule they enforce is listed separately. A broken rule is a defect and a
 lower judged score is a trend; averaging them together hides both.
 
 Every run below completed in full: no sample was dropped, errored or retried.
@@ -60,11 +61,11 @@ Every run below completed in full: no sample was dropped, errored or retried.
 | 12 | `reference_downloader` | 31 | 3 | <details><summary>1 deterministic 0.849</summary>`structured_output_scorer` 0.849 ±0.060[^refdl-conclusion]</details> | **0.849** | 2026-08-28 | [`…_YHhh9v2dMmLZVkBdoGLaNi.eval`](./evals/2026-08-28T18-24-42-00-00_reference-downloader-e2e_YHhh9v2dMmLZVkBdoGLaNi.eval) |
 | 13 | `reference_text_extractor` | 7 | 3 | <details><summary>1 deterministic 0.878</summary>`structured_output_scorer` 0.878 ±0.084[^refext-refs]</details> | **0.878** | 2026-08-28 | [`…_EcCoBLxfCqnUGhVwdMwCzR.eval`](./evals/2026-08-28T18-12-45-00-00_reference-text-extractor-e2e_EcCoBLxfCqnUGhVwdMwCzR.eval) |
 | 14 | `reference_validation_v2` | 70 | 3 | <details><summary>1 deterministic 0.814 · 1 judged 0.824</summary>`structured_output_scorer` 0.814 ±0.044[^refval-result]<br>`model_graded_check` 0.824 ±0.033[^mg]</details> | **0.819** | 2026-08-26 | [`…_LVNQd5h6f5bUWnD2eYogUb.eval`](./evals/2026-08-26T17-17-18-00-00_reference-validation-v2-e2e_LVNQd5h6f5bUWnD2eYogUb.eval) |
-| 15 | `results_extraction` | 2 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 1.000</summary>`structured_output_scorer` 1.000 ±0.000[^res-check]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-08-26 | [`…_55JiueDVQVnRwm9moinDG2.eval`](./evals/2026-08-26T16-35-35-00-00_results-extraction-e2e_55JiueDVQVnRwm9moinDG2.eval) |
+| 15 | `results_extraction`[^res-devsplit] | 10 | 3 | <details><summary>11 deterministic 0.942–1.000 · 2 judged 0.867–0.950</summary>`report` 1.000 ±0.000<br>`inventory_table` 1.000 ±0.000<br>`result_count` 0.967 ±0.033<br>`labels` 1.000 ±0.000<br>`severity_split` 1.000 ±0.000<br>`line_ranges` 1.000 ±0.000<br>`no_duplicates` 1.000 ±0.000[^res-shape]<br>`completeness` 0.992 ±0.008<br>`class_accuracy` 0.942 ±0.039<br>`no_extras` 0.979 ±0.011<br>`severity_ordering` 1.000 ±0.000[^res-truth]<br>`classification_grounded` 0.950 ±0.025<br>`sample_expectations` 0.867 ±0.069[^res-rubric]</details> | **0.977** | 2026-08-31 | [`…_ZVwrG4t2tTbjbj6YbvCsWt.eval`](./evals/2026-08-31T21-10-47-00-00_results-extraction-e2e_ZVwrG4t2tTbjbj6YbvCsWt.eval) |
 | 16 | `reviewer_2` | 2 | 3 | <details><summary>1 deterministic 1.000 · 1 judged 1.000</summary>`structured_output_scorer` 1.000 ±0.000[^rev-produced]<br>`model_graded_check` 1.000 ±0.000[^mg]</details> | **1.000** | 2026-08-26 | [`…_i3Bm2FbzhmJAwqas6MUyri.eval`](./evals/2026-08-26T14-14-47-00-00_reviewer-2-e2e_i3Bm2FbzhmJAwqas6MUyri.eval) |
 | 17 | `reviewer_coverage_report` | 5 | 3 | <details><summary>9 deterministic all 1.000 · 4 judged 0.800–0.967</summary>`verbatim` 1.000 ±0.000<br>`quoted` 1.000 ±0.000<br>`id_scheme` 1.000 ±0.000<br>`self_contained` 1.000 ±0.000<br>`two_part_layout` 1.000 ±0.000<br>`voice` 1.000 ±0.000[^ra-structure]<br>`verdict_table` 1.000 ±0.000<br>`verdict_vocabulary` 1.000 ±0.000<br>`recommendation` 1.000 ±0.000[^rcr-bookkeeping]<br>`verdicts_correct` 0.800 ±0.062<br>`part1_is_decision_grade` 0.900 ±0.041<br>`evidence_and_location` 0.967 ±0.033<br>`scenario_trap` 0.800 ±0.133[^rcr-rubric]</details> | **0.959** | 2026-08-26 | [`…_nnzWgW7JK6KsFFqorqCSck.eval`](./evals/2026-08-26T15-01-34-00-00_reviewer-coverage-report-e2e_nnzWgW7JK6KsFFqorqCSck.eval) |
 | 18 | `revision_planning_summary` | 5 | 3 | <details><summary>6 deterministic all 1.000 · 4 judged 0.800–1.000</summary>`verbatim` 1.000 ±0.000<br>`quoted` 1.000 ±0.000<br>`id_scheme` 1.000 ±0.000<br>`self_contained` 1.000 ±0.000<br>`two_part_layout` 1.000 ±0.000<br>`voice` 1.000 ±0.000[^ra-structure]<br>`locations_by_content` 0.967 ±0.033<br>`part1_triage` 0.800 ±0.062<br>`planning_notes` 1.000 ±0.000<br>`scenario_trap` 0.800 ±0.097[^rps-rubric]</details> | **0.957** | 2026-08-26 | [`…_iUkias5YSUsBuY2EoRoKqm.eval`](./evals/2026-08-26T15-11-52-00-00_revision-planning-summary-e2e_iUkias5YSUsBuY2EoRoKqm.eval) |
-| | **Mean across all evals** | | | | **0.945** | | |
+| | **Mean across all evals** | | | | **0.943** | | |
 
 ## What the model switch changed
 
@@ -94,8 +95,17 @@ large enough to matter on its own.
 | `revision_planning_summary` | 0.967 | 0.957 | -0.010 |
 | **Mean across all evals** | **0.954** | **0.945** | **-0.009** |
 
-Three things worth knowing before reading that table:
+Four things worth knowing before reading that table:
 
+- **`results_extraction` is no longer comparable, in either direction.** Both
+  columns read 1.000 because that is what its old scorers measured: 2 samples,
+  every expected result not-reproducible, and a deterministic check that counted
+  results and validated a class string. The eval was rebuilt on 31 Aug — 10
+  samples, ground-truth inventories, 13 per-check metrics — and now reads 0.977,
+  pooled over three invocations. The two numbers measure different things and
+  differencing them means nothing. This is also why the suite mean in the table
+  above (0.945) and the one in the Results table (0.943) differ: the table above
+  is a frozen record of the model switch, the Results table is current.
 - **`figures_tables_check` is the one real regression.** It fell 8.4 points, on
   both of its scorers, and it is the only movement here that was measured twice
   and held both times — 0.798 on 26 Aug and 0.780 on 28 Aug. The deterministic
@@ -129,7 +139,10 @@ Three things worth knowing before reading that table:
 [^refdl-conclusion]: `reference_downloader` · deterministic match of the final download conclusion against the target.
 [^refext-refs]: `reference_text_extractor` · deterministic match of the extracted bibliographic references against the target.
 [^refval-result]: `reference_validation_v2` · deterministic match of the final validation result label against the target.
-[^res-check]: `results_extraction` · checks at least the expected number of result sections were extracted and every one carries a recognised reproducibility classification (titles/descriptions are free-form, so exact wording isn't scored).
+[^res-devsplit]: `results_extraction` · **read this as a dev-split figure, not an unbiased estimate.** These ten samples were built and then tuned against this workflow across roughly fifteen runs on 31 Aug: three documents, the skill's class-selection guidance, the judged criteria and the workflow's reasoning effort were all edited while these same samples were being scored. Eight of the ten documents are synthetic. Two independent audits found ground-truth defects that had been scoring the workflow *down for being right* — an engineering estimate that did not follow from its own coefficients, a reservoir yield its own inflow record could not supply, a matching variable the document never stated, and paid-access sources cited in a fixture whose expected class requires openly available ones. Each is fixed, and `tests/unit/evals/test_reproducibility_dataset_arithmetic.py` plus `evals_inspectai/e2e/results_extraction/verify_reservoir_yields.py` now re-derive the numbers behind every fully-reproducible expectation. But a dataset repaired wherever the system under test objected to it is a dataset biased towards that system: the gain from 0.899 to 0.977 across this day is mostly eval error being removed, not the workflow improving, and nothing here has been measured on samples the workflow has never influenced. Treat a single reading here as approximate. This configuration has been run four times and `class_accuracy` came out 0.879, 0.922, 0.942 and 0.992; the recorded run is the 0.942 one, which sits above the median of the four, so read the row as an indication rather than a ceiling. On ten samples a five-point swing between runs is ordinary, and a regression has to clear that before it means anything. Held-out samples are the outstanding work — blind-authored documents, one adversarial case that falsely claims reproducibility, and one full-length real report. Until those exist, treat this eval as a tripwire for large regressions rather than a quality score.
+[^res-shape]: `results_extraction` · seven deterministic checks on the shape of the delivery: a substantive markdown report, an inventory table in it (found by the reproducibility column its header names, not by being the widest table in the report) with at least a row per reported result, at least as many results as the dataset declares, a recognised reproducibility label in every issue title, the severity split the skill mandates (anything reproducible is informational `none`; only not-reproducible carries a real severity), line ranges that land inside the document, and no result reported twice. None of these say whether a classification is *right*.
+[^res-truth]: `results_extraction` · four deterministic checks against the dataset's own ground-truth inventory, which names every result each document presents together with the class it should be given and how much the document rests on it: whether every expected result was found, the fraction given the right reproducibility class, whether anything was reported that the document does not present as a result, and whether the severities of the non-reproducible results are ordered by importance. Which of low/medium/high a result earns is the agent's judgement, so only the ordering is asserted, not the level.
+[^res-rubric]: `results_extraction` · two judged criteria, each graded three times with the median taken, because single grader calls disagreed with themselves across repeats of an unchanged output. `classification_grounded` asks only whether each rationale names the ingredients present or missing and how a reader would obtain them; it is given the four class definitions and the list of absences the skill says are *not* deficiencies, since without them the grader marked down rationales for correctly declining to treat an unrendered figure or a fixed-seed simulation as a gap. `sample_expectations` is the dataset's own per-sample rubric. Both use a requirement-shaped prompt rather than Inspect's model-graded-fact template, which asks whether the submission *contains* the expert answer and misgrades a criterion that states a property the output must have.
 [^ra-structure]: `reviewer_coverage_report` and `revision_planning_summary` · the rules the `review-assistant` skill states outright, checked deterministically against the report's HTML: every reviewer memo reproduced verbatim, that reproduced text sitting inside a marked quote, a valid per-reviewer point-ID scheme numbered from 1 with no gaps, a self-contained document (no external stylesheets, fonts, scripts or images, and no `<script>`), a visible two-part split with a short first part, and none of the generic-assistant tells the `voice-and-tone` skill bans, counted only outside quotes so the reviewer's own punctuation is not held against it.
 [^rcr-bookkeeping]: `reviewer_coverage_report` · the arithmetic of the summary table, checked deterministically: all four verdict categories present including the ones that scored zero, every point accounted for exactly once and at one granularity with the stated counts matching the IDs listed, the four-point scale actually used in Part 2 rather than only declared in the table header, and Part 1 stating the sign-off decision outright. Whether an individual verdict is *right* is judged separately.
 [^rcr-rubric]: `reviewer_coverage_report` · four judged criteria, each graded in its own call so one weak area cannot colour the rest: each point's verdict is correct against both drafts, Part 1 is decision-grade for a QAM, each verdict cites evidence and a location, and a per-scenario trap criterion for the specific failure that scenario is built to provoke.

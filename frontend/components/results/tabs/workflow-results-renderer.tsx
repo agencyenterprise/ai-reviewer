@@ -7,7 +7,6 @@ import { AboutThisGerResults } from '@/components/workflows/results/about-this-g
 import { MethodologicalAlignmentResults } from '@/components/workflows/results/methodological-alignment-results';
 import { ReferenceDownloaderResults } from '@/components/workflows/results/reference-downloader-results';
 import { ReferenceValidationV2Results } from '@/components/workflows/results/reference-validation-v2-results';
-import { ResultsExtractorResults } from '@/components/workflows/results/results-extractor-results';
 import { Reviewer2Results } from '@/components/workflows/results/reviewer-2-results';
 import { SimpleDeepAgentResults } from '@/components/workflows/results/simple-deep-agent-results';
 import {
@@ -67,8 +66,6 @@ function renderWorkflowResults(
       return <MethodologicalAlignmentResults workflowDetail={workflowRun} />;
     case WorkflowRunType.ReferenceDownloader:
       return <ReferenceDownloaderResults workflowDetail={workflowRun} />;
-    case WorkflowRunType.ResultsExtraction:
-      return <ResultsExtractorResults workflowDetail={workflowRun} />;
     case WorkflowRunType.AboutThisGer:
       return <AboutThisGerResults workflowDetail={workflowRun} />;
     case WorkflowRunType.ClaimReferenceValidationV2:
@@ -85,6 +82,7 @@ function renderWorkflowResults(
       return <Reviewer2Results workflowDetail={workflowRun} />;
     case WorkflowRunType.ReferenceValidationV2:
       return <ReferenceValidationV2Results workflowDetail={workflowRun} />;
+    case WorkflowRunType.ResultsExtraction:
     case WorkflowRunType.DocumentStructure:
     case WorkflowRunType.FiguresTablesCheck:
     case WorkflowRunType.InferenceValidationV2:

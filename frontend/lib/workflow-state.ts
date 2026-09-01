@@ -7,7 +7,6 @@ import {
   ReferenceDownloaderState,
   ReferenceExtractionState,
   ReferenceFileMatchingState,
-  ResultsExtractionState,
   Reviewer2State,
   SimpleDeepAgentState,
   WorkflowError,
@@ -29,7 +28,7 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.HumanApproval]: HumanApprovalState;
   [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentState;
   [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
-  [WorkflowRunType.ResultsExtraction]: ResultsExtractionState;
+  [WorkflowRunType.ResultsExtraction]: SimpleDeepAgentState;
   [WorkflowRunType.AbbreviationScanV2]: AbbreviationScanV2State;
   [WorkflowRunType.Reviewer2]: Reviewer2State;
   [WorkflowRunType.DocumentStructure]: SimpleDeepAgentState;

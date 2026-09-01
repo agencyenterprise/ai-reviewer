@@ -1,21 +1,22 @@
-from typing import List, Type
+"""Manifest for the Reproducibility Check workflow.
 
-from langgraph.graph import StateGraph
+Extracts the document's main results and classifies how reproducible each one is
+from the information the document itself provides.
 
-from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.models import DocumentIssue, WorkflowRunType
-from lib.workflows.results_extraction.graph import build_results_extraction_graph
-from lib.workflows.results_extraction.state import (
-    ResultsExtractionState,
-    ResultsExtractionWorkflowConfig,
-)
-from lib.workflows.workflow_types import WorkflowState
-from lib.workflows.util import get_main_file_id
+The procedure lives in the `reproducibility-check` skill
+(`skills/reproducibility-check/SKILL.md`), which is the single source of truth:
+it defines what counts as a result and the four reproducibility classes. The
+per-result inventory arrives as issues — one per result, the reproducible ones
+as informational `none` items — and the summary as the markdown report.
+"""
+
+from lib.workflows.models import WorkflowRunType
+from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifest
 
 
-class ResultsExtractionManifest(
-    WorkflowManifest[ResultsExtractionState, ResultsExtractionWorkflowConfig]
-):
+class ResultsExtractionManifest(SimpleDeepAgentManifest):
+    """Classifies each of the document's main results by reproducibility."""
+
     type = WorkflowRunType.RESULTS_EXTRACTION
     name = "Reproducibility Check"
     description = "Could someone reproduce your results from the document alone? Extracts main results and classifies each by how reproducible it is based on whether the data is present and the methodology is described."
@@ -23,30 +24,11 @@ class ResultsExtractionManifest(
     is_experimental = True
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
-    def get_state_type(self) -> Type[ResultsExtractionState]:
-        return ResultsExtractionState
+    skill = "reproducibility-check"
 
-    def get_config_type(self) -> Type[ResultsExtractionWorkflowConfig]:
-        return ResultsExtractionWorkflowConfig
-
-    def build_graph(self) -> StateGraph:
-        return build_results_extraction_graph()
-
-    async def create_initial_state(
-        self,
-        config: ResultsExtractionWorkflowConfig,
-        existing_states: List[WorkflowState],
-        revision: int,
-        prior_self_state: ResultsExtractionState | None = None,
-    ) -> ResultsExtractionState:
-        return ResultsExtractionState(
-            type=WorkflowRunType.RESULTS_EXTRACTION,
-            file_id=get_main_file_id(existing_states),
-        )
-
-    def convert_state_to_issues(
-        self,
-        state: ResultsExtractionState,
-        other_states: List[WorkflowState],
-    ) -> List[DocumentIssue]:
-        return []
+    # Classifying a result means reading the whole document -- appendices
+    # included -- before deciding how each missing ingredient could be obtained.
+    # At the default effort the same document swung between every result
+    # correctly classified and every result collapsed to "not reproducible"
+    # across repeats of one eval, so this pass is worth the extra deliberation.
+    reasoning_effort = "high"
