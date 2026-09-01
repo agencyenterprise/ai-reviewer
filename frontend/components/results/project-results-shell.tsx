@@ -7,7 +7,8 @@ import { EditableTitle } from '@/components/ui/editable-title';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
 import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
-import { AccessLevel, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { AccessLevel, ProjectDetailed, UserRole, WorkflowRunType } from '@/lib/generated-api';
+import { useUserMe } from '@/lib/hooks/use-user-me';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { cn } from '@/lib/utils';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
@@ -73,6 +74,7 @@ export function ProjectResultsShell({
   // Peer Review is still alpha, so it only exists for users who opted in.
   const { showExperimentalFeatures } = useExperimentalFeatures();
 
+  const { data: userMe } = useUserMe();
   const referenceApproval = useReferenceApprovalFlow(projectDetail, projectDetail.project.id);
   const [showExplanation, setShowExplanation] = useState(false);
 
@@ -81,10 +83,14 @@ export function ProjectResultsShell({
   const mainSummary = documentSummarization?.state?.summaries?.find((s) => s.file_id === mainFileId);
   const authors = mainSummary?.authors;
 
-  // Feedback is the user's own, so it loads whenever the project is theirs to write to,
-  // older revisions included — `readOnly` there is about editing the document, not about
-  // rating the issues it found. A shared project is somebody else's and has none to show.
-  const canAccessFeedback = projectDetail.access_level === AccessLevel.Write;
+  // Feedback loads whenever the project is the user's to write to, older revisions
+  // included — `readOnly` there is about editing the document, not about rating the
+  // issues it found. Admins get it too, on projects shared with them: the ratings are
+  // the author's, so they are shown but not theirs to change. A share link carries no
+  // account, so it has no feedback to show.
+  const isAdmin = userMe?.role === UserRole.Admin;
+  const isOwner = projectDetail.access_level === AccessLevel.Write;
+  const canAccessFeedback = isOwner || isAdmin;
 
   const peerReviewFacts = derivePeerReviewFacts(projectDetail);
   const peerReviewAttention = peerReviewNeedsAttention(peerReviewFacts, readOnly);
@@ -104,7 +110,8 @@ export function ProjectResultsShell({
   return (
     <ProjectFeedbackProvider
       projectId={canAccessFeedback ? projectDetail.project.id : undefined}
-      feedbackVisibility={canAccessFeedback ? (projectDetail.project.feedback_visibility ?? null) : null}
+      feedbackVisibility={isOwner ? (projectDetail.project.feedback_visibility ?? null) : null}
+      readOnly={!isOwner}
     >
       <PageTitle title={projectDetail.project.title} />
 
