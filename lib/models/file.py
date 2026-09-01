@@ -15,6 +15,10 @@ class FileRole(str, Enum):
     SUPPORT = "support"
     SUPPORTING_CANDIDATE = "supporting_candidate"
     REVIEWER_MEMO = "reviewer_memo"
+    # Derived artifact, not an upload: an image extracted from a document
+    # during markdown conversion. Always has parent_file_id set. Readers must
+    # opt in by role — file listings never include these implicitly.
+    EXTRACTED_IMAGE = "extracted_image"
 
 
 class File(SQLModel, table=True):
@@ -112,6 +116,20 @@ class File(SQLModel, table=True):
         sa_column=Column(Integer, nullable=True, index=True),
         default=None,
         description="Revision number this file belongs to. NULL means shared across all revisions (e.g., supporting docs).",
+    )
+
+    # Set for EXTRACTED_IMAGE rows only. Where an image sits in the parent's
+    # markdown is not duplicated here: the parent's markdown references the
+    # image by id (draftdetective://{id}), so position derives from it.
+    parent_file_id: uuid.UUID | None = Field(
+        sa_column=Column(
+            UUID(as_uuid=True),
+            ForeignKey("files.id", ondelete="CASCADE"),
+            nullable=True,
+            index=True,
+        ),
+        default=None,
+        description="For extracted images: the file this image was extracted from",
     )
 
     @property

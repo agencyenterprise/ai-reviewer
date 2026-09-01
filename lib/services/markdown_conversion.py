@@ -5,6 +5,7 @@ either as part of normal document processing, or after introducing new files
 mid-pipeline (e.g. files downloaded by `reference_downloader`).
 """
 
+import asyncio
 import logging
 import os
 import shutil
@@ -14,12 +15,19 @@ from langchain_core.messages.utils import count_tokens_approximately
 from lib.models.file import FileRole
 from lib.services.converters.base import convert_to_markdown as convert_to_markdown_fn
 from lib.services.converters.docx_preprocessor import docx_preprocessor
+from lib.services.docx.drawing_rasterization import rasterize_docx_drawings
+from lib.services.docx.image_display_sizes import (
+    DisplaySizes,
+    read_docx_image_display_sizes,
+)
 from lib.services.file import FileDocument
+from lib.services.file_images import replace_extracted_images
 from lib.services.files import (
     get_file_by_id,
     load_file_document,
     update_file_artifacts,
 )
+from lib.services.image_extraction import extract_data_uri_images
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +50,33 @@ def _converter_for(file_path: str, role: FileRole) -> str:
     if file_path.lower().endswith(".pdf"):
         return "pypdfium"
     return "markitdown"
+
+
+async def _convert_docx(
+    docx_path: str, keep_data_uris: bool
+) -> tuple[str, DisplaySizes | None]:
+    """Convert a docx via markitdown; returns (markdown, display sizes).
+
+    When images are being extracted (``keep_data_uris``), native charts and
+    metafile pictures are first rendered to web-displayable images, and the
+    images' display sizes are read from the same document the markdown came
+    from.
+    """
+    rasterized = await rasterize_docx_drawings(docx_path) if keep_data_uris else None
+    conversion_path = rasterized or docx_path
+    try:
+        markdown = await convert_to_markdown_fn(
+            conversion_path, converter="markitdown", keep_data_uris=keep_data_uris
+        )
+        display_sizes = None
+        if keep_data_uris:
+            display_sizes = await asyncio.to_thread(
+                read_docx_image_display_sizes, conversion_path
+            )
+        return markdown, display_sizes
+    finally:
+        if rasterized:
+            os.remove(rasterized)
 
 
 async def convert_file_document_to_markdown(
@@ -67,21 +102,40 @@ async def convert_file_document_to_markdown(
     is_legacy_doc_mime = file_document.file_type == "application/msword"
     is_legacy_doc_extension = file_path.endswith(".doc")
 
+    # Keep embedded images as full data URIs only where they get extracted
+    # below — everywhere else the truncated stub keeps the markdown small.
+    keep_data_uris = role == FileRole.MAIN and bool(file_document.file_id)
+    display_sizes: DisplaySizes | None = None
+
     if is_legacy_doc_mime:
         docx_file_path = await docx_preprocessor.convert_doc_to_docx(file_path)
         logger.info(f"Converted {file_path} to DOCX: {docx_file_path}")
-        markdown = await convert_to_markdown_fn(docx_file_path, converter="markitdown")
+        markdown, display_sizes = await _convert_docx(docx_file_path, keep_data_uris)
         os.remove(docx_file_path)
     elif is_legacy_doc_extension:
         docx_file_path = file_path.replace(".doc", ".docx")
         shutil.copy(file_path, docx_file_path)
         logger.info(f"Copied {file_path} to {docx_file_path}")
-        markdown = await convert_to_markdown_fn(docx_file_path, converter="markitdown")
+        markdown, display_sizes = await _convert_docx(docx_file_path, keep_data_uris)
         os.remove(docx_file_path)
+    elif file_path.endswith(".docx"):
+        markdown, display_sizes = await _convert_docx(file_path, keep_data_uris)
     else:
         markdown = await convert_to_markdown_fn(
-            file_path, converter=_converter_for(file_path, role)
+            file_path,
+            converter=_converter_for(file_path, role),
+            keep_data_uris=keep_data_uris,
         )
+
+    if keep_data_uris:
+        # Move embedded images out of the markdown before it is persisted or
+        # token-counted; each src is rewritten in place, so line numbers match
+        # the un-extracted conversion exactly. Rows are replaced even when
+        # nothing was extracted, so a reconversion clears children a previous
+        # conversion created.
+        extraction = await extract_data_uri_images(markdown, display_sizes)
+        await replace_extracted_images(file_document.file_id, extraction.images)
+        markdown = extraction.markdown
 
     return file_document.model_copy(
         update={

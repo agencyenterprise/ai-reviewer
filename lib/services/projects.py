@@ -346,7 +346,9 @@ async def get_project_access(
 
 
 async def get_project_files(project_id: str) -> List[File]:
-    """Get all files for a project. Raises HTTPException if project not found."""
+    """Get a project's uploaded documents — not transient supporting
+    candidates or derived artifacts like extracted images. Raises
+    HTTPException if project not found."""
 
     async with get_async_db_session() as session:
         project_stmt = select(Project).where(col(Project.id) == project_id)
@@ -357,7 +359,12 @@ async def get_project_files(project_id: str) -> List[File]:
 
         files_stmt = (
             select(File)
-            .where(col(File.project_id) == project.id)
+            .where(
+                col(File.project_id) == project.id,
+                col(File.role).in_(
+                    [FileRole.MAIN, FileRole.SUPPORT, FileRole.REVIEWER_MEMO]
+                ),
+            )
             .order_by(col(File.created_at).asc())
         )
         files_result = await session.execute(files_stmt)

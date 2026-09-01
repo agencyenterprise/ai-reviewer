@@ -149,16 +149,18 @@ class FileArtifactsService(FileArtifactsServiceType):
             f"No file document found with id {file_id} for project {self.project_id}"
         )
 
-    async def _load_project_files(self, revision: int | None = None):
-        """Return all project files from DB (or None if DB read fails).
+    async def _load_main_files(self, revision: int | None = None):
+        """Return the revision's MAIN files from DB (or None if DB read fails).
 
         Defaults to the service's own revision; pass ``revision`` to read a
         different (e.g. earlier) revision's files.
         """
         rev = revision if revision is not None else self.revision
         return await self._try_load(
-            f"project files for {self.project_id}",
-            lambda: get_files_by_project_id(self.project_id, revision=rev),
+            f"main files for {self.project_id}",
+            lambda: get_files_by_project_id(
+                self.project_id, roles=[FileRole.MAIN], revision=rev
+            ),
         )
 
     async def _load_file_document_with_markdown(self, file: File) -> FileDocument:
@@ -187,12 +189,8 @@ class FileArtifactsService(FileArtifactsServiceType):
         current revision.
         """
         rev = revision if revision is not None else self.revision
-        project_files = await self._load_project_files(rev)
-        main_file = (
-            next((f for f in project_files if f.role == FileRole.MAIN), None)
-            if project_files
-            else None
-        )
+        main_files = await self._load_main_files(rev)
+        main_file = main_files[0] if main_files else None
 
         if revision is not None:
             if main_file is None:
@@ -421,7 +419,10 @@ class FileArtifactsService(FileArtifactsServiceType):
 
         all_files = await self._try_load(
             f"all files for {self.project_id}",
-            lambda: get_files_by_project_id(self.project_id),
+            lambda: get_files_by_project_id(
+                self.project_id,
+                roles=[FileRole.MAIN, FileRole.SUPPORT, FileRole.REVIEWER_MEMO],
+            ),
         )
         for file in all_files or []:
             if file.role == FileRole.SUPPORT:

@@ -1421,6 +1421,12 @@ export type File = {
    * Revision number this file belongs to. NULL means shared across all revisions (e.g., supporting docs).
    */
   revision?: number | null;
+  /**
+   * Parent File Id
+   *
+   * For extracted images: the file this image was extracted from
+   */
+  parent_file_id?: string | null;
 };
 
 /**
@@ -1538,6 +1544,7 @@ export const FileRole = {
   Support: 'support',
   SupportingCandidate: 'supporting_candidate',
   ReviewerMemo: 'reviewer_memo',
+  ExtractedImage: 'extracted_image',
 } as const;
 
 /**
