@@ -212,3 +212,38 @@ async def test_rendered_chart_keeps_declared_aspect_ratio(tmp_path):
     # The synthetic chart has no chart part behind it, so it renders blank —
     # exactly the case where only a geometric crop preserves the 2:1 extent.
     assert abs(image.width / image.height - 2.0) < 0.01
+
+
+@pytest.mark.asyncio
+async def test_anchored_chart_is_rendered_at_declared_extent(tmp_path):
+    """Floating drawings carry position offsets; the render source converts
+    them to inline so the geometric crop still holds."""
+    import base64
+    import io
+    import re
+
+    from PIL import Image
+
+    anchored_chart = (
+        "<w:drawing><wp:anchor>"
+        '<wp:positionH relativeFrom="page"><wp:posOffset>1500000</wp:posOffset></wp:positionH>'
+        '<wp:positionV relativeFrom="page"><wp:posOffset>2500000</wp:posOffset></wp:positionV>'
+        '<wp:extent cx="1828800" cy="914400"/>'
+        f'<a:graphic><a:graphicData uri="{CHART_GRAPHIC_URI}">'
+        '<c:chart r:id="rId999"/>'
+        "</a:graphicData></a:graphic>"
+        "</wp:anchor></w:drawing>"
+    )
+    document = Document()
+    document.add_paragraph("Before the floating chart.")
+    _append_paragraph_xml(document, anchored_chart)
+    document.add_paragraph("After the floating chart.")
+    docx_path = str(tmp_path / "anchored-chart.docx")
+    document.save(docx_path)
+
+    markdown = await _stored_markdown(docx_path)
+
+    match = re.search(r"data:image/png;base64,([A-Za-z0-9+/=]+)", markdown)
+    assert match
+    image = Image.open(io.BytesIO(base64.b64decode(match.group(1))))
+    assert abs(image.width / image.height - 2.0) < 0.01

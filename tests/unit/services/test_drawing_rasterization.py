@@ -546,3 +546,80 @@ def test_render_source_creates_page_margins_when_absent(tmp_path):
 
     rendered_margins = Document(dst).element.body.find(qn("w:sectPr")).find(qn("w:pgMar"))
     assert rendered_margins.get(qn("w:top")) == "0"
+
+
+def _anchored_drawing_xml(graphic_data: str) -> str:
+    return (
+        "<w:drawing><wp:anchor>"
+        '<wp:positionH relativeFrom="page"><wp:posOffset>1000000</wp:posOffset></wp:positionH>'
+        '<wp:positionV relativeFrom="page"><wp:posOffset>2000000</wp:posOffset></wp:positionV>'
+        '<wp:extent cx="914400" cy="457200"/>'
+        f"<a:graphic>{graphic_data}</a:graphic>"
+        "</wp:anchor></w:drawing>"
+    )
+
+
+def test_render_source_converts_anchored_drawings_to_inline(tmp_path):
+    """A floating drawing keeps its position offsets, which would move it
+    away from the page origin the geometric crop assumes — the render source
+    makes it inline so the pinned paragraph places it at (0, 0)."""
+    document = Document()
+    _append_paragraph(document, _anchored_drawing_xml(_chart_graphic_data()))
+    assert len(_renderable_paragraphs(document)) == 1  # anchors are selected
+    src, dst = str(tmp_path / "src.docx"), str(tmp_path / "dst.docx")
+    document.save(src)
+
+    assert _write_render_source_docx(src, dst) == 1
+
+    rendered = Document(dst)
+    assert rendered.element.findall(f".//{qn('wp:anchor')}") == []
+    inline = rendered.element.body.find(f".//{qn('wp:inline')}")
+    extent = inline.find(qn("wp:extent"))
+    assert (extent.get("cx"), extent.get("cy")) == ("914400", "457200")
+    assert inline.find(f".//{qn('a:graphicData')}").get("uri") == CHART_GRAPHIC_URI
+
+
+@pytest.mark.asyncio
+async def test_rasterize_is_all_or_nothing_on_partial_splice_failure(tmp_path):
+    """A transient splice failure must not ship a half-replaced document —
+    the next run could replace a different subset and break line parity."""
+    document = Document()
+    _append_paragraph(document, _drawing_xml(_chart_graphic_data()))
+    _append_paragraph(document, _drawing_xml(_chart_graphic_data()))
+    src = str(tmp_path / "two-charts.docx")
+    document.save(src)
+
+    render_dir = tempfile.mkdtemp()  # removed by the function under test
+    renders = [_png_file(tmp_path, "r0.png"), _png_file(tmp_path, "r1.png")]
+    with (
+        patch(
+            f"{MODULE}._render_drawings_to_images",
+            new=AsyncMock(return_value=(render_dir, renders)),
+        ),
+        patch(
+            f"{MODULE}._replace_drawing_with_image", side_effect=[True, False]
+        ),
+    ):
+        assert await rasterize_docx_drawings(src) is None
+    assert not os.path.exists(render_dir)
+
+
+@pytest.mark.asyncio
+async def test_render_cleans_tmp_dir_on_unexpected_failure(tmp_path):
+    """Exceptions beyond the modeled ones (subprocess spawn errors, PDFium
+    crashes) must not strand drawing-raster-* directories."""
+    render_dir = str(tmp_path / "raster-tmp")
+    os.makedirs(render_dir)
+
+    with (
+        patch(f"{MODULE}.shutil.which", return_value="/usr/bin/soffice"),
+        patch(f"{MODULE}.tempfile.mkdtemp", return_value=render_dir),
+        patch(f"{MODULE}._write_render_source_docx", return_value=1),
+        patch(
+            f"{MODULE}.asyncio.create_subprocess_exec",
+            new=AsyncMock(side_effect=OSError("spawn failed")),
+        ),
+    ):
+        assert await rasterize_docx_drawings(_chart_docx(tmp_path)) is None
+
+    assert not os.path.exists(render_dir)

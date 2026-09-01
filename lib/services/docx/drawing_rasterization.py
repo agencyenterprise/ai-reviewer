@@ -103,7 +103,17 @@ async def _rasterize_docx_drawings(docx_path: str) -> Optional[str]:
             if _replace_drawing_with_image(document, drawing, image_path):
                 replaced += 1
 
-        if replaced == 0:
+        if replaced != len(renderable):
+            # All or nothing: a partial replacement would make this run's
+            # output structurally different from the next one's (splice
+            # failures are transient), breaking line parity between
+            # ingestion and export.
+            logger.warning(
+                "Drawing rasterization skipped for %s: replaced %d of %d drawings",
+                docx_path,
+                replaced,
+                len(renderable),
+            )
             return None
 
         out = tempfile.NamedTemporaryFile(suffix=".docx", delete=False)
@@ -150,7 +160,10 @@ def _renderable_paragraphs(document) -> list[tuple[int, Any]]:
         if element.tag != qn("w:p"):
             continue
         drawings = list(element.iter(qn("w:drawing")))
-        if len(drawings) != 1 or "".join(element.itertext()).strip():
+        # Only w:t nodes are visible run text; itertext() would also pick up
+        # numeric internals like an anchored drawing's position offsets.
+        text = "".join(t.text or "" for t in element.iter(qn("w:t")))
+        if len(drawings) != 1 or text.strip():
             continue
         drawing = drawings[0]
         if drawing.find(f".//{qn('wp:extent')}") is None:
@@ -183,10 +196,14 @@ def _write_render_source_docx(src_path: str, dst_path: str) -> int:
             pPr.insert(0, OxmlElement("w:pageBreakBefore"))
 
     # Pin every drawing to its page's top-left corner so the crop can be
-    # computed from the declared extent alone: left-aligned (figures are
-    # typically centered), zero paragraph spacing and indentation, zero page
-    # margins, and no headers or footers.
+    # computed from the declared extent alone: anchored (floating) drawings
+    # become inline so their position offsets can't move them out of the
+    # crop, paragraphs are left-aligned (figures are typically centered) with
+    # zero spacing and indentation, page margins are zero, and there are no
+    # headers or footers.
     for paragraph in kept:
+        for anchor in list(paragraph.iter(qn("wp:anchor"))):
+            _convert_anchor_to_inline(anchor)
         pPr = paragraph.get_or_add_pPr()
         justification = pPr.find(qn("w:jc"))
         if justification is None:
@@ -220,6 +237,27 @@ def _write_render_source_docx(src_path: str, dst_path: str) -> int:
 
     document.save(dst_path)
     return len(kept)
+
+
+def _convert_anchor_to_inline(anchor) -> None:
+    """Replace a floating drawing with an inline one of the same graphic.
+
+    Anchors carry ``positionH``/``positionV`` offsets that would place the
+    drawing away from the page origin the crop assumes; inline drawings flow
+    with the (pinned) paragraph instead.
+    """
+    extent = anchor.find(qn("wp:extent"))
+    graphic = anchor.find(qn("a:graphic"))
+    if extent is None or graphic is None:
+        return
+    inline = parse_xml(
+        f'<wp:inline {nsdecls("wp", "a")}>'
+        '<wp:docPr id="1" name="drawing"/>'
+        "</wp:inline>"
+    )
+    inline.insert(0, extent)  # moves the element
+    inline.append(graphic)
+    anchor.getparent().replace(anchor, inline)
 
 
 def _render_pdf_pages(
@@ -269,7 +307,11 @@ async def _render_drawings_to_images(
         logger.warning("LibreOffice not found; drawings stay unrendered")
         return None
 
+    # Ownership of tmp_dir transfers to the caller only on the successful
+    # return; every other exit — early return, timeout, unexpected exception —
+    # removes it here, or repeated failures would strand directories forever.
     tmp_dir = tempfile.mkdtemp(prefix="drawing-raster-")
+    succeeded = False
     try:
         render_source = os.path.join(tmp_dir, "render-source.docx")
         if _write_render_source_docx(docx_path, render_source) != expected:
@@ -278,7 +320,6 @@ async def _render_drawings_to_images(
                 "not match the drawing count",
                 docx_path,
             )
-            shutil.rmtree(tmp_dir, ignore_errors=True)
             return None
 
         profile_dir = os.path.join(tmp_dir, "lo-profile")
@@ -306,7 +347,6 @@ async def _render_drawings_to_images(
                 "LibreOffice PDF render failed: %s",
                 stderr.decode() if stderr else "unknown error",
             )
-            shutil.rmtree(tmp_dir, ignore_errors=True)
             return None
 
         async with _PDFIUM_LOCK:
@@ -322,15 +362,17 @@ async def _render_drawings_to_images(
                 len(image_paths),
                 expected,
             )
-            shutil.rmtree(tmp_dir, ignore_errors=True)
             return None
+        succeeded = True
         return tmp_dir, image_paths
     except asyncio.TimeoutError:
         process.kill()
         await process.wait()
         logger.warning("LibreOffice PDF render timed out")
-        shutil.rmtree(tmp_dir, ignore_errors=True)
         return None
+    finally:
+        if not succeeded:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 def _replace_drawing_with_image(document, drawing, image_path: str) -> bool:
