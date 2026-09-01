@@ -23,11 +23,12 @@ import io
 import logging
 import os
 import re
+import threading
 import uuid
 from typing import Optional
 
 import aiofiles
-from PIL import Image
+from PIL import Image, ImageOps
 from pydantic import BaseModel, Field
 from xxhash import xxh128
 
@@ -80,6 +81,17 @@ _CROPPABLE_MIME_TYPES = frozenset(
 # (~34 MP) — far beyond any figure a document displays — while keeping a
 # decompression bomb from taking the worker down with it.
 _MAX_CROP_PIXELS = 40_000_000
+
+# How many images may be decoded for cropping at once, process-wide. Each
+# in-flight crop holds the decoded image plus its cropped copy, so the cap
+# above bounds one and this bounds their sum.
+_CROP_SLOTS = threading.BoundedSemaphore(2)
+
+# Encoders for which Pillow's `quality` means anything.
+_LOSSY_SAVE_FORMATS = frozenset({"JPEG", "WEBP"})
+
+# EXIF tag 0x0112, "Orientation": how the photo should be rotated for display.
+_EXIF_ORIENTATION_TAG = 0x0112
 
 
 class ExtractedImage(BaseModel):
@@ -208,10 +220,11 @@ async def _apply_declared_crop(
     crop = placement.crop if placement else None
     if crop is None:
         return content, placement
-    if crop.has_outset:
-        # The extent covers padding, not just image; storing the picture whole
-        # under that size would stretch it.
-        logger.info("Not cropping image: the declared region outsets the picture")
+    if not crop.is_applicable:
+        # The extent describes a region the stored bytes cannot be trimmed to
+        # — padding, an unreadable edge, or overlapping insets. Keeping the
+        # size would stretch the whole picture into it.
+        logger.info("Not cropping image: %s is not a crop of it", crop)
         return content, None
 
     # Decoding and re-encoding a print-resolution figure takes long enough to
@@ -227,44 +240,69 @@ async def _apply_declared_crop(
 def _crop_image(content: bytes, mime_type: str, crop: SourceRect) -> Optional[bytes]:
     """``content`` cropped to ``crop``, or None when it cannot be applied.
 
-    A no-op crop returns the bytes untouched rather than re-encoding them, so
-    content addressing keeps deduplicating images that are merely declared
-    cropped.
-
-    Runs on a worker thread (see ``_apply_declared_crop``); it must stay
-    synchronous.
+    Admission control only; ``_crop_decoded`` does the work. Runs on a worker
+    thread (see ``_apply_declared_crop``), so it must stay synchronous.
     """
     if mime_type not in _CROPPABLE_MIME_TYPES:
         logger.info("Not cropping %s image: format does not support it", mime_type)
         return None
-    try:
-        with Image.open(io.BytesIO(content)) as image:
-            image_format = image.format
-            # `Image.open` reads the header only. Pillow's own bomb guard just
-            # warns until twice its threshold, while `crop` forces a full
-            # decode, so the pixel count is checked here first: a 450 KB
-            # 12000x12000 PNG otherwise costs a third of a gigabyte.
-            pixels = image.width * image.height
-            if pixels > _MAX_CROP_PIXELS:
-                logger.warning(
-                    "Not cropping %dx%d image: above the %d pixel crop limit",
-                    image.width,
-                    image.height,
-                    _MAX_CROP_PIXELS,
-                )
-                return None
-            box = crop.crop_box(image.width, image.height)
-            if box is None:
-                return content
-            if not image_format:
-                return None
-            buffer = io.BytesIO()
-            # JPEG re-encoding is lossy; quality 95 keeps the crop visually
-            # indistinguishable from the source at document display sizes.
-            image.crop(box).save(buffer, format=image_format, quality=95)
-    except Exception:
-        logger.warning("Could not apply declared image crop", exc_info=True)
-        return None
+    # The pixel cap below bounds one image; this bounds the process. Without
+    # it, crops from concurrently converting documents decode side by side in
+    # the shared executor and the totals still reach an OOM, which no
+    # exception handler here gets to see. A threading primitive rather than an
+    # asyncio one: it holds across every event loop and worker thread, and the
+    # wait lands on a worker thread instead of the loop.
+    with _CROP_SLOTS:
+        try:
+            return _crop_decoded(content, crop)
+        except Exception:
+            logger.warning("Could not apply declared image crop", exc_info=True)
+            return None
+
+
+def _crop_decoded(content: bytes, crop: SourceRect) -> Optional[bytes]:
+    """Decode, crop and re-encode ``content``; None when it must be left alone.
+
+    A no-op crop returns the bytes untouched rather than re-encoding them, so
+    content addressing keeps deduplicating images that are merely declared
+    cropped.
+    """
+    with Image.open(io.BytesIO(content)) as image:
+        image_format = image.format
+        # `Image.open` reads the header only. Pillow's own bomb guard just
+        # warns until twice its threshold, while `crop` forces a full decode,
+        # so the pixel count is checked here first: a 450 KB 12000x12000 PNG
+        # otherwise costs a third of a gigabyte.
+        if image.width * image.height > _MAX_CROP_PIXELS:
+            logger.warning(
+                "Not cropping %dx%d image: above the %d pixel crop limit",
+                image.width,
+                image.height,
+                _MAX_CROP_PIXELS,
+            )
+            return None
+        if not image_format:
+            return None
+
+        # Word and browsers both display an EXIF-oriented photo rotated, so
+        # the crop fractions describe the *rotated* view — applying them to
+        # the raw pixels would crop the wrong axes. Normalise first and crop
+        # in the orientation a reader sees; re-encoding then drops the
+        # orientation tag, which by that point is correct. Only transpose
+        # when the tag asks for it: the call copies the whole image.
+        oriented: Image.Image = image
+        if image.getexif().get(_EXIF_ORIENTATION_TAG, 1) != 1:
+            oriented = ImageOps.exif_transpose(image)
+
+        box = crop.crop_box(oriented.width, oriented.height)
+        if box is None:
+            return content
+        buffer = io.BytesIO()
+        # Quality only reaches the encoders it means something to. JPEG
+        # re-encoding is lossy; 95 keeps the crop visually indistinguishable
+        # from the source at document display sizes.
+        options = {"quality": 95} if image_format in _LOSSY_SAVE_FORMATS else {}
+        oriented.crop(box).save(buffer, format=image_format, **options)
     return buffer.getvalue()
 
 

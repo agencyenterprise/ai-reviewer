@@ -51,25 +51,40 @@ class SourceRect(BaseModel):
     top: float = 0.0
     right: float = 0.0
     bottom: float = 0.0
+    unreadable: bool = False
+    """An edge the document declared but that could not be parsed."""
 
     @property
-    def has_outset(self) -> bool:
-        """Whether any edge pads the picture instead of trimming it.
+    def is_applicable(self) -> bool:
+        """Whether this region can be reproduced by cropping the picture.
 
-        Such a region cannot be expressed as a crop of the stored image, so
-        callers store the picture whole and declare no size for it.
+        False for three kinds of region, which all mean the extent describes
+        something the stored bytes cannot be trimmed to. Callers store the
+        picture whole and declare no size for it rather than guessing:
+
+        * ``unreadable`` — an edge was declared but could not be parsed, so
+          the real region is unknown;
+        * an outset — a negative edge, where Word pads that side instead of
+          trimming it;
+        * overlapping insets, which leave no region at all.
         """
-        return min(self.left, self.top, self.right, self.bottom) < 0
+        if self.unreadable:
+            return False
+        if min(self.left, self.top, self.right, self.bottom) < 0:
+            return False
+        return self.left + self.right < 1.0 and self.top + self.bottom < 1.0
 
     def crop_box(self, width: int, height: int) -> Optional[tuple[int, int, int, int]]:
         """The ``(left, top, right, bottom)`` pixel box to crop to.
 
-        None when the region is not a crop at all (``has_outset``), when the
-        crop is a no-op at this resolution, or when it would leave nothing
-        behind — callers then keep the image as it is.
+        None when this region trims nothing at this resolution: either an
+        untrimmed rect, or — on a picture a handful of pixels wide — a trim
+        that rounds away entirely. Callers keep the image as it is.
+
+        Rects that are not ``is_applicable`` must be rejected before calling
+        this; it assumes the region is a genuine crop, so a ``None`` here
+        never means "this crop was impossible".
         """
-        if self.has_outset:
-            return None
         box = (
             round(width * self.left),
             round(height * self.top),
@@ -114,15 +129,22 @@ class DisplaySizes:
         return queue.popleft()
 
 
-def _crop_fraction(value: Optional[str]) -> float:
-    """One ``a:srcRect`` edge as a signed fraction of the source image.
+def _crop_fraction(value: Optional[str]) -> Optional[float]:
+    """One ``a:srcRect`` edge as a signed fraction, or None if unparseable.
+
+    A missing or empty attribute is simply an untrimmed edge. A *present*
+    but malformed one is a parse failure and returns None: reading it as
+    zero would report a cropped picture as uncropped, and the declared size
+    would then stretch the whole image.
 
     Negative values are kept: they mark an outset, which ``SourceRect``
-    reports through ``has_outset`` so the region is not mistaken for a crop.
+    reports through ``is_applicable`` so the region is not taken for a crop.
     """
     if not value:
         return 0.0
     text = value.strip()
+    if not text:
+        return 0.0
     try:
         return (
             float(text[:-1]) / 100
@@ -130,7 +152,7 @@ def _crop_fraction(value: Optional[str]) -> float:
             else int(text) / _PERCENTAGE_UNITS_PER_WHOLE
         )
     except ValueError:
-        return 0.0
+        return None
 
 
 def _read_source_rect(blip) -> Optional[SourceRect]:
@@ -144,13 +166,20 @@ def _read_source_rect(blip) -> Optional[SourceRect]:
     src_rect = blip_fill.find(qn("a:srcRect")) if blip_fill is not None else None
     if src_rect is None:
         return None
-    crop = SourceRect(
-        left=_crop_fraction(src_rect.get("l")),
-        top=_crop_fraction(src_rect.get("t")),
-        right=_crop_fraction(src_rect.get("r")),
-        bottom=_crop_fraction(src_rect.get("b")),
-    )
-    if not any((crop.left, crop.top, crop.right, crop.bottom)):
+    edges = {
+        "left": _crop_fraction(src_rect.get("l")),
+        "top": _crop_fraction(src_rect.get("t")),
+        "right": _crop_fraction(src_rect.get("r")),
+        "bottom": _crop_fraction(src_rect.get("b")),
+    }
+    if any(fraction is None for fraction in edges.values()):
+        # The picture is cropped by an amount we cannot determine. Reporting
+        # it as uncropped would pair whole bytes with a size describing a
+        # region of them.
+        logger.warning("Unparseable a:srcRect edge in %s", src_rect.attrib)
+        return SourceRect(unreadable=True)
+    crop = SourceRect.model_validate(edges)
+    if not any(edges.values()):
         return None  # Word writes an empty srcRect for uncropped pictures.
     return crop
 

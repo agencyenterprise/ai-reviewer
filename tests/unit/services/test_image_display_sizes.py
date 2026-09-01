@@ -3,6 +3,8 @@
 import io
 
 from docx import Document
+from docx.oxml import parse_xml
+from docx.oxml.ns import nsdecls
 from docx.shared import Inches
 from PIL import Image
 from xxhash import xxh128
@@ -64,10 +66,6 @@ def test_unreadable_docx_returns_empty_sizes(tmp_path):
 def test_reads_size_of_anchored_floating_image(tmp_path):
     """Floating images (wp:anchor) are not in `document.inline_shapes`; sizes
     must come from walking the drawing XML — a cover-page logo regression."""
-    from docx import Document
-    from docx.oxml import parse_xml
-    from docx.oxml.ns import nsdecls
-
     png = _png_bytes("magenta")
     path = str(tmp_path / "img.png")
     with open(path, "wb") as f:
@@ -99,10 +97,6 @@ def test_reads_size_of_anchored_floating_image(tmp_path):
 def test_malformed_drawings_are_skipped(tmp_path):
     """Drawings without an extent, without a blip, or with a dangling
     relationship id must be skipped rather than fail the read."""
-    from docx import Document
-    from docx.oxml import parse_xml
-    from docx.oxml.ns import nsdecls
-
     doc = Document()
     paragraphs = [
         # No extent.
@@ -141,9 +135,6 @@ def test_malformed_drawings_are_skipped(tmp_path):
 
 def _docx_with_src_rect(tmp_path, png: bytes, src_rect: str) -> str:
     """A one-picture DOCX whose blipFill carries ``src_rect`` verbatim."""
-    from docx.oxml import parse_xml
-    from docx.oxml.ns import nsdecls
-
     image_path = str(tmp_path / "img.png")
     with open(image_path, "wb") as f:
         f.write(png)
@@ -215,31 +206,49 @@ def test_outset_edges_keep_their_sign(tmp_path):
 
     assert placement is not None
     assert placement.crop == SourceRect(left=-0.1, right=0.1)
-    assert placement.crop.has_outset
+    assert not placement.crop.is_applicable
 
 
-def test_unparseable_crop_edge_reads_as_uncropped(tmp_path):
+def test_unparseable_crop_edge_is_reported_as_unreadable(tmp_path):
+    """Reading a malformed edge as zero would report a cropped picture as
+    uncropped, and the declared size would then stretch the whole image."""
     png = _png_bytes("maroon")
     path = _docx_with_src_rect(tmp_path, png, '<a:srcRect t="lots"/>')
 
     placement = read_docx_image_display_sizes(path).take(xxh128(png).hexdigest())
 
     assert placement is not None
-    assert placement.crop is None
+    assert placement.crop == SourceRect(unreadable=True)
+    assert not placement.crop.is_applicable
 
 
-def test_crop_box_is_none_when_nothing_would_change_or_survive():
-    """A sub-pixel crop must not force callers to re-encode, and an
-    over-specified one must not produce an empty image."""
+def test_missing_and_empty_edges_are_simply_untrimmed(tmp_path):
+    """Absent attributes are not parse failures — only present-but-malformed
+    ones are, or every partially-cropped picture would be unreadable."""
+    png = _png_bytes("silver")
+    path = _docx_with_src_rect(tmp_path, png, '<a:srcRect t="25000" b=""/>')
+
+    placement = read_docx_image_display_sizes(path).take(xxh128(png).hexdigest())
+
+    assert placement is not None
+    assert placement.crop == SourceRect(top=0.25)
+    assert placement.crop.is_applicable
+
+
+def test_crop_box_is_none_when_nothing_would_change():
+    """A sub-pixel crop must not force callers to re-encode."""
     assert SourceRect(top=0.001, bottom=0.001).crop_box(100, 100) is None
     assert SourceRect().crop_box(100, 100) is None
-    assert SourceRect(left=0.6, right=0.6).crop_box(100, 100) is None
     assert SourceRect(top=0.25, bottom=0.25).crop_box(100, 100) == (0, 25, 100, 75)
 
 
-def test_crop_box_is_none_for_any_outset():
-    """An outset region is not a crop of the stored image at all, so no box
-    can represent it — mixed signs included."""
-    assert SourceRect(left=-0.1, right=0.1).crop_box(100, 100) is None
-    assert SourceRect(top=-0.05).crop_box(100, 100) is None
-    assert not SourceRect(left=0.1, right=0.1).has_outset
+def test_is_applicable_separates_a_real_crop_from_the_three_that_are_not():
+    """`crop_box` returning None only ever means "nothing to trim", so the
+    regions that cannot be cropped at all have to be caught before it —
+    otherwise they read as a no-op and keep their declared size."""
+    assert SourceRect(top=0.25, bottom=0.1).is_applicable
+    assert SourceRect().is_applicable
+    assert not SourceRect(unreadable=True).is_applicable
+    assert not SourceRect(left=-0.1, right=0.1).is_applicable  # outset
+    assert not SourceRect(left=0.6, right=0.6).is_applicable  # insets overlap
+    assert not SourceRect(top=0.5, bottom=0.5).is_applicable  # exactly nothing

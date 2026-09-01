@@ -5,9 +5,12 @@ image src in place, and issue anchors, `#L` links and the DOCX comment export
 all assume the stored markdown's line numbers never move.
 """
 
+import asyncio
 import base64
 import io
 import os
+import threading
+import time
 from unittest.mock import patch
 
 import pytest
@@ -379,6 +382,46 @@ async def test_outset_region_stores_the_picture_whole_and_drops_the_size(tmp_pat
 
 
 @pytest.mark.asyncio
+async def test_overlapping_insets_drop_the_size(tmp_path):
+    """Insets that leave no region are not a no-op. `crop_box` returns None
+    for both, so without the `is_applicable` gate this would store the whole
+    image and still declare the cropped size — the very distortion this
+    change exists to prevent."""
+    png = _png_of(300, 200)
+    placement = ImagePlacement(
+        width_px=100, height_px=200, crop=SourceRect(left=0.6, right=0.6)
+    )
+
+    with _uploads_patch(tmp_path):
+        result = await extract_data_uri_images(
+            _markdown_for(png), _sizes_for(png, placement)
+        )
+
+    with open(result.images[0].image_path, "rb") as f:
+        assert f.read() == png
+    assert "?w=" not in result.markdown
+
+
+@pytest.mark.asyncio
+async def test_unreadable_crop_drops_the_size(tmp_path):
+    """The document declared a crop we could not parse, so the region is
+    unknown; the declared size cannot be trusted to describe the bytes."""
+    png = _png_of(300, 200)
+    placement = ImagePlacement(
+        width_px=100, height_px=200, crop=SourceRect(unreadable=True)
+    )
+
+    with _uploads_patch(tmp_path):
+        result = await extract_data_uri_images(
+            _markdown_for(png), _sizes_for(png, placement)
+        )
+
+    with open(result.images[0].image_path, "rb") as f:
+        assert f.read() == png
+    assert "?w=" not in result.markdown
+
+
+@pytest.mark.asyncio
 async def test_pure_outset_also_drops_the_size(tmp_path):
     """Padding on every side is still area the stored bytes do not cover."""
     png = _png_of(200, 200)
@@ -450,3 +493,95 @@ async def test_cropping_runs_off_the_event_loop(tmp_path):
     with Image.open(result.images[0].image_path) as stored:
         assert stored.size == (400, 200)
     assert "?w=400&h=200" in result.markdown
+
+
+def _oriented_jpeg(width: int, height: int, orientation: int) -> bytes:
+    """A JPEG whose EXIF asks the viewer to rotate it 90 degrees."""
+    image = Image.new("RGB", (width, height), "white")
+    exif = image.getexif()
+    exif[0x0112] = orientation
+    buffer = io.BytesIO()
+    image.save(buffer, format="JPEG", exif=exif)
+    return buffer.getvalue()
+
+
+@pytest.mark.asyncio
+async def test_crop_follows_exif_orientation(tmp_path):
+    """Word and browsers both display an EXIF-oriented photo rotated, so the
+    declared crop describes the rotated view. Cropping the raw pixels would
+    trim the wrong axis and, because the re-encode drops the orientation tag,
+    also lay the photo on its side."""
+    # 400x200 of pixels, displayed 200x400 because of the orientation tag.
+    jpeg = _oriented_jpeg(400, 200, 6)
+    # Half off the bottom of the *displayed* image: 200x400 -> 200x200.
+    placement = ImagePlacement(width_px=200, height_px=200, crop=SourceRect(bottom=0.5))
+
+    with _uploads_patch(tmp_path):
+        result = await extract_data_uri_images(
+            f"![p](data:image/jpeg;base64,{base64.b64encode(jpeg).decode()})\n",
+            _sizes_for(jpeg, placement),
+        )
+
+    with Image.open(result.images[0].image_path) as stored:
+        # Upright and trimmed on the displayed axis, so no orientation tag is
+        # needed to read it correctly any more.
+        assert stored.size == (200, 200)
+        assert stored.getexif().get(0x0112) is None
+    assert "?w=200&h=200" in result.markdown
+
+
+@pytest.mark.asyncio
+async def test_unoriented_image_is_not_transposed(tmp_path):
+    """`exif_transpose` copies the whole image, so it must not run for the
+    overwhelmingly common case of a photo that needs no rotation."""
+    png = _png_of(400, 200)
+    placement = ImagePlacement(width_px=400, height_px=100, crop=SourceRect(bottom=0.5))
+
+    with (
+        _uploads_patch(tmp_path),
+        patch.object(image_extraction.ImageOps, "exif_transpose") as transpose,
+    ):
+        result = await extract_data_uri_images(
+            _markdown_for(png), _sizes_for(png, placement)
+        )
+
+    transpose.assert_not_called()
+    with Image.open(result.images[0].image_path) as stored:
+        assert stored.size == (400, 100)
+
+
+@pytest.mark.asyncio
+async def test_concurrent_crops_are_bounded_process_wide(tmp_path):
+    """The pixel cap bounds one image; without this bound, crops from
+    concurrently converting documents decode side by side and the totals
+    still reach an OOM that no handler here gets to see."""
+    png = _png_of(64, 64)
+    placement = ImagePlacement(width_px=64, height_px=32, crop=SourceRect(bottom=0.5))
+    in_flight, peak, guard = 0, 0, threading.Lock()
+    real_crop_decoded = image_extraction._crop_decoded
+
+    def observed(content, crop):
+        nonlocal in_flight, peak
+        with guard:
+            in_flight += 1
+            peak = max(peak, in_flight)
+        try:
+            time.sleep(0.02)
+            return real_crop_decoded(content, crop)
+        finally:
+            with guard:
+                in_flight -= 1
+
+    with (
+        _uploads_patch(tmp_path),
+        patch.object(image_extraction, "_crop_decoded", observed),
+    ):
+        await asyncio.gather(
+            *(
+                extract_data_uri_images(_markdown_for(png), _sizes_for(png, placement))
+                for _ in range(8)
+            )
+        )
+
+    assert peak > 0, "the crop path did not run"
+    assert peak <= 2
