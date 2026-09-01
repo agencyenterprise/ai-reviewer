@@ -6,10 +6,11 @@ drawings are selected, how the render-source copy is built, and how rendered
 images are spliced back into the document.
 """
 
+import asyncio
 import io
 import os
 import tempfile
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from docx import Document
@@ -393,8 +394,6 @@ async def test_render_bails_on_render_source_count_mismatch(tmp_path):
 
 
 def _fake_process(returncode: int = 0, communicate=None):
-    from unittest.mock import MagicMock
-
     process = MagicMock()
     process.returncode = returncode
     process.communicate = communicate or AsyncMock(return_value=(b"", b"boom"))
@@ -440,9 +439,7 @@ async def test_render_bails_on_page_count_mismatch(tmp_path):
 
 @pytest.mark.asyncio
 async def test_render_bails_on_libreoffice_timeout(tmp_path):
-    import asyncio as aio
-
-    process = _fake_process(communicate=AsyncMock(side_effect=aio.TimeoutError))
+    process = _fake_process(communicate=AsyncMock(side_effect=asyncio.TimeoutError))
     with (
         patch(f"{MODULE}.shutil.which", return_value="/usr/bin/soffice"),
         patch(f"{MODULE}._write_render_source_docx", return_value=1),

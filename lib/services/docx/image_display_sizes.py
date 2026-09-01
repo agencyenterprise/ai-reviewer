@@ -2,10 +2,11 @@
 
 A DOCX stores an image's *display* dimensions (EMU) separately from the image
 bytes — a high-resolution logo is often shown small. mammoth drops those
-dimensions during conversion, so extraction reads them here, straight from the
-inline shapes, and matches them to extracted images by content hash: mammoth
-base64-encodes the image part's bytes verbatim, so the hash of the part blob
-equals the hash of the decoded data URI.
+dimensions during conversion, so extraction reads them here, straight from
+the body's drawing XML (inline and anchored alike), and matches them to
+extracted images by content hash: mammoth base64-encodes the image part's
+bytes verbatim, so the hash of the part blob equals the hash of the decoded
+data URI.
 """
 
 import logging
@@ -23,10 +24,10 @@ EMU_PER_CSS_PIXEL = 9525  # 914400 EMU per inch / 96 CSS px per inch
 class DisplaySizes:
     """Display sizes queued per content hash, consumed in document order.
 
-    The same image can appear more than once at different sizes (e.g. a logo
-    in a header and a footer); both the inline shapes and the converted
-    markdown list occurrences in document order, so a FIFO per hash pairs
-    them correctly.
+    The same image can appear more than once in the body at different sizes
+    (e.g. a figure repeated as a thumbnail); both the body's drawing XML and
+    the converted markdown list occurrences in document order, so a FIFO per
+    hash pairs them correctly.
     """
 
     def __init__(self) -> None:

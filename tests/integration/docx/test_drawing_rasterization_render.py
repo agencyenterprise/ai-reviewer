@@ -6,11 +6,16 @@ paragraph line mapper and the main conversion must agree on line numbers for
 documents whose rasterized drawings insert markdown lines.
 """
 
+import base64
+import io
 import os
+import re
 import shutil
 import struct
+from unittest.mock import AsyncMock, patch
 
 import pytest
+from PIL import Image
 from docx import Document
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
 from docx.opc.packuri import PackURI
@@ -176,8 +181,6 @@ async def test_mapper_refuses_to_anchor_when_rasterization_diverges(tmp_path):
     export-time rasterization fails: anchoring against a structurally
     different conversion would misplace every later comment, so the mapper
     must return nothing instead."""
-    from unittest.mock import AsyncMock, patch
-
     docx_path, _ = _build_document_with_chart(tmp_path)
     markdown = await _stored_markdown(docx_path)
     assert "data:image" in markdown
@@ -197,12 +200,6 @@ async def test_mapper_refuses_to_anchor_when_rasterization_diverges(tmp_path):
 async def test_rendered_chart_keeps_declared_aspect_ratio(tmp_path):
     """Geometric cropping must hold even for a blank/borderless drawing,
     where visible-pixel cropping has nothing to anchor on."""
-    import base64
-    import io
-    import re
-
-    from PIL import Image
-
     docx_path, _ = _build_document_with_chart(tmp_path)
     markdown = await _stored_markdown(docx_path)
 
@@ -218,12 +215,6 @@ async def test_rendered_chart_keeps_declared_aspect_ratio(tmp_path):
 async def test_anchored_chart_is_rendered_at_declared_extent(tmp_path):
     """Floating drawings carry position offsets; the render source converts
     them to inline so the geometric crop still holds."""
-    import base64
-    import io
-    import re
-
-    from PIL import Image
-
     anchored_chart = (
         "<w:drawing><wp:anchor>"
         '<wp:positionH relativeFrom="page"><wp:posOffset>1500000</wp:posOffset></wp:positionH>'
