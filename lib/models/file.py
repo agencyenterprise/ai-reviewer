@@ -118,7 +118,9 @@ class File(SQLModel, table=True):
         description="Revision number this file belongs to. NULL means shared across all revisions (e.g., supporting docs).",
     )
 
-    # Set for EXTRACTED_IMAGE rows only
+    # Set for EXTRACTED_IMAGE rows only. Where an image sits in the parent's
+    # markdown is not duplicated here: the parent's markdown references the
+    # image by id (draftdetective://{id}), so position derives from it.
     parent_file_id: uuid.UUID | None = Field(
         sa_column=Column(
             UUID(as_uuid=True),
@@ -128,11 +130,6 @@ class File(SQLModel, table=True):
         ),
         default=None,
         description="For extracted images: the file this image was extracted from",
-    )
-    line_number: int | None = Field(
-        sa_column=Column(Integer, nullable=True),
-        default=None,
-        description="For extracted images: 1-indexed line in the parent file's converted markdown where the image appears",
     )
 
     @property

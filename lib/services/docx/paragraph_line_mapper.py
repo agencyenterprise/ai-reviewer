@@ -6,6 +6,10 @@ read the sentinel positions out of the resulting markdown. Because the sentinels
 survive the docx → HTML → markdown pipeline as inline text and do not change the
 line count, the resulting line numbers are identical to those of the original
 markdown that issues were indexed against.
+
+Drawings are rasterized first, exactly like the main conversion: rendered
+charts occupy markdown lines, so skipping that step here would shift every
+line number after the first chart.
 """
 
 import logging
@@ -19,6 +23,7 @@ from docx.oxml.ns import qn
 from lxml import etree  # type: ignore[import-untyped]
 
 from lib.services.converters.markitdown import markitdown_converter
+from lib.services.docx.drawing_rasterization import rasterize_docx_drawings
 
 logger = logging.getLogger(__name__)
 
@@ -82,21 +87,31 @@ async def build_paragraph_line_ranges(docx_path: str) -> Dict[int, Tuple[int, in
     ``Document(docx_path).paragraphs`` — the same list consumed by the comment
     anchoring code.
     """
-    doc = Document(docx_path)
-    injected = _inject_markers(doc)
-    if injected == 0:
-        return {}
-
-    with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
-        tmp_path = tmp.name
+    rasterized_path = await rasterize_docx_drawings(docx_path)
     try:
-        doc.save(tmp_path)
-        markdown_with_markers = await markitdown_converter.convert_to_markdown(tmp_path)
-    finally:
+        doc = Document(rasterized_path or docx_path)
+        injected = _inject_markers(doc)
+        if injected == 0:
+            return {}
+
+        with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
+            tmp_path = tmp.name
         try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
+            doc.save(tmp_path)
+            markdown_with_markers = await markitdown_converter.convert_to_markdown(
+                tmp_path
+            )
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+    finally:
+        if rasterized_path:
+            try:
+                os.unlink(rasterized_path)
+            except OSError:
+                pass
 
     start_lines = _extract_marker_positions(markdown_with_markers)
     if len(start_lines) < injected:

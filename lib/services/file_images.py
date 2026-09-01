@@ -11,14 +11,13 @@ import os
 import uuid
 from typing import List
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
 from lib.models.file import File, FileRole
 from lib.services.files import get_file_by_id
 from lib.services.image_extraction import ExtractedImage
-from lib.services.uuid_utils import ensure_uuid
 
 
 async def replace_extracted_images(
@@ -52,23 +51,6 @@ async def replace_extracted_images(
                     description=image.alt or None,
                     revision=parent.revision,
                     parent_file_id=parent.id,
-                    line_number=image.line_number,
                 )
             )
         await session.commit()
-
-
-async def get_extracted_images(parent_file_id: uuid.UUID | str) -> List[File]:
-    """Return a file's extracted images, ordered by position in the markdown."""
-    normalized_parent_id = ensure_uuid(parent_file_id, "file ID")
-
-    async with get_async_db_session() as session:
-        stmt = (
-            select(File)
-            .where(
-                col(File.parent_file_id) == normalized_parent_id,
-                col(File.role) == FileRole.EXTRACTED_IMAGE,
-            )
-            .order_by(col(File.line_number))
-        )
-        return list((await session.execute(stmt)).scalars().all())

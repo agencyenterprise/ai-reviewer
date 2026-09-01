@@ -1,4 +1,4 @@
-import { DocumentImage } from '@/components/document-image';
+import { DocumentImage, documentUrlTransform } from '@/components/document-image';
 import type { Issue } from '@/lib/generated-api';
 import { SeverityEnum } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
@@ -162,7 +162,12 @@ export function DocumentMarkdownRenderer({
   // are applied imperatively via the effect below.
   const renderedMarkdown = useMemo(
     () => (
-      <ReactMarkdown remarkPlugins={REMARK_PLUGINS} rehypePlugins={REHYPE_PLUGINS} components={BLOCK_COMPONENTS}>
+      <ReactMarkdown
+        remarkPlugins={REMARK_PLUGINS}
+        rehypePlugins={REHYPE_PLUGINS}
+        components={BLOCK_COMPONENTS}
+        urlTransform={documentUrlTransform}
+      >
         {markdown}
       </ReactMarkdown>
     ),

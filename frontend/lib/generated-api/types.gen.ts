@@ -1427,12 +1427,6 @@ export type File = {
    * For extracted images: the file this image was extracted from
    */
   parent_file_id?: string | null;
-  /**
-   * Line Number
-   *
-   * For extracted images: 1-indexed line in the parent file's converted markdown where the image appears
-   */
-  line_number?: number | null;
 };
 
 /**

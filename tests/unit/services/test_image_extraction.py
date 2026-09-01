@@ -14,7 +14,7 @@ import pytest
 from lib.services.image_extraction import (
     EXTRACTED_IMAGES_DIRNAME,
     extract_data_uri_images,
-    image_endpoint_path,
+    image_reference,
 )
 
 PNG_BYTES = base64.b64decode(
@@ -49,7 +49,8 @@ async def test_extracts_image_and_rewrites_src(tmp_path):
     with open(image.image_path, "rb") as f:
         assert f.read() == PNG_BYTES
 
-    expected_src = image_endpoint_path(image.id)
+    expected_src = image_reference(image.id)
+    assert expected_src == f"draftdetective://{image.id}"
     assert result.markdown == f"Before.\n\n![Figure 1]({expected_src})\n\nAfter."
 
 
@@ -110,7 +111,7 @@ async def test_undecodable_payload_is_skipped(tmp_path):
     assert len(result.images) == 1
     assert result.images[0].line_number == 2
     assert "![bad](data:image/png;base64,AAAA=BADPADDING)" in result.markdown
-    assert f"![good]({image_endpoint_path(result.images[0].id)})" in result.markdown
+    assert f"![good]({image_reference(result.images[0].id)})" in result.markdown
 
 
 @pytest.mark.asyncio
@@ -123,3 +124,40 @@ async def test_markdown_without_images_is_returned_verbatim(tmp_path):
     assert result.markdown == markdown
     assert result.images == []
     assert not os.path.exists(os.path.join(str(tmp_path), EXTRACTED_IMAGES_DIRNAME))
+
+@pytest.mark.asyncio
+async def test_known_display_size_emits_sized_img_tag(tmp_path):
+    from lib.services.docx.image_display_sizes import DisplaySizes
+
+    sizes = DisplaySizes()
+    content_hash = __import__("xxhash").xxh128(PNG_BYTES).hexdigest()
+    sizes.add(content_hash, 150, 48)
+    sizes.add(content_hash, 75, 24)
+    markdown = (
+        f"![logo](data:image/png;base64,{PNG_B64})\n\n"
+        f"![logo small](data:image/png;base64,{PNG_B64})\n"
+    )
+
+    with _uploads_patch(tmp_path):
+        result = await extract_data_uri_images(markdown, sizes)
+
+    first, second = result.images
+    # Sizes are consumed in document order, so the same image content can
+    # appear at two different sizes. The size rides in the reference's query
+    # parameters so the image stays a plain (paragraph-wrapped) markdown image.
+    assert f"![logo](draftdetective://{first.id}?w=150&h=48)" in result.markdown
+    assert f"![logo small](draftdetective://{second.id}?w=75&h=24)" in result.markdown
+    assert result.markdown.count("\n") == markdown.count("\n")
+
+
+@pytest.mark.asyncio
+async def test_unknown_display_size_keeps_markdown_image(tmp_path):
+    from lib.services.docx.image_display_sizes import DisplaySizes
+
+    markdown = f"![fig](data:image/png;base64,{PNG_B64})\n"
+
+    with _uploads_patch(tmp_path):
+        result = await extract_data_uri_images(markdown, DisplaySizes())
+
+    assert f"![fig](draftdetective://{result.images[0].id})" in result.markdown
+    assert "?w=" not in result.markdown

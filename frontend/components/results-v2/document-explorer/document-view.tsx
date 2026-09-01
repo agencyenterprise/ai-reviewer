@@ -4,7 +4,7 @@ import type { Issue } from '@/lib/generated-api';
 import { SeverityEnum } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import type { Element } from 'hast';
-import { DocumentImage } from '@/components/document-image';
+import { DocumentImage, documentUrlTransform } from '@/components/document-image';
 import { SEVERITY } from '@/lib/severity-style';
 import { MarginLayer } from './margin-layer';
 import React, { Ref, createContext, useContext, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
@@ -340,7 +340,12 @@ export function DocumentView({
   // are applied imperatively below so a filter change never reparses.
   const renderedMarkdown = useMemo(
     () => (
-      <ReactMarkdown remarkPlugins={REMARK_PLUGINS} rehypePlugins={REHYPE_PLUGINS} components={BLOCK_COMPONENTS}>
+      <ReactMarkdown
+        remarkPlugins={REMARK_PLUGINS}
+        rehypePlugins={REHYPE_PLUGINS}
+        components={BLOCK_COMPONENTS}
+        urlTransform={documentUrlTransform}
+      >
         {markdown}
       </ReactMarkdown>
     ),

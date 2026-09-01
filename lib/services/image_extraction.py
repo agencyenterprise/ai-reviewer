@@ -3,11 +3,13 @@
 markitdown (via mammoth) inlines DOCX images as base64 data URIs. Keeping those
 in the stored markdown would bloat the ``files.markdown`` column and every LLM
 prompt, so main-document conversion extracts the bytes to disk and rewrites
-each src to the existing file-download endpoint, addressed by the ``files`` row
-the caller persists for it (role EXTRACTED_IMAGE). A rewrite never adds or
-removes lines: each image stays on the single markdown line mammoth produced,
-which is what keeps issue line anchors, ``#L`` links and the DOCX comment
-export valid.
+each src to a ``draftdetective://{file_id}`` reference, addressed by the
+``files`` row the caller persists for it (role EXTRACTED_IMAGE). The scheme
+keeps persisted markdown independent of API routing: each consumer resolves it
+to its own retrieval mechanism (the frontend to the download endpoint, agents
+to an image tool). A rewrite never adds or removes lines: each image stays on
+the single markdown line mammoth produced, which is what keeps issue line
+anchors, ``#L`` links and the DOCX comment export valid.
 """
 
 import base64
@@ -16,12 +18,14 @@ import logging
 import os
 import re
 import uuid
+from typing import Optional
 
 import aiofiles
 from pydantic import BaseModel, Field
 from xxhash import xxh128
 
 from lib.config.env import config
+from lib.services.docx.image_display_sizes import DisplaySizes
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +48,13 @@ _MIME_EXTENSIONS = {
     "image/webp": ".webp",
     "image/tiff": ".tiff",
     "image/svg+xml": ".svg",
+    # Metafiles are normally rendered to PNG upstream (drawing rasterization);
+    # these land here only when that step was skipped. Browsers can't render
+    # them, so the viewer shows the alt-text fallback.
+    "image/emf": ".emf",
+    "image/x-emf": ".emf",
+    "image/wmf": ".wmf",
+    "image/x-wmf": ".wmf",
 }
 
 
@@ -68,23 +79,38 @@ class ImageExtractionResult(BaseModel):
     images: list[ExtractedImage]
 
 
-def image_endpoint_path(image_file_id: uuid.UUID | str) -> str:
-    """Relative URL the rewritten markdown points at.
+# Storage-agnostic reference scheme used in persisted markdown. Never a URL:
+# consumers translate it (the document viewers to the file-download endpoint,
+# agents to their image tool), so API routes can move without touching rows.
+IMAGE_REFERENCE_SCHEME = "draftdetective://"
 
-    The regular file-download endpoint, addressed by the image's own ``files``
-    row; the frontend proxy route of the same shape makes the markdown work
-    from either origin.
+
+def image_reference(
+    image_file_id: uuid.UUID | str, display_size: Optional[tuple[int, int]] = None
+) -> str:
+    """The src the rewritten markdown carries for an image's ``files`` row.
+
+    The display size rides along as query parameters rather than as a raw
+    ``<img>`` tag: a markdown image stays wrapped in a paragraph, which is
+    what the viewers hang line numbers and issue anchoring on.
     """
-    return f"/api/files/download/{image_file_id}"
+    reference = f"{IMAGE_REFERENCE_SCHEME}{image_file_id}"
+    if display_size and display_size[0] > 0 and display_size[1] > 0:
+        reference += f"?w={display_size[0]}&h={display_size[1]}"
+    return reference
 
 
-async def extract_data_uri_images(markdown: str) -> ImageExtractionResult:
+async def extract_data_uri_images(
+    markdown: str, display_sizes: Optional[DisplaySizes] = None
+) -> ImageExtractionResult:
     """Extract every full data-URI image in ``markdown`` to disk.
 
     Returns the markdown with each extracted image's src rewritten to
-    ``image_endpoint_path`` plus the metadata needed to persist the images as
-    ``files`` rows. Images that fail to decode are left untouched. Line count
-    is preserved.
+    ``image_reference`` plus the metadata needed to persist the images as
+    ``files`` rows. Images whose display size is known (``display_sizes``,
+    read from the source DOCX) carry it in the reference's query parameters
+    so the viewer shows them at the size the document intended. Images that
+    fail to decode are left untouched. Line count is preserved.
     """
     matches = list(_DATA_URI_IMAGE_RE.finditer(markdown))
     if not matches:
@@ -108,6 +134,7 @@ async def extract_data_uri_images(markdown: str) -> ImageExtractionResult:
 
         mime_type = match.group("mime")
         image_path, content_hash = await _write_image(images_dir, content, mime_type)
+        size = display_sizes.take(content_hash) if display_sizes else None
 
         image = ExtractedImage(
             image_path=image_path,
@@ -121,7 +148,7 @@ async def extract_data_uri_images(markdown: str) -> ImageExtractionResult:
 
         title = match.group("title") or ""
         replacement = (
-            f"![{image.alt}]({image_endpoint_path(image.id)}{title})"
+            f"![{image.alt}]({image_reference(image.id, size)}{title})"
         )
         pieces.append(markdown[cursor : match.start()])
         pieces.append(replacement)
