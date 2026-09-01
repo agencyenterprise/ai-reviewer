@@ -11,9 +11,13 @@ rasterizes at LibreOffice's default object size regardless of the size the
 document declares — blurry, wrong aspect, frame lines clipped at the bitmap
 edge. PDF export keeps drawings as vectors at their real size, so each
 renderable drawing is isolated on its own page of a render-source copy,
-exported to PDF once, rendered at high resolution with pypdfium2, and cropped
-to the drawing's own bounds. The rendered image is then spliced into the
-drawing in place of the original graphic, preserving its declared extent.
+exported to PDF once, and rendered at high resolution with pypdfium2. The
+render source has zero page margins and zero paragraph spacing, which pins
+each drawing to its page's top-left corner — so the crop is the drawing's
+declared extent, computed geometrically, never guessed from visible pixels
+(a borderless white chart has no visible outer bounds). The rendered image
+is then spliced into the drawing in place of the original graphic,
+preserving its declared extent.
 
 A drawing is renderable only when it sits alone in a text-free top-level
 paragraph — the shape Word produces for figures — so each PDF page contains
@@ -26,18 +30,16 @@ would disagree.
 """
 
 import asyncio
-import io
 import logging
 import os
 import shutil
 import tempfile
-from typing import Optional
+from typing import Any, Optional
 
 import pypdfium2 as pdfium  # type: ignore[import-untyped]
 from docx import Document
 from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import nsdecls, qn
-from PIL import Image, ImageChops
 
 # PDFium is not thread-safe; every pypdfium2 use in the codebase serializes on
 # this lock (see lib/services/converters/pypdfium.py).
@@ -58,6 +60,7 @@ _METAFILE_CONTENT_TYPES = {
 _RENDER_TIMEOUT = 120
 # 4× the PDF's 72 dpi user units ≈ 288 dpi — crisp at document display size.
 _PDF_RENDER_SCALE = 4
+_EMU_PER_POINT = 12700
 
 
 async def rasterize_docx_drawings(docx_path: str) -> Optional[str]:
@@ -85,7 +88,11 @@ async def _rasterize_docx_drawings(docx_path: str) -> Optional[str]:
     if not renderable:
         return None
 
-    rendered = await _render_drawings_to_images(docx_path, expected=len(renderable))
+    extents = [
+        (int(extent.get("cx", "0")), int(extent.get("cy", "0")))
+        for extent in (d.find(f".//{qn('wp:extent')}") for d in renderable)
+    ]
+    rendered = await _render_drawings_to_images(docx_path, extents)
     if rendered is None:
         return None
     tmp_render_dir, image_paths = rendered
@@ -129,23 +136,27 @@ def _is_render_target(document, drawing) -> bool:
     return part.content_type in _METAFILE_CONTENT_TYPES
 
 
-def _renderable_paragraphs(document) -> list[tuple[int, object]]:
+def _renderable_paragraphs(document) -> list[tuple[int, Any]]:
     """``(body child index, drawing)`` for every renderable drawing.
 
-    A renderable drawing is a render target sitting alone in a text-free
-    top-level paragraph. Selection is by structural position, so two loads of
-    the same file yield the same indices in the same order — that is what
-    pairs each drawing with its page in the render-source PDF.
+    A renderable drawing is a render target with a declared extent, sitting
+    alone in a text-free top-level paragraph. Selection is by structural
+    position, so two loads of the same file yield the same indices in the
+    same order — that is what pairs each drawing with its page in the
+    render-source PDF.
     """
-    renderable: list[tuple[int, object]] = []
+    renderable: list[tuple[int, Any]] = []
     for index, element in enumerate(document.element.body):
         if element.tag != qn("w:p"):
             continue
         drawings = list(element.iter(qn("w:drawing")))
         if len(drawings) != 1 or "".join(element.itertext()).strip():
             continue
-        if _is_render_target(document, drawings[0]):
-            renderable.append((index, drawings[0]))
+        drawing = drawings[0]
+        if drawing.find(f".//{qn('wp:extent')}") is None:
+            continue  # no declared size to render or crop to
+        if _is_render_target(document, drawing):
+            renderable.append((index, drawing))
     return renderable
 
 
@@ -171,7 +182,38 @@ def _write_render_source_docx(src_path: str, dst_path: str) -> int:
         if pPr.find(qn("w:pageBreakBefore")) is None:
             pPr.insert(0, OxmlElement("w:pageBreakBefore"))
 
-    # Headers and footers would end up inside the page crop.
+    # Pin every drawing to its page's top-left corner so the crop can be
+    # computed from the declared extent alone: left-aligned (figures are
+    # typically centered), zero paragraph spacing and indentation, zero page
+    # margins, and no headers or footers.
+    for paragraph in kept:
+        pPr = paragraph.get_or_add_pPr()
+        justification = pPr.find(qn("w:jc"))
+        if justification is None:
+            justification = OxmlElement("w:jc")
+            pPr.append(justification)
+        justification.set(qn("w:val"), "left")
+        spacing = pPr.find(qn("w:spacing"))
+        if spacing is None:
+            spacing = OxmlElement("w:spacing")
+            pPr.append(spacing)
+        spacing.set(qn("w:before"), "0")
+        spacing.set(qn("w:after"), "0")
+        indent = pPr.find(qn("w:ind"))
+        if indent is None:
+            indent = OxmlElement("w:ind")
+            pPr.append(indent)
+        for attribute in ("w:left", "w:right", "w:firstLine", "w:hanging"):
+            indent.set(qn(attribute), "0")
+
+    for sectPr in document.element.iter(qn("w:sectPr")):
+        margins = sectPr.find(qn("w:pgMar"))
+        if margins is None:
+            margins = OxmlElement("w:pgMar")
+            sectPr.append(margins)
+        for attribute in ("top", "right", "bottom", "left", "header", "footer", "gutter"):
+            margins.set(qn(f"w:{attribute}"), "0")
+
     for tag in ("w:headerReference", "w:footerReference"):
         for reference in list(document.element.iter(qn(tag))):
             reference.getparent().remove(reference)
@@ -180,45 +222,48 @@ def _write_render_source_docx(src_path: str, dst_path: str) -> int:
     return len(kept)
 
 
-def _render_pdf_pages(pdf_path: str, out_dir: str) -> list[str]:
-    """Render every PDF page at high resolution, cropped to its content."""
+def _render_pdf_pages(
+    pdf_path: str, out_dir: str, extents: list[tuple[int, int]]
+) -> list[str]:
+    """Render every PDF page at high resolution, cropped to its drawing.
+
+    The render source pins each drawing to its page's top-left corner, so the
+    crop is simply the drawing's declared extent — a geometric fact, not a
+    guess from visible pixels (a borderless white chart has no visible outer
+    bounds to guess from), and the aspect ratio matches the display size by
+    construction.
+    """
     pdf = pdfium.PdfDocument(pdf_path)
     try:
         paths: list[str] = []
-        for index in range(len(pdf)):
+        for index in range(min(len(pdf), len(extents))):
             page = pdf[index]
             try:
                 image = page.render(scale=_PDF_RENDER_SCALE).to_pil()
             finally:
                 page.close()
+            cx, cy = extents[index]
+            width = round(cx / _EMU_PER_POINT * _PDF_RENDER_SCALE)
+            height = round(cy / _EMU_PER_POINT * _PDF_RENDER_SCALE)
+            image = image.crop(
+                (0, 0, min(width, image.width), min(height, image.height))
+            )
             path = os.path.join(out_dir, f"drawing-{index}.png")
-            _trim_background(image).save(path, format="PNG")
+            image.save(path, format="PNG")
             paths.append(path)
+        if len(pdf) != len(extents):
+            return []  # page/drawing mismatch; caller bails on the count
         return paths
     finally:
         pdf.close()
 
 
-def _trim_background(image: "Image.Image") -> "Image.Image":
-    """Crop the page whitespace around the drawing.
-
-    The drawing is rendered onto a full page, so its content sits in a sea of
-    background; trimming it restores the drawing's own aspect ratio, which is
-    what the document's declared display size assumes.
-    """
-    rgb = image.convert("RGB")
-    background = Image.new("RGB", rgb.size, rgb.getpixel((0, 0)))
-    bbox = ImageChops.difference(rgb, background).getbbox()
-    if bbox is None:
-        return rgb
-    return rgb.crop(bbox)
-
-
 async def _render_drawings_to_images(
-    docx_path: str, expected: int
+    docx_path: str, extents: list[tuple[int, int]]
 ) -> Optional[tuple[str, list[str]]]:
     """Render the document's renderable drawings; return (tmp_dir, image
     paths in drawing order), or None on failure. Caller removes tmp_dir."""
+    expected = len(extents)
     libreoffice_cmd = shutil.which("soffice") or shutil.which("libreoffice")
     if not libreoffice_cmd:
         logger.warning("LibreOffice not found; drawings stay unrendered")
@@ -265,7 +310,9 @@ async def _render_drawings_to_images(
             return None
 
         async with _PDFIUM_LOCK:
-            image_paths = await asyncio.to_thread(_render_pdf_pages, pdf_path, tmp_dir)
+            image_paths = await asyncio.to_thread(
+                _render_pdf_pages, pdf_path, tmp_dir, extents
+            )
 
         if len(image_paths) != expected:
             logger.warning(

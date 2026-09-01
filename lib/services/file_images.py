@@ -46,13 +46,14 @@ async def replace_extracted_images(
             delete(File).where(col(File.parent_file_id) == parent.id)
         )
 
+        stale_paths: List[str] = []
         for path, row_id in previous:
             # The new rows are not inserted yet, so paths they will reference
             # must be treated as still in use.
             if path in incoming_paths:
                 continue
             if not await _is_path_shared(session, path, row_id):
-                _delete_file_from_disk(path)
+                stale_paths.append(path)
 
         for position, image in enumerate(images):
             extension = os.path.splitext(image.image_path)[1]
@@ -73,3 +74,8 @@ async def replace_extracted_images(
                 )
             )
         await session.commit()
+
+    # Disk cleanup strictly after the commit: a failed transaction restores
+    # the old rows, and restored rows must never point at deleted files.
+    for path in stale_paths:
+        _delete_file_from_disk(path)

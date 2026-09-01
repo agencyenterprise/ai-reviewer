@@ -69,8 +69,16 @@ async def generate_docx(
 
     # Build paragraph → (start_line, end_line) map via marker injection. This is
     # authoritative (no fuzzy matching) and resolves each issue's line range to a
-    # target docx paragraph for both the comments and add-in flows.
-    paragraph_line_ranges = await build_paragraph_line_ranges(main_file.file_path)
+    # target docx paragraph for both the comments and add-in flows. The persisted
+    # markdown's line count guards against a structurally different conversion
+    # (e.g. drawing rasterization failing now but not at ingestion) silently
+    # anchoring every comment to the wrong paragraph.
+    paragraph_line_ranges = await build_paragraph_line_ranges(
+        main_file.file_path,
+        expected_line_count=(
+            main_file.markdown.count("\n") + 1 if main_file.markdown else None
+        ),
+    )
 
     # Query persisted issues directly from DB (faster than computing from workflow states)
     # get_project_issues excludes archived issues by default

@@ -165,3 +165,55 @@ async def test_disk_file_shared_with_another_row_is_kept():
         await replace_extracted_images(parent.id, [_extracted()])
 
     disk_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_disk_cleanup_happens_only_after_commit():
+    """A failed transaction restores the old rows; their files must still
+    exist, so deletion may only run once the commit has succeeded."""
+    parent = _parent()
+    events: list = []
+
+    session = _FakeSession(previous_rows=[_previous_row("/uploads/extracted_images/old.png")])
+    original_commit = session.commit
+
+    async def logging_commit():
+        events.append("commit")
+        await original_commit()
+
+    session.commit = logging_commit
+
+    with (
+        patch(f"{MODULE}.get_file_by_id", new=AsyncMock(return_value=parent)),
+        patch(f"{MODULE}.get_async_db_session", return_value=session),
+        patch(f"{MODULE}._is_path_shared", new=AsyncMock(return_value=False)),
+        patch(
+            f"{MODULE}._delete_file_from_disk",
+            side_effect=lambda path: events.append(f"disk:{path}"),
+        ),
+    ):
+        await replace_extracted_images(parent.id, [_extracted()])
+
+    assert events == ["commit", "disk:/uploads/extracted_images/old.png"]
+
+
+@pytest.mark.asyncio
+async def test_no_disk_cleanup_when_commit_fails():
+    parent = _parent()
+    session = _FakeSession(previous_rows=[_previous_row("/uploads/extracted_images/old.png")])
+
+    async def failing_commit():
+        raise RuntimeError("constraint violation")
+
+    session.commit = failing_commit
+
+    with (
+        patch(f"{MODULE}.get_file_by_id", new=AsyncMock(return_value=parent)),
+        patch(f"{MODULE}.get_async_db_session", return_value=session),
+        patch(f"{MODULE}._is_path_shared", new=AsyncMock(return_value=False)),
+        patch(f"{MODULE}._delete_file_from_disk") as disk_mock,
+        pytest.raises(RuntimeError),
+    ):
+        await replace_extracted_images(parent.id, [_extracted()])
+
+    disk_mock.assert_not_called()

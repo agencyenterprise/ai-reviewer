@@ -122,7 +122,9 @@ async def test_chart_document_line_parity_with_paragraph_mapper(tmp_path):
     # The chart really rendered — otherwise parity would hold trivially.
     assert "data:image" in markdown
 
-    ranges = await build_paragraph_line_ranges(docx_path)
+    ranges = await build_paragraph_line_ranges(
+        docx_path, expected_line_count=markdown.count("\n") + 1
+    )
     lines = markdown.split("\n")
 
     assert len(ranges) == len(texts)
@@ -166,3 +168,47 @@ async def test_metafile_picture_is_rendered_to_png(tmp_path):
 
     assert "data:image/png" in markdown
     assert "x-emf" not in markdown
+
+
+@pytest.mark.asyncio
+async def test_mapper_refuses_to_anchor_when_rasterization_diverges(tmp_path):
+    """Ingestion rendered the chart (stored markdown has its lines) but the
+    export-time rasterization fails: anchoring against a structurally
+    different conversion would misplace every later comment, so the mapper
+    must return nothing instead."""
+    from unittest.mock import AsyncMock, patch
+
+    docx_path, _ = _build_document_with_chart(tmp_path)
+    markdown = await _stored_markdown(docx_path)
+    assert "data:image" in markdown
+
+    with patch(
+        "lib.services.docx.paragraph_line_mapper.rasterize_docx_drawings",
+        new=AsyncMock(return_value=None),
+    ):
+        ranges = await build_paragraph_line_ranges(
+            docx_path, expected_line_count=markdown.count("\n") + 1
+        )
+
+    assert ranges == {}
+
+
+@pytest.mark.asyncio
+async def test_rendered_chart_keeps_declared_aspect_ratio(tmp_path):
+    """Geometric cropping must hold even for a blank/borderless drawing,
+    where visible-pixel cropping has nothing to anchor on."""
+    import base64
+    import io
+    import re
+
+    from PIL import Image
+
+    docx_path, _ = _build_document_with_chart(tmp_path)
+    markdown = await _stored_markdown(docx_path)
+
+    match = re.search(r"data:image/png;base64,([A-Za-z0-9+/=]+)", markdown)
+    assert match
+    image = Image.open(io.BytesIO(base64.b64decode(match.group(1))))
+    # The synthetic chart has no chart part behind it, so it renders blank —
+    # exactly the case where only a geometric crop preserves the 2:1 extent.
+    assert abs(image.width / image.height - 2.0) < 0.01

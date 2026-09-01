@@ -23,9 +23,9 @@ from PIL import Image
 from lib.services.docx.drawing_rasterization import (
     CHART_GRAPHIC_URI,
     PICTURE_GRAPHIC_URI,
+    _render_pdf_pages,
     _renderable_paragraphs,
     _replace_drawing_with_image,
-    _trim_background,
     _write_render_source_docx,
     rasterize_docx_drawings,
 )
@@ -241,22 +241,6 @@ def test_replace_drawing_without_extent_fails(tmp_path):
     assert not _replace_drawing_with_image(document, drawing, _png_file(tmp_path))
 
 
-# --- page-render cropping ----------------------------------------------------
-
-
-def test_trim_background_crops_to_content():
-    page = Image.new("RGB", (200, 100), "white")
-    page.paste(Image.new("RGB", (10, 10), "black"), (50, 20))
-
-    assert _trim_background(page).size == (10, 10)
-
-
-def test_trim_background_keeps_solid_image():
-    page = Image.new("RGB", (30, 30), "white")
-
-    assert _trim_background(page).size == (30, 30)
-
-
 # --- orchestration -----------------------------------------------------------
 
 
@@ -320,7 +304,11 @@ async def test_rasterize_swallows_failures(tmp_path):
 
 def test_drawing_without_graphic_data_is_not_renderable():
     document = Document()
-    _append_paragraph(document, "<w:drawing><wp:inline/></w:drawing>")
+    _append_paragraph(
+        document,
+        '<w:drawing><wp:inline><wp:extent cx="9525" cy="9525"/>'
+        "<a:graphic/></wp:inline></w:drawing>",
+    )
 
     assert _renderable_paragraphs(document) == []
 
@@ -375,19 +363,17 @@ async def test_rasterize_returns_none_when_rendering_fails(tmp_path):
 
 @pytest.mark.asyncio
 async def test_rasterize_returns_none_when_nothing_could_be_replaced(tmp_path):
-    """A renderable drawing whose splice fails (here: no extent) must not
-    produce a document identical to the original under a new name."""
-    document = Document()
-    _append_paragraph(document, _drawing_xml(_chart_graphic_data(), with_extent=False))
-    src = str(tmp_path / "no-extent.docx")
-    document.save(src)
-
+    """A renderable drawing whose splice fails must not produce a document
+    identical to the original under a new name."""
     render_dir = tempfile.mkdtemp()  # removed by the function under test
-    with patch(
-        f"{MODULE}._render_drawings_to_images",
-        new=AsyncMock(return_value=(render_dir, [_png_file(tmp_path)])),
+    with (
+        patch(
+            f"{MODULE}._render_drawings_to_images",
+            new=AsyncMock(return_value=(render_dir, [_png_file(tmp_path)])),
+        ),
+        patch(f"{MODULE}._replace_drawing_with_image", return_value=False),
     ):
-        assert await rasterize_docx_drawings(src) is None
+        assert await rasterize_docx_drawings(_chart_docx(tmp_path)) is None
     assert not os.path.exists(render_dir)
 
 
@@ -483,3 +469,80 @@ async def test_replace_drawing_survives_image_part_failure(tmp_path):
 
     # The drawing is left untouched for the caller's replaced-count guard.
     assert _graphic_uri(drawing) == CHART_GRAPHIC_URI
+
+
+def test_chart_without_extent_is_not_renderable():
+    """No declared size means nothing to render at or crop to."""
+    document = Document()
+    _append_paragraph(document, _drawing_xml(_chart_graphic_data(), with_extent=False))
+
+    assert _renderable_paragraphs(document) == []
+
+
+def test_render_source_pins_drawings_to_page_origin(tmp_path):
+    """Zero margins/spacing/indent make the geometric crop valid: the drawing
+    occupies exactly its declared extent from the page's top-left corner."""
+    document = Document()
+    _append_paragraph(document, _drawing_xml(_chart_graphic_data()))
+    src, dst = str(tmp_path / "src.docx"), str(tmp_path / "dst.docx")
+    document.save(src)
+
+    assert _write_render_source_docx(src, dst) == 1
+
+    rendered = Document(dst)
+    margins = rendered.element.body.find(qn("w:sectPr")).find(qn("w:pgMar"))
+    assert {margins.get(qn(f"w:{a}")) for a in ("top", "right", "bottom", "left")} == {"0"}
+    paragraph = next(el for el in rendered.element.body if el.tag == qn("w:p"))
+    pPr = paragraph.find(qn("w:pPr"))
+    spacing = pPr.find(qn("w:spacing"))
+    assert (spacing.get(qn("w:before")), spacing.get(qn("w:after"))) == ("0", "0")
+    assert pPr.find(qn("w:ind")).get(qn("w:left")) == "0"
+    # Centered figures would otherwise sit mid-page, outside the crop.
+    assert pPr.find(qn("w:jc")).get(qn("w:val")) == "left"
+
+
+def test_render_pdf_pages_crops_to_declared_extent(tmp_path):
+    """Pages are cropped geometrically to each drawing's extent — the crop
+    must not depend on what is visible (a blank drawing crops the same)."""
+    # A 2-page PDF of 200x100pt pages (PIL writes PDFs at 72 dpi).
+    pages = [
+        Image.new("RGB", (200, 100), "white"),
+        Image.new("RGB", (200, 100), "magenta"),
+    ]
+    pdf_path = str(tmp_path / "pages.pdf")
+    pages[0].save(pdf_path, save_all=True, append_images=pages[1:])
+
+    extents = [
+        (150 * 12700, 50 * 12700),  # 150x50pt
+        (400 * 12700, 400 * 12700),  # larger than the page: clamped
+    ]
+    paths = _render_pdf_pages(pdf_path, str(tmp_path), extents)
+
+    scale = 4
+    first, second = (Image.open(p) for p in paths)
+    assert first.size == (150 * scale, 50 * scale)
+    assert second.size == (200 * scale, 100 * scale)  # clamped to the page
+
+
+def test_render_pdf_pages_signals_page_count_mismatch(tmp_path):
+    page = Image.new("RGB", (100, 100), "white")
+    pdf_path = str(tmp_path / "one-page.pdf")
+    page.save(pdf_path)
+
+    assert _render_pdf_pages(pdf_path, str(tmp_path), [(9525, 9525)] * 2) == []
+
+
+def test_render_source_creates_page_margins_when_absent(tmp_path):
+    document = Document()
+    _append_paragraph(document, _drawing_xml(_chart_graphic_data()))
+    sectPr = document.element.body.get_or_add_sectPr()
+    margins = sectPr.find(qn("w:pgMar"))
+    if margins is not None:
+        sectPr.remove(margins)
+    src, dst = str(tmp_path / "src.docx"), str(tmp_path / "dst.docx")
+    document.save(src)
+
+    assert _write_render_source_docx(src, dst) == 1
+
+    rendered_margins = Document(dst).element.body.find(qn("w:sectPr")).find(qn("w:pgMar"))
+    assert rendered_margins.get(qn("w:top")) == "0"
