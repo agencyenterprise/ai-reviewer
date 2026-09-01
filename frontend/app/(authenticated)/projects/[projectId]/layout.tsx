@@ -6,7 +6,7 @@ import { useWorkflowProgressToast } from '@/hooks/use-workflow-progress-toast';
 import { getErrorMessage, isApiError } from '@/lib/api-error';
 import { AccessLevel, ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
-import { isAnyWorkflowProcessing, needsHumanApproval } from '@/lib/workflow-state';
+import { hasWorkflowProgressToShow, needsHumanApproval } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { FileXIcon, LockIcon } from 'lucide-react';
 import { useParams } from 'next/navigation';
@@ -40,14 +40,9 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
     setSelectedRevision(null);
   }, []);
 
-  const isProcessing = isAnyWorkflowProcessing(workflowDetails);
-  const awaitingHumanApproval = needsHumanApproval(workflowDetails);
-  // HumanApproval stays Pending/Running until the user approves, which keeps isProcessing true even though
-  // the pipeline is intentionally paused. The progress API then has no active step → "Going to next step...".
-  const showWorkflowProgressToast = isProcessing && !awaitingHumanApproval;
-
-  // Show progress in toast when automated workflows are running (not while waiting on reference review / approve)
-  useWorkflowProgressToast(projectId, showWorkflowProgressToast);
+  // Show progress in toast while assessments are actually running. A pipeline
+  // parked on the reference-review gate doesn't count — see hasWorkflowProgressToShow.
+  useWorkflowProgressToast(projectId, hasWorkflowProgressToShow(workflowDetails));
 
   const updateTitleMutation = useMutation({
     mutationFn: async (newTitle: string) => {

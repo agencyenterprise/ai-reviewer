@@ -179,3 +179,19 @@ export function needsHumanApproval(workflowRuns: WorkflowRunDetail[]): boolean {
   const state = humanApprovalRun.state as HumanApprovalState | null;
   return !state?.approved;
 }
+
+/**
+ * Whether the pipeline has work in flight worth showing progress for.
+ *
+ * A run that is only Pending doesn't count while a human-approval gate is
+ * outstanding: HumanApproval and the runs behind it stay Pending until the
+ * user approves, so counting them would leave an empty progress toast on
+ * screen for as long as the review takes. A Running run always counts — the
+ * rest of the assessments keep working while the gate waits, and that is
+ * exactly what the toast is there to show.
+ */
+export function hasWorkflowProgressToShow(workflowRuns: WorkflowRunDetail[]): boolean {
+  if (workflowRuns.some((workflowRun) => workflowRun.run.status === WorkflowRunStatus.Running)) return true;
+  if (needsHumanApproval(workflowRuns)) return false;
+  return isAnyWorkflowProcessing(workflowRuns);
+}
