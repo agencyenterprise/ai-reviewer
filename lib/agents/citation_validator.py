@@ -71,8 +71,9 @@ class CitationAssessment(BaseModel):
         description=(
             "The full resolution chain from the in-text citation to the supporting "
             "file, with every intermediate jump you actually took, joined by ' → '. "
-            "Always start with the citation marker as it appears in the text and end "
-            "with the supporting file name. Include the bibliography entry as "
+            "Always start with the citation marker as it appears in the text, and end "
+            "with the supporting file name — or with 'No supporting file available' "
+            "when no supporting file was matched. Include the bibliography entry as "
             "'Reference: \"<text>\"', and — when the citation is a footnote marker — "
             "the footnote entry it points to. Identify the bibliography entry by its "
             "text, never by a number or position in the bibliography; truncate a very "
@@ -86,10 +87,8 @@ class CitationAssessment(BaseModel):
             "Group, “World Bank Open Data,” 2024\" → Reference: \"World Bank Group, "
             "“World Bank Open Data,” webpage, undated. As of October 15, 2024: "
             "https://data.worldbank.org/\" → world_bank_open_data.md'. "
-            "When no supporting file was matched, end the chain with "
-            "'No supporting file available'. Do not "
-            "include file_id UUIDs in this string; the file_id belongs in each entry "
-            "of evidence_sources."
+            "Do not include file_id UUIDs in this string; the file_id belongs in each "
+            "entry of evidence_sources."
         ),
     )
 
