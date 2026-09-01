@@ -56,7 +56,9 @@ class DocumentProcessingManifest(
         from lib.services.files import get_files_by_project_id, load_file_document
 
         project_files = await get_files_by_project_id(
-            config.project_id, revision=revision
+            config.project_id,
+            roles=[FileRole.MAIN, FileRole.SUPPORT, FileRole.REVIEWER_MEMO],
+            revision=revision,
         )
         main_file = next(
             (file for file in project_files if file.role == FileRole.MAIN),

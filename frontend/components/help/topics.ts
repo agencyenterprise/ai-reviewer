@@ -1,13 +1,30 @@
-import { BookOpen, CircleAlert, FileText, History, ListChecks, LucideIcon, MessagesSquare } from 'lucide-react';
+import {
+  BookOpen,
+  CircleAlert,
+  FileText,
+  History,
+  ListChecks,
+  LucideIcon,
+  MessagesSquare,
+  ThumbsUp,
+} from 'lucide-react';
 import { ComponentType } from 'react';
 import { AssessmentsTopic } from './topics/assessments';
+import { FeedbackTopic } from './topics/feedback';
 import { IssuesTopic } from './topics/issues';
 import { PeerReviewTopic } from './topics/peer-review';
 import { ReferencesTopic } from './topics/references';
 import { RevisionsTopic } from './topics/revisions';
 import { SourceFilesTopic } from './topics/source-files';
 
-export type HelpTopicId = 'assessments' | 'issues' | 'references' | 'source-files' | 'revisions' | 'peer-review';
+export type HelpTopicId =
+  | 'assessments'
+  | 'issues'
+  | 'references'
+  | 'source-files'
+  | 'revisions'
+  | 'peer-review'
+  | 'feedback';
 
 export interface HelpTopicBodyProps {
   /**
@@ -42,8 +59,9 @@ export interface HelpTopic {
 /**
  * The concepts the app explains in one place, ordered as the work runs:
  * assessments produce issues, references name sources, one assessment needs
- * those sources, revisions are what all of it hangs from, and peer review is
- * what happens once someone else has read the draft. Every "what is this" link
+ * those sources, revisions are what all of it hangs from, peer review is what
+ * happens once someone else has read the draft, and feedback is how any of it
+ * gets better. Every "what is this" link
  * in the product opens this list at one of them, so a question asked in one
  * corner is answered next to all the others.
  */
@@ -97,5 +115,13 @@ export const HELP_TOPICS: HelpTopic[] = [
     icon: MessagesSquare,
     Body: PeerReviewTopic,
     experimental: true,
+  },
+  {
+    id: 'feedback',
+    label: 'Feedback',
+    title: 'Feedback, and what sharing it means',
+    description: 'Telling us whether a finding was any good, and deciding how much of it we get to see.',
+    icon: ThumbsUp,
+    Body: FeedbackTopic,
   },
 ];

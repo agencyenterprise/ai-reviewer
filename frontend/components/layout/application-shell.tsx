@@ -18,6 +18,13 @@ const navigation = [
   { name: 'About', href: '/about' },
 ];
 
+/** Routes whose pages render the AppBar (or, for the add-in, no chrome at all) themselves. */
+const OWN_CHROME_ROUTES = ['/projects', '/share', '/addin'];
+
+function rendersOwnChrome(pathname: string): boolean {
+  return pathname === '/' || OWN_CHROME_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+}
+
 export interface ApplicationShellProps {
   children: React.ReactNode;
 }
@@ -34,9 +41,9 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
     current: pathname.startsWith(item.href),
   }));
 
-  // The add-in and the v2 project view render their own chrome edge to edge,
-  // navigation included.
-  if (pathname.startsWith('/addin') || pathname === '/v2' || pathname.startsWith('/v2/')) {
+  // The home page, the project views and the add-in draw their own chrome edge
+  // to edge, navigation included.
+  if (rendersOwnChrome(pathname)) {
     return <>{children}</>;
   }
 

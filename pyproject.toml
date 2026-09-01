@@ -40,6 +40,7 @@ dependencies = [
     "python-magic>=0.4.27",
     "markitdown[docx,pdf,pptx,xls,xlsx]>=0.1.5",
     "pypdfium2>=5.6.0",
+    "pillow>=11.0.0",
     "pyjwt>=2.13.0",
     "mypy>=1.19.1",
     "rich>=14.2.0",

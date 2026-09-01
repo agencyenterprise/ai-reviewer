@@ -1421,6 +1421,12 @@ export type File = {
    * Revision number this file belongs to. NULL means shared across all revisions (e.g., supporting docs).
    */
   revision?: number | null;
+  /**
+   * Parent File Id
+   *
+   * For extracted images: the file this image was extracted from
+   */
+  parent_file_id?: string | null;
 };
 
 /**
@@ -1538,6 +1544,7 @@ export const FileRole = {
   Support: 'support',
   SupportingCandidate: 'supporting_candidate',
   ReviewerMemo: 'reviewer_memo',
+  ExtractedImage: 'extracted_image',
 } as const;
 
 /**
@@ -2908,127 +2915,6 @@ export type ReproducibilityCategoryResponse = {
 };
 
 /**
- * ResultSection
- */
-export type ResultSection = {
-  /**
-   * Title
-   *
-   * A chosen title for the section. Can be extracted from the text if it is present, but it should be no more than five words.
-   */
-  title: string;
-  /**
-   * Description
-   *
-   * The description of the result section.
-   */
-  description: string;
-  /**
-   * The type of the result section.
-   */
-  result_type: ResultType;
-  /**
-   * Location
-   *
-   * Description of the location of the result section in the document. This should be a description of the page number, figure number, table number, equation number, etc.
-   */
-  location: string;
-  /**
-   * The class of reproducibility of the result section.
-   */
-  reproducibility: ReproducibilityCategory;
-  /**
-   * Reproducibility Rationale
-   *
-   * The rationale for why you think the result section is reproducible or not. Describe what is needed to make this particular section reproducible.
-   */
-  reproducibility_rationale: string;
-};
-
-/**
- * ResultType
- */
-export const ResultType = {
-  Figure: 'figure',
-  Table: 'table',
-  Equation: 'equation',
-  Text: 'text',
-  Algorithm: 'algorithm',
-  Other: 'other',
-} as const;
-
-/**
- * ResultType
- */
-export type ResultType = (typeof ResultType)[keyof typeof ResultType];
-
-/**
- * ResultsExtractionState
- */
-export type ResultsExtractionState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'results_extraction';
-  /**
-   * File Id
-   *
-   * The ID of the file to extract results from
-   */
-  file_id: string;
-  /**
-   * Extracted results with reproducibility assessments
-   */
-  results?: ResultsListResponse | null;
-};
-
-/**
- * ResultsExtractionWorkflowConfig
- */
-export type ResultsExtractionWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'results_extraction';
-};
-
-/**
- * ResultsListResponse
- */
-export type ResultsListResponse = {
-  /**
-   * Result Sections
-   *
-   * The list of result sections.
-   */
-  result_sections: Array<ResultSection>;
-};
-
-/**
  * Reviewer2Config
  *
  * Configuration for the Reviewer 2 workflow.
@@ -3877,7 +3763,6 @@ export type WorkflowRunDetail = {
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | ReferenceValidationV2State
-    | ResultsExtractionState
     | HumanApprovalState
     | Reviewer2State
     | SimpleDeepAgentState
@@ -4579,7 +4464,6 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
     | ReferenceValidationV2WorkflowConfig
-    | ResultsExtractionWorkflowConfig
     | HumanApprovalConfig
     | Reviewer2Config
     | SimpleDeepAgentConfig;

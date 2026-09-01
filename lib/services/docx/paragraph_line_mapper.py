@@ -6,6 +6,10 @@ read the sentinel positions out of the resulting markdown. Because the sentinels
 survive the docx → HTML → markdown pipeline as inline text and do not change the
 line count, the resulting line numbers are identical to those of the original
 markdown that issues were indexed against.
+
+Drawings are rasterized first, exactly like the main conversion: rendered
+charts occupy markdown lines, so skipping that step here would shift every
+line number after the first chart.
 """
 
 import logging
@@ -19,6 +23,7 @@ from docx.oxml.ns import qn
 from lxml import etree  # type: ignore[import-untyped]
 
 from lib.services.converters.markitdown import markitdown_converter
+from lib.services.docx.drawing_rasterization import rasterize_docx_drawings
 
 logger = logging.getLogger(__name__)
 
@@ -75,28 +80,59 @@ def _extract_marker_positions(markdown: str) -> Dict[int, int]:
     return positions
 
 
-async def build_paragraph_line_ranges(docx_path: str) -> Dict[int, Tuple[int, int]]:
+async def build_paragraph_line_ranges(
+    docx_path: str, expected_line_count: Optional[int] = None
+) -> Dict[int, Tuple[int, int]]:
     """Compute ``{paragraph_index: (start_line, end_line)}`` for a docx.
 
     ``paragraph_index`` matches the positional index of non-empty paragraphs in
     ``Document(docx_path).paragraphs`` — the same list consumed by the comment
     anchoring code.
-    """
-    doc = Document(docx_path)
-    injected = _inject_markers(doc)
-    if injected == 0:
-        return {}
 
-    with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
-        tmp_path = tmp.name
+    ``expected_line_count`` is the persisted markdown's line count. The map is
+    only valid when this conversion is line-for-line the one the issues were
+    indexed against; drawing rasterization succeeding on one side but not the
+    other (LibreOffice missing, timeout) would shift every line after the
+    first drawing. On mismatch the map is empty — unanchorable issues are
+    skipped and logged, which beats anchoring them to the wrong paragraphs.
+    """
+    rasterized_path = await rasterize_docx_drawings(docx_path)
     try:
-        doc.save(tmp_path)
-        markdown_with_markers = await markitdown_converter.convert_to_markdown(tmp_path)
-    finally:
+        doc = Document(rasterized_path or docx_path)
+        injected = _inject_markers(doc)
+        if injected == 0:
+            return {}
+
+        with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
+            tmp_path = tmp.name
         try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
+            doc.save(tmp_path)
+            markdown_with_markers = await markitdown_converter.convert_to_markdown(
+                tmp_path
+            )
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+    finally:
+        if rasterized_path:
+            try:
+                os.unlink(rasterized_path)
+            except OSError:
+                pass
+
+    total_lines = markdown_with_markers.count("\n") + 1
+    if expected_line_count is not None and total_lines != expected_line_count:
+        logger.warning(
+            "Paragraph line-range mapper: conversion produced %d lines but the "
+            "persisted markdown has %d — the conversions are structurally "
+            "different (drawing rasterization succeeded on one side only?); "
+            "refusing to anchor",
+            total_lines,
+            expected_line_count,
+        )
+        return {}
 
     start_lines = _extract_marker_positions(markdown_with_markers)
     if len(start_lines) < injected:
@@ -111,7 +147,6 @@ async def build_paragraph_line_ranges(docx_path: str) -> Dict[int, Tuple[int, in
     # Derive end_line for each paragraph: the line just before the next paragraph's
     # start line. Paragraphs that share a line (table cells) get (start, start).
     sorted_by_line = sorted(start_lines.items(), key=lambda kv: (kv[1], kv[0]))
-    total_lines = markdown_with_markers.count("\n") + 1
     ranges: Dict[int, Tuple[int, int]] = {}
     for i, (para_index, start_line) in enumerate(sorted_by_line):
         if i + 1 < len(sorted_by_line):

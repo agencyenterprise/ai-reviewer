@@ -106,8 +106,15 @@ export function IssuesTopic({ onOpenTopic }: HelpTopicBodyProps) {
             Once you have dealt with it, or decided not to. Resolved issues drop out of the view and out of the counts,
             and the filter panel brings them back.
           </Fact>
-          <Fact term="Say whether it was any good">
+          <Fact
+            term={
+              <TopicLink to="feedback" onOpenTopic={onOpenTopic}>
+                Say whether it was any good
+              </TopicLink>
+            }
+          >
             The thumbs on an issue tell us where an assessment is earning its place and where it is wasting your time.
+            Nothing you say there leaves the project until you choose to share it.
           </Fact>
           <Fact term="Narrow the list">
             The filters take the explorer down to one severity or one assessment, which is how a few hundred issues
@@ -127,7 +134,7 @@ export function IssuesTopic({ onOpenTopic }: HelpTopicBodyProps) {
   );
 }
 
-function Fact({ term, children }: { term: string; children: ReactNode }) {
+function Fact({ term, children }: { term: ReactNode; children: ReactNode }) {
   return (
     <li className="text-xs leading-relaxed">
       <strong className="font-medium">{term}.</strong> <span className="text-muted-foreground">{children}</span>

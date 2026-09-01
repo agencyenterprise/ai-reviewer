@@ -7,7 +7,6 @@ import {
   ReferenceDownloaderState,
   ReferenceExtractionState,
   ReferenceFileMatchingState,
-  ResultsExtractionState,
   Reviewer2State,
   SimpleDeepAgentState,
   WorkflowError,
@@ -29,7 +28,7 @@ type WorkflowTypeToDetail = {
   [WorkflowRunType.HumanApproval]: HumanApprovalState;
   [WorkflowRunType.MethodologicalAlignment]: MethodologicalAlignmentState;
   [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
-  [WorkflowRunType.ResultsExtraction]: ResultsExtractionState;
+  [WorkflowRunType.ResultsExtraction]: SimpleDeepAgentState;
   [WorkflowRunType.AbbreviationScanV2]: AbbreviationScanV2State;
   [WorkflowRunType.Reviewer2]: Reviewer2State;
   [WorkflowRunType.DocumentStructure]: SimpleDeepAgentState;
@@ -179,4 +178,21 @@ export function needsHumanApproval(workflowRuns: WorkflowRunDetail[]): boolean {
 
   const state = humanApprovalRun.state as HumanApprovalState | null;
   return !state?.approved;
+}
+
+/**
+ * Whether assessments are actively working, as opposed to parked waiting on
+ * the user.
+ *
+ * A run that is only Pending doesn't count while a human-approval gate is
+ * outstanding: HumanApproval and the runs behind it stay Pending until the
+ * user approves, so counting them would claim the pipeline is busy for as long
+ * as the review takes — an empty progress toast, a spinner that never stops.
+ * A Running run always counts: the rest of the assessments keep working while
+ * the gate waits, and that work is exactly what the UI should report.
+ */
+export function isAnyWorkflowActive(workflowRuns: WorkflowRunDetail[]): boolean {
+  if (workflowRuns.some((workflowRun) => workflowRun.run.status === WorkflowRunStatus.Running)) return true;
+  if (needsHumanApproval(workflowRuns)) return false;
+  return isAnyWorkflowProcessing(workflowRuns);
 }

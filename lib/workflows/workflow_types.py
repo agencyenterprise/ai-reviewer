@@ -46,10 +46,6 @@ from lib.workflows.reference_validation_v2.state import (
     ReferenceValidationV2State,
     ReferenceValidationV2WorkflowConfig,
 )
-from lib.workflows.results_extraction.state import (
-    ResultsExtractionState,
-    ResultsExtractionWorkflowConfig,
-)
 from lib.workflows.reviewer_2.state import (
     Reviewer2Config,
     Reviewer2State,
@@ -66,7 +62,6 @@ WorkflowState = (
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | ReferenceValidationV2State
-    | ResultsExtractionState
     | HumanApprovalState
     | Reviewer2State
     | SimpleDeepAgentState
@@ -83,7 +78,6 @@ WorkflowConfig = (
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
     | ReferenceValidationV2WorkflowConfig
-    | ResultsExtractionWorkflowConfig
     | HumanApprovalConfig
     | Reviewer2Config
     | SimpleDeepAgentConfig

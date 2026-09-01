@@ -25,7 +25,7 @@ export const ProjectViewProvider = ProjectViewContext.Provider;
 export function useProjectView() {
   const context = useContext(ProjectViewContext);
   if (!context) {
-    throw new Error('useProjectView must be used within a ProjectResultsShell');
+    throw new Error('useProjectView must be used within a ProjectShell');
   }
   return context;
 }

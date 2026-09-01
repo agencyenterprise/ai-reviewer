@@ -1,5 +1,6 @@
 'use client';
 
+import { HelpLink } from '@/components/help/help-link';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -77,7 +78,10 @@ export function FeedbackPrivacyDialog({
 
         <p className="text-xs text-muted-foreground flex items-start gap-1.5">
           <InfoIcon className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-          You can change this preference at any time in the project settings.
+          <span>
+            You can change this preference at any time in the project settings.{' '}
+            <HelpLink topic="feedback">What each option shares</HelpLink>
+          </span>
         </p>
 
         <DialogFooter>

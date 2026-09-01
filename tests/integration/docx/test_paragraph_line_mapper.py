@@ -104,3 +104,11 @@ async def test_add_comments_to_docx_end_to_end():
     )
     assert Path(output_path).exists()
     assert len(Document(output_path).paragraphs) > 0
+
+
+@pytest.mark.asyncio
+async def test_document_with_no_text_paragraphs_maps_to_nothing(tmp_path):
+    path = str(tmp_path / "empty.docx")
+    Document().save(path)
+
+    assert await build_paragraph_line_ranges(path) == {}

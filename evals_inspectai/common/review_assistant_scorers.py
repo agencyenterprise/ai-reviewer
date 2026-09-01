@@ -12,28 +12,22 @@ layout with a short first part, and none of the generic-assistant tells the
 suite then adds whatever its own output specifies on top -- the coverage report
 has a verdict table to check, the planning summary does not.
 
-The judged criteria differ per suite, so only their machinery lives here:
-`grade_criteria` runs one grader call per criterion concurrently. What the
-criteria *are* is each suite's business.
+The judged criteria differ per suite, so none of them live here. The machinery
+that runs them -- `grade_criteria`, `criteria_for` -- and the per-check scoring
+helpers -- `checks_to_score`, `failed_score` -- are generic and live in
+`common.scorers`, which any suite can use; they are imported back here because
+this module's own scorer is built from them.
 
-Both scorers report a dict of values so every check is its own Inspect metric.
+Scorers here report a dict of values so every check is its own Inspect metric.
 That constrains the callers: Inspect raises when a declared metric key is
 missing from any sample's score, so every code path has to return the full key
 set, which is what `failed_score` is for.
 """
 
-import asyncio
-import re
 from itertools import permutations
-from typing import Any, Sequence
+from typing import Any
 
-from inspect_ai.model import Model
 from inspect_ai.scorer import Score, Scorer, Target, mean, scorer, stderr
-from inspect_ai.scorer._model import (  # type: ignore[attr-defined]
-    DEFAULT_GRADE_PATTERN,
-    DEFAULT_MODEL_GRADED_FACT_TEMPLATE,
-    default_instructions,
-)
 from inspect_ai.solver import TaskState
 from pydantic import ValidationError
 
@@ -44,6 +38,12 @@ from evals_inspectai.common.html_report import (
     top_level_ids_by_reviewer,
     two_part_layout,
     voice_tells,
+)
+from evals_inspectai.common.scorers import (
+    checks_to_score,
+    criteria_for,
+    failed_score,
+    grade_criteria,
 )
 from evals_inspectai.common.simple_deep_agent_types import HtmlReportAgentOutput
 
@@ -63,11 +63,6 @@ STRUCTURE_CHECKS = (
     "two_part_layout",
     "voice",
 )
-
-
-def failed_score(keys: Sequence[str], reason: str) -> Score:
-    """Score every key as failed, for an output there is nothing to check in."""
-    return Score(value={key: 0.0 for key in keys}, explanation=reason)
 
 
 def extract_report(state: TaskState) -> tuple[HtmlReport | None, str]:
@@ -194,17 +189,6 @@ def structure_checks(
     return checks
 
 
-def checks_to_score(checks: dict[str, tuple[bool, str]]) -> Score:
-    """Turn per-check results into a dict-valued Score."""
-    return Score(
-        value={name: float(ok) for name, (ok, _) in checks.items()},
-        explanation=" | ".join(
-            f"{'PASS' if ok else 'FAIL'} {name}: {detail}"
-            for name, (ok, detail) in checks.items()
-        ),
-    )
-
-
 @scorer(metrics={name: [mean(), stderr()] for name in STRUCTURE_CHECKS})
 def report_structure() -> Scorer:
     """Score the skill's exactly-checkable rules, one metric per rule.
@@ -225,56 +209,3 @@ def report_structure() -> Scorer:
     return score
 
 
-# --- Judged criteria -------------------------------------------------------
-
-# C / P / I as the grader returns them.
-GRADE_VALUES = {"C": 1.0, "P": 0.5, "I": 0.0}
-
-
-def criteria_for(state: TaskState, shared: dict[str, str]) -> dict[str, str]:
-    """Shared criteria, with any per-sample text from the dataset layered on."""
-    overrides = (state.metadata or {}).get("rubric") or {}
-    return {**shared, **overrides}
-
-
-async def _grade_one(
-    grader: Model, criterion: str, answer: str, question: str
-) -> tuple[float, str]:
-    """Grade a single criterion, returning its value and the grader's reasoning."""
-    prompt = DEFAULT_MODEL_GRADED_FACT_TEMPLATE.format(
-        question=question,
-        answer=answer,
-        criterion=criterion,
-        instructions=default_instructions(partial_credit=True),
-    )
-    result = await grader.generate(prompt)
-    match = re.search(DEFAULT_GRADE_PATTERN, result.completion)
-    if not match:
-        return 0.0, f"grade not found in grader output: {result.completion[:300]}"
-    return GRADE_VALUES.get(match.group(1), 0.0), result.completion
-
-
-async def grade_criteria(
-    grader: Model,
-    keys: Sequence[str],
-    criteria: dict[str, str],
-    answer: str,
-    question: str,
-) -> Score:
-    """Grade each criterion in its own call, concurrently, into one Score.
-
-    One grader call per criterion rather than one call weighing all of them.
-    Judging them together lets a single weak area colour the rest, which is the
-    behaviour that made a single blended grade hard to act on. The calls run
-    concurrently, so the extra cost is tokens rather than wall clock.
-    """
-    graded = await asyncio.gather(
-        *(_grade_one(grader, criteria[key], answer, question) for key in keys)
-    )
-    return Score(
-        value={key: value for key, (value, _) in zip(keys, graded)},
-        explanation="\n\n".join(
-            f"### {key}: {value}\n{reasoning}"
-            for key, (value, reasoning) in zip(keys, graded)
-        ),
-    )

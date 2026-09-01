@@ -9,12 +9,16 @@ from lib.services.files import delete_project_files
 
 
 def _make_file(
-    file_path: str, original_file_path: str | None = None, file_id: uuid.UUID | None = None
+    file_path: str,
+    original_file_path: str | None = None,
+    file_id: uuid.UUID | None = None,
+    parent_file_id: uuid.UUID | None = None,
 ) -> MagicMock:
     file = MagicMock()
     file.id = file_id or uuid.uuid4()
     file.file_path = file_path
     file.original_file_path = original_file_path
+    file.parent_file_id = parent_file_id
     return file
 
 
@@ -168,3 +172,55 @@ async def test_accepts_project_id_as_string():
         count = await delete_project_files(project_id)
 
     assert count == 0
+
+@pytest.mark.asyncio
+async def test_targeted_delete_includes_extracted_image_children():
+    """Deleting a document by id must also delete its extracted images —
+    their rows would go via the FK cascade, but their disk files would leak."""
+    parent = _make_file("/tmp/main.docx")
+    child = _make_file(
+        "/tmp/extracted_images/fig.png", parent_file_id=parent.id
+    )
+    unrelated = _make_file("/tmp/other.pdf")
+    session = _FakeSession(files=[parent, child, unrelated])
+
+    with (
+        _patch_session(session),
+        patch(
+            "lib.services.files._is_path_shared", new=AsyncMock(return_value=False)
+        ),
+        patch("lib.services.files._delete_file_from_disk") as disk_mock,
+    ):
+        count = await delete_project_files(uuid.uuid4(), target_file_ids=[str(parent.id)])
+
+    assert count == 2
+    # Children are deleted before their parent so the FK cascade never races
+    # the ORM.
+    assert session.deleted == [child, parent]
+    paths = [c.args[0] for c in disk_mock.call_args_list]
+    assert paths == ["/tmp/extracted_images/fig.png", "/tmp/main.docx"]
+
+
+@pytest.mark.asyncio
+async def test_shared_extracted_image_disk_file_is_kept():
+    """The same figure extracted from two revisions shares one disk file; it
+    must survive the deletion of one of the parents."""
+    parent = _make_file("/tmp/main.docx")
+    child = _make_file(
+        "/tmp/extracted_images/shared.png", parent_file_id=parent.id
+    )
+    session = _FakeSession(files=[parent, child])
+
+    async def path_shared(_session, path, _file_id):
+        return path == "/tmp/extracted_images/shared.png"
+
+    with (
+        _patch_session(session),
+        patch("lib.services.files._is_path_shared", new=path_shared),
+        patch("lib.services.files._delete_file_from_disk") as disk_mock,
+    ):
+        count = await delete_project_files(uuid.uuid4(), target_file_ids=[str(parent.id)])
+
+    assert count == 2
+    paths = [c.args[0] for c in disk_mock.call_args_list]
+    assert paths == ["/tmp/main.docx"]

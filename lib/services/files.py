@@ -5,6 +5,7 @@ from typing import List, Optional, Sequence
 
 from fastapi import HTTPException
 from sqlalchemy import func, or_, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
@@ -65,7 +66,20 @@ async def create_file_record(
             revision=revision,
         )
         session.add(file)
-        await session.commit()
+        try:
+            await session.commit()
+        except IntegrityError as exc:
+            # Raced another upload past the application-level one-MAIN check;
+            # the partial unique index on files is the backstop.
+            if "uq_files_one_main_per_project_revision" in str(exc.orig):
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        "Project already has a main document for this revision. "
+                        "Create a new revision first."
+                    ),
+                ) from exc
+            raise
         await session.refresh(file)
         return file
 
@@ -156,20 +170,24 @@ async def assert_project_has_main_file(
 
 async def get_files_by_project_id(
     project_id: uuid.UUID | str,
-    roles: Optional[List[FileRole]] = None,
+    roles: List[FileRole],
     revision: int | None = None,
 ) -> List[File]:
     """
-    Get all files by project ID, optionally filtered by role and revision.
+    Get a project's files with the given roles, optionally filtered by revision.
+
+    `roles` is deliberately required: callers state which roles they want, so
+    a new role (e.g. EXTRACTED_IMAGE) never leaks into existing readers.
 
     When revision is set, returns files belonging to that revision plus
     shared files (revision IS NULL, e.g. supporting documents).
     """
     project_id = ensure_uuid(project_id, "project ID")
     async with get_async_db_session() as session:
-        stmt = select(File).where(col(File.project_id) == project_id)
-        if roles is not None:
-            stmt = stmt.where(col(File.role).in_(roles))
+        stmt = select(File).where(
+            col(File.project_id) == project_id,
+            col(File.role).in_(roles),
+        )
         if revision is not None:
             stmt = stmt.where(
                 or_(col(File.revision) == revision, col(File.revision).is_(None))
@@ -190,13 +208,16 @@ async def get_project_files_list_items(
     matching Project.current_revision — is the current main document; older MAIN
     files are previous revisions. Callers distinguish them by comparing each
     File.revision to Project.current_revision.
-    Excludes SUPPORTING_CANDIDATE files (temporary during reference downloading).
+    Uploaded documents only: excludes SUPPORTING_CANDIDATE files (temporary
+    during reference downloading) and derived artifacts (extracted images).
     """
     project_id = ensure_uuid(project_id, "project ID")
     async with get_async_db_session() as session:
         stmt = select(File).where(
             col(File.project_id) == project_id,
-            col(File.role) != FileRole.SUPPORTING_CANDIDATE,
+            col(File.role).in_(
+                [FileRole.MAIN, FileRole.SUPPORT, FileRole.REVIEWER_MEMO]
+            ),
         )
         result = await session.execute(stmt)
         files = result.scalars().all()
@@ -417,14 +438,18 @@ async def delete_project_files(
 ) -> int:
     """
     Delete all files for a project from the database and remove disk files
-    only when they are not referenced by other projects.
+    only when no other file row still references them.
+
+    When target_file_ids is given, extracted images of the targeted files are
+    deleted with them (their DB rows would go via the FK cascade anyway, but
+    their disk files need the shared-path check like any other file).
 
     Args:
         project_id: UUID of the project to delete files for
         target_file_ids: Optional list of file IDs to delete. If not provided, all files for the project will be deleted.
 
     Returns:
-        The number of files deleted
+        The number of files deleted (including extracted images of targeted files)
     """
 
     normalized_project_id = ensure_uuid(project_id, "project ID")
@@ -435,17 +460,31 @@ async def delete_project_files(
         result = await session.execute(stmt)
         project_files = result.scalars().all()
 
-        for file in project_files:
-            if target_file_ids is not None and str(file.id) not in target_file_ids:
-                continue
+        if target_file_ids is None:
+            files_to_delete = list(project_files)
+        else:
+            targeted = set(target_file_ids)
+            files_to_delete = [
+                file
+                for file in project_files
+                if str(file.id) in targeted
+                or (
+                    file.parent_file_id is not None
+                    and str(file.parent_file_id) in targeted
+                )
+            ]
 
-            if not await _is_path_shared(
-                session, file.file_path, normalized_project_id
-            ):
+        # Children before parents: deleting a parent first would cascade its
+        # extracted-image rows away at the DB level while the ORM still holds
+        # them in this list, making their own deletes fail.
+        files_to_delete.sort(key=lambda f: f.parent_file_id is None)
+
+        for file in files_to_delete:
+            if not await _is_path_shared(session, file.file_path, file.id):
                 _delete_file_from_disk(file.file_path)
 
             if file.original_file_path and not await _is_path_shared(
-                session, file.original_file_path, normalized_project_id
+                session, file.original_file_path, file.id
             ):
                 _delete_file_from_disk(file.original_file_path)
 
@@ -458,16 +497,22 @@ async def delete_project_files(
 
 
 async def _is_path_shared(
-    session: AsyncSession, path: str, project_id: uuid.UUID
+    session: AsyncSession, path: str, file_id: uuid.UUID
 ) -> bool:
     """
-    Check whether another project references the same file path.
+    Check whether any other file row references the same disk path.
+
+    Disk files are content-addressed and deduplicated, so the same path can be
+    shared across projects and also within one (e.g. the same figure extracted
+    from two revisions of a document). Excluding by file id — with rows already
+    deleted this transaction flushed out of the count — means the disk file
+    goes only when its last referencing row does.
     """
     stmt = (
         select(func.count())
         .select_from(File)
         .where(
-            col(File.project_id) != project_id,
+            col(File.id) != file_id,
             or_(col(File.file_path) == path, col(File.original_file_path) == path),
         )
     )
