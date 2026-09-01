@@ -71,7 +71,7 @@ export function ShareWarningDialog({
           <DialogDescription asChild>
             <div className="text-sm text-muted-foreground pt-2">
               {SHOW_ADD_IN_OPTION
-                ? 'Choose how reviewers should see this assessment in the downloaded DOCX.'
+                ? 'Choose how reviewers should see this project in the downloaded DOCX.'
                 : 'The assessment results are added to the document as standard Word comments.'}
             </div>
           </DialogDescription>
@@ -110,7 +110,7 @@ export function ShareWarningDialog({
                 className="mt-0.5"
               />
               <span className="text-sm text-muted-foreground">
-                Make this assessment public and add links to comments redirecting to the full assessment page.
+                Make this project public and add links to comments redirecting to the full project page.
               </span>
             </label>
           )}
@@ -120,7 +120,7 @@ export function ShareWarningDialog({
               <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
               <span className="text-sm text-muted-foreground">
                 Requires the Draft Detective Word add-in.
-                {!isProjectPublic && ' This will make this assessment public.'}
+                {!isProjectPublic && ' This will make this project public.'}
               </span>
             </div>
           )}

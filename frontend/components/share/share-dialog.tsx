@@ -79,7 +79,7 @@ export function ShareDialog({
             <DialogDescription asChild>
               <div className="text-sm text-muted-foreground space-y-2">
                 <p>
-                  This will <strong>immediately break all existing links</strong> to this assessment.
+                  This will <strong>immediately break all existing links</strong> to this project.
                 </p>
                 <p>You can re-enable sharing later.</p>
               </div>
@@ -109,11 +109,11 @@ export function ShareDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEnabled ? '🔗 Share Link Ready' : 'Share This Assessment'}</DialogTitle>
+          <DialogTitle>{isEnabled ? '🔗 Share Link Ready' : 'Share This Project'}</DialogTitle>
           <DialogDescription>
             {isEnabled
-              ? 'Anyone with this link can view a read-only version of your assessment.'
-              : 'Create a public link that anyone can use to view this assessment.'}
+              ? 'Anyone with this link can view a read-only version of your project.'
+              : 'Create a public link that anyone can use to view this project.'}
           </DialogDescription>
         </DialogHeader>
 

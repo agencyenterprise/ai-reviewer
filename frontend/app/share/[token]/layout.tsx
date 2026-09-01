@@ -32,7 +32,7 @@ export default function SharedProjectLayout({ children }: { children: ReactNode 
     return (
       <ShellStatusScreen>
         <div className="border-primary mx-auto mb-4 size-8 animate-spin rounded-full border-b-2" />
-        <p className="text-muted-foreground">Loading shared assessment...</p>
+        <p className="text-muted-foreground">Loading shared project...</p>
       </ShellStatusScreen>
     );
   }

@@ -244,7 +244,7 @@ export function AnalysisOptionsMenu({
                 onClick={() => share.setIsDialogOpen(true)}
                 tooltip={share.isEnabled ? 'View or copy the share link' : 'Create a public link'}
               >
-                {share.isEnabled ? 'Manage share link' : 'Share this assessment'}
+                {share.isEnabled ? 'Manage share link' : 'Share this project'}
               </MenuItemWithTooltip>
             </DropdownMenuContent>
           </DropdownMenu>
