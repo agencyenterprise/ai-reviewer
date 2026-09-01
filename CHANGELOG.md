@@ -6,6 +6,52 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.4] - 2026-09-01
+
+### Added
+- Added an admin-only usage dashboard at `/dashboard` with KPI, activity, assessment usage, health, and detail tables backed by `GET /api/admin/dashboard?days=N`.
+- Added revision context to admin feedback, including revision fields in the admin feedback API and CSV export, and UI badges showing revision status.
+- Added support to link an already-uploaded file to a reference.
+- Added a client helper for the manual reference-file link.
+- Added an option to step through findings from the document explorer toolbar.
+- Added a redesigned project view under `/v2`, including a projects list and a home page for the redesigned layout.
+- Added per-tab routing for project tabs.
+- Added gating for web-search skills based on the user's consent.
+
+### Changed
+- Changed the default theme to light mode and disabled following the operating system color-scheme preference until the user toggles it.
+- Changed the toast theming to use the resolved theme so it matches the page theme.
+- Changed DOCX export to default downloads to regular comments.
+- Changed the document explorer to float margin notes instead of growing the row.
+- Changed deep agents to deliver reports and issues via tools.
+- Changed internal inference validation to use the simple deep agent.
+- Changed models so every agent runs on `gpt-5.6-terra`.
+- Changed the Peer Review tab to be hidden behind Alpha features.
+
+### Fixed
+- Fixed admins being unable to see feedback on projects shared with them by making the feedback visible read-only where appropriate.
+- Fixed workflow run cost not rendering in the assessments tab by upgrading the Langfuse SDK and hardening the price-catalog loader.
+- Fixed feedback visibility and issue actions on older revisions, and surfaced which revision feedback was given on in admin feedback.
+- Fixed project title not refreshing in place after editing it.
+- Fixed CI by pinning pnpm and moving the frontend image to Node 22.
+- Fixed `start_workflow` docstring by correcting the function name.
+- Fixed workflows to stop surfacing retired workflows and to explain unreadable state.
+
+### Security
+- Restricted the new usage dashboard endpoint to admins only.
+- Ensured web-search skills are gated on the user's consent.
+
+### Removed
+- Removed superseded v1 workflows and the citation suggester.
+- Removed claim_extraction, citation_detection, and footnote_extraction workflows.
+- Removed chunk_splitting and chunk-derived issue locations.
+- Removed unreferenced modules and symbols left over after workflow removals.
+- Removed five unreferenced frontend modules.
+
+### Deprecated
+- Stopped reporting missing supporting document issues in reference-file matching.
+
+
 ## [v1.0.3] - 2026-08-31
 
 ### Added
