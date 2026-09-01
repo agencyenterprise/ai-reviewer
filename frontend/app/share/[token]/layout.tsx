@@ -1,12 +1,14 @@
 'use client';
 
-import { ProjectResultsShell } from '@/components/results/project-results-shell';
+import { ProjectShell } from '@/components/results/project-shell';
+import { ShellStatusScreen } from '@/components/results/shell-status-screen';
 import { useTabRouting } from '@/components/results/use-tab-routing';
 import { OwnerSharedBanner } from '@/components/share/owner-shared-banner';
 import { ShareProvider } from '@/context/share-context';
 import { getSharedResourceApiPublicShareTokenGet } from '@/lib/generated-api';
 import { useUserMe } from '@/lib/hooks/use-user-me';
 import { useQuery } from '@tanstack/react-query';
+import { Link2Off } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { ReactNode } from 'react';
 
@@ -23,38 +25,39 @@ export default function SharedProjectLayout({ children }: { children: ReactNode 
     retry: false,
   });
 
-  // Check if the current authenticated user is the owner of this project
-  const isOwner = currentUser?.id && data?.project?.user_id && currentUser.id === data.project.user_id;
+  // Whether the signed-in visitor is the owner of the project behind this link.
+  const isOwner = !!currentUser?.id && !!data?.project?.user_id && currentUser.id === data.project.user_id;
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading shared assessment...</p>
-        </div>
-      </div>
+      <ShellStatusScreen>
+        <div className="border-primary mx-auto mb-4 size-8 animate-spin rounded-full border-b-2" />
+        <p className="text-muted-foreground">Loading shared assessment...</p>
+      </ShellStatusScreen>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center max-w-md mx-auto p-6">
-          <div className="text-6xl mb-4">🔗</div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">Link Not Found</h1>
-          <p className="text-muted-foreground">This share link may have expired or been disabled by the owner.</p>
-        </div>
-      </div>
+      <ShellStatusScreen>
+        <Link2Off className="mx-auto mb-4 size-10 text-muted-foreground" />
+        <h1 className="mb-2 text-lg font-semibold">Link not found</h1>
+        <p className="text-sm text-muted-foreground">This share link may have expired or been disabled by the owner.</p>
+      </ShellStatusScreen>
     );
   }
 
   return (
     <ShareProvider token={token}>
-      {isOwner && <OwnerSharedBanner projectId={data.project.id} />}
-      <ProjectResultsShell projectDetail={data} readOnly activeTab={activeTab} onTabChange={onTabChange}>
+      <ProjectShell
+        projectDetail={data}
+        readOnly
+        activeTab={activeTab}
+        onTabChange={onTabChange}
+        notice={isOwner ? <OwnerSharedBanner projectId={data.project.id} /> : undefined}
+      >
         {children}
-      </ProjectResultsShell>
+      </ProjectShell>
     </ShareProvider>
   );
 }

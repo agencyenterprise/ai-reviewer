@@ -1,7 +1,7 @@
 'use client';
 
-import { ProjectTabPanel } from '@/components/results/project-tab-panel';
+import { DocumentExplorerPanel } from '@/components/results/document-explorer-panel';
 
 export default function Page() {
-  return <ProjectTabPanel tab="document-explorer" />;
+  return <DocumentExplorerPanel />;
 }

@@ -1,7 +1,7 @@
 'use client';
 
-import { ProjectTabPanel } from '@/components/results/project-tab-panel';
+import { ReferencesPanel } from '@/components/results/references-panel';
 
 export default function Page() {
-  return <ProjectTabPanel tab="references" />;
+  return <ReferencesPanel />;
 }

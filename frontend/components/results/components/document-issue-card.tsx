@@ -71,7 +71,7 @@ export const severityColorMap: Record<
   },
 };
 
-/** How a piece of feedback reads back. Shared so the control and the v2 indicator never
+/** How a piece of feedback reads back. Shared so the control and the margin-note indicator never
  *  describe the same feedback differently. `byAuthor` is for a reader who did not leave
  *  it — an admin on someone else's project — where "you" would be plainly wrong. */
 export function feedbackLabel(feedbackType: FeedbackType, feedbackText?: string | null, byAuthor = false): string {
@@ -99,7 +99,7 @@ function ThumbTooltip({ label, children }: { label: string; children: ReactNode 
   );
 }
 
-/** Thumbs up/down with the "what could be improved" popover. Shared with the v2 margin note. */
+/** Thumbs up/down with the "what could be improved" popover. Shared with the margin note. */
 export function IssueFeedbackButtons({ issueId }: { issueId: string }) {
   const { feedback, submitFeedback, isSubmitting, isReadOnly } = useIssueFeedbackFromContext(issueId);
   const [feedbackText, setFeedbackText] = useState('');

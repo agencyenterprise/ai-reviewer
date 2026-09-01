@@ -1,7 +1,7 @@
 'use client';
 
-import { ProjectTabPanel } from '@/components/results/project-tab-panel';
+import { FilesPanel } from '@/components/results/files-panel';
 
 export default function Page() {
-  return <ProjectTabPanel tab="files" />;
+  return <FilesPanel />;
 }

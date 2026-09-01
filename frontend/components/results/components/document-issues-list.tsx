@@ -5,7 +5,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { Ref, useImperativeHandle } from 'react';
 import { DocumentIssueCard } from './document-issue-card';
 
-export interface DocumentIssuesListHandle {
+interface DocumentIssuesListHandle {
   scrollToIssue: (issue: Issue) => void;
 }
 
