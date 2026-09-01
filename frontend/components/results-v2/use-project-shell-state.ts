@@ -4,7 +4,7 @@ import { useWorkflowProgressToast } from '@/hooks/use-workflow-progress-toast';
 import { getErrorMessage } from '@/lib/api-error';
 import { AccessLevel, ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
 import { useProjectDetails } from '@/lib/hooks/use-project-details';
-import { isAnyWorkflowProcessing, needsHumanApproval } from '@/lib/workflow-state';
+import { hasWorkflowProgressToShow } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
@@ -39,11 +39,9 @@ export function useProjectShellState(projectId: string) {
     setSelectedRevision(null);
   }, []);
 
-  const isProcessing = isAnyWorkflowProcessing(workflowDetails);
-  const awaitingHumanApproval = needsHumanApproval(workflowDetails);
-  // HumanApproval stays Pending/Running until the user approves, which keeps
-  // isProcessing true even though the pipeline is intentionally paused.
-  useWorkflowProgressToast(projectId, isProcessing && !awaitingHumanApproval);
+  // A pipeline parked on the reference-review gate isn't progressing — see
+  // hasWorkflowProgressToShow.
+  useWorkflowProgressToast(projectId, hasWorkflowProgressToShow(workflowDetails));
 
   const updateTitleMutation = useMutation({
     mutationFn: async (newTitle: string) => {
