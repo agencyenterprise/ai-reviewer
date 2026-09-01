@@ -10,8 +10,10 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { EditableTitle } from '@/components/ui/editable-title';
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
+import { useShare } from '@/context/share-context';
 import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
-import { AccessLevel, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { AccessLevel, ProjectDetailed, UserRole, WorkflowRunType } from '@/lib/generated-api';
+import { useUserMe } from '@/lib/hooks/use-user-me';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { ReactNode, useMemo } from 'react';
@@ -106,16 +108,22 @@ export function ProjectShellV2({
       <h1 className="truncate text-sm font-semibold">{projectDetail.project.title}</h1>
     );
 
-  // See the note in the v1 shell: the user's own feedback stays available on older
-  // revisions, and a shared project has none to show.
-  const canAccessFeedback = projectDetail.access_level === AccessLevel.Write;
+  // See the note in the v1 shell: own feedback stays available on older revisions, an
+  // admin reads the author's without being able to change it, and the share route shows
+  // none whoever is logged in. No share route renders this shell yet; it is here so the
+  // rule does not go missing when v2 takes over from v1.
+  const { shareToken } = useShare();
+  const { data: userMe } = useUserMe();
+  const isOwner = projectDetail.access_level === AccessLevel.Write;
+  const canAccessFeedback = shareToken === null && (isOwner || userMe?.role === UserRole.Admin);
 
   const navigateToTab = (tab: TabType, hash?: string) => onTabChange(tab, hash);
 
   return (
     <ProjectFeedbackProvider
       projectId={canAccessFeedback ? projectDetail.project.id : undefined}
-      feedbackVisibility={canAccessFeedback ? (projectDetail.project.feedback_visibility ?? null) : null}
+      feedbackVisibility={isOwner ? (projectDetail.project.feedback_visibility ?? null) : null}
+      readOnly={!isOwner}
     >
       <PageTitle title={projectDetail.project.title} />
 

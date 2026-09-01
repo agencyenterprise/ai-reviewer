@@ -71,13 +71,13 @@ export const severityColorMap: Record<
   },
 };
 
-/** How a piece of feedback reads back to the person who left it. Shared so the control and
- *  the v2 collapsed indicator never describe the same feedback differently. */
-export function feedbackLabel(feedbackType: FeedbackType, feedbackText?: string | null): string {
-  if (feedbackType === FeedbackType.ThumbsUp) return 'You marked this issue as helpful';
-  return feedbackText
-    ? `You marked this issue as not helpful: "${feedbackText}"`
-    : 'You marked this issue as not helpful';
+/** How a piece of feedback reads back. Shared so the control and the v2 indicator never
+ *  describe the same feedback differently. `byAuthor` is for a reader who did not leave
+ *  it — an admin on someone else's project — where "you" would be plainly wrong. */
+export function feedbackLabel(feedbackType: FeedbackType, feedbackText?: string | null, byAuthor = false): string {
+  const who = byAuthor ? 'The author marked this issue as' : 'You marked this issue as';
+  const verdict = feedbackType === FeedbackType.ThumbsUp ? 'helpful' : 'not helpful';
+  return feedbackText ? `${who} ${verdict}: "${feedbackText}"` : `${who} ${verdict}`;
 }
 
 /**
@@ -101,7 +101,7 @@ function ThumbTooltip({ label, children }: { label: string; children: ReactNode 
 
 /** Thumbs up/down with the "what could be improved" popover. Shared with the v2 margin note. */
 export function IssueFeedbackButtons({ issueId }: { issueId: string }) {
-  const { feedback, submitFeedback, isSubmitting } = useIssueFeedbackFromContext(issueId);
+  const { feedback, submitFeedback, isSubmitting, isReadOnly } = useIssueFeedbackFromContext(issueId);
   const [feedbackText, setFeedbackText] = useState('');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
@@ -121,6 +121,26 @@ export function IssueFeedbackButtons({ issueId }: { issueId: string }) {
 
   const isThumbsUp = selectedFeedback === FeedbackType.ThumbsUp;
   const isThumbsDown = selectedFeedback === FeedbackType.ThumbsDown;
+
+  // Someone else's rating: show what it was, with nothing to press. Nothing at all when
+  // they never rated it, rather than a control this reader could not use anyway.
+  if (isReadOnly) {
+    if (selectedFeedback === null) return null;
+    const label = feedbackLabel(selectedFeedback, feedback?.feedback_text, true);
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            aria-label={label}
+            className="bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-md"
+          >
+            {isThumbsUp ? <ThumbsUp className="h-3 w-3" /> : <ThumbsDown className="h-3 w-3" />}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs">{label}</TooltipContent>
+      </Tooltip>
+    );
+  }
   // Both thumbs are icon-only, and the tooltip cannot name them: it describes the wrapper
   // the trigger hangs off, and only while it is open. So each carries its own label.
   const thumbsUpLabel = isThumbsUp ? feedbackLabel(FeedbackType.ThumbsUp) : 'Helpful';

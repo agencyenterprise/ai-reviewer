@@ -2,7 +2,11 @@
 
 import { Markdown } from '@/components/markdown';
 import { feedbackLabel, IssueFeedbackButtons } from '@/components/results/components/document-issue-card';
-import { useIsIssueFeedbackVisible, useIssueFeedbackFromContext } from '@/lib/contexts/project-feedback-context';
+import {
+  useCanSubmitIssueFeedback,
+  useIsIssueFeedbackVisible,
+  useIssueFeedbackFromContext,
+} from '@/lib/contexts/project-feedback-context';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { FeedbackType, Issue } from '@/lib/generated-api';
@@ -70,10 +74,10 @@ export function IssuePreview({ issue }: { issue: Issue }) {
  * The padding is there to give a 12px icon something to hover.
  */
 function IssueFeedbackIndicator({ issueId }: { issueId: string }) {
-  const { feedback } = useIssueFeedbackFromContext(issueId);
+  const { feedback, isReadOnly } = useIssueFeedbackFromContext(issueId);
   if (!feedback) return null;
 
-  const label = feedbackLabel(feedback.feedback_type, feedback.feedback_text);
+  const label = feedbackLabel(feedback.feedback_type, feedback.feedback_text, isReadOnly);
   const Icon = feedback.feedback_type === FeedbackType.ThumbsUp ? ThumbsUpIcon : ThumbsDownIcon;
 
   return (
@@ -125,7 +129,7 @@ export function IssueMeta({ issue }: { issue: Issue }) {
  */
 export function IssueBody({ issue, readOnly }: { issue: Issue; readOnly: boolean }) {
   const { resolveIssue, unresolveIssue, isResolving, isUnresolving } = useIssueActions();
-  const showFeedback = useIsIssueFeedbackVisible(issue.id);
+  const canRate = useCanSubmitIssueFeedback(issue.id);
   const [showDetails, setShowDetails] = useState(false);
 
   const resolved = isIssueResolved(issue);
@@ -167,7 +171,7 @@ export function IssueBody({ issue, readOnly }: { issue: Issue; readOnly: boolean
         </>
       )}
 
-      {issue.id && (!readOnly || showFeedback) && (
+      {issue.id && (!readOnly || canRate) && (
         <div className="flex items-center gap-1.5 pt-0.5">
           {!readOnly && (
             <Button
@@ -181,7 +185,7 @@ export function IssueBody({ issue, readOnly }: { issue: Issue; readOnly: boolean
               {resolved ? 'Mark unresolved' : 'Mark resolved'}
             </Button>
           )}
-          {showFeedback && (
+          {canRate && (
             <span className="ml-auto">
               <IssueFeedbackButtons issueId={issue.id} />
             </span>
