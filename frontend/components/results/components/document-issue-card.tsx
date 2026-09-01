@@ -8,7 +8,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
-import { useIssueFeedbackFromContext } from '@/lib/contexts/project-feedback-context';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useIsIssueFeedbackVisible, useIssueFeedbackFromContext } from '@/lib/contexts/project-feedback-context';
 import { FeedbackType, Issue, SeverityEnum } from '@/lib/generated-api';
 import { useIssueActions } from '@/lib/hooks/use-issue-actions';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
@@ -28,7 +29,7 @@ import {
   TriangleAlertIcon,
   UndoIcon,
 } from 'lucide-react';
-import { memo, useState } from 'react';
+import { memo, ReactNode, useState } from 'react';
 import { Markdown } from '@/components/markdown';
 import { SeverityBadge } from './severity-badge';
 import { isIssueResolved } from '@/lib/stores/document-explorer-store';
@@ -70,9 +71,37 @@ export const severityColorMap: Record<
   },
 };
 
+/** How a piece of feedback reads back. Shared so the control and the v2 indicator never
+ *  describe the same feedback differently. `byAuthor` is for a reader who did not leave
+ *  it — an admin on someone else's project — where "you" would be plainly wrong. */
+export function feedbackLabel(feedbackType: FeedbackType, feedbackText?: string | null, byAuthor = false): string {
+  const who = byAuthor ? 'The author marked this issue as' : 'You marked this issue as';
+  const verdict = feedbackType === FeedbackType.ThumbsUp ? 'helpful' : 'not helpful';
+  return feedbackText ? `${who} ${verdict}: "${feedbackText}"` : `${who} ${verdict}`;
+}
+
+/**
+ * A tooltip for one of the thumbs.
+ *
+ * It hangs off a wrapper rather than the button itself because the button is disabled
+ * once that thumb is the one chosen — and a disabled button emits no pointer events, so
+ * the tooltip would go missing in exactly the case worth explaining: the rating already
+ * given, and whatever note came with it.
+ */
+function ThumbTooltip({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">{children}</span>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 /** Thumbs up/down with the "what could be improved" popover. Shared with the v2 margin note. */
 export function IssueFeedbackButtons({ issueId }: { issueId: string }) {
-  const { feedback, submitFeedback, isSubmitting } = useIssueFeedbackFromContext(issueId);
+  const { feedback, submitFeedback, isSubmitting, isReadOnly } = useIssueFeedbackFromContext(issueId);
   const [feedbackText, setFeedbackText] = useState('');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
@@ -90,30 +119,63 @@ export function IssueFeedbackButtons({ issueId }: { issueId: string }) {
     setFeedbackText('');
   };
 
+  const isThumbsUp = selectedFeedback === FeedbackType.ThumbsUp;
+  const isThumbsDown = selectedFeedback === FeedbackType.ThumbsDown;
+
+  // Someone else's rating: show what it was, with nothing to press. Nothing at all when
+  // they never rated it, rather than a control this reader could not use anyway.
+  if (isReadOnly) {
+    if (selectedFeedback === null) return null;
+    const label = feedbackLabel(selectedFeedback, feedback?.feedback_text, true);
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            aria-label={label}
+            className="bg-primary text-primary-foreground flex h-6 w-6 items-center justify-center rounded-md"
+          >
+            {isThumbsUp ? <ThumbsUp className="h-3 w-3" /> : <ThumbsDown className="h-3 w-3" />}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs">{label}</TooltipContent>
+      </Tooltip>
+    );
+  }
+  // Both thumbs are icon-only, and the tooltip cannot name them: it describes the wrapper
+  // the trigger hangs off, and only while it is open. So each carries its own label.
+  const thumbsUpLabel = isThumbsUp ? feedbackLabel(FeedbackType.ThumbsUp) : 'Helpful';
+  const thumbsDownLabel = isThumbsDown
+    ? feedbackLabel(FeedbackType.ThumbsDown, feedback?.feedback_text)
+    : 'Not helpful';
+
   return (
     <div className="flex items-center gap-0.5">
-      <Button
-        variant={selectedFeedback === FeedbackType.ThumbsUp ? 'default' : 'ghost'}
-        size="xs"
-        onClick={handleThumbsUp}
-        className="h-6 w-6 p-0"
-        disabled={isSubmitting || (hasSubmitted && selectedFeedback === FeedbackType.ThumbsUp)}
-        title="Helpful"
-      >
-        <ThumbsUp className="h-3 w-3" />
-      </Button>
+      <ThumbTooltip label={thumbsUpLabel}>
+        <Button
+          variant={isThumbsUp ? 'default' : 'ghost'}
+          size="xs"
+          onClick={handleThumbsUp}
+          className="h-6 w-6 p-0"
+          disabled={isSubmitting || isThumbsUp}
+          aria-label={thumbsUpLabel}
+        >
+          <ThumbsUp className="h-3 w-3" />
+        </Button>
+      </ThumbTooltip>
       <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant={selectedFeedback === FeedbackType.ThumbsDown ? 'default' : 'ghost'}
-            size="xs"
-            className="h-6 w-6 p-0"
-            disabled={hasSubmitted && selectedFeedback === FeedbackType.ThumbsDown}
-            title="Not helpful"
-          >
-            <ThumbsDown className="h-3 w-3" />
-          </Button>
-        </PopoverTrigger>
+        <ThumbTooltip label={thumbsDownLabel}>
+          <PopoverTrigger asChild>
+            <Button
+              variant={isThumbsDown ? 'default' : 'ghost'}
+              size="xs"
+              className="h-6 w-6 p-0"
+              disabled={isThumbsDown}
+              aria-label={thumbsDownLabel}
+            >
+              <ThumbsDown className="h-3 w-3" />
+            </Button>
+          </PopoverTrigger>
+        </ThumbTooltip>
         <PopoverContent className="w-72" align="end">
           <div className="space-y-3">
             <p className="text-sm font-medium">What could be improved?</p>
@@ -172,6 +234,7 @@ function DocumentIssueCardRaw({ issue, hideJumpButton = false, onSelect, readOnl
   const { className, icon, accentClassName } = severityColorMap[issue.severity];
   const { getWorkflowTypeName } = useWorkflowTypes();
   const isResolved = isIssueResolved(issue);
+  const showFeedback = useIsIssueFeedbackVisible(issue.id);
 
   const { start_line: startLine, end_line: endLine } = issue as Issue & {
     start_line?: number | null;
@@ -218,7 +281,7 @@ function DocumentIssueCardRaw({ issue, hideJumpButton = false, onSelect, readOnl
           </hgroup>
         </div>
         <div className="flex items-center gap-1">
-          {!readOnly && issue.id && <IssueFeedbackButtons issueId={issue.id} />}
+          {showFeedback && issue.id && <IssueFeedbackButtons issueId={issue.id} />}
           {!readOnly && issue.id && <IssueActionsMenu issue={issue} />}
           <SeverityBadge severity={issue.severity} hideIcon={true} />
         </div>

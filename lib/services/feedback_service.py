@@ -13,9 +13,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
 from lib.models.feedback import Feedback, FeedbackType
-from lib.models.project import Project
+from lib.models.issue import Issue
+from lib.models.project import AccessLevel, FeedbackVisibility, Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
+from lib.services.projects import get_project_access
 
 
 async def _verify_workflow_run_ownership(
@@ -201,8 +203,6 @@ async def get_feedback_by_issue(
     Returns:
         Feedback object if found, None otherwise
     """
-    from lib.models.issue import Issue
-
     # Get the issue to verify ownership
     issue_stmt = select(Issue).where(col(Issue.id) == issue_id)
     issue_result = await session.execute(issue_stmt)
@@ -278,6 +278,10 @@ async def get_project_issue_feedback(
     """
     Get all issue feedback for a project in one query.
 
+    Owners get their own feedback. Admins get the project's, so that a project shared
+    with them shows the ratings its author left rather than an empty margin — the same
+    feedback the admin feedback page already lists for it.
+
     Args:
         session: Database session
         project_id: The project ID
@@ -286,27 +290,20 @@ async def get_project_issue_feedback(
     Returns:
         List of Feedback objects for all issues in the project
     """
-    from lib.models.issue import Issue
-    from lib.models.project import Project
-
-    # Verify project ownership
-    project_stmt = select(Project).where(col(Project.id) == project_id)
-    project_result = await session.execute(project_stmt)
-    project = project_result.scalar_one_or_none()
-
-    if project is None:
-        raise HTTPException(status_code=404, detail="Project not found")
-
-    if project.user_id is None or project.user_id != user.id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    # The central gate already says who may see a project: its owner, and an admin once
+    # the owner has shared it as full_project. Deciding that again here is how the two
+    # drift apart.
+    _, access_level = await get_project_access(str(project_id), user=user)
 
     # Get all feedback for issues in this project (issue_id is not null)
     feedback_stmt = (
         select(Feedback)
         .join(Issue, col(Feedback.issue_id) == col(Issue.id))
         .where(col(Issue.project_id) == project_id)
-        .where(col(Feedback.user_id) == user.id)
     )
+    if access_level == AccessLevel.WRITE:
+        feedback_stmt = feedback_stmt.where(col(Feedback.user_id) == user.id)
+
     feedback_result = await session.execute(feedback_stmt)
     return list(feedback_result.scalars().all())
 
@@ -326,12 +323,8 @@ async def get_admin_feedbacks(
     Returns feedback where the project has feedback_visibility set to
     issue_only or full_project. Filters private feedback out entirely.
     """
-    from lib.models.issue import Issue
-    from lib.models.project import FeedbackVisibility, Project
-    from lib.models.user import User
-
     stmt = (
-        select(Feedback, Issue, Project, User)
+        select(Feedback, Issue, Project, User, WorkflowRun)
         .join(Issue, col(Feedback.issue_id) == col(Issue.id))
         .join(WorkflowRun, col(Feedback.workflow_run_id) == col(WorkflowRun.id))
         .join(Project, col(WorkflowRun.project_id) == col(Project.id))
@@ -369,13 +362,14 @@ async def get_admin_feedbacks(
 
     items = []
     for row in rows:
-        feedback, issue, project, user = row.tuple()
+        feedback, issue, project, user, workflow_run = row.tuple()
         items.append(
             {
                 "feedback": feedback,
                 "issue": issue,
                 "project": project,
                 "user": user,
+                "workflow_run": workflow_run,
             }
         )
     return items

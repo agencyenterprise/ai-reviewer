@@ -19,6 +19,8 @@ interface ProjectFeedbackContextValue {
   isLoading: boolean;
   isSubmitting: boolean;
   isEnabled: boolean;
+  /** The feedback on show is somebody else's, so it can be read but not changed. */
+  isReadOnly: boolean;
 }
 
 const ProjectFeedbackContext = createContext<ProjectFeedbackContextValue | null>(null);
@@ -26,10 +28,21 @@ const ProjectFeedbackContext = createContext<ProjectFeedbackContextValue | null>
 interface ProjectFeedbackProviderProps {
   projectId: string | undefined;
   feedbackVisibility: FeedbackVisibility | null | undefined;
+  /**
+   * Show the feedback but do not let this viewer change it. Set for an admin looking at
+   * a project someone else owns: the ratings belong to the author, and the API would
+   * refuse a write from anyone but them.
+   */
+  readOnly?: boolean;
   children: ReactNode;
 }
 
-export function ProjectFeedbackProvider({ projectId, feedbackVisibility, children }: ProjectFeedbackProviderProps) {
+export function ProjectFeedbackProvider({
+  projectId,
+  feedbackVisibility,
+  readOnly = false,
+  children,
+}: ProjectFeedbackProviderProps) {
   const queryClient = useQueryClient();
   const { getFeedbackForIssue, submitFeedback: doSubmit, isLoading, isSubmitting } = useProjectFeedback(projectId);
 
@@ -62,6 +75,7 @@ export function ProjectFeedbackProvider({ projectId, feedbackVisibility, childre
 
   const submitFeedback = useCallback(
     (params: SubmitFeedbackParams) => {
+      if (readOnly) return;
       // If visibility hasn't been set yet, show the privacy dialog first
       if (feedbackVisibility == null) {
         setPendingParams(params);
@@ -69,7 +83,7 @@ export function ProjectFeedbackProvider({ projectId, feedbackVisibility, childre
       }
       doSubmit(params);
     },
-    [feedbackVisibility, doSubmit],
+    [readOnly, feedbackVisibility, doSubmit],
   );
 
   const value = useMemo(
@@ -79,8 +93,9 @@ export function ProjectFeedbackProvider({ projectId, feedbackVisibility, childre
       isLoading,
       isSubmitting,
       isEnabled: !!projectId,
+      isReadOnly: readOnly,
     }),
-    [getFeedbackForIssue, submitFeedback, isLoading, isSubmitting, projectId],
+    [getFeedbackForIssue, submitFeedback, isLoading, isSubmitting, projectId, readOnly],
   );
 
   return (
@@ -106,6 +121,7 @@ export function useProjectFeedbackContext() {
       isLoading: false,
       isSubmitting: false,
       isEnabled: false,
+      isReadOnly: true,
     };
   }
   return context;
@@ -116,7 +132,7 @@ export function useProjectFeedbackContext() {
  * Much more efficient than individual API calls per issue.
  */
 export function useIssueFeedbackFromContext(issueId: string) {
-  const { getFeedbackForIssue, submitFeedback, isLoading, isSubmitting } = useProjectFeedbackContext();
+  const { getFeedbackForIssue, submitFeedback, isLoading, isSubmitting, isReadOnly } = useProjectFeedbackContext();
 
   const feedback = getFeedbackForIssue(issueId);
 
@@ -136,5 +152,27 @@ export function useIssueFeedbackFromContext(issueId: string) {
     isLoading,
     submitFeedback: submit,
     isSubmitting,
+    isReadOnly,
   };
+}
+
+/**
+ * Whether feedback controls should render for an issue at all: only where there is a
+ * project whose feedback can be read and written. Shared projects and issues rendered
+ * outside the provider (the admin feedback sheet) have no feedback of the viewer's own,
+ * so they get no controls rather than dead ones.
+ */
+export function useIsIssueFeedbackVisible(issueId: string | undefined): boolean {
+  const { isEnabled } = useProjectFeedbackContext();
+  return !!issueId && isEnabled;
+}
+
+/**
+ * Whether this viewer can rate an issue, as opposed to only reading how it was rated.
+ * False for an admin on someone else's project, where the thumbs would be controls that
+ * cannot do anything.
+ */
+export function useCanSubmitIssueFeedback(issueId: string | undefined): boolean {
+  const { isEnabled, isReadOnly } = useProjectFeedbackContext();
+  return !!issueId && isEnabled && !isReadOnly;
 }

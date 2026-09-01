@@ -50,7 +50,6 @@ export function ProjectTabPanel({ tab }: { tab: TabType }) {
       return (
         <DocumentExplorerTab
           projectDetail={projectDetail}
-          readOnly={readOnly}
           onNavigateToAnalyses={() => navigateToTab('analyses')}
           selectedRevision={selectedRevision}
           onRevisionChange={onRevisionChange}

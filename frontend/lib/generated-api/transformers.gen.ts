@@ -4,6 +4,7 @@ import type {
   CreateProjectEndpointApiProjectsPostResponse,
   CreateThreadApiChatThreadsPostResponse,
   GetAdminFeedbacksApiAdminFeedbacksGetResponse,
+  GetDashboardApiAdminDashboardGetResponse,
   GetProjectEndpointApiProjectProjectIdGetResponse,
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponse,
   GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse,
@@ -19,6 +20,31 @@ import type {
   UpdateProjectEndpointApiProjectProjectIdPatchResponse,
   UpdateThreadApiChatThreadsThreadIdPatchResponse,
 } from './types.gen';
+
+const activityPointSchemaResponseTransformer = (data: any) => {
+  data.bucket = new Date(data.bucket);
+  return data;
+};
+
+const activeUserItemSchemaResponseTransformer = (data: any) => {
+  data.last_active_at = new Date(data.last_active_at);
+  return data;
+};
+
+const adminDashboardResponseSchemaResponseTransformer = (data: any) => {
+  data.period_start = new Date(data.period_start);
+  data.period_end = new Date(data.period_end);
+  data.activity = data.activity.map((item: any) => activityPointSchemaResponseTransformer(item));
+  data.top_users = data.top_users.map((item: any) => activeUserItemSchemaResponseTransformer(item));
+  return data;
+};
+
+export const getDashboardApiAdminDashboardGetResponseTransformer = async (
+  data: any,
+): Promise<GetDashboardApiAdminDashboardGetResponse> => {
+  data = adminDashboardResponseSchemaResponseTransformer(data);
+  return data;
+};
 
 const appConfigResponseSchemaResponseTransformer = (data: any) => {
   data.updated_at = new Date(data.updated_at);
