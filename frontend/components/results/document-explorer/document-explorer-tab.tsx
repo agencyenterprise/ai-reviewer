@@ -43,6 +43,8 @@ const MODES = [
 
 interface DocumentExplorerTabProps {
   projectDetail: ProjectDetailed;
+  /** False on a shared or older revision, where the header hides its run button too. */
+  canRunAssessments: boolean;
   onNavigateToAnalyses: () => void;
 }
 
@@ -54,7 +56,11 @@ function getIssueLineRange(issue: Issue): [number, number] | null {
   return [start_line, end_line];
 }
 
-export function DocumentExplorerTab({ projectDetail, onNavigateToAnalyses }: DocumentExplorerTabProps) {
+export function DocumentExplorerTab({
+  projectDetail,
+  canRunAssessments,
+  onNavigateToAnalyses,
+}: DocumentExplorerTabProps) {
   const { selectedLineRange, selectLineRange, clearLineSelection, filter, setFilter, clearFilters } =
     useDocumentExplorerStore();
 
@@ -429,6 +435,7 @@ export function DocumentExplorerTab({ projectDetail, onNavigateToAnalyses }: Doc
             issues={highlightIssues}
             totalIssueCount={issues.length}
             activeIssueId={activeIssueId}
+            canRunAssessments={canRunAssessments}
             isAnyProcessing={isAnyProcessing}
             readOnly={!canEditIssues}
             onSelectIssue={handleSelectIssue}

@@ -37,6 +37,9 @@ interface IssuesColumnProps {
   /** The issue whose row is expanded. */
   activeIssueId: string | null;
   isAnyProcessing: boolean;
+  /** Whether starting a run is offered here — false on shared views and older revisions. */
+  canRunAssessments: boolean;
+  /** Whether the issues themselves can be resolved and rated. */
   readOnly: boolean;
   onSelectIssue: (issue: Issue) => void;
 }
@@ -55,6 +58,7 @@ export function IssuesColumn({
   totalIssueCount,
   activeIssueId,
   isAnyProcessing,
+  canRunAssessments,
   readOnly,
   onSelectIssue,
 }: IssuesColumnProps) {
@@ -76,7 +80,7 @@ export function IssuesColumn({
             projectId={projectId}
             totalIssueCount={totalIssueCount}
             isAnyProcessing={isAnyProcessing}
-            readOnly={readOnly}
+            canRunAssessments={canRunAssessments}
           />
         )}
 
@@ -112,12 +116,12 @@ function EmptyIssues({
   projectId,
   totalIssueCount,
   isAnyProcessing,
-  readOnly,
+  canRunAssessments,
 }: {
   projectId: string;
   totalIssueCount: number;
   isAnyProcessing: boolean;
-  readOnly: boolean;
+  canRunAssessments: boolean;
 }) {
   const { setFilter } = useDocumentExplorerStore();
 
@@ -158,12 +162,12 @@ function EmptyIssues({
       icon={<FileSearch className="size-5" />}
       title="No issues found"
       description={
-        readOnly
-          ? 'No assessment has reported anything on this document.'
-          : 'Run an assessment to have this document reviewed.'
+        canRunAssessments
+          ? 'Run an assessment to have this document reviewed.'
+          : 'No assessment has reported anything on this document.'
       }
     >
-      {!readOnly && <NewAssessmentButton projectId={projectId} collapseLabel={false} />}
+      {canRunAssessments && <NewAssessmentButton projectId={projectId} collapseLabel={false} />}
     </EmptyState>
   );
 }
