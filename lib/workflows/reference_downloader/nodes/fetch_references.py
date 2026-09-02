@@ -1,6 +1,7 @@
 import logging
 from typing import List
 
+from langchain_core.messages import BaseMessage
 from langgraph.runtime import Runtime
 from langgraph.types import Send
 
@@ -108,9 +109,12 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
     result = None
     error = None
     status = ReferenceFetchStatus.COMPLETED
+    messages: List[BaseMessage] = []
 
     try:
-        result, _ = await agent.ainvoke(ReferenceFetcherAgentInput(reference=reference))
+        result, messages = await agent.ainvoke(
+            ReferenceFetcherAgentInput(reference=reference)
+        )
 
         if (
             result
@@ -155,6 +159,7 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
                 status=status,
                 result=result,
                 error=error,
+                messages=messages,
             )
         ]
     }
