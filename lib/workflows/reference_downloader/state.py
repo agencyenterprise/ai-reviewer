@@ -1,7 +1,8 @@
 from enum import Enum
 from typing import Annotated, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from langchain_core.messages import BaseMessage
+from pydantic import BaseModel, Field, field_serializer
 
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 from lib.workflows.reference_downloader.agents.reference_fetcher import (
@@ -33,6 +34,17 @@ class ReferenceFetchResult(BaseModel):
     error: Optional[str] = Field(
         default=None, description="Error message, present on failure"
     )
+    messages: List[BaseMessage] = Field(
+        default_factory=list,
+        description="LLM conversation messages from the reference fetcher agent invocation.",
+    )
+
+    @field_serializer("messages")
+    @classmethod
+    def _serialize_messages(cls, messages: List[BaseMessage]) -> list[dict]:
+        # Checkpointer-hydrated states may contain raw dicts in `messages`
+        # because reducers can append items that bypass model construction.
+        return [m if isinstance(m, dict) else m.model_dump() for m in messages]
 
 
 def merge_fetch_results(

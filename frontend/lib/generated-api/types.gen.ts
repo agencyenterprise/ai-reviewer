@@ -2590,6 +2590,14 @@ export type ReferenceFetchResult = {
    * Error message, present on failure
    */
   error?: string | null;
+  /**
+   * Messages
+   *
+   * LLM conversation messages from the reference fetcher agent invocation.
+   */
+  messages?: Array<{
+    [key: string]: unknown;
+  }>;
 };
 
 /**
