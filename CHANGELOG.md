@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.6] - 2026-09-02
+
+### Added
+- Added an issues column empty state in the Document Explorer.
+
+### Changed
+- Restyled the “Unexpected processing errors occurred” notice on the Document Explorer tab as a full-width chrome banner.
+- Removed duplicated per-tab loading indicators from the Document Explorer issue surfaces.
+- Updated the Document Explorer header status line to show the issue count, falling back to “No issues.”
+- Added an optional `collapseLabel` prop to `NewAssessmentButton` so its label can remain visible when reused outside the header.
+
+
 ## [v1.0.5] - 2026-09-01
 
 ### Added
