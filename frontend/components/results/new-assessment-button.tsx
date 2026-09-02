@@ -19,7 +19,14 @@ import { toast } from 'sonner';
  * the assessments that already exist, and every other control in this view
  * speaks the same way — "Ready to run", "Run more", "Re-run X".
  */
-export function NewAssessmentButton({ projectId }: { projectId: string }) {
+export function NewAssessmentButton({
+  projectId,
+  /** Off where the button is the only thing in its space and the label always fits. */
+  collapseLabel = true,
+}: {
+  projectId: string;
+  collapseLabel?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
 
@@ -53,7 +60,7 @@ export function NewAssessmentButton({ projectId }: { projectId: string }) {
             <PlayIcon />
             {/* A phone header cannot carry five labelled controls; here the
                 icon and its tooltip say it instead. */}
-            <span className="hidden sm:inline">Run assessments</span>
+            <span className={collapseLabel ? 'hidden sm:inline' : undefined}>Run assessments</span>
           </Button>
         </TooltipTrigger>
         <TooltipContent>Choose assessments to run on this document</TooltipContent>

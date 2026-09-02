@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Callout } from '@/components/ui/callout';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AccessLevel, Issue, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
 import { useLineHashNavigation } from '@/lib/line-hash';
@@ -21,7 +20,7 @@ import {
 } from '@/lib/workflow-state';
 import { WIDE_ENOUGH_FOR_PANE, useMediaQuery } from '@/lib/use-media-query';
 import { cn } from '@/lib/utils';
-import { AlertTriangleIcon, Columns2, ListFilter, Loader2 } from 'lucide-react';
+import { Columns2, ListFilter, Loader2 } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { DocumentHeader, DocumentView, DocumentViewHandle } from './document-view';
 import { IssuesColumn, IssuesColumnHandle, issueCountLabel } from './issues-column';
@@ -29,6 +28,7 @@ import { IssueNav, useIssueShortcuts } from './issue-nav';
 import { Rail, RailToggle, SidePane, useRailState } from '../panes';
 import { OutlineRail } from './outline-rail';
 import { OutlineEntry, extractOutline } from './outline';
+import { ProcessingErrorsBanner } from '../processing-errors-banner';
 
 /** The two ways to read the issues: beside the text, or gathered in a column. */
 const MODES = [
@@ -43,6 +43,8 @@ const MODES = [
 
 interface DocumentExplorerTabProps {
   projectDetail: ProjectDetailed;
+  /** False on a shared or older revision, where the header hides its run button too. */
+  canRunAssessments: boolean;
   onNavigateToAnalyses: () => void;
 }
 
@@ -54,7 +56,11 @@ function getIssueLineRange(issue: Issue): [number, number] | null {
   return [start_line, end_line];
 }
 
-export function DocumentExplorerTab({ projectDetail, onNavigateToAnalyses }: DocumentExplorerTabProps) {
+export function DocumentExplorerTab({
+  projectDetail,
+  canRunAssessments,
+  onNavigateToAnalyses,
+}: DocumentExplorerTabProps) {
   const { selectedLineRange, selectLineRange, clearLineSelection, filter, setFilter, clearFilters } =
     useDocumentExplorerStore();
 
@@ -297,8 +303,8 @@ export function DocumentExplorerTab({ projectDetail, onNavigateToAnalyses }: Doc
 
   if (isDocumentProcessing && !mainDocumentMarkdown) {
     return (
-      <div className="space-y-4 p-6">
-        {workflowErrors.length > 0 && <ProcessingErrorNotice onNavigateToAnalyses={onNavigateToAnalyses} />}
+      <div className="flex h-full min-h-0 flex-col">
+        {workflowErrors.length > 0 && <ProcessingErrorsBanner onViewAssessments={onNavigateToAnalyses} />}
         <div className="flex items-center justify-center py-12">
           <div className="space-y-3 text-center">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
@@ -311,11 +317,7 @@ export function DocumentExplorerTab({ projectDetail, onNavigateToAnalyses }: Doc
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg">
-      {workflowErrors.length > 0 && (
-        <div className="border-b p-3">
-          <ProcessingErrorNotice onNavigateToAnalyses={onNavigateToAnalyses} />
-        </div>
-      )}
+      {workflowErrors.length > 0 && <ProcessingErrorsBanner onViewAssessments={onNavigateToAnalyses} />}
 
       <div className="flex min-h-0 flex-1">
         <Rail state={rail} label="Filters and outline">
@@ -342,22 +344,8 @@ export function DocumentExplorerTab({ projectDetail, onNavigateToAnalyses }: Doc
             <span className="truncate text-xs text-muted-foreground">
               {outline.length > 0 ? `${outline.length} sections` : 'Document'}
               {mainDocumentMarkdown ? ` · ${mainDocumentMarkdown.split('\n').length} lines` : ''}
-              {` · ${countLabel ?? (isAnyProcessing ? 'Finding issues...' : 'No issues')}`}
+              {` · ${countLabel ?? 'No issues'}`}
             </span>
-
-            {isAnyProcessing && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span
-                    className="inline-flex size-3.5 shrink-0 items-center justify-center text-muted-foreground"
-                    aria-label="Some results are still loading"
-                  >
-                    <Loader2 className="size-3.5 animate-spin" />
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>Some results are still loading, see the Assessments tab for details</TooltipContent>
-              </Tooltip>
-            )}
 
             <div className="ml-auto flex shrink-0 items-center gap-2">
               {/* Only while something on screen can show what it steps to.
@@ -438,9 +426,12 @@ export function DocumentExplorerTab({ projectDetail, onNavigateToAnalyses }: Doc
         >
           <IssuesColumn
             ref={issuesRef}
+            projectId={projectDetail.project.id}
             visibleIssues={visibleIssues}
             issues={highlightIssues}
+            totalIssueCount={issues.length}
             activeIssueId={activeIssueId}
+            canRunAssessments={canRunAssessments}
             isAnyProcessing={isAnyProcessing}
             readOnly={!canEditIssues}
             onSelectIssue={handleSelectIssue}
@@ -448,19 +439,5 @@ export function DocumentExplorerTab({ projectDetail, onNavigateToAnalyses }: Doc
         </SidePane>
       </div>
     </div>
-  );
-}
-
-function ProcessingErrorNotice({ onNavigateToAnalyses }: { onNavigateToAnalyses: () => void }) {
-  return (
-    <Callout variant="warning" icon={AlertTriangleIcon} title="Unexpected processing errors occurred">
-      <p className="text-sm">
-        Check the{' '}
-        <button onClick={onNavigateToAnalyses} className="cursor-pointer font-medium underline underline-offset-2">
-          Assessments tab
-        </button>{' '}
-        for details.
-      </p>
-    </Callout>
   );
 }

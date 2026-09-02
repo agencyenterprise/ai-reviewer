@@ -3,7 +3,9 @@
 import { Button } from '@/components/ui/button';
 import { Issue } from '@/lib/generated-api';
 import { getIssueCount, hasActiveFilters, useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
-import { Ref, useImperativeHandle, useRef, useState } from 'react';
+import { CheckCircle2, FileSearch, Loader2 } from 'lucide-react';
+import { ReactNode, Ref, useImperativeHandle, useRef, useState } from 'react';
+import { NewAssessmentButton } from '../new-assessment-button';
 import { IssuesList, IssuesListHandle } from './issues-list';
 
 /**
@@ -25,13 +27,19 @@ export interface IssuesColumnHandle {
 
 interface IssuesColumnProps {
   ref?: Ref<IssuesColumnHandle>;
+  projectId: string;
   /** Issues after the passing/resolved toggles, before severity and type. */
   visibleIssues: Issue[];
   /** Issues after every filter — what the list shows. */
   issues: Issue[];
+  /** Every issue on the document, before any filtering. */
+  totalIssueCount: number;
   /** The issue whose row is expanded. */
   activeIssueId: string | null;
   isAnyProcessing: boolean;
+  /** Whether starting a run is offered here — false on shared views and older revisions. */
+  canRunAssessments: boolean;
+  /** Whether the issues themselves can be resolved and rated. */
   readOnly: boolean;
   onSelectIssue: (issue: Issue) => void;
 }
@@ -44,10 +52,13 @@ interface IssuesColumnProps {
  */
 export function IssuesColumn({
   ref,
+  projectId,
   visibleIssues,
   issues,
+  totalIssueCount,
   activeIssueId,
   isAnyProcessing,
+  canRunAssessments,
   readOnly,
   onSelectIssue,
 }: IssuesColumnProps) {
@@ -64,19 +75,23 @@ export function IssuesColumn({
   return (
     <div className="flex h-full flex-col">
       <div ref={setScrollContainer} className="min-h-0 flex-1 overflow-y-auto">
-        {visibleIssues.length === 0 && !isAnyProcessing && (
-          <p className="p-4 text-sm text-muted-foreground">No issues found for this document.</p>
+        {visibleIssues.length === 0 && (
+          <EmptyIssues
+            projectId={projectId}
+            totalIssueCount={totalIssueCount}
+            isAnyProcessing={isAnyProcessing}
+            canRunAssessments={canRunAssessments}
+          />
         )}
 
-        {visibleIssues.length > 0 && issues.length === 0 && !isAnyProcessing && (
-          <div className="space-y-1 py-8 text-center text-sm text-muted-foreground">
-            <p>No issues match the current filters.</p>
+        {visibleIssues.length > 0 && issues.length === 0 && (
+          <EmptyState title="No issues match the current filters">
             {hasActiveFilters(filter) && (
               <Button variant="link" size="sm" className="text-xs" onClick={clearFilters}>
                 Clear filters
               </Button>
             )}
-          </div>
+          </EmptyState>
         )}
 
         <IssuesList
@@ -88,6 +103,92 @@ export function IssuesColumn({
           readOnly={readOnly}
         />
       </div>
+    </div>
+  );
+}
+
+/**
+ * What the column says when it has nothing to list. Never nothing: an empty
+ * panel reads as something that failed to load, and the three ways to arrive
+ * here want different answers — wait, clear a toggle, or run an assessment.
+ */
+function EmptyIssues({
+  projectId,
+  totalIssueCount,
+  isAnyProcessing,
+  canRunAssessments,
+}: {
+  projectId: string;
+  totalIssueCount: number;
+  isAnyProcessing: boolean;
+  canRunAssessments: boolean;
+}) {
+  const { setFilter } = useDocumentExplorerStore();
+
+  if (isAnyProcessing) {
+    return (
+      <EmptyState
+        icon={<Loader2 className="size-5 animate-spin" />}
+        title="No issues yet"
+        description="Assessments are still running. Findings appear here as they land."
+      />
+    );
+  }
+
+  // Issues exist, but every one of them is resolved or passing and the toggles
+  // that would show them are off. Saying "no issues" here would be a lie about
+  // the document rather than about the filters.
+  if (totalIssueCount > 0) {
+    return (
+      <EmptyState
+        icon={<CheckCircle2 className="size-5" />}
+        title="No open issues"
+        description="Every issue on this document is resolved or passing."
+      >
+        <Button
+          variant="link"
+          size="sm"
+          className="text-xs"
+          onClick={() => setFilter({ showResolved: true, showPassing: true })}
+        >
+          Show resolved and passing
+        </Button>
+      </EmptyState>
+    );
+  }
+
+  return (
+    <EmptyState
+      icon={<FileSearch className="size-5" />}
+      title="No issues found"
+      description={
+        canRunAssessments
+          ? 'Run an assessment to have this document reviewed.'
+          : 'No assessment has reported anything on this document.'
+      }
+    >
+      {canRunAssessments && <NewAssessmentButton projectId={projectId} collapseLabel={false} />}
+    </EmptyState>
+  );
+}
+
+function EmptyState({
+  icon,
+  title,
+  description,
+  children,
+}: {
+  icon?: ReactNode;
+  title: string;
+  description?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2 px-6 py-10 text-center text-sm text-muted-foreground">
+      {icon && <span className="text-muted-foreground/70">{icon}</span>}
+      <p className="font-medium text-foreground">{title}</p>
+      {description && <p className="text-xs text-balance">{description}</p>}
+      {children}
     </div>
   );
 }
