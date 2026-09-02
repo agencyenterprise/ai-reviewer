@@ -22,10 +22,6 @@ from lib.workflows.document_summarization.state import (
     DocumentSummarizationState,
     DocumentSummarizationWorkflowConfig,
 )
-from lib.workflows.human_approval.state import (
-    HumanApprovalConfig,
-    HumanApprovalState,
-)
 from lib.workflows.methodological_alignment.state import (
     MethodologicalAlignmentState,
     MethodologicalAlignmentWorkflowConfig,
@@ -62,7 +58,6 @@ WorkflowState = (
     | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | ReferenceValidationV2State
-    | HumanApprovalState
     | Reviewer2State
     | SimpleDeepAgentState
 )
@@ -78,7 +73,6 @@ WorkflowConfig = (
     | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
     | ReferenceValidationV2WorkflowConfig
-    | HumanApprovalConfig
     | Reviewer2Config
     | SimpleDeepAgentConfig
 )
