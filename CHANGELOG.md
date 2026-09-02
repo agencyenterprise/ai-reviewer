@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.7] - 2026-09-02
+
+### Added
+- Persisted and surfaced reference fetcher agent messages in the reference downloader eval transcript.
+- Added an optional `messages` field to `ReferenceFetchResult` in the generated frontend API types.
+
+### Changed
+- Updated the reference downloader workflow to keep and store messages returned during reference fetching instead of discarding them.
+- Updated the reference downloader eval agent to move per-reference messages into the transcript while removing them from the scored JSON completion to keep it compact.
+
+
 ## [v1.0.6] - 2026-09-02
 
 ### Added
