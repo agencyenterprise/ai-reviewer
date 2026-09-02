@@ -3,15 +3,27 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { listProjectsEndpointApiProjectsGet } from '@/lib/generated-api';
-import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
+import { listProjectsEndpointApiProjectsGet, ProjectListPage } from '@/lib/generated-api';
+import { InfiniteData, keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { FolderOpen, Loader2, Plus, Search } from 'lucide-react';
 import Link from 'next/link';
 import { ReactNode, useCallback, useState } from 'react';
 import { useDebounce } from 'use-debounce';
 import { ProjectRow } from './project-row';
+import { readProjectState } from './project-state';
 
 const PAGE_SIZE = 50;
+const ACTIVE_POLL_MS = 3000;
+const IDLE_POLL_MS = 30_000;
+
+function hasActiveRuns(pages: ProjectListPage[] | undefined): boolean {
+  return (pages ?? []).some((page) =>
+    page.items.some((item) => {
+      const state = readProjectState(item);
+      return state === 'running' || state === 'waiting';
+    }),
+  );
+}
 
 /**
  * Every project you have. No rail: a project is either the one you came for or
@@ -26,9 +38,14 @@ export function ProjectsView() {
   const [debouncedSearch] = useDebounce(search.trim(), 300);
 
   const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage, isPlaceholderData } =
-    useInfiniteQuery({
+    // Explicit generics: a function-valued refetchInterval stops TypeScript
+    // inferring the page type from queryFn.
+    useInfiniteQuery<ProjectListPage, Error, InfiniteData<ProjectListPage>, [string, string], number>({
       queryKey: ['projects', debouncedSearch],
-      refetchInterval: 3000,
+      // Every loaded page is refetched on each tick, so the interval scales with
+      // what is on screen: quick while something is still running, otherwise a
+      // slow heartbeat that still picks up projects created elsewhere.
+      refetchInterval: (query) => (hasActiveRuns(query.state.data?.pages) ? ACTIVE_POLL_MS : IDLE_POLL_MS),
       // Keep the current rows on screen while a new search term loads.
       placeholderData: keepPreviousData,
       queryFn: ({ pageParam }) =>

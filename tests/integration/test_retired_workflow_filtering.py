@@ -209,3 +209,12 @@ async def test_project_list_pages_and_searches_server_side(scenario):
     assert matched.total == 1
     assert matched.items[0].project.id == scenario["retired_only"].id
     assert matched.items[0].workflow_runs == []
+
+
+@pytest.mark.asyncio
+async def test_project_list_clamps_out_of_range_paging(scenario):
+    """A limit of 0 would otherwise reach Postgres as an unbounded LIMIT."""
+    page = await get_user_projects(scenario["user"], limit=0, offset=-5)
+
+    assert (page.limit, page.offset) == (1, 0)
+    assert len(page.items) == 1

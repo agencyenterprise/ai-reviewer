@@ -130,9 +130,7 @@ async def list_projects(
     Use get_project with a project_id to fetch full details for a specific project.
     """
     user = await helpers.resolve_user(token)
-    page = await get_user_projects(
-        user, search=search, limit=min(max(limit, 1), 200), offset=max(offset, 0)
-    )
+    page = await get_user_projects(user, search=search, limit=limit, offset=offset)
     return json.dumps(
         {
             "total": page.total,

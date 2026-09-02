@@ -42,6 +42,8 @@ from lib.workflows.registry import available_workflow_type_values, get_all_manif
 
 logger = logging.getLogger(__name__)
 
+MAX_PROJECT_PAGE_SIZE = 200
+
 
 class ProjectListItem(BaseModel):
     project: Project = Field(description="The project")
@@ -173,7 +175,12 @@ async def get_user_projects(
 
     Projects are paged on their own before runs are attached, so a project with
     many runs never eats into the page size and the total counts projects.
+    ``limit`` is clamped to [1, MAX_PROJECT_PAGE_SIZE] and ``offset`` to >= 0 so
+    no caller can produce an unbounded or invalid query; the applied values are
+    echoed back in the page.
     """
+    limit = min(max(limit, 1), MAX_PROJECT_PAGE_SIZE)
+    offset = max(offset, 0)
 
     async with get_async_db_session() as session:
         total = await _count_user_projects(session, user, search)

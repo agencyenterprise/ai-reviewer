@@ -23,6 +23,7 @@ from lib.services.project_zip import create_project_files_zip
 from lib.services.references import MatchSource, add_file_to_reference
 from lib.services.uuid_utils import ensure_uuid
 from lib.services.projects import (
+    MAX_PROJECT_PAGE_SIZE,
     ProjectDetailed,
     ProjectListPage,
     UpdateProjectRequest,
@@ -82,7 +83,10 @@ async def list_projects_endpoint(
         description="Only projects whose title contains every whitespace-separated term",
     ),
     limit: int = Query(
-        default=50, ge=1, le=200, description="Maximum number of projects to return"
+        default=50,
+        ge=1,
+        le=MAX_PROJECT_PAGE_SIZE,
+        description="Maximum number of projects to return",
     ),
     offset: int = Query(
         default=0, ge=0, description="Number of projects to skip for pagination"
