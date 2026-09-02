@@ -172,7 +172,7 @@ async def test_retired_runs_are_hidden_from_the_detail_path(scenario, include_in
 
 @pytest.mark.asyncio
 async def test_project_list_excludes_retired_runs(scenario):
-    items = await get_user_projects(scenario["user"])
+    items = (await get_user_projects(scenario["user"])).items
 
     by_id = {item.project.id: item for item in items}
     mixed = by_id[scenario["mixed"].id]
@@ -188,8 +188,24 @@ async def test_project_list_keeps_a_project_whose_runs_are_all_retired(scenario)
     turns the outer join into an inner one, and a project whose every run is
     retired vanishes from the user's project list entirely.
     """
-    items = await get_user_projects(scenario["user"])
+    items = (await get_user_projects(scenario["user"])).items
 
     by_id = {item.project.id: item for item in items}
     assert scenario["retired_only"].id in by_id, "project disappeared from the list"
     assert by_id[scenario["retired_only"].id].workflow_runs == []
+
+
+@pytest.mark.asyncio
+async def test_project_list_pages_and_searches_server_side(scenario):
+    user = scenario["user"]
+
+    first = await get_user_projects(user, limit=1, offset=0)
+    second = await get_user_projects(user, limit=1, offset=1)
+    assert first.total == second.total == 2
+    assert len(first.items) == len(second.items) == 1
+    assert first.items[0].project.id != second.items[0].project.id
+
+    matched = await get_user_projects(user, search="RETIRED only")
+    assert matched.total == 1
+    assert matched.items[0].project.id == scenario["retired_only"].id
+    assert matched.items[0].workflow_runs == []

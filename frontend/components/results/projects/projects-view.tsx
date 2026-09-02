@@ -4,45 +4,66 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { listProjectsEndpointApiProjectsGet } from '@/lib/generated-api';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { FolderOpen, Loader2, Plus, Search } from 'lucide-react';
 import Link from 'next/link';
-import { ReactNode, useMemo, useState } from 'react';
+import { ReactNode, useCallback, useState } from 'react';
+import { useDebounce } from 'use-debounce';
 import { ProjectRow } from './project-row';
+
+const PAGE_SIZE = 50;
 
 /**
  * Every project you have. No rail: a project is either the one you came for or
  * it is not, and the row already says what each is doing — a column of filters
  * beside a searchable list would be furniture rather than help.
+ *
+ * The server does the searching and the ordering (latest activity first); the
+ * list pages itself in as you scroll, so no cap on the number of projects.
  */
 export function ProjectsView() {
   const [search, setSearch] = useState('');
+  const [debouncedSearch] = useDebounce(search.trim(), 300);
 
-  const {
-    data: projects,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ['projects'],
-    refetchInterval: 3000,
-    queryFn: () => listProjectsEndpointApiProjectsGet(),
-  });
+  const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage, isPlaceholderData } =
+    useInfiniteQuery({
+      queryKey: ['projects', debouncedSearch],
+      refetchInterval: 3000,
+      // Keep the current rows on screen while a new search term loads.
+      placeholderData: keepPreviousData,
+      queryFn: ({ pageParam }) =>
+        listProjectsEndpointApiProjectsGet({
+          query: { search: debouncedSearch || undefined, limit: PAGE_SIZE, offset: pageParam },
+        }),
+      initialPageParam: 0,
+      getNextPageParam: (lastPage) => {
+        const next = lastPage.offset + lastPage.items.length;
+        return next < lastPage.total ? next : undefined;
+      },
+    });
 
-  const items = useMemo(() => projects ?? [], [projects]);
+  const items = data?.pages.flatMap((page) => page.items) ?? [];
+  const total = data?.pages[0]?.total ?? 0;
+  const filtered = debouncedSearch !== '';
 
-  const shown = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return (
-      items
-        .filter((item) => !query || item.project.title.toLowerCase().includes(query))
-        // new Date() is load-bearing despite the generated type saying Date: the
-        // date transformers hey-api generates are never wired into the SDK, so
-        // what actually arrives is an ISO string, and .getTime() on one is NaN.
-        .sort((a, b) => new Date(b.project.last_updated_at).getTime() - new Date(a.project.last_updated_at).getTime())
-    );
-  }, [items, search]);
-
-  const filtered = search.trim() !== '';
+  // Loads the next page when the tail of the list scrolls into view. React 19
+  // ref callbacks may return a cleanup, which keeps this out of useEffect.
+  const sentinelRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (!node) return;
+      const observer = new IntersectionObserver(
+        (entries) => {
+          // cancelRefetch: false so a second intersection while a page is
+          // already loading does not abort and restart that request.
+          if (entries.some((entry) => entry.isIntersecting)) fetchNextPage({ cancelRefetch: false });
+        },
+        { rootMargin: '240px' },
+      );
+      observer.observe(node);
+      return () => observer.disconnect();
+    },
+    [fetchNextPage],
+  );
 
   return (
     <main className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -51,7 +72,7 @@ export function ProjectsView() {
       <div className="flex h-10 shrink-0 items-center border-b px-4">
         <div className="mx-auto flex w-full max-w-5xl items-center gap-2">
           <span className="shrink-0 truncate text-xs text-muted-foreground">
-            {filtered ? `${shown.length} of ${items.length} projects` : `${items.length} projects`}
+            {isLoading ? 'Loading…' : <ProjectCount total={total} filtered={filtered} />}
           </span>
 
           <div className="relative ml-2 hidden max-w-64 min-w-0 flex-1 sm:block">
@@ -63,6 +84,9 @@ export function ProjectsView() {
               placeholder="Search projects"
               className="h-7 pl-7 text-xs"
             />
+            {isPlaceholderData && (
+              <Loader2 className="absolute top-1/2 right-2 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
+            )}
           </div>
 
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
@@ -81,7 +105,9 @@ export function ProjectsView() {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      {/* Keyed on the term so a new result set starts at the top rather than
+          wherever the previous list had been scrolled to. */}
+      <div key={debouncedSearch} className="min-h-0 flex-1 overflow-y-auto">
         {isLoading ? (
           <Centred>
             <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
@@ -91,7 +117,7 @@ export function ProjectsView() {
           <Centred>
             <p className="text-sm text-destructive">{error.message}</p>
           </Centred>
-        ) : items.length === 0 ? (
+        ) : items.length === 0 && !filtered ? (
           <Centred>
             <FolderOpen className="mx-auto size-7 text-muted-foreground" />
             <p className="mt-2 text-sm font-medium">No projects yet</p>
@@ -105,7 +131,7 @@ export function ProjectsView() {
               </Link>
             </Button>
           </Centred>
-        ) : shown.length === 0 ? (
+        ) : items.length === 0 ? (
           <div className="space-y-1 py-12 text-center text-sm text-muted-foreground">
             <p>No projects match that search.</p>
             <Button variant="link" size="sm" className="text-xs" onClick={() => setSearch('')}>
@@ -114,13 +140,36 @@ export function ProjectsView() {
           </div>
         ) : (
           <div className="mx-auto max-w-5xl">
-            {shown.map((item) => (
+            {items.map((item) => (
               <ProjectRow key={item.project.id} item={item} />
             ))}
+
+            {hasNextPage && (
+              <div ref={sentinelRef} className="flex justify-center py-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground"
+                  onClick={() => fetchNextPage({ cancelRefetch: false })}
+                  disabled={isFetchingNextPage}
+                >
+                  {isFetchingNextPage ? <Loader2 className="size-3.5 animate-spin" /> : 'Load more'}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
     </main>
+  );
+}
+
+function ProjectCount({ total, filtered }: { total: number; filtered: boolean }) {
+  const noun = filtered ? (total === 1 ? 'match' : 'matches') : total === 1 ? 'project' : 'projects';
+  return (
+    <>
+      {total} {noun}
+    </>
   );
 }
 

@@ -167,10 +167,15 @@ const projectListItemSchemaResponseTransformer = (data: any) => {
   return data;
 };
 
+const projectListPageSchemaResponseTransformer = (data: any) => {
+  data.items = data.items.map((item: any) => projectListItemSchemaResponseTransformer(item));
+  return data;
+};
+
 export const listProjectsEndpointApiProjectsGetResponseTransformer = async (
   data: any,
 ): Promise<ListProjectsEndpointApiProjectsGetResponse> => {
-  data = data.map((item: any) => projectListItemSchemaResponseTransformer(item));
+  data = projectListPageSchemaResponseTransformer(data);
   return data;
 };
 

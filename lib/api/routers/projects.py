@@ -24,7 +24,7 @@ from lib.services.references import MatchSource, add_file_to_reference
 from lib.services.uuid_utils import ensure_uuid
 from lib.services.projects import (
     ProjectDetailed,
-    ProjectListItem,
+    ProjectListPage,
     UpdateProjectRequest,
     create_project,
     create_new_revision,
@@ -75,10 +75,24 @@ async def create_project_endpoint(
         )
 
 
-@router.get("/api/projects", response_model=list[ProjectListItem])
-async def list_projects_endpoint(current_user: User = Depends(get_current_user)):
-    """List all projects for the current user"""
-    return await get_user_projects(user=current_user)
+@router.get("/api/projects", response_model=ProjectListPage)
+async def list_projects_endpoint(
+    search: Optional[str] = Query(
+        default=None,
+        description="Only projects whose title contains every whitespace-separated term",
+    ),
+    limit: int = Query(
+        default=50, ge=1, le=200, description="Maximum number of projects to return"
+    ),
+    offset: int = Query(
+        default=0, ge=0, description="Number of projects to skip for pagination"
+    ),
+    current_user: User = Depends(get_current_user),
+):
+    """List the current user's projects, newest activity first, one page at a time."""
+    return await get_user_projects(
+        user=current_user, search=search, limit=limit, offset=offset
+    )
 
 
 @router.get("/api/project/{project_id}", response_model=ProjectDetailed)

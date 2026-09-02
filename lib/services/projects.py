@@ -6,8 +6,9 @@ from typing import List, Optional, Sequence
 
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import select, update
-from sqlmodel import and_, col
+from sqlalchemy import Select, func, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import col
 
 from lib.config.database import get_async_db_session
 from lib.models.feedback import FeedbackType
@@ -48,6 +49,13 @@ class ProjectListItem(BaseModel):
         default_factory=list,
         description="The workflow runs for the project",
     )
+
+
+class ProjectListPage(BaseModel):
+    items: List[ProjectListItem] = Field(description="The projects on this page")
+    total: int = Field(description="Number of projects matching the query overall")
+    limit: int = Field(description="Page size that was applied")
+    offset: int = Field(description="Number of projects skipped before this page")
 
 
 class FeedbackSummary(BaseModel):
@@ -116,43 +124,80 @@ async def create_project(
         return project
 
 
-async def get_user_projects(user: User) -> List[ProjectListItem]:
-    """Retrieve all projects for a user with their associated workflow runs."""
+def _user_projects_query(user: User, search: Optional[str]) -> Select[tuple[Project]]:
+    """Projects owned by ``user``, narrowed by every whitespace-separated search term."""
+    stmt = select(Project).where(col(Project.user_id) == user.id)
+    for term in (search or "").split():
+        stmt = stmt.where(col(Project.title).ilike(f"%{term}%"))
+    return stmt
+
+
+async def _count_user_projects(
+    session: AsyncSession, user: User, search: Optional[str]
+) -> int:
+    count_stmt = select(func.count()).select_from(
+        _user_projects_query(user, search).subquery()
+    )
+    return (await session.execute(count_stmt)).scalar_one()
+
+
+async def _live_runs_by_project(
+    session: AsyncSession, project_ids: Sequence[uuid.UUID]
+) -> dict[uuid.UUID, list[WorkflowRun]]:
+    """Current-revision runs of live workflow types, grouped by project."""
+    runs_by_project: dict[uuid.UUID, list[WorkflowRun]] = defaultdict(list)
+    if not project_ids:
+        return runs_by_project
+    stmt = (
+        select(WorkflowRun)
+        .join(Project, col(Project.id) == col(WorkflowRun.project_id))
+        .where(col(WorkflowRun.project_id).in_(project_ids))
+        .where(col(WorkflowRun.revision) == col(Project.current_revision))
+        # Retired types have no manifest to render under, so they are hidden.
+        .where(col(WorkflowRun.type).in_(available_workflow_type_values()))
+        .order_by(col(WorkflowRun.created_at).asc())
+    )
+    for run in (await session.execute(stmt)).scalars().all():
+        if run.project_id is not None:
+            runs_by_project[run.project_id].append(run)
+    return runs_by_project
+
+
+async def get_user_projects(
+    user: User,
+    search: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> ProjectListPage:
+    """One page of a user's projects, newest activity first, with their live runs.
+
+    Projects are paged on their own before runs are attached, so a project with
+    many runs never eats into the page size and the total counts projects.
+    """
 
     async with get_async_db_session() as session:
-        stmt = (
-            select(Project, WorkflowRun)
-            .outerjoin(
-                WorkflowRun,
-                and_(
-                    col(WorkflowRun.project_id) == col(Project.id),
-                    col(WorkflowRun.revision) == col(Project.current_revision),
-                    # Must stay in the join, not the WHERE: a predicate on the
-                    # right-hand table would make this an inner join and drop
-                    # projects with no live runs.
-                    col(WorkflowRun.type).in_(available_workflow_type_values()),
-                ),
-            )
-            .where(col(Project.user_id) == user.id)
-            .order_by(col(Project.created_at).desc(), col(WorkflowRun.created_at).asc())
-            .limit(200)
+        total = await _count_user_projects(session, user, search)
+        page_stmt = (
+            _user_projects_query(user, search)
+            .order_by(col(Project.last_updated_at).desc(), col(Project.id).desc())
+            .limit(limit)
+            .offset(offset)
         )
-        results = (await session.execute(stmt)).all()
-
-        projects_by_id: dict[uuid.UUID, Project] = {}
-        runs_by_project: dict[uuid.UUID, list[WorkflowRun]] = defaultdict(list)
-        for row in results:
-            project, workflow_run = row.tuple()
-            projects_by_id.setdefault(project.id, project)
-            # Retired types are excluded by the join; None means no runs.
-            if workflow_run is not None:
-                runs_by_project[project.id].append(workflow_run)
-
-        # Build the result list
-        return [
-            ProjectListItem(project=project, workflow_runs=runs_by_project[project.id])
-            for project in projects_by_id.values()
-        ]
+        projects = list((await session.execute(page_stmt)).scalars().all())
+        runs_by_project = await _live_runs_by_project(
+            session, [project.id for project in projects]
+        )
+        return ProjectListPage(
+            items=[
+                ProjectListItem(
+                    project=project, workflow_runs=runs_by_project[project.id]
+                )
+                for project in projects
+            ],
+            total=total,
+            limit=limit,
+            offset=offset,
+        )
 
 
 async def _get_project_by_id(project_id: str) -> Project | None:

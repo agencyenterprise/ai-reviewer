@@ -112,22 +112,37 @@ async def get_project(
         openWorldHint=False,
     )
 )
-async def list_projects(token: AccessToken = CurrentAccessToken()) -> str:
+async def list_projects(
+    search: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+    token: AccessToken = CurrentAccessToken(),
+) -> str:
     """
-    List all projects belonging to the authenticated user.
+    List projects belonging to the authenticated user, newest activity first.
 
-    Returns a JSON array of objects, each with project_id, title, and project_url.
+    Returns a JSON object with `total` (projects matching overall) and `items`,
+    an array of objects each with project_id, title, and project_url.
+
+    search: optional text; only projects whose title contains every term are returned.
+    limit: page size, at most 200. offset: number of projects to skip. When
+    offset + len(items) < total there are more pages to fetch.
     Use get_project with a project_id to fetch full details for a specific project.
     """
     user = await helpers.resolve_user(token)
-    projects = await get_user_projects(user)
+    page = await get_user_projects(
+        user, search=search, limit=min(max(limit, 1), 200), offset=max(offset, 0)
+    )
     return json.dumps(
-        [
-            {
-                "project_id": str(item.project.id),
-                "title": item.project.title,
-                "project_url": helpers.build_project_url(str(item.project.id)),
-            }
-            for item in projects
-        ]
+        {
+            "total": page.total,
+            "items": [
+                {
+                    "project_id": str(item.project.id),
+                    "title": item.project.title,
+                    "project_url": helpers.build_project_url(str(item.project.id)),
+                }
+                for item in page.items
+            ],
+        }
     )
