@@ -12,6 +12,7 @@ from evals_inspectai.common.api_client import (
     poll_until_complete,
 )
 from evals_inspectai.common.converters import messages_from_langchain
+from evals_inspectai.common.loaders import inline_local_images
 from evals_inspectai.common.errors import WorkflowCompletionError
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,12 @@ def api_workflow_agent(
     """
 
     async def execute(state: AgentState) -> AgentState:
-        document_content = state.messages[0].text if state.messages else ""
+        # Figures referenced by local path are embedded as data URIs here, so
+        # the backend extracts them like any document's images; the sample's
+        # own input stays the readable, path-referencing markdown.
+        document_content = (
+            inline_local_images(state.messages[0].text) if state.messages else ""
+        )
 
         project_id = await create_project_and_start_workflows(
             file_content=document_content,

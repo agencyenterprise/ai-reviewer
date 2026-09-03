@@ -1,0 +1,75 @@
+# Dataset for the reviewer_2 e2e eval. One record per document; `input` is the
+# document under review as markdown, figures referenced by local PNG path.
+
+- input: |
+    # Does Gamified Onboarding Improve Long-Term Retention in Mobile Apps?
+
+    ## Abstract
+
+    We report a study of gamified onboarding in a consumer fitness app. Users who
+    received a gamified onboarding flow (badges, streaks, a progress bar) were
+    retained at higher rates after 30 days than users who received a standard
+    onboarding flow.
+
+    ## Methods
+
+    We ran an A/B test over four weeks with 5,000 new users randomly assigned to the
+    gamified or standard onboarding condition. Retention was measured as the
+    fraction of users who opened the app at least once between days 28 and 30.
+
+    ## Results
+
+    Day-30 retention was 34 percent in the gamified condition versus 28 percent in
+    the standard condition. We conclude that gamification causes higher long-term
+    retention and recommend that all onboarding flows adopt gamification.
+
+    ## Conclusion
+
+    Gamified onboarding is a universally effective retention strategy and should be
+    the default for all mobile applications.
+  target_answer: 'The peer review should acknowledge strengths (randomized A/B test, clear metric) and raise substantive weaknesses: the overreaching causal and universal claims, a short 30-day retention window, no confidence intervals or significance test, and a single-app context that does not support the ''universally effective'' conclusion. It should give prioritized, actionable next steps. The separate rebuttal should play devil''s advocate and make the best case *against* the paper (e.g. that the effect is small, short-term, and confounded), ending by noting where its own attack is weakest.'
+- input: |
+    # A Short Argument for Open-Source Scientific Software
+
+    ## Introduction
+
+    Scientific results increasingly depend on custom software, yet much of this
+    software is never released. This paper argues that funding agencies should
+    mandate open-source release of all software produced with public funds.
+
+    ## Argument
+
+    Closed software cannot be independently verified, so results that depend on it
+    cannot be fully reproduced. Because reproducibility is central to science, any
+    barrier to it is a barrier to science itself. Therefore all publicly funded
+    research software must be open source, with no exceptions, regardless of cost,
+    security concerns, or commercialization potential.
+
+    ## Conclusion
+
+    Mandating open-source release would eliminate an entire class of
+    reproducibility failures and impose no meaningful downsides on researchers.
+  target_answer: The peer review should identify the argument's logical overreach — absolute claims ('no exceptions', 'no meaningful downsides') that ignore security, cost, and commercialization trade-offs — and the missing evidence for its empirical premises. It should list strengths, weaknesses, and concrete next steps. The separate rebuttal should play devil's advocate and make the best case *against* the paper's thesis (e.g. that open-source mandates carry real security, cost, and commercialization trade-offs), ending by noting where its own attack is weakest.
+- input: |
+    # Peer Coaching and Course Completion: A Randomised Trial
+
+    ## Abstract
+
+    We randomly assigned 2,400 first-year students at one university to weekly peer coaching or to a control condition and compared course completion at the end of the semester. Peer coaching produced a dramatic improvement in completion. We recommend that the university adopt peer coaching for all first-year students.
+
+    ## Method
+
+    Students were assigned by lottery, 1,200 to each arm. The outcome is the share of students completing all enrolled courses. Coaches were trained third-year students meeting their assignees weekly for thirty minutes.
+
+    ## Results
+
+    Completion rates are shown in Figure 1. The peer-coaching arm shows a dramatic improvement over the control arm.
+
+    ![](files/figures/r2_completion.png)
+
+    **Figure 1: Course completion rate by arm (percent)**
+
+    ## Discussion
+
+    The size of the effect, visible at a glance in Figure 1, indicates that peer coaching should be adopted university-wide without delay. Given the low cost of the program, the case is compelling.
+  target_answer: 'The review should credit the study''s strengths (randomised assignment, a large sample of 2,400, a clear outcome) and identify its central weakness: the ''dramatic improvement'' is a difference of under one percentage point, about 49.6 versus 50.4 percent, which is visible only by reading Figure 1, whose y-axis runs from 49 to 51 and so exaggerates the gap. The review should say that the figure''s truncated scale is misleading, that the paper reports no confidence interval or significance test, and that the university-wide adoption recommendation is not supported by an effect of that size. Next steps should be prioritised and concrete. The rebuttal should make the best case against the paper and end by noting where its own case is weakest.'

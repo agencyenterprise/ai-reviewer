@@ -1,0 +1,882 @@
+# Dataset for the figures_tables_check e2e eval. One record per document; `input` is the
+# document under review as markdown, figures referenced by local PNG path.
+
+- input: |
+    # Urban Mobility Survey: Annual Report
+
+    ## About This Report
+
+    This report presents findings from a one-year survey of commuting patterns across three districts.
+
+    ## Survey Design
+
+    The study deployed monitoring equipment at 26 stations. Figure 1 maps the coverage area and station locations.
+
+    **Figure 1: Survey coverage area and monitoring station locations**
+
+    | District | Stations | Coverage (km²) |
+    |----------|----------|----------------|
+    | North    | 8        | 45             |
+    | Central  | 12       | 32             |
+    | South    | 6        | 28             |
+
+    ## Commute Time Results
+
+    Commute durations fell across all districts following the intervention. Table 1 summarises average commute times before and after.
+
+    **Table 1: Average commute times before and after intervention (minutes)**
+
+    | District | Before | After | Change |
+    |----------|--------|-------|--------|
+    | North    | 34     | 29    | −15%   |
+    | Central  | 42     | 36    | −14%   |
+    | South    | 28     | 25    | −11%   |
+
+    ## Modal Shift Results
+
+    Modal shift was the primary driver of the observed time savings. Figure 2 shows the change in modal share by district.
+
+    **Figure 2: Modal share change by district (percentage points)**
+
+    | District | Car | Transit | Cycling | Walking |
+    |----------|-----|---------|---------|---------|
+    | North    | −8  | +5      | +2      | +1      |
+    | Central  | −10 | +6      | +3      | +1      |
+    | South    | −6  | +4      | +1      | +1      |
+
+    ## Conclusion
+
+    Investment in transit infrastructure reduced car dependency across all three districts.
+  target_issue_titles: []
+  target_answer: The document has two figures (Figure 1, Figure 2) and one table (Table 1). All three have descriptive titles, are numbered sequentially, and all body references resolve to elements that exist in the document. The agent should report zero issues.
+- input: |
+    # Quarterly Sales Performance Report
+
+    ## Revenue by Product Line
+
+    Figure 1 provides a breakdown of revenue by product line for Q3 2024.
+
+    **Figure 1: Revenue by product line (Q3 2024, USD thousands)**
+
+    | Product Line | Q3 2023 | Q3 2024 | Change |
+    |--------------|---------|---------|--------|
+    | Hardware     | 1,240   | 1,380   | +11%   |
+    | Software     | 890     | 1,050   | +18%   |
+    | Services     | 460     | 430     | −7%    |
+
+    ## Growth Rate Trend
+
+    Figure 2 illustrates the trend in year-over-year growth rates since Q1 2023. The software segment has consistently outperformed the other lines since Q2 2024.
+
+    Figure 2:
+
+    | Quarter | Hardware | Software | Services |
+    |---------|----------|----------|----------|
+    | Q1 2023 | +4%      | +6%      | +2%      |
+    | Q2 2023 | +5%      | +9%      | +1%      |
+    | Q3 2023 | +6%      | +12%     | −1%      |
+    | Q1 2024 | +8%      | +15%     | −3%      |
+    | Q2 2024 | +9%      | +17%     | −5%      |
+    | Q3 2024 | +11%     | +18%     | −7%      |
+
+    ## Conclusion
+
+    Software continues to be the primary growth driver. Services should be reviewed for possible consolidation.
+  target_issue_titles:
+  - 'Figure/Table Missing Title: Figure 2'
+  target_answer: 'Figure 1 has a proper descriptive title. Figure 2 is labelled only as ''Figure 2:'' with no descriptive title or caption following the label — the label appears alone on a line with nothing after the colon. The agent should report exactly one issue: ''Figure/Table Missing Title: Figure 2''.'
+- input: |
+    # Biodiversity Survey: Wetland Species Inventory
+
+    ## Study Sites
+
+    Four wetland sites were selected for monitoring. Figure 1 maps the study sites with their coordinates and areas.
+
+    **Figure 1: Map of the four wetland study sites**
+
+    | Site | Latitude  | Longitude  | Area (ha) |
+    |------|-----------|------------|-----------|
+    | W1   | 51.42° N  | 0.18° W    | 32        |
+    | W2   | 51.39° N  | 0.24° W    | 18        |
+    | W3   | 51.35° N  | 0.31° W    | 45        |
+    | W4   | 51.33° N  | 0.27° W    | 27        |
+
+    ## Species Diversity
+
+    Amphibian diversity was highest at sites W1 and W3. Table 1 shows observed species counts by taxonomic group.
+
+    **Table 1: Observed species counts by taxonomic group**
+
+    | Site | Birds | Amphibians | Invertebrates | Mammals |
+    |------|-------|------------|---------------|---------|
+    | W1   | 42    | 9          | 118           | 7       |
+    | W2   | 31    | 4          | 87            | 4       |
+    | W3   | 47    | 11         | 134           | 8       |
+    | W4   | 28    | 5          | 72            | 5       |
+
+    ## Seasonal Patterns
+
+    Seasonal variation in species occurrence was recorded for birds and amphibians.
+
+    **Table 2: Seasonal species occurrence index (0–1 scale)**
+
+    | Site | Spring | Summer | Autumn | Winter |
+    |------|--------|--------|--------|--------|
+    | W1   | 0.82   | 0.91   | 0.67   | 0.44   |
+    | W2   | 0.71   | 0.83   | 0.59   | 0.35   |
+    | W3   | 0.88   | 0.94   | 0.73   | 0.51   |
+    | W4   | 0.65   | 0.78   | 0.52   | 0.29   |
+
+    ## Conclusion
+
+    Larger wetland sites consistently support greater species diversity.
+  target_issue_titles:
+  - 'Unreferenced Figure/Table: Table 2'
+  target_answer: 'Figure 1 and Table 1 each have proper titles and are referenced in their respective sections. Table 2 has a descriptive title and is properly numbered, but it is never cited or mentioned anywhere in the body text — the Seasonal Patterns section introduces the section without a callout such as ''see Table 2'' or ''as shown in Table 2''. The agent should report exactly one issue: ''Unreferenced Figure/Table: Table 2''.'
+- input: |
+    # Water Quality Assessment: Industrial Zone Study
+
+    ## Sampling Points
+
+    Six sampling points were established downstream of the industrial zone. Table 1 lists their locations and baseline characteristics.
+
+    **Table 1: Sampling point locations and baseline characteristics**
+
+    | Point | Distance from source (km) | Baseline pH | Baseline DO (mg/L) |
+    |-------|--------------------------|-------------|--------------------|
+    | P1    | 0.5                      | 7.1         | 8.4                |
+    | P2    | 1.2                      | 6.8         | 7.9                |
+    | P3    | 2.4                      | 6.5         | 7.2                |
+    | P4    | 4.1                      | 6.9         | 7.6                |
+    | P5    | 6.3                      | 7.0         | 8.1                |
+    | P6    | 9.8                      | 7.2         | 8.5                |
+
+    ## pH Results
+
+    Figure 1 shows pH readings at all sampling points across four monitoring months. pH was consistently lowest at point P3 throughout the period.
+
+    **Figure 1: pH readings at sampling points over the monitoring period**
+
+    | Month | P1  | P2  | P3  | P4  | P5  | P6  |
+    |-------|-----|-----|-----|-----|-----|-----|
+    | Jan   | 6.9 | 6.5 | 6.1 | 6.6 | 6.8 | 7.0 |
+    | Apr   | 7.0 | 6.6 | 6.3 | 6.7 | 6.9 | 7.1 |
+    | Jul   | 7.1 | 6.7 | 6.4 | 6.8 | 7.0 | 7.2 |
+    | Oct   | 7.0 | 6.6 | 6.2 | 6.7 | 6.9 | 7.1 |
+
+    ## Dissolved Oxygen and Heavy Metals
+
+    Figure 2 provides a comparison of dissolved oxygen levels across all monitoring months, confirming that the impact zone is concentrated between P2 and P4.
+
+    Table 2 details the heavy metal concentrations recorded at each point; all values were below regulatory limits except for lead at P3 in July.
+
+    ## Conclusion
+
+    The data consistently point to a localised pollution source near sampling point P3.
+  target_issue_titles:
+  - 'Missing Figure/Table: Figure 2'
+  - 'Missing Figure/Table: Table 2'
+  target_answer: 'Table 1 and Figure 1 exist in the document with proper titles and callouts in their respective sections. The ''Dissolved Oxygen and Heavy Metals'' section references Figure 2 and Table 2 but neither exists in the document. The agent should report exactly two issues: ''Missing Figure/Table: Figure 2'' and ''Missing Figure/Table: Table 2''.'
+- input: file://files/RAND_RRA4036-1.md
+  target_issue_titles: []
+  target_answer: The RAND biodefense report uses chapter-based numbering (TABLE S.1, FIGURE 2.1, TABLE 3.1, TABLE 3.2, etc.) which is a valid consistent scheme. TABLE 3.1 has a bare label on one line but is immediately followed by the section heading 'Common Interventions to Prevent Vital Worker Incapacitation from Biological Threats', which serves as its title — this is a PDF-to-markdown conversion artefact rather than a genuine missing caption. All figures and tables are referenced in the body text and no body references point to non-existent elements. The agent should report zero issues.
+- input: file://files/RAND_RRA4636-1.md
+  target_issue_titles:
+  - 'Unreferenced Figure/Table: Figure 12'
+  target_answer: 'The RAND Europe AGI report has twelve figures (Figure 1–12), all with descriptive titles and sequential numbering. Figures 1–11 are each cited in the body text with an explicit callout. Figure 12 (''The major trade partners of the US in 2024'') appears in the document but is never explicitly referenced in the body text — the surrounding text discusses EU trade weight in general terms without a callout such as ''see Figure 12''. Figure 12 is also absent from the table of figures. The agent should report exactly one issue: ''Unreferenced Figure/Table: Figure 12''. Note: Figure 2 lacks an in-body callout but appears in the table of figures; the agent may or may not flag it as unreferenced depending on whether it counts the table of figures as a body reference.'
+- input: |
+    # Renewable Energy Adoption: Regional Overview
+
+    ## Survey Coverage
+
+    The report covers energy adoption trends across four regions. Figure 1 maps the regions included in the survey.
+
+    **Figure 1: Survey regions and their geographic boundaries**
+
+    | Region   | Area (km²) | Population (millions) |
+    |----------|------------|----------------------|
+    | North    | 142,000    | 3.2                  |
+    | East     | 98,000     | 5.1                  |
+    | South    | 115,000    | 4.4                  |
+    | West     | 87,000     | 2.9                  |
+
+    ## Solar Installation Rates
+
+    Solar capacity grew across all regions. Figure 2 shows the annual solar installation rates from 2020 to 2023.
+
+    **Figure 2: Annual solar installation rates by region (MW/year)**
+
+    | Year | North | East | South | West |
+    |------|-------|------|-------|------|
+    | 2020 | 120   | 210  | 180   | 95   |
+    | 2021 | 145   | 245  | 205   | 110  |
+    | 2022 | 190   | 290  | 250   | 140  |
+    | 2023 | 230   | 335  | 295   | 170  |
+
+    ## Wind Installation Rates
+
+    Wind capacity also expanded significantly. Figure 2 shows the annual wind installation rates across the same period.
+
+    **Figure 2: Annual wind installation rates by region (MW/year)**
+
+    | Year | North | East | South | West |
+    |------|-------|------|-------|------|
+    | 2020 | 85    | 60   | 40    | 110  |
+    | 2021 | 100   | 75   | 55    | 130  |
+    | 2022 | 125   | 95   | 70    | 160  |
+    | 2023 | 155   | 120  | 90    | 195  |
+
+    ## Conclusion
+
+    All regions showed sustained growth in renewable energy capacity over the four-year period.
+  target_issue_titles:
+  - 'Inconsistent Numbering: Figure 2 appears twice'
+  target_answer: 'The document has three figures but only two distinct numbers — Figure 1 (survey regions) appears once, and Figure 2 is used twice: once for solar installation rates and once for wind installation rates. Both uses of Figure 2 have descriptive titles and are referenced in their respective sections. The agent should report exactly one issue: ''Inconsistent Numbering: Figure 2 appears twice''.'
+- input: |
+    # Urban Air Quality Report: Multi-City Study
+
+    ## Study Coverage
+
+    Four cities were monitored over a six-month period. Figure 1 shows the geographic distribution of monitoring sites across the study area.
+
+    **Figure 1: Geographic distribution of air quality monitoring sites**
+
+    | City       | Sites | Region    |
+    |------------|-------|-----------|
+    | Alderton   | 8     | North     |
+    | Bracewell  | 6     | East      |
+    | Castleford | 10    | Central   |
+    | Dunmere    | 5     | South     |
+
+    ## Particulate Matter
+
+    Particulate matter (PM2.5) levels exceeded safe thresholds on multiple occasions. Figure 3 shows the monthly average PM2.5 concentrations for each city.
+
+    **Figure 3: Monthly average PM2.5 concentrations by city (µg/m³)**
+
+    | Month | Alderton | Bracewell | Castleford | Dunmere |
+    |-------|----------|-----------|------------|---------|
+    | Jan   | 18       | 22        | 31         | 14      |
+    | Feb   | 16       | 20        | 28         | 12      |
+    | Mar   | 13       | 17        | 24         | 10      |
+    | Apr   | 11       | 15        | 21         | 9       |
+    | May   | 9        | 13        | 18         | 8       |
+    | Jun   | 8        | 11        | 16         | 7       |
+
+    ## Nitrogen Dioxide
+
+    Nitrogen dioxide (NO2) levels were closely correlated with traffic density. Figure 2 shows NO2 readings at peak and off-peak hours for each city.
+
+    **Figure 2: NO2 concentrations at peak and off-peak hours by city (µg/m³)**
+
+    | City       | Peak | Off-peak |
+    |------------|------|----------|
+    | Alderton   | 48   | 21       |
+    | Bracewell  | 55   | 24       |
+    | Castleford | 72   | 31       |
+    | Dunmere    | 38   | 17       |
+
+    ## Ozone Levels
+
+    Ozone concentrations were highest during warm months. Figure 4 shows the seasonal ozone index for each city.
+
+    **Figure 4: Seasonal ozone index by city (0–100 scale)**
+
+    | City       | Winter | Spring | Summer | Autumn |
+    |------------|--------|--------|--------|--------|
+    | Alderton   | 22     | 41     | 68     | 35     |
+    | Bracewell  | 25     | 44     | 73     | 38     |
+    | Castleford | 30     | 52     | 81     | 45     |
+    | Dunmere    | 19     | 37     | 62     | 31     |
+
+    ## Conclusion
+
+    Castleford consistently recorded the highest pollutant levels across all three measures.
+  target_issue_titles:
+  - 'Inconsistent Numbering: Figures are out of order (Figure 3 appears before Figure 2)'
+  target_answer: 'The document has four figures (Figure 1, Figure 2, Figure 3, Figure 4), all with descriptive titles and all referenced in their respective sections. All four numbers are present with no gaps. However, the figures do not appear in numerical order — Figure 3 (PM2.5 concentrations) appears in the document before Figure 2 (NO2 concentrations). The agent should report exactly one issue: ''Inconsistent Numbering: Figures are out of order (Figure 3 appears before Figure 2)''.'
+- input: |
+    # Coastal Erosion Study: Annual Monitoring Report
+
+    ## Study Area
+
+    The study monitored three coastal sites over a 12-month period. Figure 1 shows the locations of all monitoring stations along the shoreline.
+
+    **Figure 1: Monitoring station locations along the study coastline**
+
+    | Station | Latitude | Longitude | Elevation (m) |
+    |---------|----------|-----------|---------------|
+    | S1      | 50.71° N | 1.88° W   | 4             |
+    | S2      | 50.68° N | 1.93° W   | 6             |
+    | S3      | 50.65° N | 1.97° W   | 3             |
+
+    ## Erosion Rates
+
+    Annual erosion rates were measured at each station. Figure 2 summarises the observed erosion rates across the monitoring period.
+
+    **Figure 2: Annual erosion rates by station (mm/year)**
+
+    | Station | Year 1 | Year 2 | Year 3 |
+    |---------|--------|--------|--------|
+    | S1      | 42     | 38     | 45     |
+    | S2      | 61     | 57     | 63     |
+    | S3      | 29     | 31     | 27     |
+
+    ## Wave Energy
+
+    Wave energy flux was the primary driver of erosion at all three stations. Figure 4 shows the monthly wave energy flux recorded at each station throughout the study period.
+
+    **Figure 4: Monthly wave energy flux by station (kW/m)**
+
+    | Month | S1  | S2  | S3  |
+    |-------|-----|-----|-----|
+    | Jan   | 28  | 31  | 22  |
+    | Apr   | 19  | 21  | 15  |
+    | Jul   | 12  | 14  | 9   |
+    | Oct   | 24  | 27  | 18  |
+
+    ## Conclusion
+
+    Station S2 consistently exhibited the highest erosion rates, driven by elevated wave energy exposure.
+  target_issue_titles:
+  - 'Inconsistent Numbering: Figure numbering skips from Figure 2 to Figure 4'
+  target_answer: 'The document has three figures (Figure 1, Figure 2, Figure 4), all with descriptive titles and all referenced in the body text. However, Figure 3 is absent — the numbering jumps from Figure 2 to Figure 4 with no Figure 3 anywhere in the document. The agent should report exactly one issue: ''Inconsistent Numbering: Figure numbering skips from Figure 2 to Figure 4''.'
+- input: |
+    # Regional Healthcare Infrastructure Report
+
+    ## Facility Locations
+
+    The study covers 42 public health facilities across four districts. Figure 1 maps the facility locations and their service catchment areas.
+
+    **Figure 1: Public health facility locations and catchment areas**
+
+    | District | Facilities | Population served |
+    |----------|------------|-------------------|
+    | North    | 11         | 182,000           |
+    | East     | 9          | 154,000           |
+    | South    | 14         | 231,000           |
+    | West     | 8          | 127,000           |
+
+    ## Staffing Levels
+
+    Staffing shortfalls were identified in all four districts. Figure 2 shows the ratio of clinical staff to population across districts.
+
+    **Figure 2**
+
+    | District | Doctors per 10,000 | Nurses per 10,000 |
+    |----------|--------------------|-------------------|
+    | North    | 8.2                | 24.1              |
+    | East     | 6.7                | 19.4              |
+    | South    | 7.1                | 21.8              |
+    | West     | 5.9                | 17.2              |
+
+    ## Equipment Inventory
+
+    Equipment availability was assessed against WHO minimum standards. Table 1 summarises the inventory findings by district.
+
+    **Table 1: Medical equipment availability against WHO minimums (%)**
+
+    | Equipment Type    | North | East | South | West |
+    |-------------------|-------|------|-------|------|
+    | Diagnostic imaging | 91   | 74   | 88    | 61   |
+    | Surgical equipment | 85   | 68   | 82    | 57   |
+    | Emergency supplies | 96   | 83   | 94    | 72   |
+
+    ## Patient Outcomes
+
+    **Table 2: Patient outcome indicators by district**
+
+    | Indicator                  | North | East | South | West |
+    |----------------------------|-------|------|-------|------|
+    | 30-day readmission rate (%) | 8.1  | 11.4 | 9.2   | 13.7 |
+    | Average length of stay (days) | 4.2 | 5.8 | 4.7  | 6.3  |
+    | Patient satisfaction score  | 78   | 65   | 74    | 59   |
+
+    ## Funding Allocation
+
+    Figure 3 details the breakdown of capital funding allocated to each district over the review period.
+
+    ## Conclusion
+
+    Western districts show the greatest infrastructure deficit and should be prioritised in the next funding cycle.
+  target_issue_titles:
+  - 'Figure/Table Missing Title: Figure 2'
+  - 'Unreferenced Figure/Table: Table 2'
+  - 'Missing Figure/Table: Figure 3'
+  target_answer: 'The document has three figures and two tables. Figure 1 and Table 1 are properly titled and referenced. Figure 2 has a bare ''**Figure 2**'' label with no descriptive title. Table 2 has a descriptive title but is never cited in the body text — the Patient Outcomes section introduces it with no callout. The Funding Allocation section references Figure 3 but no Figure 3 exists anywhere in the document. The agent should report exactly three issues: ''Figure/Table Missing Title: Figure 2'', ''Unreferenced Figure/Table: Table 2'', and ''Missing Figure/Table: Figure 3''.'
+- input: |
+    # Climate Policy Brief: Summary of Key Findings
+
+    ## Overview
+
+    This brief summarises the main findings from a review of climate policy instruments across twelve countries. The review focused on carbon pricing mechanisms, renewable energy subsidies, and emissions trading schemes.
+
+    ## Carbon Pricing
+
+    Carbon pricing was the most widely adopted instrument among the countries reviewed. Ten of the twelve countries had implemented some form of carbon tax or emissions trading scheme by 2023. Prices ranged from under five dollars per tonne to over one hundred dollars per tonne, with significant variation driven by political and economic factors.
+
+    ## Renewable Energy Subsidies
+
+    Renewable energy subsidies were present in all twelve countries, though their structure varied considerably. Feed-in tariffs were more common in European countries, while tax credits dominated in North America. Several countries had begun phasing out subsidies as renewable energy reached cost parity with fossil fuels.
+
+    ## Emissions Trading
+
+    Emissions trading schemes were operational in eight of the twelve countries. Coverage varied from economy-wide schemes to sector-specific programmes targeting electricity generation and heavy industry. Linking schemes across borders remained limited, with only two cross-border programmes in operation.
+
+    ## Conclusion
+
+    Carbon pricing and renewable subsidies remain the primary policy levers for emissions reduction. Greater international coordination on emissions trading could improve efficiency and reduce carbon leakage.
+  target_issue_titles: []
+  target_answer: The document contains no figures or tables. There are no labels, captions, or body-text references to any figure or table anywhere in the document. The agent should report zero issues.
+- input: |
+    # Soil Contamination Survey: Site Assessment Report
+
+    ## Site Overview
+
+    The survey assessed contamination levels at a former industrial site. Soil samples were collected at 20 locations across the site perimeter and interior. Table 1 lists the sample locations and their coordinates.
+
+    **Table 1: Sample locations and coordinates**
+
+    | Sample ID | Easting | Northing | Zone     |
+    |-----------|---------|----------|----------|
+    | S01       | 412840  | 287340   | Perimeter|
+    | S02       | 412910  | 287280   | Perimeter|
+    | S03       | 412760  | 287190   | Interior |
+    | S04       | 412830  | 287150   | Interior |
+    | S05       | 412950  | 287210   | Interior |
+
+    ## Contamination Levels
+
+    Samples were analysed for heavy metal concentrations. The results are shown below.
+
+    | Sample ID | Lead (mg/kg) | Arsenic (mg/kg) | Cadmium (mg/kg) |
+    |-----------|-------------|-----------------|------------------|
+    | S01       | 142         | 18              | 3.2              |
+    | S02       | 87          | 11              | 1.8              |
+    | S03       | 310         | 34              | 6.7              |
+    | S04       | 65          | 8               | 1.1              |
+    | S05       | 198         | 22              | 4.4              |
+
+    ## Remediation Thresholds
+
+    All lead and arsenic values at sample S03 exceeded regulatory remediation thresholds. Cadmium levels remained below thresholds at all locations.
+
+    ## Conclusion
+
+    Sample location S03 requires immediate remediation. The remaining locations fall within acceptable limits for commercial land use.
+  target_issue_titles:
+  - 'Figure/Table Missing Title: Unlabeled table'
+  target_answer: 'The document contains two tables. Table 1 is properly labeled, titled, and referenced in the body text. The second table in the Contamination Levels section has no label or title — it begins directly with the markdown table row with no preceding ''Table X'' label or caption, and the body text refers to it only as ''the results'' with no numbered callout. The agent should report exactly one issue: ''Figure/Table Missing Title: Unlabeled table''.'
+- input: |
+    # Network Security Assessment Report
+
+    ## Executive Summary
+
+    This report presents findings from the annual network security assessment conducted across all regional offices.
+
+    ## Vulnerability Scan Results
+
+    Table 1 summarises the number of vulnerabilities discovered by severity level.
+
+    **Table 1: Vulnerabilities by severity level**
+
+    | Severity | Count | Remediated | Remaining |
+    |----------|-------|------------|-----------|
+    | Critical | 3     | 3          | 0         |
+    | High     | 12    | 10         | 2         |
+    | Medium   | 28    | 19         | 9         |
+    | Low      | 47    | 31         | 16        |
+
+    ## Penetration Test Results
+
+    Figure 1 shows the attack paths identified during the penetration test.
+
+    **Figure 1: Attack paths identified during penetration testing**
+
+    | Attack Path         | Entry Point     | Impact   | Exploited |
+    |---------------------|-----------------|----------|-----------|
+    | Phishing → Lateral  | Email gateway   | High     | Yes       |
+    | SQL Injection       | Web application | Critical | Yes       |
+    | Default Credentials | IoT devices     | Medium   | Yes       |
+
+    ## Abbreviations
+
+    | Abbreviation | Definition |
+    |--------------|------------|
+    | SQL          | Structured Query Language |
+    | IoT          | Internet of Things |
+    | VPN          | Virtual Private Network |
+    | IDS          | Intrusion Detection System |
+    | SIEM         | Security Information and Event Management |
+    | MFA          | Multi-Factor Authentication |
+    | CVE          | Common Vulnerabilities and Exposures |
+
+    ## Conclusion
+
+    The overall security posture has improved compared to the previous assessment cycle.
+  target_issue_titles: []
+  target_answer: The document has one table (Table 1) and one figure (Figure 1), both with proper titles and body-text references. The Abbreviations section contains a two-column table mapping abbreviations to their definitions — this is a standard abbreviation/acronym table and must be excluded from all figures-and-tables rules. It should not be flagged for missing a title, number, or body-text reference. The agent should report zero issues.
+- input: |
+    # Annual Climate Monitoring Report
+
+    ## Overview
+
+    This report analyses temperature and precipitation trends across five monitoring stations over a three-year period.
+
+    ## Temperature Trends
+
+    Figure 1 shows the annual mean temperature at each station.
+
+    **Figure 1: Annual mean temperature by station (°C)**
+
+    | Station | 2021 | 2022 | 2023 |
+    |---------|------|------|------|
+    | Alpha   | 14.2 | 14.8 | 15.1 |
+    | Beta    | 12.7 | 13.1 | 13.5 |
+    | Gamma   | 16.3 | 16.9 | 17.2 |
+    | Delta   | 11.8 | 12.3 | 12.6 |
+    | Epsilon | 15.0 | 15.5 | 15.9 |
+
+    ## Precipitation Patterns
+
+    Total annual precipitation varied significantly between stations. Table 1 provides the annual totals.
+
+    **Table 1: Annual total precipitation by station (mm)**
+
+    | Station | 2021 | 2022 | 2023 |
+    |---------|------|------|------|
+    | Alpha   | 820  | 790  | 845  |
+    | Beta    | 1,120| 1,080| 1,150|
+    | Gamma   | 640  | 610  | 670  |
+    | Delta   | 950  | 920  | 980  |
+    | Epsilon | 740  | 710  | 760  |
+
+    ## Extreme Events
+
+    Figure 3 details the number of extreme weather events recorded at each station.
+
+    **Figure 3: Extreme weather events by station and year**
+
+    | Station | 2021 | 2022 | 2023 |
+    |---------|------|------|------|
+    | Alpha   | 4    | 6    | 8    |
+    | Beta    | 7    | 9    | 11   |
+    | Gamma   | 2    | 3    | 5    |
+    | Delta   | 5    | 7    | 9    |
+    | Epsilon | 3    | 5    | 7    |
+
+    ## List of Abbreviations
+
+    | Abbreviation | Description |
+    |--------------|-------------|
+    | NOAA | National Oceanic and Atmospheric Administration |
+    | WMO  | World Meteorological Organization |
+    | IPCC | Intergovernmental Panel on Climate Change |
+    | GHG  | Greenhouse Gas |
+    | SST  | Sea Surface Temperature |
+
+    ## Conclusion
+
+    All five stations show a consistent warming trend over the three-year period.
+  target_issue_titles:
+  - 'Inconsistent Numbering: Figure numbering skips from Figure 1 to Figure 3'
+  target_answer: 'The document has two figures (Figure 1, Figure 3) and one table (Table 1), all with proper titles and body-text references. However, figure numbering skips from Figure 1 to Figure 3 with no Figure 2 anywhere in the document. The List of Abbreviations section contains a two-column table mapping abbreviations to descriptions — this is a standard abbreviation table and must be excluded from all figures-and-tables rules (it should not be flagged for missing title, number, or body-text reference). The agent should report exactly one issue: ''Inconsistent Numbering: Figure numbering skips from Figure 1 to Figure 3''.'
+- input: |
+    # Flood Risk Assessment: Regional Study
+
+    ## Study Area
+
+    The assessment covers three river catchments. Figure 1 maps the catchment boundaries and gauging stations.
+
+    **Figure 1: River catchment boundaries and gauging station locations**
+
+    | Catchment | Area (km²) | Gauges |
+    |-----------|------------|--------|
+    | Aldwick   | 320        | 5      |
+    | Brindle   | 185        | 3      |
+    | Calder    | 410        | 7      |
+
+    ## Flood Frequency
+
+    Flood frequency was estimated from the gauging records. Figure 2 shows the estimated return periods for each catchment.
+
+    **Figure 2: Estimated flood return periods by catchment (years)**
+
+    | Catchment | 1-in-10 | 1-in-50 | 1-in-100 |
+    |-----------|---------|---------|----------|
+    | Aldwick   | 180     | 240     | 290      |
+    | Brindle   | 95      | 130     | 160      |
+    | Calder    | 220     | 310     | 380      |
+
+    ## Damage Estimates
+
+    Table 1 summarises the estimated economic damage under each scenario.
+
+    **Table 1: Estimated economic damage by scenario (£ millions)**
+
+    | Catchment | 1-in-10 | 1-in-50 | 1-in-100 |
+    |-----------|---------|---------|----------|
+    | Aldwick   | 4.2     | 11.8    | 18.5     |
+    | Brindle   | 1.9     | 5.1     | 8.3      |
+    | Calder    | 6.7     | 17.4    | 27.9     |
+
+    ## Conclusion
+
+    The Calder catchment carries the highest flood risk and should be prioritised for mitigation.
+
+    ## Appendix A: Hydrological Modelling Detail
+
+    The rainfall-runoff model was calibrated against historical events. Figure A.1 shows the calibration fit for the Aldwick catchment.
+
+    **Figure A.1: Rainfall-runoff calibration fit, Aldwick catchment**
+
+    | Event | Observed peak (m³/s) | Modelled peak (m³/s) |
+    |-------|----------------------|----------------------|
+    | 2018  | 142                  | 138                  |
+    | 2020  | 198                  | 205                  |
+    | 2022  | 167                  | 162                  |
+
+    Model parameters are listed in Table A.1.
+
+    **Table A.1: Calibrated model parameters by catchment**
+
+    | Catchment | Lag (hr) | Runoff coefficient |
+    |-----------|----------|--------------------|
+    | Aldwick   | 6.2      | 0.41               |
+    | Brindle   | 4.8      | 0.37               |
+    | Calder    | 7.5      | 0.45               |
+
+    ## Appendix B: Sensitivity Analysis
+
+    Figure B.1 shows the sensitivity of return-period estimates to the runoff coefficient.
+
+    **Figure B.1: Sensitivity of return-period estimates to runoff coefficient**
+
+    | Coefficient change | Return-period change |
+    |--------------------|----------------------|
+    | −10%               | −7%                  |
+    | +10%               | +9%                  |
+  target_issue_titles: []
+  target_answer: The body uses sequential numbering (Figure 1, Figure 2, Table 1) while the appendices use section/appendix-prefixed numbering matching their appendix letter (Appendix A → Figure A.1, Table A.1; Appendix B → Figure B.1). This is a single consistent scheme — the appendix prefix simply identifies the section and must NOT be flagged as 'mixed formats' or 'two numbering formats'. Every figure and table has a descriptive title, each appendix prefix matches its section, and all elements are referenced in the body text. The agent should report zero issues.
+- input: |
+    # Manufacturing Defect Analysis
+
+    ## Defect Categories
+
+    Defects were grouped into three categories. Figure 1 shows the distribution of defects by category.
+
+    **Figure 1: Distribution of defects by category (%)**
+
+    | Category    | Share |
+    |-------------|-------|
+    | Dimensional | 42    |
+    | Surface     | 33    |
+    | Assembly    | 25    |
+
+    ## Defect Rates Over Time
+
+    Figure 2 shows the monthly defect rate across the production line.
+
+    **Figure 2: Monthly defect rate (defects per 1,000 units)**
+
+    | Month | Rate |
+    |-------|------|
+    | Jan   | 18   |
+    | Feb   | 15   |
+    | Mar   | 12   |
+
+    ## Cost Impact
+
+    The cost impact of each defect category is summarised below. Figure 3.1 breaks down rework cost by category.
+
+    **Figure 3.1: Rework cost by defect category (USD thousands)**
+
+    | Category    | Cost |
+    |-------------|------|
+    | Dimensional | 84   |
+    | Surface     | 51   |
+    | Assembly    | 38   |
+
+    ## Conclusion
+
+    Dimensional defects drive both the highest volume and the highest rework cost.
+  target_issue_titles:
+  - 'Inconsistent Numbering: Figure 3.1 mixes chapter-style numbering with plain sequential numbering'
+  target_answer: 'The document has no chapters or appendices — it is a flat report. Figure 1 and Figure 2 use plain sequential numbering, but Figure 3 is labelled ''Figure 3.1'', a chapter/section-prefixed style. Because there is no chapter or appendix ''3'' for the prefix to correspond to, this is a genuine arbitrary mix of two numbering schemes within the same element type and section, not a valid section-prefixed scheme. The agent should report exactly one issue with the title ''Inconsistent Numbering: ...'' describing that Figure 3.1 mixes a chapter/section-style number into an otherwise plain sequential scheme.'
+- input: |
+    # Groundwater Monitoring Report
+
+    ## Well Network
+
+    The network comprises eight monitoring wells. Figure 1 maps the well locations.
+
+    **Figure 1: Monitoring well locations**
+
+    | Well | Depth (m) |
+    |------|-----------|
+    | MW1  | 24        |
+    | MW2  | 31        |
+    | MW3  | 18        |
+
+    ## Water Levels
+
+    Water levels were recorded monthly. Figure 2 shows seasonal variation in the water table.
+
+    **Figure 2: Seasonal water table variation (m below ground level)**
+
+    | Season | MW1 | MW2 | MW3 |
+    |--------|-----|-----|-----|
+    | Spring | 6.2 | 8.1 | 4.9 |
+    | Summer | 7.8 | 9.4 | 6.1 |
+    | Autumn | 6.9 | 8.7 | 5.3 |
+
+    ## Appendix B: Laboratory Methods
+
+    Sample handling followed standard protocols. Figure A.1 shows the chain-of-custody workflow used for all samples collected in this study.
+
+    **Figure A.1: Sample chain-of-custody workflow**
+
+    | Step | Responsible party |
+    |------|-------------------|
+    | Collection | Field technician |
+    | Transport  | Courier          |
+    | Analysis   | Lab analyst      |
+  target_issue_titles:
+  - 'Inconsistent Numbering: Figure A.1 in Appendix B does not match the appendix letter'
+  target_answer: 'The body uses sequential numbering (Figure 1, Figure 2). The appendix is labelled ''Appendix B'', but its figure is numbered ''Figure A.1'' — the prefix ''A'' does not match the appendix letter ''B''. Section/appendix-prefixed numbering is only consistent when the prefix matches its section; here it does not. The agent should report exactly one issue with the title ''Inconsistent Numbering: ...'' describing that the figure in Appendix B carries an ''A'' prefix instead of ''B''.'
+- input: |
+    # Bridge Inspection Report
+
+    ## Visual Inspection
+
+    The main span was inspected for visible defects. Figure 1 shows the inspection zones.
+
+    **Figure 1: Bridge inspection zones**
+
+    | Zone | Location        |
+    |------|-----------------|
+    | Z1   | North abutment  |
+    | Z2   | Main span       |
+    | Z3   | South abutment  |
+
+    ## Appendix A: Load Test Data
+
+    A controlled load test was performed on the main span. Figure A.1 shows the deflection profile under test load.
+
+    **Figure A.1: Deflection profile under test load (mm)**
+
+    | Position | Deflection |
+    |----------|------------|
+    | Quarter  | 3.2        |
+    | Midspan  | 5.8        |
+    | Quarter  | 3.1        |
+
+    Strain gauge readings are plotted in Figure A.3 for the same test.
+
+    **Figure A.3: Strain gauge readings under test load (microstrain)**
+
+    | Gauge | Reading |
+    |-------|---------|
+    | G1    | 142     |
+    | G2    | 198     |
+    | G3    | 137     |
+  target_issue_titles:
+  - 'Inconsistent Numbering: Appendix A figure numbering skips from A.1 to A.3'
+  target_answer: 'The body has Figure 1. Appendix A uses correct section-prefixed numbering (Figure A.x), so the appendix prefix itself is valid and must not be flagged as a format change. However, within Appendix A the numbering skips from Figure A.1 to Figure A.3 with no Figure A.2 anywhere. This is a gap within the prefixed sequence. The agent should report exactly one issue with the title ''Inconsistent Numbering: ...'' describing that Appendix A skips from A.1 to A.3 with no A.2.'
+- input: |
+    # Materials Science Textbook: Selected Chapters
+
+    ## Chapter 1: Crystal Structures
+
+    Crystalline solids are described by their lattice geometry. Figure 1.1 illustrates the three cubic lattice types.
+
+    **Figure 1.1: The three cubic lattice types (simple, body-centred, face-centred)**
+
+    | Lattice | Atoms per cell |
+    |---------|----------------|
+    | Simple  | 1              |
+    | BCC     | 2              |
+    | FCC     | 4              |
+
+    The packing efficiency of each lattice is compared in Table 1.1.
+
+    **Table 1.1: Packing efficiency by lattice type (%)**
+
+    | Lattice | Efficiency |
+    |---------|------------|
+    | Simple  | 52         |
+    | BCC     | 68         |
+    | FCC     | 74         |
+
+    ## Chapter 2: Mechanical Properties
+
+    Stress-strain behaviour distinguishes ductile from brittle materials. Figure 2.1 shows representative stress-strain curves.
+
+    **Figure 2.1: Representative stress-strain curves for ductile and brittle materials**
+
+    | Material | Yield (MPa) | Failure strain |
+    |----------|-------------|----------------|
+    | Steel    | 250         | 0.22           |
+    | Ceramic  | 410         | 0.01           |
+
+    Key mechanical constants are tabulated in Table 2.1.
+
+    **Table 2.1: Mechanical constants by material**
+
+    | Material | Young's modulus (GPa) |
+    |----------|-----------------------|
+    | Steel    | 200                   |
+    | Ceramic  | 380                   |
+  target_issue_titles: []
+  target_answer: 'The textbook uses chapter-prefixed numbering throughout: Chapter 1 contains Figure 1.1 and Table 1.1, Chapter 2 contains Figure 2.1 and Table 2.1. The first digit is the chapter number and the trailing digit is the sequence within the chapter — a single consistent by-chapter scheme. Every figure and table has a descriptive title, each prefix matches its chapter, and all are referenced in the body text. The agent should report zero issues.'
+- input: |
+    ![](files/figures/ft_logo.png)
+
+    # Annual Reservoir Report 2025
+
+    ## Summary
+
+    The Northfield system ended the water year at 70 percent of capacity, eight points below the ten-year average. Figure 1 shows the monthly storage level across the three reservoirs over the year.
+
+    ![](files/figures/ft_storage.png)
+
+    **Figure 1: Monthly storage level, Northfield system (percent of capacity)**
+
+    ## Conclusion
+
+    Storage recovered through the autumn but did not reach the spring peak. The Authority will review its summer release schedule before the next water year.
+  target_issue_titles: []
+  target_answer: The document has one figure, Figure 1, which is captioned, numbered and referenced in the text. The cover carries the water authority's logo, a decorative image with no caption. A logo is not a figure and must not be reported as missing a title or as unreferenced; viewing the image is how to tell. No issues should be reported.
+- input: |
+    # Inspection Protocol Review
+
+    ## Results
+
+    Defect rates fell at every plant after the new inspection protocol was introduced (Figure 1). The largest reduction was at Belmont, which had the highest rate before the change.
+
+    ![](files/figures/ft_defects_captioned.png)
+
+    The protocol adds a second visual check before packaging. Its cost is roughly one additional operator-hour per shift at each plant.
+  target_issue_titles: []
+  target_answer: 'The document has one figure. Its caption, ''Figure 1: Defect rate by plant before and after the inspection protocol (percent)'', is rendered inside the image rather than as a separate paragraph, and the body references Figure 1. Viewing the image shows the caption, so no missing-title issue should be reported. No issues should be reported.'
+- input: |
+    # Transit Ridership Update
+
+    ## Ridership by line
+
+    Weekday ridership grew on every line in 2025. Figure 1 summarises average weekday ridership by line.
+
+    ![](files/figures/ft_ridership.png)
+
+    **Figure 1: Average weekday ridership by line, 2025 (thousands)**
+
+    ## Regional change
+
+    Growth was uneven across the region. Figure 2 breaks the year-on-year change down by region.
+
+    ![](files/figures/ft_placeholder.png)
+
+    **Figure 2: Ridership change by region, 2024 to 2025 (percent)**
+  target_issue_titles:
+  - 'Missing Figure/Table: Figure 2'
+  target_answer: Figure 1 is a real chart with a caption and a body reference and is fine. Figure 2 is captioned and referenced, but the image under its caption is a grey placeholder box reading 'CHART TO BE INSERTED' with no chart content, so the figure the body cites is not actually present in the document. Exactly one issue should be reported, for Figure 2 being missing. Figure 1 must not be flagged.
