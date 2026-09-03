@@ -5,6 +5,8 @@ way a simple deep agent can reach the web, so the base manifest attaches the too
 exactly when the flag is set.
 """
 
+from unittest.mock import MagicMock
+
 import pytest
 
 from lib.config.llm_models import web_search_tool
@@ -33,8 +35,6 @@ def test_document_only_workflows_get_no_extra_tools(workflow_type: WorkflowRunTy
 
 
 def test_timeout_override_shadows_the_class_default():
-    from unittest.mock import MagicMock
-
     default = SimpleDeepAgent(MagicMock(), user_prompt="x")
     longer = SimpleDeepAgent(MagicMock(), user_prompt="x", timeout=600)
     assert longer.timeout == 600
