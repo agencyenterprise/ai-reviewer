@@ -139,6 +139,15 @@ class Config(BaseModel):
         description="Per-model API key overrides. Keys are model names (e.g. Azure deployment IDs).",
     )
 
+    # Jina Reader (https://r.jina.ai) turns web pages into markdown for the
+    # reference downloader. Optional: without a key requests are anonymous, which
+    # Jina rate-limits per source IP and which Cloudflare may challenge for
+    # datacenter egress addresses. With a key, limits are tracked per key instead.
+    JINA_API_KEY: Optional[str] = Field(
+        default=None,
+        description="Jina AI API key sent as a bearer token to the Reader API. Optional.",
+    )
+
     # Rate limiter configuration (shared across workers via Postgres)
     RATE_LIMITER_REQUESTS_PER_SECOND: float = Field(
         default=2,
@@ -188,6 +197,7 @@ config = Config(
         os.getenv("RATE_LIMITER_CHECK_EVERY_N_SECONDS", "0.25")
     ),
     MODEL_API_KEYS=json.loads(os.getenv("MODEL_API_KEYS", "{}")),
+    JINA_API_KEY=os.getenv("JINA_API_KEY") or None,
     AZURE_CLIENT_ID=os.getenv("AZURE_CLIENT_ID"),
     AZURE_TENANT_ID=os.getenv("AZURE_TENANT_ID"),
     AZURE_CLIENT_SECRET=os.getenv("AZURE_CLIENT_SECRET"),
