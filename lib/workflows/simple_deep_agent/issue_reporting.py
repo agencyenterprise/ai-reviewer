@@ -12,6 +12,7 @@ from typing import Any, List, Literal, Optional
 from deepagents.backends.utils import file_data_to_string
 from langchain_core.tools import BaseTool, tool
 
+from lib.agents.tools.view_image import redact_image_blocks
 from lib.workflows.simple_deep_agent.agent_types import DeepAgentRun, IssueItem
 
 
@@ -112,5 +113,7 @@ def collect_deep_agent_run(
             for path, data in (result.get("files") or {}).items()
         },
         reported_issues=issue_reporter.issues if issue_reporter else [],
-        messages=result["messages"],
+        # Viewed images are base64 in the tool results; keep the transcript
+        # readable and the persisted state small.
+        messages=redact_image_blocks(result["messages"]),
     )

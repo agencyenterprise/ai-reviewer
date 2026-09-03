@@ -10,11 +10,13 @@ content block, which the model reads directly from the tool result.
 import base64
 import logging
 import uuid
+from collections.abc import Sequence
 from typing import Any, Union
 
 import aiofiles
 from fastapi import HTTPException
 from langchain.tools import ToolRuntime, tool
+from langchain_core.messages import BaseMessage, ToolMessage
 
 from lib.models.file import FileRole
 from lib.services.files import get_file_by_id
@@ -148,3 +150,36 @@ async def view_image(
             "mime_type": file.file_type,
         }
     ]
+
+
+def redact_image_blocks(messages: Sequence[BaseMessage]) -> list[BaseMessage]:
+    """The messages with every image block in a tool result replaced by a note.
+
+    A viewed image reaches the model as base64 inside a ``ToolMessage``. Left
+    there, it is persisted with the run's transcript (the workflow's
+    ``state_json``) and served back with the run detail: tens of megabytes for
+    a document with a few figures. The note keeps the transcript readable (the
+    agent looked at this image, this big) without the bytes.
+    """
+    redacted: list[BaseMessage] = []
+    for message in messages:
+        if isinstance(message, ToolMessage) and isinstance(message.content, list):
+            blocks = [_redact_block(block) for block in message.content]
+            if blocks != list(message.content):
+                message = message.model_copy(update={"content": blocks})
+        redacted.append(message)
+    return redacted
+
+
+def _redact_block(block: Any) -> Any:
+    if not (isinstance(block, dict) and block.get("type") == "image"):
+        return block
+    encoded = block.get("data") or block.get("base64") or ""
+    size_kb = len(encoded) * 3 // 4 // 1024
+    return {
+        "type": "text",
+        "text": (
+            f"[image {block.get('mime_type', '')}, {size_kb} KB; "
+            "bytes omitted from the stored transcript]"
+        ),
+    }
