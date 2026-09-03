@@ -33,13 +33,29 @@ headers = {
     "Referer": "https://www.google.com/",
 }
 
-# 20 requests per 60 seconds (1 minute) is the free Jina API rate limit for requests without API key.
+# Jina Reader rate limits (requests per minute): 20 anonymously, per source IP;
+# 500 with an API key, per key. https://jina.ai/api-dashboard/rate-limit
+JINA_ANONYMOUS_RPM = 20
+JINA_AUTHENTICATED_RPM = 500
+
+
+def _jina_headers() -> dict[str, str]:
+    """Bearer auth when a key is configured; anonymous otherwise."""
+    if config.JINA_API_KEY:
+        return {"Authorization": f"Bearer {config.JINA_API_KEY}"}
+    return {}
+
+
+def _jina_rpm() -> int:
+    return JINA_AUTHENTICATED_RPM if config.JINA_API_KEY else JINA_ANONYMOUS_RPM
+
+
 # Backed by Postgres so the cap is enforced across all workers/pods, not per-worker.
 jina_rate_limiter = PostgresRateLimiter(
     bucket_key="jina-api",
-    requests_per_second=20 / 60,
+    requests_per_second=_jina_rpm() / 60,
     check_every_n_seconds=1.0,
-    max_bucket_size=20,
+    max_bucket_size=_jina_rpm(),
 )
 
 
@@ -79,17 +95,25 @@ async def _download_file_from_url_async(
     try:
         saved_file = await _download_direct_url(url)
     except httpx.HTTPError as exc:
-        logger.debug(f"Failed to download content from {url} (HTTP Error: {exc})")
+        # Includes connect errors and timeouts, so a blocked egress path shows up here.
+        logger.warning("Download failed for %s: %s: %s", url, type(exc).__name__, exc)
         return DownloadFileFromUrlResponse(
             file_id=None,
             message=f"Failed to download content from {url}. Error: {exc}",
             success=False,
         )
     except Exception as exc:
-        logger.error(f"Error downloading content from {url} (error: {exc})")
+        logger.error(
+            "Unexpected error downloading %s: %s: %s",
+            url,
+            type(exc).__name__,
+            exc,
+            exc_info=True,
+        )
         raise
 
     if saved_file is None:
+        logger.warning("Download of %s produced no file", url)
         return DownloadFileFromUrlResponse(
             file_id=None,
             message=f"Failed to download content from {url}: no file produced",
@@ -121,7 +145,7 @@ async def _download_direct_url(url: str) -> SavedFile | None:
 
         # Download the file and check content type
         async with httpx.AsyncClient(timeout=30.0, headers=headers) as client:
-            logger.debug(f"Downloading file from direct URL: {url}")
+            logger.info("Downloading %s", url)
             response = await client.get(url, follow_redirects=True)
             response.raise_for_status()
 
@@ -133,24 +157,52 @@ async def _download_direct_url(url: str) -> SavedFile | None:
                 content = response.content
 
                 if len(content) == 0:
-                    logger.warning(f"Downloaded file from url is empty: {url}")
+                    logger.warning("Downloaded PDF from %s is empty", url)
                     return None
 
                 filename = await _save_content(content, "pdf")
-                logger.debug(f"Successfully downloaded and saved PDF to: {filename}")
+                logger.info(
+                    "Saved PDF from %s (%d bytes, final URL %s) as %s",
+                    url,
+                    len(content),
+                    response.url,
+                    filename,
+                )
                 return SavedFile(filename=filename, content_type="application/pdf")
             else:
                 # Not a PDF, use Jina to convert to markdown
-                logger.debug(
-                    f"Content is not PDF (Content-Type: {content_type}), using Jina to convert to markdown"
+                logger.info(
+                    "Non-PDF content from %s (Content-Type %r, HTTP %d); converting via Jina",
+                    url,
+                    content_type or "missing",
+                    response.status_code,
                 )
                 return await _download_with_jina_api(url)
 
     except httpx.HTTPStatusError as exc:
-        logger.debug(
-            f"Error downloading content from {url}, falling back to Jina (HTTP status error: {exc})"
+        logger.warning(
+            "Direct fetch of %s failed (%s); falling back to Jina",
+            url,
+            _describe_http_error(exc),
         )
         return await _download_with_jina_api(url)
+
+
+def _describe_http_error(exc: httpx.HTTPStatusError) -> str:
+    """Status plus who answered and what they said.
+
+    A 403 from a corporate egress proxy, from a publisher's bot protection and from
+    r.jina.ai itself all reach the tool as the same exception; the `server` header
+    and the first line of the body are what tell them apart in the log.
+    """
+    response = exc.response
+    server = response.headers.get("server", "-")
+    via = response.headers.get("via", "-")
+    body = response.text[:200].replace("\n", " ") if response.text else ""
+    return (
+        f"HTTP {response.status_code} final_url={response.url} server={server!r} "
+        f"via={via!r} body={body!r}"
+    )
 
 
 def is_rate_limited(exc: BaseException) -> bool:
@@ -167,20 +219,41 @@ async def _download_with_jina_api(url: str) -> SavedFile | None:
     """Download content using Jina API and save as markdown. Returns SavedFile if successful, None otherwise."""
 
     await jina_rate_limiter.aacquire()
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        logger.debug(f"Downloading content with Jina API from URL: {url}")
-        response = await client.get(
-            f"https://r.jina.ai/{url}", follow_redirects=True
+    jina_url = f"https://r.jina.ai/{url}"
+    headers = _jina_headers()
+    logger.info(
+        "Fetching %s via Jina reader (%s)",
+        url,
+        "authenticated" if headers else "anonymous",
+    )
+    try:
+        async with httpx.AsyncClient(timeout=120.0, headers=headers) as client:
+            response = await client.get(jina_url, follow_redirects=True)
+            response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        # Logged here, before the caller collapses it into a generic failure, so the
+        # log says which hop failed: the publisher or r.jina.ai itself.
+        logger.warning("Jina reader failed for %s (%s)", url, _describe_http_error(exc))
+        raise
+    except httpx.HTTPError as exc:
+        # Timeouts often stringify to '', so name the exception class explicitly.
+        logger.warning(
+            "Jina reader failed for %s: %s: %s", url, type(exc).__name__, exc
         )
-        response.raise_for_status()
+        raise
 
-        markdown_content = response.text
-        if not markdown_content:
-            raise ValueError(f"Jina API returned empty content for {url}")
+    markdown_content = response.text
+    if not markdown_content:
+        raise ValueError(f"Jina API returned empty content for {url}")
 
-        filename = await _save_content(markdown_content, "md")
-        logger.debug(f"Successfully downloaded and saved markdown to {filename}")
-        return SavedFile(filename=filename, content_type="text/markdown")
+    filename = await _save_content(markdown_content, "md")
+    logger.info(
+        "Saved markdown from %s via Jina (%d chars) as %s",
+        url,
+        len(markdown_content),
+        filename,
+    )
+    return SavedFile(filename=filename, content_type="text/markdown")
 
 
 async def _persist_file_record(
@@ -266,8 +339,8 @@ async def _save_content(content: bytes | str, extension: str) -> str:
 
     # Skip if file already exists
     if os.path.exists(file_path):
-        logger.debug(
-            f"File with hash {xxhash} already exists at {file_path}, skipping download"
+        logger.info(
+            "Content with hash %s already exists at %s; reusing it", xxhash, file_path
         )
         return f"{xxhash}.{extension}"
 

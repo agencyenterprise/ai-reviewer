@@ -28,6 +28,11 @@ from lib.workflows.reference_downloader.state import (
     ReferenceFetchResult,
     ReferenceFetchStatus,
 )
+from lib.workflows.reference_downloader.fetch_logging import (
+    log_fetch_outcome,
+    log_run_summary,
+    short_reference,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +51,18 @@ async def initialize_references(
     file.
     """
     references = state.config.references
+    source = "explicit config"
     if references is None:
+        source = "unmatched extracted references"
         references = await _load_unmatched_references(
             runtime.context.file_artifacts_service
         )
+    logger.info(
+        "Reference downloader for project %s: %d references to fetch (from %s)",
+        runtime.context.project_id,
+        len(references),
+        source,
+    )
 
     pending_results = [
         ReferenceFetchResult(
@@ -115,6 +128,7 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
         result, messages = await agent.ainvoke(
             ReferenceFetcherAgentInput(reference=reference)
         )
+        log_fetch_outcome(reference, result, messages)
 
         if (
             result
@@ -122,6 +136,12 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
             and result.file_id
         ):
             # Sometimes the LLM will return a file ID for a non-found reference, so we need to clean it up
+            logger.warning(
+                "Reference %r concluded %s but carried file_id %s; dropping the file id",
+                short_reference(reference),
+                result.final_conclusion.value,
+                result.file_id,
+            )
             result.file_id = None
 
         if status == ReferenceFetchStatus.COMPLETED and result and result.file_id:
@@ -147,7 +167,13 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
             )
 
     except Exception as e:
-        logger.error(f"Error fetching reference '{reference}': {e}", exc_info=True)
+        logger.error(
+            "Error fetching reference %r: %s: %s",
+            short_reference(reference),
+            type(e).__name__,
+            e,
+            exc_info=True,
+        )
         status = ReferenceFetchStatus.ERROR
         error = str(e)
 
@@ -196,10 +222,15 @@ async def cleanup_failed_resources(
         else:
             files_to_delete.append(file_id)
 
+    log_run_summary(project_id, fetched_references)
+
     if files_to_delete:
         deleted_count = await delete_project_files(project_id, files_to_delete)
         logger.info(
-            f"Deleted {deleted_count} failed reference files for project {project_id}"
+            "Deleted %d unlinked candidate files for project %s: %s",
+            deleted_count,
+            project_id,
+            ", ".join(files_to_delete),
         )
         if deleted_count != len(files_to_delete):
             logger.warning(

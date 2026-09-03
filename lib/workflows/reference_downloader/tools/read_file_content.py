@@ -1,9 +1,15 @@
+import logging
+
 import aiofiles
 from langchain.tools import ToolRuntime, tool
 
 from lib.services.converters.markitdown import markitdown_converter
 from lib.services.files import get_file_by_id
 from lib.workflows.context import ContextSchema
+
+logger = logging.getLogger(__name__)
+
+MAX_CONTENT_CHARS = 4000
 
 
 @tool()
@@ -24,16 +30,34 @@ async def read_file_content(file_id: str, runtime: ToolRuntime[ContextSchema]):
 async def _read_file_content_async(file_id: str) -> str | None:
     file = await get_file_by_id(file_id)
     if file is None:
+        logger.warning("read_file_content: no file record for id %s", file_id)
         return None
 
     if file.file_type == "text/markdown":
         # If file is already markdown, read directly from disk, no need to convert
         content = await _read_file_directly(file.file_path)
-        return content[:4000] if content else None
+    else:
+        # Use markitdown for conversion of non-markdown files
+        content = await markitdown_converter.convert_to_markdown(file.file_path)
 
-    # Use markitdown for conversion of non-markdown files
-    markdown = await markitdown_converter.convert_to_markdown(file.file_path)
-    return markdown[:4000]
+    total_chars = len(content) if content else 0
+    if total_chars == 0:
+        logger.warning(
+            "read_file_content: file %s (%s, %s) produced no text",
+            file_id,
+            file.file_type,
+            file.file_path,
+        )
+        return None
+
+    logger.info(
+        "read_file_content: file %s (%s) has %d chars, returning first %d",
+        file_id,
+        file.file_type,
+        total_chars,
+        min(total_chars, MAX_CONTENT_CHARS),
+    )
+    return content[:MAX_CONTENT_CHARS]
 
 
 async def _read_file_directly(file_path: str) -> str:
