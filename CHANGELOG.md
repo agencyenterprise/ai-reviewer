@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.8] - 2026-09-03
+
+### Added
+- Added server-side pagination and title search for the project list, with the frontend loading projects page by page as you scroll.
+- Added `search`, `limit`, and `offset` query parameters to the projects list endpoint and updated its response to a paginated shape.
+- Added paging and search coverage via a new integration test.
+
+### Changed
+- Changed the MCP `list_projects` tool to accept `search`, `limit`, and `offset` and to return `{total, items}` instead of an array.
+- Changed project list ordering to be handled on the server by last activity first.
+- Changed the frontend projects view to use infinite loading with a debounced search and a keyboard fallback "Load more" button.
+
+### Fixed
+- Fixed the References tab approval banner placement by moving it from the bottom of the list to directly under the toolbar and keeping its button inline.
+
+
 ## [v1.0.7] - 2026-09-02
 
 ### Added
