@@ -71,6 +71,7 @@ class SimpleDeepAgent(LangChainAgent):
         report_issues: bool = True,
         tools: Optional[Sequence[Union[BaseTool, Callable, dict[str, Any]]]] = None,
         reasoning_effort: Optional[Literal["low", "medium", "high"]] = None,
+        timeout: Optional[int] = None,
     ):
         super().__init__(context)
         self._system_prompt = system_prompt or _SYSTEM_PROMPT
@@ -82,6 +83,10 @@ class SimpleDeepAgent(LangChainAgent):
         # share this agent.
         if reasoning_effort is not None:
             self.reasoning = ReasoningDict(effort=reasoning_effort, summary="auto")
+        # Same shadowing for the per-call LLM timeout: web-search turns resolve
+        # every search inside one model call, so they can outlast the default.
+        if timeout is not None:
+            self.timeout = timeout
 
     async def ainvoke(
         self,

@@ -4,7 +4,6 @@ import { Callout } from '@/components/ui/callout';
 import { ErrorsCard } from '@/components/results/components/errors-card';
 import { GenericWorkflowResults } from '@/components/results/components/generic-workflow-results';
 import { AboutThisGerResults } from '@/components/workflows/results/about-this-ger-results';
-import { MethodologicalAlignmentResults } from '@/components/workflows/results/methodological-alignment-results';
 import { ReferenceDownloaderResults } from '@/components/workflows/results/reference-downloader-results';
 import { ReferenceValidationV2Results } from '@/components/workflows/results/reference-validation-v2-results';
 import { Reviewer2Results } from '@/components/workflows/results/reviewer-2-results';
@@ -62,8 +61,6 @@ function renderWorkflowResults(
   }
 
   switch (type) {
-    case WorkflowRunType.MethodologicalAlignment:
-      return <MethodologicalAlignmentResults workflowDetail={workflowRun} />;
     case WorkflowRunType.ReferenceDownloader:
       return <ReferenceDownloaderResults workflowDetail={workflowRun} />;
     case WorkflowRunType.AboutThisGer:
@@ -82,6 +79,7 @@ function renderWorkflowResults(
       return <Reviewer2Results workflowDetail={workflowRun} />;
     case WorkflowRunType.ReferenceValidationV2:
       return <ReferenceValidationV2Results workflowDetail={workflowRun} />;
+    case WorkflowRunType.MethodologicalAlignment:
     case WorkflowRunType.ResultsExtraction:
     case WorkflowRunType.DocumentStructure:
     case WorkflowRunType.FiguresTablesCheck:

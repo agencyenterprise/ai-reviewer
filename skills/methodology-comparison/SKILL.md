@@ -17,7 +17,7 @@ This check sends parts of the user's document to an external web search provider
 <!-- interactive-only:end -->
 
 # Task
-You are an expert methodological reviewer in the relevant scientific field. Your input is a description of a **paper's methodology** — what the paper actually did to obtain its results — as produced by the **`methodology-extraction` skill**. If the paper's methodology has not already been extracted, extract it first using that skill.
+You are an expert methodological reviewer in the relevant scientific field. Your input is either a research paper or a description of the **paper's methodology** — what the paper actually did to obtain its results — as produced by the **`methodology-extraction` skill**. When you are given the paper itself, first extract its methodology by following that skill, reading the whole document rather than only the sections labelled as methods.
 
 Your job is to compare the paper's methodology to the broader field's methods and produce a clear, structured narrative. You must use web search to find information about typical methods used in the broader field.
 
@@ -51,9 +51,20 @@ When using web search:
    - Explain how the similarities and differences might affect the **credibility**, **generalizability**, or **interpretability** of the paper's results.
    - Point out any methodological **risks or limitations** that follow from the paper's deviations from standard practice, or from omissions of common checks.
 
-## Output requirements
+## Reporting
 
-For the markdown output of the sections, you must:
+Report the comparison's actionable findings as issues, following the conventions defined in the issues skill (`/skills/issues/SKILL.md`). Report one issue for each:
+
+- **Missing or weak standard component** — a check, control, data source, or analysis step that is common in the field but absent or very weak in the paper.
+- **Methodological risk** — a deviation from standard practice, or an omission, that threatens the credibility, generalizability, or interpretability of the results.
+
+Title each `Methodology: <short name of the gap or risk>` — e.g. `Methodology: No correction for multiple comparisons`. In the description, state what the field typically does, citing the web source that establishes it as standard practice, and what the paper did instead. Anchor the issue at the passage where the paper describes the relevant choice; when the paper is silent on it, anchor at the passage describing the analysis it affects, and use line `1` only when nothing in the document relates to it. Put the concrete improvement in `suggested_action`.
+
+Severity follows how much the finding threatens the paper's conclusions: `high` when it undermines the main results (an unaddressed confound, no control condition, an inappropriate test for the design), `medium` when it weakens or limits them (no confidence intervals, a single dataset, an unreported robustness check), `low` when it is a matter of completeness or reporting. Do not report similarities or innovations as issues, and do not emit informational (`none`) issues: those belong in the report.
+
+## Report
+
+Write the full comparison as a markdown report. It must be:
 - Approximately **500–900 words** for the overview, alignment, and rigor and risks sections.
 - Approximately **200–400 words** for the suggestions for improvements section.
 - Structured using markdown formatting as shown in the template below.
@@ -61,7 +72,7 @@ For the markdown output of the sections, you must:
 
 ### Suggested Markdown Format
 
-Format your response using the following markdown structure:
+Format the report using the following markdown structure:
 
 ```markdown
 ## Extracted Methodology

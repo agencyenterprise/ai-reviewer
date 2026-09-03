@@ -1,61 +1,33 @@
-from typing import List, Type
+"""Manifest for the Methodological Alignment workflow.
 
-from langgraph.graph import StateGraph
+Compares the document's methodology against standard practice in its field,
+using web search to characterise the field baseline.
 
-from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.methodological_alignment.graph import (
-    build_methodological_alignment_graph,
-)
-from lib.workflows.methodological_alignment.state import (
-    MethodologicalAlignmentState,
-    MethodologicalAlignmentWorkflowConfig,
-)
-from lib.workflows.models import DocumentIssue, WorkflowRunType
-from lib.workflows.workflow_types import WorkflowState
-from lib.workflows.util import get_main_file_id
+The procedure lives in the `methodology-comparison` skill
+(`skills/methodology-comparison/SKILL.md`), which is the single source of truth:
+it extracts the methodology (per the `methodology-extraction` skill, mounted
+alongside it), searches for the field baseline, and compares the two. Each
+missing standard component or methodological risk arrives as a line-anchored
+issue, and the full comparison -- extracted methodology, field overview,
+alignment, rigor and risks, suggestions -- as the markdown report.
+"""
+
+from lib.workflows.models import WorkflowRunType
+from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifest
 
 
-class MethodologicalAlignmentManifest(
-    WorkflowManifest[
-        MethodologicalAlignmentState, MethodologicalAlignmentWorkflowConfig
-    ]
-):
+class MethodologicalAlignmentManifest(SimpleDeepAgentManifest):
+    """Compares the document's methodology against field practice."""
+
     type = WorkflowRunType.METHODOLOGICAL_ALIGNMENT
     name = "Methodological Alignment"
     description = "Does your methodology match standard practices in the literature? Uses web search to find standard methods for a topic area, then compares them against your approach."
     needs_web_search = True
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
-    def get_state_type(self) -> Type[MethodologicalAlignmentState]:
-        """Get the type of the workflow state."""
-        return MethodologicalAlignmentState
+    skill = "methodology-comparison"
 
-    def get_config_type(self) -> Type[MethodologicalAlignmentWorkflowConfig]:
-        """Get the type of the workflow config."""
-        return MethodologicalAlignmentWorkflowConfig
-
-    def build_graph(self) -> StateGraph:
-        """Build and return the graph of the workflow."""
-        return build_methodological_alignment_graph()
-
-    async def create_initial_state(
-        self,
-        config: MethodologicalAlignmentWorkflowConfig,
-        existing_states: List[WorkflowState],
-        revision: int,
-        prior_self_state: MethodologicalAlignmentState | None = None,
-    ) -> MethodologicalAlignmentState:
-        """Create and return the initial state of the workflow."""
-
-        return MethodologicalAlignmentState(
-            type=WorkflowRunType.METHODOLOGICAL_ALIGNMENT,
-            file_id=get_main_file_id(existing_states),
-        )
-
-    def convert_state_to_issues(
-        self,
-        state: MethodologicalAlignmentState,
-        other_states: List[WorkflowState],
-    ) -> List[DocumentIssue]:
-        """Convert MethodologicalAlignmentState to issues."""
-        return []
+    # Characterising the field baseline takes several web searches, and each is
+    # resolved inside a single model call, so one turn can run well past the
+    # default per-call timeout. The comparison agent this replaces ran at 600s.
+    llm_timeout = 600
