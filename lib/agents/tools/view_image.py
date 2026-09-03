@@ -13,6 +13,7 @@ import uuid
 from typing import Any, Union
 
 import aiofiles
+from fastapi import HTTPException
 from langchain.tools import ToolRuntime, tool
 
 from lib.models.file import FileRole
@@ -66,7 +67,7 @@ def _parse_image_file_id(image_reference: str) -> uuid.UUID | None:
         return None
 
 
-@tool
+@tool()
 async def view_image(
     image_reference: str, runtime: ToolRuntime[ContextSchema]
 ) -> Union[list[dict[str, Any]], str]:
@@ -92,7 +93,13 @@ async def view_image(
 
     try:
         file = await get_file_by_id(file_id)
+    except HTTPException:
+        # A missing row is the expected miss for a guessed or stale id.
+        return _NOT_FOUND
     except Exception:
+        # The model still gets the not-found message, so it cannot tell a
+        # missing file from an outage; the log can.
+        logger.warning("Could not look up document image %s", file_id, exc_info=True)
         return _NOT_FOUND
 
     # Scope to the running project's extracted images: the id comes from model

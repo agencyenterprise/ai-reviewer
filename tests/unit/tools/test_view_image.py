@@ -5,6 +5,7 @@ import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import HTTPException
 
 from lib.models.file import FileRole
 from lib.agents.tools.view_image import (
@@ -93,12 +94,25 @@ class TestViewImage:
         assert "not an image reference" in result
 
     @pytest.mark.asyncio
-    async def test_unknown_id_reports_not_found(self):
-        with _patched_lookup(side_effect=Exception("404")):
+    async def test_unknown_id_reports_not_found_quietly(self, caplog):
+        """A guessed or stale id is the expected miss, not an incident."""
+        with _patched_lookup(side_effect=HTTPException(status_code=404)):
             result = await view_image.coroutine(str(IMAGE_ID), _runtime())
 
         assert isinstance(result, str)
         assert "no document image" in result
+        assert not caplog.records
+
+    @pytest.mark.asyncio
+    async def test_lookup_outage_is_logged_but_reads_as_not_found(self, caplog):
+        """The model must not be able to tell an outage from a missing file,
+        but operators must."""
+        with _patched_lookup(side_effect=RuntimeError("db down")):
+            result = await view_image.coroutine(str(IMAGE_ID), _runtime())
+
+        assert isinstance(result, str)
+        assert "no document image" in result
+        assert any("Could not look up" in r.message for r in caplog.records)
 
     @pytest.mark.asyncio
     async def test_image_of_another_project_reports_not_found(self, tmp_path):
