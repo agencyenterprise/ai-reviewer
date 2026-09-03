@@ -6,6 +6,69 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.9] - 2026-09-03
+
+### Added
+- Added detailed per-reference and per-run logging for the reference downloader, including a tool-usage digest and clearer failure diagnostics.
+- Added optional `JINA_API_KEY` support for authenticated requests to the Jina Reader hop, including documentation in `.env.template`.
+- Added support in the simple deep agent framework to attach web search tools when a workflow declares `needs_web_search`, and to flow an `llm_timeout` setting to the agent.
+- Added new unit tests for reference downloader tool usage and Jina auth, and new unit tests covering simple deep agent tool attachment and timeout override.
+- Added/updated methodological alignment E2E evals to read `SimpleDeepAgentOutput` and validate report structure, citations, issue constraints, and dataset `min_issues`.
+
+### Changed
+- Changed Methodological Alignment to run on `SimpleDeepAgentManifest` using the `methodology-comparison` skill, producing line-anchored issues and a markdown report rendered by `SimpleDeepAgentResults`.
+- Changed the reference downloader to emit INFO/WARNING logs for direct fetches, PDF saves, Jina fallback behavior, reads, and missing/empty file content, and to adjust the shared Postgres rate limiter based on whether `JINA_API_KEY` is set.
+- Changed frontend routing/state mapping so Methodological Alignment uses `SimpleDeepAgentResults` and `SimpleDeepAgentState`, and regenerated generated API and skills outputs to reflect the workflow/skill changes.
+- Changed workflow-cost pricing to retry model matching by stripping a trailing dated snapshot suffix when no Langfuse pricing entry exists for the reported snapshot name.
+
+### Fixed
+- Fixed workflow-cost calculation so dated OpenAI snapshot names are priced by their alias when Langfuse lacks a snapshot-specific entry, preventing empty cost breakdowns in that scenario.
+
+### Removed
+- Removed the old Methodological Alignment graph/state/nodes implementation and the two structured-output agents used by that workflow.
+- Removed the `ReproducibilityCategory` enum and dropped the old methodological alignment state/config from workflow type unions.
+- Removed the dedicated Methodological Alignment results component and removed six retired generated API schemas.
+
+
+## [v1.0.8] - 2026-09-03
+
+### Added
+- Added server-side pagination and title search for the project list, with the frontend loading projects page by page as you scroll.
+- Added `search`, `limit`, and `offset` query parameters to the projects list endpoint and updated its response to a paginated shape.
+- Added paging and search coverage via a new integration test.
+
+### Changed
+- Changed the MCP `list_projects` tool to accept `search`, `limit`, and `offset` and to return `{total, items}` instead of an array.
+- Changed project list ordering to be handled on the server by last activity first.
+- Changed the frontend projects view to use infinite loading with a debounced search and a keyboard fallback "Load more" button.
+
+### Fixed
+- Fixed the References tab approval banner placement by moving it from the bottom of the list to directly under the toolbar and keeping its button inline.
+
+
+## [v1.0.7] - 2026-09-02
+
+### Added
+- Persisted and surfaced reference fetcher agent messages in the reference downloader eval transcript.
+- Added an optional `messages` field to `ReferenceFetchResult` in the generated frontend API types.
+
+### Changed
+- Updated the reference downloader workflow to keep and store messages returned during reference fetching instead of discarding them.
+- Updated the reference downloader eval agent to move per-reference messages into the transcript while removing them from the scored JSON completion to keep it compact.
+
+
+## [v1.0.6] - 2026-09-02
+
+### Added
+- Added an issues column empty state in the Document Explorer.
+
+### Changed
+- Restyled the “Unexpected processing errors occurred” notice on the Document Explorer tab as a full-width chrome banner.
+- Removed duplicated per-tab loading indicators from the Document Explorer issue surfaces.
+- Updated the Document Explorer header status line to show the issue count, falling back to “No issues.”
+- Added an optional `collapseLabel` prop to `NewAssessmentButton` so its label can remain visible when reused outside the header.
+
+
 ## [v1.0.5] - 2026-09-01
 
 ### Added
