@@ -43,6 +43,12 @@ def _stub_models_cache(monkeypatch):
             output_price=1e-5,
             cache_read_price=1.25e-6,
         ),
+        _fake_entry(
+            "gpt-5.6-terra",
+            input_price=2e-6,
+            output_price=1.2e-5,
+            cache_read_price=2e-7,
+        ),
     ]
     monkeypatch.setattr(
         catalog,
@@ -204,6 +210,37 @@ async def test_compute_cost_unknown_model_skipped():
     records = walk_state_for_usage({"messages": [msg]})
     assert len(records) == 1
     assert await compute_cost(records) is None
+
+
+@pytest.mark.asyncio
+async def test_compute_cost_prices_dated_snapshot_as_its_alias():
+    """OpenAI reports `gpt-5.6-terra-2026-07-09-global-aaif` for `gpt-5.6-terra`."""
+    msg = _ai_message(
+        input_tokens=100, output_tokens=50, model="gpt-5.6-terra-2026-07-09-global-aaif"
+    )
+    result = await compute_cost(walk_state_for_usage({"messages": [msg]}))
+    assert result is not None
+    assert result.input_cost_usd == Decimal("100") * Decimal("2e-6")
+    assert result.output_cost_usd == Decimal("50") * Decimal("1.2e-5")
+    # The breakdown keeps the name the provider actually reported.
+    assert list(result.by_model) == ["gpt-5.6-terra-2026-07-09-global-aaif"]
+
+
+@pytest.mark.asyncio
+async def test_compute_cost_prices_bare_dated_snapshot():
+    msg = _ai_message(
+        input_tokens=10, output_tokens=0, model="gpt-5.6-terra-2026-07-09"
+    )
+    result = await compute_cost(walk_state_for_usage({"messages": [msg]}))
+    assert result is not None
+    assert result.input_cost_usd == Decimal("10") * Decimal("2e-6")
+
+
+@pytest.mark.asyncio
+async def test_compute_cost_does_not_price_undated_variant_as_base_model():
+    """A `-mini` is a different model, not a snapshot; it must stay unpriced."""
+    msg = _ai_message(input_tokens=10, output_tokens=0, model="gpt-5.6-terra-mini")
+    assert await compute_cost(walk_state_for_usage({"messages": [msg]})) is None
 
 
 @pytest.mark.asyncio
