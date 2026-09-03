@@ -26,10 +26,6 @@ from lib.workflows.human_approval.state import (
     HumanApprovalConfig,
     HumanApprovalState,
 )
-from lib.workflows.methodological_alignment.state import (
-    MethodologicalAlignmentState,
-    MethodologicalAlignmentWorkflowConfig,
-)
 from lib.workflows.reference_downloader.state import (
     ReferenceDownloaderState,
     ReferenceDownloaderWorkflowConfig,
@@ -59,7 +55,6 @@ WorkflowState = (
     | ReferenceFileMatchingState
     | ClaimReferenceValidationV2State
     | AbbreviationScanV2State
-    | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | ReferenceValidationV2State
     | HumanApprovalState
@@ -75,7 +70,6 @@ WorkflowConfig = (
     | ReferenceFileMatchingConfig
     | ClaimReferenceValidationV2Config
     | AbbreviationScanV2Config
-    | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
     | ReferenceValidationV2WorkflowConfig
     | HumanApprovalConfig

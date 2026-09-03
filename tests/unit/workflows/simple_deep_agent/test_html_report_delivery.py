@@ -47,6 +47,7 @@ _MARKDOWN_WORKFLOWS = [
     WorkflowRunType.FIGURES_TABLES_CHECK,
     WorkflowRunType.LITERATURE_REVIEW_V2,
     WorkflowRunType.LIVE_REPORTS_V2,
+    WorkflowRunType.METHODOLOGICAL_ALIGNMENT,
     WorkflowRunType.RECOMMENDATION_CHECK,
     WorkflowRunType.RESULTS_EXTRACTION,
 ]

@@ -1,4 +1,3 @@
-from enum import Enum
 from pydantic import BaseModel, Field
 from typing import Optional
 
@@ -14,11 +13,3 @@ class ChunkWithIndex(BaseModel):
     start_line: int = Field(ge=1, description="1-indexed starting line in markdown")
     end_line: int = Field(ge=1, description="1-indexed ending line in markdown")
 
-
-class ReproducibilityCategory(str, Enum):
-    """Reproducibility classification for methodologies and results."""
-
-    FULLY_REPRODUCIBLE = "fully_reproducible"
-    REPRODUCIBLE_WITH_WEB_SEARCH = "reproducible_with_web_search"
-    REPRODUCIBLE_WITH_EXTERNAL_UPLOADS = "reproducible_with_external_uploads"
-    NOT_REPRODUCIBLE = "not_reproducible"

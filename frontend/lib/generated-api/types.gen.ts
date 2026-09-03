@@ -1996,100 +1996,6 @@ export const MatchSource = {
 export type MatchSource = (typeof MatchSource)[keyof typeof MatchSource];
 
 /**
- * MethodologicalAlignmentState
- *
- * State for the methodological alignment workflow
- */
-export type MethodologicalAlignmentState = {
-  /**
-   * Errors
-   *
-   * Errors that occurred during the workflow execution.
-   */
-  errors?: Array<WorkflowError>;
-  /**
-   * Type
-   */
-  type?: 'methodological_alignment';
-  /**
-   * File Id
-   *
-   * The ID of the main source document
-   */
-  file_id: string;
-  /**
-   * Methodology alignment analysis result
-   */
-  methodology_comparison?: MethodologyComparisonResponse | null;
-};
-
-/**
- * MethodologicalAlignmentWorkflowConfig
- *
- * Configuration model for the methodological alignment workflow
- */
-export type MethodologicalAlignmentWorkflowConfig = {
-  /**
-   * Project Id
-   *
-   * The ID of the project that this workflow run should be associated with
-   */
-  project_id: string;
-  /**
-   * Openai Api Key
-   *
-   * The OpenAI API key to use for this workflow execution
-   */
-  openai_api_key?: string | null;
-  /**
-   * Publication Date
-   *
-   * Publication date of the document (YYYY-MM-DD format)
-   */
-  publication_date?: string | null;
-  /**
-   * Type
-   */
-  type?: 'methodological_alignment';
-};
-
-/**
- * MethodologyComparisonResponse
- */
-export type MethodologyComparisonResponse = {
-  /**
-   * The class of reproducibility of the methodology.
-   */
-  reproducibility: ReproducibilityCategoryResponse;
-  /**
-   * The extracted methodology of the paper.
-   */
-  extracted_methodology: SummaryAndOutput;
-  /**
-   * The overview of the field methods.
-   */
-  field_methods_overview: SummaryAndOutput;
-  /**
-   * The alignment of the paper's methodology with the field methods.
-   */
-  alignment_with_field_practice: SummaryAndOutput;
-  /**
-   * The rigor and risks of the paper's methodology.
-   */
-  methodological_rigor_and_risks: SummaryAndOutput;
-  /**
-   * The suggestions for improvements to the paper's methodology.
-   */
-  suggestions_for_improvements: SummaryAndOutput;
-  /**
-   * References
-   *
-   * List of sources cited from web search
-   */
-  references?: Array<ReferenceMinimal>;
-};
-
-/**
  * MetricWithDelta
  *
  * A count for the selected window alongside the preceding one.
@@ -2741,53 +2647,6 @@ export type ReferenceFileMatchingState = {
 };
 
 /**
- * ReferenceMinimal
- */
-export type ReferenceMinimal = {
-  /**
-   * Title
-   *
-   * Canonical title for the reference exactly as it should appear in the article's bibliography
-   */
-  title: string;
-  /**
-   * Format classification for the reference. Possible values: ['peer_reviewed_publication', 'preprint', 'book', 'government_ngo_report', 'data_software', 'news_media', 'reference', 'webpage']
-   */
-  type: ReferenceType;
-  /**
-   * Link
-   *
-   * Stable URL or DOI that lets the author retrieve the reference quickly
-   */
-  link: string;
-  /**
-   * Bibliography Info
-   *
-   * Bibliography entry formatted in the article's style; reuse the existing entry when the source is already in the bibliography
-   */
-  bibliography_info: string;
-};
-
-/**
- * ReferenceType
- */
-export const ReferenceType = {
-  PeerReviewedPublication: 'peer_reviewed_publication',
-  Preprint: 'preprint',
-  Book: 'book',
-  GovernmentNgoReport: 'government_ngo_report',
-  DataSoftware: 'data_software',
-  NewsMedia: 'news_media',
-  Reference: 'reference',
-  Webpage: 'webpage',
-} as const;
-
-/**
- * ReferenceType
- */
-export type ReferenceType = (typeof ReferenceType)[keyof typeof ReferenceType];
-
-/**
  * ReferenceValidationFinalResultV2
  */
 export const ReferenceValidationFinalResultV2 = {
@@ -2915,41 +2774,6 @@ export type ReferenceValidationV2WorkflowConfig = {
    * Type
    */
   type?: 'reference_validation_v2';
-};
-
-/**
- * ReproducibilityCategory
- *
- * Reproducibility classification for methodologies and results.
- */
-export const ReproducibilityCategory = {
-  FullyReproducible: 'fully_reproducible',
-  ReproducibleWithWebSearch: 'reproducible_with_web_search',
-  ReproducibleWithExternalUploads: 'reproducible_with_external_uploads',
-  NotReproducible: 'not_reproducible',
-} as const;
-
-/**
- * ReproducibilityCategory
- *
- * Reproducibility classification for methodologies and results.
- */
-export type ReproducibilityCategory = (typeof ReproducibilityCategory)[keyof typeof ReproducibilityCategory];
-
-/**
- * ReproducibilityCategoryResponse
- */
-export type ReproducibilityCategoryResponse = {
-  /**
-   * The class of reproducibility of the methodology. Possible values: ['fully_reproducible', 'reproducible_with_web_search', 'reproducible_with_external_uploads', 'not_reproducible']
-   */
-  class_value: ReproducibilityCategory;
-  /**
-   * Rationale
-   *
-   * The rationale for why you think the methodology is reproducible or not.
-   */
-  rationale: string;
 };
 
 /**
@@ -3305,24 +3129,6 @@ export type StartWorkflowResponse = {
    * Message
    */
   message: string;
-};
-
-/**
- * SummaryAndOutput
- */
-export type SummaryAndOutput = {
-  /**
-   * Summary
-   *
-   * A one to two sentence summary of the related section.
-   */
-  summary: string;
-  /**
-   * Markdown Output
-   *
-   * Markdown formatted output of the full context of the related section.
-   */
-  markdown_output: string;
 };
 
 /**
@@ -3798,7 +3604,6 @@ export type WorkflowRunDetail = {
     | ReferenceFileMatchingState
     | ClaimReferenceValidationV2State
     | AbbreviationScanV2State
-    | MethodologicalAlignmentState
     | ReferenceDownloaderState
     | ReferenceValidationV2State
     | HumanApprovalState
@@ -4499,7 +4304,6 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | ReferenceFileMatchingConfig
     | ClaimReferenceValidationV2Config
     | AbbreviationScanV2Config
-    | MethodologicalAlignmentWorkflowConfig
     | ReferenceDownloaderWorkflowConfig
     | ReferenceValidationV2WorkflowConfig
     | HumanApprovalConfig
