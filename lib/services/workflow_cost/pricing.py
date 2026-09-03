@@ -1,4 +1,5 @@
 import logging
+import re
 from decimal import Decimal
 from typing import Iterable, Optional
 
@@ -12,11 +13,35 @@ from lib.services.workflow_cost.catalog import CatalogEntry, ModelPricing, get_c
 logger = logging.getLogger(__name__)
 
 
-def _match_model(name: str, models: list[CatalogEntry]) -> Optional[ModelPricing]:
+# OpenAI reports the deployed snapshot in response metadata, not the alias that
+# was requested: asking for `gpt-5.6-terra` comes back as
+# `gpt-5.6-terra-2026-07-09-global-aaif`. Langfuse's managed price entries match
+# the bare alias only, so the snapshot name prices nothing. Anchoring on the date
+# keeps a genuinely different variant (`gpt-5.6-terra-mini`) from being priced
+# as the base model.
+_SNAPSHOT_SUFFIX = re.compile(r"-\d{4}-\d{2}-\d{2}(-.*)?$")
+
+
+def _first_match(name: str, models: list[CatalogEntry]) -> Optional[ModelPricing]:
     for pattern, model in models:
         if pattern.fullmatch(name):
             return model
     return None
+
+
+def _match_model(name: str, models: list[CatalogEntry]) -> Optional[ModelPricing]:
+    """Price `name` directly, or by its alias once a dated snapshot suffix is removed."""
+    model = _first_match(name, models)
+    if model is not None:
+        return model
+
+    alias = _SNAPSHOT_SUFFIX.sub("", name, count=1)
+    if alias == name:
+        return None
+    model = _first_match(alias, models)
+    if model is not None:
+        logger.debug("priced snapshot %r as its alias %r", name, alias)
+    return model
 
 
 def _rate(prices: dict[str, Decimal], *keys: str) -> Decimal:
