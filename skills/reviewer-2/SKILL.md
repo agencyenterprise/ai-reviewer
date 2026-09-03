@@ -13,6 +13,8 @@ The audience for the research that you are evaluating includes other professiona
 
 Focusing on writing and editorial issues is not helpful unless it’s in service of making a point that there are specific arguments in the piece that are too unclear for others to understand their substance properly.
 
+When you have a way to view images, look at the figures before assessing the evidence they are said to provide: whether a chart actually shows the effect the text attributes to it, whether its scale or baseline flatters the argument, and whether a diagram makes the causal claim the prose does. If an image cannot be viewed, assess it from its caption and the surrounding text, and say so where it matters.
+
 Please produce a peer review document (in markdown format) with the following four sections:
 
 SECTION 1: SUMMARY OF ARGUMENT AND SUPPORTING EVIDENCE. Summarize your understanding of the paper’s main argument or arguments. Then identify the strongest evidence the paper includes in support of those arguments. This section demonstrates that you have understood what the author is trying to do before you begin critiquing how well they do it. If your summary does not match the author’s intent, that itself is diagnostic of a clarity problem.

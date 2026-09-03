@@ -1,0 +1,136 @@
+"""Tool that lets a deep agent look at an image extracted from a document.
+
+Persisted markdown references extracted images by a storage-agnostic
+``draftdetective://{file-id}`` src (see ``lib/services/image_extraction``).
+The document viewers resolve that scheme to the download endpoint; agents
+resolve it here — the tool returns the image bytes as a standard image
+content block, which the model reads directly from the tool result.
+"""
+
+import base64
+import logging
+import uuid
+from typing import Any, Union
+
+import aiofiles
+from langchain.tools import ToolRuntime, tool
+
+from lib.models.file import FileRole
+from lib.services.files import get_file_by_id
+from lib.services.image_extraction import IMAGE_REFERENCE_SCHEME
+from lib.workflows.context import ContextSchema
+
+logger = logging.getLogger(__name__)
+
+# Formats the vision models accept. Anything else (metafiles that skipped
+# rasterization, SVG, ...) gets a text explanation instead of bytes the model
+# would reject.
+VIEWABLE_MIME_TYPES = frozenset({"image/png", "image/jpeg", "image/gif", "image/webp"})
+
+# One oversized image must not crowd out the rest of the agent's context.
+MAX_IMAGE_BYTES = 15 * 1024 * 1024
+
+_NOT_FOUND = (
+    "Error: no document image exists for this reference in the current project."
+)
+
+# Appended to the system prompt of every agent that binds `view_image`, so the
+# instructions always travel with the tool. Skills stay environment-agnostic
+# (see CLAUDE.md, "Skill Files"): this runtime-specific wiring lives here, next
+# to the tool, and each skill only says *when* a look is worth taking.
+VIEW_IMAGE_PROMPT = """
+
+## Document Images
+
+Images extracted from a document appear in its markdown as \
+`![alt](draftdetective://...)`. Pass such a `draftdetective://...` src to the \
+`view_image` tool to look at the image itself, whenever seeing it would change \
+your judgment. If the tool reports that an image cannot be displayed, judge it \
+from its alt text and the surrounding text instead.\
+"""
+
+
+def _parse_image_file_id(image_reference: str) -> uuid.UUID | None:
+    """The file id inside a reference; None when it isn't one.
+
+    Accepts the full ``draftdetective://{id}?w=&h=`` form the markdown carries
+    as well as a bare id, so the model can pass either.
+    """
+    reference = image_reference.strip()
+    if reference.startswith(IMAGE_REFERENCE_SCHEME):
+        reference = reference[len(IMAGE_REFERENCE_SCHEME) :]
+    reference = reference.split("?", 1)[0]
+    try:
+        return uuid.UUID(reference)
+    except ValueError:
+        return None
+
+
+@tool
+async def view_image(
+    image_reference: str, runtime: ToolRuntime[ContextSchema]
+) -> Union[list[dict[str, Any]], str]:
+    """
+    Look at an image embedded in a document. Images appear in the document
+    markdown as `![alt](draftdetective://...)`; pass that `draftdetective://...`
+    src (query parameters and all) to see the image itself.
+
+    Args:
+        image_reference: The image src from the document markdown, e.g.
+            `draftdetective://123e4567-e89b-12d3-a456-426614174000?w=400&h=300`.
+
+    Returns:
+        The image as visual content, or an error message when the reference
+        does not resolve to a viewable image.
+    """
+    file_id = _parse_image_file_id(image_reference)
+    if file_id is None:
+        return (
+            f"Error: {image_reference!r} is not an image reference. Pass the "
+            f"`{IMAGE_REFERENCE_SCHEME}...` src of a markdown image in the document."
+        )
+
+    try:
+        file = await get_file_by_id(file_id)
+    except Exception:
+        return _NOT_FOUND
+
+    # Scope to the running project's extracted images: the id comes from model
+    # output, so it must not be able to read arbitrary files by guessing ids.
+    if (
+        str(file.project_id) != str(runtime.context.project_id)
+        or file.role != FileRole.EXTRACTED_IMAGE
+    ):
+        return _NOT_FOUND
+
+    if file.file_type not in VIEWABLE_MIME_TYPES:
+        return (
+            f"This image is stored as {file.file_type}, which cannot be displayed. "
+            "Judge it from its alt text and surrounding document context instead."
+        )
+    if file.file_size > MAX_IMAGE_BYTES:
+        return (
+            "This image is too large to display. Judge it from its alt text "
+            "and surrounding document context instead."
+        )
+
+    try:
+        async with aiofiles.open(file.file_path, "rb") as f:
+            content = await f.read()
+    except OSError:
+        logger.warning(
+            "Extracted image %s is missing from disk at %s", file.id, file.file_path
+        )
+        return (
+            "Error: the image file is missing from storage. Judge it from its "
+            "alt text and surrounding document context instead."
+        )
+
+    return [
+        {
+            "type": "image",
+            "source_type": "base64",
+            "data": base64.b64encode(content).decode(),
+            "mime_type": file.file_type,
+        }
+    ]

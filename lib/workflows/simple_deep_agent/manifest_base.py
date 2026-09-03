@@ -86,6 +86,11 @@ class _BaseDeepAgentManifest(
     # default; raise it on workflows whose turns run long, such as web search.
     llm_timeout: ClassVar[Optional[int]] = None
 
+    # Whether the agent may look at the document's extracted images. Off by
+    # default: only workflows whose judgment can hinge on what a figure shows
+    # opt in, so text-only checks are not tempted to spend turns on logos.
+    view_images: ClassVar[bool] = False
+
     def resolve_user_prompt(self) -> str:
         """Resolve the rules/criteria used as the deep agent's user prompt.
 
@@ -148,6 +153,7 @@ class _BaseDeepAgentManifest(
                 tools=manifest.agent_tools(),
                 reasoning_effort=manifest.reasoning_effort,
                 timeout=manifest.llm_timeout,
+                view_images=manifest.view_images,
             )
             run = await agent.ainvoke({})
             return {

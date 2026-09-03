@@ -48,6 +48,16 @@ Every figure and table cited in the body text must actually exist in the documen
 
 **If a referenced figure/table is absent from the document → issue title:** "Missing Figure/Table: [label referenced in text]" (Create one issue per missing figure/table.)
 
+## Viewing figures
+
+The document may embed figures as images. When you have a way to view images, look at the actual image whenever seeing it would change your judgment:
+
+- To tell whether an image is a genuine figure (chart, diagram, map, photo of results) or a decorative element (logo, banner, cover art, signature). **Decorative images are not figures — do not flag them under any rule.**
+- To confirm that an image near a caption is really the exhibit the caption describes (Rule 1), or that a figure cited in the body has actual image content present (Rule 4).
+- When a figure label or caption appears with no image nearby, or an image appears with no caption — check the image before reporting, since the caption may be rendered inside the image itself.
+
+Tables are markdown text and need no image viewing. If an image cannot be viewed (no image-viewing capability, unsupported format, missing file), evaluate the rules from the image's alt text and the surrounding text instead.
+
 ## Exclusion — Abbreviation / Acronym tables
 
 Many documents contain a dedicated **Abbreviations**, **Acronyms**, or **List of Abbreviations** section. This section typically presents a two-column table (abbreviation | definition) or a simple definition list and is **not** a regular numbered figure or table.
