@@ -526,21 +526,24 @@ async def test_list_projects_returns_project_list():
     project_item = MagicMock()
     project_item.project.id = uuid4()
     project_item.project.title = "My Project"
+    page = MagicMock(items=[project_item], total=1)
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
         patch(
             "lib.api.mcp.tools.projects.get_user_projects",
-            new=AsyncMock(return_value=[project_item]),
-        ),
+            new=AsyncMock(return_value=page),
+        ) as get_projects,
     ):
-        raw = await list_projects(token=_make_token())
+        raw = await list_projects(search="My", token=_make_token())
 
+    get_projects.assert_awaited_once_with(user, search="My", limit=50, offset=0)
     data = json.loads(raw)
-    assert len(data) == 1
-    assert data[0]["title"] == "My Project"
-    assert data[0]["project_id"] == str(project_item.project.id)
-    assert "/projects/" in data[0]["project_url"]
+    assert data["total"] == 1
+    assert len(data["items"]) == 1
+    assert data["items"][0]["title"] == "My Project"
+    assert data["items"][0]["project_id"] == str(project_item.project.id)
+    assert "/projects/" in data["items"][0]["project_url"]
 
 
 @pytest.mark.asyncio
@@ -549,11 +552,14 @@ async def test_list_projects_returns_empty_list_when_no_projects():
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch("lib.api.mcp.tools.projects.get_user_projects", new=AsyncMock(return_value=[])),
+        patch(
+            "lib.api.mcp.tools.projects.get_user_projects",
+            new=AsyncMock(return_value=MagicMock(items=[], total=0)),
+        ),
     ):
         raw = await list_projects(token=_make_token())
 
-    assert json.loads(raw) == []
+    assert json.loads(raw) == {"total": 0, "items": []}
 
 
 def _make_aiofiles_open_mock(read_data: bytes) -> MagicMock:

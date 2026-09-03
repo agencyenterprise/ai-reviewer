@@ -145,6 +145,7 @@ import type {
   ListProjectFilesEndpointApiProjectProjectIdFilesGetErrors,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses,
   ListProjectsEndpointApiProjectsGetData,
+  ListProjectsEndpointApiProjectsGetErrors,
   ListProjectsEndpointApiProjectsGetResponses,
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetData,
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetErrors,
@@ -1122,12 +1123,22 @@ export const getIssueEndpointApiIssuesIssueIdGet = <ThrowOnError extends boolean
 /**
  * List Projects Endpoint
  *
- * List all projects for the current user
+ * List the current user's projects, newest activity first, one page at a time.
  */
 export const listProjectsEndpointApiProjectsGet = <ThrowOnError extends boolean = true>(
   options?: Options<ListProjectsEndpointApiProjectsGetData, ThrowOnError>,
-): RequestResult<ListProjectsEndpointApiProjectsGetResponses, unknown, ThrowOnError, 'data'> =>
-  (options?.client ?? client).get<ListProjectsEndpointApiProjectsGetResponses, unknown, ThrowOnError, 'data'>({
+): RequestResult<
+  ListProjectsEndpointApiProjectsGetResponses,
+  ListProjectsEndpointApiProjectsGetErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options?.client ?? client).get<
+    ListProjectsEndpointApiProjectsGetResponses,
+    ListProjectsEndpointApiProjectsGetErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/projects',
