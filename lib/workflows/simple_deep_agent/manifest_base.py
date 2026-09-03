@@ -25,6 +25,7 @@ from langgraph.graph import START, StateGraph
 from langgraph.graph.state import END
 from langgraph.runtime import Runtime
 
+from lib.config.llm_models import web_search_tool
 from lib.skills import load_skill_prompt
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
@@ -65,6 +66,10 @@ class _BaseDeepAgentManifest(
     supporting docs, and a /revisions/<n>/ tree with each revision's main and
     reviewer memos); workflows point the agent at the paths they need via the
     system prompt rather than by selecting files here.
+
+    A manifest that declares ``needs_web_search`` gets the web search tool: that
+    flag is what gates the user's consent, and the tool is the only way a
+    simple deep agent can reach the web, so the two always travel together.
     """
 
     skill: ClassVar[Optional[str]] = None
@@ -76,6 +81,10 @@ class _BaseDeepAgentManifest(
     # Per-workflow reasoning effort. None keeps SimpleDeepAgent's default;
     # set it on workflows whose task warrants more deliberation.
     reasoning_effort: ClassVar[Optional[Literal["low", "medium", "high"]]] = None
+
+    # Per-workflow LLM call timeout in seconds. None keeps SimpleDeepAgent's
+    # default; raise it on workflows whose turns run long, such as web search.
+    llm_timeout: ClassVar[Optional[int]] = None
 
     def resolve_user_prompt(self) -> str:
         """Resolve the rules/criteria used as the deep agent's user prompt.
@@ -98,6 +107,12 @@ class _BaseDeepAgentManifest(
         is surfaced as the run's report. Return None to proceed. Default: no guard.
         """
         return None
+
+    def agent_tools(self) -> list[dict]:
+        """Workflow tools handed to the agent alongside the issue reporter."""
+        if self.needs_web_search:
+            return [web_search_tool(SimpleDeepAgent.model)]
+        return []
 
     def _guard_result(self, message: str) -> DeepAgentResult:
         """Build the state result carrying a precheck guard message."""
@@ -130,7 +145,9 @@ class _BaseDeepAgentManifest(
                 system_prompt=manifest.system_prompt,
                 user_prompt=manifest.resolve_user_prompt(),
                 report_issues=manifest.report_issues,
+                tools=manifest.agent_tools(),
                 reasoning_effort=manifest.reasoning_effort,
+                timeout=manifest.llm_timeout,
             )
             run = await agent.ainvoke({})
             return {
