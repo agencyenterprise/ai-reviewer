@@ -58,9 +58,9 @@
 
     **Figure 1: Registered e-bikes, 2016 to 2023 (thousands)**
 
-    Registrations held roughly steady through 2020 and then rose sharply (Figure 1). Because the increase is concentrated in the years after 2021, the post-subsidy period accounts for nearly all of the growth between 2016 and 2023, and this report therefore treats 2021 as the break point for the projections that follow.
+    Because registrations held roughly steady through 2020 and then rose sharply (Figure 1), with the increase concentrated in the years after 2021, the post-subsidy period accounts for nearly all of the growth between 2016 and 2023, and this report therefore treats 2021 as the break point for the projections that follow.
   expected_invalid_count: 1
-  target_answer: 'The text states that registrations held steady through 2020 and rose sharply afterward, and concludes that the post-subsidy years account for nearly all of the growth between 2016 and 2023, so 2021 is treated as the break point. Figure 1 is an image and contradicts the premise: registrations rise steadily from about 4 thousand in 2016 to 35 thousand in 2021 and 63 thousand in 2023, so roughly half of the growth happened before the subsidy and there is no break at 2021. The conclusion is not supported by the document''s own evidence. Exactly one invalid inference should be reported, anchored on that conclusion. The flaw is only visible by viewing the figure; the text alone is internally consistent.'
+  target_answer: 'The text states that registrations held steady through 2020 and rose sharply afterward, and concludes that the post-subsidy years account for nearly all of the growth between 2016 and 2023, so 2021 is treated as the break point. Figure 1 is an image and contradicts the premise: registrations rise steadily from about 4 thousand in 2016 to 35 thousand in 2021 and 63 thousand in 2023, so roughly half of the growth happened before the subsidy and there is no break at 2021. The conclusion is not supported by the document''s own evidence. The premise and the conclusion sit in one sentence, so exactly one invalid inference should be reported, anchored on it. The flaw is only visible by viewing the figure; the text alone is internally consistent.'
 - input: |
     # E-bike Adoption and the 2021 Purchase Subsidy
 
@@ -76,6 +76,6 @@
 
     **Figure 1: Registered e-bikes, 2016 to 2023 (thousands)**
 
-    Registrations held roughly steady through 2020 and then rose sharply (Figure 1). Because the increase is concentrated in the years after 2021, the post-subsidy period accounts for nearly all of the growth between 2016 and 2023, and this report therefore treats 2021 as the break point for the projections that follow.
+    Because registrations held roughly steady through 2020 and then rose sharply (Figure 1), with the increase concentrated in the years after 2021, the post-subsidy period accounts for nearly all of the growth between 2016 and 2023, and this report therefore treats 2021 as the break point for the projections that follow.
   expected_invalid_count: 0
   target_answer: 'The text states that registrations held steady through 2020 and rose sharply afterward, and concludes that the post-subsidy years account for nearly all of the growth between 2016 and 2023, so 2021 is treated as the break point. Figure 1 (an image) shows exactly that: about 4 to 6 thousand through 2021, then 22 and 41 thousand in 2022 and 2023, so the years after 2021 hold about 95 percent of the growth. The premise matches the chart and the conclusion follows from it; the text makes no causal claim. No invalid inference should be reported. The wording is identical to the companion sample; only the chart differs.'
