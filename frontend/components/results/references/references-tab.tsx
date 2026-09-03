@@ -246,6 +246,35 @@ export function ReferencesTab({ projectDetail, readOnly }: ReferencesTabProps) {
           )}
         </div>
 
+        {approval.hasPendingApproval && !readOnly && (
+          <div className="flex shrink-0 items-center gap-3 border-b px-4 py-2.5">
+            <span className="min-w-0 flex-1 text-sm">
+              {counts.unmatched > 0 ? (
+                <>
+                  <strong className="font-medium">
+                    {counts.unmatched} reference{counts.unmatched === 1 ? ' has' : 's have'} no source file provided.
+                  </strong>{' '}
+                  <span className="text-muted-foreground">
+                    Claim Reference Validation will mark {counts.unmatched === 1 ? 'its claims' : 'their claims'}{' '}
+                    unverifiable.
+                  </span>
+                </>
+              ) : (
+                <span className="text-muted-foreground">Every reference has its source file. Ready when you are.</span>
+              )}
+            </span>
+            <Button
+              size="sm"
+              className="h-7 shrink-0"
+              onClick={approval.handleApprove}
+              disabled={approval.isApproveDisabled}
+            >
+              {approval.showApproveButtonSpinner && <Loader2 className="size-3 animate-spin" />}
+              {approval.approveButtonText}
+            </Button>
+          </div>
+        )}
+
         {isProcessingFiles && (
           <div className="flex shrink-0 items-center gap-2 border-b bg-blue-50 px-4 py-2 text-xs dark:bg-blue-950/30">
             <Loader2 className="size-3.5 shrink-0 animate-spin text-blue-700 dark:text-blue-400" />
@@ -289,35 +318,6 @@ export function ReferencesTab({ projectDetail, readOnly }: ReferencesTabProps) {
             </div>
           )}
         </div>
-
-        {approval.hasPendingApproval && !readOnly && (
-          <div className="flex shrink-0 flex-wrap items-center gap-3 border-t px-4 py-2.5">
-            <span className="min-w-0 text-sm">
-              {counts.unmatched > 0 ? (
-                <>
-                  <strong className="font-medium">
-                    {counts.unmatched} reference{counts.unmatched === 1 ? ' has' : 's have'} no source file provided.
-                  </strong>{' '}
-                  <span className="text-muted-foreground">
-                    Claim Reference Validation will mark {counts.unmatched === 1 ? 'its claims' : 'their claims'}{' '}
-                    unverifiable.
-                  </span>
-                </>
-              ) : (
-                <span className="text-muted-foreground">Every reference has its source file. Ready when you are.</span>
-              )}
-            </span>
-            <Button
-              size="sm"
-              className="ml-auto h-7"
-              onClick={approval.handleApprove}
-              disabled={approval.isApproveDisabled}
-            >
-              {approval.showApproveButtonSpinner && <Loader2 className="size-3 animate-spin" />}
-              {approval.approveButtonText}
-            </Button>
-          </div>
-        )}
       </main>
 
       {references.length > 0 && (
