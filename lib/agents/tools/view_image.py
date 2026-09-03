@@ -123,7 +123,9 @@ async def view_image(
 
     try:
         async with aiofiles.open(file.file_path, "rb") as f:
-            content = await f.read()
+            # Bounded read: the metadata check above is only a hint, and the
+            # cap must hold even if the row and the file on disk disagree.
+            content = await f.read(MAX_IMAGE_BYTES + 1)
     except OSError:
         logger.warning(
             "Extracted image %s is missing from disk at %s", file.id, file.file_path
@@ -131,6 +133,11 @@ async def view_image(
         return (
             "Error: the image file is missing from storage. Judge it from its "
             "alt text and surrounding document context instead."
+        )
+    if len(content) > MAX_IMAGE_BYTES:
+        return (
+            "This image is too large to display. Judge it from its alt text "
+            "and surrounding document context instead."
         )
 
     return [

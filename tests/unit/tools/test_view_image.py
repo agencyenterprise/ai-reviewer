@@ -156,6 +156,21 @@ class TestViewImage:
         assert "too large" in result
 
     @pytest.mark.asyncio
+    async def test_oversized_file_on_disk_is_refused_despite_small_metadata(
+        self, tmp_path
+    ):
+        """The row's file_size is a hint; the cap must hold on the bytes read."""
+        file = _image_file(tmp_path, file_size=1)
+        with (
+            _patched_lookup(file),
+            patch("lib.agents.tools.view_image.MAX_IMAGE_BYTES", 8),
+        ):
+            result = await view_image.coroutine(str(IMAGE_ID), _runtime())
+
+        assert isinstance(result, str)
+        assert "too large" in result
+
+    @pytest.mark.asyncio
     async def test_missing_file_on_disk_reports_missing(self, tmp_path):
         file = _image_file(tmp_path, file_path=str(tmp_path / "gone.png"))
         with _patched_lookup(file):
