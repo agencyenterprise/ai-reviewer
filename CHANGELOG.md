@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.9] - 2026-09-03
+
+### Added
+- Added detailed per-reference and per-run logging for the reference downloader, including a tool-usage digest and clearer failure diagnostics.
+- Added optional `JINA_API_KEY` support for authenticated requests to the Jina Reader hop, including documentation in `.env.template`.
+- Added support in the simple deep agent framework to attach web search tools when a workflow declares `needs_web_search`, and to flow an `llm_timeout` setting to the agent.
+- Added new unit tests for reference downloader tool usage and Jina auth, and new unit tests covering simple deep agent tool attachment and timeout override.
+- Added/updated methodological alignment E2E evals to read `SimpleDeepAgentOutput` and validate report structure, citations, issue constraints, and dataset `min_issues`.
+
+### Changed
+- Changed Methodological Alignment to run on `SimpleDeepAgentManifest` using the `methodology-comparison` skill, producing line-anchored issues and a markdown report rendered by `SimpleDeepAgentResults`.
+- Changed the reference downloader to emit INFO/WARNING logs for direct fetches, PDF saves, Jina fallback behavior, reads, and missing/empty file content, and to adjust the shared Postgres rate limiter based on whether `JINA_API_KEY` is set.
+- Changed frontend routing/state mapping so Methodological Alignment uses `SimpleDeepAgentResults` and `SimpleDeepAgentState`, and regenerated generated API and skills outputs to reflect the workflow/skill changes.
+- Changed workflow-cost pricing to retry model matching by stripping a trailing dated snapshot suffix when no Langfuse pricing entry exists for the reported snapshot name.
+
+### Fixed
+- Fixed workflow-cost calculation so dated OpenAI snapshot names are priced by their alias when Langfuse lacks a snapshot-specific entry, preventing empty cost breakdowns in that scenario.
+
+### Removed
+- Removed the old Methodological Alignment graph/state/nodes implementation and the two structured-output agents used by that workflow.
+- Removed the `ReproducibilityCategory` enum and dropped the old methodological alignment state/config from workflow type unions.
+- Removed the dedicated Methodological Alignment results component and removed six retired generated API schemas.
+
+
 ## [v1.0.8] - 2026-09-03
 
 ### Added
