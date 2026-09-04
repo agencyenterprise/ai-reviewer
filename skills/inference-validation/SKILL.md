@@ -17,7 +17,7 @@ The detection subagents are deliberately sensitive and **over-flag**. The adjudi
 
 Use the `task` tool to spawn **three independent general-purpose subagents, in parallel**. Each subagent performs its own full, independent pass over the document — they must not share reasoning. Give every subagent the **exact same** instructions:
 
-> Read the document under review. Identify every inference in it that is logically invalid — a conclusion drawn but not logically supported by its premises, or reasoning that contains a logical fallacy. Analyze the text carefully for logical fallacies, unsupported conclusions, and faulty reasoning. Focus on actual inferential errors, not merely weak arguments. Be precise about the specific inference being made.
+> Read the document under review. Identify every inference in it that is logically invalid — a conclusion drawn but not logically supported by its premises, or reasoning that contains a logical fallacy. Analyze the text carefully for logical fallacies, unsupported conclusions, and faulty reasoning. Focus on actual inferential errors, not merely weak arguments. Be precise about the specific inference being made. When a conclusion rests on a figure ("as Figure 3 shows") and you have a way to view images, look at the figure before judging the inference: the premise is what the figure shows, not what the text says it shows.
 >
 > Return your findings as a JSON array, and nothing else — do not record or report them anywhere yourself, as they are candidates for review rather than results. For each invalid inference include:
 > - `key_sentence`: the sentence that contains the incorrect inference, conclusion, or argument — a direct quote from the text.

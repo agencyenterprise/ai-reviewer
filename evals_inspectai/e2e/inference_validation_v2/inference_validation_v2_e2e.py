@@ -1,11 +1,12 @@
 from pathlib import Path
 
 from inspect_ai import Task, task
-from inspect_ai.dataset import Sample, json_dataset
+from inspect_ai.dataset import Sample
 from inspect_ai.scorer import Score
 from inspect_ai.solver import TaskState
 
 from evals_inspectai.common.api_solver import api_workflow_agent
+from evals_inspectai.common.loaders import yaml_dataset
 from evals_inspectai.common.scorers import model_graded_check, structured_output_scorer
 from evals_inspectai.common.simple_deep_agent_types import SimpleDeepAgentOutput
 
@@ -22,10 +23,7 @@ def _record_to_sample(record: dict) -> Sample:
 
 @task
 def inference_validation_v2_e2e():
-    dataset = json_dataset(
-        str(Path(__file__).parent / "dataset.json"),
-        _record_to_sample,
-    )
+    dataset = yaml_dataset(Path(__file__).parent / "dataset.yaml", _record_to_sample)
 
     return Task(
         dataset=dataset,
@@ -34,6 +32,10 @@ def inference_validation_v2_e2e():
         scorer=[
             structured_output_scorer(SimpleDeepAgentOutput, _compare_invalid_count),
             model_graded_check(partial_credit=True),
+            # No `tool_called("view_image")` here: this workflow delegates the
+            # reading to sub-agents whose transcripts are not persisted, so the
+            # orchestrator's messages cannot show the call. The figure samples
+            # are built so the outcome scorers only pass if a chart was read.
         ],
     )
 

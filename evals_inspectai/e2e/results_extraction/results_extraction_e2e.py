@@ -46,6 +46,7 @@ from evals_inspectai.common.scorers import (
     criteria_for,
     failed_score,
     grade_criteria,
+    tool_called,
 )
 from evals_inspectai.common.simple_deep_agent_types import (
     AgentCheckResult,
@@ -196,6 +197,7 @@ def results_extraction_e2e():
         scorer=[
             inventory_checks(),
             rubric_criteria(),
+            tool_called("view_image"),
         ],
         viewer=viewer_config(),
     )

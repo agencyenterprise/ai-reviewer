@@ -2,7 +2,12 @@
 
 from concurrent.futures import ThreadPoolExecutor
 
-from lib.workflows.simple_deep_agent.issue_reporting import IssueReporter
+from langchain_core.messages import AIMessage, ToolMessage
+
+from lib.workflows.simple_deep_agent.issue_reporting import (
+    IssueReporter,
+    collect_deep_agent_run,
+)
 
 
 def _tools(reporter: IssueReporter) -> dict:
@@ -79,3 +84,19 @@ def test_collectors_are_isolated_and_safe_for_parallel_calls():
     assert {issue.title for issue in second.issues} == {
         f"Second {index}" for index in range(10)
     }
+
+
+def test_collected_run_does_not_carry_viewed_image_bytes():
+    """Run messages are persisted as the workflow's state_json and served with
+    the run detail, so a viewed image must be reduced to a note there."""
+    image_result = ToolMessage(
+        content=[{"type": "image", "data": "QUJDRA==", "mime_type": "image/png"}],
+        tool_call_id="call-1",
+        name="view_image",
+    )
+    run = collect_deep_agent_run(
+        {"files": {}, "messages": [AIMessage(content="done"), image_result]}
+    )
+
+    assert "QUJDRA==" not in str(run.messages)
+    assert "image/png" in str(run.messages[1].content)
