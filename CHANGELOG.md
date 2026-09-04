@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.0.10] - 2026-09-04
+
+### Added
+- Added a `view_image` tool to let figure-sensitive deep-agent workflows view extracted document images.
+- Added pagination for the project list and server-side title search.
+- Added surfacing of agent messages in the eval transcript for the reference downloader.
+- Added logging of fetch outcomes and support for `JINA_API_KEY` in the reference downloader.
+- Added an issues empty state in the document explorer.
+- Added a new "Skill Files" section to `CLAUDE.md`.
+
+### Changed
+- Enabled image viewing (opt-in) for the `figures_tables_check`, `results_extraction`, `inference_validation_v2`, and `recommendation_check` workflows, and wired it for Reviewer 2.
+- Updated the simple deep agent to support a `view_images` flag (default off) and pass workflow context as runtime context.
+- Updated the simple deep agent manifest base to forward a `view_images` class attribute.
+- Updated skills with conditional guidance on when viewing images is worth doing, without naming the tool or URL scheme.
+- Restyled the processing errors notice as a chrome banner.
+- Moved the methodological-alignment workflow to run on the simple deep agent.
+- Moved the references approval banner above the list and kept its button inline.
+- Dropped a duplicated loading indicator in the document explorer.
+
+### Fixed
+- Fixed workflow cost pricing by pricing OpenAI snapshot names by their alias.
+
+### Security
+- Restricted `view_image` to serving only extracted images belonging to the running project to prevent cross-project reads.
+
+
 ## [v1.0.9] - 2026-09-03
 
 ### Added
