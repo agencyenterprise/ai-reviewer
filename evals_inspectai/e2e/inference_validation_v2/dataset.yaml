@@ -1,0 +1,81 @@
+# Dataset for the inference_validation_v2 e2e eval. One record per document; `input` is the
+# document under review as markdown, figures referenced by local PNG path.
+
+- input: |
+    # Effect of Reduced Pump Cycle Times
+
+    The maintenance team measured pump cycle times at all four sites before and after a software upgrade. Across 1,200 cycles, the upgraded controller reduced the average cycle time from 4.2 s to 3.6 s. A two-sample t-test on the 1,200 paired observations yielded p < 0.001 with an effect size of d = 0.42. We therefore conclude that, under the conditions tested at these four sites, the upgrade reduced pump cycle time.
+  expected_invalid_count: 0
+  target_answer: 'The argument is well-supported: it reports a sizeable paired sample (n = 1,200), a statistical test with effect size, and explicitly bounds the conclusion to the conditions and sites tested. No issues should be reported. The model should NOT flag this as a fallacy.'
+- input: |
+    # Customer Sentiment Update
+
+    We received complaints from three customers last week about delayed shipments. Therefore, our shipping reliability is now poor across the entire customer base, and an immediate operational overhaul is warranted.
+  expected_invalid_count: 1
+  target_answer: 'The document commits a hasty generalization: it leaps from a tiny, self-selected sample (three complaints in one week) to a claim about the entire customer base, then to an operational recommendation. Exactly one issue should be reported. The analysis should mention small / unrepresentative sample size or hasty generalization. Severity should be medium or high.'
+- input: |
+    # Sales After New Branding
+
+    In Q2 we launched a new brand campaign. In Q3 quarterly sales rose by 14% compared with Q2. The branding campaign therefore caused the sales increase, and we recommend doubling the campaign budget next year.
+  expected_invalid_count: 1
+  target_answer: 'The document commits a post hoc / correlation-implies-causation fallacy: a temporal sequence (campaign in Q2, sales rise in Q3) is treated as proof of causation while ignoring possible confounders such as seasonality, pricing, market trends, or other concurrent initiatives. Exactly one issue should be reported. The analysis should mention causation, post hoc, confounders, or correlation. Severity should be medium or high.'
+- input: |
+    # Sample Contamination Diagnostic
+
+    When a sample is contaminated with chloride, its measured pH typically rises above 8.0. Sample 47 had a measured pH of 8.3. Therefore, sample 47 is contaminated with chloride.
+  expected_invalid_count: 1
+  target_answer: 'The document commits the formal fallacy of affirming the consequent: from ''P implies Q'' and observing Q, it concludes P, ignoring that high pH has many other plausible causes. Exactly one issue should be reported. The analysis should mention affirming the consequent, alternative explanations, or that the conclusion does not follow from the premises. Severity should be medium or high.'
+- input: |
+    # Project Funding Decision
+
+    The team has examined the situation and concludes that there are only two realistic paths forward: either the executive committee approves a 40% budget increase next quarter, or the project will fail entirely. No other option is available.
+  expected_invalid_count: 1
+  target_answer: 'The document commits a false dichotomy: it presents only two options (''approve a 40% budget increase'' vs ''project fails'') while plainly other options exist (smaller increases, reprioritization, partial scope cuts, schedule extensions). Exactly one issue should be reported. The analysis should mention false dichotomy, false dilemma, or that additional options exist.'
+- input: |
+    # Service Reliability Assessment
+
+    ## Customer Satisfaction
+
+    Our service has been operating without major incidents for 18 months. Three customers praised our response time in recent surveys; we therefore conclude that customer satisfaction across the entire customer base is now excellent.
+
+    ## Help-Portal Redesign
+
+    The ticket-volume dashboard shows a 3% drop in complaint tickets after we redesigned the help portal. The redesign is therefore the cause of the improvement, and similar redesigns should be rolled out to all internal tools.
+  expected_invalid_count: 2
+  target_answer: 'The document contains TWO distinct inferential errors that must be reported separately (different key sentences, different underlying problems). First, hasty generalization: three positive surveys are treated as evidence of excellent satisfaction across the entire customer base. Second, post hoc / correlation-implies-causation: a 3% drop in tickets after a portal redesign is treated as proof the redesign caused the improvement, with no consideration of confounders. Exactly two issues should be reported.'
+- input: |
+    # E-bike Adoption and the 2021 Purchase Subsidy
+
+    ## Background
+
+    The city introduced a purchase subsidy for electric bicycles in 2021, covering up to 30 percent of the price for residents.
+
+    ## Findings
+
+    Figure 1 shows registered e-bikes in the city from 2016 to 2023, with the year the purchase subsidy was introduced marked.
+
+    ![](files/figures/iv_steady_growth.png)
+
+    **Figure 1: Registered e-bikes, 2016 to 2023 (thousands)**
+
+    Because registrations held roughly steady through 2020 and then rose sharply (Figure 1), with the increase concentrated in the years after 2021, the post-subsidy period accounts for nearly all of the growth between 2016 and 2023, and this report therefore treats 2021 as the break point for the projections that follow.
+  expected_invalid_count: 1
+  target_answer: 'The text states that registrations held steady through 2020 and rose sharply afterward, and concludes that the post-subsidy years account for nearly all of the growth between 2016 and 2023, so 2021 is treated as the break point. Figure 1 is an image and contradicts the premise: registrations rise steadily from about 4 thousand in 2016 to 35 thousand in 2021 and 63 thousand in 2023, so roughly half of the growth happened before the subsidy and there is no break at 2021. The conclusion is not supported by the document''s own evidence. The premise and the conclusion sit in one sentence, so exactly one invalid inference should be reported, anchored on it. The flaw is only visible by viewing the figure; the text alone is internally consistent.'
+- input: |
+    # E-bike Adoption and the 2021 Purchase Subsidy
+
+    ## Background
+
+    The city introduced a purchase subsidy for electric bicycles in 2021, covering up to 30 percent of the price for residents.
+
+    ## Findings
+
+    Figure 1 shows registered e-bikes in the city from 2016 to 2023, with the year the purchase subsidy was introduced marked.
+
+    ![](files/figures/iv_flat_then_jump.png)
+
+    **Figure 1: Registered e-bikes, 2016 to 2023 (thousands)**
+
+    Because registrations held roughly steady through 2020 and then rose sharply (Figure 1), with the increase concentrated in the years after 2021, the post-subsidy period accounts for nearly all of the growth between 2016 and 2023, and this report therefore treats 2021 as the break point for the projections that follow.
+  expected_invalid_count: 0
+  target_answer: 'The text states that registrations held steady through 2020 and rose sharply afterward, and concludes that the post-subsidy years account for nearly all of the growth between 2016 and 2023, so 2021 is treated as the break point. Figure 1 (an image) shows exactly that: about 4 to 6 thousand through 2021, then 22 and 41 thousand in 2022 and 2023, so the years after 2021 hold about 95 percent of the growth. The premise matches the chart and the conclusion follows from it; the text makes no causal claim. No invalid inference should be reported. The wording is identical to the companion sample; only the chart differs.'

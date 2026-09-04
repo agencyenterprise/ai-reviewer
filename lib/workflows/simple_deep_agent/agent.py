@@ -12,6 +12,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 
+from lib.agents.tools.view_image import VIEW_IMAGE_PROMPT, view_image
 from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent, ReasoningDict
 from lib.workflows.context import ContextSchema
@@ -55,6 +56,11 @@ class SimpleDeepAgent(LangChainAgent):
 
     Defaults to a generic document-reviewer system prompt; pass `system_prompt`
     to override it. The user prompt contains the specific rules to check.
+
+    `view_images` binds the `view_image` tool and appends its instructions to
+    the system prompt, whichever prompt is in use. It is opt-in: a bound tool
+    is an invitation, and a language or structure check would spend turns
+    looking at logos. Workflows whose judgment can hinge on a figure ask for it.
     """
 
     name = "Simple Deep Agent"
@@ -72,12 +78,16 @@ class SimpleDeepAgent(LangChainAgent):
         tools: Optional[Sequence[Union[BaseTool, Callable, dict[str, Any]]]] = None,
         reasoning_effort: Optional[Literal["low", "medium", "high"]] = None,
         timeout: Optional[int] = None,
+        view_images: bool = False,
     ):
         super().__init__(context)
         self._system_prompt = system_prompt or _SYSTEM_PROMPT
+        if view_images:
+            self._system_prompt += VIEW_IMAGE_PROMPT
         self._user_prompt = user_prompt
         self._report_issues = report_issues
         self._tools = tools
+        self._view_images = view_images
         # Shadows the class-level `reasoning` for this instance only, so one
         # workflow can ask for more reasoning without affecting the others that
         # share this agent.
@@ -95,6 +105,8 @@ class SimpleDeepAgent(LangChainAgent):
     ) -> DeepAgentRun:
         issue_reporter = IssueReporter() if self._report_issues else None
         tools = list(self._tools or ())
+        if self._view_images:
+            tools.append(view_image)
         if issue_reporter is not None:
             tools.extend(issue_reporter.tools)
 
@@ -105,7 +117,9 @@ class SimpleDeepAgent(LangChainAgent):
             skills=["/skills/"],
         )
 
-        result = await deep_agent.ainvoke(
+        # deepagents types the compiled graph's context as None instead of
+        # threading `context_schema` through; the runtime accepts it fine.
+        result = await deep_agent.ainvoke(  # type: ignore[call-overload]
             {
                 "files": await self.context.file_artifacts_service.get_deepagent_backend_files(
                     include_skills=True,
@@ -116,6 +130,7 @@ class SimpleDeepAgent(LangChainAgent):
                 ],
             },
             config={"recursion_limit": DEEP_AGENT_RECURSION_LIMIT, **(config or {})},
+            context=self.context,
         )
 
         # The filesystem is returned whole -- the mounted document and skills

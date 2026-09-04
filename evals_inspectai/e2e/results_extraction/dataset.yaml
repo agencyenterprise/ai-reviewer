@@ -964,3 +964,184 @@
     class: not_reproducible
     importance: supporting
   target_answer: 'Two kinds of result sit in one document. Algorithm 1 is itself a result and is fully reproducible: every parameter, the hash family in Equation 1, its seed, and the author tie-break are stated, so it can be reimplemented from the text. The accuracy figures in Table 1 and the curve in Figure 1 are not reproducible: the corpus is confidential unpublished submissions, the manual labels were never exported, and the corpus size is undisclosed. The algorithm should be informational; the accuracy results should carry real severities.'
+
+# The chart is an image (`![](files/figures/rc_canopy.png)`, inlined at upload)
+# and the text states no values: the result's numbers can only be read off the
+# figure. The data behind them sit in an appendix table, so the class is not in
+# doubt and the sample measures the reading, not the judgment.
+- id: canopy_temperature_chart
+  input: |
+    # Tree Canopy and Summer Surface Temperature in Riverton
+
+    ## Methods
+
+    We paired the 120 census tracts of Riverton (2020 boundaries, US Census TIGER/Line) with two public datasets. Daytime land surface temperature is the Landsat 8 Collection 2 Level-2 Surface Temperature band (ST_B10), taken from every scene over the city between 1 June and 31 August 2024 with less than 10 percent cloud cover, masked with the QA_PIXEL band and averaged per tract as the zonal mean of all clear pixels. Canopy coverage is the share of each tract's area under crown polygons in the Riverton Open Data tree inventory, 2024 release. Tracts were ranked by canopy coverage and split into terciles of 40; the reported value is the unweighted mean of the tract means within each tercile. The tract-level values are listed in Appendix Table A1.
+
+    ## Results
+
+    Figure 1 reports the mean summer surface temperature for each canopy tercile. Temperature falls steadily from the low- to the high-canopy tercile.
+
+    ![](files/figures/rc_canopy.png)
+
+    **Figure 1: Mean summer surface temperature by canopy tercile**
+
+    ## Conclusion
+
+    Higher canopy coverage is associated with cooler surfaces across the city. The gradient is consistent with the shading and evapotranspiration effects reported elsewhere.
+
+    ## Appendix
+
+    Table A1: Canopy coverage and mean summer surface temperature by census tract. Canopy is the share of tract area under crown polygons; temperature is the tract's mean daytime surface temperature in degrees C.
+
+    | Tract | Canopy (%) | Tercile | Temperature (C) |
+    |---|---|---|---|
+    | T001 | 3.0 | Low | 29.4 |
+    | T002 | 3.3 | Low | 29.5 |
+    | T003 | 3.6 | Low | 29.6 |
+    | T004 | 3.9 | Low | 29.7 |
+    | T005 | 4.2 | Low | 29.8 |
+    | T006 | 4.5 | Low | 29.9 |
+    | T007 | 4.8 | Low | 30.0 |
+    | T008 | 5.1 | Low | 30.1 |
+    | T009 | 5.4 | Low | 30.2 |
+    | T010 | 5.7 | Low | 30.3 |
+    | T011 | 6.0 | Low | 30.4 |
+    | T012 | 6.3 | Low | 30.5 |
+    | T013 | 6.6 | Low | 30.6 |
+    | T014 | 6.9 | Low | 30.7 |
+    | T015 | 7.2 | Low | 30.8 |
+    | T016 | 7.5 | Low | 30.9 |
+    | T017 | 7.8 | Low | 31.0 |
+    | T018 | 8.1 | Low | 31.1 |
+    | T019 | 8.4 | Low | 31.2 |
+    | T020 | 8.7 | Low | 31.3 |
+    | T021 | 9.0 | Low | 31.5 |
+    | T022 | 9.3 | Low | 31.6 |
+    | T023 | 9.6 | Low | 31.7 |
+    | T024 | 9.9 | Low | 31.8 |
+    | T025 | 10.2 | Low | 31.9 |
+    | T026 | 10.5 | Low | 32.0 |
+    | T027 | 10.8 | Low | 32.1 |
+    | T028 | 11.1 | Low | 32.2 |
+    | T029 | 11.4 | Low | 32.3 |
+    | T030 | 11.7 | Low | 32.4 |
+    | T031 | 12.0 | Low | 32.5 |
+    | T032 | 12.3 | Low | 32.6 |
+    | T033 | 12.6 | Low | 32.7 |
+    | T034 | 12.9 | Low | 32.8 |
+    | T035 | 13.2 | Low | 32.9 |
+    | T036 | 13.5 | Low | 33.0 |
+    | T037 | 13.8 | Low | 33.1 |
+    | T038 | 14.1 | Low | 33.2 |
+    | T039 | 14.4 | Low | 33.3 |
+    | T040 | 14.7 | Low | 33.4 |
+    | T041 | 15.0 | Medium | 27.6 |
+    | T042 | 15.3 | Medium | 27.7 |
+    | T043 | 15.6 | Medium | 27.8 |
+    | T044 | 15.9 | Medium | 27.9 |
+    | T045 | 16.2 | Medium | 28.0 |
+    | T046 | 16.5 | Medium | 28.1 |
+    | T047 | 16.8 | Medium | 28.2 |
+    | T048 | 17.1 | Medium | 28.3 |
+    | T049 | 17.4 | Medium | 28.4 |
+    | T050 | 17.7 | Medium | 28.5 |
+    | T051 | 18.0 | Medium | 28.6 |
+    | T052 | 18.3 | Medium | 28.7 |
+    | T053 | 18.6 | Medium | 28.8 |
+    | T054 | 18.9 | Medium | 28.9 |
+    | T055 | 19.2 | Medium | 29.0 |
+    | T056 | 19.5 | Medium | 29.1 |
+    | T057 | 19.8 | Medium | 29.2 |
+    | T058 | 20.1 | Medium | 29.3 |
+    | T059 | 20.4 | Medium | 29.4 |
+    | T060 | 20.7 | Medium | 29.5 |
+    | T061 | 21.0 | Medium | 29.7 |
+    | T062 | 21.3 | Medium | 29.8 |
+    | T063 | 21.6 | Medium | 29.9 |
+    | T064 | 21.9 | Medium | 30.0 |
+    | T065 | 22.2 | Medium | 30.1 |
+    | T066 | 22.5 | Medium | 30.2 |
+    | T067 | 22.8 | Medium | 30.3 |
+    | T068 | 23.1 | Medium | 30.4 |
+    | T069 | 23.4 | Medium | 30.5 |
+    | T070 | 23.7 | Medium | 30.6 |
+    | T071 | 24.0 | Medium | 30.7 |
+    | T072 | 24.3 | Medium | 30.8 |
+    | T073 | 24.6 | Medium | 30.9 |
+    | T074 | 24.9 | Medium | 31.0 |
+    | T075 | 25.2 | Medium | 31.1 |
+    | T076 | 25.5 | Medium | 31.2 |
+    | T077 | 25.8 | Medium | 31.3 |
+    | T078 | 26.1 | Medium | 31.4 |
+    | T079 | 26.4 | Medium | 31.5 |
+    | T080 | 26.7 | Medium | 31.6 |
+    | T081 | 30.0 | High | 25.9 |
+    | T082 | 30.7 | High | 26.0 |
+    | T083 | 31.4 | High | 26.1 |
+    | T084 | 32.1 | High | 26.2 |
+    | T085 | 32.8 | High | 26.3 |
+    | T086 | 33.5 | High | 26.4 |
+    | T087 | 34.2 | High | 26.5 |
+    | T088 | 34.9 | High | 26.6 |
+    | T089 | 35.6 | High | 26.7 |
+    | T090 | 36.3 | High | 26.8 |
+    | T091 | 37.0 | High | 26.9 |
+    | T092 | 37.7 | High | 27.0 |
+    | T093 | 38.4 | High | 27.1 |
+    | T094 | 39.1 | High | 27.2 |
+    | T095 | 39.8 | High | 27.3 |
+    | T096 | 40.5 | High | 27.4 |
+    | T097 | 41.2 | High | 27.5 |
+    | T098 | 41.9 | High | 27.6 |
+    | T099 | 42.6 | High | 27.7 |
+    | T100 | 43.3 | High | 27.8 |
+    | T101 | 44.0 | High | 28.0 |
+    | T102 | 44.7 | High | 28.1 |
+    | T103 | 45.4 | High | 28.2 |
+    | T104 | 46.1 | High | 28.3 |
+    | T105 | 46.8 | High | 28.4 |
+    | T106 | 47.5 | High | 28.5 |
+    | T107 | 48.2 | High | 28.6 |
+    | T108 | 48.9 | High | 28.7 |
+    | T109 | 49.6 | High | 28.8 |
+    | T110 | 50.3 | High | 28.9 |
+    | T111 | 51.0 | High | 29.0 |
+    | T112 | 51.7 | High | 29.1 |
+    | T113 | 52.4 | High | 29.2 |
+    | T114 | 53.1 | High | 29.3 |
+    | T115 | 53.8 | High | 29.4 |
+    | T116 | 54.5 | High | 29.5 |
+    | T117 | 55.2 | High | 29.6 |
+    | T118 | 55.9 | High | 29.7 |
+    | T119 | 56.6 | High | 29.8 |
+    | T120 | 57.3 | High | 29.9 |
+  expected_results:
+    - id: tercile_means
+      match:
+        - figure 1
+        - "31.4"
+        - "27.9"
+        - tercile
+      class: fully_reproducible
+      importance: central
+    # Reporting the appendix data as a result of its own is defensible: the
+    # tract values are a data product that needs the named public sources to
+    # regenerate. Optional, so it counts for class_accuracy and no_extras only.
+    - id: tract_table
+      match:
+        - table a1
+        - tract-level
+        - appendix
+      class: reproducible_with_external_uploads
+      importance: supporting
+      required: false
+  target_answer: >-
+    The document's central result is Figure 1, the mean summer surface temperature by
+    canopy tercile. The values (about 31.4, 29.6 and 27.9 C for the low, medium and
+    high terciles, n = 40 tracts each) appear only in the chart, so the extraction
+    should read them off the image and state them. The tract-level data behind the
+    figure are in Appendix Table A1 and the grouping and averaging procedure is
+    described, so the result is fully reproducible from the document alone. The
+    tract-level values may also be reported as a supporting result, reproducible
+    with external uploads of the named public datasets; reporting or omitting it is
+    acceptable.

@@ -1,5 +1,6 @@
 """Tests for report-file delivery in the shared deep-agent workflows."""
 
+import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -273,7 +274,7 @@ async def test_issue_tool_is_added_without_replacing_workflow_tools():
 async def test_agent_returns_files_and_collected_issue_state():
     agent = _stub_agent(True)
 
-    async def invoke_agent(_input: dict, config: dict) -> dict:
+    async def invoke_agent(_input: dict, config: dict, **_kwargs) -> dict:
         tools = {
             tool.name: tool
             for tool in create_agent.call_args.kwargs["tools"]
@@ -303,6 +304,174 @@ async def test_agent_returns_files_and_collected_issue_state():
 
     assert run.files == {MARKDOWN_REPORT_PATH: "# Report\n\nOne issue found."}
     assert [issue.title for issue in run.reported_issues] == ["Missing methods"]
+
+
+_IMAGE_WORKFLOWS = [
+    WorkflowRunType.FIGURES_TABLES_CHECK,
+    WorkflowRunType.RESULTS_EXTRACTION,
+    WorkflowRunType.INFERENCE_VALIDATION_V2,
+    WorkflowRunType.RECOMMENDATION_CHECK,
+]
+
+_TEXT_ONLY_WORKFLOWS = [
+    WorkflowRunType.ADVOCACY_TONE_V2,
+    WorkflowRunType.DOCUMENT_STRUCTURE,
+    WorkflowRunType.LITERATURE_REVIEW_V2,
+    WorkflowRunType.LIVE_REPORTS_V2,
+    WorkflowRunType.METHODOLOGICAL_ALIGNMENT,
+    *_HTML_WORKFLOWS,
+]
+
+
+def _image_agent(system_prompt: str | None) -> SimpleDeepAgent:
+    context = MagicMock()
+    context.file_artifacts_service.get_deepagent_backend_files = AsyncMock(
+        return_value={}
+    )
+    agent = SimpleDeepAgent(
+        context=context,
+        user_prompt="rules",
+        system_prompt=system_prompt,
+        view_images=True,
+    )
+    agent._llm = MagicMock()
+    return agent
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "system_prompt", [None, "Custom reviewer instructions."], ids=["default", "custom"]
+)
+async def test_image_tool_instructions_travel_with_the_tool(
+    system_prompt: str | None,
+):
+    """Opting in binds view_image and appends its instructions to whichever
+    system prompt is in use, so a workflow that overrides the prompt still
+    tells the model what a `draftdetective://` src is."""
+    agent = _image_agent(system_prompt)
+
+    with patch(
+        "lib.workflows.simple_deep_agent.agent.create_deep_agent"
+    ) as create_agent:
+        create_agent.return_value.ainvoke = AsyncMock(
+            return_value={"messages": [], "files": {}}
+        )
+        await agent.ainvoke({})
+
+    tool_names = {
+        tool.name
+        for tool in create_agent.call_args.kwargs["tools"]
+        if hasattr(tool, "name")
+    }
+    assert "view_image" in tool_names
+    system_message = create_agent.return_value.ainvoke.call_args.args[0]["messages"][0]
+    assert "view_image" in system_message.content
+    assert "draftdetective://" in system_message.content
+    if system_prompt is not None:
+        assert system_message.content.startswith(system_prompt)
+
+
+@pytest.mark.asyncio
+async def test_image_tool_is_off_by_default():
+    """A bound tool is an invitation: text-only checks must not be offered
+    images, nor told about a tool they do not have."""
+    agent = _stub_agent(True)
+
+    with patch(
+        "lib.workflows.simple_deep_agent.agent.create_deep_agent"
+    ) as create_agent:
+        create_agent.return_value.ainvoke = AsyncMock(
+            return_value={"messages": [], "files": {}}
+        )
+        await agent.ainvoke({})
+
+    tool_names = {
+        tool.name
+        for tool in create_agent.call_args.kwargs["tools"]
+        if hasattr(tool, "name")
+    }
+    assert "view_image" not in tool_names
+    system_message = create_agent.return_value.ainvoke.call_args.args[0]["messages"][0]
+    assert "view_image" not in system_message.content
+
+
+@pytest.mark.parametrize("workflow_type", _IMAGE_WORKFLOWS)
+def test_workflows_whose_judgment_can_hinge_on_a_figure_view_images(
+    workflow_type: WorkflowRunType,
+):
+    manifest = get_workflow_manifest(workflow_type)
+    assert isinstance(manifest, SimpleDeepAgentManifest)
+    assert manifest.view_images is True
+
+
+@pytest.mark.parametrize("workflow_type", _TEXT_ONLY_WORKFLOWS)
+def test_text_only_workflows_do_not_view_images(workflow_type: WorkflowRunType):
+    manifest = get_workflow_manifest(workflow_type)
+    assert isinstance(manifest, (SimpleDeepAgentManifest, HtmlReportDeepAgentManifest))
+    assert manifest.view_images is False
+
+
+@pytest.mark.asyncio
+async def test_manifest_passes_its_image_flag_to_the_agent():
+    """The flag is only as good as the node that forwards it. The node is run
+    undecorated: `register_node` records progress in the database, which is
+    not what is under test here."""
+    manifest = get_workflow_manifest(WorkflowRunType.FIGURES_TABLES_CHECK)
+    assert isinstance(manifest, SimpleDeepAgentManifest)
+    nodes: dict[str, object] = {}
+
+    def capture_node(name: str):
+        def decorate(fn):
+            nodes[name] = fn
+            return fn
+
+        return decorate
+
+    with (
+        patch(
+            "lib.workflows.simple_deep_agent.manifest_base.register_node", capture_node
+        ),
+        patch(
+            "lib.workflows.simple_deep_agent.manifest_base.SimpleDeepAgent"
+        ) as agent_cls,
+    ):
+        agent_cls.return_value.ainvoke = AsyncMock(
+            return_value=DeepAgentRun(files={MARKDOWN_REPORT_PATH: _MARKDOWN_REPORT})
+        )
+        manifest.build_graph()
+        run_agent = nodes[manifest.name]
+        assert callable(run_agent)
+        await run_agent(
+            SimpleDeepAgentState(
+                type=manifest.type,
+                config=manifest.get_config_type()(
+                    project_id=str(uuid.uuid4()), type=manifest.type
+                ),
+            ),
+            MagicMock(),
+        )
+
+    assert agent_cls.call_args.kwargs["view_images"] is True
+
+
+@pytest.mark.asyncio
+async def test_runtime_context_is_passed_to_the_deep_agent():
+    """Tools taking ToolRuntime[ContextSchema] (view_image) read the workflow
+    context through the runtime; forgetting to pass it would surface only as
+    tool errors deep inside a live run."""
+    agent = _stub_agent(True)
+
+    with patch(
+        "lib.workflows.simple_deep_agent.agent.create_deep_agent"
+    ) as create_agent:
+        create_agent.return_value.ainvoke = AsyncMock(
+            return_value={"messages": [], "files": {}}
+        )
+        await agent.ainvoke({})
+
+    assert (
+        create_agent.return_value.ainvoke.call_args.kwargs["context"] is agent.context
+    )
 
 
 @pytest.mark.asyncio

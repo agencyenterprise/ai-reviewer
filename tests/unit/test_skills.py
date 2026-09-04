@@ -137,6 +137,25 @@ def test_interactive_only_markers_are_balanced(skill_file: Path):
     )
 
 
+# Skills are also installed standalone (Claude apps, other agent runtimes), so
+# they must stay environment-agnostic (see CLAUDE.md, "Skill Files"): never
+# reference this repo's workflow-agent tool wiring. Extend as wiring grows.
+_RUNTIME_SPECIFIC_STRINGS = ["view_image", "draftdetective://"]
+
+
+@pytest.mark.parametrize(
+    "skill_file", sorted(_SKILLS_DIR.glob("*/SKILL.md")), ids=lambda p: p.parent.name
+)
+def test_skills_do_not_reference_runtime_specific_tooling(skill_file: Path):
+    content = skill_file.read_text()
+    for needle in _RUNTIME_SPECIFIC_STRINGS:
+        assert needle not in content, (
+            f"{skill_file.parent.name}: skills must stay environment-agnostic; "
+            f"{needle!r} is workflow-agent wiring and belongs in the agent's "
+            "system prompt (see CLAUDE.md, 'Skill Files')"
+        )
+
+
 @pytest.mark.parametrize("skill", _WEB_SEARCH_SKILLS)
 def test_backend_prompt_drops_the_consent_step(skill: str):
     """A backend run has its consent already and nobody to ask mid-run."""

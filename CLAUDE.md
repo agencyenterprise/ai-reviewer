@@ -380,6 +380,16 @@ export function useWizard() {
 
 ---
 
+## Skill Files
+
+Skill files under `skills/` must be **environment-agnostic**. They are not only used by this repo's workflow agents — users can install them standalone (Claude apps, other agent runtimes), so a skill must work anywhere.
+
+- **Never reference runtime-specific tool names** (e.g. a workflow agent's `view_image`), internal URL schemes, or file layouts specific to one runtime in a skill's instructions.
+- Phrase capabilities generically and conditionally: "when you have a way to view images…", "if you can search the document…".
+- Runtime-specific wiring (which tool to call, what a `draftdetective://` src means) belongs in the agent's **system prompt**, next to where the tool is bound — not in the skill.
+
+---
+
 ## Testing
 
 ### Unit / Integration Tests

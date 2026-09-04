@@ -24,3 +24,7 @@ class FiguresTablesCheckManifest(SimpleDeepAgentManifest):
     is_experimental = False
 
     skill = "figures-tables-check"
+
+    # Telling a genuine figure from a logo, or finding a caption rendered
+    # inside the image, needs the image itself.
+    view_images = True

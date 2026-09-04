@@ -8,6 +8,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
+from lib.agents.tools.view_image import VIEW_IMAGE_PROMPT, view_image
 from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
@@ -53,16 +54,23 @@ class Reviewer2Agent(LangChainAgent):
     ) -> Reviewer2Output:
         document_markdown = prompt_kwargs["document_markdown"]
 
+        # A rigorous review has to see the figures it critiques; the document
+        # markdown carries their `draftdetective://` srcs.
         deep_agent = create_deep_agent(
             model=self.llm,
+            tools=[view_image],
             context_schema=ContextSchema,
         )
 
-        result = await deep_agent.ainvoke(
+        # deepagents types the compiled graph's context as None instead of
+        # threading `context_schema` through; the runtime accepts it fine.
+        result = await deep_agent.ainvoke(  # type: ignore[call-overload]
             {
                 "messages": [
                     SystemMessage(
-                        content=load_skill_prompt("reviewer-2") + _DELIVERY_GUIDANCE
+                        content=load_skill_prompt("reviewer-2")
+                        + _DELIVERY_GUIDANCE
+                        + VIEW_IMAGE_PROMPT
                     ),
                     HumanMessage(
                         content=(
@@ -72,6 +80,7 @@ class Reviewer2Agent(LangChainAgent):
                 ],
             },
             config={"recursion_limit": DEEP_AGENT_RECURSION_LIMIT, **(config or {})},
+            context=self.context,
         )
 
         files = {

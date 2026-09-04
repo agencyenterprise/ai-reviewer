@@ -3,17 +3,21 @@ import re
 import statistics
 from typing import Any, Callable, Mapping, Sequence, TypeVar
 
-from inspect_ai.model import Model, get_model
+from inspect_ai.model import ChatMessageAssistant, Model, get_model
 from inspect_ai.scorer import (
     CORRECT,
     INCORRECT,
+    Metric,
+    SampleScore,
     Score,
     Scorer,
     Target,
     accuracy,
     mean,
+    metric,
     scorer,
     stderr,
+    value_to_float,
 )
 from inspect_ai.scorer._model import (  # type: ignore[attr-defined]
     DEFAULT_GRADE_PATTERN,
@@ -23,6 +27,8 @@ from inspect_ai.scorer._model import (  # type: ignore[attr-defined]
 from inspect_ai.solver import TaskState
 from inspect_ai.util import resource
 from pydantic import BaseModel, ValidationError
+
+from evals_inspectai.common.loaders import references_local_images
 
 DEFAULT_GRADER_MODEL = "openai/gpt-5.4"
 
@@ -309,3 +315,68 @@ async def grade_criteria(
             for key, graded in zip(keys, per_key)
         ),
     )
+
+
+@metric
+def applicable_mean() -> Metric:
+    """Mean over the samples whose score says it applies to them.
+
+    A scorer marks a score with ``metadata={"applicable": False}`` when the
+    sample gives it nothing to judge; those are left out of the mean rather
+    than padding it. With no applicable sample at all the metric is 0.0, which
+    reads as a failure and so is noticed, rather than a silent perfect score.
+    """
+
+    to_float = value_to_float()
+
+    def compute(scores: list[SampleScore]) -> float:
+        applicable = [
+            to_float(item.score.value)
+            for item in scores
+            if (item.score.metadata or {}).get("applicable", True)
+        ]
+        return statistics.mean(applicable) if applicable else 0.0
+
+    return compute
+
+
+@scorer(metrics=[applicable_mean()])
+def tool_called(tool_name: str) -> Scorer:
+    """CORRECT when the run's transcript shows the agent calling ``tool_name``.
+
+    A behavioural check to sit next to the outcome scorers: a sample built so
+    that the right answer is only reachable by using the tool can still be
+    passed by a lucky guess, and a regression that stops the tool being called
+    would then hide behind the outcome score. Only samples whose input embeds
+    a figure (a local image reference) are judged; the rest score as not
+    applicable.
+    """
+
+    async def score(state: TaskState, target: Target) -> Score:
+        if not references_local_images(state.input_text):
+            return Score(
+                value=CORRECT,
+                explanation=f"Sample does not expect a {tool_name} call",
+                metadata={"applicable": False},
+            )
+        calls = [
+            call
+            for message in state.messages
+            if isinstance(message, ChatMessageAssistant) and message.tool_calls
+            for call in message.tool_calls
+            if call.function == tool_name
+        ]
+        if not calls:
+            return Score(
+                value=INCORRECT,
+                explanation=f"{tool_name} was never called",
+                metadata={"applicable": True},
+            )
+        arguments = "; ".join(str(call.arguments) for call in calls[:3])
+        return Score(
+            value=CORRECT,
+            explanation=f"{tool_name} called {len(calls)} time(s): {arguments}",
+            metadata={"applicable": True},
+        )
+
+    return score

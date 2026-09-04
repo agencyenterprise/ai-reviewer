@@ -28,3 +28,6 @@ class RecommendationCheckManifest(SimpleDeepAgentManifest):
     is_experimental = True
 
     skill = "recommendation-check"
+
+    # A recommendation's supporting finding is sometimes only in a figure.
+    view_images = True

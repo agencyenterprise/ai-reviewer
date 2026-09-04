@@ -26,7 +26,9 @@ The document under review is available at `/main.md`. Every mention of "the \
 document under review" in the skill refers to that file. The sub-agents you \
 spawn share this filesystem but not your context, so each sub-agent prompt must \
 name `/main.md` explicitly — the detection passes and the adjudicator all read \
-it themselves.
+it themselves. They also have the same tools you do, `view_image` included: \
+when a pass needs to see a figure to judge an inference drawn from it, say so \
+in its prompt.
 
 ## Line ranges
 
@@ -65,3 +67,6 @@ class InferenceValidationV2Manifest(SimpleDeepAgentManifest):
 
     skill = "inference-validation"
     system_prompt = _SYSTEM_PROMPT
+
+    # A conclusion drawn from a figure can only be checked against the figure.
+    view_images = True

@@ -26,6 +26,10 @@ class ResultsExtractionManifest(SimpleDeepAgentManifest):
 
     skill = "reproducibility-check"
 
+    # Results often live in charts; whether their values can be read off the
+    # figure is part of the reproducibility verdict.
+    view_images = True
+
     # Classifying a result means reading the whole document -- appendices
     # included -- before deciding how each missing ingredient could be obtained.
     # At the default effort the same document swung between every result

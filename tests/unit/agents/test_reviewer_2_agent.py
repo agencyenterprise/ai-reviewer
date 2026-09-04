@@ -55,6 +55,37 @@ async def test_reviewer_2_fails_when_either_document_is_missing():
             await agent.ainvoke({"document_markdown": "# Draft"})
 
 
+@pytest.mark.asyncio
+async def test_reviewer_2_can_look_at_the_figures_it_critiques():
+    """The tool, its instructions and the runtime context it resolves images
+    through all have to arrive together; any one missing surfaces only as a
+    tool error deep inside a live run."""
+    agent = _agent()
+    with patch("lib.agents.reviewer_2.create_deep_agent") as create_agent:
+        create_agent.return_value.ainvoke = AsyncMock(
+            return_value={
+                "messages": [],
+                "files": {
+                    PEER_REVIEW_PATH: {"content": ["# Peer review"]},
+                    REBUTTAL_PATH: {"content": ["# Rebuttal"]},
+                },
+            }
+        )
+        await agent.ainvoke({"document_markdown": "# Draft"})
+
+    tool_names = {
+        tool.name
+        for tool in create_agent.call_args.kwargs["tools"]
+        if hasattr(tool, "name")
+    }
+    assert "view_image" in tool_names
+    invoke = create_agent.return_value.ainvoke.call_args
+    assert invoke.kwargs["context"] is agent.context
+    system_message = invoke.args[0]["messages"][0]
+    assert "view_image" in system_message.content
+    assert "draftdetective://" in system_message.content
+
+
 def test_delivery_prompt_names_both_required_files_and_ignores_final_message():
     assert PEER_REVIEW_PATH in _DELIVERY_GUIDANCE
     assert REBUTTAL_PATH in _DELIVERY_GUIDANCE

@@ -17,7 +17,7 @@ A "finding" is empirical evidence, analysis, data, or a substantive observation 
 
 1. **Locate recommendations.** Recommendations typically live in a section titled "Recommendations", "Findings and Recommendations", "Conclusions and Recommendations", or similar. They may also appear in the executive summary, conclusions, or policy implications. A document often contains **multiple recommendation sections** — for example, a high-level summary near the beginning and a detailed version at the end. **Check all of them**, and treat each distinct recommendation as a separate item even when multiple appear in the same paragraph or bullet list. If the same recommendation is restated in multiple sections (e.g. once in a summary and again in a detailed section), evaluate **each occurrence separately** — wording often differs slightly between restatements, and a difference in phrasing can change whether the document's findings actually support it.
 
-2. **For each recommendation, search the document for supporting findings.** Read the body, results, and analysis sections to identify the finding(s) that directly justify the recommendation. Quote the supporting text and note where it appears.
+2. **For each recommendation, search the document for supporting findings.** Read the body, results, and analysis sections to identify the finding(s) that directly justify the recommendation. Quote the supporting text and note where it appears. A finding may live in a figure rather than in the prose; when you have a way to view images, look at a figure the text points to before deciding that no finding backs the recommendation.
 
 3. **Classify each recommendation as one of:**
 
