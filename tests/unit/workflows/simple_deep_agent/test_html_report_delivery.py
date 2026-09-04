@@ -318,6 +318,7 @@ _TEXT_ONLY_WORKFLOWS = [
     WorkflowRunType.DOCUMENT_STRUCTURE,
     WorkflowRunType.LITERATURE_REVIEW_V2,
     WorkflowRunType.LIVE_REPORTS_V2,
+    WorkflowRunType.METHODOLOGICAL_ALIGNMENT,
     *_HTML_WORKFLOWS,
 ]
 
