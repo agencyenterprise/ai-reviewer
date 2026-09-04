@@ -101,11 +101,13 @@ Four things worth knowing before reading that table:
   columns read 1.000 because that is what its old scorers measured: 2 samples,
   every expected result not-reproducible, and a deterministic check that counted
   results and validated a class string. The eval was rebuilt on 31 Aug — 10
-  samples, ground-truth inventories, 13 per-check metrics — and now reads 0.977,
-  pooled over three invocations. The two numbers measure different things and
-  differencing them means nothing. This is also why the suite mean in the table
-  above (0.945) and the one in the Results table (0.943) differ: the table above
-  is a frozen record of the model switch, the Results table is current.
+  samples, ground-truth inventories, 13 per-check metrics — and read 0.977 that
+  day, pooled over three invocations; on 3 Sep, with a chart sample and the
+  `tool_called` check added (11 samples, 14 metrics), it reads 0.985. The two
+  numbers measure different things and differencing them means nothing. This is
+  also why the suite mean in the table above (0.945) and the one in the Results
+  table (0.952) differ: the table above is a frozen record of the model switch,
+  the Results table is current.
 - **`figures_tables_check` is the one real regression.** It fell 8.4 points, on
   both of its scorers, and it is the only movement here that was measured twice
   and held both times — 0.798 on 26 Aug and 0.780 on 28 Aug. The deterministic
