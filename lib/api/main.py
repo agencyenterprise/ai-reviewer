@@ -21,6 +21,7 @@ from lib.api.tus_middleware import TusTerminationMiddleware
 from lib.api.routers import (
     about,
     admin_dashboard,
+    annotations,
     analysis,
     app_configs,
     chat,
@@ -29,6 +30,7 @@ from lib.api.routers import (
     health,
     issues,
     logs,
+    project_views,
     projects,
     public,
     share,
@@ -71,19 +73,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="AI Analyst API",
-    lifespan=(
-        combine_lifespans(lifespan, mcp_app.lifespan)
-        if mcp_auth is not None
-        else lifespan
-    ),
+    lifespan=combine_lifespans(lifespan, mcp_app.lifespan),
 )
 
-if mcp_auth is not None:
-    # OAuth discovery routes must be at the origin root per RFC 8414 / RFC 9728.
-    # The MCP app is mounted at /mcp, but clients look for .well-known at /.
-    for route in mcp_auth.get_well_known_routes(mcp_path="/"):
-        app.routes.insert(0, route)
-    app.mount("/mcp", mcp_app)
+# OAuth discovery routes must be at the origin root per RFC 8414 / RFC 9728.
+# The MCP app is mounted at /mcp, but clients look for .well-known at /.
+for route in mcp_auth.get_well_known_routes(mcp_path="/"):
+    app.routes.insert(0, route)
+
+app.mount("/mcp", mcp_app)
 
 app.add_middleware(MCPTrailingSlashMiddleware)
 app.add_middleware(TusTerminationMiddleware)
@@ -115,6 +113,7 @@ app.add_middleware(GZipMiddleware)
 app.include_router(health.router)
 app.include_router(about.router)
 app.include_router(admin_dashboard.router)
+app.include_router(annotations.router)
 app.include_router(app_configs.router)
 app.include_router(chat.router)
 app.include_router(analysis.router)
@@ -125,6 +124,7 @@ app.include_router(feedback.router)
 app.include_router(logs.router)
 app.include_router(issues.router)
 app.include_router(projects.router)
+app.include_router(project_views.router)
 app.include_router(share.router)
 app.include_router(public.router)
 app.include_router(tus_router)

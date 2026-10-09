@@ -14,11 +14,11 @@ the message are handed over as candidates and the agent opens what it needs, via
 tools in ``lib/agents/tools/sharepoint.py``. Which link is meant is a question about the
 conversation -- "compare these two", "the second one" -- so it belongs to the agent
 rather than to a regex. A link is still the only way in: there is no lookup by name, so a
-question naming a document without linking to it gets a request for the link.
+question naming a document that this thread has not yet opened gets a request for the link.
 
 ``graph_token`` is whose reading this run does. Both tools are built from it per run, so
-the agent inherits the asker's own access rather than the service's: a document they
-cannot open is refused by Graph and the agent says so.
+the agent reads with the asker's own access: a document they cannot open is refused by
+Graph and the agent says so.
 
 One Teams thread is one LangGraph thread, so a follow-up arrives with the earlier turns
 *and the documents opened in them* still in view. Two things follow, and the agent is
@@ -37,7 +37,6 @@ import logging
 from collections.abc import Sequence
 from typing import Any, Optional
 
-from deepagents import create_deep_agent
 from langchain_core.messages import BaseMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langfuse import propagate_attributes
@@ -47,6 +46,8 @@ from lib.agents.checkpointer import get_checkpointer
 from lib.agents.deep_agent_setup import (
     DEFAULT_MODEL,
     RECURSION_LIMIT,
+    agent_input,
+    build_deep_agent,
     build_llm,
     build_skill_files,
     tool_names,
@@ -240,9 +241,8 @@ async def answer_question(
 ) -> QuestionAnswer:
     """Answer a question about a document the agent opens for itself.
 
-    ``graph_token`` is the identity documents are read with -- the asker's own, under
-    Teams SSO. Required rather than optional: the alternative would be reading as the
-    service, which is exactly the privilege this path is meant not to have.
+    ``graph_token`` is the identity documents are read with: the asker's own, from
+    their sign-in to the bot. Required -- there is no other identity to read with.
 
     ``thread_id`` keys both the checkpoint and the Langfuse session, deliberately under
     one name so a conversation is findable in the trace view under what it is stored as.
@@ -281,7 +281,7 @@ async def answer_question(
 
     try:
         async with get_checkpointer() as saver:
-            agent = create_deep_agent(
+            agent = build_deep_agent(
                 model=build_llm(model, api_key),
                 tools=[
                     open_document_for(graph_token),
@@ -298,13 +298,13 @@ async def answer_question(
 
             with propagate_attributes(user_id=user_id):
                 result = await agent.ainvoke(
-                    {
+                    agent_input(
                         # Skills only. Documents arrive through the tool and stay in the
                         # thread's own files; skills have to be mounted up front because
                         # a tool cannot add them later.
-                        "files": build_skill_files(),
-                        "messages": [HumanMessage(content=prompt)],
-                    },
+                        files=build_skill_files(),
+                        messages=[HumanMessage(content=prompt)],
+                    ),
                     config=run_config,
                 )
     except Exception as error:  # noqa: BLE001 - the caller decides what to do

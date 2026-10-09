@@ -7,12 +7,12 @@ override the system prompt when the default is not appropriate.
 
 from typing import Any, Callable, Literal, Optional, Sequence, Union
 
-from deepagents import create_deep_agent
 from deepagents.backends.utils import file_data_to_string
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 
+from lib.agents.deep_agent_setup import agent_input, build_deep_agent
 from lib.agents.tools.view_image import VIEW_IMAGE_PROMPT, view_image
 from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent, ReasoningDict
@@ -46,6 +46,17 @@ following the conventions defined in the issues skill \
 workflow criteria explicitly request informational issues with severity `none`. \
 If nothing qualifies for reporting, make no `report_issue` calls.
 
+## Sub-agents
+
+Hand parts of the review to sub-agents only when the workflow criteria say to. \
+When they set a document length in lines above which to split the review, \
+compare it with the line count under "Document size" below before your first \
+`report_issue` call. The `task` tool's general-purpose sub-agent has your \
+tools, including `report_issue`, and can read `/main.md` and the skills under \
+`/skills/`; the issues it reports go straight into this review. Point it at \
+the skill to follow by path (`/skills/<name>/SKILL.md`) rather than pasting \
+the instructions, and tell it not to write `/report.md`.
+
 ## Report
 
 Write the overall review to `/report.md` using `write_file`. This file is the \
@@ -57,6 +68,26 @@ Delimit any LaTeX math with double dollar signs, inline (`the relation \
 $$E = mc^2$$ holds`) or on its own line for display equations. Never use \
 single dollar signs for math: the app reads a single `$` as currency.\
 """
+
+
+_DOCUMENT_SIZE_NOTE = """
+
+## Document size
+
+`/main.md` has {lines} lines, the total `read_file` reports in its header \
+(`lines A-B of {lines}`).\
+"""
+
+
+def _document_size_note(document: Optional[str]) -> str:
+    """The document's line count for the system prompt, or nothing when there is no document.
+
+    Stated up front so a line threshold in the workflow criteria is checked
+    before the review starts rather than whenever the agent next reads the file.
+    """
+    if document is None:
+        return ""
+    return _DOCUMENT_SIZE_NOTE.format(lines=len(document.splitlines()))
 
 
 def _main_document_text(files: dict[str, Any]) -> Optional[str]:
@@ -82,7 +113,6 @@ class SimpleDeepAgent(LangChainAgent):
     name = "Simple Deep Agent"
     description = "Runs a deep-agent validation pass and records issues through tools"
     model = gpt_5_6_terra_model
-    temperature = 0.0
     reasoning = {"effort": "medium", "summary": "auto"}
 
     def __init__(
@@ -127,12 +157,11 @@ class SimpleDeepAgent(LangChainAgent):
         files = await self.context.file_artifacts_service.get_deepagent_backend_files(
             include_skills=True,
         )
+        document = _main_document_text(files)
         issue_reporter = (
             IssueReporter(
                 propose_edits=self._propose_edits,
-                document_text=(
-                    _main_document_text(files) if self._propose_edits else None
-                ),
+                document_text=document if self._propose_edits else None,
             )
             if self._report_issues
             else None
@@ -143,23 +172,21 @@ class SimpleDeepAgent(LangChainAgent):
         if issue_reporter is not None:
             tools.extend(issue_reporter.tools)
 
-        deep_agent = create_deep_agent(
+        deep_agent = build_deep_agent(
             model=self.llm,
             tools=tools,
             context_schema=ContextSchema,
             skills=["/skills/"],
         )
 
-        # deepagents types the compiled graph's context as None instead of
-        # threading `context_schema` through; the runtime accepts it fine.
-        result = await deep_agent.ainvoke(  # type: ignore[call-overload]
-            {
-                "files": files,
-                "messages": [
-                    SystemMessage(content=self._system_prompt),
+        result = await deep_agent.ainvoke(
+            agent_input(
+                files=files,
+                messages=[
+                    SystemMessage(content=self._system_prompt + _document_size_note(document)),
                     HumanMessage(content=self._user_prompt),
                 ],
-            },
+            ),
             config={"recursion_limit": DEEP_AGENT_RECURSION_LIMIT, **(config or {})},
             context=self.context,
         )

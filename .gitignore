@@ -1,6 +1,7 @@
 cache/
 /data/
 
+
 # Python-generated files
 __pycache__/
 *.py[oc]
@@ -8,14 +9,6 @@ build/
 dist/
 wheels/
 *.egg-info
-
-# Local evaluation results (including Flow metadata and backend logs)
-*.eval
-logs/
-logs-structured/
-/.local/
-/abbreviations.json
-
 
 # Virtual environments
 .venv
@@ -49,6 +42,9 @@ rand-personal/
 .claude/projects
 .claude/worktrees
 .claude/settings.local.json
+
+# logs
+/logs/
 
 # test coverage
 .coverage

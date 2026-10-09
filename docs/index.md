@@ -6,6 +6,14 @@ This project is funded by [RAND](https://rand.org/)'s [CAST Center](https://www.
 
 _This page covers the project's approach and design. For setup and usage, see the [README](https://github.com/agencyenterprise/draft-detective#readme) and [DEVELOPMENT](https://github.com/agencyenterprise/draft-detective/blob/main/DEVELOPMENT.md) files in the [GitHub repository](https://github.com/agencyenterprise/draft-detective)._
 
+## Demo video
+
+A three-minute walkthrough of the app: uploading a draft, choosing assessments, reading the findings in the Document Explorer, and exporting them to Word. The demo report is invented; its three references are real publications.
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/FygEnsGRWn8" title="Draft Detective demo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+If the player doesn't load, [watch it on YouTube](https://youtu.be/FygEnsGRWn8).
+
 ## Background
 
 Automated scholarly paper review is a growing research area that applies language technology to parts of peer review: checking claims against evidence, analysing citations, and assessing structure and clarity [^1]. Recent surveys find that large language models make much of this practical, from generating structured comments to verifying checklists and catching technical errors, while raising concerns about bias, inaccuracy, privacy and disclosure [^2].
@@ -32,7 +40,7 @@ The set of assessments grows regularly, so this page does not list them all. The
 
 ## Design principles
 
-**One check, one question.** An assessment reads the document for a single kind of problem and nothing else. Narrow checks are easier to write, test and trust than one prompt that reviews everything, and a user can run only the ones that matter for a given draft. Presets such as _Standard Review_ and _Editorial Review_ select a useful group in one click.
+**One check, one question.** An assessment reads the document for a single kind of problem and nothing else. Narrow checks are easier to write, test and trust than one prompt that reviews everything, and a user can run only the ones that matter for a given draft. Presets such as _Standard Review_ and _Writing Style Review_ select a useful group in one click.
 
 **The rules are written as skills.** The instructions for an assessment live in a plain-language `SKILL.md` file: what to look for, how to judge it, how severe each kind of problem is, and what a good fix looks like. The app's agents load these files at run time, and the same files install on their own as a plugin for Claude Code or Codex, so a check behaves the same inside the app and in a chat assistant. A new single-pass check needs no Python code: a `SKILL.md` with a short block of frontmatter registers it, and regenerating the frontend's API types makes it available in the app (see [adding a check](./skill-workflows.md)).
 
@@ -108,7 +116,7 @@ Current scores for every suite are in the [eval scores report](./eval-scores.md)
 ## Technology
 
 - **Backend:** Python, FastAPI, LangGraph and deepagents, with LangChain model integrations. Assessments run as background tasks, and their state is saved in PostgreSQL.
-- **Models:** provider-agnostic. Every agent currently runs OpenAI's `gpt-5.6-terra`, and Anthropic and Google models are supported through the same interface. Web search uses each provider's built-in search tool. Embeddings for source retrieval use `text-embedding-3-large`, stored in PostgreSQL with pgvector.
+- **Models:** provider-agnostic. Agents run on OpenAI models by default, each on the tier its task needs, and Anthropic and Google models are supported through the same interface. Web search uses each provider's built-in search tool. Embeddings for source retrieval use `text-embedding-3-large`, stored in PostgreSQL with pgvector.
 - **Documents:** Word, PDF, Markdown and text files, converted with MarkItDown, pypdfium2 and LibreOffice. Word export adds comments and tracked changes to the document.
 - **Frontend:** Next.js and React with shadcn/ui.
 - **Operations:** Google and Microsoft sign-in, optional Langfuse tracing, and deployment with Docker on Railway or Kubernetes (see [Railway deployment](./railway-deployment.md)).

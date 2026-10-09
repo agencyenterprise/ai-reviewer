@@ -13,7 +13,7 @@ import re
 from typing import Optional, Sequence
 
 from evals_inspectai.common.issue_checks import fraction, hit_pairs
-from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue
+from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue, anchored
 from evals_inspectai.common.issue_judge import JudgeCriterion
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
 
@@ -93,7 +93,7 @@ def _header_checks(expected: ResolvedIssue, wording: str, lines: list[str]) -> t
     fits = MIN_HEADER_WORDS <= words <= MAX_HEADER_WORDS
     scores = {"suggestion_header_length": float(fits)}
     notes = [] if fits else [f"{expected.id}: suggested header has {words} words: {wording!r}"]
-    original = section_number(header_text(lines[expected.line - 1]))
+    original = section_number(header_text(lines[anchored(expected).line - 1]))
     if original is not None:
         kept = section_number(wording) == original
         scores["suggestion_keeps_number"] = float(kept)
@@ -119,7 +119,7 @@ def suggestion_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory)
     lines = inventory.document.split("\n")
     values: dict[str, list[float]] = {key: [] for key in SUGGESTION_KEYS}
     notes: list[str] = []
-    for expected, issue in hit_pairs(issues, inventory, one_to_one=True)[1]:
+    for expected, issue in hit_pairs(issues, inventory)[1]:
         if takes_suggestion(expected):
             scores, pair_notes = _suggestion_checks(expected, issue, lines)
             for key, value in scores.items():

@@ -10,11 +10,20 @@ token turns one bad request into a retry storm. Both of these were 500s until a
 manual probe against the tunnel showed it.
 """
 
-from typing import Optional
+from typing import Any, Optional
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from microsoft_agents.activity import Activity, ActivityTypes, Attachment
+from microsoft_agents.activity import (
+    Activity,
+    ActivityTypes,
+    Attachment,
+    ChannelAccount,
+    EntityTypes,
+    Mention,
+)
+from microsoft_agents.activity.invoke_response import InvokeResponse
+from microsoft_agents.hosting.core import ClaimsIdentity
 
 from lib.services.microsoft.teams import bot
 
@@ -25,9 +34,14 @@ def configured(monkeypatch: pytest.MonkeyPatch) -> None:
 
     from lib.config.env import config
 
-    monkeypatch.setattr(config, "TEAMS_BOT_APP_ID", "11111111-2222-3333-4444-555555555555")
+    monkeypatch.setattr(
+        config, "TEAMS_BOT_APP_ID", "11111111-2222-3333-4444-555555555555"
+    )
     monkeypatch.setattr(config, "TEAMS_BOT_APP_PASSWORD", "a-secret")
-    monkeypatch.setattr(config, "TEAMS_BOT_TENANT_ID", "66666666-7777-8888-9999-000000000000")
+    monkeypatch.setattr(
+        config, "TEAMS_BOT_TENANT_ID", "66666666-7777-8888-9999-000000000000"
+    )
+    monkeypatch.setattr(config, "TEAMS_USER_AUTH_CONNECTION", "graph-user")
     monkeypatch.setattr(bot, "bot", bot._Bot())
 
 
@@ -38,9 +52,7 @@ class TestRefusingRequests:
             await bot.bot.claims_for(None)
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        "header", ["", "Bearer", "Basic abc", "abc", "Bearer    "]
-    )
+    @pytest.mark.parametrize("header", ["", "Bearer", "Basic abc", "abc", "Bearer    "])
     async def test_a_malformed_header_is_a_refusal(
         self, configured: None, header: str
     ) -> None:
@@ -72,70 +84,20 @@ class TestRefusingRequests:
             await bot.bot.claims_for("Bearer something")
 
 
-class TestWhoseAccessTheBotUses:
-    """Configuration decides, and the decision is a security property.
+class TestRequiringTheSignInConnection:
+    """The bot reads only as the person who asked, so it needs a way to sign them in."""
 
-    With a user-auth connection the bot can read nothing the asker could not. Without
-    one it reads app-only -- tenant-wide, bounded only by the Graph allowlist -- so
-    anyone able to mention it could have it open a document they have no access to.
-    """
-
-    def test_a_configured_connection_means_reading_as_the_asker(
-        self, monkeypatch: pytest.MonkeyPatch
+    @pytest.mark.asyncio
+    async def test_no_connection_means_the_bot_is_not_configured(
+        self, configured: None, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from lib.config.env import config
-
-        monkeypatch.setattr(config, "TEAMS_USER_AUTH_CONNECTION", "graph-user")
-        assert bot.reads_as_the_user() is True
-
-    def test_no_connection_falls_back_to_the_service_identity(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Explicit so the weaker mode is a visible choice rather than a surprise."""
-
         from lib.config.env import config
 
         monkeypatch.setattr(config, "TEAMS_USER_AUTH_CONNECTION", None)
-        assert bot.reads_as_the_user() is False
+        monkeypatch.setattr(bot, "bot", bot._Bot())
 
-    def test_the_scopes_asked_for_are_read_only(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """This path never writes, so a write scope would be privilege it cannot use."""
-
-        from lib.config.env import config
-
-        monkeypatch.setattr(config, "TEAMS_USER_AUTH_CONNECTION", "graph-user")
-        handler = bot._user_auth_handler()
-
-        assert handler.scopes
-        assert not any("Write" in scope for scope in handler.scopes)
-
-    def test_scopes_are_split_and_trimmed(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        from lib.config.env import config
-
-        monkeypatch.setattr(
-            config, "TEAMS_USER_AUTH_SCOPES", "Files.Read.All , Sites.Read.All"
-        )
-        assert bot._user_auth_handler().scopes == ["Files.Read.All", "Sites.Read.All"]
-
-    @pytest.mark.asyncio
-    async def test_a_missing_user_token_raises_rather_than_reading_as_the_service(
-        self, configured: None, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """The failure mode that would matter: falling back would undo the feature."""
-
-        from lib.config.env import config
-
-        monkeypatch.setattr(config, "TEAMS_USER_AUTH_CONNECTION", "graph-user")
-
-        empty = MagicMock()
-        empty.get_token = AsyncMock(return_value=None)
-        bot.bot._build()
-        monkeypatch.setattr(bot.bot, "_authorization", empty)
-
-        with pytest.raises(bot.NotSignedIn):
-            await bot.user_token(MagicMock())
+        with pytest.raises(bot.NotConfigured, match="TEAMS_USER_AUTH_CONNECTION"):
+            await bot.bot.claims_for("Bearer something")
 
 
 class TestBuildingTheAdapter:
@@ -211,6 +173,41 @@ class TestTheFollowUpActivity:
             Activity.model_validate(continuation.model_dump())
 
 
+class TestReadingTheQuestion:
+    """The bot's own mention is not part of the question."""
+
+    def context(self, text: str) -> Any:
+        the_bot = ChannelAccount(id="28:bot", name="Draft Detective")
+        activity = Activity(
+            type=ActivityTypes.message,
+            text=text,
+            recipient=the_bot,
+            entities=[
+                Mention(
+                    type=EntityTypes.MENTION,
+                    mentioned=the_bot,
+                    text="<at>Draft Detective</at>",
+                )
+            ],
+        )
+        context = MagicMock()
+        context.activity = activity
+        return context
+
+    def test_the_mention_of_the_bot_is_removed(self) -> None:
+        context = self.context("<at>Draft Detective</at> does this   overclaim?")
+
+        assert bot.question_from(context) == "does this overclaim?"
+
+    def test_a_message_without_a_mention_is_left_as_written(self) -> None:
+        """A 1:1 chat carries no mention at all."""
+
+        context = self.context("does this overclaim?")
+        context.activity.entities = []
+
+        assert bot.question_from(context) == "does this overclaim?"
+
+
 class TestFindingTheLinks:
     """A link is the only way to reach a document, so failing to spot one is fatal.
 
@@ -278,7 +275,9 @@ class TestFindingTheLinks:
         assert bot.document_urls_in(self.message("does this overclaim?")) == []
 
     def test_a_non_sharepoint_link_is_not_taken_as_a_document(self) -> None:
-        assert bot.document_urls_in(self.message("see https://example.com/a.docx")) == []
+        assert (
+            bot.document_urls_in(self.message("see https://example.com/a.docx")) == []
+        )
 
     def test_a_link_rendered_as_a_hyperlink_is_found_in_the_html(self) -> None:
         """The reported bug. The text is the file name; the href is in an attachment."""
@@ -388,6 +387,37 @@ class TestFindingTheLinks:
         ]
 
 
+class TestHandlingAnActivity:
+    """``handle`` is the whole path from the endpoint to the turn: authenticate, parse,
+    and run the given handler through the adapter, returning its invoke reply."""
+
+    @pytest.mark.asyncio
+    async def test_the_parsed_activity_and_handler_reach_the_adapter(
+        self, configured: None, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        claims = ClaimsIdentity(claims={}, is_authenticated=True)
+        reply = InvokeResponse(status=200, body={"statusCode": 200})
+        adapter = MagicMock()
+        adapter.process_activity = AsyncMock(return_value=reply)
+        monkeypatch.setattr(bot.bot, "claims_for", AsyncMock(return_value=claims))
+        monkeypatch.setattr(bot.bot, "_adapter", adapter)
+        on_turn = AsyncMock()
+
+        result = await bot.handle(
+            "Bearer ok",
+            {"type": "invoke", "name": "adaptiveCard/action", "value": {}},
+            on_turn,
+        )
+
+        assert result is reply
+        (passed_claims, activity, handler), _ = adapter.process_activity.await_args
+        assert passed_claims is claims
+        assert isinstance(activity, Activity)
+        assert activity.type == ActivityTypes.invoke
+        assert activity.name == "adaptiveCard/action"
+        assert handler is on_turn
+
+
 class TestAMalformedActivity:
     """A payload this SDK will not parse must be a 4xx, for the same reason a bad
     token is: the Bot Connector retries a 5xx and gives up on a 4xx. Retrying an
@@ -399,8 +429,6 @@ class TestAMalformedActivity:
     async def test_a_body_that_is_not_an_activity_is_its_own_error(
         self, configured: None, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from microsoft_agents.hosting.core import ClaimsIdentity
-
         # Past authentication, so the failure can only be the payload.
         monkeypatch.setattr(
             bot.bot,
@@ -409,7 +437,7 @@ class TestAMalformedActivity:
         )
 
         with pytest.raises(bot.InvalidActivity):
-            await bot.handle("Bearer ok", {"type": {"not": "a string"}})
+            await bot.handle("Bearer ok", {"type": {"not": "a string"}}, AsyncMock())
 
     @pytest.mark.asyncio
     async def test_it_is_not_a_permission_error_or_a_bare_exception(

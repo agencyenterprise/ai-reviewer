@@ -46,7 +46,6 @@ from inspect_ai.scorer import Score, Scorer, Target, mean, scorer, stderr
 from inspect_ai.solver import TaskState
 from pydantic import ValidationError
 
-from evals_inspectai.common.backend import local_backend_for
 from evals_inspectai.common.api_solver import api_workflow_agent
 from evals_inspectai.common.scorers import (
     REQUIREMENT_TEMPLATE,
@@ -197,19 +196,11 @@ def rubric_criteria(model: str | Model | None = None) -> Scorer:
 
 
 @task
-def results_extraction_e2e(
-    backend: str = "remote",
-    api_base_url: str | None = None,
-):
+def results_extraction_e2e():
     return Task(
         dataset=_load_dataset(),
         fail_on_error=0.2,
-        solver=api_workflow_agent(
-            "results_extraction",
-            timeout_s=600,
-            local_backend=local_backend_for(backend, api_base_url),
-            api_base_url=api_base_url,
-        ),
+        solver=api_workflow_agent("results_extraction", timeout_s=600),
         scorer=[
             inventory_checks(),
             rubric_criteria(),

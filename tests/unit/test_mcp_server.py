@@ -7,7 +7,6 @@ using pytest-asyncio fixtures with the FastMCP Client for in-memory testing.
 import json
 import uuid
 from datetime import datetime
-from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -45,6 +44,8 @@ EXPECTED_TOOL_NAMES = {
     "create_project",
     "run_workflow",
     "get_project",
+    "get_project_references",
+    "get_workflow_run",
     "list_projects",
     "export_project_docx",
     "list_project_files",
@@ -109,79 +110,77 @@ async def test_each_tool_has_description(mcp_client: Client):
 # --- Tool Annotations ---
 
 
-def _ann(tool: Any) -> Any:
-    # fastmcp populates ToolAnnotations using snake_case keyword args; MCP SDK v2
-    # type stubs only declare camelCase fields, so mypy can't see the snake_case
-    # attributes even though they exist at runtime.
-    assert tool.annotations is not None
-    return tool.annotations
-
-
 @pytest.mark.asyncio
 async def test_list_workflow_types_annotations(mcp_client: Client):
     tools = await mcp_client.list_tools()
-    ann = _ann(next(t for t in tools if t.name == "list_workflow_types"))
-    assert ann.read_only_hint is True
-    assert ann.idempotent_hint is True
-    assert ann.destructive_hint is False
-    assert ann.open_world_hint is False
+    tool = next(t for t in tools if t.name == "list_workflow_types")
+    assert tool.annotations is not None
+    assert tool.annotations.read_only_hint is True
+    assert tool.annotations.idempotent_hint is True
+    assert tool.annotations.destructive_hint is False
+    assert tool.annotations.open_world_hint is False
 
 
 @pytest.mark.asyncio
 async def test_create_project_annotations(mcp_client: Client):
     tools = await mcp_client.list_tools()
-    ann = _ann(next(t for t in tools if t.name == "create_project"))
-    assert ann.read_only_hint is False
-    assert ann.idempotent_hint is False
-    assert ann.destructive_hint is False
+    tool = next(t for t in tools if t.name == "create_project")
+    assert tool.annotations is not None
+    assert tool.annotations.read_only_hint is False
+    assert tool.annotations.idempotent_hint is False
+    assert tool.annotations.destructive_hint is False
 
 
 @pytest.mark.asyncio
 async def test_run_workflow_annotations(mcp_client: Client):
     tools = await mcp_client.list_tools()
-    ann = _ann(next(t for t in tools if t.name == "run_workflow"))
-    assert ann.read_only_hint is False
-    assert ann.open_world_hint is True
+    tool = next(t for t in tools if t.name == "run_workflow")
+    assert tool.annotations is not None
+    assert tool.annotations.read_only_hint is False
+    assert tool.annotations.open_world_hint is True
 
 
 @pytest.mark.asyncio
 async def test_get_project_annotations(mcp_client: Client):
     tools = await mcp_client.list_tools()
-    ann = _ann(next(t for t in tools if t.name == "get_project"))
-    assert ann.read_only_hint is True
-    assert ann.idempotent_hint is True
-    assert ann.destructive_hint is False
+    tool = next(t for t in tools if t.name == "get_project")
+    assert tool.annotations is not None
+    assert tool.annotations.read_only_hint is True
+    assert tool.annotations.idempotent_hint is True
+    assert tool.annotations.destructive_hint is False
 
 
 @pytest.mark.asyncio
 async def test_list_projects_annotations(mcp_client: Client):
     tools = await mcp_client.list_tools()
-    ann = _ann(next(t for t in tools if t.name == "list_projects"))
-    assert ann.read_only_hint is True
-    assert ann.idempotent_hint is True
-    assert ann.destructive_hint is False
-    assert ann.open_world_hint is False
+    tool = next(t for t in tools if t.name == "list_projects")
+    assert tool.annotations is not None
+    assert tool.annotations.read_only_hint is True
+    assert tool.annotations.idempotent_hint is True
+    assert tool.annotations.destructive_hint is False
+    assert tool.annotations.open_world_hint is False
 
 
 @pytest.mark.asyncio
 async def test_export_project_docx_annotations(mcp_client: Client):
     tools = await mcp_client.list_tools()
-    ann = _ann(next(t for t in tools if t.name == "export_project_docx"))
-    assert ann.read_only_hint is True
-    assert ann.idempotent_hint is True
-    assert ann.destructive_hint is False
-    assert ann.open_world_hint is False
+    tool = next(t for t in tools if t.name == "export_project_docx")
+    assert tool.annotations is not None
+    assert tool.annotations.read_only_hint is True
+    assert tool.annotations.idempotent_hint is True
+    assert tool.annotations.destructive_hint is False
+    assert tool.annotations.open_world_hint is False
 
 
 @pytest.mark.asyncio
 async def test_export_project_docx_schema_has_optional_params(mcp_client: Client):
     tools = await mcp_client.list_tools()
     tool = next(t for t in tools if t.name == "export_project_docx")
-    props = tool.inputSchema.get("properties", {})
+    props = tool.input_schema.get("properties", {})
     assert "project_id" in props
     assert "workflow_types" in props
     assert "severities" in props
-    required = tool.inputSchema.get("required", [])
+    required = tool.input_schema.get("required", [])
     assert "project_id" in required
     assert "workflow_types" not in required
     assert "severities" not in required

@@ -3,15 +3,18 @@ model calls, no knowledge of what the workflow is about, so any workflow that
 emits issues can use them.
 
 Three score functions, and the scorers built on them, kept separate so their
-metrics are read apart: ``issue_detection_scores`` / ``issue_checks`` (the same
-key set for every workflow), ``decoy_scores`` / ``decoy_checks`` (keys depend on
+metrics are read apart: ``issue_detection_scores`` / ``issue_checks`` (keys set
+by the dataset's policy), ``decoy_scores`` / ``decoy_checks`` (keys depend on
 the dataset's decoy reasons), and ``extra_edit_scores`` (keys depend on the
 workflow's own edit checks; the workflow wraps it with ``deterministic_scorer``
-under a name of its own).
+under a name of its own). None takes options: how reports pair and which keys
+apply come from the ``ScoringPolicy`` on the inventory being scored.
 
 1. **Detection.** Each expected issue is *hit* when a reported issue with its
    title quotes its anchor or brackets its line, or an issue under another title
-   quotes its anchor (a mislabel, recorded by the title metric, not recall). Several expected issues may hit the
+   quotes its anchor (a mislabel, recorded by the title metric, not recall); an
+   expected issue with no anchor (something the document lacks) is hit by any
+   reported issue with its title. Several expected issues may hit the
    same issue (a check that reports one issue per paragraph). From the hits:
    recall over required expected issues, precision over reported issues, and F0.5,
    which weights precision twice as much as recall, following the convention
@@ -30,19 +33,20 @@ A metric is ``NaN`` when the sample gives it nothing to judge: Inspect leaves
 a NaN key out of that metric's mean and counts the sample as unscored for it.
 """
 
+import json
 import math
 import re
-from typing import Callable, Mapping, Optional, Sequence
+from typing import Callable, Mapping, NamedTuple, Optional, Sequence
 
 from inspect_ai.scorer import Score, Scorer, Target, mean, scorer, stderr
 from inspect_ai.solver import TaskState
-from pydantic import ValidationError
 
-from evals_inspectai.common.simple_deep_agent_types import IssueItem, ProposedEdit, SimpleDeepAgentOutput
+from evals_inspectai.common.simple_deep_agent_types import AgentCheckResult, IssueItem, ProposedEdit
 from evals_inspectai.common.issue_inventory import (
     Decoy,
     ResolvedIssue,
     ResolvedInventory,
+    ScoringPolicy,
     normalize,
     overlaps,
 )
@@ -70,12 +74,21 @@ EDIT_KEYS: tuple[str, ...] = (
     "edit_punctuation",
 )
 
-def issue_check_keys(edits: bool = True, titles: bool = True) -> tuple[str, ...]:
-    """The keys ``issue_checks(edits=..., titles=...)`` emits, for viewer columns and
-    descriptions: the detection keys, without ``title_correct`` when the inventory names
-    no titles, plus the edit-hygiene keys when the workflow proposes edits."""
-    detection = DETECTION_KEYS if titles else tuple(k for k in DETECTION_KEYS if k != "title_correct")
-    return detection + EDIT_KEYS if edits else detection
+def issue_check_keys(policy: ScoringPolicy) -> tuple[str, ...]:
+    """The keys ``issue_checks`` emits under ``policy``, for viewer columns and
+    descriptions: the detection keys, without ``title_correct`` when the dataset names
+    no titles or anchors no issue (an issue without an anchor is matched on its title,
+    so that title is right by construction), without ``anchor_in_range`` when it
+    anchors no issue and without ``severity_correct`` when it declares no severity,
+    plus the edit-hygiene keys when the workflow proposes edits."""
+    keep = {
+        "title_correct": policy.titles and policy.anchors,
+        "anchor_in_range": policy.anchors,
+        "severity_correct": policy.severities,
+    }
+    dropped = {k for k, kept in keep.items() if not kept}
+    detection = tuple(k for k in DETECTION_KEYS if k not in dropped)
+    return detection + EDIT_KEYS if policy.edits else detection
 
 
 # Inspect's unscored sentinel: `Score.unscored()` sets a NaN value, and the
@@ -89,13 +102,13 @@ NOT_APPLICABLE = math.nan
 # says what each column checks. A value of NaN means the sample gave the check
 # nothing to judge, and Inspect leaves it out of the mean.
 DETECTION_DESCRIPTIONS: dict[str, str] = {
-    "recall": "Share of required expected issues covered by a reported issue (same title and the anchor quoted or its line bracketed, or the anchor quoted under another title).",
+    "recall": "Share of required expected issues covered by a reported issue (same title and the anchor quoted or its line bracketed, or the anchor quoted under another title; the title alone for an expected issue with no anchor).",
     "precision": "Share of reported issues that cover at least one expected issue.",
     "f0_5": "F-beta with beta 0.5: precision weighted twice as much as recall, as in grammatical-error detection.",
     "clean_document_untouched": "On a sample with no expected issues: 1 if nothing was reported, 0 otherwise.",
-    "title_correct": "Of the covered expected issues that name a title, share reported under it. NaN when the inventory names none (free-form titles).",
+    "title_correct": "Of the covered expected issues that name a title and have an anchor, share reported under it. NaN when the inventory names none (free-form titles); an issue without an anchor is matched on its title, so it is left out.",
     "severity_correct": "Of the covered expected issues that declare a severity, share reported with it.",
-    "anchor_in_range": "Of the covered expected issues, share whose anchor line lies inside the reported line range.",
+    "anchor_in_range": "Of the covered expected issues that have an anchor, share whose anchor line lies inside the reported line range.",
 }
 EDIT_DESCRIPTIONS: dict[str, str] = {
     "edit_present_when_expected": "For expected issues marked edit_expected: true, share that got at least one proposed edit.",
@@ -105,6 +118,12 @@ EDIT_DESCRIPTIONS: dict[str, str] = {
     "edit_keeps_numbers_and_markers": "Share of edits whose replacement keeps every number (with its percentage unit, if any), footnote marker and citation of the original.",
     "edit_punctuation": "Share of edits whose replacement adds no stranded punctuation (',.', ' .', doubled spaces) the original lacked.",
 }
+
+
+def issue_check_descriptions(policy: ScoringPolicy) -> dict[str, str]:
+    """What each key ``issue_checks`` emits under ``policy`` checks, for the Task metadata."""
+    descriptions = {**DETECTION_DESCRIPTIONS, **EDIT_DESCRIPTIONS}
+    return {key: descriptions[key] for key in issue_check_keys(policy)}
 
 
 def decoy_descriptions(reasons: Sequence[str]) -> dict[str, str]:
@@ -138,66 +157,105 @@ def _title_matches(issue: IssueItem, kind: Optional[str]) -> bool:
     return re.search(pattern, normalize(issue.title)) is not None
 
 
-# Added to the tier of an untitled expected issue reported under a title another
-# expected issue of the inventory names: above every plain tier, below the cost of
-# leaving it unmatched (see _UNMATCHED_OPTIONAL).
-_CLAIMED_TITLE_PENALTY = 6
+class HitRank(NamedTuple):
+    """How strongly a reported issue points at an expected one; a smaller rank is stronger.
+    Compared field by field, so each field outweighs every field after it."""
+
+    # An untitled expected issue (free-form titles) reported under a title another
+    # expected issue of the dataset names: that report is evidence for the other kind
+    # first, so it ranks below every free-form report.
+    claimed_kind: bool
+    # 0: title matches and the anchor is quoted; 1: title matches and the range brackets
+    # the line; 2: the anchor is quoted under another title (still detected, so
+    # title_correct, not recall, records the mislabel). Under ``pair_on_location`` the
+    # title is ignored: 0 when quoted, 1 when only the line is bracketed.
+    evidence: int
+    # The reported range does not bracket the expected line.
+    off_line: bool
+
+    def cost(self) -> int:
+        """The rank as one number for the assignment solver, ordered exactly as the tuple."""
+        return (self.claimed_kind * _EVIDENCE_LEVELS + self.evidence) * 2 + self.off_line
 
 
-def hit_tier(expected: ResolvedIssue, issue: IssueItem, claimed: Sequence[str] = ()) -> Optional[int]:
-    """How well ``issue`` reports ``expected``, lower is stronger; None when it
-    does not report it.
+_EVIDENCE_LEVELS = 3
+# The largest cost a hit can have: a claimed kind, the weakest evidence, off its line.
+_MAX_HIT_COST = HitRank(True, _EVIDENCE_LEVELS - 1, True).cost()
 
-    Three tiers of evidence: a title match with the anchor quoted, a title match
-    bracketing the line, the anchor quoted under another title (still detected,
-    so the title metric, not recall, records the mislabel). Within a tier, an
-    issue whose line range brackets the expected line ranks above one whose
-    range is elsewhere: when one issue quotes both a recommendation and its
-    restatement, its range says which occurrence it reports, and without that
-    the pairing would depend on report order.
 
-    ``claimed`` are the titles the inventory names for other expected issues.
-    An untitled expected issue (free-form titles) matches any title, but an
-    issue under a claimed title is evidence for that other kind first: it
-    still counts, ranked below every free-form report, so an extra issue of a
-    named kind on the same sentence cannot stand in for the free-form one.
+def hit_rank(
+    expected: ResolvedIssue, issue: IssueItem, claimed: Sequence[str] = (), on_location: bool = False
+) -> Optional[HitRank]:
+    """How well ``issue`` reports ``expected`` (see ``HitRank``); None when it does not report it.
+
+    Within one level of evidence, an issue whose line range brackets the expected
+    line ranks above one whose range is elsewhere: when one issue quotes both a
+    recommendation and its restatement, its range says which occurrence it
+    reports, and without that the pairing would depend on report order.
+
+    ``claimed`` are the titles the inventory names for other expected issues. An
+    untitled expected issue matches any title, but an issue under a claimed title
+    still counts only below every free-form report, so an extra issue of a named
+    kind on the same sentence cannot stand in for the free-form one.
+
+    An expected issue with no anchor has no text to quote and no line: the title
+    alone reports it, at the strongest rank.
+
+    With ``on_location`` (an inventory whose titles are verdicts on the anchored
+    text, see ``ScoringPolicy.pair_on_location``) an anchored expected issue is
+    paired on its quote and line alone: a report quoting this claim under the
+    wrong verdict still outranks one that merely shares the verdict and the line.
     """
-    penalty = _CLAIMED_TITLE_PENALTY if expected.title is None and any(_title_matches(issue, t) for t in claimed) else 0
     same_title = _title_matches(issue, expected.title)
+    if expected.anchor is None:
+        return HitRank(False, 0, False) if same_title else None
     quoted = normalize(expected.anchor) in _issue_text(issue)
-    in_range = issue.start_line <= expected.line <= issue.end_line
+    in_range = expected.line is not None and issue.start_line <= expected.line <= issue.end_line
+    if on_location:
+        return HitRank(False, 0 if quoted else 1, not in_range) if quoted or in_range else None
     if same_title and quoted:
-        tier = 0
+        evidence = 0
     elif same_title and in_range:
-        tier = 1
+        evidence = 1
     elif quoted:
-        tier = 2
+        evidence = 2
     else:
         return None
-    return tier * 2 + (0 if in_range else 1) + penalty
+    claimed_kind = expected.title is None and any(_title_matches(issue, t) for t in claimed)
+    return HitRank(claimed_kind, evidence, not in_range)
 
 
-def ranked_hits(expected: ResolvedIssue, issues: Sequence[IssueItem], claimed: Sequence[str] = ()) -> list[int]:
+def ranked_hits(
+    expected: ResolvedIssue, issues: Sequence[IssueItem], claimed: Sequence[str] = (), on_location: bool = False
+) -> list[int]:
     """Indices of the issues that report ``expected``, strongest evidence first (ties in issue order)."""
     scored = []
     for index, issue in enumerate(issues):
-        tier = hit_tier(expected, issue, claimed)
-        if tier is not None:
-            scored.append((tier, index))
+        rank = hit_rank(expected, issue, claimed, on_location)
+        if rank is not None:
+            scored.append((rank, index))
     return [index for _, index in sorted(scored)]
 
 
-def hit_issue(expected: ResolvedIssue, issues: Sequence[IssueItem], claimed: Sequence[str] = ()) -> Optional[int]:
-    """Index of the best-tier issue that reports this expected, or None."""
-    ranked = ranked_hits(expected, issues, claimed)
+def hit_issue(
+    expected: ResolvedIssue, issues: Sequence[IssueItem], claimed: Sequence[str] = (), on_location: bool = False
+) -> Optional[int]:
+    """Index of the best-ranked issue that reports this expected, or None."""
+    ranked = ranked_hits(expected, issues, claimed, on_location)
     return ranked[0] if ranked else None
 
 
 def claimed_titles(inventory: ResolvedInventory) -> tuple[str, ...]:
     """The titles the dataset's expected issues name, in this record or any other
-    (see ``hit_tier``): a kind that has no expected issue in this record is still
+    (see ``hit_rank``): a kind that has no expected issue in this record is still
     a kind, and a report of it is not the free-form one."""
-    return tuple(sorted({*inventory.named_titles, *(e.title for e in inventory.expected_issues if e.title)}))
+    return tuple(sorted({*inventory.policy.named_titles, *(e.title for e in inventory.expected_issues if e.title)}))
+
+
+def reports_of(expected: ResolvedIssue, issues: Sequence[IssueItem], inventory: ResolvedInventory) -> list[IssueItem]:
+    """Every issue that reports ``expected``, strongest evidence first, paired as the inventory's policy says."""
+    ranked = ranked_hits(expected, issues, claimed_titles(inventory), inventory.policy.pair_on_location)
+    return [issues[i] for i in ranked]
 
 
 def decoy_hits(decoys: Sequence[Decoy], issues: Sequence[IssueItem], lines: Sequence[str] = ()) -> list[Decoy]:
@@ -223,9 +281,18 @@ def edits_for(expected: ResolvedIssue, issue: IssueItem) -> list[ProposedEdit]:
 
     Matched on text, never on line alone: a paragraph-level issue carries the
     edits for every sentence on that line, and each must be judged against
-    its own expected.
+    its own expected. An expected issue with no anchor has no sentence to
+    match, so every edit of the issue that reports it is its own.
     """
-    return [e for e in issue.edits if overlaps(expected.anchor, e.original_text)]
+    if expected.anchor is None:
+        return list(issue.edits)
+    anchor = expected.anchor
+    return [e for e in issue.edits if overlaps(anchor, e.original_text)]
+
+
+def _line_text(lines: Sequence[str], line: Optional[int]) -> str:
+    """The text of a 1-indexed line, or "" when there is no such line."""
+    return lines[line - 1] if line is not None and 0 < line <= len(lines) else ""
 
 
 def fraction(values: Sequence[float]) -> float:
@@ -336,9 +403,8 @@ def edit_checks(
         else the expected issue's line."""
         if 0 < e.start_line <= len(lines) and e.start_line != expected.line:
             return lines[e.start_line - 1]
-        return lines[expected.line - 1] if 0 < expected.line <= len(lines) else ""
+        return _line_text(lines, expected.line)
 
-    line_text = lines[expected.line - 1] if 0 < expected.line <= len(lines) else ""
     on_line = [float(normalize(e.original_text) in normalize(line_of(e))) for e in edits]
     out["edit_quote_on_line"] = (fraction(on_line), f"{expected.id}: {int(sum(on_line))}/{len(edits)} quotes found verbatim on their line")
 
@@ -378,15 +444,15 @@ def edit_checks(
 
 
 def hit_pairs(
-    issues: Sequence[IssueItem], inventory: ResolvedInventory, one_to_one: bool = False
+    issues: Sequence[IssueItem], inventory: ResolvedInventory
 ) -> tuple[dict[str, Optional[int]], list[tuple[ResolvedIssue, IssueItem]]]:
-    """Which reported issue covers each expected one. The single pairing every
-    layer uses, deterministic and judged alike, so they never grade different
-    reports for the same expected issue.
+    """Which reported issue best covers each expected one, under the inventory's
+    ``policy.pairing``. The single pairing every layer uses, deterministic and
+    judged alike, so they never grade different reports for the same expected issue.
 
-    By default several expected issues may share a reported issue (a check
-    that reports one issue per paragraph). With ``one_to_one`` a reported
-    issue covers at most one expected issue, in inventory order, so a run
+    Several expected issues may share a reported issue (a check that reports
+    one issue per paragraph) unless the pairing is ``one_to_one``: a reported
+    issue then covers at most one expected issue, in inventory order, so a run
     that merges two occurrences the workflow must report separately leaves
     the second one missing.
     """
@@ -396,13 +462,30 @@ def hit_pairs(
     order = _canonical_order(issues)
     ordered = [issues[i] for i in order]
     claimed = claimed_titles(inventory)
-    if one_to_one:
-        found = _one_to_one_hits(ordered, inventory.expected_issues, claimed)
+    on_location = inventory.policy.pair_on_location
+    if inventory.policy.pairing == "one_to_one":
+        found = _one_to_one_hits(ordered, inventory.expected_issues, claimed, on_location)
     else:
-        found = {e.id: hit_issue(e, ordered, claimed) for e in inventory.expected_issues}
+        found = {e.id: hit_issue(e, ordered, claimed, on_location) for e in inventory.expected_issues}
     hits = {eid: (order[i] if i is not None else None) for eid, i in found.items()}
     pairs = [(e, issues[i]) for e in inventory.expected_issues if (i := hits[e.id]) is not None]
     return hits, pairs
+
+
+def covering_pairs(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> list[tuple[ResolvedIssue, IssueItem]]:
+    """Every (expected, reported) pair in which the issue reports the expected one, strongest
+    evidence first within each expected: for a workflow that reports several issues per expected
+    issue (one per recommended source), where each is a report of that claim in its own right."""
+    return [(e, issue) for e in inventory.expected_issues for issue in reports_of(e, issues, inventory)]
+
+
+def graded_pairs(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> list[tuple[ResolvedIssue, IssueItem]]:
+    """The (expected, reported) pairs a per-report check grades: every covering report under
+    ``several_per_expected`` (each recommendation must hold up, not only the best one), else
+    the ``hit_pairs`` pairing."""
+    if inventory.policy.pairing == "several_per_expected":
+        return covering_pairs(issues, inventory)
+    return hit_pairs(issues, inventory)[1]
 
 
 def _canonical_order(issues: Sequence[IssueItem]) -> list[int]:
@@ -426,39 +509,39 @@ def _canonical_order(issues: Sequence[IssueItem]) -> list[int]:
     return sorted(range(len(issues)), key=key)
 
 
-# Cost of leaving an expected issue unmatched in the assignment problem below:
-# larger than any total of tier costs, so cardinality is maximised first and
-# evidence strength decides among pairings of equal size. Leaving a required
-# issue unmatched costs more than leaving an optional one, so when one report
-# could cover either, the required one gets it and recall is not lowered by a
-# borderline expectation.
-_UNMATCHED_OPTIONAL = 10_000
-_UNMATCHED_REQUIRED = 20_000
-
-
 def _one_to_one_hits(
-    issues: Sequence[IssueItem], expected_issues: Sequence[ResolvedIssue], claimed: Sequence[str] = ()
+    issues: Sequence[IssueItem],
+    expected_issues: Sequence[ResolvedIssue],
+    claimed: Sequence[str] = (),
+    on_location: bool = False,
 ) -> dict[str, Optional[int]]:
     """A one-to-one matching of expected issues to reported issues that covers
     as many expected issues as any pairing can and, among those, uses the
-    strongest evidence (lowest total tier). Solved as an assignment problem;
-    exact ties fall to the order given, which ``hit_pairs`` makes canonical."""
+    strongest evidence (lowest total ``HitRank.cost``). Solved as an assignment
+    problem; exact ties fall to the order given, which ``hit_pairs`` makes canonical.
+
+    Leaving an expected issue unmatched costs more than every hit of the matrix
+    together, so cardinality is maximised first and evidence decides among
+    pairings of equal size; leaving a required one unmatched costs twice that, so
+    when one report could cover either, the required one gets it and recall is
+    not lowered by a borderline expectation."""
     size = max(len(expected_issues), len(issues))
     if size == 0:
         return {}
-    unmatched = [_UNMATCHED_REQUIRED if e.required else _UNMATCHED_OPTIONAL for e in expected_issues]
-    unmatched += [_UNMATCHED_OPTIONAL] * (size - len(expected_issues))  # padding rows
+    unmatched_optional = (_MAX_HIT_COST + 1) * size
+    unmatched = [2 * unmatched_optional if e.required else unmatched_optional for e in expected_issues]
+    unmatched += [unmatched_optional] * (size - len(expected_issues))  # padding rows
     cost = [[unmatched[row]] * size for row in range(size)]
     for row, e in enumerate(expected_issues):
         for col, issue in enumerate(issues):
-            tier = hit_tier(e, issue, claimed)
-            if tier is not None:
-                cost[row][col] = tier
+            rank = hit_rank(e, issue, claimed, on_location)
+            if rank is not None:
+                cost[row][col] = rank.cost()
     assignment = _min_cost_assignment(cost)
     hits: dict[str, Optional[int]] = {}
     for row, e in enumerate(expected_issues):
         matched = assignment.get(row)
-        hits[e.id] = matched if matched is not None and cost[row][matched] < _UNMATCHED_OPTIONAL else None
+        hits[e.id] = matched if matched is not None and cost[row][matched] <= _MAX_HIT_COST else None
     return hits
 
 
@@ -507,31 +590,28 @@ def _min_cost_assignment(cost: list[list[int]]) -> dict[int, int]:
     return {p[j] - 1: j - 1 for j in range(1, n + 1) if p[j]}
 
 
-def issue_detection_scores(
-    issues: Sequence[IssueItem],
-    inventory: ResolvedInventory,
-    edits: bool = True,
-    one_to_one: bool = False,
-    titles: bool = True,
-) -> tuple[dict[str, float], str]:
+def issue_detection_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> tuple[dict[str, float], str]:
     """Detection and, for a workflow that proposes edits, generic edit hygiene.
 
-    Keys: ``issue_check_keys(edits, titles)``; NaN where a sample gives a key
-    nothing to judge. A workflow that never proposes edits passes
-    ``edits=False``, and one whose inventory names no titles ``titles=False``,
-    so its scores (and the log viewer's columns) carry no keys it can never
-    score. ``one_to_one`` holds a workflow that must report each expected issue
-    separately to that (see ``pairs``).
+    Keys: ``issue_check_keys(inventory.policy)``, so a dataset's scores (and the log
+    viewer's columns) carry no key it can never score; NaN where a sample gives a key
+    nothing to judge. Under ``several_per_expected`` pairing precision counts every
+    reported issue that covers some expected one, not only the one paired with it.
     """
+    policy = inventory.policy
+    one_to_one = policy.pairing == "one_to_one"
     lines = inventory.document.split("\n")
     expected_issues = inventory.expected_issues
-    values: dict[str, float] = {key: NOT_APPLICABLE for key in issue_check_keys(edits, titles)}
+    values: dict[str, float] = {key: NOT_APPLICABLE for key in issue_check_keys(policy)}
     notes: list[str] = []
 
-    hits, pairs = hit_pairs(issues, inventory, one_to_one)
+    hits, pairs = hit_pairs(issues, inventory)
     required = [e for e in expected_issues if e.required]
     found_required = [e for e in required if hits[e.id] is not None]
     hit_indices = {i for i in hits.values() if i is not None}
+    if policy.pairing == "several_per_expected":
+        covering = {id(issue) for _, issue in covering_pairs(issues, inventory)}
+        hit_indices = {k for k, issue in enumerate(issues) if id(issue) in covering}
 
     if expected_issues:
         recall = len(found_required) / len(required) if required else 1.0
@@ -540,7 +620,7 @@ def issue_detection_scores(
         values["precision"] = precision
         values["f0_5"] = 1.25 * precision * recall / (0.25 * precision + recall) if (precision + recall) else 0.0
         missing = [e.id for e in required if hits[e.id] is None]
-        merged = [e.id for e in required if hits[e.id] is None and one_to_one and hit_issue(e, issues) is not None]
+        merged = [e.id for e in required if hits[e.id] is None and one_to_one and hit_issue(e, issues, on_location=policy.pair_on_location) is not None]
         notes.append(f"recall {len(found_required)}/{len(required)}" + (f" (missing {', '.join(missing)})" if missing else ""))
         if merged:
             notes.append(f"merged into an issue that already covers another expected issue: {', '.join(merged)}")
@@ -550,14 +630,17 @@ def issue_detection_scores(
         notes.append("clean document: " + ("nothing reported" if not issues else f"{len(issues)} issue(s) reported"))
 
     if pairs:
-        if titles:
-            values["title_correct"] = fraction([float(_title_matches(i, e.title)) for e, i in pairs if e.title])
-        values["severity_correct"] = fraction([float(i.severity == e.severity) for e, i in pairs if e.severity])
-        values["anchor_in_range"] = fraction([float(i.start_line <= e.line <= i.end_line) for e, i in pairs])
+        if policy.titles and policy.anchors:
+            values["title_correct"] = fraction([float(_title_matches(i, e.title)) for e, i in pairs if e.title and e.anchor])
+        if policy.severities:
+            values["severity_correct"] = fraction([float(i.severity == e.severity) for e, i in pairs if e.severity])
+        located = [(e, i, e.line) for e, i in pairs if e.line is not None]
+        if policy.anchors:
+            values["anchor_in_range"] = fraction([float(i.start_line <= line <= i.end_line) for _, i, line in located])
         notes += [f"{e.id}: reported as {i.title!r}, not under {e.title!r}" for e, i in pairs if e.title and not _title_matches(i, e.title)]
         notes += [f"{e.id}: severity {i.severity}, expected {e.severity}" for e, i in pairs if e.severity and i.severity != e.severity]
-        notes += [f"{e.id}: lines {i.start_line}-{i.end_line} do not bracket line {e.line}" for e, i in pairs if not i.start_line <= e.line <= i.end_line]
-    if pairs and edits:
+        notes += [f"{e.id}: lines {i.start_line}-{i.end_line} do not bracket line {line}" for e, i, line in located if not i.start_line <= line <= i.end_line]
+    if pairs and policy.edits:
         collected: dict[str, list[float]] = {}
         for e, i in pairs:
             for key, (value, detail) in edit_checks(e, i, lines).items():
@@ -571,17 +654,14 @@ def issue_detection_scores(
 
 
 def extra_edit_scores(
-    issues: Sequence[IssueItem],
-    inventory: ResolvedInventory,
-    checks: Mapping[str, EditCheck],
-    one_to_one: bool = False,
+    issues: Sequence[IssueItem], inventory: ResolvedInventory, checks: Mapping[str, EditCheck]
 ) -> tuple[dict[str, float], str]:
     """A workflow's own per-edit checks, keyed ``edit_<name>``, over the edits of detected expected issues."""
     lines = inventory.document.split("\n")
     values: dict[str, float] = {f"edit_{name}": NOT_APPLICABLE for name in checks}
     notes: list[str] = []
     collected: dict[str, list[float]] = {}
-    for e, i in hit_pairs(issues, inventory, one_to_one)[1]:
+    for e, i in hit_pairs(issues, inventory)[1]:
         results = edit_checks(e, i, lines, checks)
         for name in checks:
             key = f"edit_{name}"
@@ -595,19 +675,17 @@ def extra_edit_scores(
     return values, " | ".join(notes) if notes else "all checks passed"
 
 
-def decoy_scores(
-    issues: Sequence[IssueItem], inventory: ResolvedInventory, reasons: Sequence[str]
-) -> tuple[dict[str, float], str]:
+def decoy_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> tuple[dict[str, float], str]:
     """False positives by reason: ``no_fp_<reason>`` is 1 when no decoy of that
     reason was flagged, 0 when one was, NaN when the sample has no such decoy.
 
-    ``reasons`` is the dataset-wide list, so every sample returns the same keys.
+    The reasons are the dataset-wide list on the policy, so every sample returns the same keys.
     """
     present = {d.reason for d in inventory.decoys}
     hit = decoy_hits(inventory.decoys, issues, inventory.document.split("\n"))
     values: dict[str, float] = {}
     notes: list[str] = []
-    for reason in reasons:
+    for reason in inventory.policy.decoy_reasons:
         key = f"no_fp_{reason}"
         if reason not in present:
             values[key] = NOT_APPLICABLE
@@ -628,28 +706,44 @@ PER_KEY_METRICS = {"*": [mean(), stderr()]}
 Scoring = Callable[[Sequence[IssueItem], ResolvedInventory], tuple[dict[str, float], str]]
 
 
-def issues_from_state(state: TaskState) -> tuple[list[IssueItem], Optional[str]]:
-    """The issues a workflow run reported, from the API state the solver captured."""
+# Where a single-agent workflow's state keeps its issues (``SimpleDeepAgentState.result``).
+DEFAULT_RESULTS: tuple[str, ...] = ("result",)
+
+
+def issues_from_state(
+    state: TaskState, results: Sequence[str] = DEFAULT_RESULTS
+) -> tuple[list[IssueItem], Optional[str]]:
+    """The issues a workflow run reported, from the API state the solver captured.
+
+    ``results`` names the state fields holding an ``AgentCheckResult``; a
+    workflow that runs several agents (one field each) is read as the issues of
+    all of them together. A field that is absent or null contributes none.
+    """
     try:
-        output = SimpleDeepAgentOutput.model_validate_json(state.output.completion)
-    except ValidationError as e:
+        output = json.loads(state.output.completion)
+        if not isinstance(output, dict):
+            raise ValueError(f"expected a JSON object, got {type(output).__name__}")
+        # Only an absent or null field is skipped: any other value, even an empty one, must parse.
+        checks = [AgentCheckResult.model_validate(output[key]) for key in results if output.get(key) is not None]
+    except ValueError as e:  # JSONDecodeError and pydantic's ValidationError are both ValueErrors
         return [], f"could not parse the workflow state: {e}"
-    return (output.result.issues if output.result else []), None
+    return [issue for check in checks for issue in check.issues], None
 
 
 def inventory_from_state(state: TaskState) -> ResolvedInventory:
     return ResolvedInventory.model_validate(state.metadata["inventory"])
 
 
-def deterministic_scorer(scoring: Scoring) -> Scorer:
+def deterministic_scorer(scoring: Scoring, results: Sequence[str] = DEFAULT_RESULTS) -> Scorer:
     """Wrap a ``(issues, inventory) -> (values, explanation)`` function as a scorer.
 
+    ``results`` says which state fields hold the issues (see ``issues_from_state``).
     A run whose state cannot be parsed scores 0 on every key the function
     would have produced, with the parse error as the explanation.
     """
 
     async def score(state: TaskState, target: Target) -> Score:
-        issues, error = issues_from_state(state)
+        issues, error = issues_from_state(state, results)
         values, explanation = scoring(issues, inventory_from_state(state))
         if error:
             return Score(value={key: 0.0 for key in values}, explanation=error)
@@ -659,23 +753,16 @@ def deterministic_scorer(scoring: Scoring) -> Scorer:
 
 
 @scorer(metrics=PER_KEY_METRICS)
-def issue_checks(edits: bool = True, one_to_one: bool = False, titles: bool = True) -> Scorer:
-    """Reported issues against the expected ones: recall, precision, F0.5, lines,
-    titles unless ``titles`` is False (an inventory that names none), plus edit
-    presence and text integrity unless ``edits`` is False (a workflow that
-    proposes no edits). ``one_to_one`` makes a reported issue cover at most one
-    expected issue, for a workflow that must report each occurrence separately.
-    The same keys for every sample of an eval."""
-    return deterministic_scorer(
-        lambda issues, inventory: issue_detection_scores(issues, inventory, edits, one_to_one, titles)
-    )
+def issue_checks(results: Sequence[str] = DEFAULT_RESULTS) -> Scorer:
+    """Reported issues against the expected ones: recall, precision, F0.5, and the
+    title, severity, anchor line and edit checks the dataset's policy keeps (see
+    ``issue_detection_scores``). ``results`` names the state fields the issues are
+    read from. The same keys for every sample of an eval."""
+    return deterministic_scorer(issue_detection_scores, results)
 
 
 @scorer(metrics=PER_KEY_METRICS)
-def decoy_checks(reasons: Sequence[str]) -> Scorer:
-    """False positives by decoy reason, ``no_fp_<reason>``.
-
-    ``reasons`` is the dataset-wide list, so every sample's score carries the
-    same keys, which Inspect requires of dict-valued scores.
-    """
-    return deterministic_scorer(lambda issues, inventory: decoy_scores(issues, inventory, reasons))
+def decoy_checks(results: Sequence[str] = DEFAULT_RESULTS) -> Scorer:
+    """False positives by decoy reason, ``no_fp_<reason>``, one key per reason the
+    dataset uses. ``results`` names the state fields the issues are read from."""
+    return deterministic_scorer(decoy_scores, results)

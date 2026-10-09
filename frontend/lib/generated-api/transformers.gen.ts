@@ -3,15 +3,18 @@
 import type {
   CreateProjectEndpointApiProjectsPostResponse,
   CreateThreadApiChatThreadsPostResponse,
+  ExportAnnotationsApiAdminAnnotationsExportGetResponse,
   GenerateThreadTitleApiChatThreadsThreadIdTitlePostResponse,
   GetAdminFeedbacksApiAdminFeedbacksGetResponse,
   GetDashboardApiAdminDashboardGetResponse,
   GetIssueEndpointApiIssuesIssueIdGetResponse,
-  GetProjectEndpointApiProjectProjectIdGetResponse,
+  GetProjectIssuesEndpointApiProjectProjectIdIssuesGetResponse,
+  GetProjectOverviewEndpointApiProjectProjectIdOverviewGetResponse,
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponse,
   GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse,
   GetSharedResourceApiPublicShareTokenGetResponse,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponse,
+  ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponse,
   ListAppConfigsApiAppConfigsGetResponse,
   ListLogsApiAdminLogsGetResponse,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse,
@@ -47,6 +50,35 @@ export const getDashboardApiAdminDashboardGetResponseTransformer = async (
   data: any,
 ): Promise<GetDashboardApiAdminDashboardGetResponse> => {
   data = adminDashboardResponseSchemaResponseTransformer(data);
+  return data;
+};
+
+const annotationRecordSchemaResponseTransformer = (data: any) => {
+  data.created_at = new Date(data.created_at);
+  return data;
+};
+
+const annotatedItemSchemaResponseTransformer = (data: any) => {
+  data.annotations = data.annotations.map((item: any) => annotationRecordSchemaResponseTransformer(item));
+  return data;
+};
+
+const annotationSetExportSchemaResponseTransformer = (data: any) => {
+  data.items = data.items.map((item: any) => annotatedItemSchemaResponseTransformer(item));
+  return data;
+};
+
+export const exportAnnotationsApiAdminAnnotationsExportGetResponseTransformer = async (
+  data: any,
+): Promise<ExportAnnotationsApiAdminAnnotationsExportGetResponse> => {
+  data = data.map((item: any) => annotationSetExportSchemaResponseTransformer(item));
+  return data;
+};
+
+export const listAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponseTransformer = async (
+  data: any,
+): Promise<ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponse> => {
+  data = data.map((item: any) => annotatedItemSchemaResponseTransformer(item));
   return data;
 };
 
@@ -239,36 +271,15 @@ export const listProjectsEndpointApiProjectsGetResponseTransformer = async (
   return data;
 };
 
-const fileListItemSchemaResponseTransformer = (data: any) => {
-  data.created_at = new Date(data.created_at);
-  return data;
-};
-
-const projectDetailedSchemaResponseTransformer = (data: any) => {
+const projectCreatedSchemaResponseTransformer = (data: any) => {
   data.project = projectSchemaResponseTransformer(data.project);
-  if (data.workflow_runs) {
-    data.workflow_runs = data.workflow_runs.map((item: any) => workflowRunDetailSchemaResponseTransformer(item));
-  }
-  if (data.issues) {
-    data.issues = data.issues.map((item: any) => issueSchemaResponseTransformer(item));
-  }
-  if (data.files) {
-    data.files = data.files.map((item: any) => fileListItemSchemaResponseTransformer(item));
-  }
   return data;
 };
 
 export const createProjectEndpointApiProjectsPostResponseTransformer = async (
   data: any,
 ): Promise<CreateProjectEndpointApiProjectsPostResponse> => {
-  data = projectDetailedSchemaResponseTransformer(data);
-  return data;
-};
-
-export const getProjectEndpointApiProjectProjectIdGetResponseTransformer = async (
-  data: any,
-): Promise<GetProjectEndpointApiProjectProjectIdGetResponse> => {
-  data = projectDetailedSchemaResponseTransformer(data);
+  data = projectCreatedSchemaResponseTransformer(data);
   return data;
 };
 
@@ -310,13 +321,6 @@ export const getProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgre
   return data;
 };
 
-export const getProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponseTransformer = async (
-  data: any,
-): Promise<GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse> => {
-  data = data.map((item: any) => workflowRunDetailSchemaResponseTransformer(item));
-  return data;
-};
-
 const revisionListItemSchemaResponseTransformer = (data: any) => {
   if (data.created_at) {
     data.created_at = new Date(data.created_at);
@@ -331,9 +335,51 @@ export const listRevisionsEndpointApiProjectProjectIdRevisionsGetResponseTransfo
   return data;
 };
 
+const workflowRunSummarySchemaResponseTransformer = (data: any) => {
+  data.run = workflowRunPublicSchemaResponseTransformer(data.run);
+  return data;
+};
+
+const fileListItemSchemaResponseTransformer = (data: any) => {
+  data.created_at = new Date(data.created_at);
+  return data;
+};
+
+const projectOverviewSchemaResponseTransformer = (data: any) => {
+  data.project = projectSchemaResponseTransformer(data.project);
+  if (data.workflow_runs) {
+    data.workflow_runs = data.workflow_runs.map((item: any) => workflowRunSummarySchemaResponseTransformer(item));
+  }
+  if (data.files) {
+    data.files = data.files.map((item: any) => fileListItemSchemaResponseTransformer(item));
+  }
+  return data;
+};
+
+export const getProjectOverviewEndpointApiProjectProjectIdOverviewGetResponseTransformer = async (
+  data: any,
+): Promise<GetProjectOverviewEndpointApiProjectProjectIdOverviewGetResponse> => {
+  data = projectOverviewSchemaResponseTransformer(data);
+  return data;
+};
+
+export const getProjectIssuesEndpointApiProjectProjectIdIssuesGetResponseTransformer = async (
+  data: any,
+): Promise<GetProjectIssuesEndpointApiProjectProjectIdIssuesGetResponse> => {
+  data = data.map((item: any) => issueSchemaResponseTransformer(item));
+  return data;
+};
+
+export const getProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponseTransformer = async (
+  data: any,
+): Promise<GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse> => {
+  data = data.map((item: any) => workflowRunSummarySchemaResponseTransformer(item));
+  return data;
+};
+
 export const getSharedResourceApiPublicShareTokenGetResponseTransformer = async (
   data: any,
 ): Promise<GetSharedResourceApiPublicShareTokenGetResponse> => {
-  data = projectDetailedSchemaResponseTransformer(data);
+  data = projectOverviewSchemaResponseTransformer(data);
   return data;
 };

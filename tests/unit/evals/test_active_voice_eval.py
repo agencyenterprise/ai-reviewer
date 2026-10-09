@@ -1,15 +1,19 @@
 """What the Active Voice eval adds on top of the generic inventory scorer."""
 
 from pathlib import Path
+from typing import Optional
 
+from evals_inspectai.common.issue_checks import DETECTION_KEYS, EDIT_KEYS
 from evals_inspectai.common.simple_deep_agent_types import ProposedEdit
 from evals_inspectai.common.issue_inventory import (
+    ResolvedInventory,
     ResolvedIssue,
     decoy_reasons,
     expects_edits,
     expects_titles,
     load_inventory_records,
 )
+from evals_inspectai.e2e.active_voice.active_voice_e2e import active_voice_e2e
 from evals_inspectai.e2e.active_voice.criteria import (
     EXTRA_EDIT_CHECKS,
     JUDGE_CRITERIA,
@@ -62,11 +66,8 @@ def test_actor_criterion_applies_only_to_passive_issues_without_an_edit():
 
 
 def test_every_metric_has_a_description_for_the_log_viewer():
-    from evals_inspectai.common.issue_checks import DETECTION_KEYS, EDIT_KEYS
-    from evals_inspectai.e2e.active_voice.active_voice_e2e import metric_descriptions
-
     reasons = list(decoy_reasons(load_inventory_records(DATASET)))
-    described = metric_descriptions(reasons)
+    described = active_voice_e2e().metadata["metrics"]
     assert set(described["issue_checks"]) == set(DETECTION_KEYS) | set(EDIT_KEYS)
     assert set(described["decoy_checks"]) == {f"no_fp_{r}" for r in reasons}
     assert set(described["active_voice_edit_checks"]) == {f"edit_{name}" for name in EXTRA_EDIT_CHECKS}
@@ -82,3 +83,16 @@ def test_dataset_is_well_formed():
     assert expects_edits(records) is True and expects_titles(records) is True
     # Every expected says whether an edit is expected, so the edit layer has something to check.
     assert all(f.edit_expected is not None for r in records for f in r.expected_issues if f.required)
+
+
+def _required(record: ResolvedInventory) -> dict[str, Optional[str]]:
+    return {e.id: e.anchor for e in record.expected_issues if e.required}
+
+
+def test_harbor_twin_carries_the_same_required_patterns_as_pathways_in_other_words():
+    records = load_inventory_records(DATASET)
+    pathways = next(r for r in records if "Pathways" in r.document)
+    harbor = next(r for r in records if "Harbor" in r.document)
+    pathways_required, harbor_required = _required(pathways), _required(harbor)
+    assert set(harbor_required) == set(pathways_required)
+    assert not set(harbor_required.values()) & set(pathways_required.values())

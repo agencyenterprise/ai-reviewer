@@ -7,7 +7,6 @@ import os
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlparse
 
@@ -17,6 +16,11 @@ import jwt
 from evals_inspectai.common.errors import (
     WorkflowCompletionError,
     check_workflow_errors,
+)
+from evals_inspectai.common.model_override import (
+    check_model_used,
+    note_served_models,
+    requested_model,
 )
 
 logger = logging.getLogger(__name__)
@@ -73,21 +77,17 @@ def _get_auth_token() -> str:
     return jwt.encode(payload, secret, algorithm=JWT_ALGORITHM)
 
 
-def _build_client(base_url: str | None = None) -> httpx.AsyncClient:
+def _build_client() -> httpx.AsyncClient:
     return httpx.AsyncClient(
-        base_url=base_url or _get_base_url(),
+        base_url=_get_base_url(),
         headers={"Authorization": f"Bearer {_get_auth_token()}"},
         timeout=DEFAULT_HTTP_TIMEOUT_S,
     )
 
 
-async def create_project(
-    title: str,
-    *,
-    base_url: str | None = None,
-) -> str:
+async def create_project(title: str) -> str:
     """Create an empty project and return its id."""
-    async with _build_client(base_url) as client:
+    async with _build_client() as client:
         resp = await client.post("/api/projects", json={"title": title})
         resp.raise_for_status()
         project_id = str(resp.json()["project"]["id"])
@@ -96,12 +96,7 @@ async def create_project(
     return project_id
 
 
-async def set_publication_date(
-    project_id: str,
-    publication_date: str,
-    *,
-    base_url: str | None = None,
-) -> None:
+async def set_publication_date(project_id: str, publication_date: str) -> None:
     """Set a project's document publication date (YYYY-MM-DD).
 
     Date-sensitive workflows (live reports, literature review) read the date off
@@ -109,7 +104,7 @@ async def set_publication_date(
     workflows are started. This is also how the app sets it, from the analysis
     options menu.
     """
-    async with _build_client(base_url) as client:
+    async with _build_client() as client:
         resp = await client.patch(
             f"/api/project/{project_id}",
             json={"publication_date": publication_date},
@@ -120,13 +115,11 @@ async def set_publication_date(
 
 
 async def create_project_and_start_workflows(
-    file_content: str | bytes,
+    file_content: str,
     workflow_types: list[str],
     file_name: str = "document.md",
     supporting_files: list[tuple[str, str | Path]] | None = None,
     publication_date: str | None = None,
-    *,
-    base_url: str | None = None,
 ) -> str:
     """Create a project, upload its documents, and start workflows on it.
 
@@ -136,8 +129,7 @@ async def create_project_and_start_workflows(
     means a break in the path real users take shows up here too.
 
     Args:
-        file_content: Content of the main document — either markdown text or
-            raw bytes (e.g. for DOCX or PDF uploads).
+        file_content: Markdown content of the main document.
         workflow_types: Workflow types to trigger (dependencies are auto-resolved
             server-side; pass only the leaf workflow).
         file_name: Display name for the main document, also used as the project
@@ -154,17 +146,16 @@ async def create_project_and_start_workflows(
 
     Returns the project_id.
     """
-    project_id = await create_project(title=file_name, base_url=base_url)
+    project_id = await create_project(title=file_name)
 
     if publication_date:
-        await set_publication_date(project_id, publication_date, base_url=base_url)
+        await set_publication_date(project_id, publication_date)
 
     await tus_upload_file(
         project_id=project_id,
         file_name=file_name,
         content=file_content,
         role=MAIN_ROLE,
-        base_url=base_url,
     )
 
     for sf_name, sf_value in supporting_files or []:
@@ -173,10 +164,9 @@ async def create_project_and_start_workflows(
             file_name=sf_name,
             content=sf_value.read_bytes() if isinstance(sf_value, Path) else sf_value,
             role=SUPPORT_ROLE,
-            base_url=base_url,
         )
 
-    await start_workflow_types(project_id, workflow_types, base_url=base_url)
+    await start_workflow_types(project_id, workflow_types)
     return project_id
 
 
@@ -194,8 +184,6 @@ async def tus_upload_file(
     content: str | bytes,
     role: str,
     revision: int | None = None,
-    *,
-    base_url: str | None = None,
 ) -> None:
     """Upload a file into an existing project through the TUS endpoint.
 
@@ -207,10 +195,11 @@ async def tus_upload_file(
         project_id: Project to attach the file to.
         file_name: Display name for the uploaded file.
         content: File content, either text or raw bytes (e.g. a PDF).
-        role: A `FileRole` value, e.g. "main", "support" or "reviewer_memo".
+        role: A `FileRole` value, e.g. "main", "support", "reviewer_memo" or
+            "response_memo".
         revision: Revision the file belongs to. Only meaningful for the
-            revision-scoped roles (main, reviewer_memo); omitting it attaches
-            the file to the project's current revision.
+            revision-scoped roles (main, reviewer_memo, response_memo);
+            omitting it attaches the file to the project's current revision.
 
     The upload is done as a create (POST) followed by a single write (PATCH).
     The creation-with-upload shortcut is deliberately not used: tuspyserver
@@ -223,7 +212,7 @@ async def tus_upload_file(
     if revision is not None:
         metadata["revision"] = str(revision)
 
-    async with _build_client(base_url) as client:
+    async with _build_client() as client:
         create = await client.post(
             "/tus",
             headers={
@@ -257,13 +246,7 @@ async def tus_upload_file(
         )
 
 
-async def link_reference_file(
-    project_id: str,
-    reference_id: str,
-    file_id: str,
-    *,
-    base_url: str | None = None,
-) -> None:
+async def link_reference_file(project_id: str, reference_id: str, file_id: str) -> None:
     """Link an already-uploaded supporting file to an extracted reference.
 
     Records a MANUAL_UPLOAD match, the same one the app creates when a user
@@ -271,7 +254,7 @@ async def link_reference_file(
     reference->file pairing is known up front and running the automatic matcher
     would only add noise.
     """
-    async with _build_client(base_url) as client:
+    async with _build_client() as client:
         resp = await client.post(
             f"/api/project/{project_id}/references/{reference_id}/files",
             json={"file_id": file_id},
@@ -286,33 +269,33 @@ async def link_reference_file(
     )
 
 
-async def approve_project_gate(
-    project_id: str,
-    gate: str = "reference_review",
-    *,
-    base_url: str | None = None,
-) -> None:
+async def approve_project_gate(project_id: str, gate: str = "reference_review") -> None:
     """Approve a gate for the project's current revision, the same call the
     web UI's Approve button makes. Releases every run waiting on that gate."""
-    async with _build_client(base_url) as client:
+    async with _build_client() as client:
         resp = await client.post(f"/api/projects/{project_id}/gates/{gate}/approve")
         resp.raise_for_status()
         logger.info("Approved gate=%s for project %s", gate, project_id)
 
 
-async def find_workflow_run_by_type(
-    project_id: str,
-    workflow_type: str,
-    *,
-    base_url: str | None = None,
+def _run_summary_by_type(
+    overview: dict[str, Any], workflow_type: str
 ) -> dict[str, Any] | None:
-    """Return the most recent run-detail dict for the given workflow type, or None."""
-    project = await get_project_detail(project_id, base_url=base_url)
-    for run_detail in project.get("workflow_runs", []):
-        run = run_detail.get("run", {})
-        if run.get("type") == workflow_type:
-            return run_detail
+    """The overview's run of one workflow type, as the project page reads it."""
+    for summary in overview.get("workflow_runs", []):
+        if summary.get("run", {}).get("type") == workflow_type:
+            return summary
     return None
+
+
+async def find_workflow_run_by_type(
+    project_id: str, workflow_type: str
+) -> dict[str, Any] | None:
+    """Return the run summary (``run`` and its ``errors``, no state) for the
+    given workflow type, or None."""
+    async with _build_client() as client:
+        overview = await _fetch_overview(client, project_id)
+    return _run_summary_by_type(overview, workflow_type)
 
 
 async def poll_until_status(
@@ -321,15 +304,12 @@ async def poll_until_status(
     target_statuses: set[str],
     timeout_s: float = DEFAULT_TIMEOUT_S,
     interval_s: float = DEFAULT_POLL_INTERVAL_S,
-    *,
-    base_url: str | None = None,
 ) -> dict[str, Any]:
-    """Poll the project until a run of the given type reaches one of the target statuses."""
+    """Poll the project until a run of the given type reaches one of the target
+    statuses, and return that run's summary (no state)."""
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
-        detail = await find_workflow_run_by_type(
-            project_id, workflow_type, base_url=base_url
-        )
+        detail = await find_workflow_run_by_type(project_id, workflow_type)
         if detail:
             status = detail.get("run", {}).get("status")
             if status in target_statuses:
@@ -346,43 +326,48 @@ async def poll_until_status(
     )
 
 
-async def _fetch_project_detail(
-    client: httpx.AsyncClient, project_id: str
-) -> dict[str, Any]:
-    resp = await client.get(
-        f"/api/project/{project_id}", params={"include_internal": True}
-    )
+async def _fetch_overview(client: httpx.AsyncClient, project_id: str) -> dict[str, Any]:
+    """The project page's polled read: every run's status and errors, no states."""
+    resp = await client.get(f"/api/project/{project_id}/overview")
     resp.raise_for_status()
     return resp.json()
 
 
-async def get_project_detail(
-    project_id: str,
-    *,
-    base_url: str | None = None,
+async def _fetch_run_detail(
+    client: httpx.AsyncClient, workflow_run_id: str
 ) -> dict[str, Any]:
-    """Fetch full project details including workflow runs, issues, and files."""
-    async with _build_client(base_url) as client:
-        return await _fetch_project_detail(client, project_id)
+    """One run with its full state (messages included) and cost."""
+    resp = await client.get(f"/api/workflows/{workflow_run_id}")
+    resp.raise_for_status()
+    return resp.json()
 
 
-async def get_workflow_state(
-    workflow_run_id: str,
-    *,
-    base_url: str | None = None,
-) -> dict[str, Any]:
+async def get_project_issues(project_id: str) -> list[dict[str, Any]]:
+    """The persisted issues of the project's current revision, as the app lists them."""
+    async with _build_client() as client:
+        resp = await client.get(f"/api/project/{project_id}/issues")
+        resp.raise_for_status()
+        return resp.json()
+
+
+async def get_project_files(project_id: str) -> list[dict[str, Any]]:
+    """The project's files, as the app lists them (`GET /api/project/{id}/files`),
+    each with its role and cached markdown."""
+    async with _build_client() as client:
+        resp = await client.get(f"/api/project/{project_id}/files")
+        resp.raise_for_status()
+        return resp.json()
+
+
+async def get_workflow_state(workflow_run_id: str) -> dict[str, Any]:
     """Fetch the full state of a single workflow run."""
-    async with _build_client(base_url) as client:
+    async with _build_client() as client:
         resp = await client.get(f"/api/workflows/{workflow_run_id}")
         resp.raise_for_status()
         return resp.json()
 
 
-async def start_workflow(
-    config: dict[str, Any],
-    *,
-    base_url: str | None = None,
-) -> str:
+async def start_workflow(config: dict[str, Any]) -> str:
     """Start a workflow via POST /api/workflows/start.
 
     Args:
@@ -391,6 +376,8 @@ async def start_workflow(
     Returns:
         The workflow_run_id of the newly created run.
 
+    The eval's ``--model``, if any, is added as the config's ``model``.
+
     Note:
         This endpoint takes the `WorkflowConfig` union, which is untagged: a
         payload carrying only `type` and `project_id` validates against the
@@ -398,7 +385,11 @@ async def start_workflow(
         config with fields unique to the target workflow, or use
         `start_workflow_types`, whose endpoint takes an explicit request model.
     """
-    async with _build_client(base_url) as client:
+    model = requested_model()
+    if model:
+        config = {**config, "model": model}
+
+    async with _build_client() as client:
         resp = await client.post("/api/workflows/start", json=config)
         resp.raise_for_status()
         body = resp.json()
@@ -410,11 +401,7 @@ async def start_workflow(
         return body["workflow_run_id"]
 
 
-async def create_revision(
-    project_id: str,
-    *,
-    base_url: str | None = None,
-) -> int:
+async def create_revision(project_id: str) -> int:
     """Create a new revision on a project and return its number.
 
     Creating a revision archives the current revision's issues and cancels any
@@ -422,7 +409,7 @@ async def create_revision(
     outgoing revision has to be uploaded before this is called. The new main
     document is uploaded afterwards, through TUS.
     """
-    async with _build_client(base_url) as client:
+    async with _build_client() as client:
         resp = await client.post(f"/api/project/{project_id}/revisions")
         resp.raise_for_status()
         revision = int(resp.json()["revision"])
@@ -431,12 +418,7 @@ async def create_revision(
     return revision
 
 
-async def start_workflow_types(
-    project_id: str,
-    workflow_types: list[str],
-    *,
-    base_url: str | None = None,
-) -> None:
+async def start_workflow_types(project_id: str, workflow_types: list[str]) -> None:
     """Start workflows on an existing project.
 
     Goes through `/api/workflows/start-multiple`, whose request model names
@@ -451,6 +433,8 @@ async def start_workflow_types(
     project by type. That is what the other e2e suites do, and it keeps this
     helper usable for the multi-workflow case where the ids would need pairing
     back up with their types anyway.
+
+    The eval's ``--model``, if any, is sent as the run's model override.
     """
     payload: dict[str, Any] = {
         "project_id": project_id,
@@ -459,8 +443,11 @@ async def start_workflow_types(
     openai_api_key = os.environ.get("EVAL_API_OPENAI_API_KEY")
     if openai_api_key:
         payload["openai_api_key"] = openai_api_key
+    model = requested_model()
+    if model:
+        payload["model"] = model
 
-    async with _build_client(base_url) as client:
+    async with _build_client() as client:
         resp = await client.post("/api/workflows/start-multiple", json=payload)
         resp.raise_for_status()
 
@@ -471,8 +458,6 @@ async def poll_workflow_run_until_complete(
     workflow_run_id: str,
     timeout_s: float = DEFAULT_TIMEOUT_S,
     interval_s: float = DEFAULT_POLL_INTERVAL_S,
-    *,
-    base_url: str | None = None,
 ) -> dict[str, Any]:
     """Poll a specific workflow run until it reaches 'completed' status.
 
@@ -489,7 +474,7 @@ async def poll_workflow_run_until_complete(
     """
     deadline = time.monotonic() + timeout_s
 
-    async with _build_client(base_url) as client:
+    async with _build_client() as client:
         while time.monotonic() < deadline:
             try:
                 resp = await client.get(f"/api/workflows/{workflow_run_id}")
@@ -507,6 +492,8 @@ async def poll_workflow_run_until_complete(
             if status == "completed":
                 logger.info("Workflow run %s completed", workflow_run_id)
                 check_workflow_errors(run_detail.get("state") or {})
+                note_served_models(run_detail)
+                check_model_used(run_detail)
                 return run_detail
             if status in TERMINAL_FAILURE_STATUSES:
                 # A run that has failed or been cancelled will never reach
@@ -536,27 +523,22 @@ async def poll_until_complete(
     workflow_type: str,
     timeout_s: float = DEFAULT_TIMEOUT_S,
     interval_s: float = DEFAULT_POLL_INTERVAL_S,
-    on_poll: Callable[[str, float], None] | None = None,
-    *,
-    base_url: str | None = None,
 ) -> dict[str, Any]:
-    """Poll the project endpoint until the target workflow is completed.
+    """Poll the project overview until the target workflow is completed.
+
+    The overview is what the app polls: run statuses without states. Once the
+    run has finished, its full detail is fetched the way the Assessments tab
+    does, from the run's own endpoint.
 
     Returns the WorkflowRunDetail dict for the completed workflow.
     Raises TimeoutError if the workflow does not complete within timeout_s.
-
-    Args:
-        on_poll: Optional callback invoked on each poll with (status, elapsed_s).
-            Called whenever the workflow status is seen, even if unchanged.
-            Use this to emit live progress events (e.g. to an Inspect transcript).
     """
     deadline = time.monotonic() + timeout_s
-    start = time.monotonic()
 
-    async with _build_client(base_url) as client:
+    async with _build_client() as client:
         while time.monotonic() < deadline:
             try:
-                project = await _fetch_project_detail(client, project_id)
+                overview = await _fetch_overview(client, project_id)
             except (httpx.TimeoutException, httpx.TransportError) as e:
                 # The workflow is still running server-side; only this poll
                 # failed. Losing the whole eval sample over it would report a
@@ -569,26 +551,26 @@ async def poll_until_complete(
                 )
                 await asyncio.sleep(interval_s)
                 continue
-            for run_detail in project.get("workflow_runs", []):
-                run = run_detail.get("run", {})
-                if run.get("type") != workflow_type:
-                    continue
+            summary = _run_summary_by_type(overview, workflow_type)
+            if summary is not None:
+                run = summary.get("run", {})
                 status = run.get("status")
-                elapsed = time.monotonic() - start
-                if on_poll:
-                    on_poll(status or "pending", elapsed)
                 if status == "completed":
                     logger.info(
                         "Workflow %s completed (run_id=%s)",
                         workflow_type,
                         run.get("id"),
                     )
+                    run_detail = await _fetch_run_detail(client, run["id"])
                     check_workflow_errors(run_detail.get("state") or {})
+                    note_served_models(run_detail)
+                    check_model_used(run_detail)
                     return run_detail
                 if status in TERMINAL_FAILURE_STATUSES:
                     # A failed or cancelled run will never reach "completed",
                     # so polling on would only burn the timeout and report the
                     # wrong cause.
+                    run_detail = await _fetch_run_detail(client, run["id"])
                     check_workflow_errors(run_detail.get("state") or {})
                     raise WorkflowCompletionError(
                         f"Workflow '{workflow_type}' ended with status "

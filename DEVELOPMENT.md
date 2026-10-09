@@ -236,16 +236,9 @@ backends. Pool capacity is not the same as workflow concurrency: connections are
 borrowed for database operations, not held for the entire model call. Increasing
 pool sizes alone can exhaust the server limit sooner; keep both sides in balance.
 
-The variants Flow's task concurrency is also configurable:
-
-```bash
-uv run flow run evals_inspectai/flow_config/abbreviation_checker_variants.py \
-  --arg backend=local --arg max_tasks=8
-```
-
-Eight backend processes with the default pools can use up to 120 connections, so
-raise the server limit with suitable headroom or reduce per-process pool sizes
-before using that concurrency. Completed eval tasks release their backend servers.
+For multiple backend processes, multiply that per-process budget by the process
+count. Raise the server limit with suitable headroom or reduce per-process pool
+sizes before increasing eval concurrency.
 
 
 ## Development Workflow

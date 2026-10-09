@@ -62,9 +62,7 @@ from inspect_ai.viewer import (
 )
 
 from evals_inspectai.common.api_solver import surface_conversations
-from evals_inspectai.common.backend import local_backend_for, resolve_base_url
 from evals_inspectai.common.loaders import resolve_input
-from evals_inspectai.common.local_backend import LocalBackend
 from evals_inspectai.common.peer_review_fixture import (
     ReviewerMemo,
     run_review_assistant_workflow,
@@ -72,12 +70,11 @@ from evals_inspectai.common.peer_review_fixture import (
 )
 from evals_inspectai.common.review_assistant_scorers import (
     STRUCTURE_CHECKS,
-    criteria_for,
     extract_report,
-    failed_score,
-    grade_criteria,
     report_structure,
 )
+from evals_inspectai.common.scorers import criteria_for, failed_score, grade_criteria
+from evals_inspectai.common.model_override import output_model_name
 
 _TARGET_WORKFLOW = "revision_planning_summary"
 
@@ -145,8 +142,6 @@ def _load_dataset() -> MemoryDataset:
 def revision_planning_summary_solver(
     timeout_s: float = _WORKFLOW_TIMEOUT_S,
     poll_interval_s: float = 10,
-    local_backend: LocalBackend | None = None,
-    api_base_url: str | None = None,
 ) -> Solver:
     """Build a peer-review project from the sample, then run the workflow on it.
 
@@ -156,7 +151,6 @@ def revision_planning_summary_solver(
     """
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
-        base_url = await resolve_base_url(local_backend, api_base_url)
         meta = state.metadata or {}
 
         project_id = await setup_peer_review_project(
@@ -165,7 +159,6 @@ def revision_planning_summary_solver(
                 ReviewerMemo(file_name=m["file_name"], content=m["content"])
                 for m in meta["memos"]
             ],
-            base_url=base_url,
         )
 
         run_detail = await run_review_assistant_workflow(
@@ -173,7 +166,6 @@ def revision_planning_summary_solver(
             workflow_type=_TARGET_WORKFLOW,
             timeout_s=timeout_s,
             poll_interval_s=poll_interval_s,
-            base_url=base_url,
         )
 
         workflow_state = run_detail.get("state") or {}
@@ -185,7 +177,7 @@ def revision_planning_summary_solver(
 
         state.output = ModelOutput(
             completion=json.dumps(workflow_state),
-            model="api",
+            model=output_model_name(run_detail),
         )
         return state
 
@@ -357,11 +349,11 @@ def _viewer_config() -> ViewerConfig:
 
 
 @task
-def revision_planning_summary_e2e(backend: str = "remote", api_base_url: str | None = None):
+def revision_planning_summary_e2e():
     return Task(
         dataset=_load_dataset(),
         fail_on_error=0.2,
-        solver=revision_planning_summary_solver(local_backend=local_backend_for(backend, api_base_url), api_base_url=api_base_url),
+        solver=revision_planning_summary_solver(),
         scorer=[
             report_structure(),
             rubric_criteria(),
