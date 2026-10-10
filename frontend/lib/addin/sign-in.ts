@@ -88,3 +88,22 @@ export async function signInInteractively(): Promise<SignInMessage> {
     return openSignInDialog();
   }
 }
+
+/**
+ * The message the sign-in dialog may hand back for a Draft Detective session, or null.
+ *
+ * Only a session from a Microsoft sign-in that carries the account's object id: the
+ * add-in's routes accept nothing else. A Google session, or a Microsoft one from before
+ * the object id was carried, would be refused by the API and loop the pane back here,
+ * so the dialog offers to sign in again instead.
+ */
+export function dialogSession(accessToken: string | undefined, email: string | undefined): SignInMessage | null {
+  if (!accessToken || !email) return null;
+  try {
+    const claims = claimsOf(accessToken);
+    if (claims.provider !== 'microsoft-entra-id' || !claims.oid) return null;
+  } catch {
+    return null;
+  }
+  return { accessToken, email, via: 'dialog' };
+}

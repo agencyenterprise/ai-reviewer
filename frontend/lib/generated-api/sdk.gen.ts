@@ -223,6 +223,9 @@ import type {
   SetApiKeyApiUsersMeApiKeyPutData,
   SetApiKeyApiUsersMeApiKeyPutErrors,
   SetApiKeyApiUsersMeApiKeyPutResponses,
+  StartApiMicrosoftWordHandoffsHandoffIdStartedPostData,
+  StartApiMicrosoftWordHandoffsHandoffIdStartedPostErrors,
+  StartApiMicrosoftWordHandoffsHandoffIdStartedPostResponses,
   StartMultipleWorkflowsApiWorkflowsStartMultiplePostData,
   StartMultipleWorkflowsApiWorkflowsStartMultiplePostErrors,
   StartMultipleWorkflowsApiWorkflowsStartMultiplePostResponses,
@@ -2306,7 +2309,7 @@ export const applySuggestionsApiMicrosoftWordSuggestionsApplyPost = <ThrowOnErro
 /**
  * List Pending
  *
- * The signed-in user's pending handoffs, split by whether they are for this document.
+ * The signed-in account's open handoffs, split by whether they are for this document.
  */
 export const listPendingApiMicrosoftWordHandoffsGet = <ThrowOnError extends boolean = true>(
   options: Options<ListPendingApiMicrosoftWordHandoffsGetData, ThrowOnError>,
@@ -2325,6 +2328,31 @@ export const listPendingApiMicrosoftWordHandoffsGet = <ThrowOnError extends bool
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/microsoft/word/handoffs',
+    ...options,
+  });
+
+/**
+ * Start
+ *
+ * Claim a pending handoff before writing it into the document.
+ */
+export const startApiMicrosoftWordHandoffsHandoffIdStartedPost = <ThrowOnError extends boolean = true>(
+  options: Options<StartApiMicrosoftWordHandoffsHandoffIdStartedPostData, ThrowOnError>,
+): RequestResult<
+  StartApiMicrosoftWordHandoffsHandoffIdStartedPostResponses,
+  StartApiMicrosoftWordHandoffsHandoffIdStartedPostErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).post<
+    StartApiMicrosoftWordHandoffsHandoffIdStartedPostResponses,
+    StartApiMicrosoftWordHandoffsHandoffIdStartedPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/microsoft/word/handoffs/{handoff_id}/started',
     ...options,
   });
 

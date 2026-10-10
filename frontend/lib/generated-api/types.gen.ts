@@ -2440,32 +2440,31 @@ export type HandoffItems = {
 };
 
 /**
- * HandoffOutcome
+ * HandoffReport
  */
-export type HandoffOutcome = {
+export type HandoffReport = {
   /**
-   * Items
+   * Results
+   *
+   * What happened to each stored item, by position (comments first, then edits). Items left out count as not applied.
    */
-  items?: Array<ItemOutcome>;
-};
-
-/**
- * HandoffResult
- */
-export type HandoffResult = {
-  outcome: HandoffOutcome;
+  results: Array<ItemResult>;
 };
 
 /**
  * HandoffView
  *
- * A pending handoff as the add-in sees it.
+ * An open handoff as the add-in sees it.
  */
 export type HandoffView = {
   /**
    * Id
    */
   id: string;
+  /**
+   * Status
+   */
+  status: 'pending' | 'applying';
   /**
    * Document Name
    */
@@ -2844,25 +2843,25 @@ export const IssueStatus = { Active: 'active', Archived: 'archived' } as const;
 export type IssueStatus = (typeof IssueStatus)[keyof typeof IssueStatus];
 
 /**
- * ItemOutcome
+ * ItemResult
+ *
+ * What happened to one stored item, named by its position in the handoff.
  */
-export type ItemOutcome = {
+export type ItemResult = {
   /**
-   * Kind
+   * Index
+   *
+   * Comments first, then edits, as stored
    */
-  kind: 'comment' | 'edit';
-  /**
-   * Quote
-   */
-  quote: string;
+  index: number;
   /**
    * Applied
    */
   applied: boolean;
   /**
-   * Detail
+   * Reason
    */
-  detail?: string;
+  reason?: 'not_found' | 'ambiguous' | 'withheld' | 'refused' | 'not_written' | null;
 };
 
 /**
@@ -8191,8 +8190,40 @@ export type ListPendingApiMicrosoftWordHandoffsGetResponses = {
 export type ListPendingApiMicrosoftWordHandoffsGetResponse =
   ListPendingApiMicrosoftWordHandoffsGetResponses[keyof ListPendingApiMicrosoftWordHandoffsGetResponses];
 
+export type StartApiMicrosoftWordHandoffsHandoffIdStartedPostData = {
+  body?: never;
+  path: {
+    /**
+     * Handoff Id
+     */
+    handoff_id: string;
+  };
+  query?: never;
+  url: '/api/microsoft/word/handoffs/{handoff_id}/started';
+};
+
+export type StartApiMicrosoftWordHandoffsHandoffIdStartedPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type StartApiMicrosoftWordHandoffsHandoffIdStartedPostError =
+  StartApiMicrosoftWordHandoffsHandoffIdStartedPostErrors[keyof StartApiMicrosoftWordHandoffsHandoffIdStartedPostErrors];
+
+export type StartApiMicrosoftWordHandoffsHandoffIdStartedPostResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type StartApiMicrosoftWordHandoffsHandoffIdStartedPostResponse =
+  StartApiMicrosoftWordHandoffsHandoffIdStartedPostResponses[keyof StartApiMicrosoftWordHandoffsHandoffIdStartedPostResponses];
+
 export type ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostData = {
-  body: HandoffResult;
+  body: HandoffReport;
   path: {
     /**
      * Handoff Id

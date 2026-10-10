@@ -1,9 +1,9 @@
 """Tests for the add-in's side of Teams handoffs.
 
-The routes are thin, so what is pinned is the contract around them: every lookup is by
-the signed-in Microsoft account, reporting a result posts once into the Teams thread
-the request came from, and a handoff that is not theirs (or already closed) is a 404
-with nothing posted.
+The routes are thin, so what is pinned is the contract around them: every call is
+scoped to the signed-in Microsoft account, a handoff that is not theirs (or no longer
+open) is a 404, and results that do not describe the handoff's own items are refused
+rather than posted.
 """
 
 import uuid
@@ -14,40 +14,18 @@ from fastapi import HTTPException
 
 from lib.api.addin_auth import AddinIdentity
 from lib.api.routers.microsoft import word
-from lib.api.routers.microsoft.word import HandoffResult
-from lib.services.microsoft.word.handoffs import (
-    Account,
-    FinishedHandoff,
-    HandoffOutcome,
-    ItemOutcome,
-)
-
-REFERENCE = {
-    "serviceUrl": "https://smba.trafficmanager.net/br/",
-    "channelId": "msteams",
-    "conversation": {"id": "19:x;messageid=1"},
-}
-
+from lib.api.routers.microsoft.word import HandoffReport
+from lib.services.microsoft.word.handoffs import Account, InvalidResults, ItemResult
 
 ANA = Account(oid="oid-ana", tid="tid-contoso")
+RESULTS = [
+    ItemResult(index=0, applied=True),
+    ItemResult(index=1, applied=False, reason="not_found"),
+]
 
 
 def caller() -> AddinIdentity:
     return AddinIdentity(oid=ANA.oid, tid=ANA.tid, email="ana@contoso.com")
-
-
-def outcome() -> HandoffOutcome:
-    return HandoffOutcome(
-        items=[
-            ItemOutcome(kind="comment", quote="is the only option", applied=True),
-            ItemOutcome(
-                kind="edit",
-                quote="a passage that has since been rewritten entirely by the author",
-                applied=False,
-                detail="the words are no longer in the document",
-            ),
-        ]
-    )
 
 
 class TestListing:
@@ -60,32 +38,57 @@ class TestListing:
         assert result.here == [] and result.elsewhere == []
 
 
-class TestReporting:
+class TestStarting:
     @pytest.mark.asyncio
-    async def test_applying_posts_into_the_thread(self) -> None:
-        finished = FinishedHandoff(document_name="Draft.docx", reference=REFERENCE)
+    async def test_a_pending_handoff_is_claimed_for_the_caller(self) -> None:
         handoff_id = uuid.uuid4()
-        with patch.object(word.handoffs, "finish", AsyncMock(return_value=finished)) as finish, \
-            patch.object(word.handoffs.bot, "post_later", AsyncMock()) as post:
-            await word.report_applied(handoff_id, HandoffResult(outcome=outcome()), caller=caller())
+        with patch.object(word.handoffs, "start", AsyncMock(return_value=True)) as start:
+            await word.start(handoff_id, caller=caller())
 
-        finish.assert_awaited_once()
-        assert finish.await_args is not None and post.await_args is not None
-        assert finish.await_args.args[:3] == (handoff_id, ANA, "applied")
-        reference, text = post.await_args.args
-        assert reference.conversation.id == "19:x;messageid=1"
-        assert "1 of 2" in text
+        start.assert_awaited_once_with(handoff_id, ANA)
 
     @pytest.mark.asyncio
-    async def test_not_theirs_is_a_404_and_posts_nothing(self) -> None:
-        with patch.object(word.handoffs, "finish", AsyncMock(return_value=None)), \
-            patch.object(word.handoffs.bot, "post_later", AsyncMock()) as post:
+    async def test_one_already_started_or_not_theirs_is_a_404(self) -> None:
+        with patch.object(word.handoffs, "start", AsyncMock(return_value=False)):
             with pytest.raises(HTTPException) as raised:
-                await word.report_applied(uuid.uuid4(), HandoffResult(outcome=outcome()), caller=caller())
+                await word.start(uuid.uuid4(), caller=caller())
 
         assert raised.value.status_code == 404
-        post.assert_not_awaited()
 
+
+class TestReporting:
+    @pytest.mark.asyncio
+    async def test_results_are_reported_for_the_caller(self) -> None:
+        handoff_id = uuid.uuid4()
+        with patch.object(word.handoffs, "report_applied", AsyncMock(return_value=True)) as report:
+            await word.report_applied(handoff_id, HandoffReport(results=RESULTS), caller=caller())
+
+        report.assert_awaited_once_with(handoff_id, ANA, RESULTS)
+
+    @pytest.mark.asyncio
+    async def test_not_theirs_is_a_404(self) -> None:
+        with patch.object(word.handoffs, "report_applied", AsyncMock(return_value=False)):
+            with pytest.raises(HTTPException) as raised:
+                await word.report_applied(uuid.uuid4(), HandoffReport(results=RESULTS), caller=caller())
+
+        assert raised.value.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_results_for_items_it_does_not_have_are_refused(self) -> None:
+        with patch.object(
+            word.handoffs, "report_applied", AsyncMock(side_effect=InvalidResults("no item 9"))
+        ):
+            with pytest.raises(HTTPException) as raised:
+                await word.report_applied(uuid.uuid4(), HandoffReport(results=RESULTS), caller=caller())
+
+        assert raised.value.status_code == 422
+
+    def test_a_report_is_capped(self) -> None:
+        with pytest.raises(ValueError):
+            HandoffReport(results=[ItemResult(index=i, applied=True) for i in range(501)])
+
+
+class TestDismissing:
     @pytest.mark.asyncio
     async def test_dismissing_someone_elses_is_a_404(self) -> None:
         with patch.object(word.handoffs, "finish", AsyncMock(return_value=None)):
@@ -95,12 +98,9 @@ class TestReporting:
         assert raised.value.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_dismissing_posts_nothing(self) -> None:
-        finished = FinishedHandoff(document_name="Draft.docx", reference=REFERENCE)
-        with patch.object(word.handoffs, "finish", AsyncMock(return_value=finished)) as finish, \
-            patch.object(word.handoffs.bot, "post_later", AsyncMock()) as post:
-            await word.dismiss(uuid.uuid4(), caller=caller())
+    async def test_dismissing_closes_it_for_the_caller(self) -> None:
+        handoff_id = uuid.uuid4()
+        with patch.object(word.handoffs, "finish", AsyncMock(return_value=object())) as finish:
+            await word.dismiss(handoff_id, caller=caller())
 
-        assert finish.await_args is not None
-        assert finish.await_args.args[2] == "dismissed"
-        post.assert_not_awaited()
+        finish.assert_awaited_once_with(handoff_id, ANA, "dismissed")

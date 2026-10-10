@@ -38,8 +38,12 @@ describe('planHandoff', () => {
     );
 
     expect([...plan.paragraphs.keys()].sort()).toEqual([1, 2]);
-    expect(plan.paragraphs.get(2)?.edits).toHaveLength(1);
-    expect(plan.unplaced).toEqual([{ kind: 'comment', quote: 'vanished text', applied: false, detail: NOT_FOUND }]);
+    // Each item keeps its position in the handoff: comments first, then edits.
+    expect(plan.paragraphs.get(1)?.comments.map(({ index }) => index)).toEqual([0]);
+    expect(plan.paragraphs.get(2)?.edits.map(({ index }) => index)).toEqual([2]);
+    expect(plan.unplaced).toEqual([
+      { index: 1, kind: 'comment', quote: 'vanished text', applied: false, detail: NOT_FOUND, reason: 'not_found' },
+    ]);
   });
 });
 

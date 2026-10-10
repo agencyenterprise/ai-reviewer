@@ -82,10 +82,17 @@ class Requester(Account):
     upn: str
 
 
+# ``applying`` is a handoff the add-in has started writing but not reported. It is still
+# shown, with a warning, so an interrupted Apply is never silently offered again.
+OpenStatus = Literal["pending", "applying"]
+OPEN: tuple[str, ...] = ("pending", "applying")
+
+
 class HandoffView(BaseModel):
-    """A pending handoff as the add-in sees it."""
+    """An open handoff as the add-in sees it."""
 
     id: uuid.UUID
+    status: OpenStatus
     document_name: str
     document_url: str
     items: HandoffItems
@@ -99,6 +106,30 @@ class ItemOutcome(BaseModel):
     detail: str = ""
 
 
+# Why an item was not applied, as the add-in reports it. A fixed set, worded here: the
+# report is posted into Teams as the bot, so no text from the client reaches it.
+FailureReason = Literal["not_found", "ambiguous", "withheld", "refused", "not_written"]
+REASONS: dict[str, str] = {
+    "not_found": "the words are no longer in the document",
+    "ambiguous": "the words appear in more than one paragraph",
+    "withheld": "withheld: it would have changed text it should not have",
+    "refused": "it could not be placed",
+    "not_written": "Word did not accept the change",
+}
+
+
+class ItemResult(BaseModel):
+    """What happened to one stored item, named by its position in the handoff."""
+
+    index: int = Field(ge=0, description="Comments first, then edits, as stored")
+    applied: bool
+    reason: Optional[FailureReason] = None
+
+
+class InvalidResults(ValueError):
+    """Results that do not describe the handoff's own items."""
+
+
 class HandoffOutcome(BaseModel):
     items: list[ItemOutcome] = Field(default_factory=list)
 
@@ -110,6 +141,7 @@ class HandoffOutcome(BaseModel):
 class FinishedHandoff(BaseModel):
     document_name: str
     reference: dict[str, Any]
+    items: HandoffItems = Field(default_factory=HandoffItems)
 
     def conversation_reference(self) -> ConversationReference:
         return ConversationReference.model_validate(self.reference)
@@ -215,13 +247,13 @@ async def create(
 
 
 async def pending_for(account: Account) -> list[MicrosoftWordHandoff]:
-    """Every handoff waiting for this person, newest first."""
+    """Every open handoff of this person's, newest first."""
 
     async with get_async_db_session() as session:
         rows = await session.execute(
             select(MicrosoftWordHandoff)
             .where(_owned_by(account))
-            .where(col(MicrosoftWordHandoff.status) == "pending")
+            .where(col(MicrosoftWordHandoff.status).in_(OPEN))
             .order_by(col(MicrosoftWordHandoff.created_at).desc())
         )
         return list(rows.scalars().all())
@@ -242,6 +274,7 @@ def split_by_document(
     for row in handoffs:
         view = HandoffView(
             id=row.id,
+            status="applying" if row.status == "applying" else "pending",
             document_name=row.document_name,
             document_url=row.document_url,
             items=HandoffItems.model_validate(row.items),
@@ -257,7 +290,7 @@ async def finish(
     status: Literal["applied", "dismissed"],
     outcome: Optional[HandoffOutcome] = None,
 ) -> Optional[FinishedHandoff]:
-    """Close a pending handoff, once. ``None`` if it is not theirs or already closed.
+    """Close an open handoff, once. ``None`` if it is not theirs or already closed.
 
     One conditional UPDATE, so two panes reporting the same handoff cannot both get a
     message posted into Teams.
@@ -269,7 +302,7 @@ async def finish(
                 update(MicrosoftWordHandoff)
                 .where(col(MicrosoftWordHandoff.id) == handoff_id)
                 .where(_owned_by(account))
-                .where(col(MicrosoftWordHandoff.status) == "pending")
+                .where(col(MicrosoftWordHandoff.status).in_(OPEN))
                 .values(
                     status=status,
                     outcome=outcome.model_dump(mode="json") if outcome else None,
@@ -278,23 +311,93 @@ async def finish(
                 .returning(
                     col(MicrosoftWordHandoff.document_name),
                     col(MicrosoftWordHandoff.reference),
+                    col(MicrosoftWordHandoff.items),
                 )
             )
         ).first()
         await session.commit()
     if row is None:
         return None
-    return FinishedHandoff(document_name=row[0], reference=row[1])
+    return FinishedHandoff(
+        document_name=row[0], reference=row[1], items=HandoffItems.model_validate(row[2])
+    )
+
+
+async def start(handoff_id: uuid.UUID, account: Account) -> bool:
+    """Claim a pending handoff before writing it. False if it is not theirs to start.
+
+    Marked before Word is touched, so a run that never reports back leaves it
+    ``applying`` -- shown with a warning -- rather than ``pending``, which would offer the
+    same Apply again and write every comment twice.
+    """
+
+    async with get_async_db_session() as session:
+        row = (
+            await session.execute(
+                update(MicrosoftWordHandoff)
+                .where(col(MicrosoftWordHandoff.id) == handoff_id)
+                .where(_owned_by(account))
+                .where(col(MicrosoftWordHandoff.status) == "pending")
+                .values(status="applying")
+                .returning(col(MicrosoftWordHandoff.id))
+            )
+        ).first()
+        await session.commit()
+    return row is not None
+
+
+async def _open_items(handoff_id: uuid.UUID, account: Account) -> Optional[HandoffItems]:
+    async with get_async_db_session() as session:
+        value = (
+            await session.execute(
+                select(col(MicrosoftWordHandoff.items))
+                .where(col(MicrosoftWordHandoff.id) == handoff_id)
+                .where(_owned_by(account))
+                .where(col(MicrosoftWordHandoff.status).in_(OPEN))
+            )
+        ).scalar_one_or_none()
+    return HandoffItems.model_validate(value) if value is not None else None
+
+
+def outcome_from(items: HandoffItems, results: list[ItemResult]) -> HandoffOutcome:
+    """The outcome of a handoff, built from its stored items and the add-in's results.
+
+    Quotes come from what was stored and reasons from ``REASONS``, never from the
+    client. An item the add-in reported nothing for counts as not applied. Raises
+    ``InvalidResults`` for an index that is out of range or repeated.
+    """
+
+    stored: list[tuple[Literal["comment", "edit"], str]] = [
+        ("comment", comment.quote) for comment in items.comments
+    ] + [("edit", edit.quote) for edit in items.edits]
+    by_index: dict[int, ItemResult] = {}
+    for result in results:
+        if result.index >= len(stored) or result.index in by_index:
+            raise InvalidResults(f"no single item {result.index} in this handoff")
+        by_index[result.index] = result
+
+    outcomes: list[ItemOutcome] = []
+    for index, (kind, quote) in enumerate(stored):
+        reported = by_index.get(index)
+        applied = bool(reported and reported.applied)
+        reason = None if applied else REASONS[(reported and reported.reason) or "not_written"]
+        outcomes.append(ItemOutcome(kind=kind, quote=quote, applied=applied, detail=reason or ""))
+    return HandoffOutcome(items=outcomes)
 
 
 async def report_applied(
-    handoff_id: uuid.UUID, account: Account, outcome: HandoffOutcome
+    handoff_id: uuid.UUID, account: Account, results: list[ItemResult]
 ) -> bool:
     """Close a handoff the add-in has written, and say how it went in Teams.
 
-    False if it is not theirs or already closed, in which case nothing is posted.
+    False if it is not theirs or already closed, in which case nothing is posted. The
+    message is built from the stored items (see ``outcome_from``).
     """
 
+    items = await _open_items(handoff_id, account)
+    if items is None:
+        return False
+    outcome = outcome_from(items, results)
     finished = await finish(handoff_id, account, "applied", outcome)
     if finished is None:
         return False

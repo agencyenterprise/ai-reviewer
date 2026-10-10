@@ -9,13 +9,15 @@ before anything is stored.
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
+import jwt
 import pytest
 
 from lib.agents.tools import word_handoff
 from lib.services.microsoft.graph.client import GraphError
 from lib.services.microsoft.word.handoffs import HandoffComment, HandoffEdit
 
-TOKEN = "a-user-token"
+# The asker's Graph token. Its tenant is what the handoff records, not the Teams one.
+TOKEN = jwt.encode({"tid": "tid-home"}, "not-verified-here-only-read-for-its-tenant-claim", algorithm="HS256")
 URL = "https://contoso.sharepoint.com/sites/Policy/Shared%20Documents/Draft.docx"
 REFERENCE = {"serviceUrl": "https://smba", "conversation": {"id": "19:x", "tenantId": "tid-contoso"}}
 ITEM: dict[str, Any] = {
@@ -53,7 +55,7 @@ class TestOffering:
         resolve.assert_awaited_once_with(URL, token=TOKEN)
         stored = create.await_args.kwargs
         assert stored["requester"].oid == "oid-ana"
-        assert stored["requester"].tid == "tid-contoso", "the tenant comes from the Teams conversation"
+        assert stored["requester"].tid == "tid-home", "the tenant comes from the asker's own token"
         assert stored["requester"].upn == "ana@contoso.com"
         assert stored["reference"] == REFERENCE
         assert stored["items"].count == 2
@@ -114,3 +116,11 @@ class TestUsableItems:
     def test_it_is_capped(self) -> None:
         many = [HandoffComment(quote=f"quote {i}", comment="x") for i in range(150)]
         assert len(word_handoff.usable_items(many, []).comments) == word_handoff.MAX_COMMENTS
+
+
+class TestTheAskersTenant:
+    def test_it_is_read_from_their_token(self) -> None:
+        assert word_handoff.tenant_of(TOKEN) == "tid-home"
+
+    def test_a_token_it_cannot_read_records_no_tenant(self) -> None:
+        assert word_handoff.tenant_of("not-a-jwt") is None

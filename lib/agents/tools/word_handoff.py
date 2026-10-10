@@ -12,6 +12,7 @@ report back to are closed over, never parameters the model could change.
 import logging
 from typing import Any, Optional
 
+import jwt
 from langchain.tools import BaseTool, tool
 
 from lib.services.microsoft.graph import client
@@ -62,10 +63,20 @@ def usable_items(
     )
 
 
-def tenant_of(reference: dict[str, Any]) -> Optional[str]:
-    """The asker's tenant, from the Teams conversation they asked in."""
+def tenant_of(token: str) -> Optional[str]:
+    """The asker's home tenant, from their own Graph token.
 
-    tenant = (reference.get("conversation") or {}).get("tenantId")
+    Taken from the same identity as the object id Graph ``/me`` gives, so the pair is
+    consistent. The Teams conversation's tenant is not: for a guest it is the host
+    tenant, and the handoff would never match the add-in's sign-in. Read without
+    verifying, which is fine for this: the token came from the Bot Framework token
+    service, and a tenant that cannot be read only means it is not checked.
+    """
+
+    try:
+        tenant = jwt.decode(token, options={"verify_signature": False}).get("tid")
+    except jwt.PyJWTError:
+        return None
     return str(tenant) if tenant else None
 
 
@@ -122,7 +133,7 @@ def offer_changes_for(token: str, reference: dict[str, Any]) -> BaseTool:
 
         name = str(item.get("name") or "the document")
         await handoffs.create(
-            requester=Requester(oid=oid, tid=tenant_of(reference), upn=upn),
+            requester=Requester(oid=oid, tid=tenant_of(token), upn=upn),
             document_name=name,
             document_url=str(item.get("webUrl") or url),
             keys=keys,

@@ -22,7 +22,9 @@ from lib.services.microsoft.word.handoffs import (
     HandoffEdit,
     HandoffItems,
     HandoffOutcome,
+    InvalidResults,
     ItemOutcome,
+    ItemResult,
     Account,
     Requester,
 )
@@ -74,6 +76,10 @@ def stored(keys: list[str]) -> MicrosoftWordHandoff:
 
 
 ANA = Account(oid="oid-ana", tid="tid-contoso")
+ITEMS = HandoffItems(
+    comments=[HandoffComment(quote="is the only option", comment="Overclaims.")],
+    edits=[HandoffEdit(quote="recieve", replacement="receive")],
+)
 
 
 class TestWhoOwnsAHandoff:
@@ -186,7 +192,9 @@ class TestListing:
 class TestFinishing:
     @pytest.mark.asyncio
     async def test_it_is_one_update_scoped_to_the_asker_and_still_pending(self) -> None:
-        session = session_returning(first=("Draft v3.docx", {"serviceUrl": "https://smba"}))
+        session = session_returning(
+            first=("Draft v3.docx", {"serviceUrl": "https://smba"}, ITEMS.model_dump(mode="json"))
+        )
         outcome = HandoffOutcome(
             items=[ItemOutcome(kind="edit", quote="abc", applied=True)]
         )
@@ -233,3 +241,91 @@ class TestTheReport:
         assert text.startswith("Applied to **Draft.docx** in Word: 1 of 2")
         assert "no longer in the document" in text
         assert "…" in text, "a long quote is shortened"
+
+
+class TestBuildingTheOutcome:
+    """The report is posted into Teams as the bot, so only stored text may reach it."""
+
+    def test_quotes_and_reasons_come_from_the_server(self) -> None:
+        outcome = handoffs.outcome_from(
+            ITEMS,
+            [ItemResult(index=0, applied=True), ItemResult(index=1, applied=False, reason="ambiguous")],
+        )
+
+        assert [(item.kind, item.quote, item.applied) for item in outcome.items] == [
+            ("comment", "is the only option", True),
+            ("edit", "recieve", False),
+        ]
+        assert outcome.items[1].detail == handoffs.REASONS["ambiguous"]
+
+    def test_an_item_with_no_result_counts_as_not_applied(self) -> None:
+        outcome = handoffs.outcome_from(ITEMS, [ItemResult(index=0, applied=True)])
+
+        assert outcome.items[1].applied is False
+        assert outcome.items[1].detail == handoffs.REASONS["not_written"]
+
+    @pytest.mark.parametrize(
+        "results",
+        [[ItemResult(index=2, applied=True)], [ItemResult(index=0, applied=True)] * 2],
+        ids=["out of range", "repeated"],
+    )
+    def test_results_for_other_items_are_refused(self, results: list[ItemResult]) -> None:
+        with pytest.raises(InvalidResults):
+            handoffs.outcome_from(ITEMS, results)
+
+
+class TestStarting:
+    @pytest.mark.asyncio
+    async def test_only_a_pending_handoff_of_theirs_is_claimed(self) -> None:
+        session = session_returning(first=(uuid.uuid4(),))
+        with patch.object(handoffs, "get_async_db_session", return_value=session):
+            assert await handoffs.start(uuid.uuid4(), ANA) is True
+
+        (sql,) = statements(session)
+        assert sql.startswith("update microsoft_word_handoffs")
+        assert "requested_by_oid" in sql and "status" in sql
+
+    @pytest.mark.asyncio
+    async def test_anything_else_is_not_claimed(self) -> None:
+        with patch.object(handoffs, "get_async_db_session", return_value=session_returning(first=None)):
+            assert await handoffs.start(uuid.uuid4(), ANA) is False
+
+
+class TestReportingApplied:
+    @pytest.mark.asyncio
+    async def test_the_report_posted_is_built_from_the_stored_items(self) -> None:
+        reference = {"serviceUrl": "https://smba", "channelId": "msteams", "conversation": {"id": "19:x"}}
+        finished = FinishedHandoff(document_name="Draft.docx", reference=reference, items=ITEMS)
+        with patch.object(handoffs, "_open_items", AsyncMock(return_value=ITEMS)), patch.object(
+            handoffs, "finish", AsyncMock(return_value=finished)
+        ) as finish, patch.object(handoffs.bot, "post_later", AsyncMock()) as post:
+            reported = await handoffs.report_applied(
+                uuid.uuid4(), ANA, [ItemResult(index=0, applied=True), ItemResult(index=1, applied=False, reason="not_found")]
+            )
+
+        assert reported is True
+        assert finish.await_args is not None and post.await_args is not None
+        stored = finish.await_args.args[3]
+        assert [item.quote for item in stored.items] == ["is the only option", "recieve"]
+        text = post.await_args.args[1]
+        assert "1 of 2" in text and handoffs.REASONS["not_found"] in text
+
+    @pytest.mark.asyncio
+    async def test_invalid_results_post_nothing(self) -> None:
+        with patch.object(handoffs, "_open_items", AsyncMock(return_value=ITEMS)), patch.object(
+            handoffs, "finish", AsyncMock()
+        ) as finish, patch.object(handoffs.bot, "post_later", AsyncMock()) as post:
+            with pytest.raises(InvalidResults):
+                await handoffs.report_applied(uuid.uuid4(), ANA, [ItemResult(index=7, applied=True)])
+
+        finish.assert_not_awaited()
+        post.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_not_theirs_or_closed_posts_nothing(self) -> None:
+        with patch.object(handoffs, "_open_items", AsyncMock(return_value=None)), patch.object(
+            handoffs.bot, "post_later", AsyncMock()
+        ) as post:
+            assert await handoffs.report_applied(uuid.uuid4(), ANA, []) is False
+
+        post.assert_not_awaited()

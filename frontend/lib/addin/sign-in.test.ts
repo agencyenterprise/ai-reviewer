@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  dialogSession,
   openSignInDialog,
   openSignOutDialog,
   SIGN_IN_PATH,
@@ -142,5 +143,28 @@ describe('openSignOutDialog', () => {
     await expect(signedOut).resolves.toBeUndefined();
     expect(displayDialogAsync.mock.calls[0][0]).toBe(`${window.location.origin}${SIGN_OUT_PATH}`);
     expect(dialog.close).toHaveBeenCalled();
+  });
+});
+
+describe('dialogSession', () => {
+  it('hands back a Microsoft session that names the account', () => {
+    const session = token({ provider: 'microsoft-entra-id', oid: 'oid-ana' });
+    expect(dialogSession(session, 'ana@contoso.com')).toEqual({
+      accessToken: session,
+      email: 'ana@contoso.com',
+      via: 'dialog',
+    });
+  });
+
+  it.each([
+    ['a Google session', { provider: 'google' }],
+    ['a Microsoft session from before the object id was carried', { provider: 'microsoft-entra-id' }],
+  ])('does not hand back %s, which the API would refuse', (_, claims) => {
+    expect(dialogSession(token(claims), 'ana@contoso.com')).toBeNull();
+  });
+
+  it('does not hand back nothing or a token it cannot read', () => {
+    expect(dialogSession(undefined, 'ana@contoso.com')).toBeNull();
+    expect(dialogSession('not-a-token', 'ana@contoso.com')).toBeNull();
   });
 });

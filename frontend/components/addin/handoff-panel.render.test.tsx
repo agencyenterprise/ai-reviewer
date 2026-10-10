@@ -5,6 +5,7 @@ import {
   dismissApiMicrosoftWordHandoffsHandoffIdDismissedPost,
   listPendingApiMicrosoftWordHandoffsGet,
   reportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPost,
+  startApiMicrosoftWordHandoffsHandoffIdStartedPost,
   type HandoffView,
   type PendingHandoffs,
 } from '@/lib/generated-api';
@@ -18,6 +19,7 @@ vi.mock('@/lib/generated-api', async (original) => ({
   listPendingApiMicrosoftWordHandoffsGet: vi.fn(),
   reportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPost: vi.fn(),
   dismissApiMicrosoftWordHandoffsHandoffIdDismissedPost: vi.fn(),
+  startApiMicrosoftWordHandoffsHandoffIdStartedPost: vi.fn(),
 }));
 vi.mock('@/lib/addin/apply-handoff', () => ({ applyHandoff: vi.fn() }));
 vi.mock('@/lib/addin/sign-in', () => ({
@@ -29,6 +31,7 @@ vi.mock('@/lib/addin/sign-in', () => ({
 const list = vi.mocked(listPendingApiMicrosoftWordHandoffsGet);
 const report = vi.mocked(reportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPost);
 const dismiss = vi.mocked(dismissApiMicrosoftWordHandoffsHandoffIdDismissedPost);
+const start = vi.mocked(startApiMicrosoftWordHandoffsHandoffIdStartedPost);
 const apply = vi.mocked(applyHandoff);
 const interactive = vi.mocked(signInInteractively);
 const silent = vi.mocked(ssoSignIn);
@@ -38,8 +41,9 @@ const DOCUMENT_URL = 'https://contoso.sharepoint.com/sites/Policy/Shared Documen
 const SIGNED_IN = { accessToken: 'tok', email: 'ana@contoso.com', via: 'sso' as const };
 const DIALOG_SIGNED_IN = { ...SIGNED_IN, via: 'dialog' as const };
 
-const handoff = (id: string, name = 'Draft.docx'): HandoffView => ({
+const handoff = (id: string, name = 'Draft.docx', status: HandoffView['status'] = 'pending'): HandoffView => ({
   id,
+  status,
   document_name: name,
   document_url: `https://contoso.sharepoint.com/${name}`,
   items: { comments: [{ quote: 'the only option', comment: 'Overclaims.' }], edits: [] },
@@ -74,6 +78,7 @@ beforeEach(() => {
   interactive.mockResolvedValue(DIALOG_SIGNED_IN);
   list.mockResolvedValue({ here: [], elsewhere: [] } as PendingHandoffs);
   report.mockResolvedValue(undefined as never);
+  start.mockResolvedValue(undefined as never);
   dismiss.mockResolvedValue(undefined as never);
 });
 
@@ -195,29 +200,85 @@ describe('HandoffPanel', () => {
     expect(container.textContent).toContain('Sign in with Microsoft');
   });
 
-  it('Apply writes the handoff, then reports what landed', async () => {
+  const ITEMS = [
+    { index: 0, kind: 'comment' as const, quote: 'the only option', applied: true, detail: '' },
+    {
+      index: 1,
+      kind: 'edit' as const,
+      quote: 'recieve',
+      applied: false,
+      detail: 'the words are no longer in the document',
+      reason: 'not_found' as const,
+    },
+  ];
+
+  it('Apply claims the handoff, writes it, then reports results by position', async () => {
     silent.mockResolvedValue(SIGNED_IN);
     const pending = handoff('h1');
     list.mockResolvedValue({ here: [pending], elsewhere: [] });
-    const outcome = {
-      items: [
-        { kind: 'comment' as const, quote: 'the only option', applied: true, detail: '' },
-        { kind: 'edit' as const, quote: 'recieve', applied: false, detail: 'the words are no longer in the document' },
-      ],
-    };
-    apply.mockResolvedValue(outcome);
+    apply.mockResolvedValue(ITEMS);
     const container = await render();
 
     await click(container, 'Apply');
 
-    expect(apply).toHaveBeenCalledWith(pending, 'Bearer tok');
+    expect(start).toHaveBeenCalledWith({ path: { handoff_id: 'h1' }, headers: { Authorization: 'Bearer tok' } });
+    expect(start.mock.invocationCallOrder[0]).toBeLessThan(apply.mock.invocationCallOrder[0]);
+    expect(apply).toHaveBeenCalledWith(pending, expect.any(Function));
     expect(report).toHaveBeenCalledWith({
       path: { handoff_id: 'h1' },
-      body: { outcome },
+      body: {
+        results: [
+          { index: 0, applied: true, reason: null },
+          { index: 1, applied: false, reason: 'not_found' },
+        ],
+      },
       headers: { Authorization: 'Bearer tok' },
     });
     expect(container.textContent).toContain('Applied 1 of 2');
     expect(container.textContent).toContain('the words are no longer in the document');
+  });
+
+  it('a handoff already started elsewhere is not written', async () => {
+    silent.mockResolvedValue(SIGNED_IN);
+    list.mockResolvedValue({ here: [handoff('h1')], elsewhere: [] });
+    start.mockRejectedValue(new ApiError(404));
+    const container = await render();
+
+    await click(container, 'Apply');
+
+    expect(apply).not.toHaveBeenCalled();
+    expect(container.textContent).toContain('already applied, or is being applied somewhere else');
+  });
+
+  it('an interrupted Apply comes back with a warning, not a plain Apply', async () => {
+    silent.mockResolvedValue(SIGNED_IN);
+    list.mockResolvedValue({ here: [handoff('h1', 'Draft.docx', 'applying')], elsewhere: [] });
+    apply.mockResolvedValue(ITEMS);
+    const container = await render();
+
+    expect(container.textContent).toContain('did not finish');
+    await click(container, 'Apply anyway');
+
+    expect(start).not.toHaveBeenCalled();
+    expect(apply).toHaveBeenCalled();
+  });
+
+  it('a report that fails is sent again, without writing the document again', async () => {
+    silent.mockResolvedValue(SIGNED_IN);
+    list.mockResolvedValue({ here: [handoff('h1')], elsewhere: [] });
+    apply.mockResolvedValue(ITEMS);
+    report.mockRejectedValueOnce(new Error('network down'));
+    const container = await render();
+
+    await click(container, 'Apply');
+    expect(container.textContent).toContain('could not be sent to Teams');
+    expect(() => button(container, 'Apply')).toThrow();
+
+    await click(container, 'Send again');
+
+    expect(apply).toHaveBeenCalledTimes(1);
+    expect(report).toHaveBeenCalledTimes(2);
+    expect(container.textContent).toContain('Applied 1 of 2');
   });
 
   it('a failed write is shown, and nothing is reported to Teams', async () => {

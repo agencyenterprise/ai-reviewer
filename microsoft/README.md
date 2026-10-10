@@ -37,7 +37,10 @@ Microsoft account (Office single sign-on, or a dialog when that is unavailable),
 the handoffs released to that same account -- matched by Entra object id, never by
 email -- and applies one on **Apply**; the result is posted
 back into the Teams thread. Items are placed by quote, so anything whose words have
-since changed is reported rather than misplaced. Routes live under
+since changed is reported rather than misplaced. A handoff released to one account is invisible to every
+other, which also means a guest asking from another organisation's Team may not see
+theirs: Teams can sign a guest in as their guest account there, while Word signs them in
+as their home account. That fails closed, never open. Routes live under
 `/api/microsoft/word/handoffs`.
 
 ## Word add-in

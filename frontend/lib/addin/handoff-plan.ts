@@ -1,4 +1,4 @@
-import { HandoffComment, HandoffEdit, ItemOutcome } from '@/lib/generated-api';
+import { HandoffComment, HandoffEdit, ItemResult } from '@/lib/generated-api';
 
 /**
  * Where each of a handoff's comments and edits goes, worked out from the paragraphs'
@@ -8,19 +8,34 @@ import { HandoffComment, HandoffEdit, ItemOutcome } from '@/lib/generated-api';
  * document: a quote is either still there or it is not, where a paragraph number would
  * silently point somewhere else. A quote found in more than one paragraph is not
  * guessed at either.
+ *
+ * Every item keeps its position in the handoff (comments first, then edits): that is
+ * how its result is reported, so the server can word the report from what it stored.
  */
+
+export type FailureReason = NonNullable<ItemResult['reason']>;
+
+/** What happened to one item: `detail` is shown in the pane, `reason` is reported. */
+export type AppliedItem = {
+  index: number;
+  kind: 'comment' | 'edit';
+  quote: string;
+  applied: boolean;
+  detail: string;
+  reason?: FailureReason;
+};
 
 export type ParagraphWork = {
   /** Every quote in this group, to find the paragraph again at write time. */
   quotes: string[];
-  comments: HandoffComment[];
-  edits: HandoffEdit[];
+  comments: { index: number; comment: HandoffComment }[];
+  edits: { index: number; edit: HandoffEdit }[];
 };
 
 export type HandoffPlan = {
   paragraphs: Map<number, ParagraphWork>;
   /** Items that cannot be placed, already reported as not applied. */
-  unplaced: ItemOutcome[];
+  unplaced: AppliedItem[];
 };
 
 export const NOT_FOUND = 'the words are no longer in the document';
@@ -42,37 +57,43 @@ export function locate(paragraphs: string[], quote: string): number | typeof NOT
   return hits[0];
 }
 
-function workFor(plan: HandoffPlan, index: number): ParagraphWork {
-  let work = plan.paragraphs.get(index);
+function workFor(plan: HandoffPlan, paragraph: number): ParagraphWork {
+  let work = plan.paragraphs.get(paragraph);
   if (!work) {
     work = { quotes: [], comments: [], edits: [] };
-    plan.paragraphs.set(index, work);
+    plan.paragraphs.set(paragraph, work);
   }
   return work;
 }
 
+function unplaced(index: number, kind: AppliedItem['kind'], quote: string, where: string): AppliedItem {
+  const reason: FailureReason = where === AMBIGUOUS ? 'ambiguous' : 'not_found';
+  return { index, kind, quote, applied: false, detail: where, reason };
+}
+
 export function planHandoff(paragraphs: string[], comments: HandoffComment[], edits: HandoffEdit[]): HandoffPlan {
   const plan: HandoffPlan = { paragraphs: new Map(), unplaced: [] };
-  for (const edit of edits) {
-    const where = locate(paragraphs, edit.quote);
-    if (typeof where !== 'number') {
-      plan.unplaced.push({ kind: 'edit', quote: edit.quote, applied: false, detail: where });
-      continue;
-    }
-    const work = workFor(plan, where);
-    work.edits.push(edit);
-    work.quotes.push(edit.quote);
-  }
-  for (const comment of comments) {
+  comments.forEach((comment, position) => {
     const where = locate(paragraphs, comment.quote);
     if (typeof where !== 'number') {
-      plan.unplaced.push({ kind: 'comment', quote: comment.quote, applied: false, detail: where });
-      continue;
+      plan.unplaced.push(unplaced(position, 'comment', comment.quote, where));
+      return;
     }
     const work = workFor(plan, where);
-    work.comments.push(comment);
+    work.comments.push({ index: position, comment });
     work.quotes.push(comment.quote);
-  }
+  });
+  edits.forEach((edit, position) => {
+    const index = comments.length + position;
+    const where = locate(paragraphs, edit.quote);
+    if (typeof where !== 'number') {
+      plan.unplaced.push(unplaced(index, 'edit', edit.quote, where));
+      return;
+    }
+    const work = workFor(plan, where);
+    work.edits.push({ index, edit });
+    work.quotes.push(edit.quote);
+  });
   return plan;
 }
 
@@ -87,4 +108,13 @@ export function relocate(paragraphs: string[], work: ParagraphWork): number | nu
     if (typeof where === 'number') return where;
   }
   return null;
+}
+
+/** What the server is told: each item's position, whether it landed, and why not. */
+export function resultsOf(items: AppliedItem[]): ItemResult[] {
+  return items.map(({ index, applied, reason }) => ({
+    index,
+    applied,
+    reason: applied ? null : (reason ?? 'refused'),
+  }));
 }

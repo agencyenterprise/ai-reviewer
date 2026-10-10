@@ -2,14 +2,15 @@
 
 import { Button } from '@/components/ui/button';
 import { applyHandoff } from '@/lib/addin/apply-handoff';
+import { AppliedItem, resultsOf } from '@/lib/addin/handoff-plan';
 import { openSignOutDialog, signInInteractively, SignInMessage, ssoSignIn } from '@/lib/addin/sign-in';
 import { getErrorMessage, isApiError } from '@/lib/api-error';
 import {
   dismissApiMicrosoftWordHandoffsHandoffIdDismissedPost,
-  HandoffOutcome,
   HandoffView,
   listPendingApiMicrosoftWordHandoffsGet,
   reportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPost,
+  startApiMicrosoftWordHandoffsHandoffIdStartedPost,
 } from '@/lib/generated-api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -221,26 +222,57 @@ type HandoffCardProps = {
   onDone: () => void;
 };
 
+/**
+ * One handoff: Apply claims it on the server, writes it, then reports the results.
+ *
+ * Claiming first means a run that never reports back (a closed pane, an expired token,
+ * a network error) leaves the handoff `applying` rather than `pending`, so it comes back
+ * with a warning instead of an Apply that would write every comment twice. A report
+ * that fails after the writes succeeded is kept here and can be sent again on its own.
+ */
 function HandoffCard({ handoff, authorize, onExpired, onDone }: HandoffCardProps) {
   const comments = handoff.items.comments ?? [];
   const edits = handoff.items.edits ?? [];
+  const [written, setWritten] = useState<AppliedItem[] | null>(null);
   const expireOn401 = (error: Error) => {
     if (isApiError(error, 401)) onExpired();
   };
 
-  const apply = useMutation({
-    mutationFn: async (): Promise<HandoffOutcome> => {
-      const outcome = await applyHandoff(handoff, await authorize());
-      // Asked again: applying a long handoff can outlast the token it started with.
-      await reportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPost({
+  const report = useMutation({
+    mutationFn: async (items: AppliedItem[]) =>
+      reportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPost({
         path: { handoff_id: handoff.id },
-        body: { outcome },
+        body: { results: resultsOf(items) },
         headers: { Authorization: await authorize() },
-      });
-      return outcome;
+      }),
+    onError: expireOn401,
+  });
+
+  const apply = useMutation({
+    mutationFn: async (): Promise<AppliedItem[]> => {
+      if (handoff.status === 'pending') {
+        try {
+          await startApiMicrosoftWordHandoffsHandoffIdStartedPost({
+            path: { handoff_id: handoff.id },
+            headers: { Authorization: await authorize() },
+          });
+        } catch (error) {
+          if (isApiError(error, 404)) {
+            onDone();
+            throw new Error('This was already applied, or is being applied somewhere else.');
+          }
+          throw error;
+        }
+      }
+      return applyHandoff(handoff, authorize);
+    },
+    onSuccess: (items) => {
+      setWritten(items);
+      report.mutate(items);
     },
     onError: expireOn401,
   });
+
   const dismiss = useMutation({
     mutationFn: async () =>
       dismissApiMicrosoftWordHandoffsHandoffIdDismissedPost({
@@ -251,21 +283,46 @@ function HandoffCard({ handoff, authorize, onExpired, onDone }: HandoffCardProps
     onError: expireOn401,
   });
 
-  if (apply.data) return <AppliedSummary outcome={apply.data} onDone={onDone} />;
+  if (written && report.isSuccess) return <AppliedSummary items={written} onDone={onDone} />;
+  if (written) {
+    return (
+      <div className="flex flex-col gap-2 text-xs">
+        <p className="font-medium text-sm">Applied in Word.</p>
+        {report.isError ? (
+          <>
+            <p className="text-red-500">The result could not be sent to Teams. Nothing needs applying again.</p>
+            <Button size="sm" variant="outline" className="self-start" onClick={() => report.mutate(written)}>
+              Send again
+            </Button>
+          </>
+        ) : (
+          <p className="text-muted-foreground">Sending the result to Teams…</p>
+        )}
+      </div>
+    );
+  }
 
   const busy = apply.isPending || dismiss.isPending;
+  const interrupted = handoff.status === 'applying';
   return (
     <div className="flex flex-col gap-2">
       <p className="font-medium">
         From Teams: {comments.length} comment(s) and {edits.length} tracked change(s)
       </p>
-      <p className="text-xs text-muted-foreground">
-        Requested {new Date(handoff.created_at).toLocaleString()}. They are added as Draft Detective, and you accept or
-        reject each change from the Review tab.
-      </p>
+      {interrupted ? (
+        <p className="text-xs text-amber-600">
+          Applying this started earlier and did not finish. Some of it may already be in the document, and applying
+          again can add it twice. Check the document first, or dismiss it.
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Requested {new Date(handoff.created_at).toLocaleString()}. They are added as Draft Detective, and you accept
+          or reject each change from the Review tab.
+        </p>
+      )}
       <div className="flex gap-2">
-        <Button size="sm" onClick={() => apply.mutate()} disabled={busy}>
-          {apply.isPending ? 'Applying…' : 'Apply'}
+        <Button size="sm" variant={interrupted ? 'outline' : 'default'} onClick={() => apply.mutate()} disabled={busy}>
+          {apply.isPending ? 'Applying…' : interrupted ? 'Apply anyway' : 'Apply'}
         </Button>
         <Button size="sm" variant="ghost" onClick={() => dismiss.mutate()} disabled={busy}>
           Dismiss
@@ -278,8 +335,7 @@ function HandoffCard({ handoff, authorize, onExpired, onDone }: HandoffCardProps
   );
 }
 
-function AppliedSummary({ outcome, onDone }: { outcome: HandoffOutcome; onDone: () => void }) {
-  const items = outcome.items ?? [];
+function AppliedSummary({ items, onDone }: { items: AppliedItem[]; onDone: () => void }) {
   const missed = items.filter((item) => !item.applied);
   return (
     <div className="flex flex-col gap-1 text-xs">
@@ -287,7 +343,7 @@ function AppliedSummary({ outcome, onDone }: { outcome: HandoffOutcome; onDone: 
         Applied {items.length - missed.length} of {items.length}.
       </p>
       {missed.map((item) => (
-        <p key={`${item.kind}:${item.quote}`} className="text-muted-foreground">
+        <p key={item.index} className="text-muted-foreground">
           Not applied: {item.kind} on “{item.quote.slice(0, 60)}” {item.detail ? `(${item.detail})` : ''}
         </p>
       ))}

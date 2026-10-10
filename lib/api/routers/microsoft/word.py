@@ -23,7 +23,12 @@ from pydantic import BaseModel, Field
 
 from lib.api.addin_auth import AddinIdentity, get_addin_identity
 from lib.services.microsoft.word import handoffs, markup_writes
-from lib.services.microsoft.word.handoffs import Account, HandoffOutcome, HandoffView
+from lib.services.microsoft.word.handoffs import (
+    Account,
+    HandoffView,
+    InvalidResults,
+    ItemResult,
+)
 from lib.services.microsoft.word.markup_writes import (
     CommentPlacement,
     EditsWritten,
@@ -115,8 +120,14 @@ class PendingHandoffs(BaseModel):
     )
 
 
-class HandoffResult(BaseModel):
-    outcome: HandoffOutcome
+class HandoffReport(BaseModel):
+    results: list[ItemResult] = Field(
+        max_length=500,
+        description=(
+            "What happened to each stored item, by position (comments first, then "
+            "edits). Items left out count as not applied."
+        ),
+    )
 
 
 @router.get("/handoffs", response_model=PendingHandoffs)
@@ -124,22 +135,37 @@ async def list_pending(
     url: str = Query(description="The document URL Word reports"),
     caller: AddinIdentity = Depends(get_addin_identity),
 ) -> PendingHandoffs:
-    """The signed-in account's pending handoffs, split by whether they are for this document."""
+    """The signed-in account's open handoffs, split by whether they are for this document."""
 
     here, elsewhere = handoffs.split_by_document(await handoffs.pending_for(_account(caller)), url)
     return PendingHandoffs(here=here, elsewhere=elsewhere)
 
 
+@router.post("/handoffs/{handoff_id}/started", status_code=204)
+async def start(
+    handoff_id: UUID,
+    caller: AddinIdentity = Depends(get_addin_identity),
+) -> None:
+    """Claim a pending handoff before writing it into the document."""
+
+    if not await handoffs.start(handoff_id, _account(caller)):
+        raise HTTPException(status_code=404, detail="No pending handoff with that id")
+
+
 @router.post("/handoffs/{handoff_id}/applied", status_code=204)
 async def report_applied(
     handoff_id: UUID,
-    result: HandoffResult,
+    report: HandoffReport,
     caller: AddinIdentity = Depends(get_addin_identity),
 ) -> None:
     """Close a handoff the add-in has written, and say how it went in Teams."""
 
-    if not await handoffs.report_applied(handoff_id, _account(caller), result.outcome):
-        raise HTTPException(status_code=404, detail="No pending handoff with that id")
+    try:
+        reported = await handoffs.report_applied(handoff_id, _account(caller), report.results)
+    except InvalidResults as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    if not reported:
+        raise HTTPException(status_code=404, detail="No open handoff with that id")
 
 
 @router.post("/handoffs/{handoff_id}/dismissed", status_code=204)
@@ -150,4 +176,4 @@ async def dismiss(
     """Close a handoff without applying it. Nothing is posted to Teams."""
 
     if await handoffs.finish(handoff_id, _account(caller), "dismissed") is None:
-        raise HTTPException(status_code=404, detail="No pending handoff with that id")
+        raise HTTPException(status_code=404, detail="No open handoff with that id")
