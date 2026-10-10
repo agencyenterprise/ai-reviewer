@@ -63,6 +63,18 @@ Then invoke a check in plain language (e.g. _"validate the references in this do
 
 Any check that reaches the internet asks for your consent before its first search, because parts of the document travel to a web search provider as queries; the menu marks which ones do. That mirrors the gate the web app and the MCP server enforce.
 
+The skills themselves ship no search client — they call whatever web tools your session already has, and the consent step is the same either way. If your session has no built-in web search (some Agent Skills-compatible clients don't ship one), you can attach a web-search MCP server. You.com serves a keyless profile that needs no account or API key:
+
+```bash
+# Claude Code
+claude mcp add-json "you" '{"type":"http","url":"https://api.you.com/mcp?profile=free"}'
+
+# Codex
+codex mcp add you --url "https://api.you.com/mcp?profile=free"
+```
+
+An authenticated endpoint (`https://api.you.com/mcp`) and a packaged skills bundle ([youdotcom-oss/agent-skills](https://github.com/youdotcom-oss/agent-skills)) are available if you need more than basic search.
+
 ### 2. MCP server
 
 Connect Draft Detective to Claude, Codex, Opencode, or any MCP-compatible client and run reviews directly from your AI assistant. The backend mounts a [Model Context Protocol](https://modelcontextprotocol.io/) server at `/mcp` with OAuth authentication.
