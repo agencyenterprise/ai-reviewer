@@ -45,6 +45,10 @@ rand-personal/
 
 # logs
 /logs/
+/evals_inspectai/flow_config/logs/
+
+# Local development, audit, and generated evaluation artifacts
+/.local/
 
 # test coverage
 .coverage

@@ -25,7 +25,8 @@ LANGCHAIN_PROVIDERS = {"google": "google_genai"}
 # ("-2026-08-01"), which the Azure gateway follows with a deployment tag
 # ("-2026-07-09-global-aaif"), or Anthropic's ("-20250929"). Anchored on the date,
 # as the backend's pricing is, so a different variant ("-mini") still fails.
-DATED_SUFFIX = r"-(\d{4}-\d{2}-\d{2}(-[A-Za-z0-9-]+)?|\d{8})"
+SNAPSHOT = r"(?:\d{4}-\d{2}-\d{2}|\d{8})"
+DATED_SUFFIX = rf"-{SNAPSHOT}(?:-[A-Za-z0-9-]+)?"
 
 
 def requested_model() -> Optional[str]:
@@ -90,7 +91,13 @@ def _collect_reply_models(node: Any, found: set[str]) -> None:
 
 def is_model(served: str, name: str) -> bool:
     """Whether a provider's reported model is `name` itself, or `name` with its date."""
-    return re.fullmatch(re.escape(name) + f"({DATED_SUFFIX})?", served) is not None
+    escaped_name = re.escape(name)
+    if re.search(rf"-{SNAPSHOT}$", name):
+        # A dated deployment may report an additional gateway deployment tag.
+        pattern = escaped_name + r"(?:-[A-Za-z0-9-]+)?"
+    else:
+        pattern = escaped_name + f"(?:{DATED_SUFFIX})?"
+    return re.fullmatch(pattern, served) is not None
 
 
 def output_model_name(run_detail: dict[str, Any]) -> str:

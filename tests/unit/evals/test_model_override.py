@@ -42,7 +42,9 @@ def test_no_model_keeps_the_agents_own():
         ("google/gemini-2.5-flash-lite", "google_genai:gemini-2.5-flash-lite"),
     ],
 )
-def test_model_is_forwarded_as_its_langchain_name(inspect_name: str, langchain_name: str):
+def test_model_is_forwarded_as_its_langchain_name(
+    inspect_name: str, langchain_name: str
+):
     with _active(inspect_name):
         assert requested_model() == langchain_name
 
@@ -58,13 +60,21 @@ def test_run_on_the_requested_model_passes():
 
 
 def test_run_started_without_the_override_fails():
-    with _active("openai/gpt-5.6-sol"), pytest.raises(WorkflowCompletionError, match="started with"):
+    with (
+        _active("openai/gpt-5.6-sol"),
+        pytest.raises(WorkflowCompletionError, match="started with"),
+    ):
         check_model_used(_run_detail(None, ["gpt-5.6-terra"]))
 
 
 def test_run_served_by_another_model_fails():
-    with _active("openai/gpt-5.6-sol"), pytest.raises(WorkflowCompletionError, match="served by"):
-        check_model_used(_run_detail("openai:gpt-5.6-sol", ["gpt-5.6-sol", "gpt-5.6-terra"]))
+    with (
+        _active("openai/gpt-5.6-sol"),
+        pytest.raises(WorkflowCompletionError, match="served by"),
+    ):
+        check_model_used(
+            _run_detail("openai:gpt-5.6-sol", ["gpt-5.6-sol", "gpt-5.6-terra"])
+        )
 
 
 def test_without_model_nothing_is_checked():
@@ -74,10 +84,15 @@ def test_without_model_nothing_is_checked():
 
 def test_output_model_is_what_served_the_run():
     with _active("none/none"):
-        assert output_model_name(_run_detail(None, ["gpt-5.6-terra"])) == "gpt-5.6-terra"
+        assert (
+            output_model_name(_run_detail(None, ["gpt-5.6-terra"])) == "gpt-5.6-terra"
+        )
         assert output_model_name(_run_detail(None, [])) == "api"
     with _active("openai/gpt-5.6-sol"):
-        assert output_model_name(_run_detail("openai:gpt-5.6-sol", [])) == "openai:gpt-5.6-sol"
+        assert (
+            output_model_name(_run_detail("openai:gpt-5.6-sol", []))
+            == "openai:gpt-5.6-sol"
+        )
 
 
 @pytest.mark.parametrize(
@@ -86,6 +101,13 @@ def test_output_model_is_what_served_the_run():
         ("gpt-5.6-sol", "gpt-5.6-sol", True),
         ("gpt-5.6-sol-2026-08-01", "gpt-5.6-sol", True),
         ("gpt-5.6-terra-2026-07-09-global-aaif", "gpt-5.6-terra", True),
+        (
+            "gpt-5.6-terra-2026-07-09-global-aaif",
+            "gpt-5.6-terra-2026-07-09",
+            True,
+        ),
+        ("gpt-5.6-terra-2026-07-09", "gpt-5.6-terra-2026-07-09", True),
+        ("gpt-5.6-terra-2026-08-01", "gpt-5.6-terra-2026-07-09", False),
         ("claude-sonnet-4-5-20250929", "claude-sonnet-4-5", True),
         ("gpt-5.6-sol-mini", "gpt-5.6-sol", False),
         ("gpt-5.6-sol-mini-2026-08-01", "gpt-5.6-sol", False),
@@ -93,30 +115,46 @@ def test_output_model_is_what_served_the_run():
         ("gpt-5.6-solar", "gpt-5.6-sol", False),
     ],
 )
-def test_a_model_matches_itself_or_its_dated_release(served: str, name: str, same: bool):
+def test_a_model_matches_itself_or_its_dated_release(
+    served: str, name: str, same: bool
+):
     assert is_model(served, name) is same
 
 
 def test_a_model_with_a_longer_name_fails_the_check():
-    with _active("openai/gpt-5.6-sol"), pytest.raises(WorkflowCompletionError, match="served by"):
+    with (
+        _active("openai/gpt-5.6-sol"),
+        pytest.raises(WorkflowCompletionError, match="served by"),
+    ):
         check_model_used(_run_detail("openai:gpt-5.6-sol", ["gpt-5.6-sol-mini"]))
+
+
+def test_dated_model_with_gateway_deployment_tag_passes():
+    model = "gpt-5.6-terra-2026-07-09"
+    with _active(f"openai/{model}"):
+        check_model_used(_run_detail(f"openai:{model}", [f"{model}-global-aaif"]))
 
 
 def test_an_unpriced_model_in_the_replies_still_fails_the_check():
     detail = _run_detail("openai:gpt-5.6-sol", ["gpt-5.6-sol"])
     detail["state"] = {
         "chunks": [
-            {"messages": [
-                {"type": "human", "content": "hi"},
-                {
-                    "type": "ai",
-                    "usage_metadata": {"input_tokens": 1},
-                    "response_metadata": {"model_name": "some-unpriced-model"},
-                },
-            ]}
+            {
+                "messages": [
+                    {"type": "human", "content": "hi"},
+                    {
+                        "type": "ai",
+                        "usage_metadata": {"input_tokens": 1},
+                        "response_metadata": {"model_name": "some-unpriced-model"},
+                    },
+                ]
+            }
         ]
     }
-    with _active("openai/gpt-5.6-sol"), pytest.raises(WorkflowCompletionError, match="some-unpriced-model"):
+    with (
+        _active("openai/gpt-5.6-sol"),
+        pytest.raises(WorkflowCompletionError, match="some-unpriced-model"),
+    ):
         check_model_used(detail)
 
 

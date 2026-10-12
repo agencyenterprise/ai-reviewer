@@ -10,7 +10,7 @@ from evals_inspectai.common.simple_deep_agent_types import AgentCheckResult
 
 # Grader for the judged criteria, pinned per suite rather than inherited, so
 # changing this suite's judge does not silently re-grade any other.
-GRADER_MODEL = "openai/gpt-5.4"
+GRADER_MODEL = "openai/gpt-5.6-terra-2026-07-09"
 
 SHARED_CRITERIA: dict[str, str] = {
     "classification_grounded": (

@@ -30,7 +30,7 @@ from pydantic import BaseModel, ValidationError
 
 from evals_inspectai.common.loaders import references_local_images
 
-DEFAULT_GRADER_MODEL = "openai/gpt-5.4"
+DEFAULT_GRADER_MODEL = "openai/gpt-5.6-terra-2026-07-09"
 
 
 @scorer(metrics=[accuracy(), stderr()])

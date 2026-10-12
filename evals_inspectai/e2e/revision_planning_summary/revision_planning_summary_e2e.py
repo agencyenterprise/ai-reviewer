@@ -81,7 +81,7 @@ _TARGET_WORKFLOW = "revision_planning_summary"
 # Grader for the judged criteria. Set here rather than taking the shared
 # `DEFAULT_GRADER_MODEL`, so changing this suite's judge does not silently
 # re-grade the other eighteen e2e suites.
-GRADER_MODEL = "openai/gpt-5.6-terra"
+GRADER_MODEL = "openai/gpt-5.6-terra-2026-07-09"
 
 # The agent reads a whole draft plus every memo at high reasoning effort and
 # writes a long HTML document, so it runs well past the default budget.

@@ -83,7 +83,7 @@ _TARGET_WORKFLOW = "reviewer_coverage_report"
 
 # Grader for the judged criteria, set per suite rather than shared, so changing
 # this suite's judge does not silently re-grade any other.
-GRADER_MODEL = "openai/gpt-5.6-terra"
+GRADER_MODEL = "openai/gpt-5.6-terra-2026-07-09"
 
 # The agent reads two full drafts plus every memo at high reasoning effort and
 # writes a long HTML document, so it runs well past the default budget.
