@@ -1,0 +1,174 @@
+# The scenarios are the coverage report's: the same drafts, revisions and memos,
+# so what each revision did and did not do is already known. The traps are
+# written for the response memos, which have to say it to each reviewer.
+- id: remote_work_conflicting_reviewers
+  draft: file://files/peer_review/remote_work/draft.md
+  revised: file://files/peer_review/remote_work/revised.md
+  memos:
+  - file://files/peer_review/remote_work/reviewer-a-memo.md
+  - file://files/peer_review/remote_work/reviewer-b-memo.md
+  expected_reviewers:
+  - A
+  - B
+  point_count_bands:
+    A:
+    - 8
+    - 14
+    B:
+    - 5
+    - 10
+  verbatim_probes:
+  - Voluntary recruitment through an industry consortium is a real limitation and it is mentioned
+    only in passing.
+  - '"Available on request" is not an acceptable reference list for a report that makes empirical
+    claims about prior literature.'
+  - I am not persuaded by the treatment of the team-age result.
+  - And the report never says what happened to the teams that were observed for fewer than
+    eight quarters, though a robustness check restricts to those that were.
+  rubric:
+    scenario_trap: >-
+      The reviewers conflict on the Methods section: one asked to condense it and the other
+      to expand it. The revision keeps it in the body, expands it, and says why. The reply to
+      the reviewer who asked to condense must decline plainly with that reason, and the reply
+      to the other must say what was added. The recommendation telling firms to invest in
+      reducing review and deployment latency is left untouched with no reason: the memo must
+      not claim a change or invent a reason for it, and it belongs in the internal block for
+      the author instead.
+- id: hiring_audits_compound_points
+  draft: file://files/peer_review/hiring_audits/draft.md
+  revised: file://files/peer_review/hiring_audits/revised.md
+  memos:
+  - file://files/peer_review/hiring_audits/reviewer-memo.md
+  expected_reviewers:
+  - A
+  point_count_bands:
+    A:
+    - 8
+    - 14
+  verbatim_probes:
+  - These two statements are in tension.
+  - Third, reconcile the layer with the Uniform Guidelines on Employee Selection Procedures,
+    which already impose validation requirements and which the report does not mention at
+    all.
+  - A reader at an enforcement agency will stop here.
+  - A rough total would make this recommendation actionable instead of rhetorical.
+  rubric:
+    scenario_trap: >-
+      One numbered point bundles three asks that the revision treated differently: the
+      plain-language definition of construct validity was added, the evidence threshold that
+      would satisfy the layer was not, and the Uniform Guidelines appear in the new reference
+      list but are never reconciled in the text. The reply must answer each ask separately and
+      say what was and was not done. Claiming the threshold or the reconciliation was made fails
+      this; the parts with no change and no reason belong in the internal block for the author.
+- id: soil_carbon_three_reviewers_commentary
+  draft: file://files/peer_review/soil_carbon/draft.md
+  revised: file://files/peer_review/soil_carbon/revised.md
+  memos:
+  - file://files/peer_review/soil_carbon/reviewer-a-memo.md
+  - file://files/peer_review/soil_carbon/reviewer-b-memo.md
+  - file://files/peer_review/soil_carbon/reviewer-c-memo.md
+  expected_reviewers:
+  - A
+  - B
+  - C
+  point_count_bands:
+    A:
+    - 5
+    - 8
+    B:
+    - 3
+    - 6
+    C:
+    - 6
+    - 9
+  verbatim_probes:
+  - 'Manuscript ID: COMM-2024-0417'
+  - Readers who agree will want to know what to do on Monday.
+  - It is also the only one of the three that cannot be fixed by better technology, which
+    is the point that would change a reader's mind.
+  - Please add a table comparing the major soil carbon protocols on measurement requirements,
+    permanence terms, and additionality tests.
+  rubric:
+    scenario_trap: >-
+      The document is a commentary. One reviewer asked for a methods section, a meta-analysis
+      with a forest plot, a protocol comparison table and an adoption figure; the revision does
+      none of those and states no reason, because a commentary does not carry them. Each of
+      those replies must decline plainly on document-type or scope grounds, respectfully and
+      without apology, rather than promise the addition or flag it as a missing change. There
+      are three reviewers, so there are three memos.
+- id: heat_resilience_semantic_anchors
+  draft: file://files/peer_review/heat_resilience/draft.md
+  revised: file://files/peer_review/heat_resilience/revised.md
+  memos:
+  - file://files/peer_review/heat_resilience/reviewer-memo.md
+  expected_reviewers:
+  - A
+  point_count_bands:
+    A:
+    - 6
+    - 11
+  verbatim_probes:
+  - Concept 2 is the most useful idea in the report and I would like it to be first.
+  - As written it will be quoted back at city councils as an established finding.
+  - The recommendation may be unavailable to a large share of the report's audience.
+  - Finally, the report never discusses cost.
+  rubric:
+    scenario_trap: >-
+      The revision reorders the concepts, so the memo's numbers now point elsewhere: its
+      Concept 2 is the revision's Concept 1, its Concept 4 is now Concept 2, and its Concept 3
+      is now Concept 5. Each reply must say where the change landed by what the section is
+      about, or by its new number made clear as the new one. Replying as if the memo's numbers
+      still held, or saying a point was not addressed because the old numbered section changed,
+      fails this.
+- id: organics_collection_quick_fix_heavy
+  draft: file://files/peer_review/organics_collection/draft.md
+  revised: file://files/peer_review/organics_collection/revised.md
+  memos:
+  - file://files/peer_review/organics_collection/reviewer-memo.md
+  expected_reviewers:
+  - A
+  point_count_bands:
+    A:
+    - 11
+    - 16
+  verbatim_probes:
+  - Abandoning a mandate response after the mandate lapses is not the same kind of failure
+    as abandoning one under public pressure, and the report treats them identically.
+  - Decisive is a causal word and the design cannot support it.
+  - Finding 2 refers to Table 2, but the report contains no Table 2.
+  - Reference 3 (Reyes 2017) is cited nowhere in the text.
+  rubric:
+    scenario_trap: >-
+      Nine small corrections were made, and the reply to each must say concretely what
+      changed. One substantive concern was not acted on and the revision gives no reason: that
+      programs killed early and quietly are less likely to appear in the sample of twelve, so
+      the vocal-opponent finding may be partly an artifact. That point must not get an invented
+      reply; it belongs in the internal block for the author, not answered in the memo.
+# One request for every output at once, as an author who wants the whole round
+# would make it. Only this sample exercises `ids_consistent`.
+- id: hiring_audits_all_outputs
+  outputs:
+  - revision_planning_summary
+  - reviewer_response_memos
+  - reviewer_coverage_report
+  draft: file://files/peer_review/hiring_audits/draft.md
+  revised: file://files/peer_review/hiring_audits/revised.md
+  memos:
+  - file://files/peer_review/hiring_audits/reviewer-memo.md
+  expected_reviewers:
+  - A
+  point_count_bands:
+    A:
+    - 8
+    - 14
+  verbatim_probes:
+  - These two statements are in tension.
+  - A reader at an enforcement agency will stop here.
+  - A rough total would make this recommendation actionable instead of rhetorical.
+  rubric:
+    scenario_trap: >-
+      The same compound point as in the single-output hiring scenario: the definition of
+      construct validity was added, the evidence threshold was not, and the Uniform Guidelines
+      are listed but not reconciled. The reply must answer each part separately and claim only
+      what the revision shows. The plan and the coverage report written alongside use the same
+      point IDs, so a sub-point here carries the same ID there.

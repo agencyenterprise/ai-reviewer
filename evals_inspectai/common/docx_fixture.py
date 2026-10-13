@@ -2,7 +2,8 @@
 
 The fixtures stay markdown so they can be read and diffed; the Word file a
 reviewer would have returned, with their comments in the margin, is made from
-that markdown when the sample is uploaded.
+that markdown when the sample is uploaded. Shared by the review-assistant
+suites that hand the Review Assistant a reviewer who only left comments.
 """
 
 import re
@@ -11,12 +12,32 @@ from pathlib import Path
 
 from docx import Document
 from docx_editor import Document as EditorDocument
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from evals_inspectai.common.loaders import resolve_input
 
 
 class FixtureComment(BaseModel):
     anchor: str
     text: str
+
+
+class MarkedUpCopy(BaseModel):
+    """A dataset record's marked-up copy: which draft, whose comments, and on what."""
+
+    file_name: str
+    marked_up_from: str = Field(description="`file://` reference to the draft's markdown")
+    author: str
+    comments: list[FixtureComment]
+
+    def content(self) -> bytes:
+        return marked_up_docx(resolve_input(self.marked_up_from), self.author, self.comments)
+
+
+def with_byline(text: str, byline: str) -> str:
+    """The memo with ``byline`` under its title line, where a reviewer signs it."""
+    title, _, rest = text.partition("\n")
+    return f"{title}\n\n{byline}\n{rest}"
 
 
 def _markdown_to_docx(markdown: str, path: Path) -> None:

@@ -33,7 +33,9 @@ Scoring is in three parts:
 - four judged criteria, each graded in its own call, for the parts that are
   judgement: whether the verdicts match what the revised draft does, whether
   Part 1 is decision-grade, whether each verdict carries evidence and a
-  content-anchored location, and the trap the scenario plants.
+  content-anchored location, and the trap the scenario plants;
+- `input_identification`, the share of documents the agent took for what they
+  are, telling the two drafts apart and any response memos from the memos.
 """
 
 import json
@@ -60,11 +62,13 @@ from evals_inspectai.common.loaders import resolve_input
 from evals_inspectai.common.model_override import output_model_name
 from evals_inspectai.common.peer_review_fixture import (
     ReviewDocument,
+    expected_input_roles,
     run_review_assistant_request,
 )
 from evals_inspectai.common.review_assistant_scorers import (
     STRUCTURE_CHECKS,
     extract_report,
+    input_identification,
     structure_checks,
 )
 from evals_inspectai.common.scorers import (
@@ -132,6 +136,11 @@ def _record_to_sample(record: dict) -> Sample:
         metadata={
             "output": _TARGET_OUTPUT,
             "memos": memos,
+            "expected_roles": expected_input_roles(
+                memo_names=[m["file_name"] for m in memos],
+                revised=True,
+                response_names=[m["file_name"] for m in response_memos],
+            ),
             "revised_draft": resolve_input(record["revised"]),
             "response_memos": response_memos,
             "author_probes": record.get("author_probes", []),
@@ -174,7 +183,7 @@ def reviewer_coverage_report_solver(
         run_detail = await run_review_assistant_request(
             draft=state.input_text,
             memos=[ReviewDocument(m["file_name"], m["content"]) for m in meta["memos"]],
-            output=_TARGET_OUTPUT,
+            outputs=[_TARGET_OUTPUT],
             timeout_s=timeout_s,
             revised_draft=meta["revised_draft"],
             response_memos=[
@@ -337,6 +346,7 @@ def _viewer_config() -> ViewerConfig:
             for name in ALL_STRUCTURE_CHECKS
         ),
         *(TaskSamplesColumn.score("rubric_criteria", name) for name in RUBRIC_CRITERIA),
+        TaskSamplesColumn.score("input_identification"),
     ]
 
     return ViewerConfig(
@@ -379,6 +389,7 @@ def _viewer_config() -> ViewerConfig:
                 "part1_is_decision_grade": "Part 1",
                 "evidence_and_location": "Evidence",
                 "scenario_trap": "Trap",
+                "input_identification": "Inputs",
             },
             # Pinned to 0..1 rather than left to the viewer's default, which
             # anchors each palette to that column's observed range: a check that
@@ -386,7 +397,7 @@ def _viewer_config() -> ViewerConfig:
             # would read differently from one column to the next.
             score_color_scales={
                 name: ScoreColorScale(palette="good-high", min=0.0, max=1.0)
-                for name in (*ALL_STRUCTURE_CHECKS, *RUBRIC_CRITERIA)
+                for name in (*ALL_STRUCTURE_CHECKS, *RUBRIC_CRITERIA, "input_identification")
             },
             color_scales_enabled=True,
         ),
@@ -406,6 +417,7 @@ def reviewer_coverage_report_e2e():
         scorer=[
             coverage_structure(),
             rubric_criteria(),
+            input_identification(),
         ],
         viewer=_viewer_config(),
     )

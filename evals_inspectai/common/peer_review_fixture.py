@@ -7,8 +7,9 @@ through the same endpoints the Review Assistant tab calls:
 
 1. create the project with the reviewed draft as its main document, running
    only `document_processing`, and wait for it;
-2. upload every other document (reviewer memos, the revised draft, response
-   memos) with the `review_input` role, which carries no label and no revision;
+2. upload every other document (reviewer memos, marked-up copies, the revised
+   draft, response memos) with the `review_input` role, which carries no label
+   and no revision;
 3. start a request naming the outputs and every document, and wait for it.
 
 The order the documents are named in matters: the skill letters reviewers in
@@ -96,31 +97,54 @@ async def run_review_request(
     )
 
 
+# Neither name says which draft came first: the way a second download of the
+# same file is named, so the agent has to tell them apart by content, as it does
+# for an author's own files.
+DRAFT_FILE_NAME = "report.md"
+REVISED_DRAFT_FILE_NAME = "report (1).md"
+
+
+def expected_input_roles(
+    memo_names: list[str],
+    revised: bool = False,
+    response_names: list[str] | None = None,
+    marked_up_names: list[str] | None = None,
+) -> dict[str, str]:
+    """What the agent should take each uploaded document to be, by file name.
+
+    The roles are the ones the Review Assistant's prompt asks the agent to
+    record for every document; `input_identification` compares against them.
+    """
+    roles = {DRAFT_FILE_NAME: "original draft"}
+    roles.update({name: "reviewer memo" for name in memo_names})
+    roles.update({name: "marked-up draft" for name in marked_up_names or []})
+    if revised:
+        roles[REVISED_DRAFT_FILE_NAME] = "revised draft"
+    roles.update({name: "response memo" for name in response_names or []})
+    return roles
+
+
 async def run_review_assistant_request(
     draft: str,
     memos: list[ReviewDocument],
-    output: str,
+    outputs: list[str],
     timeout_s: float,
     revised_draft: str | None = None,
     response_memos: list[ReviewDocument] | None = None,
-    # Neither name says which draft came first: the way a second download of
-    # the same file is named, so the agent has to tell them apart by content,
-    # as it does for an author's own files.
-    draft_file_name: str = "report.md",
-    revised_draft_file_name: str = "report (1).md",
+    marked_up: list[ReviewDocument] | None = None,
     poll_interval_s: float = 10,
 ) -> dict[str, Any]:
-    """Ask the Review Assistant for one output over a classic review cycle.
+    """Ask the Review Assistant for some outputs over a classic review cycle.
 
-    The reviewed draft is the project's main document; the memos, the revised
-    draft and the response memos are uploaded unlabeled. They are named in the
-    request in that order (draft, memos in the order given, revised draft,
-    response memos), so the reviewer letters follow the memos' order.
+    The reviewed draft is the project's main document; the memos, any
+    marked-up copies, the revised draft and the response memos are uploaded
+    unlabeled. They are named in the request in that order, so the reviewer
+    letters follow the memos' order, with a commenter after them.
 
     Returns the completed run's WorkflowRunDetail dict.
     """
-    if not memos:
-        raise ValueError("A review cycle needs at least one reviewer memo")
+    if not memos and not marked_up:
+        raise ValueError("A review cycle needs reviewer feedback: a memo or a marked-up copy")
     if response_memos and revised_draft is None:
         raise ValueError("response_memos describe a revised draft; pass revised_draft as well")
     if revised_draft is not None and revised_draft == draft:
@@ -128,11 +152,12 @@ async def run_review_assistant_request(
 
     rest = [
         *memos,
-        *([ReviewDocument(revised_draft_file_name, revised_draft)] if revised_draft is not None else []),
+        *(marked_up or []),
+        *([ReviewDocument(REVISED_DRAFT_FILE_NAME, revised_draft)] if revised_draft is not None else []),
         *(response_memos or []),
     ]
-    project_id, ids_by_name = await build_review_project(draft_file_name, draft, rest)
-    file_ids = [ids_by_name[draft_file_name], *(ids_by_name[d.file_name] for d in rest)]
+    project_id, ids_by_name = await build_review_project(DRAFT_FILE_NAME, draft, rest)
+    file_ids = [ids_by_name[DRAFT_FILE_NAME], *(ids_by_name[d.file_name] for d in rest)]
     return await run_review_request(
-        project_id, [output], file_ids, timeout_s=timeout_s, poll_interval_s=poll_interval_s
+        project_id, outputs, file_ids, timeout_s=timeout_s, poll_interval_s=poll_interval_s
     )

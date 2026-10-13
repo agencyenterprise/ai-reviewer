@@ -10,9 +10,11 @@ images, and no `<script>`), a two-part layout with a short first part, and none
 of the generic-assistant tells the `voice-and-tone` skill bans, counted only
 outside quotes so the reviewer's own punctuation is not held against it.
 
-`report_structure` scores exactly those rules and belongs to every suite. Each
-suite then adds whatever its own output specifies on top -- the coverage report
-has a verdict table to check, the planning summary does not.
+`report_structure` scores exactly those rules and belongs to every suite, as
+does `input_identification`: the documents arrive unlabeled, and the agent
+records what it took each one to be. Each suite then adds whatever its own
+output specifies on top -- the coverage report has a verdict table to check,
+the planning summary does not.
 
 The judged criteria differ per suite, so none of them live here. The machinery
 that runs them -- `grade_criteria`, `criteria_for` -- and the per-check scoring
@@ -25,6 +27,7 @@ missing from any sample's score, so every code path has to return the full key
 set, which is what `failed_score` is for.
 """
 
+import json
 from itertools import permutations
 from typing import Any
 
@@ -67,14 +70,88 @@ class ReviewAssistantReport(BaseModel):
     report_html: str = ""
 
 
+class ReviewAssistantInput(BaseModel):
+    """Local mirror of one mounted document: its file and its folder."""
+
+    file_name: str
+    folder: str
+
+
+class ReviewAssistantInputReading(BaseModel):
+    """Local mirror of what the agent took one document to be."""
+
+    folder: str
+    role: str = ""
+
+
 class ReviewAssistantOutput(BaseModel):
     """Local mirror of ReviewAssistantState, as far as the scorers read it.
 
-    One run carries a report per requested output under ``reports``; the other
-    top-level fields (``inputs``, ``input_readings``, ``config``) are ignored.
+    One run carries a report per requested output under ``reports``, the
+    documents it mounted under ``inputs``, and what the agent took each one to
+    be under ``input_readings``; the rest (``config``, ``messages``) is ignored.
     """
 
     reports: list[ReviewAssistantReport] = Field(default_factory=list)
+    inputs: list[ReviewAssistantInput] = Field(default_factory=list)
+    input_readings: list[ReviewAssistantInputReading] = Field(default_factory=list)
+
+
+def parse_output(state: TaskState) -> ReviewAssistantOutput:
+    """The run's state, or an empty one when it cannot be read."""
+    try:
+        return ReviewAssistantOutput.model_validate(json.loads(state.output.completion or "{}"))
+    except (ValueError, ValidationError):
+        return ReviewAssistantOutput()
+
+
+def reports_by_output(state: TaskState) -> dict[str, HtmlReport]:
+    """Every substantive report the run wrote, by output."""
+    return {
+        r.output: HtmlReport(r.report_html)
+        for r in parse_output(state).reports
+        if len(r.report_html) >= MIN_REPORT_CHARS
+    }
+
+
+def _normalize_role(role: str) -> str:
+    return " ".join(role.lower().replace("-", " ").split())
+
+
+def identification_checks(
+    output: ReviewAssistantOutput, expected_roles: dict[str, str]
+) -> tuple[float, list[str]]:
+    """The share of documents read as their expected role, and a line per document."""
+    folders = {i.file_name: i.folder for i in output.inputs}
+    readings = {r.folder.rstrip("/"): r for r in output.input_readings}
+    lines: list[str] = []
+    correct = 0
+    for file_name, role in expected_roles.items():
+        reading = readings.get(folders.get(file_name, ""))
+        got = _normalize_role(reading.role) if reading else ""
+        ok = got == _normalize_role(role)
+        correct += ok
+        lines.append(
+            f"{'PASS' if ok else 'FAIL'} {file_name}: expected {role!r}, read as {got or 'nothing'!r}"
+        )
+    return (correct / len(expected_roles) if expected_roles else 0.0), lines
+
+
+@scorer(metrics=[mean(), stderr()])
+def input_identification() -> Scorer:
+    """The share of documents the agent took for what they are.
+
+    Read from the notes the agent leaves on how it read the inputs, against the
+    sample's ``expected_roles``: nobody tells it which document is which, so a
+    wrong reading is the failure every output then inherits.
+    """
+
+    async def score(state: TaskState, target: Target) -> Score:
+        expected: dict[str, str] = (state.metadata or {})["expected_roles"]
+        value, lines = identification_checks(parse_output(state), expected)
+        return Score(value=value, explanation="\n".join(lines))
+
+    return score
 
 
 def extract_report(state: TaskState) -> tuple[HtmlReport | None, str]:

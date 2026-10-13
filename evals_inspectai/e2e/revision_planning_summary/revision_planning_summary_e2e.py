@@ -28,10 +28,16 @@ carries the per-scenario expectations.
   triaging Part 1 into substantial asks versus a count of quick fixes, carrying
   a scope and a suggestion under every point, and the trap the scenario plants.
 
+- `input_identification`, the share of documents the agent took for what
+  they are: nobody labels them, so a misreading is what every other score
+  would then inherit.
+
 Each dataset sample plants a specific trap: conflicting reviewers, a compound
 bullet that needs sub-point IDs, three reviewers on a commentary where many
 asks are out of scope, a memo that refers to everything by a number the
-revision will change, and a memo dominated by trivial corrections.
+revision will change, a memo dominated by trivial corrections, and a reviewer
+who left only Word comments on a copy of the draft, which must count as a
+reviewer of their own.
 """
 
 import json
@@ -61,15 +67,18 @@ from inspect_ai.viewer import (
 )
 
 from evals_inspectai.common.api_solver import surface_conversations
+from evals_inspectai.common.docx_fixture import MarkedUpCopy, with_byline
 from evals_inspectai.common.loaders import resolve_input
 from evals_inspectai.common.model_override import output_model_name
 from evals_inspectai.common.peer_review_fixture import (
     ReviewDocument,
+    expected_input_roles,
     run_review_assistant_request,
 )
 from evals_inspectai.common.review_assistant_scorers import (
     STRUCTURE_CHECKS,
     extract_report,
+    input_identification,
     report_structure,
 )
 from evals_inspectai.common.scorers import criteria_for, failed_score, grade_criteria
@@ -87,6 +96,15 @@ GRADER_MODEL = "openai/gpt-5.6-terra"
 _WORKFLOW_TIMEOUT_S = 2400
 
 
+def _memo(entry: str | dict) -> dict[str, str]:
+    """A memo's display name and text; a mapping may sign it with a `byline`."""
+    ref = entry if isinstance(entry, str) else entry["source"]
+    text = resolve_input(ref)
+    if isinstance(entry, dict) and entry.get("byline"):
+        text = with_byline(text, entry["byline"])
+    return {"file_name": Path(ref.removeprefix("file://")).name, "content": text}
+
+
 def _record_to_sample(record: dict) -> Sample:
     """Build a sample from one dataset record.
 
@@ -94,15 +112,12 @@ def _record_to_sample(record: dict) -> Sample:
     Keeping them on disk as markdown rather than embedding them keeps the
     dataset readable and lets the fixture documents be edited as the documents
     they are; the memo's file name is carried through as its display name on
-    upload.
+    upload. A memo may be given as a mapping instead, to add a `byline`, and a
+    record may carry `marked_up` copies of the draft, built as Word files at
+    upload time.
     """
-    memos = [
-        {
-            "file_name": Path(ref.removeprefix("file://")).name,
-            "content": resolve_input(ref),
-        }
-        for ref in record["memos"]
-    ]
+    memos = [_memo(entry) for entry in record.get("memos", [])]
+    marked_up = [MarkedUpCopy.model_validate(m) for m in record.get("marked_up", [])]
     return Sample(
         id=record["id"],
         # The draft is the sample input so it reaches the grader as the question.
@@ -113,6 +128,11 @@ def _record_to_sample(record: dict) -> Sample:
         metadata={
             "output": _TARGET_OUTPUT,
             "memos": memos,
+            "marked_up": [m.model_dump() for m in marked_up],
+            "expected_roles": expected_input_roles(
+                memo_names=[m["file_name"] for m in memos],
+                marked_up_names=[m.file_name for m in marked_up],
+            ),
             "expected_reviewers": record["expected_reviewers"],
             "point_count_bands": record["point_count_bands"],
             "verbatim_probes": record["verbatim_probes"],
@@ -156,7 +176,11 @@ def revision_planning_summary_solver(
         run_detail = await run_review_assistant_request(
             draft=state.input_text,
             memos=[ReviewDocument(m["file_name"], m["content"]) for m in meta["memos"]],
-            output=_TARGET_OUTPUT,
+            marked_up=[
+                ReviewDocument(m.file_name, m.content())
+                for m in (MarkedUpCopy.model_validate(raw) for raw in meta["marked_up"])
+            ],
+            outputs=[_TARGET_OUTPUT],
             timeout_s=timeout_s,
             poll_interval_s=poll_interval_s,
         )
@@ -265,6 +289,7 @@ def _viewer_config() -> ViewerConfig:
             for name in STRUCTURE_CHECKS
         ),
         *(TaskSamplesColumn.score("rubric_criteria", name) for name in RUBRIC_CRITERIA),
+        TaskSamplesColumn.score("input_identification"),
     ]
 
     return ViewerConfig(
@@ -312,6 +337,7 @@ def _viewer_config() -> ViewerConfig:
                 "part1_triage": "Triage",
                 "planning_notes": "Notes",
                 "scenario_trap": "Trap",
+                "input_identification": "Inputs",
             },
             # Everything is numeric with 1 good. The rubric criteria are no
             # longer categorical C/P/I: they are graded that way and mapped to
@@ -330,7 +356,7 @@ def _viewer_config() -> ViewerConfig:
             # in every column and gives a passing column its full-marks green.
             score_color_scales={
                 name: ScoreColorScale(palette="good-high", min=0.0, max=1.0)
-                for name in (*STRUCTURE_CHECKS, *RUBRIC_CRITERIA)
+                for name in (*STRUCTURE_CHECKS, *RUBRIC_CRITERIA, "input_identification")
             },
             color_scales_enabled=True,
         ),
@@ -350,6 +376,7 @@ def revision_planning_summary_e2e():
         scorer=[
             report_structure(),
             rubric_criteria(),
+            input_identification(),
         ],
         viewer=_viewer_config(),
     )
