@@ -1,6 +1,6 @@
 'use client';
 
-import { documentUrlTransform } from '@/components/document-image';
+import { DocumentImage, documentUrlTransform } from '@/components/document-image';
 import {
   BLOCK_COMPONENTS,
   REHYPE_PLUGINS,
@@ -9,11 +9,26 @@ import {
 } from '@/components/results/document-explorer/document-view';
 import { ANCHOR_SELECTOR, rehypeHighlightAnchor } from '@/lib/annotation-highlight';
 import { cn } from '@/lib/utils';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, type ImgHTMLAttributes } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { PluggableList } from 'unified';
 
 const ROW_WASH = ['bg-amber-50', 'dark:bg-amber-950/30'];
+
+/** Example documents carry their figures inline, as the backend builds them from the eval datasets. */
+const INLINE_IMAGE = /^data:image\/(png|jpeg|gif|webp);base64,/;
+
+function passageUrlTransform(url: string): string {
+  return INLINE_IMAGE.test(url) ? url : documentUrlTransform(url);
+}
+
+function PassageImage(props: ImgHTMLAttributes<HTMLImageElement>) {
+  if (typeof props.src !== 'string' || !INLINE_IMAGE.test(props.src)) return <DocumentImage {...props} />;
+  // eslint-disable-next-line @next/next/no-img-element -- an inline data URI, which next/image cannot optimize
+  return <img src={props.src} alt={props.alt ?? ''} className="my-2 max-h-96 max-w-full" />;
+}
+
+const PASSAGE_COMPONENTS = { ...BLOCK_COMPONENTS, img: PassageImage };
 const ROW_RULE = 'w-[2px] shrink-0 rounded-full bg-amber-500';
 
 interface PassageDocumentProps {
@@ -75,8 +90,8 @@ export function PassageDocument({ document, anchor, line, className }: PassageDo
         <ReactMarkdown
           remarkPlugins={REMARK_PLUGINS}
           rehypePlugins={rehypePlugins}
-          components={BLOCK_COMPONENTS}
-          urlTransform={documentUrlTransform}
+          components={PASSAGE_COMPONENTS}
+          urlTransform={passageUrlTransform}
         >
           {document}
         </ReactMarkdown>
