@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.0.8] - 2026-10-13
+
+### Added
+- Added a Teams-to-Word “handoff” flow where Teams-requested comments and fixes are stored and later applied by the Word add-in as Draft Detective comments and tracked changes, with results posted back to the Teams thread.
+- Added Office single sign-on (with dialog fallback) for the Word add-in, including sign-in and sign-out support.
+- Added new Microsoft Word handoff storage, endpoints for annotating comments and applying suggestions, and handoff list/applied/dismissed endpoints.
+- Added new Writing Consistency capability to correct verbs whose tense does not fit their sentence, including long-document handling and updated evals/criteria.
+- Added new Writing Style Review improvements to catch buried passives and wordiness and to split long documents among sub-agents, with updated evals and tests.
+- Added Teams bot support for signing users in from channels and group chats via an Adaptive Card flow, and for reading documents only as the person who asked.
+
+### Changed
+- Renamed the “Editorial Review” assessment preset label to “Writing Style Review” in the workflow picker while keeping the existing slug.
+- Refactored the Teams bot to drop the Agents SDK `AgentApplication` layer and move the conversation flow out of the router into a service module, with behavior unchanged.
+- Updated dependencies: mako 1.3.12 → 1.4.2, fsspec 2025.9.0 → 2026.6.0, multidict 6.7.1 → 6.9.1, next 15.5.24 → 15.5.27 (frontend), and langgraph-sdk 0.4.2 → 0.4.4.
+
+### Fixed
+- Fixed reporting so withheld Word edits are reported as not applied.
+
+### Security
+- Updated Next.js to 15.5.27, which includes security fixes for multiple advisories and additional security hardening for `next/og`.
+
+### Removed
+- Removed the Word add-in’s old behavior, including in-document @mentions and the project-issues view.
+- Removed the Teams bot’s app-only Graph reading mode and the Graph host/site allowlists, requiring delegated reads as the asker.
+- Removed environment configuration for Azure client credentials and Graph allowlists that are no longer used.
+
+
 ## [v2.0.7] - 2026-10-06
 
 ### Added
