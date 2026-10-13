@@ -33,9 +33,9 @@ async def read_abbreviations_section_node(
     if not markdown.strip():
         return {}
     if not find_candidate_lines(markdown):
-        # Nothing the agent could find; skip it rather than let it search a
-        # long document until the LLM gateway times out.
-        logger.info("[AbbreviationScanV2] No line mentions an Abbreviations section; skipping the agent")
+        # Nothing the extractor could find; skip the call rather than send a
+        # long document to the model for nothing.
+        logger.info("[AbbreviationScanV2] No line mentions an Abbreviations section; skipping the extractor")
         return {"abbreviations_section_found": False}
 
     result, messages = await AbbreviationsSectionExtractorAgent(runtime.context).ainvoke(
