@@ -177,6 +177,30 @@ def test_items_carry_the_documents_figures_inline():
         assert "data:image/png;base64," in draft.passage.document
 
 
+def test_source_key_changes_with_a_figure(tmp_path: Path, monkeypatch):
+    dataset = _write(
+        tmp_path,
+        {
+            "input": "We surveyed staff.\n\n![](files/figures/chart.png)",
+            "decoys": [{"anchor": "We surveyed staff", "reason": "active"}],
+        },
+    )
+
+    def key_with(figure: str) -> str:
+        monkeypatch.setattr(
+            "lib.services.annotations.eval_items.inline_local_images",
+            lambda markdown: markdown.replace("files/figures/chart.png", figure),
+        )
+        return items_from_inventory(ACTIVE_VOICE, dataset)[0].source_key
+
+    assert key_with("data:image/png;base64,AAAA") == key_with(
+        "data:image/png;base64,AAAA"
+    )
+    assert key_with("data:image/png;base64,AAAA") != key_with(
+        "data:image/png;base64,BBBB"
+    )
+
+
 def test_source_key_changes_with_the_document(tmp_path: Path):
     def keys(document: str) -> list[str]:
         dataset = tmp_path / "dataset.yaml"

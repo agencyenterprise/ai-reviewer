@@ -38,7 +38,8 @@ def _digest(text: str) -> str:
 
 
 def _source_key(document: str, anchor: str, kind: AnnotationItemKind) -> str:
-    """Content-addressed: editing the document or the passage makes a new item."""
+    """Content-addressed: editing the document, one of its figures or the passage
+    makes a new item, so no answer carries over to evidence it was not given on."""
     return f"{_digest(document)}:{_digest(normalize(anchor))}:{kind.value}"
 
 
@@ -51,7 +52,6 @@ def _line_of(document: str, anchor: str) -> Optional[int]:
 
 
 def _item(
-    record: ResolvedInventory,
     document: str,
     anchor: str,
     kind: AnnotationItemKind,
@@ -61,7 +61,7 @@ def _item(
     if reference is None:
         return None
     return AnnotationItemDraft(
-        source_key=_source_key(record.document, anchor, kind),
+        source_key=_source_key(document, anchor, kind),
         kind=kind,
         passage=AnnotationPassage(
             document=document, anchor=anchor, line=line or _line_of(document, anchor)
@@ -80,7 +80,6 @@ def _record_items(
     # An issue about something absent has no passage to show.
     candidates = [
         _item(
-            record,
             document,
             issue.anchor,
             AnnotationItemKind.EXPECTED_ISSUE,
@@ -92,7 +91,6 @@ def _record_items(
     ]
     candidates += [
         _item(
-            record,
             document,
             decoy.anchor,
             AnnotationItemKind.DECOY,
