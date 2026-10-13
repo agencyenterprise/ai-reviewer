@@ -1,12 +1,14 @@
 """Find and read the Abbreviations section for abbreviation scan v2.
 
 Runs before chunking: the section's lines are kept out of the chunks, and its
-entries supply each occurrence's Abbreviations-section definition.
+entries supply each occurrence's Abbreviations-section definition. When the
+section cannot be read, the run stops here (see `after_section`).
 """
 
 import logging
 from typing import List
 
+from langgraph.graph import END
 from langgraph.runtime import Runtime
 
 from lib.agents.abbreviations_section_extractor import (
@@ -20,6 +22,7 @@ from lib.workflows.abbreviation_scan_v2.section_candidates import find_candidate
 from lib.workflows.abbreviation_scan_v2.state import AbbreviationScanV2State
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
+from lib.workflows.models import WorkflowErrorSeverity
 
 logger = logging.getLogger(__name__)
 
@@ -82,3 +85,20 @@ def _valid_sections(
             continue
         valid.append(section.model_copy(update={"start_line": start, "end_line": end}))
     return valid
+
+
+def after_section(state: AbbreviationScanV2State) -> str:
+    """Go on to chunking, or end the run when the section could not be read.
+
+    Without the section's result the section's own entries would be catalogued
+    as body text, and every abbreviation would be reported "missing from
+    Abbreviations section", alongside a false "No Abbreviations section found".
+    Ending here leaves the node's error as the run's outcome and reports no
+    issues, so the user retries instead of reading false ones.
+    """
+    failed = any(
+        error.task_name == read_abbreviations_section_node.__name__
+        and error.severity == WorkflowErrorSeverity.ERROR
+        for error in state.errors
+    )
+    return END if failed else "prepare_chunks"

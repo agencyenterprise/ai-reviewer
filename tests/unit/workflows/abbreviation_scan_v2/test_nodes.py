@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from langchain_core.messages import AIMessage
+from langgraph.graph import END
 from langgraph.types import Send
 
 from lib.agents.abbreviation_chunk_extractor import PartialChunkExtractionError
@@ -28,7 +29,7 @@ from lib.workflows.abbreviation_scan_v2.state import (
     AbbreviationScanV2Config,
     AbbreviationScanV2State,
 )
-from lib.workflows.models import WorkflowErrorSeverity
+from lib.workflows.models import WorkflowError, WorkflowErrorSeverity
 
 MARKDOWN = "# Report\n\nThe NATO alliance.\n\n## Abbreviations\n\n- NATO: North Atlantic Treaty Organization"
 
@@ -222,3 +223,37 @@ class TestReadAbbreviationsSection:
             )
         agent.ainvoke.assert_not_called()
         assert result == {"abbreviations_section_found": False}
+
+
+class TestAfterSection:
+    def _error(self, task_name: str, severity: WorkflowErrorSeverity = WorkflowErrorSeverity.ERROR) -> WorkflowError:
+        return WorkflowError(task_name=task_name, error="Request timed out.", severity=severity)
+
+    def test_section_read_continues_to_chunking(self):
+        assert read_abbreviations_section.after_section(_state()) == "prepare_chunks"
+
+    def test_failed_section_read_ends_the_run(self):
+        state = _state(errors=[self._error(read_abbreviations_section.read_abbreviations_section_node.__name__)])
+        assert read_abbreviations_section.after_section(state) == END
+
+    def test_other_errors_and_warnings_do_not_stop_the_run(self):
+        state = _state(
+            errors=[
+                self._error("extract_chunk"),
+                self._error(
+                    read_abbreviations_section.read_abbreviations_section_node.__name__,
+                    WorkflowErrorSeverity.WARNING,
+                ),
+            ]
+        )
+        assert read_abbreviations_section.after_section(state) == "prepare_chunks"
+
+
+
+def test_graph_routes_the_section_read_through_after_section():
+    graph = build_abbreviation_scan_v2_graph()
+
+    assert not [edge for edge in graph.edges if edge[0] == "read_abbreviations_section"]
+    [branch] = graph.branches["read_abbreviations_section"].values()
+    assert branch.path.func is read_abbreviations_section.after_section
+    assert set(branch.ends or {}) == {"prepare_chunks", END}
