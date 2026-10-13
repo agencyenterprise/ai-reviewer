@@ -94,10 +94,11 @@ async def annotate(
 class ApplySuggestionsRequest(BaseModel):
     ooxml: str = Field(description=f"Flat OPC markup for the range to change: {SCOPE}")
     edits: list[EditToApply] = Field(
+        max_length=100,  # a handoff holds at most 100
         description=(
             "Every change for this one paragraph, applied in one pass, so the "
             "caller reads and writes the paragraph once however many there are."
-        )
+        ),
     )
 
 

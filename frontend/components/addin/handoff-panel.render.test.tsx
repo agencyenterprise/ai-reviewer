@@ -52,8 +52,8 @@ const handoff = (id: string, name = 'Draft.docx', status: HandoffView['status'] 
 
 let rendered: Rendered | null = null;
 
-async function render(): Promise<HTMLElement> {
-  rendered = await renderInto(withQueryClient(testQueryClient(), <HandoffPanel />));
+async function render(client = testQueryClient()): Promise<HTMLElement> {
+  rendered = await renderInto(withQueryClient(client, <HandoffPanel />));
   // Signing in silently, then listing: two rounds of promises before anything shows.
   await flush();
   await flush();
@@ -279,6 +279,44 @@ describe('HandoffPanel', () => {
     expect(apply).toHaveBeenCalledTimes(1);
     expect(report).toHaveBeenCalledTimes(2);
     expect(container.textContent).toContain('Applied 1 of 2');
+  });
+
+  it('a report refused by an expired sign-in can be sent after signing in again', async () => {
+    list.mockResolvedValue({ here: [handoff('h-expired')], elsewhere: [] });
+    apply.mockResolvedValue(ITEMS);
+    report.mockRejectedValueOnce(new ApiError(401));
+    const container = await render();
+    await click(container, 'Sign in with Microsoft');
+
+    await click(container, 'Apply');
+    expect(container.textContent).toContain('Your sign-in expired');
+
+    list.mockResolvedValue({ here: [handoff('h-expired', 'Draft.docx', 'applying')], elsewhere: [] });
+    await click(container, 'Sign in with Microsoft');
+    expect(container.textContent).toContain('has not reached Teams yet');
+    expect(() => button(container, 'Apply anyway')).toThrow();
+
+    await click(container, 'Send again');
+
+    expect(apply).toHaveBeenCalledTimes(1);
+    expect(report).toHaveBeenCalledTimes(2);
+    expect(container.textContent).toContain('Applied 1 of 2');
+  });
+
+  it('signing in again forgets the handoffs listed for the previous account', async () => {
+    list.mockResolvedValue({ here: [handoff('h1')], elsewhere: [] });
+    // As the app's client does: cached results count as fresh for a minute.
+    const client = testQueryClient();
+    client.setDefaultOptions({ queries: { retry: false, staleTime: 60_000 } });
+    const container = await render(client);
+    await click(container, 'Sign in with Microsoft');
+    expect(container.textContent).toContain('From Teams');
+
+    await click(container, 'Sign out');
+    list.mockResolvedValue({ here: [], elsewhere: [] });
+    await click(container, 'Sign in with Microsoft');
+
+    expect(container.textContent).toContain('Nothing waiting from Teams');
   });
 
   it('a failed write is shown, and nothing is reported to Teams', async () => {

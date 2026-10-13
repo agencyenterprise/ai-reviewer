@@ -6,6 +6,7 @@ const word = vi.hoisted(() => ({
   paragraphTexts: vi.fn(),
   readParagraphMarkup: vi.fn(),
   writeParagraphMarkup: vi.fn(),
+  scopeText: vi.fn(),
 }));
 const api = vi.hoisted(() => ({
   annotateApiMicrosoftWordCommentsAnnotatePost: vi.fn(),
@@ -37,6 +38,7 @@ beforeEach(() => {
   authorize.mockResolvedValue('Bearer t');
   word.paragraphTexts.mockResolvedValue(PARAGRAPHS);
   word.readParagraphMarkup.mockResolvedValue('<in/>');
+  word.scopeText.mockResolvedValue('the paragraph as read');
   api.applySuggestionsApiMicrosoftWordSuggestionsApplyPost.mockResolvedValue({
     applied: 1,
     ooxml: '<edited/>',
@@ -153,12 +155,8 @@ describe('applyHandoff', () => {
     expect(word.writeParagraphMarkup).not.toHaveBeenCalled();
   });
 
-  it('writes nothing over a paragraph someone edited while the service worked', async () => {
-    const edited = ['Introduction', 'We recieve funding and this is the only option, they said.', 'Funding.'];
-    word.paragraphTexts
-      .mockResolvedValueOnce(PARAGRAPHS)
-      .mockResolvedValueOnce(PARAGRAPHS)
-      .mockResolvedValueOnce(edited);
+  it('writes nothing over a paragraph, or table, someone edited while the service worked', async () => {
+    word.scopeText.mockResolvedValueOnce('the paragraph as read').mockResolvedValueOnce('a coauthor typed here');
 
     const items = await applyHandoff(handoff({ edits: [{ quote: 'recieve', replacement: 'receive' }] }), authorize);
 

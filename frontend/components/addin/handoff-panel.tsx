@@ -61,6 +61,8 @@ export function HandoffPanel() {
   const signIn = useMutation({
     mutationFn: signInInteractively,
     onSuccess: (message) => {
+      // Handoffs are cached per email, and two accounts can share one.
+      queryClient.removeQueries({ queryKey: ['addin-handoffs'] });
       setSignedIn(message);
       setSilentAllowed(true);
       setExpired(false);
@@ -78,6 +80,7 @@ export function HandoffPanel() {
       setSilentAllowed(false);
       setExpired(false);
       queryClient.removeQueries({ queryKey: ['addin-sso'] });
+      queryClient.removeQueries({ queryKey: ['addin-handoffs'] });
     },
   });
 
@@ -223,6 +226,13 @@ type HandoffCardProps = {
 };
 
 /**
+ * Results written into Word but not yet reported, by handoff. Kept outside the card
+ * because an expired sign-in unmounts it: after signing in again the report can still be
+ * sent, instead of the handoff coming back as interrupted.
+ */
+const unreported = new Map<string, AppliedItem[]>();
+
+/**
  * One handoff: Apply claims it on the server, writes it, then reports the results.
  *
  * Claiming first means a run that never reports back (a closed pane, an expired token,
@@ -233,7 +243,11 @@ type HandoffCardProps = {
 function HandoffCard({ handoff, authorize, onExpired, onDone }: HandoffCardProps) {
   const comments = handoff.items.comments ?? [];
   const edits = handoff.items.edits ?? [];
-  const [written, setWritten] = useState<AppliedItem[] | null>(null);
+  const [written, setWrittenState] = useState<AppliedItem[] | null>(() => unreported.get(handoff.id) ?? null);
+  const setWritten = (items: AppliedItem[]) => {
+    unreported.set(handoff.id, items);
+    setWrittenState(items);
+  };
   const expireOn401 = (error: Error) => {
     if (isApiError(error, 401)) onExpired();
   };
@@ -245,6 +259,7 @@ function HandoffCard({ handoff, authorize, onExpired, onDone }: HandoffCardProps
         body: { results: resultsOf(items) },
         headers: { Authorization: await authorize() },
       }),
+    onSuccess: () => unreported.delete(handoff.id),
     onError: expireOn401,
   });
 
@@ -288,9 +303,12 @@ function HandoffCard({ handoff, authorize, onExpired, onDone }: HandoffCardProps
     return (
       <div className="flex flex-col gap-2 text-xs">
         <p className="font-medium text-sm">Applied in Word.</p>
-        {report.isError ? (
+        {report.isError || report.isIdle ? (
           <>
-            <p className="text-red-500">The result could not be sent to Teams. Nothing needs applying again.</p>
+            <p className="text-red-500">
+              {report.isError ? 'The result could not be sent to Teams.' : 'The result has not reached Teams yet.'}{' '}
+              Nothing needs applying again.
+            </p>
             <Button size="sm" variant="outline" className="self-start" onClick={() => report.mutate(written)}>
               Send again
             </Button>

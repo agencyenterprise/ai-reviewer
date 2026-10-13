@@ -45,13 +45,24 @@ class TestAnchoringAComment:
         assert placed.anchored is True
         assert placed.ooxml is not None
 
+    def test_in_a_table_a_missing_quote_is_not_pinned_to_the_first_cell(self) -> None:
+        # A table arrives as one scope holding every cell's paragraphs.
+        placed = markup_writes.add_comment(
+            package("Cell one.", CLAIM), "a point", "not in it"
+        )
+
+        assert placed.anchored is False
+        assert placed.detail == markup_writes.NOT_IN_TABLE
+
 
 class TestApplyingEdits:
     def test_a_change_rejecting_would_not_undo_is_withheld(self) -> None:
         """The safety net: altered words nobody asked for means writing nothing."""
 
         with patch.object(
-            markup_writes, "_rejected_text", return_value="something else"
+            markup_writes,
+            "_rejected_text",
+            side_effect=["as it was", "something else"],
         ):
             written = markup_writes.apply_edits(
                 package(CLAIM), [EditToApply(quote="prove", replacement="support")]
@@ -70,7 +81,9 @@ class TestApplyingEdits:
         self,
     ) -> None:
         with patch.object(
-            markup_writes, "_rejected_text", side_effect=DocxEditError("boom")
+            markup_writes,
+            "_rejected_text",
+            side_effect=["as it was", DocxEditError("boom")],
         ):
             written = markup_writes.apply_edits(
                 package(CLAIM), [EditToApply(quote="prove", replacement="support")]
@@ -131,10 +144,21 @@ class TestOneEdit:
 
 class TestTheReversibilityCheck:
     def test_markup_that_cannot_be_reopened_is_inconclusive(self) -> None:
-        fragment = MagicMock()
-        fragment.serialise.side_effect = FragmentError("cannot serialise")
+        assert markup_writes._rejected_text("not a package") is None
 
-        assert markup_writes._rejected_text(fragment) is None
+    def test_tracked_changes_already_there_do_not_hold_back_new_ones(self) -> None:
+        first = markup_writes.apply_edits(
+            package(CLAIM), [EditToApply(quote="prove", replacement="support")]
+        )
+        assert first.ooxml is not None
+
+        second = markup_writes.apply_edits(
+            first.ooxml, [EditToApply(quote="conclusively", replacement="")]
+        )
+
+        assert second.applied == 1
+        assert second.ooxml is not None
+        assert not second.warnings
 
 
 class TestCapturingMarkup:

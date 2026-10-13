@@ -94,16 +94,19 @@ backend writes the comment, or the `w:ins`/`w:del` of a tracked change, authored
 Draft Detective. See `frontend/lib/addin/apply-handoff.ts` and "From Teams to Word" in
 [`../README.md`](../README.md) for how changes asked for in Teams get there.
 
-Three things worth knowing:
+Things worth knowing:
 
 - It has to be markup. Word's API attributes a comment to whoever is signed in, with
   no way to override it, and cannot create a tracked change at all.
 - The pane switches the document's change tracking off around every write and
   restores it afterwards. Left on, Word records our write as a revision by the
   signed-in user, which wraps Draft Detective's suggestion inside the author's own.
-- A write replaces the whole paragraph, so the pane reads the paragraph's text again
-  just before writing and writes nothing if it changed since the markup was read: an
-  edit typed meanwhile, by the author or a coauthor, would otherwise be lost.
+- A write replaces the whole paragraph, or the whole table it sits in, so the pane
+  reads that range's text again just before writing and writes nothing if it changed
+  since the markup was read: an edit typed meanwhile, by the author or a coauthor,
+  would otherwise be lost. A formatting-only change is not caught.
+- Change tracking can only be switched from WordApi 1.4. On older Word the pane writes
+  with tracking left as it is.
 
 ## Signing in
 

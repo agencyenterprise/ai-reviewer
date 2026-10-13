@@ -272,3 +272,11 @@ async def test_oversized_suggestion_markup_is_rejected():
             caller=_caller(),
         )
     assert error.value.status_code == 413
+
+
+def test_a_request_holds_no_more_edits_than_a_handoff():
+    with pytest.raises(ValueError):
+        ApplySuggestionsRequest(
+            ooxml="<x/>",
+            edits=[EditToApply(quote="a", replacement="b") for _ in range(101)],
+        )

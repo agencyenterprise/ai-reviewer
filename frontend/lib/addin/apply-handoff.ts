@@ -14,7 +14,7 @@ import {
   planHandoff,
   relocate,
 } from './handoff-plan';
-import { paragraphTexts, readParagraphMarkup, writeParagraphMarkup } from './word-writes';
+import { paragraphTexts, readParagraphMarkup, scopeText, writeParagraphMarkup } from './word-writes';
 
 /**
  * Write a handoff from Teams into the open document, and say what landed.
@@ -56,17 +56,17 @@ function failed(work: ParagraphWork, detail: string, reason: FailureReason): App
   ];
 }
 
-async function unchanged(index: number, before: string): Promise<boolean> {
-  const now = (await paragraphTexts())[index];
-  return now !== undefined && normalize(now) === normalize(before);
+async function unchanged(index: number, before: string | null): Promise<boolean> {
+  const now = await scopeText(index);
+  return before !== null && now !== null && normalize(now) === normalize(before);
 }
 
 async function applyToParagraph(work: ParagraphWork, authorize: () => Promise<string>): Promise<AppliedItem[]> {
-  const texts = await paragraphTexts();
-  const index = relocate(texts, work);
+  const index = relocate(await paragraphTexts(), work);
   if (index === null) return failed(work, NOT_FOUND, 'not_found');
 
   try {
+    const before = await scopeText(index);
     const read = await readParagraphMarkup(index);
     if (!read) return failed(work, NOT_FOUND, 'not_found');
     let markup: string = read;
@@ -112,9 +112,9 @@ async function applyToParagraph(work: ParagraphWork, authorize: () => Promise<st
     }
 
     if (outcomes.some((outcome) => outcome.applied)) {
-      // The write replaces the whole paragraph with markup made from the earlier read:
-      // anything typed into it meanwhile, by the author or a coauthor, would be lost.
-      if (!(await unchanged(index, texts[index]))) return failed(work, CHANGED, 'changed');
+      // The write replaces the whole paragraph, or its whole table, with markup made
+      // from the earlier read: anything typed into it meanwhile would be lost.
+      if (!(await unchanged(index, before))) return failed(work, CHANGED, 'changed');
       await writeParagraphMarkup(index, markup);
     }
     return outcomes;

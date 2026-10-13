@@ -131,8 +131,15 @@ def from_entra_token(token: str) -> Optional[AddinIdentity]:
 
 
 def from_session_token(token: str) -> Optional[AddinIdentity]:
-    """The identity in a Draft Detective session token from a Microsoft sign-in."""
+    """The identity in a Draft Detective session token from a Microsoft sign-in.
 
+    Held to the same configuration as single sign-on: none without the add-in's app,
+    and only the configured tenant's when its issuer names one.
+    """
+
+    client_id, required_issuer = addin_app()
+    if not client_id:
+        return None
     try:
         claims: dict[str, Any] = jwt.decode(
             token,
@@ -150,6 +157,10 @@ def from_session_token(token: str) -> Optional[AddinIdentity]:
         return None
     if not claims.get("oid"):
         logger.info("rejected an add-in session token without an object id")
+        return None
+    tenant = claims.get("tid")
+    if required_issuer and f"/{str(tenant).lower()}/" not in required_issuer.lower():
+        logger.info("rejected an add-in session token from tenant %s", tenant)
         return None
     return AddinIdentity(
         oid=str(claims["oid"]),

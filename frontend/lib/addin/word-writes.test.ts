@@ -5,7 +5,7 @@ import { writeParagraphMarkup } from './word-writes';
  * A stand-in for Word's object model, enough for one write: a document with a
  * change-tracking mode and one paragraph outside any table.
  */
-function fakeWord(mode: string) {
+function fakeWord(mode: string, wordApi14 = true) {
   const modes: string[] = [];
   const range = { insertOoxml: vi.fn() };
   const paragraph = {
@@ -28,7 +28,8 @@ function fakeWord(mode: string) {
     ChangeTrackingMode: { off: 'Off', trackAll: 'TrackAll' },
     InsertLocation: { replace: 'Replace' },
   });
-  return { modes, range };
+  vi.stubGlobal('Office', { context: { requirements: { isSetSupported: () => wordApi14 } } });
+  return { modes, document, range };
 }
 
 afterEach(() => vi.unstubAllGlobals());
@@ -58,6 +59,16 @@ describe('writeParagraphMarkup', () => {
 
     await writeParagraphMarkup(0, '<markup/>');
 
+    expect(modes).toEqual([]);
+  });
+
+  it('writes without touching tracking on a Word too old to set it', async () => {
+    const { modes, document, range } = fakeWord('TrackAll', false);
+
+    await writeParagraphMarkup(0, '<markup/>');
+
+    expect(document.load).not.toHaveBeenCalledWith('changeTrackingMode');
+    expect(range.insertOoxml).toHaveBeenCalledWith('<markup/>', 'Replace');
     expect(modes).toEqual([]);
   });
 

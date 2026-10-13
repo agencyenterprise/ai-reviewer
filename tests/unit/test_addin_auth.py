@@ -226,6 +226,22 @@ class TestTheDialogFallback:
 
         assert await addin_auth.identify(forged) is None
 
+    @pytest.mark.asyncio
+    async def test_none_is_accepted_where_the_add_in_is_not_configured(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(addin_auth.config, "AUTH_MICROSOFT_ENTRA_ID_SECRET", None)
+
+        assert await addin_auth.identify(session_token()) is None
+
+    @pytest.mark.asyncio
+    async def test_a_tenant_specific_issuer_keeps_other_tenants_sessions_out(
+        self,
+    ) -> None:
+        other = session_token(tid="0e8f9a1b-2c3d-4e5f-8a9b-0c1d2e3f4a5b")
+
+        assert await addin_auth.identify(other) is None
+
 
 class TestTheDependency:
     @pytest.mark.asyncio

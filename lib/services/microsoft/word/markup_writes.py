@@ -27,7 +27,7 @@ from docx_editor.exceptions import (
 from docx_editor.xml_editor import ParagraphInfo
 from pydantic import BaseModel, Field
 
-from lib.services.microsoft.word.word_package import Fragment, FragmentError, editable
+from lib.services.microsoft.word.word_package import FragmentError, editable
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 DEBUG_DIR = os.getenv("DD_COMMENT_DEBUG_DIR")
 
 NO_TEXT = "This paragraph has no text to anchor a comment to"
+NOT_IN_TABLE = "The words are not in this table, and no one cell can be guessed at"
 
 
 class CommentPlacement(BaseModel):
@@ -83,9 +84,13 @@ def add_comment(ooxml: str, comment: str, quote: Optional[str]) -> CommentPlacem
     try:
         with editable(ooxml) as fragment:
             document = fragment.document
-            anchor = _anchor_for(quote, document.list_paragraphs_structured())
+            paragraphs = document.list_paragraphs_structured()
+            anchor = _anchor_for(quote, paragraphs)
             if anchor is None:
-                return CommentPlacement(anchored=False, detail=NO_TEXT)
+                has_text = any(info.text.strip() for info in paragraphs)
+                return CommentPlacement(
+                    anchored=False, detail=NOT_IN_TABLE if has_text else NO_TEXT
+                )
             comment_id = document.add_comment(anchor, comment)
             outgoing = fragment.serialise()
     except (FragmentError, DocxEditError) as error:
@@ -107,7 +112,8 @@ def _anchor_for(quote: Optional[str], paragraphs: list[ParagraphInfo]) -> Option
 
     A quote that cannot be found is not a reason to say nothing. The point being
     raised is about this paragraph either way, so the whole paragraph is the
-    fallback rather than silence.
+    fallback rather than silence. Not in a table, which comes as one scope of many
+    paragraphs: there is no telling which of them was meant.
     """
 
     with_text = [info for info in paragraphs if info.text.strip()]
@@ -118,6 +124,8 @@ def _anchor_for(quote: Optional[str], paragraphs: list[ParagraphInfo]) -> Option
         for info in with_text:
             if wanted in info.text:
                 return wanted
+    if len(with_text) > 1:
+        return None
     return with_text[0].text.strip()
 
 
@@ -132,21 +140,23 @@ def apply_edits(ooxml: str, edits: list[EditToApply]) -> EditsWritten:
     reference = uuid4().hex[:8]
     _capture("suggest-in", ooxml, reference)
 
+    # What the paragraph says with every tracked change rejected, before ours are
+    # added: rejecting all of them afterwards must give the same text. Measured that
+    # way, revisions already in the document are rejected on both sides and do not
+    # count against ours.
+    original = _rejected_text(ooxml)
     outcomes: list[AppliedEdit] = []
     try:
         with editable(ooxml) as fragment:
             document = fragment.document
-            # what the paragraph says today, to prove afterwards that rejecting
-            # every change we write puts it back exactly as it was
-            original = _visible_text(document)
             outcomes = [_apply_one(document, edit) for edit in edits]
             applied = sum(1 for outcome in outcomes if outcome.applied)
             if not applied:
                 return EditsWritten(
                     applied=0, edits=outcomes, detail="No change could be placed here"
                 )
-            restored = _rejected_text(fragment)
             outgoing = fragment.serialise()
+            restored = _rejected_text(outgoing)
     except (FragmentError, DocxEditError) as error:
         logger.error("could not apply changes: %s", error)
         return EditsWritten(
@@ -167,7 +177,7 @@ def apply_edits(ooxml: str, edits: list[EditToApply]) -> EditsWritten:
     # Rejecting everything we wrote must reproduce the paragraph we were given. If
     # it does not, we have altered words nobody asked us to, and the safe move is
     # to write nothing at all rather than hand Word a mangled document.
-    if restored is not None and restored != original:
+    if restored is not None and original is not None and restored != original:
         logger.error(
             "refusing to write: rejecting these changes would not restore the original text"
         )
@@ -261,8 +271,8 @@ def _visible_text(document: Document) -> str:
     return "\n".join(info.text for info in document.list_paragraphs_structured())
 
 
-def _rejected_text(fragment: Fragment) -> Optional[str]:
-    """What the text would say if the author rejected every change we just wrote.
+def _rejected_text(markup: str) -> Optional[str]:
+    """What the text would say if the author rejected every tracked change in it.
 
     Checked on a throwaway copy: rejecting for real would undo the work. Returns
     None when the check cannot be made, which is treated as inconclusive rather
@@ -270,7 +280,6 @@ def _rejected_text(fragment: Fragment) -> Optional[str]:
     """
 
     try:
-        markup = fragment.serialise()
         with editable(markup) as copy:
             copy.document.reject_all()
             return _visible_text(copy.document)

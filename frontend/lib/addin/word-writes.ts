@@ -61,6 +61,27 @@ export async function readParagraphMarkup(index: number): Promise<string | null>
 }
 
 /**
+ * The text of the whole range a write at `index` replaces: the paragraph, or its
+ * outermost table. Read before and after the backend's work to tell whether anyone
+ * changed it meanwhile.
+ */
+export async function scopeText(index: number): Promise<string | null> {
+  return Word.run(async (context) => {
+    const paragraph = await paragraphAt(context, index);
+    if (!paragraph) return null;
+    const scope = await rewriteScope(context, paragraph);
+    scope.load('text');
+    await context.sync();
+    return String(scope.text ?? '');
+  });
+}
+
+/** `changeTrackingMode` arrived in WordApi 1.4; older clients write with tracking as it is. */
+function canSetTracking(): boolean {
+  return Office.context.requirements.isSetSupported('WordApi', '1.4');
+}
+
+/**
  * Put markup back over the paragraph at `index`, with change tracking off.
  *
  * Left on, Word records our own write as a revision by the signed-in user, wrapping
@@ -74,9 +95,12 @@ export async function writeParagraphMarkup(index: number, markup: string): Promi
     const scope = await rewriteScope(context, paragraph);
 
     const document = context.document;
-    document.load('changeTrackingMode');
-    await context.sync();
-    const previous = document.changeTrackingMode;
+    let previous: Word.Document['changeTrackingMode'] | undefined;
+    if (canSetTracking()) {
+      document.load('changeTrackingMode');
+      await context.sync();
+      previous = document.changeTrackingMode;
+    }
     const tracking = previous && previous !== Word.ChangeTrackingMode.off;
     if (tracking) {
       document.changeTrackingMode = Word.ChangeTrackingMode.off;
@@ -86,7 +110,7 @@ export async function writeParagraphMarkup(index: number, markup: string): Promi
       scope.insertOoxml(markup, Word.InsertLocation.replace);
       await context.sync();
     } finally {
-      if (tracking) {
+      if (tracking && previous) {
         document.changeTrackingMode = previous;
         await context.sync();
       }
