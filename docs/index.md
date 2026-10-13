@@ -40,7 +40,7 @@ The set of assessments grows regularly, so this page does not list them all. The
 
 ## Design principles
 
-**One check, one question.** An assessment reads the document for a single kind of problem and nothing else. Narrow checks are easier to write, test and trust than one prompt that reviews everything, and a user can run only the ones that matter for a given draft. Presets such as _Standard Review_ and _Editorial Review_ select a useful group in one click.
+**One check, one question.** An assessment reads the document for a single kind of problem and nothing else. Narrow checks are easier to write, test and trust than one prompt that reviews everything, and a user can run only the ones that matter for a given draft. Presets such as _Standard Review_ and _Writing Style Review_ select a useful group in one click.
 
 **The rules are written as skills.** The instructions for an assessment live in a plain-language `SKILL.md` file: what to look for, how to judge it, how severe each kind of problem is, and what a good fix looks like. The app's agents load these files at run time, and the same files install on their own as a plugin for Claude Code or Codex, so a check behaves the same inside the app and in a chat assistant. A new single-pass check needs no Python code: a `SKILL.md` with a short block of frontmatter registers it, and regenerating the frontend's API types makes it available in the app (see [adding a check](./skill-workflows.md)).
 
@@ -74,7 +74,7 @@ Severity is `high`, `medium`, `low`, or `none` for a check that passed and is wo
 2. **Pipeline steps** prepare what every assessment needs. The draft is converted to line-numbered Markdown (images and charts are kept so that checks able to read images can inspect them), its bibliography is extracted, and each reference is matched to an uploaded source file or fetched from the web.
 3. **Assessments** run in parallel, each one independent of the others. Most are a skill plus an agent built on [LangGraph](https://www.langchain.com/langgraph) and [deepagents](https://github.com/langchain-ai/deepagents). The agent reads the document through tools (read and search the document, view an image, search the web, retrieve passages from a cited source, hand work to a subagent) and reports each finding through a reporting tool that validates it on the spot. Some agents split the work: Internal Inference Validation runs three independent detection passes, then has a separate adjudicator judge every candidate before anything is reported. A few checks that need per-item structure, such as the Reference Error Checker, are hand-built LangGraph graphs instead.
 4. **Issues** are stored per revision. Some assessments also write a report, such as a methodology comparison or a peer review.
-5. **Surfaces** present the same issues in different places: the web app, a Word export where issues become comments and proposed edits become tracked changes, a Word add-in, and an [MCP](https://modelcontextprotocol.io/) server that lets Claude, Codex or any other MCP client create projects, run assessments and read the results.
+5. **Surfaces** present the same issues in different places: the web app, a Word export where issues become comments and proposed edits become tracked changes, and an [MCP](https://modelcontextprotocol.io/) server that lets Claude, Codex or any other MCP client create projects, run assessments and read the results.
 
 ## What it looks like
 

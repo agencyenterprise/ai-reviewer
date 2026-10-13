@@ -14,11 +14,11 @@ the message are handed over as candidates and the agent opens what it needs, via
 tools in ``lib/agents/tools/sharepoint.py``. Which link is meant is a question about the
 conversation -- "compare these two", "the second one" -- so it belongs to the agent
 rather than to a regex. A link is still the only way in: there is no lookup by name, so a
-question naming a document without linking to it gets a request for the link.
+question naming a document that this thread has not yet opened gets a request for the link.
 
 ``graph_token`` is whose reading this run does. Both tools are built from it per run, so
-the agent inherits the asker's own access rather than the service's: a document they
-cannot open is refused by Graph and the agent says so.
+the agent reads with the asker's own access: a document they cannot open is refused by
+Graph and the agent says so.
 
 One Teams thread is one LangGraph thread, so a follow-up arrives with the earlier turns
 *and the documents opened in them* still in view. Two things follow, and the agent is
@@ -27,10 +27,10 @@ shared thread it may have been loaded for somebody else. ``check_document`` answ
 in one cheap call -- it reports the edit time, and it fails when the person asking now
 cannot reach the document.
 
-Nothing here writes to the document. That is the point of this path -- a question
-answered in chat needs no document access at all, which sidesteps both the 423 a
-server-side write hits while someone is editing and the licensing questions around
-automating a Word client.
+Nothing here writes to the document: a server-side write is refused with 423 while
+anyone has it open. Asked for comments or tracked changes, the agent stores them with
+``offer_changes`` (``lib/agents/tools/word_handoff.py``) and the Word add-in applies them
+when the asker opens the document.
 """
 
 import logging
@@ -53,6 +53,7 @@ from lib.agents.deep_agent_setup import (
     tool_names,
 )
 from lib.agents.tools.sharepoint import check_document_for, open_document_for
+from lib.agents.tools.word_handoff import offer_changes_for
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
 from lib.config.llm_models import LLMModel
@@ -133,12 +134,21 @@ confirming a URL: none of those are possible here. Say which specific check you 
 cannot make, and where useful say what in the document would settle it instead. Do \
 not guess, and do not imply you looked something up.
 
-## You cannot change the document
+## Changing the document
 
-You are answering a question, not editing. You cannot add comments, make tracked \
-changes, or alter the text from here. If the answer is really a request to change \
-something, say what you would change and where, and say plainly that it has to be \
-applied in Word.
+You cannot write to the document from here. When someone asks you to comment on it, \
+fix it or mark it up, use `offer_changes(url, comments, edits)`: it saves what you \
+would add, and the Draft Detective add-in writes it in as comments and tracked changes \
+when the person asking opens the document in Word. Only they can apply it, and nothing \
+changes until they do — say so in your answer, and summarise what you offered.
+
+Only offer changes when they were asked for. A question about the document gets an \
+answer in chat, not comments.
+
+Each comment and edit is found in the document by its quote, so quote the document's \
+own words exactly: verbatim, as plain text without markdown syntax, within one \
+paragraph, and long enough to occur only once in the document. An edit replaces its \
+quote, so quote only the words that change, plus enough around them to be unique.
 
 ## Your review expertise
 
@@ -238,12 +248,12 @@ async def answer_question(
     model: LLMModel = DEFAULT_MODEL,
     api_key: Optional[str] = None,
     user_id: Optional[str] = None,
+    reference: Optional[dict[str, Any]] = None,
 ) -> QuestionAnswer:
     """Answer a question about a document the agent opens for itself.
 
-    ``graph_token`` is the identity documents are read with -- the asker's own, under
-    Teams SSO. Required rather than optional: the alternative would be reading as the
-    service, which is exactly the privilege this path is meant not to have.
+    ``graph_token`` is the identity documents are read with: the asker's own, from
+    their sign-in to the bot. Required -- there is no other identity to read with.
 
     ``thread_id`` keys both the checkpoint and the Langfuse session, deliberately under
     one name so a conversation is findable in the trace view under what it is stored as.
@@ -252,6 +262,9 @@ async def answer_question(
     ``document_urls`` are the links found in the message, all of them. Candidates rather
     than a decision: which one is meant, and whether to open it at all, depends on what
     was asked and on what the conversation already has open.
+
+    ``reference`` is the Teams conversation to report back to once offered changes have
+    been applied in Word. Without it the agent cannot offer changes at all.
 
     Never raises: a failure comes back as ``failed`` so the caller can decide whether to
     say anything.
@@ -287,6 +300,7 @@ async def answer_question(
                 tools=[
                     open_document_for(graph_token),
                     check_document_for(graph_token),
+                    *([offer_changes_for(graph_token, reference)] if reference else []),
                 ],
                 skills=["/skills/"],
                 system_prompt=SYSTEM_PROMPT,
