@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.0.9] - 2026-10-13
+
+### Added
+- Added annotation sets for Recommendation Check, Inference Validation, and Methodological Alignment to support labeling eval examples.
+- Added support for rendering figures in the annotation view, including inline raster images as data URIs.
+
+### Changed
+- Changed the abbreviations check to use single schema-constrained calls (one for section extraction and one per chunk) instead of two LLM agents, while keeping the workflow, chunking, catalogue assembly, and issue rules unchanged.
+- Changed annotation set specs so each set determines its own item answers, with support for single-issue-kind checks and appending dataset rationales to explanations when present.
+- Updated abbreviation-check-related docs and eval documentation to describe single-call behavior and to record new eval runs.
+
+### Fixed
+- Fixed abbreviation chunk extraction to salvage complete occurrences from cut-off mid-JSON OpenAI replies and raise a partial extraction error instead of losing the whole chunk.
+- Fixed the admin annotated item row “Test case” badge to display the expected answer rather than the item kind.
+
+
 ## [v2.0.8] - 2026-10-13
 
 ### Added
