@@ -3,7 +3,8 @@
 # names that do not give the answer away. `role` is what the agent should take
 # each one to be; it is never sent to the app.
 #
-# A document with `marked_up_from` is not a file on disk: it is built at upload
+# A `byline` is added under a document's title at upload. A document with
+# `marked_up_from` is not a file on disk: it is built at upload
 # time as a Word file of that markdown carrying the listed comments, so the
 # fixture stays readable text (see `docx_fixture.py`).
 - id: hiring_audits_unlabeled_full_cycle
@@ -54,8 +55,12 @@
     - anchor: selection rates by demographic group
       text: Cite a source for this convergence claim, or soften it.
     role: marked-up draft
+  # Signed by someone else, as a memo usually is: an unsigned memo next to
+  # comments on the same topics could as well be the commenter's own, and the
+  # skill then rightly treats the comments as that reviewer's secondary notes.
   - file_name: notes for authors.md
     source: file://files/peer_review/hiring_audits/reviewer-memo.md
+    byline: "Reviewer: Prof. Alan Ruiz"
     role: reviewer memo
   - file_name: hiring-audits.md
     source: file://files/peer_review/hiring_audits/draft.md

@@ -100,7 +100,12 @@ def _content(document: dict[str, Any]) -> str | bytes:
             author=document["author"],
             comments=[FixtureComment.model_validate(c) for c in document["comments"]],
         )
-    return resolve_input(document["source"])
+    text = resolve_input(document["source"])
+    if byline := document.get("byline"):
+        # Under the memo's title, where a reviewer usually signs it.
+        title, _, rest = text.partition("\n")
+        return f"{title}\n\n{byline}\n{rest}"
+    return text
 
 
 async def _build_project(documents: list[dict[str, Any]]) -> tuple[str, list[str]]:
