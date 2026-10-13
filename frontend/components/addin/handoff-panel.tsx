@@ -252,13 +252,22 @@ function HandoffCard({ handoff, authorize, onExpired, onDone }: HandoffCardProps
     if (isApiError(error, 401)) onExpired();
   };
 
+  // Resolves false when the handoff is already closed (an earlier report landed but its
+  // answer was lost, or it expired): there is nothing left to send, so it is not an error.
   const report = useMutation({
-    mutationFn: async (items: AppliedItem[]) =>
-      reportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPost({
-        path: { handoff_id: handoff.id },
-        body: { results: resultsOf(items) },
-        headers: { Authorization: await authorize() },
-      }),
+    mutationFn: async (items: AppliedItem[]): Promise<boolean> => {
+      try {
+        await reportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPost({
+          path: { handoff_id: handoff.id },
+          body: { results: resultsOf(items) },
+          headers: { Authorization: await authorize() },
+        });
+        return true;
+      } catch (error) {
+        if (isApiError(error, 404)) return false;
+        throw error;
+      }
+    },
     onSuccess: () => unreported.delete(handoff.id),
     onError: expireOn401,
   });
@@ -298,7 +307,7 @@ function HandoffCard({ handoff, authorize, onExpired, onDone }: HandoffCardProps
     onError: expireOn401,
   });
 
-  if (written && report.isSuccess) return <AppliedSummary items={written} onDone={onDone} />;
+  if (written && report.isSuccess) return <AppliedSummary items={written} sent={report.data} onDone={onDone} />;
   if (written) {
     return (
       <div className="flex flex-col gap-2 text-xs">
@@ -353,13 +362,14 @@ function HandoffCard({ handoff, authorize, onExpired, onDone }: HandoffCardProps
   );
 }
 
-function AppliedSummary({ items, onDone }: { items: AppliedItem[]; onDone: () => void }) {
+function AppliedSummary({ items, sent, onDone }: { items: AppliedItem[]; sent: boolean; onDone: () => void }) {
   const missed = items.filter((item) => !item.applied);
   return (
     <div className="flex flex-col gap-1 text-xs">
       <p className="font-medium text-sm">
         Applied {items.length - missed.length} of {items.length}.
       </p>
+      {!sent && <p className="text-muted-foreground">This was already closed, so nothing more was sent to Teams.</p>}
       {missed.map((item) => (
         <p key={item.index} className="text-muted-foreground">
           Not applied: {item.kind} on “{item.quote.slice(0, 60)}” {item.detail ? `(${item.detail})` : ''}

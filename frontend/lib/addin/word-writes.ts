@@ -8,6 +8,8 @@
  * insertOoxml.
  */
 
+import { normalize } from './handoff-plan';
+
 /** Every body paragraph's text, in order, including empty ones. */
 export async function paragraphTexts(): Promise<string[]> {
   return Word.run(async (context) => {
@@ -82,17 +84,24 @@ function canSetTracking(): boolean {
 }
 
 /**
- * Put markup back over the paragraph at `index`, with change tracking off.
+ * Put markup back over the paragraph at `index`, with change tracking off, unless its
+ * text is no longer `expected`. Returns false, having written nothing, when it changed.
+ *
+ * The check and the write share one run and one range, so an edit or a paragraph
+ * inserted above between a separate check and the write cannot slip through.
  *
  * Left on, Word records our own write as a revision by the signed-in user, wrapping
  * Draft Detective's suggestion inside one of the author's. The author's setting is
  * restored afterwards.
  */
-export async function writeParagraphMarkup(index: number, markup: string): Promise<void> {
-  await Word.run(async (context) => {
+export async function writeParagraphMarkup(index: number, markup: string, expected: string): Promise<boolean> {
+  return Word.run(async (context) => {
     const paragraph = await paragraphAt(context, index);
     if (!paragraph) throw new Error('the paragraph is no longer there');
     const scope = await rewriteScope(context, paragraph);
+    scope.load('text');
+    await context.sync();
+    if (normalize(String(scope.text ?? '')) !== normalize(expected)) return false;
 
     const document = context.document;
     let previous: Word.Document['changeTrackingMode'] | undefined;
@@ -115,5 +124,6 @@ export async function writeParagraphMarkup(index: number, markup: string): Promi
         await context.sync();
       }
     }
+    return true;
   });
 }

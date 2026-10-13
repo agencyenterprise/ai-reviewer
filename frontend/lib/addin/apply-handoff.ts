@@ -4,16 +4,7 @@ import {
   applySuggestionsApiMicrosoftWordSuggestionsApplyPost,
   HandoffView,
 } from '@/lib/generated-api';
-import {
-  AppliedItem,
-  CHANGED,
-  FailureReason,
-  normalize,
-  NOT_FOUND,
-  ParagraphWork,
-  planHandoff,
-  relocate,
-} from './handoff-plan';
+import { AppliedItem, CHANGED, FailureReason, NOT_FOUND, ParagraphWork, planHandoff, relocate } from './handoff-plan';
 import { paragraphTexts, readParagraphMarkup, scopeText, writeParagraphMarkup } from './word-writes';
 
 /**
@@ -56,11 +47,6 @@ function failed(work: ParagraphWork, detail: string, reason: FailureReason): App
   ];
 }
 
-async function unchanged(index: number, before: string | null): Promise<boolean> {
-  const now = await scopeText(index);
-  return before !== null && now !== null && normalize(now) === normalize(before);
-}
-
 async function applyToParagraph(work: ParagraphWork, authorize: () => Promise<string>): Promise<AppliedItem[]> {
   const index = relocate(await paragraphTexts(), work);
   if (index === null) return failed(work, NOT_FOUND, 'not_found');
@@ -68,7 +54,7 @@ async function applyToParagraph(work: ParagraphWork, authorize: () => Promise<st
   try {
     const before = await scopeText(index);
     const read = await readParagraphMarkup(index);
-    if (!read) return failed(work, NOT_FOUND, 'not_found');
+    if (before === null || !read) return failed(work, NOT_FOUND, 'not_found');
     let markup: string = read;
     const outcomes: AppliedItem[] = [];
 
@@ -114,8 +100,7 @@ async function applyToParagraph(work: ParagraphWork, authorize: () => Promise<st
     if (outcomes.some((outcome) => outcome.applied)) {
       // The write replaces the whole paragraph, or its whole table, with markup made
       // from the earlier read: anything typed into it meanwhile would be lost.
-      if (!(await unchanged(index, before))) return failed(work, CHANGED, 'changed');
-      await writeParagraphMarkup(index, markup);
+      if (!(await writeParagraphMarkup(index, markup, before))) return failed(work, CHANGED, 'changed');
     }
     return outcomes;
   } catch (error) {

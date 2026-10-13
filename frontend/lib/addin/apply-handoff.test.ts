@@ -39,6 +39,7 @@ beforeEach(() => {
   word.paragraphTexts.mockResolvedValue(PARAGRAPHS);
   word.readParagraphMarkup.mockResolvedValue('<in/>');
   word.scopeText.mockResolvedValue('the paragraph as read');
+  word.writeParagraphMarkup.mockResolvedValue(true);
   api.applySuggestionsApiMicrosoftWordSuggestionsApplyPost.mockResolvedValue({
     applied: 1,
     ooxml: '<edited/>',
@@ -66,7 +67,7 @@ describe('applyHandoff', () => {
     // The comment is written into the markup the edits produced, not the original.
     expect(api.annotateApiMicrosoftWordCommentsAnnotatePost.mock.calls[0][0].body.ooxml).toBe('<edited/>');
     expect(word.writeParagraphMarkup).toHaveBeenCalledTimes(1);
-    expect(word.writeParagraphMarkup).toHaveBeenCalledWith(1, '<edited-and-commented/>');
+    expect(word.writeParagraphMarkup).toHaveBeenCalledWith(1, '<edited-and-commented/>', 'the paragraph as read');
     // By position in the handoff: comments first, then edits.
     expect(items.map((item) => [item.index, item.kind, item.applied])).toEqual([
       [0, 'comment', true],
@@ -155,12 +156,13 @@ describe('applyHandoff', () => {
     expect(word.writeParagraphMarkup).not.toHaveBeenCalled();
   });
 
-  it('writes nothing over a paragraph, or table, someone edited while the service worked', async () => {
-    word.scopeText.mockResolvedValueOnce('the paragraph as read').mockResolvedValueOnce('a coauthor typed here');
+  it('reports a paragraph, or table, someone edited while the service worked', async () => {
+    // The write compares the range's text with what was read, in the same run, and declines.
+    word.writeParagraphMarkup.mockResolvedValue(false);
 
     const items = await applyHandoff(handoff({ edits: [{ quote: 'recieve', replacement: 'receive' }] }), authorize);
 
-    expect(word.writeParagraphMarkup).not.toHaveBeenCalled();
+    expect(word.writeParagraphMarkup).toHaveBeenCalledWith(1, '<edited/>', 'the paragraph as read');
     expect(items[0]).toMatchObject({ applied: false, detail: CHANGED, reason: 'changed' });
   });
 

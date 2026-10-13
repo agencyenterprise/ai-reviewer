@@ -319,6 +319,20 @@ describe('HandoffPanel', () => {
     expect(container.textContent).toContain('Nothing waiting from Teams');
   });
 
+  it('a report for a handoff already closed ends the card instead of offering Send again', async () => {
+    silent.mockResolvedValue(SIGNED_IN);
+    list.mockResolvedValue({ here: [handoff('h-closed')], elsewhere: [] });
+    apply.mockResolvedValue(ITEMS);
+    report.mockRejectedValue(new ApiError(404));
+    const container = await render();
+
+    await click(container, 'Apply');
+
+    expect(container.textContent).toContain('Applied 1 of 2');
+    expect(container.textContent).toContain('already closed');
+    expect(() => button(container, 'Send again')).toThrow();
+  });
+
   it('a failed write is shown, and nothing is reported to Teams', async () => {
     silent.mockResolvedValue(SIGNED_IN);
     list.mockResolvedValue({ here: [handoff('h1')], elsewhere: [] });
