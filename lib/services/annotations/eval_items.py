@@ -1,9 +1,9 @@
 """Annotation items built from an issue-inventory eval dataset.
 
-Every anchored expected issue becomes a "should be flagged" item and every
-decoy a "should be left alone" one, so annotators judge the same passages the
-eval scores. The dataset is read with the evals' own loader, so anchors resolve
-exactly as they do for the scorers.
+Every anchored expected issue and every decoy becomes an item the set's spec
+answers (by default "should be flagged" and "should be left alone"), so
+annotators judge the same passages the eval scores. The dataset is read with
+the evals' own loader, so anchors resolve exactly as they do for the scorers.
 """
 
 import hashlib
@@ -13,14 +13,13 @@ from typing import Optional
 from pydantic import BaseModel
 
 from evals_inspectai.common.issue_inventory import (
-    Decoy,
     ResolvedInventory,
-    ResolvedIssue,
     load_inventory_records,
     normalize,
 )
+from evals_inspectai.common.loaders import inline_local_images
 from lib.models.annotation import AnnotationItemKind
-from lib.services.annotations.set_spec import SHOULD_FLAG, AnnotationSetSpec
+from lib.services.annotations.set_spec import AnnotationSetSpec, ItemReference
 from lib.services.annotations.models import AnnotationPassage
 
 
@@ -39,7 +38,8 @@ def _digest(text: str) -> str:
 
 
 def _source_key(document: str, anchor: str, kind: AnnotationItemKind) -> str:
-    """Content-addressed: editing the document or the passage makes a new item."""
+    """Content-addressed: editing the document, one of its figures or the passage
+    makes a new item, so no answer carries over to evidence it was not given on."""
     return f"{_digest(document)}:{_digest(normalize(anchor))}:{kind.value}"
 
 
@@ -51,50 +51,54 @@ def _line_of(document: str, anchor: str) -> Optional[int]:
     return None
 
 
-def _issue_item(
-    record: ResolvedInventory, issue: ResolvedIssue
+def _item(
+    document: str,
+    anchor: str,
+    kind: AnnotationItemKind,
+    reference: Optional[ItemReference],
+    line: Optional[int] = None,
 ) -> Optional[AnnotationItemDraft]:
-    # An issue about something absent has no passage to show, and an optional
-    # one is borderline by design, so neither answer is the dataset's.
-    if issue.anchor is None or not issue.required:
+    if reference is None:
         return None
-    kind = AnnotationItemKind.EXPECTED_ISSUE
-    explanation = (
-        f"Our test case expects Draft Detective to flag this as “{issue.title}”."
-        if issue.title
-        else "Our test case expects Draft Detective to flag this."
-    )
     return AnnotationItemDraft(
-        source_key=_source_key(record.document, issue.anchor, kind),
+        source_key=_source_key(document, anchor, kind),
         kind=kind,
         passage=AnnotationPassage(
-            document=record.document, anchor=issue.anchor, line=issue.line
+            document=document, anchor=anchor, line=line or _line_of(document, anchor)
         ),
-        reference_answers={SHOULD_FLAG: "yes"},
-        reference_explanation=explanation,
+        reference_answers=reference.answers,
+        reference_explanation=reference.explanation,
     )
 
 
-def _decoy_item(
-    record: ResolvedInventory, decoy: Decoy, spec: AnnotationSetSpec
-) -> Optional[AnnotationItemDraft]:
-    # A titled decoy may rightly be reported under another kind, so "should it
-    # be flagged at all?" has no single answer.
-    if decoy.title is not None:
-        return None
-    kind = AnnotationItemKind.DECOY
-    reason = spec.decoy_reasons.get(decoy.reason, decoy.reason.replace("_", " "))
-    return AnnotationItemDraft(
-        source_key=_source_key(record.document, decoy.anchor, kind),
-        kind=kind,
-        passage=AnnotationPassage(
-            document=record.document,
-            anchor=decoy.anchor,
-            line=_line_of(record.document, decoy.anchor),
-        ),
-        reference_answers={SHOULD_FLAG: "no"},
-        reference_explanation=f"Our test case expects Draft Detective to leave this alone: {reason}.",
-    )
+def _record_items(
+    record: ResolvedInventory, spec: AnnotationSetSpec
+) -> list[Optional[AnnotationItemDraft]]:
+    # Figures are inlined so the annotation screen shows them as the run sees them;
+    # each stays on its own line, so line numbers are unchanged.
+    document = inline_local_images(record.document)
+    # An issue about something absent has no passage to show.
+    candidates = [
+        _item(
+            document,
+            issue.anchor,
+            AnnotationItemKind.EXPECTED_ISSUE,
+            spec.issue_reference(issue),
+            issue.line,
+        )
+        for issue in record.expected_issues
+        if issue.anchor is not None
+    ]
+    candidates += [
+        _item(
+            document,
+            decoy.anchor,
+            AnnotationItemKind.DECOY,
+            spec.decoy_reference(decoy),
+        )
+        for decoy in record.decoys
+    ]
+    return candidates
 
 
 def items_from_inventory(
@@ -103,9 +107,7 @@ def items_from_inventory(
     """One item per anchored passage in the dataset, deduplicated by source key."""
     drafts: dict[str, AnnotationItemDraft] = {}
     for record in load_inventory_records(path or spec.dataset_path):
-        candidates = [_issue_item(record, issue) for issue in record.expected_issues]
-        candidates += [_decoy_item(record, decoy, spec) for decoy in record.decoys]
-        for draft in candidates:
+        for draft in _record_items(record, spec):
             if draft is not None:
                 drafts.setdefault(draft.source_key, draft)
     return list(drafts.values())

@@ -44,4 +44,12 @@ describe('PassageDocument', () => {
     expect(rendered.container.querySelector('mark[data-annotation-anchor]')?.textContent).toBe('three states');
     expect(washedLines(rendered.container)).toEqual(['3']);
   });
+
+  it('shows a figure the document carries inline', async () => {
+    const png = 'data:image/png;base64,iVBORw0KGgo=';
+    rendered = await renderInto(
+      <PassageDocument document={`See the chart.\n\n![Ridership](${png})`} anchor="See the chart" line={1} />,
+    );
+    expect(rendered.container.querySelector('img')?.getAttribute('src')).toBe(png);
+  });
 });

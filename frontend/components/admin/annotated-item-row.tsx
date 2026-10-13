@@ -3,13 +3,22 @@
 import { PassageDocument } from '@/components/annotate/passage-document';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { AnnotationItemKind, type AnnotatedItem, type AnnotationRecord } from '@/lib/generated-api';
+import { type AnnotatedItem, type AnnotationRecord } from '@/lib/generated-api';
 import { format } from 'date-fns';
 import { ChevronDown, CircleCheck, CircleHelp, CircleX } from 'lucide-react';
 import { useState } from 'react';
 
 function answerText(answers: Record<string, string>): string {
-  return Object.values(answers).join(', ');
+  return Object.values(answers)
+    .map((value) => value.replaceAll('_', ' '))
+    .join(', ');
+}
+
+/** What the test case expects: flag or leave alone for the should-flag sets, else its own answer. */
+function referenceText(item: AnnotatedItem): string {
+  const flag = item.reference_answers.should_flag;
+  if (flag === undefined) return answerText(item.reference_answers);
+  return flag === 'yes' ? 'flag' : 'leave alone';
 }
 
 function Verdict({ agrees }: { agrees: boolean | null | undefined }) {
@@ -49,7 +58,7 @@ export function AnnotatedItemRow({ item }: { item: AnnotatedItem }) {
           <p className="text-sm">“{item.passage.anchor}”</p>
           <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
             <Badge variant="outline" className="font-normal">
-              Test case: {item.kind === AnnotationItemKind.ExpectedIssue ? 'flag' : 'leave alone'}
+              Test case: {referenceText(item)}
             </Badge>
             <span>
               {item.agreements} agree · {item.disagreements} disagree · {item.abstentions} not sure
