@@ -22,8 +22,6 @@ async def convert_to_markdown(
 ):
     main_file = state.file
     supporting = state.supporting_files or []
-    reviewer_memos = state.reviewer_memo_files or []
-    response_memos = state.response_memo_files or []
 
     # Main file first (sequentially) — the rest of the pipeline can't proceed
     # without it, so a failure here must abort the workflow.
@@ -38,25 +36,17 @@ async def convert_to_markdown(
 
     workflow_run_id = runtime.context.workflow_run_id
 
-    # Supporting files and memos run with bounded concurrency.
+    # Supporting files run with bounded concurrency.
     # Failures are reported per-file via WorkflowError but do not abort the
     # workflow — downstream consumers work from whichever files converted.
     converted_supporting, supporting_errors = await _convert_batch(
         supporting, FileRole.SUPPORT, "supporting file", workflow_run_id
     )
-    converted_memos, memo_errors = await _convert_batch(
-        reviewer_memos, FileRole.REVIEWER_MEMO, "reviewer memo", workflow_run_id
-    )
-    converted_responses, response_errors = await _convert_batch(
-        response_memos, FileRole.RESPONSE_MEMO, "response memo", workflow_run_id
-    )
 
     return {
         "file": converted_main,
         "supporting_files": converted_supporting,
-        "reviewer_memo_files": converted_memos,
-        "response_memo_files": converted_responses,
-        "errors": supporting_errors + memo_errors + response_errors,
+        "errors": supporting_errors,
     }
 
 

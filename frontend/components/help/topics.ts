@@ -13,14 +13,14 @@ import { ComponentType } from 'react';
 import { AssessmentsTopic } from './topics/assessments';
 import { FeedbackTopic } from './topics/feedback';
 import { IssuesTopic } from './topics/issues';
-import { PeerReviewTopic } from './topics/peer-review';
 import { ReferencesTopic } from './topics/references';
+import { ReviewAssistantTopic } from './topics/review-assistant';
 import { RevisionsTopic } from './topics/revisions';
 import { SharingTopic } from './topics/sharing';
 import { SourceFilesTopic } from './topics/source-files';
 
 export type HelpTopicId =
-  'assessments' | 'issues' | 'references' | 'source-files' | 'revisions' | 'sharing' | 'peer-review' | 'feedback';
+  'assessments' | 'issues' | 'references' | 'source-files' | 'revisions' | 'sharing' | 'review-assistant' | 'feedback';
 
 export interface HelpTopicBodyProps {
   /**
@@ -56,8 +56,8 @@ export interface HelpTopic {
  * The concepts the app explains in one place, ordered as the work runs:
  * assessments produce issues, references name sources, one assessment needs
  * those sources, revisions are what all of it hangs from, sharing is how the
- * draft reaches someone else, peer review is what happens once they have read
- * it, and feedback is how any of it gets better. Every "what is this" link
+ * draft reaches someone else, the Review Assistant is what helps once they have
+ * read it, and feedback is how any of it gets better. Every "what is this" link
  * in the product opens this list at one of them, so a question asked in one
  * corner is answered next to all the others.
  */
@@ -112,12 +112,12 @@ export const HELP_TOPICS: HelpTopic[] = [
     Body: SharingTopic,
   },
   {
-    id: 'peer-review',
-    label: 'Peer Review',
-    title: 'Peer review, from memos to sign-off',
-    description: 'The round trip after other people have read your draft: plan, revise, respond, and check coverage.',
+    id: 'review-assistant',
+    label: 'Review Assistant',
+    title: 'The Review Assistant, after the reviewers reply',
+    description: 'A revision plan, replies to your reviewers, or a coverage check, from whatever documents you have.',
     icon: MessagesSquare,
-    Body: PeerReviewTopic,
+    Body: ReviewAssistantTopic,
     experimental: true,
   },
   {

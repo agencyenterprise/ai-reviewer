@@ -8,6 +8,7 @@ from lib.models.file import FileRole
 from lib.services.file import FileDocument
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     FileArtifactsServiceType,
+    LoadedDocuments,
 )
 from lib.skills import strip_interactive_only
 from lib.workflows.document_summarization.state import FileSummary
@@ -38,15 +39,13 @@ class MockFileArtifactsService(FileArtifactsServiceType):
         supporting_files: list[FileDocument] | None = None,
         extracted_references: list[ExtractedReference] | None = None,
         references: list[BibliographyItem] | None = None,
-        reviewer_memo_files: list[FileDocument] | None = None,
-        response_memo_files: list[FileDocument] | None = None,
+        review_input_files: list[FileDocument] | None = None,
     ):
         self._main_file = main_file
         self._supporting_files = supporting_files or []
         self._extracted_references = extracted_references or []
         self._references = references or []
-        self._reviewer_memo_files = reviewer_memo_files or []
-        self._response_memo_files = response_memo_files or []
+        self._review_input_files = review_input_files or []
 
     async def get_file_document(self, file_id: str) -> FileDocument:
         # Check if file matches main_file or any supporting file
@@ -68,14 +67,16 @@ class MockFileArtifactsService(FileArtifactsServiceType):
         documents: list[FileDocument] = []
         if FileRole.SUPPORT in roles:
             documents.extend(self._supporting_files)
-        if FileRole.REVIEWER_MEMO in roles:
-            documents.extend(self._reviewer_memo_files)
-        if FileRole.RESPONSE_MEMO in roles:
-            documents.extend(self._response_memo_files)
         return documents
 
-    async def get_latest_reviewer_memo_revision(self) -> int | None:
-        return 1 if self._reviewer_memo_files else None
+    async def get_file_documents(self, file_ids: list[str]) -> LoadedDocuments:
+        known = [
+            *([self._main_file] if self._main_file else []),
+            *self._supporting_files,
+            *self._review_input_files,
+        ]
+        by_id = {f.file_id: f for f in known}
+        return LoadedDocuments(documents=[by_id[i] for i in file_ids if i in by_id])
 
     async def get_file_summary(self, file_id: str) -> FileSummary:
         return FileSummary(
@@ -103,18 +104,10 @@ class MockFileArtifactsService(FileArtifactsServiceType):
         for f in self._supporting_files:
             files[f"/supporting/{f.file_id}.md"] = create_file_data(f.markdown)
 
-        # The mock has no revision metadata; place the main and any memos under
-        # a single synthetic revision so the tree shape matches production.
+        # The mock has no revision metadata; place the main under a single
+        # synthetic revision so the tree shape matches production.
         if self._main_file:
             files["/revisions/1/main.md"] = create_file_data(self._main_file.markdown)
-        for f in self._reviewer_memo_files:
-            files[f"/revisions/1/reviewer-memos/{f.file_id}.md"] = create_file_data(
-                f.markdown
-            )
-        for f in self._response_memo_files:
-            files[f"/revisions/1/response-memos/{f.file_id}.md"] = create_file_data(
-                f.markdown
-            )
 
         if include_skills:
             project_root = Path(__file__).parents[3]

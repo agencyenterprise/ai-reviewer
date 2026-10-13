@@ -35,7 +35,8 @@ logger = logging.getLogger(__name__)
 def _converter_for(file_path: str, role: FileRole) -> str:
     """Pick the converter backend based on file role and extension.
 
-    The main document and reviewer/response memos go through markitdown for
+    The main document, reviewer/response memos, and Review Assistant inputs
+    (which may be any of those) go through markitdown for
     higher-fidelity output (tables, headings, bold/highlight, etc.). Downstream
     agents depend on that structure for the main document, and memos rely on
     formatting cues (e.g. the reviewer's rating marked by bold or highlight, or
@@ -46,7 +47,12 @@ def _converter_for(file_path: str, role: FileRole) -> str:
     Non-PDF supporting files fall back to markitdown so .docx / .html / .csv
     etc. still work.
     """
-    if role in (FileRole.MAIN, FileRole.REVIEWER_MEMO, FileRole.RESPONSE_MEMO):
+    if role in (
+        FileRole.MAIN,
+        FileRole.REVIEWER_MEMO,
+        FileRole.RESPONSE_MEMO,
+        FileRole.REVIEW_INPUT,
+    ):
         return "markitdown"
     if file_path.lower().endswith(".pdf"):
         return "pypdfium"

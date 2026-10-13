@@ -1,17 +1,18 @@
-"""E2E eval for the reviewer_coverage_report workflow.
+"""E2E eval for the Review Assistant's reviewer coverage report.
 
-The workflow runs the `review-assistant` skill over a reviewed draft, the
-revised draft that answers the memos, and the reviewer memos themselves, and
-returns one self-contained HTML document for a quality-assurance manager: a
+The Review Assistant runs the `review-assistant` skill over a reviewed draft,
+the revised draft that answers the memos, and the reviewer memos themselves,
+and returns, for this output, one self-contained HTML document for a
+quality-assurance manager: a
 Part 1 carrying the responsiveness verdict, the list of what still needs work,
 and a table counting every reviewer point across four verdict categories, then
 a Part 2 reproducing each memo verbatim with a verdict under every point.
 
-The project this needs is the fullest of the three review-assistant fixtures:
-reviewer memos on the revision they reviewed, plus a *second* revision holding
-the revised draft. The workflow refuses to run when the current main document
-is the one the reviewers saw, so `peer_review_fixture` builds both revisions
-before the workflow is started.
+The request this needs is the fullest of the review-assistant fixtures: the
+reviewed draft as the project's main document, plus the memos, the revised
+draft and any response memos uploaded unlabeled, all named in one request for
+this output (see `peer_review_fixture`). Nothing tells the agent which draft is
+the revision; working that out is part of what the request asks of it.
 
 Each scenario's draft and memos are shared with the revision-planning suite;
 what is specific here is `revised.md`, written to plant a known mix of verdicts
@@ -58,10 +59,8 @@ from evals_inspectai.common.api_solver import surface_conversations
 from evals_inspectai.common.loaders import resolve_input
 from evals_inspectai.common.model_override import output_model_name
 from evals_inspectai.common.peer_review_fixture import (
-    ResponseMemo,
-    ReviewerMemo,
-    run_review_assistant_workflow,
-    setup_peer_review_project,
+    ReviewDocument,
+    run_review_assistant_request,
 )
 from evals_inspectai.common.review_assistant_scorers import (
     STRUCTURE_CHECKS,
@@ -84,7 +83,8 @@ from evals_inspectai.e2e.reviewer_coverage_report.verdict_checks import (
     check_verdict_vocabulary,
 )
 
-_TARGET_WORKFLOW = "reviewer_coverage_report"
+_TARGET_OUTPUT = "reviewer_coverage_report"
+_WORKFLOW = "review_assistant"
 
 # Grader for the judged criteria, set per suite rather than shared, so changing
 # this suite's judge does not silently re-grade any other.
@@ -122,14 +122,15 @@ def _record_to_sample(record: dict) -> Sample:
     revision actually did (see `_grading_question`).
     """
     memos = [_memo_file(ref) for ref in record["memos"]]
-    # Optional: the author's replies, uploaded to the revised draft. Samples
-    # without them exercise the draft-comparison-only path.
+    # Optional: the author's replies to the reviewers. Samples without them
+    # exercise the draft-comparison-only path.
     response_memos = [_memo_file(ref) for ref in record.get("response_memos", [])]
     return Sample(
         id=record["id"],
         input=resolve_input(record["draft"]),
         target=record["rubric"]["scenario_trap"],
         metadata={
+            "output": _TARGET_OUTPUT,
             "memos": memos,
             "revised_draft": resolve_input(record["revised"]),
             "response_memos": response_memos,
@@ -165,28 +166,20 @@ def reviewer_coverage_report_solver(
     timeout_s: float = _WORKFLOW_TIMEOUT_S,
     poll_interval_s: float = 10,
 ) -> Solver:
-    """Build the two-revision project from the sample, then run the workflow."""
+    """Ask the Review Assistant for the coverage report over the sample's documents."""
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         meta = state.metadata or {}
 
-        project_id = await setup_peer_review_project(
+        run_detail = await run_review_assistant_request(
             draft=state.input_text,
-            memos=[
-                ReviewerMemo(file_name=m["file_name"], content=m["content"])
-                for m in meta["memos"]
-            ],
+            memos=[ReviewDocument(m["file_name"], m["content"]) for m in meta["memos"]],
+            output=_TARGET_OUTPUT,
+            timeout_s=timeout_s,
             revised_draft=meta["revised_draft"],
             response_memos=[
-                ResponseMemo(file_name=m["file_name"], content=m["content"])
-                for m in meta["response_memos"]
+                ReviewDocument(m["file_name"], m["content"]) for m in meta["response_memos"]
             ],
-        )
-
-        run_detail = await run_review_assistant_workflow(
-            project_id=project_id,
-            workflow_type=_TARGET_WORKFLOW,
-            timeout_s=timeout_s,
             poll_interval_s=poll_interval_s,
         )
 
@@ -195,7 +188,7 @@ def reviewer_coverage_report_solver(
         # Hand the agent's own conversation to Inspect, the same way the shared
         # `api_workflow_agent` does: lifted out of the state dict so the
         # completion the scorers parse stays just the workflow result.
-        await surface_conversations(state, workflow_state, _TARGET_WORKFLOW)
+        await surface_conversations(state, workflow_state, _WORKFLOW)
 
         state.output = ModelOutput(
             completion=json.dumps(workflow_state), model=output_model_name(run_detail)

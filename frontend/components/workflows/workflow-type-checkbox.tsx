@@ -17,7 +17,6 @@ import {
   BrainCircuit,
   ClipboardCheck,
   Files,
-  ShieldCheck,
   MessageSquareWarning,
   ALargeSmall,
   BookOpen,
@@ -57,9 +56,7 @@ const workflowTypeIcons: Partial<Record<WorkflowRunType, LucideIcon>> = {
   [WorkflowRunType.DocumentStructure]: FileCheckIcon,
   [WorkflowRunType.FiguresTablesCheck]: TableIcon,
   [WorkflowRunType.RecommendationCheck]: ClipboardCheck,
-  [WorkflowRunType.RevisionPlanningSummary]: ClipboardCheck,
-  [WorkflowRunType.ReviewerResponseMemos]: MessageSquareWarning,
-  [WorkflowRunType.ReviewerCoverageReport]: ShieldCheck,
+  [WorkflowRunType.ReviewAssistant]: ClipboardCheck,
 };
 
 const DEFAULT_ICON = FileText;

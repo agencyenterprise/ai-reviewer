@@ -14,11 +14,11 @@ import { getErrorMessage } from '@/lib/api-error';
 import { AccessLevel, ProjectOverview, startMultipleWorkflowsApiWorkflowsStartMultiplePost } from '@/lib/generated-api';
 import { useProjectIssues, useWorkflowRunDetail, projectQueryKeys } from '@/lib/hooks/use-project-data';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
-import { isPeerReviewWorkflowType } from '@/lib/peer-review';
+import { isAssessmentRun } from '@/lib/review-assistant';
 import { getDisplayStatus, isWorkflowAwaitingApproval } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
-import { ArrowRight, PlayIcon } from 'lucide-react';
+import { PlayIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { WorkflowRunHistory } from '@/components/workflows/workflow-run-history';
@@ -30,7 +30,6 @@ interface AssessmentsTabProps {
   readOnly: boolean;
   onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void;
   onNavigateToReferences: () => void;
-  onNavigateToPeerReview?: () => void;
 }
 
 /**
@@ -44,10 +43,12 @@ export function AssessmentsTab({
   readOnly,
   onNavigateToDocumentExplorer,
   onNavigateToReferences,
-  onNavigateToPeerReview,
 }: AssessmentsTabProps) {
   const projectId = overview.project.id;
-  const workflowDetails = useMemo(() => overview.workflow_runs ?? [], [overview.workflow_runs]);
+  const workflowDetails = useMemo(
+    () => (overview.workflow_runs ?? []).filter((detail) => isAssessmentRun(detail.run.type)),
+    [overview.workflow_runs],
+  );
   // Left undefined until loaded: an empty list would read as an all-clear.
   const { data: issues, error: issuesError } = useProjectIssues(overview);
   const queryClient = useQueryClient();
@@ -145,42 +146,30 @@ export function AssessmentsTab({
               />
             )}
 
-            {!readOnly &&
-              selectedWorkflowRun &&
-              !awaitingApproval &&
-              // Peer-review assessments are sequenced from their own tab;
-              // re-running one here could produce a guard report, not a result.
-              (isPeerReviewWorkflowType(selectedWorkflowRun.run.type) ? (
-                onNavigateToPeerReview && (
-                  <Button size="xs" variant="outline" onClick={onNavigateToPeerReview}>
-                    Manage in Peer Review
-                    <ArrowRight className="size-3" />
-                  </Button>
-                )
-              ) : (
-                <StartWorkflowButton
-                  type={selectedWorkflowRun.run.type}
-                  projectId={projectId}
-                  workflow={selectedWorkflowRun.run}
-                  size="xs"
-                  startLabel={
-                    selectedWorkflowRun.run.started_at ? (
-                      <>
-                        {/* The name only where it fits: an assessment called
+            {!readOnly && selectedWorkflowRun && !awaitingApproval && (
+              <StartWorkflowButton
+                type={selectedWorkflowRun.run.type}
+                projectId={projectId}
+                workflow={selectedWorkflowRun.run}
+                size="xs"
+                startLabel={
+                  selectedWorkflowRun.run.started_at ? (
+                    <>
+                      {/* The name only where it fits: an assessment called
                             "Claim Reference Validation" is wider than a phone. */}
-                        Re-run
-                        <span className="hidden sm:inline"> {getWorkflowTypeName(selectedWorkflowRun.run.type)}</span>
-                      </>
-                    ) : undefined
-                  }
-                  tooltip="Running an assessment again replaces what the document explorer shows for it."
-                  onConfirm={() =>
-                    startMultipleWorkflowsApiWorkflowsStartMultiplePost({
-                      body: { project_id: projectId, workflow_types: [selectedWorkflowRun.run.type] },
-                    })
-                  }
-                />
-              ))}
+                      Re-run
+                      <span className="hidden sm:inline"> {getWorkflowTypeName(selectedWorkflowRun.run.type)}</span>
+                    </>
+                  ) : undefined
+                }
+                tooltip="Running an assessment again replaces what the document explorer shows for it."
+                onConfirm={() =>
+                  startMultipleWorkflowsApiWorkflowsStartMultiplePost({
+                    body: { project_id: projectId, workflow_types: [selectedWorkflowRun.run.type] },
+                  })
+                }
+              />
+            )}
           </div>
         </div>
 

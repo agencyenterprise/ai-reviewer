@@ -42,6 +42,9 @@ export const projectQueryKeys = {
     [...projectQueryKeys.all(projectId), 'run', runId, version] as const,
   runHistory: (projectId: string, workflowType: WorkflowRunType | null, revision: number, version: string) =>
     [...projectQueryKeys.all(projectId), 'run-history', workflowType, revision, version] as const,
+  /** Review Assistant requests span every revision, so the key carries none. */
+  reviewAssistantRequests: (projectId: string) =>
+    [...projectQueryKeys.all(projectId), 'review-assistant', 'requests'] as const,
 };
 
 /**

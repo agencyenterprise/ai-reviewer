@@ -60,8 +60,8 @@ class IssueItem(BaseModel):
 
 
 # --- State-facing result models -----------------------------------------
-# Deep agents no longer fill these as terminal structured responses. Markdown
-# and HTML reports are read from files; issues are collected through validated
+# Deep agents no longer fill these as terminal structured responses. The
+# markdown report is read from a file; issues are collected through validated
 # tool calls. The models remain the state/API contract consumed downstream.
 
 
@@ -81,8 +81,7 @@ class AgentCheckResult(BaseModel):
 # The document under review, as mounted on the agent's filesystem.
 MAIN_DOCUMENT_PATH = "/main.md"
 
-# Where report workflows are told to write their deliverables.
-REPORT_PATH = "/report.html"
+# Where report workflows are told to write their deliverable.
 MARKDOWN_REPORT_PATH = "/report.md"
 
 # LangGraph super-step budget for one deep-agent run. Two steps per model turn
@@ -130,21 +129,15 @@ class DeepAgentRun(BaseModel):
     messages: list[BaseMessage] = Field(default_factory=list)
 
 
-# --- Unified state result ------------------------------------------------
+# --- State result --------------------------------------------------------
 
 
 class DeepAgentResult(BaseModel):
-    """Unified result stored in the workflow state.
-
-    Holds the superset of what the deep-agent variants produce. Exactly one
-    report field is populated per run (markdown workflows fill
-    ``report_markdown``; HTML workflows fill ``report_html``); the UI renders
-    whichever is present. ``issues`` is populated by the markdown variant only.
-    """
+    """Result stored in the workflow state: the markdown report and the issues
+    the agent reported through its tool."""
 
     issues: list[IssueItem] = Field(default_factory=list)
     report_markdown: str = Field(default="")
-    report_html: str = Field(default="")
 
 
 def report_file(files: dict[str, str], path: str) -> str:

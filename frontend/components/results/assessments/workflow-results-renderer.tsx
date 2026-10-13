@@ -91,9 +91,6 @@ export function renderWorkflowResults({
     case WorkflowRunType.FiguresTablesCheck:
     case WorkflowRunType.InferenceValidationV2:
     case WorkflowRunType.RecommendationCheck:
-    case WorkflowRunType.RevisionPlanningSummary:
-    case WorkflowRunType.ReviewerResponseMemos:
-    case WorkflowRunType.ReviewerCoverageReport:
     case WorkflowRunType.AdvocacyToneV2:
     case WorkflowRunType.LiteratureReviewV2:
     case WorkflowRunType.LiveReportsV2:

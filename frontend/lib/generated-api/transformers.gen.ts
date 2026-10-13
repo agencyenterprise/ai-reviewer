@@ -19,6 +19,7 @@ import type {
   ListPendingApiMicrosoftWordHandoffsGetResponse,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse,
   ListProjectsEndpointApiProjectsGetResponse,
+  ListReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetResponse,
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponse,
   ListThreadsApiChatThreadsGetResponse,
   ResolveIssueEndpointApiIssuesIssueIdResolvePostResponse,
@@ -356,6 +357,19 @@ export const getProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRuns
   data = data.map((item: any) => workflowRunSummarySchemaResponseTransformer(item));
   return data;
 };
+
+const reviewAssistantRequestSummarySchemaResponseTransformer = (data: any) => {
+  data.run = workflowRunPublicSchemaResponseTransformer(data.run);
+  return data;
+};
+
+export const listReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetResponseTransformer =
+  async (
+    data: any,
+  ): Promise<ListReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetResponse> => {
+    data = data.map((item: any) => reviewAssistantRequestSummarySchemaResponseTransformer(item));
+    return data;
+  };
 
 export const getSharedResourceApiPublicShareTokenGetResponseTransformer = async (
   data: any,

@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from deepagents.backends.utils import create_file_data
 
@@ -10,6 +10,8 @@ from lib.models.file import File, FileRole
 from lib.services.file import FileDocument
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     FileArtifactsServiceType,
+    LoadedDocuments,
+    UnreadableDocument,
 )
 from lib.services.files import (
     get_file_by_id,
@@ -42,11 +44,31 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Where each revision-scoped memo role is mounted under `/revisions/<n>/`.
-_MEMO_FOLDERS: dict[FileRole, str] = {
-    FileRole.REVIEWER_MEMO: "reviewer-memos",
-    FileRole.RESPONSE_MEMO: "response-memos",
-}
+
+# Every role a person uploads, as opposed to the files the app derives.
+_UPLOADED_ROLES = [
+    FileRole.MAIN,
+    FileRole.SUPPORT,
+    FileRole.REVIEWER_MEMO,
+    FileRole.RESPONSE_MEMO,
+    FileRole.REVIEW_INPUT,
+]
+
+
+def skill_backend_files() -> dict[str, Any]:
+    """Every skill under ``skills/``, keyed by its path on the agent filesystem."""
+    project_root = Path(__file__).parents[3]
+    files: dict[str, Any] = {}
+    for skill_file in sorted((project_root / "skills").rglob("*")):
+        if skill_file.is_file():
+            virtual_path = "/" + skill_file.relative_to(project_root).as_posix()
+            # Interactive-only sections (e.g. asking the user for web-search
+            # consent) are for agents driven by a user; a backend run has its
+            # consent already and nobody to ask.
+            files[virtual_path] = create_file_data(
+                strip_interactive_only(skill_file.read_text())
+            )
+    return files
 
 
 class FileArtifactsService(FileArtifactsServiceType):
@@ -69,7 +91,7 @@ class FileArtifactsService(FileArtifactsServiceType):
 
     async def _get_state_by_type(
         self, run_type: WorkflowRunType, raise_exception: bool = True
-    ) -> "WorkflowState | None":
+    ) -> Optional["WorkflowState"]:
         """Retrieve workflow state for a specific workflow run type.
 
         Args:
@@ -178,8 +200,7 @@ class FileArtifactsService(FileArtifactsServiceType):
 
         Uses cached markdown when present. Otherwise the file has not been
         through document processing, which only converts the current
-        revision's files: a reviewer memo uploaded to an earlier draft, or a
-        response memo left on a revision that was replaced before anything ran.
+        revision's files, or a Review Assistant document, which it never reads.
         It is then converted the way document processing would (legacy ``.doc``
         included, with the converter its role calls for) and cached, so the
         next run reads it from the DB.
@@ -234,8 +255,8 @@ class FileArtifactsService(FileArtifactsServiceType):
 
         Defaults to the service's revision; pass ``revision`` to read a
         different revision's files. Prefers DB cached markdown and converts a
-        file's markdown on demand when it has not been cached yet (e.g. reviewer
-        memos, which are not processed by the document pipeline).
+        file's markdown on demand when it has not been cached yet (e.g. a file
+        of an earlier revision, which the document pipeline never converted).
         """
         rev = revision if revision is not None else self.revision
         role_labels = ", ".join(r.value for r in roles)
@@ -254,23 +275,6 @@ class FileArtifactsService(FileArtifactsServiceType):
         for file in files:
             documents.append(await self._load_file_document_with_markdown(file))
         return documents
-
-    async def get_latest_reviewer_memo_revision(self) -> int | None:
-        """Return the highest revision that has reviewer memos, or None.
-
-        Reviewer memos are scoped to the revision they reviewed; this resolves
-        the "reviewed revision" the review workflows operate on.
-        """
-        files = await self._try_load(
-            f"reviewer memo revisions for {self.project_id}",
-            lambda: get_files_by_project_id(
-                self.project_id, roles=[FileRole.REVIEWER_MEMO]
-            ),
-        )
-        if not files:
-            return None
-        revisions = [f.revision for f in files if f.revision is not None]
-        return max(revisions) if revisions else None
 
     async def get_file_summary(self, file_id: str) -> "FileSummary":
         """Retrieve the file summary for a file by its ID.
@@ -365,7 +369,7 @@ class FileArtifactsService(FileArtifactsServiceType):
 
         # Try to get file matching state (optional)
         matching_state = cast(
-            "ReferenceFileMatchingState | None",
+            Optional["ReferenceFileMatchingState"],
             await self._get_state_by_type(
                 WorkflowRunType.REFERENCE_FILE_MATCHING, raise_exception=False
             ),
@@ -420,13 +424,8 @@ class FileArtifactsService(FileArtifactsServiceType):
         - ``/main.md`` — the current revision's main document
         - ``/supporting/<id>.md`` — supporting documents (shared across revisions)
         - ``/revisions/<n>/main.md`` — the main document of every revision
-        - ``/revisions/<n>/reviewer-memos/<id>.md`` — reviewer memos, always
-          grouped under the revision they reviewed
-        - ``/revisions/<n>/response-memos/<id>.md`` — the author's response
-          memos, grouped under the revised draft they describe
 
-        Memos live only under their revision's folder. The agent navigates
-        this tree; workflows tell it which paths to read.
+        The agent navigates this tree; workflows tell it which paths to read.
         """
         main_file = await self.get_main_file()
         files: dict[str, Any] = {"/main.md": create_file_data(main_file.markdown)}
@@ -435,12 +434,7 @@ class FileArtifactsService(FileArtifactsServiceType):
             f"all files for {self.project_id}",
             lambda: get_files_by_project_id(
                 self.project_id,
-                roles=[
-                    FileRole.MAIN,
-                    FileRole.SUPPORT,
-                    FileRole.REVIEWER_MEMO,
-                    FileRole.RESPONSE_MEMO,
-                ],
+                roles=[FileRole.MAIN, FileRole.SUPPORT],
             ),
         )
         for file in all_files or []:
@@ -452,24 +446,38 @@ class FileArtifactsService(FileArtifactsServiceType):
                 files[f"/revisions/{file.revision}/main.md"] = create_file_data(
                     doc.markdown
                 )
-            elif file.role in _MEMO_FOLDERS and file.revision is not None:
-                doc = await self._load_file_document_with_markdown(file)
-                folder = _MEMO_FOLDERS[file.role]
-                files[f"/revisions/{file.revision}/{folder}/{doc.file_id}.md"] = (
-                    create_file_data(doc.markdown)
-                )
 
         if include_skills:
-            project_root = Path(__file__).parents[3]
-            skills_dir = project_root / "skills"
-            for skill_file in sorted(skills_dir.rglob("*")):
-                if skill_file.is_file():
-                    virtual_path = "/" + skill_file.relative_to(project_root).as_posix()
-                    # Interactive-only sections (e.g. asking the user for
-                    # web-search consent) are for agents driven by a user; a
-                    # backend run has its consent already and nobody to ask.
-                    files[virtual_path] = create_file_data(
-                        strip_interactive_only(skill_file.read_text())
-                    )
+            files.update(skill_backend_files())
 
         return files
+
+    async def get_file_documents(self, file_ids: list[str]) -> LoadedDocuments:
+        """Load the project's files with these ids, markdown included.
+
+        Ids that are not this project's uploaded documents are skipped, so a
+        caller cannot reach another project's file by naming it. A file that
+        fails to load or convert is reported rather than raised, so one bad
+        upload does not cost the caller the rest. Order follows ``file_ids``.
+        """
+        files = await get_files_by_project_id(self.project_id, roles=_UPLOADED_ROLES)
+        by_id = {str(file.id): file for file in files}
+        loaded = LoadedDocuments(documents=[])
+        for file_id in file_ids:
+            file = by_id.get(file_id)
+            if file is None:
+                continue
+            try:
+                loaded.documents.append(
+                    await self._load_file_document_with_markdown(file)
+                )
+            except Exception as error:
+                logger.warning(
+                    "Could not read %s (%s): %s", file.file_name, file_id, error
+                )
+                loaded.unreadable.append(
+                    UnreadableDocument(
+                        file_id=file_id, file_name=file.file_name, reason=str(error)
+                    )
+                )
+        return loaded

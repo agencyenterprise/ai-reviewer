@@ -26,5 +26,3 @@ class DocumentProcessingState(BaseWorkflowState):
     config: DocumentProcessingWorkflowConfig
     file: FileDocument
     supporting_files: list[FileDocument] | None = None
-    reviewer_memo_files: list[FileDocument] | None = None
-    response_memo_files: list[FileDocument] | None = None

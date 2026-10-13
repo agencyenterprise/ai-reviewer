@@ -194,11 +194,7 @@ def strip_converted_markdown(workflow_runs: Sequence[WorkflowRunDetail]) -> None
     for run in workflow_runs:
         if isinstance(run.state, DocumentProcessingState) and run.state.file:
             run.state.file.markdown = None  # type: ignore[assignment]
-            for converted_file in (
-                *(run.state.supporting_files or []),
-                *(run.state.reviewer_memo_files or []),
-                *(run.state.response_memo_files or []),
-            ):
+            for converted_file in run.state.supporting_files or []:
                 converted_file.markdown = None  # type: ignore[assignment]
 
 
@@ -295,6 +291,7 @@ async def get_project_files(project_id: str) -> list[File]:
                         FileRole.SUPPORT,
                         FileRole.REVIEWER_MEMO,
                         FileRole.RESPONSE_MEMO,
+                        FileRole.REVIEW_INPUT,
                     ]
                 ),
             )
@@ -417,11 +414,10 @@ async def create_new_revision(
                     f"Skipping unknown workflow type {row[0]!r} from revision "
                     f"{old_revision} of project {project_id}"
                 )
-        # Workflows can opt out of being re-run automatically. The peer-review
-        # ones do: they read the *reviewed* revision against the current draft,
-        # so firing them the moment a revision is created either wastes an
-        # expensive run or returns a guard message. The user starts them from
-        # the Peer Review tab once the new draft is in place.
+        # Workflows can opt out of being re-run automatically. The Review
+        # Assistant does: a request reads the documents it was given, not the
+        # current draft, so firing it again the moment a revision is created
+        # would repeat an expensive run on the same inputs.
         #
         # An enum value whose manifest has been retired has nothing left to run,
         # so it is dropped here too — the enum member outlives the workflow so

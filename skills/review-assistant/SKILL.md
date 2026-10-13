@@ -62,13 +62,56 @@ Ask for or identify what you have. Not all inputs are needed for all outputs.
   comments and tracked edits. Treat these as secondary and editorial (see
   "Word comments" below).
 
+Sometimes you are told which document is which. Other times you get a set of
+documents with no labels at all, in no particular order, and have to work it
+out yourself; step 0 below covers that. Either way, you may not have every
+input for every output; see "When an input is missing".
+
 The documents in one cycle are small enough to hold at once: memos and response
 memos run roughly 800 to 1,700 words, and a full report is around 12,000 words.
 Do not chunk them. Read each in full so cross-references resolve.
 
 ## The shared foundation
 
-Do these two steps first, whatever output you are producing.
+Do these steps first, whatever output you are producing. Step 0 applies only
+when you were not told what each document is.
+
+### 0. Identify the inputs
+
+Read every document in full before deciding what any of them is. File names
+help but are often wrong or generic ("final.docx", "comments v2"), so let the
+content decide:
+
+- **Reviewer memo**: addressed to the authors or the program, written by
+  someone assessing the work, usually with an overall assessment and a run of
+  points to address. One memo per reviewer.
+- **Draft**: the report itself. There may be one draft or two.
+- **Marked-up draft**: a copy of a draft that carries a reviewer's inline
+  comments or tracked changes. It is still a draft, and its markup is that
+  reviewer's feedback.
+- **Response memo**: the authors' reply to one reviewer, echoing that
+  reviewer's points and saying what changed. It names or quotes the reviewer it
+  answers.
+
+When there are two drafts, decide which one the reviewers read (the original)
+and which one came after (the revised). Use every signal you have: the drafts
+the reviewer comments and memo quotes actually match, wording that appears in
+a response memo as new text, which draft resolves the points the memos raise,
+and dates and authorship in the file properties when you have them. Two copies
+of the same draft, one plain and one marked up, are the same version, not an
+original and a revision.
+
+Match each marked-up draft and each response memo to its reviewer, by the
+author of the comments, by the names in the memos, and by which points they
+cover. A comment author name such as "Reviewer 2" or a person's name is the
+usual link.
+
+If something stays genuinely ambiguous, make the most defensible call, carry
+on, and say what you assumed (see "Say how you read the inputs" below). Do not
+stop to ask.
+
+Assign reviewer letters (step 1) after this step, in the order the reviewers'
+documents were given to you, so the letters are the same in every output.
 
 ### 1. Parse each reviewer memo into discrete points
 
@@ -137,6 +180,34 @@ non-binding, and the author may decide how to respond. Attach a marked-up copy
 to its reviewer's memo. Surface its comments only as optional, clearly
 secondary, and never let an unaddressed inline comment lower the responsiveness
 read the way an unaddressed memo point does.
+
+That holds when the reviewer also wrote a memo. When a reviewer's only feedback
+is the inline markup, with no memo from them at all, the comments and tracked
+changes are their review. Treat each comment, and each tracked change that
+carries a substantive edit rather than a typo fix, as one of that reviewer's
+points: give it an ID like any other point, quote the comment verbatim along
+with the text it is attached to, and locate it in the draft by that text. In
+the outputs, reproduce that reviewer's comments in document order in place of
+the memo. Say once, at the top of that reviewer's section, that the review
+was given as inline comments.
+
+When you have a way to read a document's comments and tracked changes
+alongside its text, read them as part of that document. A marked-up draft's
+feedback is often only there.
+
+## When an input is missing
+
+Produce what the documents you have allow, and say plainly what is missing and
+what it would add. Do not refuse the output and do not invent the missing
+document. For example:
+
+- A coverage report or response memos with only one draft: you cannot compare
+  revisions, so say that in Part 1 (or, for response memos, in the internal
+  flags block), give every point the verdict or reply the evidence supports,
+  and name the revised draft as the missing input.
+- No reviewer feedback at all (no memo and no comments): there is nothing to
+  plan, answer, or cover. Say so in a short output that lists the documents you
+  did find.
 
 ## Include the reviewer memo verbatim in every output
 
@@ -214,6 +285,17 @@ something. Two rules keep it honest:
 The per-output sections below say what each Part 1 contains. The reviewer
 response memos are the one exception to this layout, for the reason given in
 their section.
+
+### Say how you read the inputs
+
+When you identified the inputs yourself (step 0), end Part 1 with a short
+"Inputs as read" list: one line per document, giving its file name and what you
+took it to be (for example "original draft", "reviewer memo, Reviewer A",
+"marked-up draft, Reviewer B's comments"), plus any assumption you had to make.
+It is how the author catches a misreading before acting on the output. In the
+reviewer response memos, put this list in the internal flags block at the top,
+which then appears even when there are no flags, and never in the memos
+themselves. Leave the list out when you were told what each document is.
 
 ## Tone and voice
 

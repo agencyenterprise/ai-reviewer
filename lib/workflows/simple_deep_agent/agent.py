@@ -127,6 +127,7 @@ class SimpleDeepAgent(LangChainAgent):
         reasoning_effort: Literal["low", "medium", "high"] | None = None,
         timeout: int | None = None,
         view_images: bool = False,
+        backend_files: dict[str, Any] | None = None,
     ):
         super().__init__(context)
         self._system_prompt = system_prompt or _SYSTEM_PROMPT
@@ -137,6 +138,9 @@ class SimpleDeepAgent(LangChainAgent):
         self._propose_edits = propose_edits
         self._tools = tools
         self._view_images = view_images
+        # A workflow that mounts its own inputs passes the whole file tree;
+        # otherwise the agent gets the project's (see ainvoke).
+        self._backend_files = backend_files
         # Shadows the class-level `reasoning` for this instance only, so one
         # workflow can ask for more reasoning without affecting the others that
         # share this agent.
@@ -155,8 +159,12 @@ class SimpleDeepAgent(LangChainAgent):
         # Fetched before the agent is built: the collector needs the document's
         # text to check any proposed edit against real lines, and the same file
         # tree is what the agent runs on.
-        files = await self.context.file_artifacts_service.get_deepagent_backend_files(
-            include_skills=True,
+        files = (
+            self._backend_files
+            if self._backend_files is not None
+            else await self.context.file_artifacts_service.get_deepagent_backend_files(
+                include_skills=True,
+            )
         )
         document = _main_document_text(files)
         issue_reporter = (

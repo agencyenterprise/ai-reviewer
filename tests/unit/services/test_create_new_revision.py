@@ -197,17 +197,15 @@ async def test_create_new_revision_returns_previous_workflow_types():
 async def test_create_new_revision_excludes_workflows_opted_out_of_auto_rerun():
     """Workflows with auto_rerun_on_new_revision=False are not offered for re-run.
 
-    The peer-review workflows read the *reviewed* revision against the current
-    draft, so re-running them the moment a revision is created would waste an
-    expensive run or return a guard message.
+    A Review Assistant request reads the documents it was given, not the current
+    draft, so re-running it the moment a revision is created would only repeat
+    an expensive run on the same inputs.
     """
     project = _make_project(current_revision=1)
 
     previous_types = [
         (WorkflowRunType.RECOMMENDATION_CHECK,),
-        (WorkflowRunType.REVISION_PLANNING_SUMMARY,),
-        (WorkflowRunType.REVIEWER_RESPONSE_MEMOS,),
-        (WorkflowRunType.REVIEWER_COVERAGE_REPORT,),
+        (WorkflowRunType.REVIEW_ASSISTANT,),
     ]
 
     sessions = [

@@ -8,6 +8,10 @@ readable when they mirror the markup's structure.
 """
 
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+# Word 2010 and 2012 extensions: paragraph ids, and comment threads and their
+# resolved state, which review markup reads.
+W14 = "http://schemas.microsoft.com/office/word/2010/wordml"
+W15 = "http://schemas.microsoft.com/office/word/2012/wordml"
 PKG = "http://schemas.microsoft.com/office/2006/xmlPackage"
 
 

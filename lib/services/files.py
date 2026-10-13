@@ -261,6 +261,7 @@ async def get_project_files_list_items(
                     FileRole.SUPPORT,
                     FileRole.REVIEWER_MEMO,
                     FileRole.RESPONSE_MEMO,
+                    FileRole.REVIEW_INPUT,
                 ]
             ),
         )

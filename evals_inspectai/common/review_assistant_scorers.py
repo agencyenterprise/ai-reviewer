@@ -1,8 +1,8 @@
 """Scoring shared by the `review-assistant` e2e suites.
 
-The three review-assistant workflows (revision-planning summary, reviewer
-response memos, reviewer coverage report) all deliver one self-contained HTML
-document built from the same skill, so a large part of what makes an output
+The Review Assistant's outputs (revision-planning summary, reviewer response
+memos, reviewer coverage report) are each one self-contained HTML document
+built from the same skill, so a large part of what makes an output
 correct is identical across them: the reviewer memos reproduced verbatim inside
 marked quotes, a valid per-reviewer point-ID scheme numbered from 1 with no
 gaps, a self-contained document (no external stylesheets, fonts, scripts or
@@ -30,7 +30,7 @@ from typing import Any
 
 from inspect_ai.scorer import Score, Scorer, Target, mean, scorer, stderr
 from inspect_ai.solver import TaskState
-from pydantic import ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 from evals_inspectai.common.html_report import (
     HtmlReport,
@@ -41,7 +41,6 @@ from evals_inspectai.common.html_report import (
     voice_tells,
 )
 from evals_inspectai.common.scorers import checks_to_score, failed_score
-from evals_inspectai.common.simple_deep_agent_types import HtmlReportAgentOutput
 
 # Below this, the report is too short to be a real deliverable regardless of
 # what else it gets right.
@@ -61,20 +60,40 @@ STRUCTURE_CHECKS = (
 )
 
 
-def extract_report(state: TaskState) -> tuple[HtmlReport | None, str]:
-    """Parse the workflow state into a report, or explain why it cannot be.
+class ReviewAssistantReport(BaseModel):
+    """Local mirror of one report in the Review Assistant's state."""
 
-    Returns `(report, "")` on success and `(None, reason)` otherwise, so both
-    scorers reject an unusable output the same way and for the same reasons.
+    output: str
+    report_html: str = ""
+
+
+class ReviewAssistantOutput(BaseModel):
+    """Local mirror of ReviewAssistantState, as far as the scorers read it.
+
+    One run carries a report per requested output under ``reports``; the other
+    top-level fields (``inputs``, ``input_readings``, ``config``) are ignored.
     """
+
+    reports: list[ReviewAssistantReport] = Field(default_factory=list)
+
+
+def extract_report(state: TaskState) -> tuple[HtmlReport | None, str]:
+    """Parse the workflow state into the sample's report, or explain why it cannot be.
+
+    The report is the one for the output the sample asked for, named by its
+    ``output`` metadata. Returns `(report, "")` on success and `(None, reason)`
+    otherwise, so every scorer rejects an unusable output the same way and for
+    the same reasons.
+    """
+    wanted = (state.metadata or {}).get("output")
     try:
-        output = HtmlReportAgentOutput.model_validate_json(state.output.completion)
+        output = ReviewAssistantOutput.model_validate_json(state.output.completion)
     except ValidationError as e:
         return None, f"Could not parse the workflow state: {e}"
 
-    html = (output.result.report_html if output.result else "") or ""
+    html = next((r.report_html for r in output.reports if r.output == wanted), "")
     if len(html) < MIN_REPORT_CHARS:
-        return None, f"No substantive HTML report ({len(html)} chars)"
+        return None, f"No substantive HTML report for {wanted!r} ({len(html)} chars)"
     return HtmlReport(html), ""
 
 
@@ -83,13 +102,14 @@ def check_id_scheme(
 ) -> tuple[bool, str]:
     """Validate reviewer letters, per-reviewer point counts, and numbering gaps.
 
-    Which memo gets which letter is not checked. The skill letters reviewers in
-    the order their memos are provided, but the agent sees the memos as
-    `/revisions/<n>/reviewer-memos/<file_id>.md`, so the mounted tree carries
-    neither the original file names nor a stable order. Holding the eval to a
-    specific assignment would score a coin flip. The bands are therefore
-    satisfied by any assignment of expected counts to the letters actually
-    used, which still catches a dropped or merged reviewer.
+    Which memo gets which letter is not checked. The agent sees the documents
+    as `/inputs/NN-<slug>/document.md` in the order the request names them,
+    and the skill letters reviewers in the order their documents are given,
+    but nobody tells it which documents are memos: it works that out, and a
+    marked-up copy or an unexpected reading can shift a letter without anything
+    being wrong. The bands are therefore satisfied by any assignment of
+    expected counts to the letters actually used, which still catches a
+    dropped or merged reviewer.
     """
     expected: list[str] = meta["expected_reviewers"]
     bands: dict[str, list[int]] = meta["point_count_bands"]

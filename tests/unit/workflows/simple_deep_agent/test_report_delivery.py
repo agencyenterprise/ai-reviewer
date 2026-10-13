@@ -24,23 +24,13 @@ from lib.workflows.simple_deep_agent.agent import (
 from lib.workflows.simple_deep_agent.agent_types import (
     DEEP_AGENT_RECURSION_LIMIT,
     MARKDOWN_REPORT_PATH,
-    REPORT_PATH,
     DeepAgentResult,
     DeepAgentRun,
     IssueItem,
     ReportNotWrittenError,
 )
-from lib.workflows.simple_deep_agent.manifest_base import (
-    HtmlReportDeepAgentManifest,
-    SimpleDeepAgentManifest,
-)
+from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifest
 from lib.workflows.simple_deep_agent.state import SimpleDeepAgentState
-
-_HTML_WORKFLOWS = [
-    WorkflowRunType.REVISION_PLANNING_SUMMARY,
-    WorkflowRunType.REVIEWER_COVERAGE_REPORT,
-    WorkflowRunType.REVIEWER_RESPONSE_MEMOS,
-]
 
 _MARKDOWN_WORKFLOWS = [
     WorkflowRunType.ADVOCACY_TONE_V2,
@@ -53,7 +43,6 @@ _MARKDOWN_WORKFLOWS = [
     WorkflowRunType.RESULTS_EXTRACTION,
 ]
 
-_HTML_REPORT = "<!doctype html><html><body><h1>Report</h1></body></html>"
 _MARKDOWN_REPORT = "# Report\n\nReview complete."
 
 
@@ -71,37 +60,10 @@ def _stub_agent(report_issues: bool) -> SimpleDeepAgent:
     return agent
 
 
-def _html_manifest() -> HtmlReportDeepAgentManifest:
-    manifest = get_workflow_manifest(WorkflowRunType.REVISION_PLANNING_SUMMARY)
-    assert isinstance(manifest, HtmlReportDeepAgentManifest)
-    return manifest
-
-
 def _markdown_manifest() -> SimpleDeepAgentManifest:
     manifest = get_workflow_manifest(WorkflowRunType.FIGURES_TABLES_CHECK)
     assert isinstance(manifest, SimpleDeepAgentManifest)
     return manifest
-
-
-def test_html_report_is_read_from_the_agent_filesystem():
-    run = DeepAgentRun(files={"/main.md": "# doc", REPORT_PATH: _HTML_REPORT})
-    assert _html_manifest()._to_state_result(run).report_html == _HTML_REPORT
-
-
-@pytest.mark.parametrize(
-    "files",
-    [
-        pytest.param({}, id="no files at all"),
-        pytest.param({"/main.md": "# doc"}, id="wrote nothing"),
-        pytest.param({REPORT_PATH: ""}, id="empty report"),
-        pytest.param({REPORT_PATH: "   \n  "}, id="whitespace only"),
-        pytest.param({"/report.htm": _HTML_REPORT}, id="wrong path"),
-    ],
-)
-def test_a_missing_html_report_fails_the_run(files: dict[str, str]):
-    with pytest.raises(ReportNotWrittenError) as caught:
-        _html_manifest()._to_state_result(DeepAgentRun(files=files))
-    assert REPORT_PATH in str(caught.value)
 
 
 def test_markdown_report_and_tool_issues_are_mapped_to_state():
@@ -121,7 +83,6 @@ def test_markdown_report_and_tool_issues_are_mapped_to_state():
 
     assert result.report_markdown == _MARKDOWN_REPORT
     assert result.issues == [issue]
-    assert result.report_html == ""
 
 
 @pytest.mark.parametrize(
@@ -147,7 +108,7 @@ def test_zero_tool_calls_means_zero_issues():
     assert result.issues == []
 
 
-def test_the_final_message_cannot_influence_either_report():
+def test_the_final_message_cannot_influence_the_report():
     final_message = AIMessage(content='{"report_markdown":"wrong"}{"issues":[]}')
     markdown = _markdown_manifest()._to_state_result(
         DeepAgentRun(
@@ -155,35 +116,12 @@ def test_the_final_message_cannot_influence_either_report():
             messages=[final_message],
         )
     )
-    html = _html_manifest()._to_state_result(
-        DeepAgentRun(files={REPORT_PATH: _HTML_REPORT}, messages=[final_message])
-    )
     assert markdown.report_markdown == _MARKDOWN_REPORT
-    assert html.report_html == _HTML_REPORT
-
-
-@pytest.mark.parametrize("workflow_type", _HTML_WORKFLOWS)
-def test_html_workflows_do_not_collect_issues(workflow_type: WorkflowRunType):
-    manifest = get_workflow_manifest(workflow_type)
-    assert isinstance(manifest, HtmlReportDeepAgentManifest)
-    assert manifest.report_issues is False
-
-
-@pytest.mark.parametrize("workflow_type", _HTML_WORKFLOWS)
-def test_html_prompts_ask_for_a_file_write(workflow_type: WorkflowRunType):
-    manifest = get_workflow_manifest(workflow_type)
-    assert isinstance(manifest, HtmlReportDeepAgentManifest)
-    prompt = manifest.system_prompt or ""
-    assert REPORT_PATH in prompt
-    assert "write_file" in prompt
-    assert "report_html" not in prompt
 
 
 @pytest.mark.parametrize("workflow_type", _MARKDOWN_WORKFLOWS)
-def test_markdown_workflows_collect_issues(workflow_type: WorkflowRunType):
-    manifest = get_workflow_manifest(workflow_type)
-    assert isinstance(manifest, SimpleDeepAgentManifest)
-    assert manifest.report_issues is True
+def test_markdown_workflows_run_on_the_simple_deep_agent(workflow_type: WorkflowRunType):
+    assert isinstance(get_workflow_manifest(workflow_type), SimpleDeepAgentManifest)
 
 
 @pytest.mark.parametrize(
@@ -214,7 +152,7 @@ def test_custom_prompts_do_not_repeat_the_issue_tool_schema(prompt: str):
 @pytest.mark.parametrize(
     "report_issues, expected_tool_names",
     [
-        pytest.param(False, set(), id="html report"),
+        pytest.param(False, set(), id="no issue tool"),
         pytest.param(
             True,
             {"report_issue"},
@@ -319,7 +257,6 @@ _TEXT_ONLY_WORKFLOWS = [
     WorkflowRunType.LITERATURE_REVIEW_V2,
     WorkflowRunType.LIVE_REPORTS_V2,
     WorkflowRunType.METHODOLOGICAL_ALIGNMENT,
-    *_HTML_WORKFLOWS,
 ]
 
 
@@ -407,7 +344,7 @@ def test_workflows_whose_judgment_can_hinge_on_a_figure_view_images(
 @pytest.mark.parametrize("workflow_type", _TEXT_ONLY_WORKFLOWS)
 def test_text_only_workflows_do_not_view_images(workflow_type: WorkflowRunType):
     manifest = get_workflow_manifest(workflow_type)
-    assert isinstance(manifest, (SimpleDeepAgentManifest, HtmlReportDeepAgentManifest))
+    assert isinstance(manifest, SimpleDeepAgentManifest)
     assert manifest.view_images is False
 
 
@@ -519,7 +456,6 @@ def test_state_result_shape_is_unchanged():
     assert set(DeepAgentResult.model_fields) == {
         "issues",
         "report_markdown",
-        "report_html",
     }
     assert set(SimpleDeepAgentState.model_fields) >= {
         "type",
