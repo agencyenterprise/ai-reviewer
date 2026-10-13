@@ -1,7 +1,7 @@
 """What Abbreviation Scan is judged on, beyond the generic issue checks.
 
 The workflow has two outputs, scored separately because they fail separately.
-Extraction agents, one per chunk of the document, record an occurrence
+One structured model call per chunk of the document records an occurrence
 catalogue (``skills/abbreviation-extraction/SKILL.md``). Code then turns that
 catalogue into the issues a user sees (``build_issues``, following
 ``skills/abbreviation-scan/SKILL.md``). The issues are scored with the generic

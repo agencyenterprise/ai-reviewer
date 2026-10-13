@@ -1,9 +1,10 @@
 """Cheap pre-check for whether a document could have an Abbreviations section.
 
-The section agent locates the section by searching for "abbreviation",
-"acronym" and "glossary". When none of them appears, the agent has nothing to
-find, and on a long document it can spend its whole budget looking. This check
-lets the node skip it. Plain text processing; no model is involved.
+The section extractor reads the whole document in one model call to find a
+section titled "Abbreviations", "Acronyms" or "Glossary". When none of those
+words appears, there is nothing to find, and on a long document the call is
+the most expensive one in the workflow. This check lets the node skip it.
+Plain text processing; no model is involved.
 
 It matches the words anywhere rather than only on title-like lines: converted
 PDFs glue titles onto running headers ("...Frontier ModelsAbbreviations") and

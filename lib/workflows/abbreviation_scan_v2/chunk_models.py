@@ -1,7 +1,7 @@
 """Models for the chunked extraction stage of abbreviation scan v2.
 
-The document is cut into line-range chunks, each catalogued by its own agent.
-Each agent answers only for its own lines, so what it records is deliberately
+The document is cut into line-range chunks, each catalogued by its own model call.
+Each call answers only for its own lines, so what it records is deliberately
 local: the occurrence number and the Abbreviations-section definition depend on
 the whole document and are filled in afterwards, when the chunks are combined.
 """
@@ -16,7 +16,7 @@ from lib.workflows.models import ErrorDetails
 
 
 class ChunkOccurrence(BaseModel):
-    """One abbreviation occurrence, as recorded by a chunk extraction agent."""
+    """One abbreviation occurrence, as recorded by a chunk extraction call."""
 
     abbr: str = Field(
         description='The abbreviation in its singular base form, e.g. "LLM" not "LLMs".'
@@ -29,7 +29,7 @@ class ChunkOccurrence(BaseModel):
         ),
     )
     line_start: int = Field(
-        description="1-indexed line number in /main.md where the occurrence starts."
+        description="The printed 1-indexed document line number where the occurrence starts."
     )
     line_end: int = Field(
         description="Line number where the occurrence ends; equal to line_start for a single line."
@@ -37,7 +37,7 @@ class ChunkOccurrence(BaseModel):
 
 
 class ChunkExtractionResult(BaseModel):
-    """Structured response of one chunk extraction agent."""
+    """Structured response of one chunk extraction call."""
 
     occurrences: List[ChunkOccurrence] = Field(
         default_factory=list,
@@ -46,7 +46,7 @@ class ChunkExtractionResult(BaseModel):
 
 
 class AbbreviationsSectionRange(BaseModel):
-    """Where an Abbreviations (or equivalent) section sits, as the agent found it."""
+    """Where an Abbreviations (or equivalent) section sits, as the section extractor found it."""
 
     start_line: int = Field(description="1-indexed line of the section's title.")
     end_line: int = Field(description="1-indexed last line of the section's list.")
@@ -96,14 +96,14 @@ class AbbreviationChunk(BaseModel):
     status: ChunkStatus = ChunkStatus.PENDING
     skip_reason: Optional[str] = Field(
         default=None,
-        description='Why a SKIPPED chunk was not sent to an agent: "abbreviations section" or "blank".',
+        description='Why a SKIPPED chunk was not sent to the model: "abbreviations section" or "blank".',
     )
     occurrences: List[ChunkOccurrence] = Field(default_factory=list)
     error: Optional[str] = None
     error_details: Optional[ErrorDetails] = None
     messages: List[BaseMessage] = Field(
         default_factory=list,
-        description="The agent's full conversation for this chunk, system prompt included.",
+        description="The model call for this chunk: system prompt, user prompt and reply.",
     )
 
     @property

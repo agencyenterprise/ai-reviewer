@@ -2,19 +2,34 @@
 
 A set is defined in code (one module per eval under ``sets/``) and written to
 the database by the sync. Each is built from an issue-inventory eval dataset:
-every expected issue and every decoy with an anchor becomes one "should this
-passage be flagged?" item.
+every expected issue and every decoy with an anchor becomes one item, which by
+default asks "should this passage be flagged?". A set that asks something else
+overrides ``issue_reference`` and ``decoy_reference``.
 """
 
 from pathlib import Path
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from evals_inspectai.common.issue_inventory import Decoy, ResolvedIssue
 from lib.services.annotations.models import AnnotationOption, AnnotationQuestion
 
 EVALS_ROOT = Path(__file__).resolve().parents[3] / "evals_inspectai" / "e2e"
 
 SHOULD_FLAG = "should_flag"
+
+
+class ItemReference(BaseModel):
+    """How the dataset answers an item, and why, for the admin results view."""
+
+    answers: dict[str, str]
+    explanation: str
+
+
+def with_rationale(explanation: str, rationale: Optional[str]) -> str:
+    """The explanation followed by the labeller's own account, when the dataset has one."""
+    return f"{explanation} {rationale.strip()}" if rationale else explanation
 
 
 class AnnotationSetSpec(BaseModel):
@@ -30,6 +45,44 @@ class AnnotationSetSpec(BaseModel):
         default_factory=dict,
         description="Plain-language reading of each decoy reason, for the admin results view",
     )
+    single_issue_kind: bool = Field(
+        default=False,
+        description=(
+            "The check reports one kind of issue, so a decoy titled with it must not be "
+            "flagged at all, and still has a single answer"
+        ),
+    )
+
+    def issue_reference(self, issue: ResolvedIssue) -> Optional[ItemReference]:
+        """The dataset's answer for an anchored expected issue, or None when it has no single one."""
+        # An optional issue is borderline by design, so neither answer is the dataset's.
+        if not issue.required:
+            return None
+        flagged_as = f" as “{issue.title}”" if issue.title else ""
+        return ItemReference(
+            answers={SHOULD_FLAG: "yes"},
+            explanation=with_rationale(
+                f"Our test case expects Draft Detective to flag this{flagged_as}.",
+                issue.rationale,
+            ),
+        )
+
+    def decoy_reference(self, decoy: Decoy) -> Optional[ItemReference]:
+        """The dataset's answer for a decoy, or None when it has no single one."""
+        # A titled decoy may rightly be reported under another kind, so "should it
+        # be flagged at all?" has no single answer, unless that is the only kind.
+        if decoy.title is not None and not self.single_issue_kind:
+            return None
+        return ItemReference(
+            answers={SHOULD_FLAG: "no"},
+            explanation=with_rationale(
+                f"Our test case expects Draft Detective to leave this alone: {self.decoy_reading(decoy)}.",
+                decoy.rationale,
+            ),
+        )
+
+    def decoy_reading(self, decoy: Decoy) -> str:
+        return self.decoy_reasons.get(decoy.reason, decoy.reason.replace("_", " "))
 
     @property
     def dataset_path(self) -> Path:

@@ -1,6 +1,6 @@
 """Chunk boundaries for abbreviation scan v2.
 
-Cuts the document into contiguous line-range chunks small enough for one agent
+Cuts the document into contiguous line-range chunks small enough for one model call
 each. Plain text processing; no model is involved.
 """
 

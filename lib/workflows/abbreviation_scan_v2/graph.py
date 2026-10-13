@@ -1,6 +1,6 @@
 """Graph definition for abbreviation scan v2 workflow."""
 
-from langgraph.graph import StateGraph
+from langgraph.graph import END, StateGraph
 
 from lib.workflows.abbreviation_scan_v2.nodes.assemble_catalogue import (
     assemble_catalogue_node,
@@ -11,6 +11,7 @@ from lib.workflows.abbreviation_scan_v2.nodes.extract_chunks import (
     prepare_chunks_node,
 )
 from lib.workflows.abbreviation_scan_v2.nodes.read_abbreviations_section import (
+    after_section,
     read_abbreviations_section_node,
 )
 from lib.workflows.abbreviation_scan_v2.state import AbbreviationScanV2State
@@ -20,7 +21,8 @@ from lib.workflows.context import ContextSchema
 def build_abbreviation_scan_v2_graph():
     """Build the abbreviation scan v2 workflow graph.
 
-    1. read_abbreviations_section: locate the section and read its entries
+    1. read_abbreviations_section: locate the section and read its entries;
+       the run ends here if the section could not be read
     2. prepare_chunks: cut the rest of the document into line-range chunks
     3. extract_chunk: catalogue one chunk (fanned out via Send, in parallel)
     4. assemble_catalogue: number occurrences document-wide, attach section
@@ -38,7 +40,9 @@ def build_abbreviation_scan_v2_graph():
     graph.add_node("assemble_catalogue", assemble_catalogue_node)
 
     graph.set_entry_point("read_abbreviations_section")
-    graph.add_edge("read_abbreviations_section", "prepare_chunks")
+    graph.add_conditional_edges(
+        "read_abbreviations_section", after_section, ["prepare_chunks", END]
+    )
     graph.add_conditional_edges(
         "prepare_chunks", distribute_chunks, ["extract_chunk", "assemble_catalogue"]
     )

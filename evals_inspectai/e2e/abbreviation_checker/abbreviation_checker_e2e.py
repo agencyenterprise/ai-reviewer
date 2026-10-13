@@ -1,8 +1,8 @@
 """E2E eval for the Abbreviation Scan (v2) workflow: the extracted catalogue, and the issues a user sees.
 
 Runs ``abbreviation_scan_v2`` through the API like every other e2e eval. The
-workflow has two stages. First, extraction agents (one per chunk of the
-document, ``skills/abbreviation-extraction/SKILL.md``) record every
+workflow has two stages. First, one structured model call per chunk of the
+document (``skills/abbreviation-extraction/SKILL.md``) records every
 abbreviation occurrence: its inline definition, occurrence number, lines, the
 Abbreviations-section entry, and whether it is excluded. Then code
 (``lib/workflows/abbreviation_scan_v2/issues.py::build_issues``) applies the
