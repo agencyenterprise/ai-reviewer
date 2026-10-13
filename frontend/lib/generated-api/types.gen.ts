@@ -2861,7 +2861,7 @@ export type ItemResult = {
   /**
    * Reason
    */
-  reason?: 'not_found' | 'ambiguous' | 'withheld' | 'refused' | 'not_written' | null;
+  reason?: 'not_found' | 'ambiguous' | 'withheld' | 'refused' | 'not_written' | 'changed' | null;
 };
 
 /**

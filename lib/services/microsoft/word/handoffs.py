@@ -25,7 +25,8 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from microsoft_agents.activity import ConversationReference
 from pydantic import BaseModel, Field
-from sqlalchemy import and_, delete, insert, or_, select, update
+from sqlalchemy import and_, delete, insert, not_, or_, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
@@ -108,13 +109,16 @@ class ItemOutcome(BaseModel):
 
 # Why an item was not applied, as the add-in reports it. A fixed set, worded here: the
 # report is posted into Teams as the bot, so no text from the client reaches it.
-FailureReason = Literal["not_found", "ambiguous", "withheld", "refused", "not_written"]
+FailureReason = Literal[
+    "not_found", "ambiguous", "withheld", "refused", "not_written", "changed"
+]
 REASONS: dict[str, str] = {
     "not_found": "the words are no longer in the document",
     "ambiguous": "the words appear in more than one paragraph",
     "withheld": "withheld: it would have changed text it should not have",
     "refused": "it could not be placed",
     "not_written": "Word did not accept the change",
+    "changed": "the paragraph was edited while the change was being written",
 }
 
 
@@ -186,7 +190,9 @@ def document_keys(item: dict[str, Any], library_url: Optional[str]) -> list[str]
     parent = str((item.get("parentReference") or {}).get("path") or "")
     if library_url and ":" in parent:
         folder = parent.split(":", 1)[1].strip("/")
-        within = "/".join(part for part in (folder, str(item.get("name") or "")) if part)
+        within = "/".join(
+            part for part in (folder, str(item.get("name") or "")) if part
+        )
         if path := _path_key(f"{library_url.rstrip('/')}/{within}"):
             keys.add(path)
     return sorted(keys)
@@ -205,6 +211,20 @@ def _owned_by(account: Account) -> Any:
             col(MicrosoftWordHandoff.requested_by_tid) == account.tid,
         ),
     )
+
+
+def _fresh() -> Any:
+    return col(MicrosoftWordHandoff.created_at) >= datetime.now(timezone.utc) - KEPT_FOR
+
+
+async def _sweep(session: AsyncSession) -> None:
+    """Delete every handoff past its time, whoever it belongs to.
+
+    Run whenever one is stored or a pane looks for its own, so quoted document text is
+    not kept for want of new handoffs; the reads also skip expired rows on their own.
+    """
+
+    await session.execute(delete(MicrosoftWordHandoff).where(not_(_fresh())))
 
 
 async def create(
@@ -236,11 +256,7 @@ async def create(
                 created_at=now,
             )
         )
-        await session.execute(
-            delete(MicrosoftWordHandoff).where(
-                col(MicrosoftWordHandoff.created_at) < now - KEPT_FOR
-            )
-        )
+        await _sweep(session)
         await session.commit()
     logger.info("stored handoff %s with %s item(s)", handoff_id, items.count)
     return handoff_id
@@ -250,10 +266,13 @@ async def pending_for(account: Account) -> list[MicrosoftWordHandoff]:
     """Every open handoff of this person's, newest first."""
 
     async with get_async_db_session() as session:
+        await _sweep(session)
+        await session.commit()
         rows = await session.execute(
             select(MicrosoftWordHandoff)
             .where(_owned_by(account))
             .where(col(MicrosoftWordHandoff.status).in_(OPEN))
+            .where(_fresh())
             .order_by(col(MicrosoftWordHandoff.created_at).desc())
         )
         return list(rows.scalars().all())
@@ -303,6 +322,7 @@ async def finish(
                 .where(col(MicrosoftWordHandoff.id) == handoff_id)
                 .where(_owned_by(account))
                 .where(col(MicrosoftWordHandoff.status).in_(OPEN))
+                .where(_fresh())
                 .values(
                     status=status,
                     outcome=outcome.model_dump(mode="json") if outcome else None,
@@ -319,7 +339,9 @@ async def finish(
     if row is None:
         return None
     return FinishedHandoff(
-        document_name=row[0], reference=row[1], items=HandoffItems.model_validate(row[2])
+        document_name=row[0],
+        reference=row[1],
+        items=HandoffItems.model_validate(row[2]),
     )
 
 
@@ -338,6 +360,7 @@ async def start(handoff_id: uuid.UUID, account: Account) -> bool:
                 .where(col(MicrosoftWordHandoff.id) == handoff_id)
                 .where(_owned_by(account))
                 .where(col(MicrosoftWordHandoff.status) == "pending")
+                .where(_fresh())
                 .values(status="applying")
                 .returning(col(MicrosoftWordHandoff.id))
             )
@@ -346,7 +369,9 @@ async def start(handoff_id: uuid.UUID, account: Account) -> bool:
     return row is not None
 
 
-async def _open_items(handoff_id: uuid.UUID, account: Account) -> Optional[HandoffItems]:
+async def _open_items(
+    handoff_id: uuid.UUID, account: Account
+) -> Optional[HandoffItems]:
     async with get_async_db_session() as session:
         value = (
             await session.execute(
@@ -354,6 +379,7 @@ async def _open_items(handoff_id: uuid.UUID, account: Account) -> Optional[Hando
                 .where(col(MicrosoftWordHandoff.id) == handoff_id)
                 .where(_owned_by(account))
                 .where(col(MicrosoftWordHandoff.status).in_(OPEN))
+                .where(_fresh())
             )
         ).scalar_one_or_none()
     return HandoffItems.model_validate(value) if value is not None else None
@@ -380,8 +406,14 @@ def outcome_from(items: HandoffItems, results: list[ItemResult]) -> HandoffOutco
     for index, (kind, quote) in enumerate(stored):
         reported = by_index.get(index)
         applied = bool(reported and reported.applied)
-        reason = None if applied else REASONS[(reported and reported.reason) or "not_written"]
-        outcomes.append(ItemOutcome(kind=kind, quote=quote, applied=applied, detail=reason or ""))
+        reason = (
+            None
+            if applied
+            else REASONS[(reported and reported.reason) or "not_written"]
+        )
+        outcomes.append(
+            ItemOutcome(kind=kind, quote=quote, applied=applied, detail=reason or "")
+        )
     return HandoffOutcome(items=outcomes)
 
 

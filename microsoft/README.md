@@ -97,10 +97,10 @@ Follow [`teams-app/README.md`](teams-app/README.md), sections 1 to 4:
 1. **Azure Bot resource** with a Microsoft App ID and client secret. Messaging endpoint:
    `https://<api>/api/microsoft/teams/messages`. Add the **Microsoft Teams** channel.
 2. **Graph app registration** for signing users in: Web redirect URI
-   `https://token.botframework.com/.auth/web/redirect`, delegated `Files.Read.All` with
-   admin consent, a client secret.
+   `https://token.botframework.com/.auth/web/redirect`, delegated `Files.Read.All` and
+   `User.Read` with admin consent, a client secret.
 3. **OAuth connection** on the bot (Azure Active Directory v2) using that registration,
-   scope `Files.Read.All`. Note its name.
+   scopes `Files.Read.All User.Read`. Note its name.
 4. **Build and install the Teams package**: `uv run python microsoft/teams-app/build_package.py`,
    then upload it in Teams (custom app uploads must be allowed by policy).
 

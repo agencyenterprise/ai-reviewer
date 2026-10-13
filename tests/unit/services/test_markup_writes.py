@@ -50,20 +50,28 @@ class TestApplyingEdits:
     def test_a_change_rejecting_would_not_undo_is_withheld(self) -> None:
         """The safety net: altered words nobody asked for means writing nothing."""
 
-        with patch.object(markup_writes, "_rejected_text", return_value="something else"):
+        with patch.object(
+            markup_writes, "_rejected_text", return_value="something else"
+        ):
             written = markup_writes.apply_edits(
                 package(CLAIM), [EditToApply(quote="prove", replacement="support")]
             )
 
         assert written.applied == 0
         assert written.ooxml is None
-        assert written.warnings == ["rejecting the changes would not restore the original"]
+        assert written.warnings == [
+            "rejecting the changes would not restore the original"
+        ]
         # Each edit says so too: callers report per edit, and none of these landed.
         assert [edit.applied for edit in written.edits] == [False]
         assert "withheld" in written.edits[0].detail
 
-    def test_a_write_that_fails_after_placing_edits_reports_none_as_applied(self) -> None:
-        with patch.object(markup_writes, "_rejected_text", side_effect=DocxEditError("boom")):
+    def test_a_write_that_fails_after_placing_edits_reports_none_as_applied(
+        self,
+    ) -> None:
+        with patch.object(
+            markup_writes, "_rejected_text", side_effect=DocxEditError("boom")
+        ):
             written = markup_writes.apply_edits(
                 package(CLAIM), [EditToApply(quote="prove", replacement="support")]
             )
@@ -71,6 +79,21 @@ class TestApplyingEdits:
         assert written.applied == 0
         assert written.ooxml is None
         assert [edit.applied for edit in written.edits] == [False]
+
+    def test_markup_that_cannot_be_opened_still_answers_for_every_edit(self) -> None:
+        written = markup_writes.apply_edits(
+            "not a package",
+            [
+                EditToApply(quote="prove", replacement="support"),
+                EditToApply(quote="a", replacement="b"),
+            ],
+        )
+
+        assert written.applied == 0
+        assert [(edit.quote, edit.applied) for edit in written.edits] == [
+            ("prove", False),
+            ("a", False),
+        ]
 
     def test_an_inconclusive_reversibility_check_still_writes(self) -> None:
         with patch.object(markup_writes, "_rejected_text", return_value=None):

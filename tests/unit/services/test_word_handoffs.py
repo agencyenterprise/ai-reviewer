@@ -86,7 +86,9 @@ class TestWhoOwnsAHandoff:
     """The condition every lookup and update is scoped by."""
 
     def sql(self, account: Account) -> str:
-        return str(handoffs._owned_by(account).compile(compile_kwargs={"literal_binds": True}))
+        return str(
+            handoffs._owned_by(account).compile(compile_kwargs={"literal_binds": True})
+        )
 
     def test_the_object_id_must_match(self) -> None:
         assert "requested_by_oid = 'oid-ana'" in self.sql(Account(oid="oid-ana"))
@@ -112,7 +114,10 @@ class TestRecognisingTheDocument:
     def test_a_sharing_link_identifies_nothing(self) -> None:
         """Its path is an opaque share id, not the document's, and must not match."""
 
-        assert handoffs.keys_for_url("https://contoso.sharepoint.com/:w:/s/Policy/EWabc") == set()
+        assert (
+            handoffs.keys_for_url("https://contoso.sharepoint.com/:w:/s/Policy/EWabc")
+            == set()
+        )
 
     def test_the_stored_keys_meet_every_form_word_reports(self) -> None:
         keys = set(handoffs.document_keys(ITEM, LIBRARY))
@@ -152,7 +157,9 @@ class TestStoring:
         session = session_returning()
         with patch.object(handoffs, "get_async_db_session", return_value=session):
             await handoffs.create(
-                requester=Requester(oid="oid-ana", tid="tid-contoso", upn="ana@contoso.com"),
+                requester=Requester(
+                    oid="oid-ana", tid="tid-contoso", upn="ana@contoso.com"
+                ),
                 document_name="Draft v3.docx",
                 document_url=ITEM["webUrl"],
                 keys=["guid:x"],
@@ -182,8 +189,13 @@ class TestListing:
             found = await handoffs.pending_for(ANA)
 
         assert found == [row]
-        (sql,) = statements(session)
-        assert "requested_by_oid" in sql and "requested_by_tid" in sql and "status" in sql
+        sweep, sql = statements(session)
+        # Expired handoffs are deleted first, and skipped even if the sweep misses one.
+        assert sweep.startswith("delete") and "created_at" in sweep
+        assert (
+            "requested_by_oid" in sql and "requested_by_tid" in sql and "status" in sql
+        )
+        assert "created_at >=" in sql
 
     def test_a_url_with_no_host_identifies_nothing(self) -> None:
         assert handoffs.keys_for_url("not a url") == set()
@@ -193,7 +205,11 @@ class TestFinishing:
     @pytest.mark.asyncio
     async def test_it_is_one_update_scoped_to_the_asker_and_still_pending(self) -> None:
         session = session_returning(
-            first=("Draft v3.docx", {"serviceUrl": "https://smba"}, ITEMS.model_dump(mode="json"))
+            first=(
+                "Draft v3.docx",
+                {"serviceUrl": "https://smba"},
+                ITEMS.model_dump(mode="json"),
+            )
         )
         outcome = HandoffOutcome(
             items=[ItemOutcome(kind="edit", quote="abc", applied=True)]
@@ -211,7 +227,10 @@ class TestFinishing:
     async def test_someone_elses_or_a_closed_handoff_is_none(self) -> None:
         session = session_returning(first=None)
         with patch.object(handoffs, "get_async_db_session", return_value=session):
-            assert await handoffs.finish(uuid.uuid4(), Account(oid="oid-eve"), "dismissed") is None
+            assert (
+                await handoffs.finish(uuid.uuid4(), Account(oid="oid-eve"), "dismissed")
+                is None
+            )
 
 
 class TestTheItems:
@@ -236,7 +255,9 @@ class TestTheReport:
                 ),
             ]
         )
-        text = handoffs.report(FinishedHandoff(document_name="Draft.docx", reference={}), outcome)
+        text = handoffs.report(
+            FinishedHandoff(document_name="Draft.docx", reference={}), outcome
+        )
 
         assert text.startswith("Applied to **Draft.docx** in Word: 1 of 2")
         assert "no longer in the document" in text
@@ -249,7 +270,10 @@ class TestBuildingTheOutcome:
     def test_quotes_and_reasons_come_from_the_server(self) -> None:
         outcome = handoffs.outcome_from(
             ITEMS,
-            [ItemResult(index=0, applied=True), ItemResult(index=1, applied=False, reason="ambiguous")],
+            [
+                ItemResult(index=0, applied=True),
+                ItemResult(index=1, applied=False, reason="ambiguous"),
+            ],
         )
 
         assert [(item.kind, item.quote, item.applied) for item in outcome.items] == [
@@ -269,7 +293,9 @@ class TestBuildingTheOutcome:
         [[ItemResult(index=2, applied=True)], [ItemResult(index=0, applied=True)] * 2],
         ids=["out of range", "repeated"],
     )
-    def test_results_for_other_items_are_refused(self, results: list[ItemResult]) -> None:
+    def test_results_for_other_items_are_refused(
+        self, results: list[ItemResult]
+    ) -> None:
         with pytest.raises(InvalidResults):
             handoffs.outcome_from(ITEMS, results)
 
@@ -287,45 +313,70 @@ class TestStarting:
 
     @pytest.mark.asyncio
     async def test_anything_else_is_not_claimed(self) -> None:
-        with patch.object(handoffs, "get_async_db_session", return_value=session_returning(first=None)):
+        with patch.object(
+            handoffs, "get_async_db_session", return_value=session_returning(first=None)
+        ):
             assert await handoffs.start(uuid.uuid4(), ANA) is False
 
 
 class TestReportingApplied:
     @pytest.mark.asyncio
     async def test_the_report_posted_is_built_from_the_stored_items(self) -> None:
-        reference = {"serviceUrl": "https://smba", "channelId": "msteams", "conversation": {"id": "19:x"}}
-        finished = FinishedHandoff(document_name="Draft.docx", reference=reference, items=ITEMS)
-        with patch.object(handoffs, "_open_items", AsyncMock(return_value=ITEMS)), patch.object(
-            handoffs, "finish", AsyncMock(return_value=finished)
-        ) as finish, patch.object(handoffs.bot, "post_later", AsyncMock()) as post:
+        reference = {
+            "serviceUrl": "https://smba",
+            "channelId": "msteams",
+            "conversation": {"id": "19:x"},
+        }
+        finished = FinishedHandoff(
+            document_name="Draft.docx", reference=reference, items=ITEMS
+        )
+        with (
+            patch.object(handoffs, "_open_items", AsyncMock(return_value=ITEMS)),
+            patch.object(
+                handoffs, "finish", AsyncMock(return_value=finished)
+            ) as finish,
+            patch.object(handoffs.bot, "post_later", AsyncMock()) as post,
+        ):
             reported = await handoffs.report_applied(
-                uuid.uuid4(), ANA, [ItemResult(index=0, applied=True), ItemResult(index=1, applied=False, reason="not_found")]
+                uuid.uuid4(),
+                ANA,
+                [
+                    ItemResult(index=0, applied=True),
+                    ItemResult(index=1, applied=False, reason="not_found"),
+                ],
             )
 
         assert reported is True
         assert finish.await_args is not None and post.await_args is not None
         stored = finish.await_args.args[3]
-        assert [item.quote for item in stored.items] == ["is the only option", "recieve"]
+        assert [item.quote for item in stored.items] == [
+            "is the only option",
+            "recieve",
+        ]
         text = post.await_args.args[1]
         assert "1 of 2" in text and handoffs.REASONS["not_found"] in text
 
     @pytest.mark.asyncio
     async def test_invalid_results_post_nothing(self) -> None:
-        with patch.object(handoffs, "_open_items", AsyncMock(return_value=ITEMS)), patch.object(
-            handoffs, "finish", AsyncMock()
-        ) as finish, patch.object(handoffs.bot, "post_later", AsyncMock()) as post:
+        with (
+            patch.object(handoffs, "_open_items", AsyncMock(return_value=ITEMS)),
+            patch.object(handoffs, "finish", AsyncMock()) as finish,
+            patch.object(handoffs.bot, "post_later", AsyncMock()) as post,
+        ):
             with pytest.raises(InvalidResults):
-                await handoffs.report_applied(uuid.uuid4(), ANA, [ItemResult(index=7, applied=True)])
+                await handoffs.report_applied(
+                    uuid.uuid4(), ANA, [ItemResult(index=7, applied=True)]
+                )
 
         finish.assert_not_awaited()
         post.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_not_theirs_or_closed_posts_nothing(self) -> None:
-        with patch.object(handoffs, "_open_items", AsyncMock(return_value=None)), patch.object(
-            handoffs.bot, "post_later", AsyncMock()
-        ) as post:
+        with (
+            patch.object(handoffs, "_open_items", AsyncMock(return_value=None)),
+            patch.object(handoffs.bot, "post_later", AsyncMock()) as post,
+        ):
             assert await handoffs.report_applied(uuid.uuid4(), ANA, []) is False
 
         post.assert_not_awaited()

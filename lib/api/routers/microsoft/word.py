@@ -14,6 +14,7 @@ Every route here is called by the add-in, signed in as a Microsoft account (see
 ``lib/api/addin_auth.py``), not with an ordinary Draft Detective session.
 """
 
+import asyncio
 import logging
 from typing import Optional
 from uuid import UUID
@@ -60,7 +61,9 @@ def _too_large(markup: str) -> None:
 
 
 class AnnotateRequest(BaseModel):
-    ooxml: str = Field(description=f"Flat OPC markup for the range the comment belongs on: {SCOPE}")
+    ooxml: str = Field(
+        description=f"Flat OPC markup for the range the comment belongs on: {SCOPE}"
+    )
     quote: Optional[str] = Field(
         default=None,
         description=(
@@ -79,7 +82,10 @@ async def annotate(
     """Write one Draft Detective comment into this paragraph's markup."""
 
     _too_large(request.ooxml)
-    placed = markup_writes.add_comment(request.ooxml, request.comment, request.quote)
+    # Package and XML work: kept off the event loop.
+    placed = await asyncio.to_thread(
+        markup_writes.add_comment, request.ooxml, request.comment, request.quote
+    )
     if not placed.anchored:
         logger.info("no comment anchored for account %s: %s", caller.oid, placed.detail)
     return placed
@@ -103,9 +109,14 @@ async def apply_suggestions(
     """Write Draft Detective's proposed changes into this paragraph as tracked changes."""
 
     _too_large(request.ooxml)
-    written = markup_writes.apply_edits(request.ooxml, request.edits)
+    written = await asyncio.to_thread(
+        markup_writes.apply_edits, request.ooxml, request.edits
+    )
     logger.info(
-        "applied %s of %s change(s) for account %s", written.applied, len(request.edits), caller.oid
+        "applied %s of %s change(s) for account %s",
+        written.applied,
+        len(request.edits),
+        caller.oid,
     )
     return written
 
@@ -137,7 +148,9 @@ async def list_pending(
 ) -> PendingHandoffs:
     """The signed-in account's open handoffs, split by whether they are for this document."""
 
-    here, elsewhere = handoffs.split_by_document(await handoffs.pending_for(_account(caller)), url)
+    here, elsewhere = handoffs.split_by_document(
+        await handoffs.pending_for(_account(caller)), url
+    )
     return PendingHandoffs(here=here, elsewhere=elsewhere)
 
 
@@ -161,7 +174,9 @@ async def report_applied(
     """Close a handoff the add-in has written, and say how it went in Teams."""
 
     try:
-        reported = await handoffs.report_applied(handoff_id, _account(caller), report.results)
+        reported = await handoffs.report_applied(
+            handoff_id, _account(caller), report.results
+        )
     except InvalidResults as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     if not reported:

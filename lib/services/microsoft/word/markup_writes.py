@@ -95,7 +95,10 @@ def add_comment(ooxml: str, comment: str, quote: Optional[str]) -> CommentPlacem
         )
 
     return CommentPlacement(
-        anchored=True, ooxml=outgoing, comment_id=str(comment_id), detail="Comment anchored"
+        anchored=True,
+        ooxml=outgoing,
+        comment_id=str(comment_id),
+        detail="Comment anchored",
     )
 
 
@@ -148,7 +151,16 @@ def apply_edits(ooxml: str, edits: list[EditToApply]) -> EditsWritten:
         logger.error("could not apply changes: %s", error)
         return EditsWritten(
             applied=0,
-            edits=_withheld(outcomes, "the paragraph could not be written"),
+            # Failing before any edit was tried still owes one outcome per edit.
+            edits=_withheld(outcomes, "the paragraph could not be written")
+            or [
+                AppliedEdit(
+                    applied=False,
+                    quote=edit.quote,
+                    detail="the paragraph could not be read",
+                )
+                for edit in edits
+            ],
             detail="The changes could not be written into this markup",
         )
 
@@ -161,7 +173,9 @@ def apply_edits(ooxml: str, edits: list[EditToApply]) -> EditsWritten:
         )
         return EditsWritten(
             applied=0,
-            edits=_withheld(outcomes, "withheld: rejecting it would not restore the original text"),
+            edits=_withheld(
+                outcomes, "withheld: rejecting it would not restore the original text"
+            ),
             detail="The change would have altered text it should not have",
             warnings=["rejecting the changes would not restore the original"],
         )
@@ -184,9 +198,13 @@ def _withheld(outcomes: list[AppliedEdit], reason: str) -> list[AppliedEdit]:
     """
 
     return [
-        outcome.model_copy(update={"applied": False, "detail": reason, "revision_ids": []})
-        if outcome.applied
-        else outcome
+        (
+            outcome.model_copy(
+                update={"applied": False, "detail": reason, "revision_ids": []}
+            )
+            if outcome.applied
+            else outcome
+        )
         for outcome in outcomes
     ]
 

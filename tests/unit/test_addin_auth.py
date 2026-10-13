@@ -100,7 +100,13 @@ class TestOfficeSingleSignOn:
             {"exp": datetime.now(timezone.utc) - timedelta(minutes=5)},
             {"oid": None},
         ],
-        ids=["another app", "issuer not its tenant", "no add-in scope", "expired", "no object id"],
+        ids=[
+            "another app",
+            "issuer not its tenant",
+            "no add-in scope",
+            "expired",
+            "no object id",
+        ],
     )
     async def test_anything_else_is_nobody(self, overrides: dict[str, Any]) -> None:
         claims = {key: value for key, value in overrides.items() if value is not None}
@@ -127,7 +133,11 @@ class TestOfficeSingleSignOn:
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "unset",
-        ["AUTH_MICROSOFT_ENTRA_ID_ID", "AUTH_MICROSOFT_ENTRA_ID_SECRET", "AUTH_MICROSOFT_ENTRA_ID_ISSUER"],
+        [
+            "AUTH_MICROSOFT_ENTRA_ID_ID",
+            "AUTH_MICROSOFT_ENTRA_ID_SECRET",
+            "AUTH_MICROSOFT_ENTRA_ID_ISSUER",
+        ],
     )
     async def test_without_microsoft_sign_in_configured_none_is_accepted(
         self, unset: str, monkeypatch: pytest.MonkeyPatch, entra: Any
@@ -167,6 +177,23 @@ class TestTheSignInAppsTenant:
 
         assert await addin_auth.identify(self.other_tenant_token()) is not None
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "issuer",
+        [
+            "https://login.microsoftonline.com/contoso/v2.0",
+            "https://login.microsoftonline.com/51fd520c-7591/v2.0",
+            "https://sts.windows.net/51fd520c-7591-436c-b066-c9bac44ea8e0/",
+        ],
+    )
+    async def test_an_issuer_it_cannot_read_lets_nobody_in(
+        self, monkeypatch: pytest.MonkeyPatch, issuer: str
+    ) -> None:
+        # A mistyped tenant must not fall back to accepting every tenant.
+        monkeypatch.setattr(addin_auth.config, "AUTH_MICROSOFT_ENTRA_ID_ISSUER", issuer)
+
+        assert await addin_auth.identify(self.other_tenant_token()) is None
+
 
 class TestTheDialogFallback:
     @pytest.mark.asyncio
@@ -178,10 +205,15 @@ class TestTheDialogFallback:
 
     @pytest.mark.asyncio
     async def test_a_google_sign_in_is_nobody_even_with_the_same_email(self) -> None:
-        assert await addin_auth.identify(session_token(provider="google", oid=None)) is None
+        assert (
+            await addin_auth.identify(session_token(provider="google", oid=None))
+            is None
+        )
 
     @pytest.mark.asyncio
-    async def test_a_session_from_before_the_object_id_was_carried_is_nobody(self) -> None:
+    async def test_a_session_from_before_the_object_id_was_carried_is_nobody(
+        self,
+    ) -> None:
         assert await addin_auth.identify(session_token(oid=None)) is None
 
     @pytest.mark.asyncio
@@ -198,7 +230,9 @@ class TestTheDialogFallback:
 class TestTheDependency:
     @pytest.mark.asyncio
     async def test_nobody_is_a_401(self) -> None:
-        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="not a token")
+        credentials = HTTPAuthorizationCredentials(
+            scheme="Bearer", credentials="not a token"
+        )
 
         with pytest.raises(HTTPException) as raised:
             await addin_auth.get_addin_identity(credentials)
@@ -207,7 +241,9 @@ class TestTheDependency:
 
     @pytest.mark.asyncio
     async def test_somebody_is_returned(self) -> None:
-        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=entra_token())
+        credentials = HTTPAuthorizationCredentials(
+            scheme="Bearer", credentials=entra_token()
+        )
 
         identity = await addin_auth.get_addin_identity(credentials)
 

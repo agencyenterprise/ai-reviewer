@@ -16,7 +16,7 @@ vi.mock('./word-writes', () => word);
 vi.mock('@/lib/generated-api', () => api);
 
 import { applyHandoff } from './apply-handoff';
-import { AMBIGUOUS, NOT_FOUND, resultsOf } from './handoff-plan';
+import { AMBIGUOUS, CHANGED, NOT_FOUND, resultsOf } from './handoff-plan';
 
 const PARAGRAPHS = ['Introduction', 'We recieve funding and this is the only option.', 'Funding is discussed below.'];
 const authorize = vi.fn();
@@ -151,6 +151,19 @@ describe('applyHandoff', () => {
       applyHandoff(handoff({ edits: [{ quote: 'recieve', replacement: 'receive' }] }), authorize),
     ).rejects.toMatchObject({ status: 401 });
     expect(word.writeParagraphMarkup).not.toHaveBeenCalled();
+  });
+
+  it('writes nothing over a paragraph someone edited while the service worked', async () => {
+    const edited = ['Introduction', 'We recieve funding and this is the only option, they said.', 'Funding.'];
+    word.paragraphTexts
+      .mockResolvedValueOnce(PARAGRAPHS)
+      .mockResolvedValueOnce(PARAGRAPHS)
+      .mockResolvedValueOnce(edited);
+
+    const items = await applyHandoff(handoff({ edits: [{ quote: 'recieve', replacement: 'receive' }] }), authorize);
+
+    expect(word.writeParagraphMarkup).not.toHaveBeenCalled();
+    expect(items[0]).toMatchObject({ applied: false, detail: CHANGED, reason: 'changed' });
   });
 
   it('reports a paragraph that moved away before it could be written', async () => {

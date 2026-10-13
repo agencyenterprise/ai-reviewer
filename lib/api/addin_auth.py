@@ -58,6 +58,10 @@ class AddinIdentity(BaseModel):
 _TENANT_ISSUER = re.compile(
     r"^https://login\.microsoftonline\.com/[0-9a-f-]{36}/v2\.0/?$", re.IGNORECASE
 )
+_ANY_TENANT_ISSUER = re.compile(
+    r"^https://login\.microsoftonline\.com/(common|organizations)/v2\.0/?$",
+    re.IGNORECASE,
+)
 
 
 def addin_app() -> tuple[Optional[str], Optional[str]]:
@@ -66,15 +70,22 @@ def addin_app() -> tuple[Optional[str], Optional[str]]:
     The app Draft Detective signs users in with, and nothing unless all three of its
     settings are present. A tenant-specific ``AUTH_MICROSOFT_ENTRA_ID_ISSUER`` means only
     that tenant's tokens are accepted; a ``common`` or ``organizations`` one leaves each
-    token to be checked against the tenant it names.
+    token to be checked against the tenant it names. Any other issuer accepts nothing,
+    so a mistyped tenant cannot open the add-in to every tenant.
     """
 
     client_id = config.AUTH_MICROSOFT_ENTRA_ID_ID
     issuer = (config.AUTH_MICROSOFT_ENTRA_ID_ISSUER or "").strip()
     if not (client_id and config.AUTH_MICROSOFT_ENTRA_ID_SECRET and issuer):
         return None, None
-    required = issuer.rstrip("/") if _TENANT_ISSUER.match(issuer) else None
-    return client_id, required
+    if _TENANT_ISSUER.match(issuer):
+        return client_id, issuer.rstrip("/")
+    if _ANY_TENANT_ISSUER.match(issuer):
+        return client_id, None
+    logger.warning(
+        "AUTH_MICROSOFT_ENTRA_ID_ISSUER is not an Entra v2.0 issuer: add-in sign-in is off"
+    )
+    return None, None
 
 
 def from_entra_token(token: str) -> Optional[AddinIdentity]:
@@ -103,7 +114,9 @@ def from_entra_token(token: str) -> Optional[AddinIdentity]:
         logger.info("rejected an add-in Entra token from issuer %s", claims["iss"])
         return None
     if required_issuer and claims["iss"].lower() != required_issuer.lower():
-        logger.info("rejected an add-in Entra token from another tenant: %s", claims["iss"])
+        logger.info(
+            "rejected an add-in Entra token from another tenant: %s", claims["iss"]
+        )
         return None
     if ADDIN_SCOPE not in str(claims.get("scp", "")).split():
         logger.info("rejected an add-in Entra token without the %s scope", ADDIN_SCOPE)
@@ -170,7 +183,9 @@ async def get_addin_identity(
 
     identity = await identify(credentials.credentials)
     if identity is not None:
-        logger.info("add-in call as %s (%s)", identity.oid, _kind(credentials.credentials))
+        logger.info(
+            "add-in call as %s (%s)", identity.oid, _kind(credentials.credentials)
+        )
     if identity is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

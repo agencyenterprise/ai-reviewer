@@ -17,6 +17,7 @@ from microsoft_agents.activity import (
     ChannelId,
 )
 
+from lib.config.env import config
 from lib.services.microsoft.teams import sign_in
 
 
@@ -93,8 +94,6 @@ class TestTheCard:
 class TestLookingUpTheToken:
     @pytest.mark.asyncio
     async def test_a_token_is_returned(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        from lib.config.env import config
-
         monkeypatch.setattr(config, "TEAMS_USER_AUTH_CONNECTION", "graph-user")
         client = MagicMock()
         client.get_user_token = AsyncMock(return_value=MagicMock(token="tok"))
@@ -157,8 +156,6 @@ class TestSigningOut:
     async def test_the_token_service_forgets_the_sender(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from lib.config.env import config
-
         monkeypatch.setattr(config, "TEAMS_USER_AUTH_CONNECTION", "graph-user")
         client = MagicMock()
         client.sign_out_user = AsyncMock()
@@ -214,8 +211,6 @@ class TestReplyingToTheAction:
     async def test_a_login_request_is_what_teams_reads_as_sign_in(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from lib.config.env import config
-
         monkeypatch.setattr(config, "TEAMS_USER_AUTH_CONNECTION", "graph-user")
         client = MagicMock()
         client.get_sign_in_resource = AsyncMock(

@@ -40,6 +40,7 @@ export type HandoffPlan = {
 
 export const NOT_FOUND = 'the words are no longer in the document';
 export const AMBIGUOUS = 'the words appear in more than one paragraph';
+export const CHANGED = 'the paragraph was edited while the change was being written';
 
 export function normalize(text: string): string {
   return text.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, ' ').trim();
