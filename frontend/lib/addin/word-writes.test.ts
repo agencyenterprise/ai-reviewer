@@ -1,0 +1,90 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { writeParagraphMarkup } from './word-writes';
+
+/**
+ * A stand-in for Word's object model, enough for one write: a document with a
+ * change-tracking mode and one paragraph outside any table.
+ */
+function fakeWord(mode: string, wordApi14 = true) {
+  const modes: string[] = [];
+  const range = { insertOoxml: vi.fn(), load: vi.fn(), text: 'The paragraph.' };
+  const paragraph = {
+    parentTableOrNullObject: { isNullObject: true, load: vi.fn() },
+    getRange: () => range,
+  };
+  const document = {
+    load: vi.fn(),
+    body: { paragraphs: { items: [paragraph], load: vi.fn() } },
+    get changeTrackingMode() {
+      return modes.at(-1) ?? mode;
+    },
+    set changeTrackingMode(value: string) {
+      modes.push(value);
+    },
+  };
+  const context = { document, sync: vi.fn().mockResolvedValue(undefined) };
+  vi.stubGlobal('Word', {
+    run: (callback: (ctx: typeof context) => Promise<unknown>) => callback(context),
+    ChangeTrackingMode: { off: 'Off', trackAll: 'TrackAll' },
+    InsertLocation: { replace: 'Replace' },
+  });
+  vi.stubGlobal('Office', { context: { requirements: { isSetSupported: () => wordApi14 } } });
+  return { modes, document, range };
+}
+
+afterEach(() => vi.unstubAllGlobals());
+
+describe('writeParagraphMarkup', () => {
+  it("turns tracking off for our write and restores the author's setting", async () => {
+    const { modes, range } = fakeWord('TrackAll');
+
+    await writeParagraphMarkup(0, '<markup/>', 'The paragraph.');
+
+    expect(range.insertOoxml).toHaveBeenCalledWith('<markup/>', 'Replace');
+    expect(modes).toEqual(['Off', 'TrackAll']);
+  });
+
+  it('restores the setting even when Word refuses the markup', async () => {
+    const { modes, range } = fakeWord('TrackAll');
+    range.insertOoxml.mockImplementation(() => {
+      throw new Error('GeneralException');
+    });
+
+    await expect(writeParagraphMarkup(0, '<markup/>', 'The paragraph.')).rejects.toThrow('GeneralException');
+    expect(modes).toEqual(['Off', 'TrackAll']);
+  });
+
+  it('leaves tracking alone when it was already off', async () => {
+    const { modes } = fakeWord('Off');
+
+    await writeParagraphMarkup(0, '<markup/>', 'The paragraph.');
+
+    expect(modes).toEqual([]);
+  });
+
+  it('writes without touching tracking on a Word too old to set it', async () => {
+    const { modes, document, range } = fakeWord('TrackAll', false);
+
+    await writeParagraphMarkup(0, '<markup/>', 'The paragraph.');
+
+    expect(document.load).not.toHaveBeenCalledWith('changeTrackingMode');
+    expect(range.insertOoxml).toHaveBeenCalledWith('<markup/>', 'Replace');
+    expect(modes).toEqual([]);
+  });
+
+  it('writes nothing over a paragraph whose text changed since it was read', async () => {
+    const { modes, range } = fakeWord('TrackAll');
+
+    const written = await writeParagraphMarkup(0, '<markup/>', 'What it said before.');
+
+    expect(written).toBe(false);
+    expect(range.insertOoxml).not.toHaveBeenCalled();
+    expect(modes).toEqual([]);
+  });
+
+  it('refuses a paragraph that is no longer there', async () => {
+    fakeWord('Off');
+
+    await expect(writeParagraphMarkup(5, '<markup/>', 'The paragraph.')).rejects.toThrow('no longer there');
+  });
+});

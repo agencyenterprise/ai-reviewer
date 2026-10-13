@@ -60,8 +60,10 @@ in Microsoft Entra ID.
 1. Select **New registration** and give it a name.
 2. Add the **Web** redirect URI `https://token.botframework.com/.auth/web/redirect`.
 3. Under **API permissions**, add the Microsoft Graph **delegated** permission
-   **`Files.Read.All`**, then **grant admin consent**. Without consent each person also
-   sees Entra's consent screen the first time they sign in.
+   **`Files.Read.All`** and **`User.Read`** (new registrations have it already), then
+   **grant admin consent**. Without consent each person also sees Entra's consent screen
+   the first time they sign in. `User.Read` is how the bot learns who asked for changes
+   to a document, so the Word add-in can show them to that person.
 4. Create a client secret.
 
 ### The OAuth connection
@@ -72,7 +74,7 @@ in Microsoft Entra ID.
 2. Name it (for example `graph-user`) and choose the **Azure Active Directory v2**
    service provider.
 3. Give it the client id, secret and tenant id of the Graph registration above, and put
-   `Files.Read.All` in **Scopes**. **Leave Token Exchange URL blank** — it is only for
+   `Files.Read.All User.Read` in **Scopes**. **Leave Token Exchange URL blank** — it is only for
    silent SSO, which this setup does not use. The registration's secret lives here, in
    Azure, not in this service's environment.
 4. Select **Test Connection**. It signs you in with the connection on its own, before
