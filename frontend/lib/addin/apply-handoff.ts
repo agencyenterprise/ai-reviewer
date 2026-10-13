@@ -7,6 +7,8 @@ import {
 import { AppliedItem, CHANGED, FailureReason, NOT_FOUND, ParagraphWork, planHandoff, relocate } from './handoff-plan';
 import { paragraphTexts, readParagraphMarkup, scopeText, writeParagraphMarkup } from './word-writes';
 
+const SIGN_IN_EXPIRED = 'the sign-in expired before this was written';
+
 /**
  * Write a handoff from Teams into the open document, and say what landed.
  *
@@ -17,14 +19,26 @@ import { paragraphTexts, readParagraphMarkup, scopeText, writeParagraphMarkup } 
  *
  * `authorize` is asked before every call, so a long run renews its token as it goes.
  * A 401 stops the run instead of being counted against one paragraph: every later call
- * would be refused too, and the caller has to sign in again.
+ * would be refused too, and the caller has to sign in again. If paragraphs were already
+ * written by then, the run returns what landed and the rest as not written, so the
+ * result can be reported after signing in again instead of the handoff being replayed.
  */
 export async function applyHandoff(handoff: HandoffView, authorize: () => Promise<string>): Promise<AppliedItem[]> {
   const plan = planHandoff(await paragraphTexts(), handoff.items.comments ?? [], handoff.items.edits ?? []);
   const outcomes: AppliedItem[] = [...plan.unplaced];
 
-  for (const work of plan.paragraphs.values()) {
-    outcomes.push(...(await applyToParagraph(work, authorize)));
+  const groups = [...plan.paragraphs.values()];
+  for (const [i, work] of groups.entries()) {
+    try {
+      outcomes.push(...(await applyToParagraph(work, authorize)));
+    } catch (error) {
+      // Nothing written yet: let the caller sign in again and apply from the start.
+      if (!outcomes.some((outcome) => outcome.applied)) throw error;
+      // Some of it is already in the document, so it must be reported, not replayed:
+      // what is left counts as not written, and the report asks for the new sign-in.
+      for (const rest of groups.slice(i)) outcomes.push(...failed(rest, SIGN_IN_EXPIRED, 'not_written'));
+      break;
+    }
   }
   return outcomes.sort((a, b) => a.index - b.index);
 }

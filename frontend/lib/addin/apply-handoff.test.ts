@@ -166,6 +166,25 @@ describe('applyHandoff', () => {
     expect(items[0]).toMatchObject({ applied: false, detail: CHANGED, reason: 'changed' });
   });
 
+  it('a token refused after a paragraph was written returns what landed instead of throwing it away', async () => {
+    // The comment's paragraph is written first; the edit's paragraph is refused.
+    api.applySuggestionsApiMicrosoftWordSuggestionsApplyPost.mockRejectedValue(new ApiError(401));
+
+    const items = await applyHandoff(
+      handoff({
+        comments: [{ quote: 'discussed below', comment: 'x' }],
+        edits: [{ quote: 'recieve', replacement: 'receive' }],
+      }),
+      authorize,
+    );
+
+    expect(word.writeParagraphMarkup).toHaveBeenCalledTimes(1);
+    expect(items.map((item) => [item.index, item.applied, item.reason])).toEqual([
+      [0, true, undefined],
+      [1, false, 'not_written'],
+    ]);
+  });
+
   it('reports a paragraph that moved away before it could be written', async () => {
     word.paragraphTexts.mockResolvedValueOnce(PARAGRAPHS).mockResolvedValueOnce(['Introduction', 'Rewritten.']);
 
