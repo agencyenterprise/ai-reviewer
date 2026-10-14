@@ -67,8 +67,8 @@ async def test_index_embeds_citation_shaped_text(embeddings):
 @pytest.mark.asyncio
 async def test_candidates_are_ranked_by_cosine_similarity(embeddings):
     matcher = await _indexed_matcher(embeddings)
-    # Closest to doc 1, then doc 2, then doc 0 by angle (not by raw dot product,
-    # which would put doc 0 first because of its magnitude).
+    # By angle the order is doc 1, doc 2, doc 0. Raw dot products (1.0, 0.9, 1.5)
+    # would give doc 2, doc 0, doc 1 instead, so this fails without normalization.
     embeddings.aembed_documents.return_value = [[0.1, 0.9, 0.5]]
 
     [candidates] = await matcher.find_candidates(["a reference"], top_k=3)
