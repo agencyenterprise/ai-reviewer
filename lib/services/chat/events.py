@@ -167,8 +167,9 @@ class GraphEventMapper:
                     self._announce(call_id, call["name"], call.get("args") or {})
                 )
         for block in content_blocks(message.content):
-            kind, call_id = block.get("type"), block.get("id") or block.get(
-                "tool_call_id"
+            kind, call_id = (
+                block.get("type"),
+                block.get("id") or block.get("tool_call_id"),
             )
             if not call_id:
                 continue

@@ -69,7 +69,7 @@ def _drawing_xml(graphic_data: str, with_extent: bool = True) -> str:
 
 def _paragraph_xml(*runs: str) -> str:
     body = "".join(f"<w:r>{run}</w:r>" for run in runs)
-    return f'<w:p {nsdecls("w", "wp", "a", "r", "c", "pic")}>{body}</w:p>'
+    return f"<w:p {nsdecls('w', 'wp', 'a', 'r', 'c', 'pic')}>{body}</w:p>"
 
 
 def _append_paragraph(document, *runs: str) -> None:
@@ -138,7 +138,7 @@ def test_two_drawings_in_one_paragraph_are_not_renderable():
 def test_chart_inside_a_table_is_not_renderable():
     document = Document()
     table_xml = (
-        f'<w:tbl {nsdecls("w")}><w:tr><w:tc>'
+        f"<w:tbl {nsdecls('w')}><w:tr><w:tc>"
         + _paragraph_xml(_drawing_xml(_chart_graphic_data()))
         + "</w:tc></w:tr></w:tbl>"
     )

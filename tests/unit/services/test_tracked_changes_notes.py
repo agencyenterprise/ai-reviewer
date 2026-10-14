@@ -158,7 +158,7 @@ class TestEditNotes:
         )
 
         assert note.endswith(
-            "Not applied as a tracked change: text not found in paragraph " "P3#aaaa."
+            "Not applied as a tracked change: text not found in paragraph P3#aaaa."
         )
 
     def test_a_failed_write_without_a_detail_still_reads_as_a_failure(self):

@@ -52,9 +52,9 @@ class TestWhoseIdentityReads:
         for function in (client.resolve, client.download):
             token = inspect.signature(function).parameters["token"]
             assert token.kind is inspect.Parameter.KEYWORD_ONLY, function.__name__
-            assert (
-                token.default is inspect.Parameter.empty
-            ), f"{function.__name__} must not default whose identity it reads with"
+            assert token.default is inspect.Parameter.empty, (
+                f"{function.__name__} must not default whose identity it reads with"
+            )
 
     @pytest.mark.asyncio
     async def test_the_given_token_is_what_graph_is_called_with(self) -> None:
@@ -404,9 +404,9 @@ class TestTheLibrary:
         with patch("httpx.AsyncClient", return_value=graph):
             assert await client.library_url("b!x/y", token="t") == url
 
-        assert graph.get.await_args.args[0].endswith(
-            "/drives/b%21x%2Fy"
-        ), "the drive id is encoded so it cannot address another path"
+        assert graph.get.await_args.args[0].endswith("/drives/b%21x%2Fy"), (
+            "the drive id is encoded so it cannot address another path"
+        )
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

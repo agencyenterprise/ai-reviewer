@@ -210,9 +210,9 @@ def test_a_wrapped_entry_and_a_split_url_stay_one_entry():
 def test_a_line_range_check_resolves_a_placeholder_from_outside_the_range():
     text = DocumentText(WORKS_CITED)
     resolved = "Thompson, R. & Davis, K. (2023). Large-Scale EHR Mining: Methods and Applications. JAMIA."
-    assert text.contains(
-        resolved, 5, 5
-    ), "the author on line 3 is outside the range but still resolves the placeholder"
+    assert text.contains(resolved, 5, 5), (
+        "the author on line 3 is outside the range but still resolves the placeholder"
+    )
     assert not text.contains(resolved, 7, 7)
     assert not text.contains(
         "Invented, X. (2023). Large-Scale EHR Mining: Methods and Applications. JAMIA.",

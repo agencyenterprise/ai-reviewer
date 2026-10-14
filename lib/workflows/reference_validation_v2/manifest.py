@@ -116,7 +116,7 @@ class ReferenceValidationV2Manifest(
 
             field_validations = "\n\n".join(
                 [
-                    f"- **{item.category.value.capitalize()}**: {item.problem_type.value.capitalize()}\n\n\t*Current*: {item.current_value or "-"}\n\n\t*Suggested*: {item.suggested_value}"
+                    f"- **{item.category.value.capitalize()}**: {item.problem_type.value.capitalize()}\n\n\t*Current*: {item.current_value or '-'}\n\n\t*Suggested*: {item.suggested_value}"
                     for item in result.bibliography_field_validations
                 ]
             )

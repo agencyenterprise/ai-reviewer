@@ -83,9 +83,9 @@ def test_dataset_is_well_formed():
     for r in records:
         ids = [p.id for p in r.weaknesses + r.strengths]
         assert len(ids) == len(set(ids)), "point ids are unique within a record"
-        assert all(
-            a in r.input for a in r.authors
-        ), "every named author is in the document"
+        assert all(a in r.input for a in r.authors), (
+            "every named author is in the document"
+        )
 
 
 def test_task_has_the_structure_and_judged_scorers():

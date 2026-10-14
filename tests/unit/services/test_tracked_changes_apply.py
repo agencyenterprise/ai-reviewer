@@ -148,8 +148,7 @@ class TestParagraphsThatCannotBeMatched:
         assert plan.planned == []
         assert _statuses(plan.outcomes) == {edit.id: "not_found"}
         assert [outcome.detail for outcome in plan.outcomes] == [
-            "the document's paragraphs could not be matched to the file being "
-            "exported"
+            "the document's paragraphs could not be matched to the file being exported"
         ]
 
 

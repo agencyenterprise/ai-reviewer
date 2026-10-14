@@ -101,9 +101,9 @@ def test_dataset_is_well_formed():
         for r in records
         for e in r.expected_issues
     )
-    assert all(
-        d.rationale for r in records for d in r.decoys
-    ), "a judged decoy carries the labeller's reason"
+    assert all(d.rationale for r in records for d in r.decoys), (
+        "a judged decoy carries the labeller's reason"
+    )
 
 
 def test_task_has_the_report_plant_and_judged_scorers():
@@ -173,9 +173,9 @@ async def test_the_best_issue_on_a_plants_line_names_it_and_its_action_is_graded
     ]
     grader = _Grader("Methodology: Proxy measure\n\n")
     values, note = await judge_methodology(cast(Model, grader), issues, INVENTORY)
-    assert (
-        values["gap_identified"] == 0.5
-    ), "self-selection named by the second issue; multiplicity has nothing on its line"
+    assert values["gap_identified"] == 0.5, (
+        "self-selection named by the second issue; multiplicity has nothing on its line"
+    )
     assert values["action_repairs"] == 1.0
     assert values["sound_choices_respected"] == 1.0
     assert "multiplicity gap_identified 0.0: nothing on its line" in note

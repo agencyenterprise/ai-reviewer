@@ -74,7 +74,7 @@ def test_reads_size_of_anchored_floating_image(tmp_path):
     doc = Document()
     embed_id, _ = doc.part.get_or_add_image(path)
     drawing = (
-        f'<w:p {nsdecls("w", "wp", "a", "r", "pic")}><w:r><w:drawing>'
+        f"<w:p {nsdecls('w', 'wp', 'a', 'r', 'pic')}><w:r><w:drawing>"
         "<wp:anchor>"
         '<wp:extent cx="580644" cy="580644"/>'
         '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
@@ -123,7 +123,7 @@ def test_malformed_drawings_are_skipped(tmp_path):
         "</a:graphicData></a:graphic></wp:inline></w:drawing>",
     ]
     for inner in paragraphs:
-        xml = f'<w:p {nsdecls("w", "wp", "a", "r", "pic")}><w:r>{inner}</w:r></w:p>'
+        xml = f"<w:p {nsdecls('w', 'wp', 'a', 'r', 'pic')}><w:r>{inner}</w:r></w:p>"
         doc.element.body.get_or_add_sectPr().addprevious(parse_xml(xml))
     path = str(tmp_path / "doc.docx")
     doc.save(path)
@@ -142,7 +142,7 @@ def _docx_with_src_rect(tmp_path, png: bytes, src_rect: str) -> str:
     doc = Document()
     embed_id, _ = doc.part.get_or_add_image(image_path)
     xml = (
-        f'<w:p {nsdecls("w", "wp", "a", "r", "pic")}><w:r><w:drawing><wp:inline>'
+        f"<w:p {nsdecls('w', 'wp', 'a', 'r', 'pic')}><w:r><w:drawing><wp:inline>"
         '<wp:extent cx="1905000" cy="952500"/>'
         '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
         '<pic:pic><pic:nvPicPr><pic:cNvPr id="0" name="fig"/><pic:cNvPicPr/></pic:nvPicPr>'

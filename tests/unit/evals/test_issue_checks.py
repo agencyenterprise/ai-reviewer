@@ -151,9 +151,9 @@ def test_quoted_verbatim_reads_across_lines_and_ellipses_but_not_paraphrase():
     )
     assert not quoted_verbatim("Data came from 3 sites", DOC)
     assert not quoted_verbatim(" … ", DOC), "a quote with no words quotes nothing"
-    assert not quoted_verbatim(
-        "We then coded the notes … Data were collected", DOC
-    ), "pieces must keep their order"
+    assert not quoted_verbatim("We then coded the notes … Data were collected", DOC), (
+        "pieces must keep their order"
+    )
 
 
 # --- detection ------------------------------------------------------------------
@@ -254,9 +254,9 @@ def test_decoy_hits_by_reason_over_the_dataset_wide_reason_list():
     assert set(values) == {f"no_fp_{r}" for r in REASONS}
     assert values["no_fp_stative"] == 0.0
     assert values["no_fp_active"] == 1.0
-    assert math.isnan(
-        values["no_fp_generic"]
-    ), "a reason absent from this sample is unscored, not passed"
+    assert math.isnan(values["no_fp_generic"]), (
+        "a reason absent from this sample is unscored, not passed"
+    )
     assert "false positive (stative)" in note
 
 
@@ -296,9 +296,9 @@ def test_titled_decoy_is_flagged_only_under_its_title():
         [support, bracketing],
         _inventory(decoys=[decoy]).with_policy(decoy_reasons=["lead_in"]),
     )
-    assert (
-        values["no_fp_lead_in"] == 0.0
-    ), "decoy_scores passes the document lines, so bracketing counts"
+    assert values["no_fp_lead_in"] == 0.0, (
+        "decoy_scores passes the document lines, so bracketing counts"
+    )
 
 
 def test_untitled_expected_prefers_a_free_form_report_over_a_named_kind():
@@ -447,9 +447,9 @@ def test_title_matches_as_whole_words_anywhere_in_the_reported_title():
         [_issue(title="Unsupported recommendation: x", description=quoted)],
         _inventory([supported]),
     )
-    assert (
-        values["title_correct"] == 0.0
-    ), "a whole-word match: 'supported' is not inside 'unsupported'"
+    assert values["title_correct"] == 0.0, (
+        "a whole-word match: 'supported' is not inside 'unsupported'"
+    )
     values, _ = issue_detection_scores(
         [_issue(title="Recommendation partially supported: x", description=quoted)],
         _inventory([supported]),
@@ -481,9 +481,9 @@ def test_one_to_one_matching_counts_a_merged_occurrence_as_missing():
     )
 
     values, _ = issue_detection_scores([merged], _inventory([first, second]))
-    assert (
-        values["recall"] == 1.0
-    ), "by default one paragraph-level issue may cover several expected issues"
+    assert values["recall"] == 1.0, (
+        "by default one paragraph-level issue may cover several expected issues"
+    )
 
     values, note = issue_detection_scores(
         [merged], _inventory([first, second]).with_policy(pairing="one_to_one")
@@ -622,9 +622,9 @@ def test_one_to_one_matching_gives_a_shared_report_to_the_required_expectation(
         [shared], _inventory(expected).with_policy(pairing="one_to_one")
     )
 
-    assert (
-        values["recall"] == 1.0
-    ), "the optional expectation must not consume the report the required one needs"
+    assert values["recall"] == 1.0, (
+        "the optional expectation must not consume the report the required one needs"
+    )
     assert "missing" not in note
 
 
@@ -667,9 +667,9 @@ def test_evidence_tied_reports_are_matched_the_same_way_in_either_order(one_to_o
     assert forward == backward
     assert forward["recall"] == 1.0
     if one_to_one:
-        assert (
-            forward["precision"] == 0.5
-        ), "the split itself is charged to precision, whichever half is paired"
+        assert forward["precision"] == 0.5, (
+            "the split itself is charged to precision, whichever half is paired"
+        )
 
 
 def test_canonical_order_is_total_over_report_content():
@@ -837,8 +837,9 @@ def test_an_expected_issue_without_an_anchor_is_hit_by_its_title_wherever_the_is
 
 
 def test_anchorless_expected_issues_are_matched_one_to_one_by_title():
-    results, references = _absent(), _absent(
-        id="no_refs", title="Missing Section: References"
+    results, references = (
+        _absent(),
+        _absent(id="no_refs", title="Missing Section: References"),
     )
     issues = [
         _issue(title="Missing Section: References", start=1, end=1),
@@ -880,9 +881,9 @@ def test_title_and_line_are_not_scored_for_an_expected_issue_without_an_anchor()
     values, note = issue_detection_scores(
         issues, _inventory([_absent(), anchored]).with_policy(edits=False)
     )
-    assert (
-        values["title_correct"] == 1.0 and values["anchor_in_range"] == 0.0
-    ), "only the anchored issue is scored"
+    assert values["title_correct"] == 1.0 and values["anchor_in_range"] == 0.0, (
+        "only the anchored issue is scored"
+    )
     assert "anchored: lines 1-1 do not bracket line 5" in note
 
 
@@ -1207,9 +1208,9 @@ def test_a_deletion_contributes_no_neighbouring_sentence_to_the_scope():
     out = edit_checks(
         f, _issue(start=9, end=9, edits=[_edit(" Two is y.", "", line=9)]), lines
     )
-    assert (
-        out["edit_expected_phrases"][0] == 0.0
-    ), "a deletion carries no required phrase; its neighbour supplies none"
+    assert out["edit_expected_phrases"][0] == 0.0, (
+        "a deletion carries no required phrase; its neighbour supplies none"
+    )
 
 
 def test_edits_on_other_lines_are_checked_against_their_own_line():
@@ -1233,12 +1234,12 @@ def test_edits_on_other_lines_are_checked_against_their_own_line():
         _edit("respondents", "participants", line=5),
     ]
     out = edit_checks(f, _issue(start=3, end=5, edits=edits), lines)
-    assert (
-        out["edit_quote_on_line"][0] == 1.0
-    ), "the second edit is quoted from line 5, not line 3"
-    assert (
-        out["edit_expected_phrases"][0] == 1.0
-    ), "each edit's sentence is judged on its own line"
+    assert out["edit_quote_on_line"][0] == 1.0, (
+        "the second edit is quoted from line 5, not line 3"
+    )
+    assert out["edit_expected_phrases"][0] == 1.0, (
+        "each edit's sentence is judged on its own line"
+    )
 
 
 def test_quotes_with_no_break_spaces_still_locate_their_sentence():

@@ -51,9 +51,7 @@ async def _summarize_document(
                 "Reusing cached summary for file %s (identical content summarized before)",
                 document.file_id,
             )
-        except (
-            Exception
-        ) as e:  # noqa: BLE001 — stale/incompatible cache shape: recompute
+        except Exception as e:  # noqa: BLE001 — stale/incompatible cache shape: recompute
             logger.warning(
                 "Cached summary for %s unusable (%s); recomputing", document.file_id, e
             )

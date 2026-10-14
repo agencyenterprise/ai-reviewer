@@ -113,7 +113,6 @@ async def run_workflow_with_mocks(
             new=AsyncMock(return_value=set()),
         ),
     ):
-
         await start_multiple_workflow_runs(
             workflow_types=[test_context["workflow_type"]],
             request=request,

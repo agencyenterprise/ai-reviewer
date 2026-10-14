@@ -85,12 +85,12 @@ def test_dataset_is_well_formed():
         "three_or_fewer",
         "unquantified_action",
     )
-    assert (
-        expects_edits(records) is False
-    ), "nothing in the inventory mentions edits, so the edit checks are off"
-    assert (
-        expects_titles(records) is True
-    ), "the new kinds name their titles, so title_correct is scored"
+    assert expects_edits(records) is False, (
+        "nothing in the inventory mentions edits, so the edit checks are off"
+    )
+    assert expects_titles(records) is True, (
+        "the new kinds name their titles, so title_correct is scored"
+    )
 
 
 def test_task_composes_the_inventory_scorers_the_image_check_and_the_judge():
@@ -115,8 +115,8 @@ def test_task_composes_the_inventory_scorers_the_image_check_and_the_judge():
         and "score__tool_called__tool_called" in columns
     )
     assert "score__judged_criteria__audience_asked" in columns
-    assert not any(
-        "edit_" in c for c in columns
-    ), "a workflow with no edits has no edit columns"
+    assert not any("edit_" in c for c in columns), (
+        "a workflow with no edits has no edit columns"
+    )
     assert "score__issue_checks__title_correct" in columns
     assert "title_correct" in t.metadata["metrics"]["issue_checks"]

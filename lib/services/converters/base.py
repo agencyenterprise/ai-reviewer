@@ -7,7 +7,6 @@ logger = logging.getLogger(__name__)
 
 
 class FileConverterProtocol(Protocol):
-
     async def convert_to_markdown(self, file_path: str) -> str: ...
 
 

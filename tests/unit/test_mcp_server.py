@@ -36,9 +36,9 @@ _mcp_auth_mod.create_mcp_auth = _orig_create_mcp_auth
 def _text_of(result: CallToolResult) -> str:
     """Return the text payload of a tool-call result, asserting it is TextContent."""
     first = result.content[0]
-    assert isinstance(
-        first, TextContent
-    ), f"expected TextContent, got {type(first).__name__}"
+    assert isinstance(first, TextContent), (
+        f"expected TextContent, got {type(first).__name__}"
+    )
     return first.text
 
 
@@ -254,9 +254,9 @@ async def test_list_workflow_types_entries_have_valid_types(authed_mcp_client: C
 
     valid_types = {t.value for t in WorkflowRunType}
     for workflow in data["workflow_types"]:
-        assert (
-            workflow["type"] in valid_types
-        ), f"Unknown workflow type: {workflow['type']}"
+        assert workflow["type"] in valid_types, (
+            f"Unknown workflow type: {workflow['type']}"
+        )
 
 
 @pytest.mark.asyncio
@@ -271,6 +271,6 @@ async def test_list_workflow_types_category_workflows_are_valid_types(
     valid_types = {t.value for t in WorkflowRunType}
     for category in data["categories"]:
         for wf_type in category["workflows"]:
-            assert (
-                wf_type in valid_types
-            ), f"Unknown workflow type '{wf_type}' in category '{category['slug']}'"
+            assert wf_type in valid_types, (
+                f"Unknown workflow type '{wf_type}' in category '{category['slug']}'"
+            )

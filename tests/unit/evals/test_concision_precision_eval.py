@@ -98,9 +98,9 @@ def test_no_added_passive_lets_tightening_through_but_not_a_new_passive():
         )
         is True
     ), "no more passives than before"
-    assert (
-        no_added_passive(_edit("This is a complex issue.", "")) is None
-    ), "a deletion has nothing to assess"
+    assert no_added_passive(_edit("This is a complex issue.", "")) is None, (
+        "a deletion has nothing to assess"
+    )
 
 
 def test_task_composes_the_inventory_scorers_and_its_own_checks():

@@ -255,9 +255,9 @@ def test_persisted_issues_keep_only_this_runs_issues_in_the_checked_shape():
         "Ambiguous abbreviation",
         "No Abbreviations section found",
     ]
-    assert (
-        issues[1]["start_line"] == 0 and issues[1]["end_line"] == 0
-    ), "a missing line reads as 0"
+    assert issues[1]["start_line"] == 0 and issues[1]["end_line"] == 0, (
+        "a missing line reads as 0"
+    )
     assert "issue_hash" not in issues[0] and "workflow_run_id" not in issues[0]
     parsed = AgentCheckResult.model_validate({"issues": issues})
     assert parsed.issues[0].severity == "medium" and parsed.issues[0].start_line == 4

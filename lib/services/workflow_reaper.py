@@ -126,7 +126,8 @@ async def _find_stuck_runs(
     pending_cutoff = now - timedelta(seconds=pending_grace_seconds)
     async with get_async_db_session() as session:
         stmt = (
-            select(WorkflowRun).where(
+            select(WorkflowRun)
+            .where(
                 or_(
                     and_(
                         col(WorkflowRun.status) == WorkflowRunStatus.RUNNING,

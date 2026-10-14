@@ -70,7 +70,7 @@ def _minimal_emf() -> bytes:
 
 
 def _append_paragraph_xml(document, inner: str) -> None:
-    xml = f'<w:p {nsdecls("w", "wp", "a", "r", "c", "pic")}><w:r>{inner}</w:r></w:p>'
+    xml = f"<w:p {nsdecls('w', 'wp', 'a', 'r', 'c', 'pic')}><w:r>{inner}</w:r></w:p>"
     document.element.body.get_or_add_sectPr().addprevious(parse_xml(xml))
 
 

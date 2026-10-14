@@ -87,17 +87,17 @@ def test_dataset_is_well_formed():
         "later_occurrence",
         "references",
     )
-    assert all(
-        inventory.notes for inventory in inventories
-    ), "every record says why it exists"
-    assert all(
-        inventory.target_answer is None for inventory in inventories
-    ), "the model-graded target was dropped"
+    assert all(inventory.notes for inventory in inventories), (
+        "every record says why it exists"
+    )
+    assert all(inventory.target_answer is None for inventory in inventories), (
+        "the model-graded target was dropped"
+    )
     # The clean document and every record whose abbreviations are all exempt record nothing.
     assert sum(1 for _, catalogue in records if not catalogue.abbreviations) == 19
-    assert (
-        max(len(inventory.document) for inventory in inventories) > 8_000
-    ), "one document spans several chunks"
+    assert max(len(inventory.document) for inventory in inventories) > 8_000, (
+        "one document spans several chunks"
+    )
 
 
 BOTH_DATASETS = pytest.mark.parametrize(
@@ -136,9 +136,9 @@ def test_every_anchored_issue_sits_on_an_occurrence_line(dataset):
     for inventory, catalogue in load_records(dataset):
         recorded_lines = {o.line_start for o in catalogue.abbreviations}
         for e in inventory.expected_issues:
-            assert (
-                e.anchor is None or e.line in recorded_lines
-            ), f"{e.id} is not on a recorded occurrence"
+            assert e.anchor is None or e.line in recorded_lines, (
+                f"{e.id} is not on a recorded occurrence"
+            )
 
 
 def test_catalogue_occurrences_must_be_numbered_in_line_order():

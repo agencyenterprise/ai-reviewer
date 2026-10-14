@@ -41,9 +41,9 @@ LEAD = ResolvedIssue(
 def test_dataset_is_well_formed():
     records = load_inventory_records(DATASET)
     assert len(records) == 16
-    assert (
-        sum(1 for r in records if not r.expected_issues) == 7
-    ), "seven clean documents"
+    assert sum(1 for r in records if not r.expected_issues) == 7, (
+        "seven clean documents"
+    )
     titles = {e.title for r in records for e in r.expected_issues}
     assert titles == {
         "Header",
@@ -241,6 +241,6 @@ def test_task_composes_the_inventory_scorers_and_its_own_checks():
     assert all(c.passage == "section" for c in JUDGE_CRITERIA)
     columns = [c.id for c in t.viewer.task_samples_view.columns]
     assert "score__suggestion_checks__suggestion_in_form" in columns
-    assert not any(
-        "edit_" in c for c in columns
-    ), "no edit keys for a workflow that proposes no edits"
+    assert not any("edit_" in c for c in columns), (
+        "no edit keys for a workflow that proposes no edits"
+    )

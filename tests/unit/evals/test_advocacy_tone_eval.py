@@ -99,9 +99,9 @@ def test_dataset_is_well_formed():
         "term_of_art",
     )
     assert expects_edits(records) is False
-    assert all(
-        r.notes and r.target_answer is None for r in records
-    ), "notes replace the free-text target"
+    assert all(r.notes and r.target_answer is None for r in records), (
+        "notes replace the free-text target"
+    )
 
 
 def test_every_listed_word_is_used_in_the_dataset():
@@ -234,9 +234,9 @@ def test_tone_checks_are_nan_with_nothing_to_judge():
     values, _ = tone_scores([], INVENTORY)
     assert math.isnan(values["known_titles"]) and math.isnan(values["one_line_range"])
     assert math.isnan(values["severity_follows_title"])
-    assert (
-        values["skipped_sections_untouched"] == 1.0
-    ), "a document with skipped sections left alone passes"
+    assert values["skipped_sections_untouched"] == 1.0, (
+        "a document with skipped sections left alone passes"
+    )
     plain = ResolvedInventory(
         document="# Report\n\n## Findings\nText.", expected_issues=[], decoys=[]
     )

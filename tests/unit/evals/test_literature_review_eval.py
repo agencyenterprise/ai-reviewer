@@ -20,9 +20,9 @@ def test_dataset_is_well_formed():
     records = load_inventory_records(DATASET)
     assert len(records) == 12
     required = [e for r in records for e in r.expected_issues if e.required]
-    assert len(required) == 25 and all(
-        e.anchor and e.rationale for e in required
-    ), "anchored, with the labelled literature"
+    assert len(required) == 25 and all(e.anchor and e.rationale for e in required), (
+        "anchored, with the labelled literature"
+    )
     assert sum(1 for r in records if not r.expected_issues) == 2
     assert sum(1 for r in records if r.publication_date) == 7
     assert not (

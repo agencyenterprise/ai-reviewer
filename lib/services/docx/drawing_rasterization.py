@@ -257,9 +257,7 @@ def _convert_anchor_to_inline(anchor) -> None:
     if extent is None or graphic is None:
         return
     inline = parse_xml(
-        f'<wp:inline {nsdecls("wp", "a")}>'
-        '<wp:docPr id="1" name="drawing"/>'
-        "</wp:inline>"
+        f'<wp:inline {nsdecls("wp", "a")}><wp:docPr id="1" name="drawing"/></wp:inline>'
     )
     inline.insert(0, extent)  # moves the element
     inline.append(graphic)
@@ -396,7 +394,7 @@ def _replace_drawing_with_image(document, drawing, image_path: str) -> bool:
         return False
 
     pic_xml = (
-        f'<pic:pic {nsdecls("pic", "a", "r")}>'
+        f"<pic:pic {nsdecls('pic', 'a', 'r')}>"
         f'<pic:nvPicPr><pic:cNvPr id="0" name="drawing"/><pic:cNvPicPr/></pic:nvPicPr>'
         f'<pic:blipFill><a:blip r:embed="{rId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
         f'<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm>'

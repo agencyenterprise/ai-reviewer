@@ -84,9 +84,9 @@ class TestWhatTheAgentIsGiven:
 
         files = agent.ainvoke.call_args[0][0]["files"]
         assert not any(path.startswith("/documents/") for path in files)
-        assert any(
-            path.startswith("/skills/") for path in files
-        ), "skills must be mounted before the run; a tool cannot add them"
+        assert any(path.startswith("/skills/") for path in files), (
+            "skills must be mounted before the run; a tool cannot add them"
+        )
 
     @pytest.mark.asyncio
     async def test_the_asker_is_named_in_the_prompt(self) -> None:

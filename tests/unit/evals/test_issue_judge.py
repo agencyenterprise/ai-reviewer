@@ -186,12 +186,12 @@ async def test_judge_grades_the_same_report_as_the_deterministic_pairing_in_eith
 
     ((_, paired),) = hit_pairs(issues, _inventory(expected))[1]
     assert len(grader.prompts) == 1
-    assert (
-        paired.edits[0].replacement_text in grader.prompts[0]
-    ), "the judge graded the report the deterministic layer paired"
-    assert (
-        "Rewrite A." < "Rewrite B." and paired.description == "Rewrite A."
-    ), "canonical order, not report order"
+    assert paired.edits[0].replacement_text in grader.prompts[0], (
+        "the judge graded the report the deterministic layer paired"
+    )
+    assert "Rewrite A." < "Rewrite B." and paired.description == "Rewrite A.", (
+        "canonical order, not report order"
+    )
 
 
 SECTION_DOC = "# Title\n\n## Findings\n\nScores rose 5 points.\n\n### Detail\n\nMostly in grade 3.\n\n## Methods\n\nWe used records.\n"
@@ -221,9 +221,9 @@ def test_section_text_gives_a_wrapped_paragraph_whole():
     assert section_text(document, 3) == wrapped
     assert section_text(document, 4) == wrapped
     assert section_text(document, 5) == wrapped
-    assert (
-        section_text("Intro.\n## Findings\nScores rose.\n", 3) == "Scores rose."
-    ), "stops at a heading"
+    assert section_text("Intro.\n## Findings\nScores rose.\n", 3) == "Scores rose.", (
+        "stops at a heading"
+    )
 
 
 def test_section_text_reads_an_indented_heading_but_not_a_code_block():
@@ -479,9 +479,9 @@ async def test_a_reference_criterion_shows_the_labellers_rationale_and_skips_iss
     values, _ = await judge_sample(
         cast(Model, grader), [issue], _inventory(_expected()), [criterion]
     )
-    assert (
-        math.isnan(values["flaw"]) and len(grader.prompts) == 1
-    ), "no rationale, nothing to compare against"
+    assert math.isnan(values["flaw"]) and len(grader.prompts) == 1, (
+        "no rationale, nothing to compare against"
+    )
 
 
 @pytest.mark.asyncio

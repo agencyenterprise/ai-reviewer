@@ -93,9 +93,9 @@ class TestRunTasksProgressTracking:
                 # With 2 tasks, we expect:
                 # 1. Initial update with total_steps=2
                 # 2. Progress update after each task completion (current_step=1, then 2)
-                assert (
-                    len(update_calls) >= 2
-                ), f"Expected at least 2 progress updates, got {len(update_calls)}"
+                assert len(update_calls) >= 2, (
+                    f"Expected at least 2 progress updates, got {len(update_calls)}"
+                )
 
                 # Verify all updates used the correct progress_id
                 for call_progress_id, _ in update_calls:
