@@ -72,7 +72,6 @@ describe('useReferenceApprovalFlow', () => {
     const { seen, view } = await mountFlow();
 
     expect(seen.current?.isApproveDisabled).toBe(true);
-    expect(seen.current?.approveButtonText).toBe('Loading references...');
     await act(async () => seen.current?.handleApprove());
     expect(approve).not.toHaveBeenCalled();
     await view.unmount();

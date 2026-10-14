@@ -346,3 +346,82 @@ describe('the highlight registry', () => {
     expect(highlights.has(EDIT_HIGHLIGHT_NAME)).toBe(false);
   });
 });
+
+/**
+ * Blocks as the document view renders them from Markdown: each fixture is
+ * ReactMarkdown's output for the source in its comment. `display_text` and
+ * `display_occurrence` are what the backend's CommonMark parser made of the
+ * quote on its source line; `original_text` keeps what the agent wrote.
+ */
+describe('editRanges over rendered Markdown', () => {
+  function quote(original_text: string, display_text: string, line: number, display_occurrence = 0) {
+    return edit({ original_text, display_text, display_occurrence, start_line: line, end_line: line });
+  }
+
+  it('finds a quote that ends in a DOCX footnote reference', () => {
+    // Intro.\n\nThe protocol was applied to the second cohort [[1]](#footnote-2).
+    const container = element(
+      '<p data-block-owner="" data-line-start="1" data-line-end="1">Intro.</p>' +
+        '<p data-block-owner="" data-line-start="3" data-line-end="3">The protocol was applied to the second cohort <a href="#footnote-2">[1]</a>.</p>',
+    );
+
+    const [range] = editRanges(container, [quote('second cohort [[1]](#footnote-2)', 'second cohort [1]', 3)]);
+
+    expect(range.toString()).toBe('second cohort [1]');
+  });
+
+  it('keeps a mid-line year that reads like a list marker', () => {
+    const container = element(
+      '<p data-block-owner="" data-line-start="1" data-line-end="1">Smith et al. 2019. Annual report.</p>',
+    );
+
+    const [range] = editRanges(container, [quote('2019. Annual report', '2019. Annual report', 1)]);
+
+    expect(range.toString()).toBe('2019. Annual report');
+  });
+
+  it('highlights a literal star the page shows as text', () => {
+    const container = element(
+      '<p data-block-owner="" data-line-start="1" data-line-end="1">The yield is 2 * 3 per plot.</p>',
+    );
+
+    const [range] = editRanges(container, [quote('2 * 3', '2 * 3', 1)]);
+
+    expect(range.toString()).toBe('2 * 3');
+  });
+
+  it('highlights a code span as the page shows it', () => {
+    // Set the `**strict**` flag before running.
+    const container = element(
+      '<p data-block-owner="" data-line-start="1" data-line-end="1">Set the <code>**strict**</code> flag before running.</p>',
+    );
+
+    const [range] = editRanges(container, [quote('`**strict**` flag', '**strict** flag', 1)]);
+
+    expect(range.toString()).toBe('**strict** flag');
+  });
+
+  describe('in a table whose rows repeat the quote', () => {
+    // | Series | Note |\n| --- | --- |\n| Baseline | See Figure 3 |\n| Outcome | See Figure 3 |
+    const table = () =>
+      element(
+        '<table data-block-owner="" data-line-start="3" data-line-end="6"><thead>' +
+          '<tr data-line-start="3" data-line-end="3"><th>Series</th><th>Note</th></tr></thead><tbody>' +
+          '<tr data-line-start="5" data-line-end="5"><td>Baseline</td><td>See Figure 3</td></tr>' +
+          '<tr data-line-start="6" data-line-end="6"><td>Outcome</td><td>See Figure 3</td></tr></tbody></table>',
+      );
+
+    it('lands on the row the edit is anchored to', () => {
+      const [range] = editRanges(table(), [quote('See Figure 3', 'See Figure 3', 6)]);
+
+      expect(range.toString()).toBe('See Figure 3');
+      expect(range.startContainer.parentElement?.closest('tr')?.textContent).toContain('Outcome');
+    });
+
+    it('still finds the earlier row when the edit is anchored there', () => {
+      const [range] = editRanges(table(), [quote('See Figure 3', 'See Figure 3', 5)]);
+
+      expect(range.startContainer.parentElement?.closest('tr')?.textContent).toContain('Baseline');
+    });
+  });
+});

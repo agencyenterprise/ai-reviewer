@@ -1,6 +1,7 @@
 'use client';
 
-import { DocumentImage, documentUrlTransform } from '@/components/document-image';
+import { blockCoversLine, isInlineImage, passageUrlTransform } from '@/components/annotate/passage-location';
+import { DocumentImage } from '@/components/document-image';
 import {
   BLOCK_COMPONENTS,
   REHYPE_PLUGINS,
@@ -15,15 +16,8 @@ import type { PluggableList } from 'unified';
 
 const ROW_WASH = ['bg-amber-50', 'dark:bg-amber-950/30'];
 
-/** Example documents carry their figures inline, as the backend builds them from the eval datasets. */
-const INLINE_IMAGE = /^data:image\/(png|jpeg|gif|webp);base64,/;
-
-function passageUrlTransform(url: string): string {
-  return INLINE_IMAGE.test(url) ? url : documentUrlTransform(url);
-}
-
 function PassageImage(props: ImgHTMLAttributes<HTMLImageElement>) {
-  if (typeof props.src !== 'string' || !INLINE_IMAGE.test(props.src)) return <DocumentImage {...props} />;
+  if (typeof props.src !== 'string' || !isInlineImage(props.src)) return <DocumentImage {...props} />;
   // eslint-disable-next-line @next/next/no-img-element -- an inline data URI, which next/image cannot optimize
   return <img src={props.src} alt={props.alt ?? ''} className="my-2 max-h-96 max-w-full" />;
 }
@@ -51,9 +45,7 @@ function passageRow(container: HTMLElement, line?: number | null): HTMLElement |
   if (marked) return marked.closest<HTMLElement>('[data-block-row]') ?? marked;
   if (!line) return null;
   for (const block of container.querySelectorAll<HTMLElement>('[data-block-owner][data-line-start]')) {
-    const start = Number(block.dataset.lineStart);
-    const end = Number(block.dataset.lineEnd ?? start);
-    if (start <= line && line <= end) return block.closest<HTMLElement>('[data-block-row]');
+    if (blockCoversLine(block.dataset, line)) return block.closest<HTMLElement>('[data-block-row]');
   }
   return null;
 }

@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { WorkflowRunType } from '@/lib/generated-api';
-import { applyPreset, presetIsActive, WorkflowPresetChips } from './workflow-presets';
+import { applyPreset, presetIsActive, presetOfferedCount } from './workflow-presets';
 
 const { ActiveVoice, AdvocacyToneV2, ReferenceValidationV2, RecommendationCheck, ConcisionPrecision } = WorkflowRunType;
 
@@ -51,40 +49,13 @@ describe('applyPreset', () => {
   });
 });
 
-describe('WorkflowPresetChips', () => {
-  const presets = [
-    { slug: 'editorial_review', label: 'Editorial Review', description: 'Language checks.', workflows: EDITORIAL },
-    {
-      slug: 'standard_review',
-      label: 'Standard Review',
-      description: 'The usual.',
-      workflows: [ReferenceValidationV2, AdvocacyToneV2, RecommendationCheck],
-    },
-  ];
-
-  function markup(selected: WorkflowRunType[]): string {
-    return renderToStaticMarkup(
-      <WorkflowPresetChips
-        presets={presets}
-        selectedTypes={selected}
-        offeredTypes={OFFERED}
-        onSelectionChange={() => undefined}
-        getWorkflowTypeName={(type) => type}
-      />,
-    );
-  }
-
-  it('presses the chip whose set the selection is, and no other', () => {
-    const chips = markup(EDITORIAL).split('<button').slice(1);
-    expect(chips).toHaveLength(2);
-    expect(chips[0]).toContain('aria-pressed="true"');
-    expect(chips[0]).toContain('Editorial Review');
-    expect(chips[1]).toContain('aria-pressed="false"');
+describe('presetOfferedCount', () => {
+  it('counts the preset assessments the picker offers', () => {
+    expect(presetOfferedCount(EDITORIAL, OFFERED)).toBe(3);
+    expect(presetOfferedCount([ReferenceValidationV2, AdvocacyToneV2, RecommendationCheck], OFFERED)).toBe(3);
   });
 
-  it('shows how many offered assessments each preset selects', () => {
-    const [editorial, standard] = markup([]).split('<button').slice(1);
-    expect(editorial).toMatch(/>3<\/span>/);
-    expect(standard).toMatch(/>3<\/span>/);
+  it('leaves out the ones it does not', () => {
+    expect(presetOfferedCount(EDITORIAL, [ReferenceValidationV2, AdvocacyToneV2])).toBe(1);
   });
 });

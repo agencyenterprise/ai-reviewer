@@ -90,6 +90,18 @@ export function ExportScope({
   );
 }
 
+/**
+ * Whether the counts can be stated yet. Until the issues load the count is
+ * unknown, which is not zero; once loading failed it stays unknown.
+ */
+export function exportCountsStatus(
+  counts: ExportCounts | null,
+  countsFailed: boolean,
+): 'known' | 'failed' | 'counting' {
+  if (counts) return 'known';
+  return countsFailed ? 'failed' : 'counting';
+}
+
 function plural(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }

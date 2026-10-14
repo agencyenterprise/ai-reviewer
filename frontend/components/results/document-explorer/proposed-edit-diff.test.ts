@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { diffTokens, type DiffToken, type DiffTokenKind } from './proposed-edit-diff';
+import type { ProposedEdit } from './proposed-edit';
+import { diffTokens, editTokens, type DiffToken, type DiffTokenKind } from './proposed-edit-diff';
 
 const of = (tokens: DiffToken[], kind: DiffTokenKind) => tokens.filter((token) => token.kind === kind);
 const joined = (tokens: DiffToken[], kind: DiffTokenKind) =>
@@ -8,6 +9,15 @@ const joined = (tokens: DiffToken[], kind: DiffTokenKind) =>
     .join('');
 
 describe('diffTokens', () => {
+  it('splits a word swap into the unchanged text around one removed and one added word', () => {
+    expect(diffTokens('The quick brown fox', 'The quick grey fox')).toEqual([
+      { kind: 'same', value: 'The quick ' },
+      { kind: 'removed', value: 'brown' },
+      { kind: 'added', value: 'grey' },
+      { kind: 'same', value: ' fox' },
+    ]);
+  });
+
   it('surrounds a word swap with the unchanged text', () => {
     const tokens = diffTokens('The quick brown fox', 'The quick grey fox');
 
@@ -69,5 +79,33 @@ describe('diffTokens', () => {
 
     expect(of(tokens, 'added')).toEqual([]);
     expect(joined(tokens, 'removed')).toContain('likely');
+  });
+});
+
+function edit(original: string, replacement: string): ProposedEdit {
+  return {
+    id: 'e1',
+    issue_id: 'i1',
+    original_text: original,
+    replacement_text: replacement,
+    display_text: original,
+    display_occurrence: 0,
+    display_replacement: replacement,
+    start_line: 4,
+    end_line: 4,
+    rationale: 'Grey is the documented colour.',
+    status: 'proposed',
+  };
+}
+
+describe('editTokens', () => {
+  it('strikes a deletion as one run over the whole quote', () => {
+    expect(editTokens(edit('The quick brown fox', ''))).toEqual([{ kind: 'removed', value: 'The quick brown fox' }]);
+  });
+
+  it('diffs a replacement word by word', () => {
+    const tokens = editTokens(edit('The quick brown fox', 'The quick grey fox'));
+
+    expect(tokens).toEqual(diffTokens('The quick brown fox', 'The quick grey fox'));
   });
 });

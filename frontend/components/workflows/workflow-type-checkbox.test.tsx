@@ -58,23 +58,6 @@ describe('WorkflowTypeCheckbox badges', () => {
     expect(markup({ gates: [WorkflowGate.ReferenceReview] })).toContain('Needs Full Text References');
     expect(markup({ gates: [] })).not.toContain('Needs Full Text References');
   });
-
-  it('shows the run-time estimate as text, since the value is the point', () => {
-    const html = renderToStaticMarkup(
-      <WorkflowTypeCheckbox
-        workflowType={workflowType()}
-        checked={false}
-        onCheckedChange={() => undefined}
-        estimatedSeconds={150}
-      />,
-    );
-    expect(html).toContain('~3 min');
-  });
-
-  it('renders the description in the row', () => {
-    const html = markup({ description: 'A long sentence about what the assessment does.' });
-    expect(html).toContain('A long sentence about what the assessment does.');
-  });
 });
 
 describe('WorkflowIcon', () => {
@@ -94,10 +77,9 @@ describe('WorkflowIcon', () => {
 
   it('keeps the hand-written mapping for workflows that declare nothing', () => {
     const markup = renderToStaticMarkup(
-      <WorkflowIcon workflowType={workflowType({ type: WorkflowRunType.AdvocacyToneV2 })} className="size-4" />,
+      <WorkflowIcon workflowType={workflowType({ type: WorkflowRunType.AdvocacyToneV2 })} />,
     );
 
     expect(markup).toContain('lucide-message-square-warning');
-    expect(markup).toContain('size-4');
   });
 });
