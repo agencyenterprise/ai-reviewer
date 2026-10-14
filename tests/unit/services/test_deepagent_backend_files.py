@@ -87,11 +87,24 @@ async def test_a_document_that_will_not_load_is_reported_not_raised():
         return _document(file)
 
     with (
-        patch(f"{MODULE}.get_files_by_project_id", new=AsyncMock(return_value=[good, bad])),
-        patch.object(service, "_load_file_document_with_markdown", new=AsyncMock(side_effect=load)),
+        patch(
+            f"{MODULE}.get_files_by_project_id", new=AsyncMock(return_value=[good, bad])
+        ),
+        patch.object(
+            service,
+            "_load_file_document_with_markdown",
+            new=AsyncMock(side_effect=load),
+        ),
     ):
-        loaded = await service.get_file_documents([str(bad.id), str(good.id), "not-in-project"])
+        loaded = await service.get_file_documents(
+            [str(bad.id), str(good.id), "not-in-project"]
+        )
 
     assert [d.file_id for d in loaded.documents] == [str(good.id)]
-    [unreadable] = loaded.unreadable
-    assert (unreadable.file_id, unreadable.reason) == (str(bad.id), "not a zip file")
+    broken, gone = loaded.unreadable
+    assert (broken.file_id, broken.reason) == (str(bad.id), "not a zip file")
+    # Named by the request but no longer in the project: deleted since it started.
+    assert (gone.file_id, gone.reason) == (
+        "not-in-project",
+        "it was deleted from the project.",
+    )

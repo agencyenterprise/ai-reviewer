@@ -467,8 +467,9 @@ class FileArtifactsService(FileArtifactsServiceType):
     async def get_file_documents(self, file_ids: list[str]) -> LoadedDocuments:
         """Load the project's files with these ids, markdown included.
 
-        Ids that are not this project's uploaded documents are skipped, so a
-        caller cannot reach another project's file by naming it. A file that
+        Ids that are not this project's uploaded documents load nothing, so a
+        caller cannot reach another project's file by naming it; they are
+        reported as unreadable, since the request named them. A file that
         fails to load or convert is reported rather than raised, so one bad
         upload does not cost the caller the rest. Order follows ``file_ids``.
         """
@@ -480,6 +481,15 @@ class FileArtifactsService(FileArtifactsServiceType):
         for file_id in file_ids:
             file = by_id.get(file_id)
             if file is None:
+                # The request was checked when it started, so a missing file was
+                # deleted since. Say so, rather than report without it.
+                loaded.unreadable.append(
+                    UnreadableDocument(
+                        file_id=file_id,
+                        file_name="a selected document",
+                        reason="it was deleted from the project.",
+                    )
+                )
                 continue
             try:
                 loaded.documents.append(

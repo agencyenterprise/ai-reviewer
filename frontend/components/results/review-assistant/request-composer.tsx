@@ -27,23 +27,34 @@ interface RequestComposerProps {
 
 type Phase = 'idle' | 'uploading' | 'starting';
 
+/** A row the upload created for this staged file: same name, same bytes. */
+const isUploadOf = (row: FileListItem, file: File) => row.file_name === file.name && row.file_size === file.size;
+
+/**
+ * Pairs each item with the first row it matches, each row used once, in the
+ * items' order. Two staged files can share a name, so matching on it alone
+ * would pair both with one row.
+ */
+function pairUp<T>(items: T[], rows: FileListItem[], matches: (row: FileListItem, item: T) => boolean) {
+  const taken = new Set<string>();
+  return items.map((item) => {
+    const row = rows.find((candidate) => !taken.has(candidate.id) && matches(candidate, item));
+    if (row) taken.add(row.id);
+    return { item, row };
+  });
+}
+
 /**
  * The files the upload just created, in the order they were sent. The upload
  * does not report their ids, so they are the review documents that appeared
- * since it started under the name of a file that was sent. Matching on the
- * name as well keeps out a file someone else added to the project in the
- * meantime. The listing comes back in no set order, and the order matters:
- * reviewer letters follow it.
+ * since it started with the name and size of a file that was sent, which
+ * keeps out a file someone else added to the project in the meantime. The
+ * listing comes back in no set order, and the order matters: reviewer letters
+ * follow it.
  */
 function uploadedFiles(before: ReadonlySet<string>, after: FileListItem[], sent: File[]): FileListItem[] {
   const fresh = after.filter((file) => !before.has(file.id) && file.role === FileRole.ReviewInput);
-  const taken = new Set<string>();
-  return sent.flatMap((sentFile) => {
-    const match = fresh.find((file) => !taken.has(file.id) && file.file_name === sentFile.name);
-    if (!match) return [];
-    taken.add(match.id);
-    return [match];
-  });
+  return pairUp(sent, fresh, isUploadOf).flatMap(({ row }) => (row ? [row] : []));
 }
 
 const listFiles = (projectId: string) =>
@@ -69,9 +80,8 @@ export function RequestComposer({ overview, onStarted }: RequestComposerProps) {
    * them twice.
    */
   const keepUploaded = (uploaded: FileListItem[]) => {
-    const uploadedNames = new Set(uploaded.map((file) => file.file_name));
     setPicked((prev) => new Set([...prev, ...uploaded.map((file) => file.id)]));
-    setStaged((prev) => prev.filter((file) => !uploadedNames.has(file.name)));
+    setStaged((prev) => pairUp(prev, uploaded, isUploadOf).flatMap(({ item, row }) => (row ? [] : [item])));
   };
 
   const submit = (uploaded: FileListItem[]) => {

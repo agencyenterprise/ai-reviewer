@@ -215,7 +215,9 @@ async def increment_and_complete_if_done(progress_id: uuid.UUID) -> bool:
 
 
 async def cancel_workflow_progress(
-    project_id: uuid.UUID, workflow_type: WorkflowRunType
+    project_id: uuid.UUID,
+    workflow_type: WorkflowRunType,
+    only_run_id: uuid.UUID | None = None,
 ) -> None:
     """
     Mark all incomplete progress entries for a project + workflow type as completed.
@@ -227,6 +229,8 @@ async def cancel_workflow_progress(
     Args:
         project_id: ID of the project whose workflow is being cancelled
         workflow_type: Type of the workflow being cancelled
+        only_run_id: Clear only this run's entries, for a workflow whose runs
+            go on side by side, where the others' progress is still live
     """
     async with get_async_db_session() as session:
         stmt = (
@@ -241,6 +245,8 @@ async def cancel_workflow_progress(
                 col(WorkflowProgress.completed_at).is_(None),
             )
         )
+        if only_run_id is not None:
+            stmt = stmt.where(col(WorkflowProgress.workflow_run_id) == only_run_id)
         result = await session.execute(stmt)
         incomplete = result.scalars().all()
 
