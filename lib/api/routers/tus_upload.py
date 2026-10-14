@@ -77,7 +77,9 @@ def _resolve_file_revision(
     try:
         revision = int(str(raw).strip())
     except ValueError:
-        raise HTTPException(status_code=400, detail="revision must be an integer")
+        raise HTTPException(
+            status_code=400, detail="revision must be an integer"
+        ) from None
 
     if not 1 <= revision <= project.current_revision:
         raise HTTPException(

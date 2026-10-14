@@ -249,7 +249,7 @@ class TestRefusals:
             to_docx(markup, tmp_path / "broken.docx")
 
     def test_markup_that_is_not_a_package_is_refused(self, tmp_path: Path) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(etree.XMLSyntaxError):
             to_docx("not xml at all", tmp_path / "broken.docx")
 
 

@@ -13,4 +13,4 @@ def ensure_uuid(value: uuid.UUID | str, field_name: str) -> uuid.UUID:
     except (ValueError, AttributeError, TypeError):
         raise HTTPException(
             status_code=400, detail=f"Invalid {field_name} format: {value}"
-        )
+        ) from None

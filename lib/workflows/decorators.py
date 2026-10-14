@@ -118,13 +118,13 @@ async def _run_node_with_cancellation(
     )
     try:
         return await node_task
-    except asyncio.CancelledError:
+    except asyncio.CancelledError as e:
         # Confirm the cancellation came from our supervisor and not an external event loop shutdown
         status = await get_workflow_run_status(workflow_run_id)
         if status == WorkflowRunStatus.CANCELLED:
             raise WorkflowCancelledError(
                 f"Workflow {workflow_run_id} was cancelled during node {func.__name__}"
-            )
+            ) from e
         raise
     finally:
         supervisor_task.cancel()

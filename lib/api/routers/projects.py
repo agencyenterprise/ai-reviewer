@@ -65,7 +65,7 @@ async def create_project_endpoint(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create project",
-        )
+        ) from e
 
 
 @router.get("/api/projects", response_model=ProjectListPage)
@@ -168,13 +168,13 @@ async def download_project_docx(
     except ValueError as e:
         # A revision the project does not have: the caller's request, not ours.
         logger.warning("Rejected DOCX export for project %s: %s", project_id, e)
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error("Failed to generate DOCX: %s", e, exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Failed to generate DOCX: {str(e)}",
-        )
+        ) from e
 
     return FileResponse(
         path=file_path,
