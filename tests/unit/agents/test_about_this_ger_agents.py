@@ -1,7 +1,7 @@
 """Tests for the About This (GER) validator agents.
 
 These agents load their rules from a portable skill (the source of truth) and
-append a backend `_ENV_GUIDANCE` addendum carrying the Draft-Detective specifics
+append a backend env-guidance addendum carrying the Draft-Detective specifics
 the skill omits (document location, issues output contract). Here we guard that
 the skill loads and the addendum still references those specifics, without
 invoking the LLM.
@@ -12,10 +12,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from langchain_core.messages import AIMessage
 
-from lib.agents.authors_validator import _ENV_GUIDANCE as AUTHORS_ENV_GUIDANCE
-from lib.agents.authors_validator import AuthorsValidatorAgent
-from lib.agents.preface_validator import _ENV_GUIDANCE as PREFACE_ENV_GUIDANCE
-from lib.agents.preface_validator import PrefaceValidatorAgent
+from lib.agents.about_this_validators import (
+    AUTHORS_ENV_GUIDANCE,
+    PREFACE_ENV_GUIDANCE,
+    AuthorsValidatorAgent,
+    PrefaceValidatorAgent,
+)
 from lib.skills import load_skill_prompt
 from lib.workflows.simple_deep_agent.agent_types import MARKDOWN_REPORT_PATH
 
@@ -50,11 +52,11 @@ def test_agent_composes_skill_with_env_guidance(skill: str, env_guidance: str):
     [
         (
             PrefaceValidatorAgent,
-            "lib.agents.preface_validator.build_deep_agent",
+            "lib.agents.about_this_validators.build_deep_agent",
         ),
         (
             AuthorsValidatorAgent,
-            "lib.agents.authors_validator.build_deep_agent",
+            "lib.agents.about_this_validators.build_deep_agent",
         ),
     ],
 )
