@@ -12,12 +12,13 @@ only: nothing here writes to the file.
 """
 
 import zipfile
-from typing import Iterator, List, Literal, Optional
+from collections.abc import Iterator
+from typing import Literal
 
 from lxml import etree
 from pydantic import BaseModel, Field
 
-from lib.services.docx.namespaces import W, W14, W15, qn, w
+from lib.services.docx.namespaces import W14, W15, W, qn, w
 
 _CORE_DC = "http://purl.org/dc/elements/1.1/"
 _CORE_CP = "http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
@@ -29,6 +30,7 @@ _PARSER = etree.XMLParser(resolve_entities=False, no_network=True)
 
 _INSERTED = {w("ins"), w("moveTo")}
 _DELETED = {w("del"), w("moveFrom")}
+_COMMENT_MARKS = {w("commentRangeStart"), w("commentReference")}
 
 
 class DocxComment(BaseModel):
@@ -36,7 +38,7 @@ class DocxComment(BaseModel):
 
     id: str
     author: str
-    date: Optional[str] = None
+    date: str | None = None
     text: str
     anchor: str = Field(default="", description="The document text the comment covers")
     anchor_deleted: bool = Field(
@@ -45,7 +47,7 @@ class DocxComment(BaseModel):
     )
     context: str = Field(default="", description="The paragraph the comment starts in")
     resolved: bool = False
-    replies: List["DocxComment"] = Field(default_factory=list)
+    replies: list["DocxComment"] = Field(default_factory=list)
 
 
 class DocxTrackedChange(BaseModel):
@@ -54,7 +56,7 @@ class DocxTrackedChange(BaseModel):
 
     kind: Literal["insertion", "deletion", "replacement"]
     author: str
-    date: Optional[str] = None
+    date: str | None = None
     inserted: str = ""
     deleted: str = ""
     context: str = Field(default="", description="The paragraph, as revised")
@@ -63,16 +65,16 @@ class DocxTrackedChange(BaseModel):
 class DocxProperties(BaseModel):
     """What the package says about who wrote and last saved the file."""
 
-    author: Optional[str] = None
-    last_modified_by: Optional[str] = None
-    created: Optional[str] = None
-    modified: Optional[str] = None
+    author: str | None = None
+    last_modified_by: str | None = None
+    created: str | None = None
+    modified: str | None = None
 
 
 class DocxReviewMarkup(BaseModel):
     properties: DocxProperties = Field(default_factory=DocxProperties)
-    comments: List[DocxComment] = Field(default_factory=list)
-    tracked_changes: List[DocxTrackedChange] = Field(default_factory=list)
+    comments: list[DocxComment] = Field(default_factory=list)
+    tracked_changes: list[DocxTrackedChange] = Field(default_factory=list)
 
 
 class _Segment(BaseModel):
@@ -81,21 +83,21 @@ class _Segment(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
 
     text: str
-    change: Optional[etree._Element] = None
+    change: etree._Element | None = None
     deleted: bool = False
 
 
-def _read_part(package: zipfile.ZipFile, name: str) -> Optional[etree._Element]:
+def _read_part(package: zipfile.ZipFile, name: str) -> etree._Element | None:
     if name not in package.namelist():
         return None
     return etree.fromstring(package.read(name), _PARSER)
 
 
-def _attr(element: etree._Element, name: str, namespace: str = W) -> Optional[str]:
+def _attr(element: etree._Element, name: str, namespace: str = W) -> str | None:
     return element.get(qn(name, namespace))
 
 
-def _date(element: etree._Element) -> Optional[str]:
+def _date(element: etree._Element) -> str | None:
     value = _attr(element, "date")
     return value[:10] if value else None
 
@@ -109,7 +111,7 @@ def _read_properties(package: zipfile.ZipFile) -> DocxProperties:
     if core is None:
         return DocxProperties()
 
-    def field(tag: str, namespace: str) -> Optional[str]:
+    def field(tag: str, namespace: str) -> str | None:
         node = core.find(qn(tag, namespace))
         return _squash(node.text) if node is not None and node.text else None
 
@@ -122,7 +124,9 @@ def _read_properties(package: zipfile.ZipFile) -> DocxProperties:
 
 
 def _comment_text(comment: etree._Element) -> str:
-    paragraphs = ["".join(t.text or "" for t in p.iter(w("t"))) for p in comment.iter(w("p"))]
+    paragraphs = [
+        "".join(t.text or "" for t in p.iter(w("t"))) for p in comment.iter(w("p"))
+    ]
     return "\n".join(p.strip() for p in paragraphs if p.strip())
 
 
@@ -186,7 +190,9 @@ def _body_paragraphs(document: etree._Element) -> Iterator[etree._Element]:
             yield paragraph
 
 
-def _change_of(node: etree._Element, paragraph: etree._Element) -> Optional[etree._Element]:
+def _change_of(
+    node: etree._Element, paragraph: etree._Element
+) -> etree._Element | None:
     for ancestor in node.iterancestors():
         if ancestor is paragraph:
             return None
@@ -236,12 +242,32 @@ def read_docx_review_markup(docx_path: str) -> DocxReviewMarkup:
     for paragraph in _body_paragraphs(document):
         walker.read_paragraph(paragraph)
 
-    top_level = [c for c in comments.values() if not c.id.startswith("reply:")]
     return DocxReviewMarkup(
         properties=properties,
-        comments=sorted(top_level, key=lambda c: _sort_key(c.id)),
+        comments=_in_document_order(comments, walker.encountered),
         tracked_changes=walker.changes,
     )
+
+
+def _in_document_order(
+    comments: dict[str, DocxComment], encountered: list[str]
+) -> list[DocxComment]:
+    """Thread roots in the order their anchors appear in the body.
+
+    A comment's id is the order it was created in, which is not where it sits:
+    a later comment can be attached earlier in the text, and paragraphs move.
+    A comment whose anchor is nowhere in the body follows, by id.
+    """
+    top_level = {cid: c for cid, c in comments.items() if not c.id.startswith("reply:")}
+    anchored = [
+        top_level[cid] for cid in dict.fromkeys(encountered) if cid in top_level
+    ]
+    seen = {c.id for c in anchored}
+    orphans = sorted(
+        (c for c in top_level.values() if c.id not in seen),
+        key=lambda c: _sort_key(c.id),
+    )
+    return anchored + orphans
 
 
 def _sort_key(comment_id: str) -> tuple[int, str]:
@@ -253,19 +279,23 @@ class _MarkupWalker:
 
     def __init__(self, comments: dict[str, DocxComment]) -> None:
         self._comments = comments
-        self._open: dict[str, List[str]] = {}
+        self._open: dict[str, list[str]] = {}
         # What the comment covers that a tracked change deletes: the anchor to
         # fall back on when that is all it covers.
-        self._open_deleted: dict[str, List[str]] = {}
-        self.changes: List[DocxTrackedChange] = []
+        self._open_deleted: dict[str, list[str]] = {}
+        self.changes: list[DocxTrackedChange] = []
+        # Comment ids as the body first marks them, which is document order.
+        self.encountered: list[str] = []
 
     def read_paragraph(self, paragraph: etree._Element) -> None:
         pieces = list(_segments(paragraph))
         context = _squash("".join(s.text for _, s in pieces if not s.deleted))
-        started: List[str] = []
+        started: list[str] = []
 
         for node, segment in pieces:
             comment_id = _attr(node, "id")
+            if node.tag in _COMMENT_MARKS and comment_id in self._comments:
+                self.encountered.append(comment_id)
             if node.tag == w("commentRangeStart") and comment_id in self._comments:
                 self._open[comment_id] = []
                 self._open_deleted[comment_id] = []
@@ -294,15 +324,15 @@ class _MarkupWalker:
         comment.anchor = live or deleted
         comment.anchor_deleted = not live and bool(deleted)
 
-    def _collect_changes(self, segments: List[_Segment], context: str) -> None:
-        grouped: List[tuple[Optional[etree._Element], str]] = []
+    def _collect_changes(self, segments: list[_Segment], context: str) -> None:
+        grouped: list[tuple[etree._Element | None, str]] = []
         for segment in segments:
             if grouped and grouped[-1][0] is segment.change:
                 grouped[-1] = (segment.change, grouped[-1][1] + segment.text)
             else:
                 grouped.append((segment.change, segment.text))
 
-        pending: Optional[DocxTrackedChange] = None
+        pending: DocxTrackedChange | None = None
         for change, text in grouped:
             if change is None:
                 pending = None
@@ -310,7 +340,11 @@ class _MarkupWalker:
             author = _attr(change, "author") or "Unknown"
             if change.tag in _DELETED:
                 pending = DocxTrackedChange(
-                    kind="deletion", author=author, date=_date(change), deleted=text, context=context
+                    kind="deletion",
+                    author=author,
+                    date=_date(change),
+                    deleted=text,
+                    context=context,
                 )
                 self.changes.append(pending)
             elif pending is not None and pending.author == author:
@@ -320,7 +354,11 @@ class _MarkupWalker:
             else:
                 self.changes.append(
                     DocxTrackedChange(
-                        kind="insertion", author=author, date=_date(change), inserted=text, context=context
+                        kind="insertion",
+                        author=author,
+                        date=_date(change),
+                        inserted=text,
+                        context=context,
                     )
                 )
                 pending = None

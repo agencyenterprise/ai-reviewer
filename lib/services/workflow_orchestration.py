@@ -53,8 +53,11 @@ async def wait_for_dependencies(
     optional_dependencies = manifest.optional_dependencies
     all_dependencies = required_dependencies + optional_dependencies
 
-    # Check if we need to wait for anything
-    needs_same_type_lock = current_workflow_run_id is not None
+    # Check if we need to wait for anything. Independent runs never touch each
+    # other's state, so they skip the same-type lock and run side by side.
+    needs_same_type_lock = (
+        current_workflow_run_id is not None and not manifest.independent_runs
+    )
     needs_dependency_wait = len(all_dependencies) > 0
 
     if not needs_same_type_lock and not needs_dependency_wait:

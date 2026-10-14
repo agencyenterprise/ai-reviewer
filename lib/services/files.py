@@ -178,6 +178,7 @@ async def get_files_by_project_id(
     project_id: uuid.UUID | str,
     roles: list[FileRole],
     revision: int | None = None,
+    file_ids: Sequence[uuid.UUID] | None = None,
 ) -> list[File]:
     """
     Get a project's files with the given roles, optionally filtered by revision.
@@ -186,7 +187,8 @@ async def get_files_by_project_id(
     a new role (e.g. EXTRACTED_IMAGE) never leaks into existing readers.
 
     When revision is set, returns files belonging to that revision plus
-    shared files (revision IS NULL, e.g. supporting documents).
+    shared files (revision IS NULL, e.g. supporting documents). When file_ids
+    is set, returns only those of them that match, in no particular order.
     """
     project_id = ensure_uuid(project_id, "project ID")
     async with get_async_db_session() as session:
@@ -194,6 +196,8 @@ async def get_files_by_project_id(
             col(File.project_id) == project_id,
             col(File.role).in_(roles),
         )
+        if file_ids is not None:
+            stmt = stmt.where(col(File.id).in_(file_ids))
         if revision is not None:
             stmt = stmt.where(
                 or_(col(File.revision) == revision, col(File.revision).is_(None))

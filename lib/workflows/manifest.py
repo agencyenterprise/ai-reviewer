@@ -51,6 +51,12 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     # revision appears would either waste a run or produce a guard message.
     auto_rerun_on_new_revision: bool = True
 
+    # Whether each run is a request of its own, reading only the inputs its
+    # config names. Such runs survive a new revision instead of being cancelled
+    # by it, and runs of the type do not queue behind each other, since none
+    # reads or writes what another does.
+    independent_runs: bool = False
+
     # If True, workflow always runs even if already completed (when included as dependency)
     # The workflows needs to be idempotent, meaning it can be run multiple times without changing the result and typical execute only "new" content that was not processed in a previous run, reusing cached results from previous runs, like summarization, document conversion, etc (should process only new files in subsequent runs).
     always_run: bool = False

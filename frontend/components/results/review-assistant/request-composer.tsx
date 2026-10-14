@@ -28,16 +28,22 @@ interface RequestComposerProps {
 type Phase = 'idle' | 'uploading' | 'starting';
 
 /**
- * The files the upload just created. The upload does not report their ids, so
- * they are the review documents that appeared since it started under the name
- * of a file that was sent. Matching on the name as well keeps out a file
- * someone else added to the project in the meantime.
+ * The files the upload just created, in the order they were sent. The upload
+ * does not report their ids, so they are the review documents that appeared
+ * since it started under the name of a file that was sent. Matching on the
+ * name as well keeps out a file someone else added to the project in the
+ * meantime. The listing comes back in no set order, and the order matters:
+ * reviewer letters follow it.
  */
 function uploadedFiles(before: ReadonlySet<string>, after: FileListItem[], sent: File[]): FileListItem[] {
-  const names = new Set(sent.map((file) => file.name));
-  return after.filter(
-    (file) => !before.has(file.id) && file.role === FileRole.ReviewInput && names.has(file.file_name),
-  );
+  const fresh = after.filter((file) => !before.has(file.id) && file.role === FileRole.ReviewInput);
+  const taken = new Set<string>();
+  return sent.flatMap((sentFile) => {
+    const match = fresh.find((file) => !taken.has(file.id) && file.file_name === sentFile.name);
+    if (!match) return [];
+    taken.add(match.id);
+    return [match];
+  });
 }
 
 const listFiles = (projectId: string) =>
@@ -113,7 +119,9 @@ export function RequestComposer({ overview, onStarted }: RequestComposerProps) {
     onAllComplete: async () => {
       try {
         const uploaded = uploadedFiles(filesBeforeUpload.current, await listFiles(projectId), staged);
-        if (failedUploads.current + cancelledUploads.current > 0) return holdAfterPartialUpload(uploaded);
+        // Counting the files that arrived also catches one the upload turned
+        // away before it started, which reports no error.
+        if (uploaded.length < sentCount.current) return holdAfterPartialUpload(uploaded);
         submit(uploaded);
       } catch {
         toast.error(

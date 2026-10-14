@@ -377,7 +377,8 @@ async def create_new_revision(
     new_revision = old_revision + 1
 
     async with get_async_db_session() as session:
-        # Cancel any active workflows for the old revision
+        # Cancel the old revision's active workflows, except those whose runs
+        # do not depend on the revision (see `independent_runs`)
         active_runs_stmt = select(WorkflowRun).where(
             col(WorkflowRun.project_id) == project_id,
             col(WorkflowRun.revision) == old_revision,
@@ -385,7 +386,11 @@ async def create_new_revision(
         )
         active_runs = (await session.execute(active_runs_stmt)).scalars().all()
 
+    manifests = get_all_manifests()
     for run in active_runs:
+        manifest = manifests.get(run.type)
+        if manifest is not None and manifest.independent_runs:
+            continue
         await cancel_workflow_run(str(run.id), project_id)
 
     async with get_async_db_session() as session:
@@ -422,7 +427,6 @@ async def create_new_revision(
         # An enum value whose manifest has been retired has nothing left to run,
         # so it is dropped here too — the enum member outlives the workflow so
         # old rows keep deserializing.
-        manifests = get_all_manifests()
         previous_workflow_types = [
             workflow_type
             for workflow_type in ran_before

@@ -30,7 +30,9 @@ def _plain_docx(tmp_path: Path) -> Path:
 @pytest.fixture
 def marked_up_docx(tmp_path: Path) -> Path:
     path = _plain_docx(tmp_path)
-    doc = EditorDocument.open(path, author="Dr. Reviewer", workspace_dir=str(tmp_path / "ws"))
+    doc = EditorDocument.open(
+        path, author="Dr. Reviewer", workspace_dir=str(tmp_path / "ws")
+    )
     try:
         comment_id = doc.add_comment("400 households", "How were these sampled?")
         doc.reply_to_comment(comment_id, "Stratified by district; see the methods.")
@@ -84,7 +86,9 @@ def test_a_deletion_followed_by_an_insertion_reads_as_one_replacement(
     assert change.context == "Response rates were lowest in the northern district."
 
 
-def test_the_markdown_names_the_document_and_quotes_each_item(marked_up_docx: Path) -> None:
+def test_the_markdown_names_the_document_and_quotes_each_item(
+    marked_up_docx: Path,
+) -> None:
     markup = read_docx_review_markup(str(marked_up_docx))
 
     comments = comments_markdown("draft.docx", markup)
@@ -98,7 +102,9 @@ def test_the_markdown_names_the_document_and_quotes_each_item(marked_up_docx: Pa
 
 
 @pytest.mark.asyncio
-async def test_the_converted_text_shows_the_revised_wording(marked_up_docx: Path) -> None:
+async def test_the_converted_text_shows_the_revised_wording(
+    marked_up_docx: Path,
+) -> None:
     # The tracked-changes file tells the agent the converted text has the
     # insertions in place and the deletions removed; this keeps that true.
     markdown = await convert_to_markdown(str(marked_up_docx), converter="markitdown")
@@ -145,7 +151,11 @@ def test_a_reply_to_a_reply_stays_in_the_thread(tmp_path: Path) -> None:
         '<w:p><w:commentRangeStart w:id="0"/><w:r><w:t>claim</w:t></w:r>'
         '<w:commentRangeEnd w:id="0"/><w:r><w:commentReference w:id="0"/></w:r></w:p>'
     )
-    comments = _comment(0, "A0", "Root") + _comment(1, "A1", "First") + _comment(2, "A2", "Second")
+    comments = (
+        _comment(0, "A0", "Root")
+        + _comment(1, "A1", "First")
+        + _comment(2, "A2", "Second")
+    )
     # Chained the way LibreOffice writes them: each reply names the one before.
     extended = (
         '<w15:commentEx w15:paraId="A0"/>'
@@ -173,4 +183,28 @@ def test_a_comment_on_deleted_text_is_anchored_to_it(tmp_path: Path) -> None:
     [comment] = markup.comments
     assert (comment.anchor, comment.anchor_deleted) == ("struck words", True)
     rendered = comments_markdown("raw.docx", markup)
-    assert rendered is not None and 'Attached to deleted text: "struck words"' in rendered
+    assert (
+        rendered is not None and 'Attached to deleted text: "struck words"' in rendered
+    )
+
+
+def test_comments_follow_the_text_not_the_order_they_were_made(tmp_path: Path) -> None:
+    def commented(comment_id: int, text: str) -> str:
+        return (
+            f'<w:p><w:commentRangeStart w:id="{comment_id}"/><w:r><w:t>{text}</w:t></w:r>'
+            f'<w:commentRangeEnd w:id="{comment_id}"/>'
+            f'<w:r><w:commentReference w:id="{comment_id}"/></w:r></w:p>'
+        )
+
+    # Comment 1 was made after comment 0 but sits above it; comment 2 is
+    # anchored nowhere in the body.
+    body = commented(1, "opening") + commented(0, "closing")
+    comments = (
+        _comment(0, "A0", "Second")
+        + _comment(1, "A1", "First")
+        + _comment(2, "A2", "Loose")
+    )
+
+    markup = read_docx_review_markup(str(_package(tmp_path, body, comments)))
+
+    assert [c.text for c in markup.comments] == ["First", "Second", "Loose"]

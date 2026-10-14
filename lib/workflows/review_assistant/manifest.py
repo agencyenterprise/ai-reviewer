@@ -12,9 +12,10 @@ the files named in the run's config, and Word comments and tracked changes are
 mounted beside each document's text (see ``inputs.py``).
 """
 
+import builtins
 import json
 import logging
-from typing import TYPE_CHECKING, List, Optional, Type
+from typing import TYPE_CHECKING
 
 from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
@@ -63,7 +64,7 @@ SKILL = "review-assistant"
 
 def collect_reports(
     run: DeepAgentRun, state: ReviewAssistantState
-) -> List[ReviewAssistantReport]:
+) -> list[ReviewAssistantReport]:
     """The reports the agent wrote, in the order they were asked for.
 
     An output it did not write is left out rather than failing the others; a
@@ -75,11 +76,13 @@ def collect_reports(
         if (html := run.files.get(REPORT_PATHS[output], "").strip())
     ]
     if not reports:
-        raise ReportNotWrittenError(REPORT_PATHS[state.config.outputs[0]], list(run.files))
+        raise ReportNotWrittenError(
+            REPORT_PATHS[state.config.outputs[0]], list(run.files)
+        )
     return reports
 
 
-def read_input_readings(run: DeepAgentRun) -> List[ReviewAssistantInputReading]:
+def read_input_readings(run: DeepAgentRun) -> list[ReviewAssistantInputReading]:
     """What the agent said each document is. Advisory, so a missing or
     malformed file costs only this list."""
     raw = run.files.get(INPUT_READINGS_PATH)
@@ -99,7 +102,7 @@ def read_input_readings(run: DeepAgentRun) -> List[ReviewAssistantInputReading]:
 
 
 def unreadable_document_warning(
-    item: UnreadableDocument, workflow_run_id: Optional[str]
+    item: UnreadableDocument, workflow_run_id: str | None
 ) -> WorkflowError:
     """A warning that the run went ahead without one document.
 
@@ -114,15 +117,24 @@ def unreadable_document_warning(
     )
 
 
-def precheck(config: ReviewAssistantConfig) -> Optional[str]:
-    if not config.outputs:
-        return "Pick at least one output to generate."
-    if not config.input_file_ids:
-        return "Add at least one document for the Review Assistant to read."
+# The request endpoint requires both, so a run that lacks either was started
+# through the generic workflow start, which cannot name them.
+_NEEDS_A_REQUEST = (
+    "A Review Assistant run needs a request naming its outputs and documents. "
+    "Start one from the project's Review Assistant tab, or with "
+    "POST /api/project/{project_id}/review-assistant/requests."
+)
+
+
+def precheck(config: ReviewAssistantConfig) -> str | None:
+    if not config.outputs or not config.input_file_ids:
+        return _NEEDS_A_REQUEST.format(project_id=config.project_id)
     return None
 
 
-class ReviewAssistantManifest(WorkflowManifest[ReviewAssistantState, ReviewAssistantConfig]):
+class ReviewAssistantManifest(
+    WorkflowManifest[ReviewAssistantState, ReviewAssistantConfig]
+):
     type = WorkflowRunType.REVIEW_ASSISTANT
     name = "Review Assistant"
     description = (
@@ -134,13 +146,16 @@ class ReviewAssistantManifest(WorkflowManifest[ReviewAssistantState, ReviewAssis
     is_experimental = True
     # Started only from the Review Assistant tab, with the documents it names.
     auto_rerun_on_new_revision = False
+    # A request reads the files it names, so a new revision leaves it running,
+    # and a second request need not wait up to two hours for the first.
+    independent_runs = True
     # Up to three long deliverables from one agent.
     max_duration_seconds = 2 * 60 * 60
 
-    def get_state_type(self) -> Type[ReviewAssistantState]:
+    def get_state_type(self) -> builtins.type[ReviewAssistantState]:
         return ReviewAssistantState
 
-    def get_config_type(self) -> Type[ReviewAssistantConfig]:
+    def get_config_type(self) -> builtins.type[ReviewAssistantConfig]:
         return ReviewAssistantConfig
 
     def build_graph(self) -> StateGraph:
@@ -189,13 +204,13 @@ class ReviewAssistantManifest(WorkflowManifest[ReviewAssistantState, ReviewAssis
     async def create_initial_state(
         self,
         config: ReviewAssistantConfig,
-        existing_states: List["WorkflowState"],
+        existing_states: list["WorkflowState"],
         revision: int,
         prior_self_state: ReviewAssistantState | None = None,
     ) -> ReviewAssistantState:
         return ReviewAssistantState(config=config)
 
     def convert_state_to_issues(
-        self, state: ReviewAssistantState, other_states: List["WorkflowState"]
-    ) -> List[DocumentIssue]:
+        self, state: ReviewAssistantState, other_states: list["WorkflowState"]
+    ) -> list[DocumentIssue]:
         return []

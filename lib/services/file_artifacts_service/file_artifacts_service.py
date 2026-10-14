@@ -1,4 +1,5 @@
 import logging
+import uuid
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, cast
@@ -53,6 +54,17 @@ _UPLOADED_ROLES = [
     FileRole.RESPONSE_MEMO,
     FileRole.REVIEW_INPUT,
 ]
+
+
+def _as_uuids(file_ids: list[str]) -> list[uuid.UUID]:
+    """The ids that parse as UUIDs; any other cannot name a file, so it drops out."""
+    parsed: list[uuid.UUID] = []
+    for file_id in file_ids:
+        try:
+            parsed.append(uuid.UUID(file_id))
+        except ValueError:
+            continue
+    return parsed
 
 
 def skill_backend_files() -> dict[str, Any]:
@@ -460,7 +472,9 @@ class FileArtifactsService(FileArtifactsServiceType):
         fails to load or convert is reported rather than raised, so one bad
         upload does not cost the caller the rest. Order follows ``file_ids``.
         """
-        files = await get_files_by_project_id(self.project_id, roles=_UPLOADED_ROLES)
+        files = await get_files_by_project_id(
+            self.project_id, roles=_UPLOADED_ROLES, file_ids=_as_uuids(file_ids)
+        )
         by_id = {str(file.id): file for file in files}
         loaded = LoadedDocuments(documents=[])
         for file_id in file_ids:
