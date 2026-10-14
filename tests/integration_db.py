@@ -106,7 +106,11 @@ def _applied_revisions(url: URL) -> set[str]:
 
 
 def _script() -> ScriptDirectory:
-    return ScriptDirectory.from_config(Config(str(REPO_ROOT / "alembic.ini")))
+    config = Config(str(REPO_ROOT / "alembic.ini"))
+    # alembic.ini's script_location is relative to the working directory, and
+    # pytest may be started from a subdirectory.
+    config.set_main_option("script_location", str(REPO_ROOT / "alembic"))
+    return ScriptDirectory.from_config(config)
 
 
 def _upgrade(url: URL) -> None:
