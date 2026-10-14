@@ -259,7 +259,7 @@ async def run_workflow(
         # Status is already CANCELLED in DB; CANCELLED-guard in
         # update_workflow_run_status keeps it that way.
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.error(
             f"Workflow {workflow_type} for project {project_id} exceeded "
             f"max_duration={max_duration}s — marking FAILED"

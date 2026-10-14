@@ -8,7 +8,7 @@ scoped to their address.
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -71,7 +71,7 @@ def stored(keys: list[str]) -> MicrosoftWordHandoff:
         items={"comments": [{"quote": "the words", "comment": "a point"}], "edits": []},
         reference={},
         status="pending",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
 
 

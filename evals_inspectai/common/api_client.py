@@ -5,7 +5,7 @@ import base64
 import logging
 import os
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -71,8 +71,8 @@ def _get_auth_token() -> str:
         "name": os.environ.get("EVAL_USER_NAME", DEFAULT_USER_NAME),
         "iss": JWT_ISSUER,
         "aud": JWT_AUDIENCE,
-        "iat": datetime.now(timezone.utc),
-        "exp": datetime.now(timezone.utc) + timedelta(hours=12),
+        "iat": datetime.now(UTC),
+        "exp": datetime.now(UTC) + timedelta(hours=12),
     }
     return jwt.encode(payload, secret, algorithm=JWT_ALGORITHM)
 

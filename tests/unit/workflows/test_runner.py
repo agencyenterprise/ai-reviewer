@@ -9,7 +9,6 @@ branch with a mocked graph so the behavior contract is locked in even though we
 don't spin up real LangGraph.
 """
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -127,7 +126,7 @@ async def test_run_workflow_timeout_marks_failed_and_runs_on_cancel():
     project_id = str(uuid4())
 
     async def raising_astream(*_args, **_kwargs):
-        raise asyncio.TimeoutError()
+        raise TimeoutError()
         yield  # pragma: no cover
 
     app = _build_app_with_astream(raising_astream)

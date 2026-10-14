@@ -2,7 +2,7 @@
 
 import asyncio
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -1188,8 +1188,8 @@ async def test_get_tus_upload_credentials_bearer_token_expires_in_one_hour():
         issuer="ai-reviewer",
         audience="ai-reviewer-api",
     )
-    exp = datetime.fromtimestamp(decoded["exp"], tz=timezone.utc)
-    iat = datetime.fromtimestamp(decoded["iat"], tz=timezone.utc)
+    exp = datetime.fromtimestamp(decoded["exp"], tz=UTC)
+    iat = datetime.fromtimestamp(decoded["iat"], tz=UTC)
 
     assert exp - iat >= timedelta(minutes=14)
     assert exp - iat <= timedelta(minutes=15, seconds=5)

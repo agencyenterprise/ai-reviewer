@@ -53,7 +53,7 @@ async def test_convert_to_pdf_timeout_error(tmp_path, monkeypatch):
 
     # Mock wait_for to raise TimeoutError
     async def mock_wait_for(coro, timeout):
-        raise asyncio.TimeoutError()
+        raise TimeoutError()
 
     monkeypatch.setattr(asyncio, "wait_for", mock_wait_for)
 
@@ -124,7 +124,7 @@ async def test_convert_doc_to_docx_timeout_error(tmp_path, monkeypatch):
 
     # Mock wait_for to raise TimeoutError
     async def mock_wait_for(coro, timeout):
-        raise asyncio.TimeoutError()
+        raise TimeoutError()
 
     monkeypatch.setattr(asyncio, "wait_for", mock_wait_for)
 

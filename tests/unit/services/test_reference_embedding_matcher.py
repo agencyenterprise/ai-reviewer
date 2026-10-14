@@ -4,7 +4,7 @@ The embeddings client is faked with hand-picked vectors so the cosine ranking is
 known in advance; no network or model is called.
 """
 
-from typing import Iterator
+from collections.abc import Iterator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

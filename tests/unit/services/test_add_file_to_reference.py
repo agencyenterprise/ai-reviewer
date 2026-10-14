@@ -1,7 +1,7 @@
 """Unit tests for add_file_to_reference service function."""
 
 import uuid
-from typing import Iterator
+from collections.abc import Iterator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

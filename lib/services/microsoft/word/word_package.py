@@ -110,7 +110,7 @@ def _content_types_part(types: dict[str, str]) -> bytes:
         f'<Default Extension="rels" ContentType="{_RELATIONSHIP_CONTENT_TYPE}"/>'
         '<Default Extension="xml" ContentType="application/xml"/>'
         f"{overrides}</Types>"
-    ).encode("utf-8")
+    ).encode()
 
 
 def to_docx(markup: str, path: Path) -> None:

@@ -119,15 +119,15 @@ for _ in range(REPLICATES):
     yields.append(yield_of(months))
 stoch_yield = float(np.median(yields))
 
-print("historical yield      : %.1f Ml/d" % hist_yield)
-print("stochastic (median)   : %.1f Ml/d" % stoch_yield)
-print("climate-adjusted      : %.1f Ml/d" % clim_yield)
+print(f"historical yield      : {hist_yield:.1f} Ml/d")
+print(f"stochastic (median)   : {stoch_yield:.1f} Ml/d")
+print(f"climate-adjusted      : {clim_yield:.1f} Ml/d")
 print(
-    "historical @99%%       : %.1f Ml/d (+%.1f%%)"
-    % (hist_99, 100 * (hist_99 / hist_yield - 1))
+    f"historical @99%       : {hist_99:.1f} Ml/d "
+    f"(+{100 * (hist_99 / hist_yield - 1):.1f}%)"
 )
 print(
-    "climate @99%%          : %.1f Ml/d (+%.1f%%)"
-    % (clim_99, 100 * (clim_99 / clim_yield - 1))
+    f"climate @99%          : {clim_99:.1f} Ml/d "
+    f"(+{100 * (clim_99 / clim_yield - 1):.1f}%)"
 )
 print("hist - climate spread : %.1f Ml/d" % (hist_yield - clim_yield))

@@ -10,7 +10,7 @@ attachment extraction fails.
 import io
 import uuid
 from collections.abc import AsyncIterator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -36,7 +36,7 @@ THREAD_ID = uuid.uuid4()
 
 
 def _thread(title: str | None = None) -> ChatThread:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return ChatThread(
         id=THREAD_ID, user_id=USER.id, title=title, created_at=now, last_updated_at=now
     )

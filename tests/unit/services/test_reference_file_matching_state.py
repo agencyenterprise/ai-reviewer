@@ -2,8 +2,8 @@
 ReferenceFileMatching state, exercised through get_file_reference_matches."""
 
 import uuid
+from collections.abc import Iterator
 from types import SimpleNamespace
-from typing import Iterator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

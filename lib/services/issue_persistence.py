@@ -8,7 +8,7 @@ and managing issue resolution.
 import logging
 import uuid
 from collections.abc import Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select, update
 from sqlmodel import col
@@ -183,7 +183,7 @@ async def resolve_issue(issue_id: uuid.UUID, user_id: uuid.UUID) -> Issue | None
             return issue
 
         issue.resolved_by = user_id
-        issue.resolved_at = datetime.now(timezone.utc)
+        issue.resolved_at = datetime.now(UTC)
         await session.commit()
         await session.refresh(issue)
 

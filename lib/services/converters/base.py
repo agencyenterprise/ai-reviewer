@@ -27,7 +27,7 @@ async def convert_to_markdown(
     """
     if file_path.lower().endswith((".md", ".markdown")):
         logger.info(f"File '{file_path}' is already markdown, reading directly")
-        async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
+        async with aiofiles.open(file_path, encoding="utf-8") as f:
             return await f.read()
 
     logger.info(

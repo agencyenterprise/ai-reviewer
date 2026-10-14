@@ -12,7 +12,7 @@ thing most likely to break.
 
 import asyncio
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 import pytest_asyncio
@@ -33,7 +33,7 @@ from lib.services.admin_dashboard.service import (
 from lib.services.admin_dashboard.window import DashboardWindow
 from lib.workflows.models import SeverityEnum, WorkflowRunType
 
-NOW = datetime.now(timezone.utc)
+NOW = datetime.now(UTC)
 
 # A live, user-selectable workflow: these are what the assessment metrics count.
 ASSESSMENT_SLUG = WorkflowRunType.FIGURES_TABLES_CHECK.value
@@ -596,7 +596,7 @@ async def test_period_end_is_when_the_figures_were_computed(
     async with slot:
         queued = asyncio.create_task(get_admin_dashboard(days=1))
         await asyncio.sleep(0.3)  # long enough for the task to reach the slot
-        released_at = datetime.now(timezone.utc)
+        released_at = datetime.now(UTC)
 
     response = await queued
 

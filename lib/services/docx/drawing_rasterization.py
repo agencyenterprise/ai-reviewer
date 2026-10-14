@@ -369,7 +369,7 @@ async def _render_drawings_to_images(
             return None
         succeeded = True
         return tmp_dir, image_paths
-    except asyncio.TimeoutError:
+    except TimeoutError:
         process.kill()
         await process.wait()
         logger.warning("LibreOffice PDF render timed out")

@@ -3,7 +3,7 @@
 import csv
 import io
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -20,7 +20,7 @@ from lib.workflows.models import SeverityEnum
 # Helpers
 # ---------------------------------------------------------------------------
 
-_NOW = datetime(2024, 6, 1, 12, 0, 0, tzinfo=timezone.utc)
+_NOW = datetime(2024, 6, 1, 12, 0, 0, tzinfo=UTC)
 
 
 def _make_user(**kwargs) -> User:
