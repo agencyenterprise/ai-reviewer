@@ -59,7 +59,13 @@ def _point_at_test_database() -> None:
     if "DATABASE_URL" not in os.environ and "TEST_DATABASE_URL" not in os.environ:
         return  # nothing to point at; lib.config.env reports the missing variable
     url = resolve_test_database_url(dict(os.environ))
-    os.environ["DATABASE_URL"] = url.render_as_string(hide_password=False)
+    os.environ["DATABASE_URL"] = _libpq(url)
+
+
+def _libpq(url: URL) -> str:
+    """The URL as libpq reads it: psycopg and the app's checkpointer reject a
+    SQLAlchemy dialect suffix such as `postgresql+psycopg://`."""
+    return url.set(drivername="postgresql").render_as_string(hide_password=False)
 
 
 _point_at_test_database()
@@ -67,8 +73,7 @@ _point_at_test_database()
 
 def _admin_connection(url: URL) -> psycopg.Connection:
     """A connection to the server's `postgres` database, for creating and dropping."""
-    admin = url.set(drivername="postgresql", database="postgres")
-    return psycopg.connect(admin.render_as_string(hide_password=False), autocommit=True)
+    return psycopg.connect(_libpq(url.set(database="postgres")), autocommit=True)
 
 
 def _exists(admin: psycopg.Connection, name: str) -> bool:
@@ -77,7 +82,7 @@ def _exists(admin: psycopg.Connection, name: str) -> bool:
 
 
 def _applied_revisions(url: URL) -> set[str]:
-    with psycopg.connect(url.render_as_string(hide_password=False)) as conn:
+    with psycopg.connect(_libpq(url)) as conn:
         exists = conn.execute("SELECT to_regclass('alembic_version')").fetchone()
         if not exists or exists[0] is None:
             return set()
@@ -92,7 +97,7 @@ def _script() -> ScriptDirectory:
 
 def _upgrade(url: URL) -> None:
     """Run Alembic in its own process: its env.py reconfigures logging."""
-    env = {**os.environ, "DATABASE_URL": url.render_as_string(hide_password=False)}
+    env = {**os.environ, "DATABASE_URL": _libpq(url)}
     result = subprocess.run(
         [sys.executable, "-m", "alembic", "upgrade", "head"],
         cwd=REPO_ROOT,
@@ -115,7 +120,9 @@ def _locked(conn: psycopg.Connection, key: int) -> Iterator[None]:
 
 def _rebuild(admin: psycopg.Connection, name: str) -> None:
     identifier = sql.Identifier(name)
-    admin.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(identifier))
+    # FORCE: finished runs release their lock before their workers' pools close,
+    # and only idle connections can remain once the exclusive lock is held.
+    admin.execute(sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(identifier))
     admin.execute(sql.SQL("CREATE DATABASE {}").format(identifier))
 
 
