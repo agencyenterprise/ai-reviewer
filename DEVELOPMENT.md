@@ -315,11 +315,11 @@ Security scans run automatically on every PR using [Trivy](https://trivy.dev/) v
 # Install Trivy (macOS)
 brew install aquasecurity/trivy/trivy
 
-# Scan Docker images (build first with docker compose)
+# Scan Docker images (build first with docker compose). Compose names the
+# built images after the project directory, so ask it for the names.
 docker compose build
-trivy image ai-reviewer-api
-trivy image ai-reviewer-app
-trivy image pgvector/pgvector:pg16
+docker compose pull db
+for image in $(docker compose config --images); do trivy image "$image"; done
 
 # Scan for Docker/config misconfigurations
 trivy config .
