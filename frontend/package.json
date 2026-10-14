@@ -108,7 +108,24 @@
   },
   "pnpm": {
     "overrides": {
-      "@assistant-ui/store": "0.2.13"
+      "@assistant-ui/store": "0.2.13",
+      "@humanfs/node@>=0.16.0 <0.16.8": "0.16.8",
+      "ajv@>=6.0.0 <6.14.0": "6.14.0",
+      "brace-expansion@>=1.0.0 <1.1.21": "1.1.21",
+      "brace-expansion@>=2.0.0 <2.1.7": "2.1.7",
+      "devalue@>=5.0.0 <5.9.3": "5.9.3",
+      "fflate@>=0.4.5 <0.4.9": "0.4.9",
+      "js-yaml@>=4.0.0 <4.3.2": "4.3.2",
+      "mdast-util-to-hast@>=13.0.0 <13.2.1": "13.2.1",
+      "nanoid@>=3.0.0 <3.3.18": "3.3.18",
+      "nanoid@>=5.0.0 <5.1.16": "5.1.16",
+      "picomatch@>=2.0.0 <2.3.2": "2.3.2",
+      "picomatch@>=4.0.0 <4.0.4": "4.0.4",
+      "postcss@>=8.0.0 <8.5.23": "8.5.23",
+      "source-map-js@>=1.0.0 <1.2.2": "1.2.2",
+      "tar@>=7.0.0 <7.5.21": "7.5.21",
+      "uuid@>=13.0.0 <13.0.1": "13.0.1",
+      "yaml@>=2.0.0 <2.8.3": "2.8.3"
     },
     "patchedDependencies": {
       "@mohtasham/md-to-docx@2.9.0": "patches/@mohtasham__md-to-docx@2.9.0.patch"
