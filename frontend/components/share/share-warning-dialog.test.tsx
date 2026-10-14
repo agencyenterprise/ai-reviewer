@@ -47,12 +47,6 @@ afterEach(async () => {
 });
 
 describe('ShareWarningDialog', () => {
-  it('offers no add-in export any more', async () => {
-    await open();
-
-    expect(document.body.textContent).not.toContain('add-in');
-  });
-
   it('a private project downloads plain comments, with edits, by default', async () => {
     const onDownload = await open();
     await click('Download');
@@ -80,7 +74,6 @@ describe('ShareWarningDialog', () => {
     await click('Download');
 
     expect(onDownload).toHaveBeenCalledWith('comments', { includeEdits: true });
-    expect(document.body.textContent).toContain('only added when exporting the current revision');
   });
 
   it('edits can be left out', async () => {

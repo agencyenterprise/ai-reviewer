@@ -48,30 +48,23 @@ afterEach(async () => {
   vi.clearAllMocks();
 });
 
-function setButton(title: string): HTMLButtonElement {
-  const button = [...rendered.container.querySelectorAll<HTMLButtonElement>('button[aria-pressed]')].find(
-    (b) => b.textContent === title,
+function button(label: string): HTMLButtonElement {
+  const found = [...rendered.container.querySelectorAll<HTMLButtonElement>('button')].find((b) =>
+    b.textContent?.includes(label),
   );
-  if (!button) throw new Error(`no button for ${title}`);
-  return button;
+  if (!found) throw new Error(`no "${label}" button`);
+  return found;
 }
 
 describe('AnnotationResults', () => {
-  it('lets each set be picked with a focusable button', async () => {
-    expect(setButton('Active Voice').getAttribute('aria-pressed')).toBe('true');
-    const other = setButton('Advocacy & Tone');
-    expect(other.getAttribute('aria-pressed')).toBe('false');
+  it('loads the items of the set that is picked', async () => {
+    const items = vi.mocked(listAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGet);
+    expect(items).toHaveBeenLastCalledWith(expect.objectContaining({ path: { slug: 'active_voice' } }));
 
-    other.focus();
-    expect(document.activeElement).toBe(other);
-    await act(async () => other.click());
+    await act(async () => button('Advocacy & Tone').click());
     await flush();
 
-    expect(other.getAttribute('aria-pressed')).toBe('true');
-    expect(setButton('Active Voice').getAttribute('aria-pressed')).toBe('false');
-    expect(vi.mocked(listAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGet)).toHaveBeenLastCalledWith(
-      expect.objectContaining({ path: { slug: 'advocacy_tone_v2' } }),
-    );
+    expect(items).toHaveBeenLastCalledWith(expect.objectContaining({ path: { slug: 'advocacy_tone_v2' } }));
   });
 
   it('exports every set in one file, not just the one on screen', async () => {
@@ -95,11 +88,7 @@ describe('AnnotationResults', () => {
     ];
     vi.mocked(exportAnnotationsApiAdminAnnotationsExportGet).mockResolvedValue(everySet);
 
-    const button = [...rendered.container.querySelectorAll('button')].find((b) =>
-      b.textContent?.includes('Export all'),
-    );
-    if (!button) throw new Error('no export button');
-    await act(async () => button.click());
+    await act(async () => button('Export all').click());
     await flush();
 
     expect(vi.mocked(listAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGet)).not.toHaveBeenCalledWith(

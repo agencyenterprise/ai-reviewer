@@ -3,7 +3,7 @@
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 from fastapi import FastAPI
@@ -37,7 +37,7 @@ def _client() -> TestClient:
 
 
 def _stored(feedback_type: FeedbackType) -> Feedback:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return Feedback(
         id=uuid.uuid4(),
         workflow_run_id=RUN_ID,
