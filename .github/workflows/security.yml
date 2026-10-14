@@ -91,7 +91,7 @@ jobs:
       - name: Scan PostgreSQL Image
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: postgres:16-alpine
+          image-ref: pgvector/pgvector:pg16
           format: table
           exit-code: 0
           scanners: vuln
