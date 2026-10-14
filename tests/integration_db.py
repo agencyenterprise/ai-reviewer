@@ -40,18 +40,32 @@ PREPARE_LOCK_KEY = 0x44445F5445
 IN_USE_LOCK_KEY = 0x44445F5455
 
 
+# libpq lets these query parameters pick the database instead of the URL's
+# path, which would slip past a check of the path's name.
+NAME_OVERRIDES = ("dbname", "service")
+
+
 def resolve_test_database_url(environ: dict[str, str]) -> URL:
     """`TEST_DATABASE_URL` as given, else `DATABASE_URL` with `_test` on its name."""
     explicit = environ.get("TEST_DATABASE_URL")
-    if explicit:
-        return make_url(explicit)
-    url = make_url(environ["DATABASE_URL"])
+    url = make_url(explicit or environ["DATABASE_URL"])
+    overrides = [key for key in NAME_OVERRIDES if key in url.query]
+    if overrides:
+        raise ValueError(
+            f"Remove {', '.join(overrides)} from the database URL: the test suite "
+            "picks its database from the URL's path."
+        )
     name = url.database or ""
-    return url if name.endswith(TEST_SUFFIX) else url.set(database=name + TEST_SUFFIX)
+    if explicit or name.endswith(TEST_SUFFIX):
+        return url
+    return url.set(database=name + TEST_SUFFIX)
 
 
 def is_test_database(url: str | URL) -> bool:
-    return (make_url(url).database or "").endswith(TEST_SUFFIX)
+    url = make_url(url)
+    if any(key in url.query for key in NAME_OVERRIDES):
+        return False
+    return (url.database or "").endswith(TEST_SUFFIX)
 
 
 def _point_at_test_database() -> None:
