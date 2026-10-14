@@ -1,4 +1,0 @@
-# Bulk formatting commits; ignored by git blame.
-# Enable locally: git config blame.ignoreRevsFile .git-blame-ignore-revs
-# style: reformat with black 26.3.1
-4de0d899accd8b929b75e2f8d6970d51a953b4c9
