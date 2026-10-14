@@ -402,6 +402,13 @@ sending" instruction inside it. Keep the flags out of the body of the memos,
 where they would otherwise go out to the reviewer. If there are no flags, leave
 the block out entirely.
 
+In the memo itself, quote a flagged point verbatim like any other and leave
+its reply out entirely: the author writes it once the revision answers the
+point. Do not put a placeholder in its place, such as "response pending", "to
+be addressed", or a promise to resolve it before sending. A placeholder is a
+flag in the reviewer's copy, and it goes out with the memo if the author misses
+it.
+
 Produce one such memo per reviewer. Do not generate the reviewer memos
 themselves, and do not edit the draft.
 
@@ -451,6 +458,11 @@ author response to this point" in that slot rather than leaving it out. The QAM
 then sees, for every point, what the reviewer asked, what the author said, and
 what the draft shows, in that order.
 
+When you have no response memos at all, leave the author-response slot out of
+every point: there is no reply to reproduce, so a "No author response" line
+under each point only repeats that, point by point. Say it once instead, in the
+header (see below).
+
 Use a verdict scale that reflects how real responses look, not a binary:
 
 - **addressed**: the revision resolves the point.
@@ -473,7 +485,8 @@ follows the draft, and your note says what the reply claimed and what the draft
 shows. The QAM most needs to see these discrepancies, so a consequential one
 also belongs in "What needs another pass". A point that no reply answers is
 judged on the draft alone. When you have no response memos, say so in the
-header, since every "declined with rationale" verdict then rests on reasons you
+Part 1 header, in so many words (for example "No author response memos were
+supplied"), since every "declined with rationale" verdict then rests on reasons you
 inferred from the draft rather than on reasons the author gave.
 
 Be document-type aware, because it changes what "responsive" means. A short

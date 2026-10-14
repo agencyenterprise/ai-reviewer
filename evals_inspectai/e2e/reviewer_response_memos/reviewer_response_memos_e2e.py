@@ -268,12 +268,15 @@ SHARED_CRITERIA: dict[str, str] = {
         "instead of the author fails this."
     ),
     "flags_kept_internal": (
-        "Any point the revision neither addresses nor gives a reason for is flagged for the "
+        "Any point the revision neither changes nor gives a reason for is flagged for the "
         "author in a single block at the very top, addressed to the author and marked to be "
-        "removed before sending, one line per point with its ID and what is missing. Such a "
-        "point is not given an invented reply in the memo body, and no flag or internal note "
-        "appears inside the memos themselves. When every point is answered, the block carries "
-        "no flags."
+        "removed before sending, one line per flagged point with its ID and what is missing. "
+        "Such a point is quoted in the memo body with no reply under it: no invented reply and "
+        "no placeholder such as 'response pending' or a promise to resolve it before sending. "
+        "No flag or internal note appears inside the memos themselves. Two things are expected "
+        "and are not faults: the block may also list how each uploaded document was read, "
+        "since nobody labeled them; and a point the revision partly addresses is answered in "
+        "the memo, saying what was done and what was not, rather than flagged."
     ),
 }
 
