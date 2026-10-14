@@ -12,9 +12,9 @@ document, the same edit wins, whatever order the rows arrive in.
 """
 
 import uuid
-from datetime import datetime, timezone
-from typing import Literal
 from collections.abc import Sequence
+from datetime import UTC, datetime
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -78,7 +78,7 @@ def winner_sort_key(candidate: EditCandidate) -> tuple[int, int, float, str]:
     """
     created = candidate.issue_created_at
     if created.tzinfo is None:
-        created = created.replace(tzinfo=timezone.utc)
+        created = created.replace(tzinfo=UTC)
     return (
         0 if candidate.edit.status == IssueEditStatus.ACCEPTED else 1,
         -candidate.issue_severity.sort_index(),

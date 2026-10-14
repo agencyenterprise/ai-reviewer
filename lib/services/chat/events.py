@@ -28,8 +28,8 @@ two ever differ.
 """
 
 import uuid
-from typing import Any
 from collections.abc import AsyncIterator, Iterable
+from typing import Any
 
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
@@ -167,8 +167,9 @@ class GraphEventMapper:
                     self._announce(call_id, call["name"], call.get("args") or {})
                 )
         for block in content_blocks(message.content):
-            kind, call_id = block.get("type"), block.get("id") or block.get(
-                "tool_call_id"
+            kind, call_id = (
+                block.get("type"),
+                block.get("id") or block.get("tool_call_id"),
             )
             if not call_id:
                 continue

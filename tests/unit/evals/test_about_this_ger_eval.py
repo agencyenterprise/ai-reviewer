@@ -63,12 +63,12 @@ def test_dataset_is_well_formed():
     expected = [e for r in RECORDS for e in r.expected_issues]
     assert len(expected) == 23 and sum(1 for e in expected if not e.required) == 1
     authors = [e for e in expected if e.title == AUTHOR_TITLE]
-    assert len(authors) == 9 and all(
-        e.anchor for e in authors
-    ), "author issues are anchored on the bio"
-    assert all(
-        e.anchor is None for e in expected if e not in authors
-    ), "preface rules and missing sections are not"
+    assert len(authors) == 9 and all(e.anchor for e in authors), (
+        "author issues are anchored on the bio"
+    )
+    assert all(e.anchor is None for e in expected if e not in authors), (
+        "preface rules and missing sections are not"
+    )
     assert {e.title for e in expected} == {
         *PREFACE_TITLES,
         NO_PREFACE,
@@ -86,9 +86,9 @@ def test_dataset_is_well_formed():
         and expects_severities(RECORDS)
         and not expects_edits(RECORDS)
     )
-    assert all(
-        r.notes and r.target_answer is None for r in RECORDS
-    ), "every record says why it exists"
+    assert all(r.notes and r.target_answer is None for r in RECORDS), (
+        "every record says why it exists"
+    )
 
 
 def test_decoys_sit_on_bios_with_no_expected_issue():

@@ -9,7 +9,8 @@ A Python backend (FastAPI + LangChain, under `lib/`) and a Next.js frontend (und
 uv run dev.py                              # Start the full dev environment
 uv run pytest tests/unit                   # Unit tests (what CI runs)
 uv run pytest tests/path/to/test.py -k "name"
-uv run black <files>                       # Format changed files (CI checks changed lines)
+uv run ruff format .                       # Format (CI checks the whole repo)
+uv run ruff check .                        # Lint (CI blocks on errors; --fix applies safe fixes)
 uv run mypy .                              # Type check (CI blocks on errors)
 
 # Frontend (always pnpm, from frontend/)
@@ -24,7 +25,7 @@ cd frontend && pnpm run openapi-generate   # Regenerate API types
 
 Run the same checks CI runs for the side you touched. A red check here means a red PR.
 
-- **Python changes:** `uv run black <files you changed>`, `uv run mypy .` and `uv run pytest tests/unit`. CI's Black job flags only changed lines, and the tree isn't fully Black-clean, so never run Black on the whole repo. Also run the integration tests you touched (`uv run pytest tests/integration/...`), since CI skips them.
+- **Python changes:** `uv run ruff format .`, `uv run ruff check .`, `uv run mypy .` and `uv run pytest tests/unit`. The tree is Ruff-clean, so run both Ruff commands on the whole repo. Also run the integration tests you touched (`uv run pytest tests/integration/...`), since CI skips them.
 - **Frontend changes:** `pnpm run lint`, `pnpm test` and `pnpm run build`, from `frontend/`.
 - **Backend API changes:** regenerate the frontend types (see below), then run the frontend checks.
 
@@ -85,11 +86,13 @@ def process(doc: Document) -> None:
 # ✅ Acceptable - a circular import, explained
 def process(doc: Document) -> None:
     # Imported here to avoid a circular import between lib.services.users and lib.services.documents
-    from lib.services.users import UserService
+    from lib.services.users import UserService  # noqa: PLC0415  circular, see above
     service = UserService()
 ```
 
-Never use `import *` either.
+Ruff enforces this (`PLC0415`). An import that must stay inside a function always carries `# noqa: PLC0415` followed by its reason, so the exception is visible where it happens.
+
+Never use `import *` either (Ruff flags it: `F403`, `F405`).
 
 ### Always use Pydantic `BaseModel`, never `@dataclass`
 

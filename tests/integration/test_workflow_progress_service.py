@@ -9,7 +9,7 @@ from sqlmodel import col
 
 from lib.config.database import get_async_db_session
 from lib.models.project import Project
-from lib.models.workflow_progress import ProgressLevel, WorkflowProgress
+from lib.models.workflow_progress import ProgressLevel
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services.workflow_progress import (
     cancel_workflow_progress,
@@ -154,19 +154,19 @@ async def test_complete_progress(workflow_run_id):
 async def test_get_workflow_progress_ordering(workflow_run_id):
     """Test that progress entries are returned in creation order."""
     # Create multiple progress entries
-    id1 = await create_and_start_progress(
+    await create_and_start_progress(
         workflow_run_id=workflow_run_id,
         name="First Node",
         level=ProgressLevel.NODE,
     )
 
-    id2 = await create_and_start_progress(
+    await create_and_start_progress(
         workflow_run_id=workflow_run_id,
         name="Second Node",
         level=ProgressLevel.NODE,
     )
 
-    id3 = await create_and_start_progress(
+    await create_and_start_progress(
         workflow_run_id=workflow_run_id,
         name="Third Node",
         level=ProgressLevel.NODE,
@@ -424,9 +424,9 @@ async def test_cancel_workflow_progress_completes_incomplete_entries(
     entries = await get_workflow_progress(workflow_run_id)
     assert len(entries) == 2
     for entry in entries:
-        assert (
-            entry.completed_at is not None
-        ), f"Entry {entry.name!r} should have completed_at set"
+        assert entry.completed_at is not None, (
+            f"Entry {entry.name!r} should have completed_at set"
+        )
 
 
 @pytest.mark.asyncio
@@ -537,12 +537,12 @@ async def test_cancel_workflow_progress_clears_stuck_progress_from_previous_runs
         previous_entries = await get_workflow_progress(previous_run_id)
         current_entries = await get_workflow_progress(current_run_id)
 
-        assert (
-            previous_entries[0].completed_at is not None
-        ), "Stuck entry from previous run should be cleared"
-        assert (
-            current_entries[0].completed_at is not None
-        ), "Entry from current run should be cleared"
+        assert previous_entries[0].completed_at is not None, (
+            "Stuck entry from previous run should be cleared"
+        )
+        assert current_entries[0].completed_at is not None, (
+            "Entry from current run should be cleared"
+        )
     finally:
         async with get_async_db_session() as session:
             for run_id in (previous_run_id, current_run_id):

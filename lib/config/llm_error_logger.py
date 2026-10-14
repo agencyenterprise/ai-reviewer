@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import json
 import logging
-from time import monotonic
 from dataclasses import dataclass
+from time import monotonic
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 

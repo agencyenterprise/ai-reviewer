@@ -1,15 +1,16 @@
 """Tests for workflow orchestration - dependency and same-type locking."""
 
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
+import pytest
+
+from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services.workflow_orchestration import (
     DEPENDENCY_WAIT_TIMEOUT,
     wait_for_dependencies,
 )
 from lib.workflows.models import DependencyWaitTimeoutError, WorkflowCancelledError
-from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 
 
 def create_workflow_run(
@@ -336,8 +337,6 @@ async def test_same_type_cancelled_run_does_not_block(mock_manifest):
 @pytest.mark.asyncio
 async def test_cancelled_required_dependency_raises_workflow_cancelled_error():
     """If a required dependency is CANCELLED, WorkflowCancelledError is raised and the current run is cancelled."""
-    from lib.workflows.models import WorkflowCancelledError
-
     project_id = str(uuid4())
     current_run_id = str(uuid4())
 

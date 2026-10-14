@@ -2,9 +2,12 @@
 
 import uuid
 from unittest.mock import Mock, patch
+
 import pytest
 
 from lib.models.workflow_progress import ProgressLevel
+from lib.run_utils import run_tasks
+from lib.workflows.context import current_progress_id
 from lib.workflows.decorators import register_node
 
 
@@ -37,7 +40,7 @@ class TestDecoratorProgressTracking:
         mock_state = Mock()
         mock_state.config = Mock()
         mock_state.config.project_id = "test-project"
-        result = await test_node(mock_state, mock_runtime)
+        await test_node(mock_state, mock_runtime)
 
         # Verify progress was created with UUID (converted from string)
         mock_get_or_create.assert_called_once()
@@ -57,9 +60,6 @@ class TestRunTasksProgressTracking:
     @pytest.mark.asyncio
     async def test_run_tasks_updates_progress_via_contextvar(self):
         """Test that run_tasks reads progress_id from contextvar and updates progress."""
-        from lib.run_utils import run_tasks
-        from lib.workflows.context import current_progress_id
-
         progress_id = uuid.uuid4()
         update_calls = []
 
@@ -68,7 +68,7 @@ class TestRunTasksProgressTracking:
 
         try:
             # Patch update_progress to capture calls
-            with patch("lib.services.workflow_progress.update_progress") as mock_update:
+            with patch("lib.run_utils.update_progress") as mock_update:
                 mock_update.side_effect = lambda pid, **kwargs: update_calls.append(
                     (pid, kwargs)
                 )
@@ -93,9 +93,9 @@ class TestRunTasksProgressTracking:
                 # With 2 tasks, we expect:
                 # 1. Initial update with total_steps=2
                 # 2. Progress update after each task completion (current_step=1, then 2)
-                assert (
-                    len(update_calls) >= 2
-                ), f"Expected at least 2 progress updates, got {len(update_calls)}"
+                assert len(update_calls) >= 2, (
+                    f"Expected at least 2 progress updates, got {len(update_calls)}"
+                )
 
                 # Verify all updates used the correct progress_id
                 for call_progress_id, _ in update_calls:
@@ -106,7 +106,6 @@ class TestRunTasksProgressTracking:
     @pytest.mark.asyncio
     async def test_run_tasks_works_without_progress_context(self):
         """Test that run_tasks works fine when no progress_id is set."""
-        from lib.run_utils import run_tasks
 
         # Create simple async tasks
         async def task1():

@@ -63,5 +63,5 @@ async def _read_file_content_async(file_id: str) -> str | None:
 async def _read_file_directly(file_path: str) -> str:
     """Read file content directly from disk."""
 
-    async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
+    async with aiofiles.open(file_path, encoding="utf-8") as f:
         return await f.read()

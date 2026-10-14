@@ -143,7 +143,7 @@ def _icons() -> tuple[Path, Path]:
     draw = ImageDraw.Draw(colour)
     # A magnifying glass over a page: the same idea as the product's own mark.
     draw.rounded_rectangle((44, 34, 130, 150), radius=8, fill=(255, 255, 255, 255))
-    for offset in range(0, 5):
+    for offset in range(5):
         y = 56 + offset * 18
         draw.line((60, y, 114, y), fill=BRAND + (90,), width=5)
     draw.ellipse((92, 88, 156, 152), outline=(255, 255, 255, 255), width=12)

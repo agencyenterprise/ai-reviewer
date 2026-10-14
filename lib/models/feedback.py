@@ -5,14 +5,15 @@ This module provides a self-contained feedback system that uses coordinate-based
 addressing to attach feedback to any entity.
 """
 
+import uuid
 from datetime import datetime
 from enum import Enum
-import uuid
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlmodel import Enum as SQLModelEnum
 from sqlmodel import Field as SQLField
-from sqlmodel import SQLModel, String, Enum as SQLModelEnum
+from sqlmodel import SQLModel, String
 
 
 class FeedbackType(str, Enum):

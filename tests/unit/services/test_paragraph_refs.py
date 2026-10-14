@@ -11,14 +11,14 @@ from typing import Any
 import pytest
 from docx import Document as PythonDocxDocument
 from docx.oxml.ns import qn
-from docx_editor import Document as EditorDocument, EditOperation, ParagraphInfo
+from docx_editor import Document as EditorDocument
+from docx_editor import EditOperation, ParagraphInfo
 from lxml import etree
 
 from lib.services.docx.paragraph_refs import (
     map_paragraph_refs,
     paragraph_ordinals,
 )
-
 from tests.unit.services.lean_docx import new_document
 
 # A body paragraph, a two-cell table, an empty paragraph, two paragraphs that

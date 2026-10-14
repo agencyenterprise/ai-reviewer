@@ -22,9 +22,9 @@ A task then reads::
     )
 """
 
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
-from collections.abc import Callable, Mapping, Sequence
 
 from inspect_ai.dataset import MemoryDataset
 from inspect_ai.scorer import Scorer

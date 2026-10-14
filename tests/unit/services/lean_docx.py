@@ -10,8 +10,8 @@ resolves to; the document body is built exactly as before.
 
 import io
 import zipfile
-from functools import cache
 from collections.abc import Callable
+from functools import cache
 
 from docx import Document
 from docx.document import Document as DocxDocument

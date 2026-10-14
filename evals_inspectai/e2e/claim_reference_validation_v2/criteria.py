@@ -27,8 +27,8 @@ account.
 
 import math
 import re
-from typing import Any
 from collections.abc import Mapping, Sequence
+from typing import Any
 
 from evals_inspectai.common.issue_checks import hit_pairs
 from evals_inspectai.common.issue_inventory import (

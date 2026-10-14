@@ -2,7 +2,7 @@ on: [pull_request, push]
 
 jobs:
   lint:
-    name: black formatter
+    name: ruff
     runs-on: ubuntu-latest
 
     steps:
@@ -19,8 +19,11 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      - name: Run black
-        run: uv run black --check --diff .
+      - name: Check formatting
+        run: uv run ruff format --check --diff .
+
+      - name: Lint
+        run: uv run ruff check --output-format=github .
 
   typecheck:
     name: mypy

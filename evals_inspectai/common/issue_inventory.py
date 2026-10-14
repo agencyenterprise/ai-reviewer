@@ -40,9 +40,9 @@ alone, wherever the reported issue sits.
 """
 
 import re
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Literal
-from collections.abc import Sequence
 
 import yaml
 from inspect_ai.dataset import Sample

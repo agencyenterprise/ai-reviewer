@@ -48,4 +48,4 @@ def create_workflow_config(
     except Exception as e:
         raise ValueError(
             f"Failed to create config for workflow type {workflow_type}: {e}"
-        )
+        ) from e

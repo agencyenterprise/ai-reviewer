@@ -21,17 +21,18 @@ from lib.workflows.reference_downloader.agents.reference_fetcher import (
     ReferenceFetcherAgent,
     ReferenceFetcherAgentInput,
 )
+from lib.workflows.reference_downloader.fetch_logging import (
+    log_fetch_outcome,
+    log_run_summary,
+    short_reference,
+)
 from lib.workflows.reference_downloader.state import (
     ReferenceDownloaderInputItem,
     ReferenceDownloaderState,
     ReferenceFetchResult,
     ReferenceFetchStatus,
 )
-from lib.workflows.reference_downloader.fetch_logging import (
-    log_fetch_outcome,
-    log_run_summary,
-    short_reference,
-)
+from lib.workflows.reference_file_matching.state import MatchSource
 
 logger = logging.getLogger(__name__)
 
@@ -250,8 +251,7 @@ async def _update_reference_file_matching(
 ):
     """Update the reference file matching in the ReferenceExtraction workflow state."""
 
-    from lib.services.references import add_file_to_reference
-    from lib.workflows.reference_file_matching.state import MatchSource
+    from lib.services.references import add_file_to_reference  # noqa: PLC0415  circular: references -> registry -> this node
 
     await add_file_to_reference(
         project_id=project_id,

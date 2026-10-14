@@ -1,28 +1,13 @@
-import os
 from logging.config import fileConfig
 
-import alembic_postgresql_enum
+import alembic_postgresql_enum  # noqa: F401  registers its enum comparators with alembic
+from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
-from alembic import context
+# Importing the package registers every model with SQLModel.metadata.
+import lib.models  # noqa: F401
 from lib.config.env import config as app_config
-
-# Import all models to ensure they are registered with SQLModel.metadata
-from lib.models import (
-    Annotation,
-    AnnotationItem,
-    AnnotationSet,
-    AppConfig,
-    Feedback,
-    Issue,
-    IssueEdit,
-    Project,
-    User,
-    WorkflowGateApproval,
-    WorkflowProgress,
-    WorkflowRun,
-)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

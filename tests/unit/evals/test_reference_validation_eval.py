@@ -64,9 +64,9 @@ def test_dataset_is_well_formed():
     assert len(records) == 80
     assert sum(r.not_found for r in records) == 6
     assert sum(1 for r in records if r.result == ["correct"] and not r.fields) == 47
-    assert all(
-        r.rationale for r in records if r.not_found or r.fields
-    ), "every labelled problem is explained"
+    assert all(r.rationale for r in records if r.not_found or r.fields), (
+        "every labelled problem is explained"
+    )
 
 
 def test_task_scores_every_check_and_the_reasoning():
@@ -215,7 +215,7 @@ def test_a_bare_url_must_get_an_updated_reference():
             "id": "url",
             "reference": "https://example.org/post",
             "result": "missing_fields",
-            "fields": {f: "missing" for f in FIELDS},
+            "fields": dict.fromkeys(FIELDS, "missing"),
         }
     )
     assert bare.is_bare_url
@@ -312,9 +312,9 @@ def test_each_skill_rule_has_cases_on_both_sides(rule):
             records[r].not_found and records[r].result == ["incorrect_fields"]
             for r in passing
         )
-        assert not any(
-            records[r].not_found for r in failing
-        ), "a real work with a broken link is not fabricated"
+        assert not any(records[r].not_found for r in failing), (
+            "a real work with a broken link is not fabricated"
+        )
         return
     for rid in passing:
         assert records[rid].result == ["correct"], rid

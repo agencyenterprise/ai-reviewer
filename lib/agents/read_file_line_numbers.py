@@ -14,8 +14,8 @@ gives that subagent only its own default middleware. `build_deep_agent` in
 """
 
 import re
-from typing import Any
 from collections.abc import Awaitable, Callable
+from typing import Any
 
 from deepagents.backends.utils import format_content_with_line_numbers
 from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse

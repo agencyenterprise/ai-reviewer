@@ -57,7 +57,9 @@ def test_the_subclasses_are_the_ones_we_think():
 
 
 @pytest.mark.parametrize(
-    "path", _subclass_modules(), ids=lambda p: p.name  # type: ignore[misc]
+    "path",
+    _subclass_modules(),
+    ids=lambda p: p.name,  # type: ignore[misc]
 )
 def test_no_call_site_unpacks_ainvoke(path: Path):
     """`x, y = await agent.ainvoke(...)` is the shape that breaks at runtime."""

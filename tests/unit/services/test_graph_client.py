@@ -1,13 +1,15 @@
 """Tests for reading SharePoint documents through Graph, as the person who asked."""
 
+import inspect
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
+from urllib.parse import unquote
 
 import httpx
 import pytest
 
 from lib.services.microsoft.graph import client
-from lib.services.microsoft.graph.client import redacted
+from lib.services.microsoft.graph.client import _site_relative_path, redacted
 
 
 class TestResolvingASharingLink:
@@ -46,15 +48,12 @@ class TestWhoseIdentityReads:
 
     def test_neither_call_can_be_made_without_saying_whose_it_is(self) -> None:
         """A keyword-only, non-defaulted token is the whole guard. Pin it."""
-
-        import inspect
-
         for function in (client.resolve, client.download):
             token = inspect.signature(function).parameters["token"]
             assert token.kind is inspect.Parameter.KEYWORD_ONLY, function.__name__
-            assert (
-                token.default is inspect.Parameter.empty
-            ), f"{function.__name__} must not default whose identity it reads with"
+            assert token.default is inspect.Parameter.empty, (
+                f"{function.__name__} must not default whose identity it reads with"
+            )
 
     @pytest.mark.asyncio
     async def test_the_given_token_is_what_graph_is_called_with(self) -> None:
@@ -205,10 +204,6 @@ class TestTheFallbackResolver:
     """
 
     def parts_of(self, url: str) -> list[str]:
-        from urllib.parse import unquote
-
-        from lib.services.microsoft.graph.client import _site_relative_path
-
         return [unquote(p) for p in _site_relative_path(url).split("/") if p]
 
     def test_a_copy_link_url_yields_a_site_and_path(self) -> None:
@@ -404,9 +399,9 @@ class TestTheLibrary:
         with patch("httpx.AsyncClient", return_value=graph):
             assert await client.library_url("b!x/y", token="t") == url
 
-        assert graph.get.await_args.args[0].endswith(
-            "/drives/b%21x%2Fy"
-        ), "the drive id is encoded so it cannot address another path"
+        assert graph.get.await_args.args[0].endswith("/drives/b%21x%2Fy"), (
+            "the drive id is encoded so it cannot address another path"
+        )
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(

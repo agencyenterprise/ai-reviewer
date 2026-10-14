@@ -152,14 +152,14 @@ def download_checks() -> Scorer:
             output = DownloaderOutput.model_validate_json(state.output.completion)
         except ValueError as e:
             return Score(
-                value={k: 0.0 for k in KEYS},
+                value=dict.fromkeys(KEYS, 0.0),
                 explanation=f"could not parse the workflow state: {e}",
             )
         item = (
             output.fetched_references[0].result if output.fetched_references else None
         )
         if item is None:
-            return Score(value={k: 0.0 for k in KEYS}, explanation="no fetch result")
+            return Score(value=dict.fromkeys(KEYS, 0.0), explanation="no fetch result")
         record = DownloadRecord.model_validate(state.metadata["record"])
         values, explanation = download_scores(item, output.project_files, record)
         return Score(value=values, explanation=explanation)

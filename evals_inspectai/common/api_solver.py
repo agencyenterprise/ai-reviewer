@@ -13,14 +13,14 @@ from evals_inspectai.common.api_client import (
     get_project_issues,
     poll_until_complete,
 )
+from evals_inspectai.common.errors import WorkflowCompletionError
+from evals_inspectai.common.loaders import inline_local_images
+from evals_inspectai.common.model_override import output_model_name
 from evals_inspectai.common.transcript_replay import (
     Conversation,
     messages_from_state,
     replay_conversations,
 )
-from evals_inspectai.common.loaders import inline_local_images
-from evals_inspectai.common.errors import WorkflowCompletionError
-from evals_inspectai.common.model_override import output_model_name
 
 logger = logging.getLogger(__name__)
 

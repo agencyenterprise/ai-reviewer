@@ -6,6 +6,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 
 from fastapi import Depends, HTTPException
+from tuspyserver import create_tus_router
 
 from lib.api.auth import get_current_user
 from lib.config.env import config
@@ -17,7 +18,6 @@ from lib.services.files import get_files_by_project_id
 from lib.services.projects import get_project_access
 from lib.services.references import add_file_to_reference
 from lib.workflows.reference_file_matching.state import MatchSource
-from tuspyserver import create_tus_router
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +77,9 @@ def _resolve_file_revision(
     try:
         revision = int(str(raw).strip())
     except ValueError:
-        raise HTTPException(status_code=400, detail="revision must be an integer")
+        raise HTTPException(
+            status_code=400, detail="revision must be an integer"
+        ) from None
 
     if not 1 <= revision <= project.current_revision:
         raise HTTPException(

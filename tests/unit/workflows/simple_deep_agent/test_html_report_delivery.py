@@ -6,13 +6,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from langchain_core.messages import AIMessage
 
+from lib.config.llm_models import gpt_5_6_terra_model, web_search_tool
 from lib.workflows.literature_review_v2.nodes.literature_review import (
     _SYSTEM_PROMPT as LITERATURE_REVIEW_PROMPT,
 )
 from lib.workflows.live_reports_v2.nodes.live_reports import (
     _SYSTEM_PROMPT as LIVE_REPORTS_PROMPT,
 )
-from lib.config.llm_models import gpt_5_6_terra_model, web_search_tool
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.registry import get_workflow_manifest
 from lib.workflows.simple_deep_agent.agent import (

@@ -26,8 +26,8 @@ Bibliography or Works Cited.
 import json
 import math
 import re
-from datetime import date
 from collections.abc import Sequence
+from datetime import date
 
 from inspect_ai.scorer import Score, Scorer, Target, scorer
 from inspect_ai.solver import TaskState
@@ -298,7 +298,7 @@ def source_checks(after: bool, new_sources_only: bool) -> Scorer:
             issues, inventory_from_state(state), _report(state), after, new_sources_only
         )
         if error:
-            return Score(value={key: 0.0 for key in values}, explanation=error)
+            return Score(value=dict.fromkeys(values, 0.0), explanation=error)
         return Score(value=values, explanation=explanation)
 
     return score

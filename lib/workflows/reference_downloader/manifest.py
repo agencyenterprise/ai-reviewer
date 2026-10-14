@@ -1,3 +1,5 @@
+import builtins
+
 from langgraph.graph import StateGraph
 
 from lib.workflows.manifest import WorkflowManifest
@@ -9,7 +11,6 @@ from lib.workflows.reference_downloader.state import (
     ReferenceFetchStatus,
 )
 from lib.workflows.workflow_types import WorkflowState
-import builtins
 
 
 class ReferenceDownloaderManifest(

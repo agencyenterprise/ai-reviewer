@@ -17,7 +17,7 @@ from docx_editor.exceptions import DocxEditError, TextNotFoundError
 
 from lib.services.microsoft.word import markup_writes
 from lib.services.microsoft.word.markup_writes import EditToApply
-from lib.services.microsoft.word.word_package import FragmentError, from_docx
+from lib.services.microsoft.word.word_package import from_docx
 
 CLAIM = "Our results prove the hypothesis conclusively."
 

@@ -1,7 +1,7 @@
 """Unit tests for the register_node decorator."""
 
 import uuid
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, patch
 
 import pytest
 

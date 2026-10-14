@@ -146,7 +146,7 @@ if __name__ == "__main__":
         print("-" * 80)
 
         # Run the agent
-        from lib.services.file_artifacts_service.mock import MockFileArtifactsService
+        from lib.services.file_artifacts_service.mock import MockFileArtifactsService  # noqa: PLC0415  circular: the mock imports this agent's state
 
         document_summarizer_agent = DocumentSummarizerAgent(
             ContextSchema(

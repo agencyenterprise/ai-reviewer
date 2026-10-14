@@ -20,8 +20,8 @@ Two things are particular to the chat:
   ``stream_mode="messages"``; see ``build_llm``.
 """
 
-from typing import Any
 from collections.abc import AsyncIterator, Sequence
+from typing import Any
 
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig

@@ -293,8 +293,9 @@ uv run inspect view
 ### Code Quality
 
 ```bash
-# Format Python code
-uv run black .
+# Format and lint Python code
+uv run ruff format .
+uv run ruff check .
 
 # Lint frontend code
 cd frontend && pnpm lint

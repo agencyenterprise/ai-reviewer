@@ -83,7 +83,7 @@ def _parse_heading_boundaries(lines: list[str]) -> list[tuple[int, list[str]]]:
             current[level] = m.group(2).strip()
             for deeper in range(level + 1, 5):
                 current.pop(deeper, None)
-            boundaries.append((i + 1, [current[l] for l in sorted(current)]))
+            boundaries.append((i + 1, [current[depth] for depth in sorted(current)]))
     return boundaries
 
 

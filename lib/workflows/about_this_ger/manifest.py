@@ -1,18 +1,18 @@
 """Manifest for About This (GER) workflow."""
 
+import builtins
+
 from langgraph.graph import StateGraph
 
 from lib.workflows.about_this_ger.graph import build_about_this_ger_graph
 from lib.workflows.about_this_ger.state import (
     AboutThisGerConfig,
     AboutThisGerState,
-    AgentCheckResult,
 )
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.simple_deep_agent.agent_types import issues_from_agent_result
 from lib.workflows.workflow_types import WorkflowState
-import builtins
 
 
 class AboutThisGerManifest(WorkflowManifest[AboutThisGerState, AboutThisGerConfig]):

@@ -6,8 +6,8 @@ than the user's checkbox selection.
 """
 
 import uuid
-from datetime import datetime, timedelta, timezone
 from collections.abc import Sequence
+from datetime import UTC, datetime, timedelta
 
 import pytest
 import pytest_asyncio
@@ -21,7 +21,7 @@ from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.workflow_types import get_recent_workflow_selection
 from lib.workflows.models import WorkflowRunType
 
-BASE_TIME = datetime(2026, 1, 1, tzinfo=timezone.utc)
+BASE_TIME = datetime(2026, 1, 1, tzinfo=UTC)
 
 
 class Seeder:

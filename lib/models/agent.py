@@ -49,7 +49,6 @@ class BaseAgent(ABC):
         self, prompt_kwargs: dict, config: RunnableConfig | None = None
     ) -> Any:
         """Invoke the agent."""
-        pass
 
 
 class LangChainAgent(BaseAgent):

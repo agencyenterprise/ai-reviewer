@@ -57,7 +57,7 @@ def _under_author_label(report: HtmlReport, snippet: str) -> bool:
     position = report.text.find(normalize(snippet))
     if position < 0:
         return False
-    labels = [m for m in _AUTHOR_LABEL.finditer(report.text, 0, position)]
+    labels = list(_AUTHOR_LABEL.finditer(report.text, 0, position))
     if not labels:
         return False
     between = report.text[labels[-1].end() : position]

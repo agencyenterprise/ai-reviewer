@@ -8,6 +8,7 @@ from lib.agents.document_summarizer import DocumentSummarizerAgent
 from lib.models.file import FileRole
 from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
 from lib.services.file import FileDocument
+from lib.services.files import get_cached_summary_for_file, update_file_artifacts
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.document_summarization.state import (
@@ -36,10 +37,6 @@ async def _summarize_document(
         logger.info(f"Using existing summary for file {document.file_id}")
         return existing
 
-    # Imported here to match this node's convention of pulling service helpers
-    # in lazily (avoids a circular import at module load).
-    from lib.services.files import get_cached_summary_for_file
-
     # Cross-project DB cache: reuse a summary already computed for an identical
     # file (same content_hash) in a previous project.
     summary: FileSummary | None = None
@@ -51,9 +48,7 @@ async def _summarize_document(
                 "Reusing cached summary for file %s (identical content summarized before)",
                 document.file_id,
             )
-        except (
-            Exception
-        ) as e:  # noqa: BLE001 — stale/incompatible cache shape: recompute
+        except Exception as e:  # noqa: BLE001 — stale/incompatible cache shape: recompute
             logger.warning(
                 "Cached summary for %s unusable (%s); recomputing", document.file_id, e
             )
@@ -69,7 +64,7 @@ async def _summarize_document(
         summary = FileSummary(file_id=document.file_id, **response.summary.model_dump())
 
     if role == FileRole.MAIN:
-        from lib.services.projects import update_project_title
+        from lib.services.projects import update_project_title  # noqa: PLC0415  circular: projects -> registry -> this node
 
         await update_project_title(
             project_id=runtime.context.project_id,
@@ -145,8 +140,6 @@ async def _persist_summary_artifacts(summaries: list[FileSummary]) -> None:
     Args:
         summaries: List of FileSummary objects containing file_id and summary data
     """
-    from lib.services.files import update_file_artifacts
-
     for summary in summaries:
         await update_file_artifacts(
             file_id=summary.file_id,

@@ -19,8 +19,8 @@ the repo and runs the same model over every inflow assumption.
 
 import calendar
 import re
-from pathlib import Path
 from collections.abc import Iterable
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -105,9 +105,9 @@ def test_inline_simulation_load_is_stable(documents: dict[str, str]):
         f"arrival rate {lam}/s and mean service {mean_service * 1000:.3f} ms give "
         f"rho={rho:.3f}, but the document states {stated_rho}"
     )
-    assert (
-        rho < 1
-    ), "the document reports steady-state percentiles for an unstable queue"
+    assert rho < 1, (
+        "the document reports steady-state percentiles for an unstable queue"
+    )
 
     # The Pollaczek-Khinchine value the document checks its simulator against.
     cv = np.sqrt(np.exp(sigma**2) - 1)

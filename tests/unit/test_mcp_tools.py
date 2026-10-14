@@ -2,15 +2,21 @@
 
 import asyncio
 import json
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
+import jwt as pyjwt
 import pytest
+from fastmcp.utilities.types import File
+
+import lib.api.mcp_auth as _mcp_auth_mod
+from lib.api.mcp.serialization import build_gate_required_payload
+from lib.api.services.workflow_runner import WorkflowGateRequiredError
+from lib.workflows.models import SeverityEnum
+from lib.workflows.reference_file_matching.state import MatchSource, ReferenceFileMatch
 
 # Patch auth factory before importing the MCP module (see test_mcp_server.py).
-import lib.api.mcp_auth as _mcp_auth_mod
-
 _orig = _mcp_auth_mod.create_mcp_auth
 _mcp_auth_mod.create_mcp_auth = lambda: None
 
@@ -433,9 +439,6 @@ async def test_run_workflow_passes_approve_human_steps_to_runner():
 
 @pytest.mark.asyncio
 async def test_run_workflow_returns_human_approval_required_payload():
-    from lib.api.services.workflow_runner import WorkflowGateRequiredError
-    from lib.models.workflow_run import WorkflowRunType
-
     user = _make_user()
     err = WorkflowGateRequiredError(
         project_id="p1",
@@ -516,9 +519,6 @@ async def test_run_workflow_passes_approve_web_search_to_runner():
 
 @pytest.mark.asyncio
 async def test_run_workflow_returns_web_search_required_payload():
-    from lib.api.services.workflow_runner import WorkflowGateRequiredError
-    from lib.models.workflow_run import WorkflowRunType
-
     user = _make_user()
     err = WorkflowGateRequiredError(
         project_id="p1",
@@ -561,10 +561,6 @@ async def test_run_workflow_returns_web_search_required_payload():
 
 
 def test_gate_payload_retry_list_covers_both_gates_without_duplicates():
-    from lib.api.mcp.serialization import build_gate_required_payload
-    from lib.api.services.workflow_runner import WorkflowGateRequiredError
-    from lib.models.workflow_run import WorkflowRunType
-
     err = WorkflowGateRequiredError(
         project_id="p1",
         pending_human_approval=[WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2],
@@ -587,10 +583,6 @@ def test_gate_payload_retry_list_covers_both_gates_without_duplicates():
 
 
 def test_gate_payload_when_nothing_started_retries_the_original_request():
-    from lib.api.mcp.serialization import build_gate_required_payload
-    from lib.api.services.workflow_runner import WorkflowGateRequiredError
-    from lib.models.workflow_run import WorkflowRunType
-
     requested = [
         WorkflowRunType.ABBREVIATION_SCAN_V2,
         WorkflowRunType.REFERENCE_VALIDATION_V2,
@@ -619,10 +611,6 @@ def test_gate_payload_when_nothing_started_retries_the_original_request():
 def test_gate_payload_reports_completed_and_failed_ungated_workflows():
     """Mid-flight, the message must reflect the run records: a failed ungated
     run is named as such, never folded into 'already completed'."""
-    from lib.api.mcp.serialization import build_gate_required_payload
-    from lib.api.services.workflow_runner import WorkflowGateRequiredError
-    from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
-
     err = WorkflowGateRequiredError(
         project_id="p1",
         pending_human_approval=[WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2],
@@ -815,8 +803,6 @@ def _make_aiofiles_open_mock(read_data: bytes) -> MagicMock:
 
 @pytest.mark.asyncio
 async def test_export_project_docx_returns_file():
-    from fastmcp.utilities.types import File
-
     user = _make_user()
     project_id = str(uuid4())
     fake_docx = b"PK\x03\x04fake-docx-bytes"
@@ -844,8 +830,6 @@ async def test_export_project_docx_returns_file():
 
 @pytest.mark.asyncio
 async def test_export_project_docx_passes_filters_to_service():
-    from lib.workflows.models import SeverityEnum, WorkflowRunType
-
     user = _make_user()
     project_id = str(uuid4())
 
@@ -901,11 +885,6 @@ async def test_get_project_returns_details():
 
 @pytest.mark.asyncio
 async def test_list_project_files_returns_files_with_reference():
-    from lib.workflows.reference_file_matching.state import (
-        MatchSource,
-        ReferenceFileMatch,
-    )
-
     user = _make_user()
     project = MagicMock()
     project.id = uuid4()
@@ -1120,8 +1099,6 @@ def test_build_tus_url_handles_trailing_slash_after_stripping():
 
 @pytest.mark.asyncio
 async def test_get_tus_upload_credentials_returns_required_fields():
-    import jwt as pyjwt
-
     user = _make_user()
     project = MagicMock()
     project.id = uuid4()
@@ -1187,10 +1164,6 @@ async def test_get_tus_upload_credentials_includes_reference_id():
 
 @pytest.mark.asyncio
 async def test_get_tus_upload_credentials_bearer_token_expires_in_one_hour():
-    from datetime import datetime, timezone
-
-    import jwt as pyjwt
-
     user = _make_user()
 
     with (
@@ -1203,11 +1176,9 @@ async def test_get_tus_upload_credentials_bearer_token_expires_in_one_hour():
     ):
         mock_cfg.MCP_BASE_URL = "https://app.example.com/mcp"
         mock_cfg.AUTH_SECRET = "test-secret"
-        before = datetime.now(timezone.utc)
         raw = await get_tus_upload_credentials(
             project_id=str(uuid4()), token=_make_token()
         )
-        after = datetime.now(timezone.utc)
 
     data = json.loads(raw)
     decoded = pyjwt.decode(
@@ -1217,8 +1188,8 @@ async def test_get_tus_upload_credentials_bearer_token_expires_in_one_hour():
         issuer="ai-reviewer",
         audience="ai-reviewer-api",
     )
-    exp = datetime.fromtimestamp(decoded["exp"], tz=timezone.utc)
-    iat = datetime.fromtimestamp(decoded["iat"], tz=timezone.utc)
+    exp = datetime.fromtimestamp(decoded["exp"], tz=UTC)
+    iat = datetime.fromtimestamp(decoded["iat"], tz=UTC)
 
     assert exp - iat >= timedelta(minutes=14)
     assert exp - iat <= timedelta(minutes=15, seconds=5)

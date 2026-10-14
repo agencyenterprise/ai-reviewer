@@ -9,12 +9,12 @@ from evals_inspectai.common.issue_inventory import normalize
 from lib.models.annotation import AnnotationItemKind
 from lib.services.annotations.admin import agrees_with_reference
 from lib.services.annotations.catalog import ANNOTATION_SETS
+from lib.services.annotations.eval_items import items_from_inventory
+from lib.services.annotations.service import validate_answers
 from lib.services.annotations.set_spec import SHOULD_FLAG
 from lib.services.annotations.sets.active_voice import ACTIVE_VOICE
 from lib.services.annotations.sets.inference_validation_v2 import INFERENCE_VALIDATION
 from lib.services.annotations.sets.recommendation_check import RECOMMENDATION_CHECK
-from lib.services.annotations.eval_items import items_from_inventory
-from lib.services.annotations.service import validate_answers
 
 
 @pytest.mark.parametrize("spec", ANNOTATION_SETS, ids=lambda s: s.slug)

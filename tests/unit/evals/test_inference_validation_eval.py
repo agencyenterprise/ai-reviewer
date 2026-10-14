@@ -34,9 +34,9 @@ def test_dataset_is_well_formed():
     expected = [e for r in records for e in r.expected_issues]
     assert len(expected) == 26
     assert [e.id for e in expected if not e.required] == ["collapse_claim"]
-    assert all(
-        e.title == TITLE and e.anchor and e.rationale for e in expected
-    ), "anchored, titled, with the labelled flaw"
+    assert all(e.title == TITLE and e.anchor and e.rationale for e in expected), (
+        "anchored, titled, with the labelled flaw"
+    )
     assert sum(1 for r in records if not r.expected_issues) == 9
     assert all(d.title in (TITLE, None) for r in records for d in r.decoys)
     assert expects_severities(records) is False and expects_edits(records) is False

@@ -7,10 +7,10 @@ the model allowlist fallback, and that every skill in the slash-command map
 points at a real skill and a registered workflow.
 """
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
-from collections.abc import AsyncIterator
 from unittest.mock import patch
 
 import pytest
@@ -60,7 +60,12 @@ class TestBuildChatAgent:
                 chat_agent, "build_deep_agent", return_value="graph"
             ) as create,
         ):
-            assert build_chat_agent(resolve_chat_model("gpt-5.6-sol"), "sk-user", saver) == "graph"  # type: ignore[arg-type]
+            graph = build_chat_agent(
+                resolve_chat_model("gpt-5.6-sol"),
+                "sk-user",
+                saver,  # type: ignore[arg-type]
+            )
+            assert graph == "graph"
 
         model, api_key = build_llm.call_args.args
         assert model.name == "gpt-5.6-sol" and api_key == "sk-user"

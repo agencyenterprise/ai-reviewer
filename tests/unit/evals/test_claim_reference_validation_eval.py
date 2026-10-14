@@ -75,9 +75,9 @@ def test_records_are_well_formed():
     assert all(r.policy.named_titles == sorted(LEVELS) for r in records)
     sources = [sources_of(extra) for extra in suite.extras]
     no_source = [r for r, s in zip(records, sources) if not s]
-    assert (
-        len(no_source) == 2
-    ), "the unverifiable citation's document and the document with no citations"
+    assert len(no_source) == 2, (
+        "the unverifiable citation's document and the document with no citations"
+    )
     assert sum(1 for r in records if not r.expected_issues) == 1
 
 
@@ -152,9 +152,9 @@ def test_swapped_levels_on_one_line_are_both_scored_wrong():
     assert values["recall"] == 1.0 and values["title_correct"] == 0.0
     labels, _ = label_scores(issues, inventory)
     assert labels["label_supported"] == 0.0 and labels["label_unsupported"] == 0.0
-    assert all(
-        r.policy.pair_on_location for r in load_claim_suite(DATASET).records
-    ), "the loader pairs on location"
+    assert all(r.policy.pair_on_location for r in load_claim_suite(DATASET).records), (
+        "the loader pairs on location"
+    )
 
 
 def test_label_accuracy_is_broken_down_by_the_expected_level():

@@ -1,13 +1,13 @@
 import logging
 from typing import Literal
 
-from fastapi import APIRouter, Depends
-from fastapi import HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from starlette.responses import FileResponse
 
 from lib.api.auth import get_current_user, get_current_user_optional
 from lib.api.models import (
+    CreateProjectRequest,
     CreateRevisionResponse,
     LinkReferenceFileRequest,
     LinkReferenceFileResponse,
@@ -17,18 +17,17 @@ from lib.api.models import (
 from lib.models.file import File, FileRole
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
+from lib.models.workflow_run import WorkflowRunType
 from lib.services.docx_workflow_service import DocxManipulatorType, generate_docx
 from lib.services.files import get_files_by_project_id
 from lib.services.project_zip import create_project_files_zip
-from lib.services.references import MatchSource, add_file_to_reference
-from lib.services.uuid_utils import ensure_uuid
 from lib.services.projects import (
     MAX_PROJECT_PAGE_SIZE,
     ProjectCreated,
     ProjectListPage,
     UpdateProjectRequest,
-    create_project,
     create_new_revision,
+    create_project,
     delete_project,
     delete_project_file_with_cleanup,
     get_project_access,
@@ -36,10 +35,10 @@ from lib.services.projects import (
     get_user_projects,
     update_user_project,
 )
+from lib.services.references import MatchSource, add_file_to_reference
+from lib.services.uuid_utils import ensure_uuid
 from lib.services.workflow_progress import get_project_workflow_progress
-from lib.models.workflow_run import WorkflowRunType
 from lib.workflows.models import SeverityEnum
-from lib.api.models import CreateProjectRequest
 
 router = APIRouter(tags=["projects"])
 logger = logging.getLogger(__name__)
@@ -66,7 +65,7 @@ async def create_project_endpoint(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create project",
-        )
+        ) from e
 
 
 @router.get("/api/projects", response_model=ProjectListPage)
@@ -169,13 +168,13 @@ async def download_project_docx(
     except ValueError as e:
         # A revision the project does not have: the caller's request, not ours.
         logger.warning("Rejected DOCX export for project %s: %s", project_id, e)
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error("Failed to generate DOCX: %s", e, exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Failed to generate DOCX: {str(e)}",
-        )
+        ) from e
 
     return FileResponse(
         path=file_path,

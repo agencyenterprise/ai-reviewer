@@ -12,9 +12,9 @@ calibrated against human-labelled edit pairs by
 
 import re
 
-from evals_inspectai.common.simple_deep_agent_types import ProposedEdit
 from evals_inspectai.common.issue_inventory import ResolvedIssue
 from evals_inspectai.common.issue_judge import JudgeCriterion
+from evals_inspectai.common.simple_deep_agent_types import ProposedEdit
 
 PASSIVE_TITLE = "Passive Voice"
 

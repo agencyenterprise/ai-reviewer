@@ -6,6 +6,11 @@ import pytest
 from docx import Document
 
 from lib.services.converters.markitdown import markitdown_converter
+from lib.services.docx.manipulator import (
+    CommentSeverity,
+    DocxComment,
+    DocxManipulatorService,
+)
 from lib.services.docx.paragraph_line_mapper import (
     build_paragraph_line_ranges,
     find_paragraph_by_line_range,
@@ -61,12 +66,6 @@ def test_find_paragraph_by_line_range_tie_breaks_to_lowest_index():
 @pytest.mark.asyncio
 async def test_add_comments_to_docx_end_to_end():
     """Comments resolve to concrete docx paragraphs via the new mapper."""
-    from lib.services.docx.manipulator import (
-        CommentSeverity,
-        DocxComment,
-        DocxManipulatorService,
-    )
-
     file_doc = await create_test_file_document_from_path(
         "evals/data/geopolitics-of-agi-minimal-1/_original.docx"
     )

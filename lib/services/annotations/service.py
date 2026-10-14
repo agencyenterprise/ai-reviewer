@@ -1,8 +1,8 @@
 """Annotation for users: the sets, the next item to judge, and saving answers."""
 
 import uuid
-from datetime import datetime, timezone
 from collections.abc import Sequence
+from datetime import UTC, datetime
 
 from fastapi import HTTPException
 from sqlalchemy import case, func, select
@@ -192,7 +192,7 @@ async def _save(
 ) -> None:
     """Upsert, so a double click or a second tab cannot trip the unique constraint.
     A resubmission keeps the time it took to answer the first time."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     comment = (submission.comment or "").strip() or None
     stmt = (
         insert(Annotation)

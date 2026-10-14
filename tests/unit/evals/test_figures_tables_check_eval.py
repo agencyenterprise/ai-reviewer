@@ -64,9 +64,9 @@ def test_dataset_is_well_formed():
         for e in expected
     )
     numbering = [e for e in expected if e.title == NUMBERING]
-    assert len(numbering) == 12 and all(
-        e.anchor is None for e in numbering
-    ), "numbering issues concern the whole sequence"
+    assert len(numbering) == 12 and all(e.anchor is None for e in numbering), (
+        "numbering issues concern the whole sequence"
+    )
     # Severity where the issues skill's scale names the finding, and never for a missing title.
     assert all(
         e.severity == SEVERITY.get((e.title or "").split(":")[0]) for e in expected
@@ -85,9 +85,9 @@ def test_dataset_is_well_formed():
         "supplementary_prefix",
     )
     assert all(r.notes for r in records), "every record says why it exists"
-    assert all(
-        r.target_answer is None for r in records
-    ), "the free-text target was replaced by judged criteria"
+    assert all(r.target_answer is None for r in records), (
+        "the free-text target was replaced by judged criteria"
+    )
 
 
 def test_every_anchored_element_issue_names_its_label_in_the_anchor_or_is_unlabelled():

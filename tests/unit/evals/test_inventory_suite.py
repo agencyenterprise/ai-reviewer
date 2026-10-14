@@ -100,9 +100,9 @@ async def test_the_scorer_reads_the_pairing_from_the_sample(tmp_path, pairing, r
 async def test_keys_follow_the_policy(tmp_path):
     suite = InventorySuite.load(_two_expected(tmp_path))
     score = await suite.scorers()[0](_state(suite, [MERGED]), Target(""))
-    assert set(score.value) == set(DETECTION_KEYS) - {
-        "severity_correct"
-    }, "no edits or severities in the data"
+    assert set(score.value) == set(DETECTION_KEYS) - {"severity_correct"}, (
+        "no edits or severities in the data"
+    )
     assert math.isnan(score.value["clean_document_untouched"])
 
 

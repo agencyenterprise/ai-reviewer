@@ -18,8 +18,8 @@ import asyncio
 import math
 import re
 import statistics
-from typing import Literal
 from collections.abc import Callable, Sequence
+from typing import Literal
 
 from inspect_ai.model import (
     ChatMessage,
@@ -46,10 +46,10 @@ from evals_inspectai.common.issue_checks import (
     inventory_from_state,
     issues_from_state,
 )
+from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue
 from evals_inspectai.common.loaders import local_images
 from evals_inspectai.common.scorers import DEFAULT_GRADER_MODEL, GRADE_VALUES
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
-from evals_inspectai.common.issue_inventory import ResolvedIssue, ResolvedInventory
 
 # The same shape as Inspect's model-graded templates, with the two texts an
 # edit-level criterion compares laid out explicitly.

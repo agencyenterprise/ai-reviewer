@@ -6,7 +6,7 @@ IntegrityError must surface as a 409 rather than a 500.
 """
 
 import uuid
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi import HTTPException

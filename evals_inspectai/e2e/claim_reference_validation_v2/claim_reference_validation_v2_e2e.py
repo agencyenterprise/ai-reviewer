@@ -159,7 +159,7 @@ def citation_checks() -> Scorer:
         quotes, quote_note = quote_scores(records, state.input_text)
         values = {**labels, **evidence, **quotes}
         if error:
-            return Score(value={key: 0.0 for key in values}, explanation=error)
+            return Score(value=dict.fromkeys(values, 0.0), explanation=error)
         return Score(
             value=values, explanation=f"{label_note} | {evidence_note} | {quote_note}"
         )

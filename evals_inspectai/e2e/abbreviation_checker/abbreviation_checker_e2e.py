@@ -108,7 +108,7 @@ def catalogue_checks() -> Scorer:
             reported = ReportedCatalogue.model_validate_json(state.output.completion)
         except ValidationError as e:
             return Score(
-                value={key: 0.0 for key in CATALOGUE_KEYS},
+                value=dict.fromkeys(CATALOGUE_KEYS, 0.0),
                 explanation=f"could not parse the workflow state: {e}",
             )
         values, explanation = catalogue_scores(reported, expected)

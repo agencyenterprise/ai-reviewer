@@ -51,9 +51,9 @@ def test_each_variant_differs_from_the_report_only_by_its_removed_definitions():
         lines = inventory.document.split("\n")
         edited = {n for n, (a, b) in enumerate(zip(report_lines, lines), 1) if a != b}
         assert len(lines) == len(report_lines) and edited, inventory.notes
-        assert len(catalogue.abbreviations) == len(
-            report_catalogue.abbreviations
-        ), inventory.notes
+        assert len(catalogue.abbreviations) == len(report_catalogue.abbreviations), (
+            inventory.notes
+        )
         cleared = 0
         for before, after in zip(
             report_catalogue.abbreviations, catalogue.abbreviations
@@ -68,14 +68,14 @@ def test_each_variant_differs_from_the_report_only_by_its_removed_definitions():
             assert before.model_copy(
                 update={"inline_definition": ""}
             ) == after.model_copy(update={"inline_definition": ""})
-        assert cleared >= len(
-            edited
-        ), "every edited line removes at least one definition"
+        assert cleared >= len(edited), (
+            "every edited line removes at least one definition"
+        )
         added = [e for e in inventory.expected_issues if e.id not in report_ids]
         assert report_ids <= {e.id for e in inventory.expected_issues}
-        assert all(
-            e.title == UNDEFINED and e.line in edited for e in added
-        ), "a removal only adds Rule 2 where it edits"
+        assert all(e.title == UNDEFINED and e.line in edited for e in added), (
+            "a removal only adds Rule 2 where it edits"
+        )
 
 
 def test_report_task_composition():

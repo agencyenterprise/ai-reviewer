@@ -8,6 +8,13 @@ import pytest
 from fastapi import HTTPException
 from fastapi.responses import FileResponse
 
+from lib.api.routers.logs import (
+    _list_log_files,
+    _resolve_safe_path,
+    download_log,
+    list_logs,
+)
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -34,8 +41,6 @@ def _make_log_dir(tmp_path: Path) -> Path:
 
 def test_resolve_safe_path_valid_file(tmp_path):
     """A file that exists inside the log directory is returned."""
-    from lib.api.routers.logs import _resolve_safe_path
-
     log_dir = _make_log_dir(tmp_path)
     log_file = log_dir / "app.log"
     log_file.write_text("hello")
@@ -48,8 +53,6 @@ def test_resolve_safe_path_valid_file(tmp_path):
 
 def test_resolve_safe_path_dot_dot_traversal(tmp_path):
     """Classic ../ traversal is rejected with 400."""
-    from lib.api.routers.logs import _resolve_safe_path
-
     _make_log_dir(tmp_path)
 
     with _patch_log_dir(tmp_path):
@@ -67,8 +70,6 @@ def test_resolve_safe_path_sibling_dir_bypass(tmp_path):
     would pass startswith('/uploads/logs') but is correctly rejected by
     is_relative_to().
     """
-    from lib.api.routers.logs import _resolve_safe_path
-
     _make_log_dir(tmp_path)
 
     # Create the sibling directory and a file inside it to ensure the path
@@ -91,8 +92,6 @@ def test_resolve_safe_path_absolute_path_rejected(tmp_path):
     Python's Path joining replaces the base when the right operand is absolute,
     e.g. Path('/a/b') / '/c/d' == Path('/c/d'). is_relative_to() must catch this.
     """
-    from lib.api.routers.logs import _resolve_safe_path
-
     _make_log_dir(tmp_path)
 
     with _patch_log_dir(tmp_path):
@@ -104,8 +103,6 @@ def test_resolve_safe_path_absolute_path_rejected(tmp_path):
 
 def test_resolve_safe_path_nonexistent_file_raises_404(tmp_path):
     """A filename that stays within the log dir but does not exist returns 404."""
-    from lib.api.routers.logs import _resolve_safe_path
-
     _make_log_dir(tmp_path)
 
     with _patch_log_dir(tmp_path):
@@ -122,8 +119,6 @@ def test_resolve_safe_path_nonexistent_file_raises_404(tmp_path):
 
 def test_list_log_files_missing_dir_returns_empty(tmp_path):
     """Returns an empty list when the logs directory does not exist."""
-    from lib.api.routers.logs import _list_log_files
-
     with _patch_log_dir(tmp_path):
         result = _list_log_files()
 
@@ -132,8 +127,6 @@ def test_list_log_files_missing_dir_returns_empty(tmp_path):
 
 def test_list_log_files_filters_non_app_log_files(tmp_path):
     """Only files whose names start with 'app.log' are returned."""
-    from lib.api.routers.logs import _list_log_files
-
     log_dir = _make_log_dir(tmp_path)
     (log_dir / "app.log").write_text("current")
     (log_dir / "app.log.2024-01-01").write_text("rotated")
@@ -152,8 +145,6 @@ def test_list_log_files_filters_non_app_log_files(tmp_path):
 
 def test_list_log_files_sorted_newest_first(tmp_path):
     """Files are returned sorted by modification time, newest first."""
-    from lib.api.routers.logs import _list_log_files
-
     log_dir = _make_log_dir(tmp_path)
 
     oldest = log_dir / "app.log.2024-01-01"
@@ -188,8 +179,6 @@ def test_list_log_files_sorted_newest_first(tmp_path):
 @pytest.mark.asyncio
 async def test_list_logs_returns_empty_list(tmp_path):
     """Returns an empty list when no log files exist."""
-    from lib.api.routers.logs import list_logs
-
     _make_log_dir(tmp_path)
 
     with _patch_log_dir(tmp_path):
@@ -201,8 +190,6 @@ async def test_list_logs_returns_empty_list(tmp_path):
 @pytest.mark.asyncio
 async def test_list_logs_returns_correct_metadata(tmp_path):
     """Returns LogFileInfo with the correct filename, size, and mtime."""
-    from lib.api.routers.logs import list_logs
-
     log_dir = _make_log_dir(tmp_path)
     log_file = log_dir / "app.log"
     log_file.write_text("log content")
@@ -220,8 +207,6 @@ async def test_list_logs_returns_correct_metadata(tmp_path):
 @pytest.mark.asyncio
 async def test_list_logs_multiple_files_newest_first(tmp_path):
     """Multiple log files are listed newest first."""
-    from lib.api.routers.logs import list_logs
-
     log_dir = _make_log_dir(tmp_path)
     (log_dir / "app.log.2024-01-01").write_text("old")
     time.sleep(0.02)
@@ -242,8 +227,6 @@ async def test_list_logs_multiple_files_newest_first(tmp_path):
 @pytest.mark.asyncio
 async def test_download_log_returns_file_response(tmp_path):
     """A valid log file download returns a FileResponse with correct attributes."""
-    from lib.api.routers.logs import download_log
-
     log_dir = _make_log_dir(tmp_path)
     log_file = log_dir / "app.log"
     log_file.write_text("log line 1\nlog line 2\n")
@@ -259,8 +242,6 @@ async def test_download_log_returns_file_response(tmp_path):
 @pytest.mark.asyncio
 async def test_download_log_traversal_raises_400(tmp_path):
     """A path traversal attempt raises HTTP 400."""
-    from lib.api.routers.logs import download_log
-
     _make_log_dir(tmp_path)
 
     with _patch_log_dir(tmp_path):
@@ -273,8 +254,6 @@ async def test_download_log_traversal_raises_400(tmp_path):
 @pytest.mark.asyncio
 async def test_download_log_nonexistent_raises_404(tmp_path):
     """A valid-looking but absent filename raises HTTP 404."""
-    from lib.api.routers.logs import download_log
-
     _make_log_dir(tmp_path)
 
     with _patch_log_dir(tmp_path):

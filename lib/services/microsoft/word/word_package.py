@@ -21,10 +21,10 @@ import base64
 import logging
 import shutil
 import tempfile
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
-from collections.abc import Iterator
 from xml.sax.saxutils import escape
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -110,7 +110,7 @@ def _content_types_part(types: dict[str, str]) -> bytes:
         f'<Default Extension="rels" ContentType="{_RELATIONSHIP_CONTENT_TYPE}"/>'
         '<Default Extension="xml" ContentType="application/xml"/>'
         f"{overrides}</Types>"
-    ).encode("utf-8")
+    ).encode()
 
 
 def to_docx(markup: str, path: Path) -> None:

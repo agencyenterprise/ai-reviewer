@@ -9,7 +9,7 @@ import logging
 from graphlib import TopologicalSorter
 
 from lib.workflows.models import WorkflowRunType
-from lib.workflows.registry import get_workflow_manifest
+from lib.workflows.registry import get_all_manifests, get_workflow_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +22,6 @@ def get_required_dependents(workflow_type: WorkflowRunType) -> list[WorkflowRunT
     cancellation: when a workflow is cancelled, all workflows that require it
     (directly or transitively) should also be cancelled.
     """
-    from lib.workflows.registry import get_all_manifests
-
     all_manifests = get_all_manifests()
     visited: set[WorkflowRunType] = set()
     queue: list[WorkflowRunType] = [workflow_type]

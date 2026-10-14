@@ -1,9 +1,11 @@
 """Manifest for reference file matching workflow."""
 
+import builtins
 from typing import cast
 
 from langgraph.graph import StateGraph
 
+from lib.services.files import get_main_file_id, get_processed_supporting_file_ids
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.reference_file_matching.graph import (
@@ -13,10 +15,8 @@ from lib.workflows.reference_file_matching.state import (
     ReferenceFileMatchingConfig,
     ReferenceFileMatchingState,
 )
-from lib.workflows.workflow_types import WorkflowState
-from lib.services.files import get_main_file_id, get_processed_supporting_file_ids
 from lib.workflows.util import get_state_by_type
-import builtins
+from lib.workflows.workflow_types import WorkflowState
 
 
 class ReferenceFileMatchingManifest(

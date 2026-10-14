@@ -56,6 +56,7 @@ from inspect_ai.viewer import (
 
 from evals_inspectai.common.api_solver import surface_conversations
 from evals_inspectai.common.loaders import resolve_input
+from evals_inspectai.common.model_override import output_model_name
 from evals_inspectai.common.peer_review_fixture import (
     ResponseMemo,
     ReviewerMemo,
@@ -73,7 +74,6 @@ from evals_inspectai.common.scorers import (
     failed_score,
     grade_criteria,
 )
-from evals_inspectai.common.model_override import output_model_name
 from evals_inspectai.e2e.reviewer_coverage_report.response_checks import (
     check_author_verbatim,
     check_response_slots,

@@ -5,7 +5,6 @@ description = "AI-powered peer-review document analysis"
 requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.14.0",
-    "black==26.3.1",
     "dotenv>=0.9.9",
     "langchain>=1.3.9",
     "langchain-text-splitters>=1.1.2",
@@ -59,10 +58,62 @@ dependencies = [
     "markdown-it-py>=4.0.0",
 ]
 
-[tool.black]
-target-version = ["py313"]
+[tool.ruff]
+target-version = "py313"
+line-length = 88
 # Alembic generates these; keep migration history untouched.
-extend-exclude = "alembic/versions"
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.format]
+# Ruff also formats Python blocks inside Markdown; the docs and skills keep
+# their snippets as written.
+exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = [
+    "E4", "E7", "E9", "F",  # Ruff's defaults: pyflakes and the pycodestyle errors
+    "PLC0415",  # imports inside functions (AGENTS.md)
+    "I",  # import sorting
+    "UP",  # pyupgrade
+    "B",  # bugbear
+    "C4",  # comprehensions
+    "PIE",
+]
+ignore = [
+    # Moving a (str, Enum) to StrEnum changes str() and format() of every
+    # member, and these values reach the database and the API.
+    "UP042",
+    # PEP 695 type parameters: a typing refactor, not a lint fix.
+    "UP047",
+    # zip(strict=) changes behaviour; each call needs its own decision.
+    "B905",
+    # dict(a=1) is as readable as a literal.
+    "C408",
+]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI and FastMCP declare dependencies as call defaults.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastmcp.dependencies.CurrentContext",
+    "fastmcp.server.dependencies.CurrentAccessToken",
+]
+
+[tool.ruff.lint.isort]
+# The repo's alembic/ folder holds migrations, not the alembic package.
+known-third-party = ["alembic"]
+
+[tool.ruff.lint.per-file-ignores]
+# These suites import a shared fixture by name from a support module and then
+# request it as a parameter, which pyflakes reads as a redefinition.
+"tests/integration/test_mcp_project_reads.py" = ["F811"]
+"tests/integration/test_project_content_views.py" = ["F811"]
+"tests/integration/test_project_overview_view.py" = ["F811"]
+"tests/integration/test_workflow_run_detail_view.py" = ["F811"]
+"tests/unit/services/test_tracked_changes_apply.py" = ["F811"]
+"tests/unit/services/test_tracked_changes_conflicts.py" = ["F811"]
+"tests/unit/services/test_tracked_changes_planning.py" = ["F811"]
 
 [tool.mypy]
 explicit_package_bases = true
@@ -104,6 +155,7 @@ addopts = [
 [dependency-groups]
 dev = [
     "lxml-stubs>=0.5.1",
+    "ruff==0.17.0",
     "types-aiofiles>=25.1.0.20251011",
     "types-pyyaml>=6.0.12.20260408",
 ]

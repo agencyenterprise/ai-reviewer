@@ -13,34 +13,38 @@ from typing import cast
 import pytest
 from inspect_ai.solver import TaskState
 
-from evals_inspectai.common.simple_deep_agent_types import IssueItem, ProposedEdit
 from evals_inspectai.common.issue_checks import (
     DETECTION_KEYS,
     EDIT_KEYS,
     HitRank,
-    issue_check_keys,
+    _canonical_order,
+    _edited_sentences,
+    _sentence_spans,
+    _tokens,
     decoy_hits,
     decoy_scores,
-    issue_detection_scores,
     edit_checks,
     edits_for,
     extra_edit_scores,
     hit_issue,
+    issue_check_keys,
+    issue_detection_scores,
     issues_from_state,
 )
 from evals_inspectai.common.issue_inventory import (
     Decoy,
     ExpectedIssue,
     InventoryRecord,
-    ResolvedIssue,
     ResolvedInventory,
+    ResolvedIssue,
     ScoringPolicy,
-    locate_anchor,
     inventory_to_sample,
+    locate_anchor,
     overlaps,
     quoted_verbatim,
     resolve_record,
 )
+from evals_inspectai.common.simple_deep_agent_types import IssueItem, ProposedEdit
 
 DOC = "# Title\n\n## Methods\n\nData were collected from 3 sites by the field team. We then coded the notes.\n\n## Results\n\nThe scope is limited to urban sites. Findings are listed in Appendix A.\n"
 LINES = DOC.split("\n")
@@ -151,9 +155,9 @@ def test_quoted_verbatim_reads_across_lines_and_ellipses_but_not_paraphrase():
     )
     assert not quoted_verbatim("Data came from 3 sites", DOC)
     assert not quoted_verbatim(" … ", DOC), "a quote with no words quotes nothing"
-    assert not quoted_verbatim(
-        "We then coded the notes … Data were collected", DOC
-    ), "pieces must keep their order"
+    assert not quoted_verbatim("We then coded the notes … Data were collected", DOC), (
+        "pieces must keep their order"
+    )
 
 
 # --- detection ------------------------------------------------------------------
@@ -254,9 +258,9 @@ def test_decoy_hits_by_reason_over_the_dataset_wide_reason_list():
     assert set(values) == {f"no_fp_{r}" for r in REASONS}
     assert values["no_fp_stative"] == 0.0
     assert values["no_fp_active"] == 1.0
-    assert math.isnan(
-        values["no_fp_generic"]
-    ), "a reason absent from this sample is unscored, not passed"
+    assert math.isnan(values["no_fp_generic"]), (
+        "a reason absent from this sample is unscored, not passed"
+    )
     assert "false positive (stative)" in note
 
 
@@ -296,9 +300,9 @@ def test_titled_decoy_is_flagged_only_under_its_title():
         [support, bracketing],
         _inventory(decoys=[decoy]).with_policy(decoy_reasons=["lead_in"]),
     )
-    assert (
-        values["no_fp_lead_in"] == 0.0
-    ), "decoy_scores passes the document lines, so bracketing counts"
+    assert values["no_fp_lead_in"] == 0.0, (
+        "decoy_scores passes the document lines, so bracketing counts"
+    )
 
 
 def test_untitled_expected_prefers_a_free_form_report_over_a_named_kind():
@@ -447,9 +451,9 @@ def test_title_matches_as_whole_words_anywhere_in_the_reported_title():
         [_issue(title="Unsupported recommendation: x", description=quoted)],
         _inventory([supported]),
     )
-    assert (
-        values["title_correct"] == 0.0
-    ), "a whole-word match: 'supported' is not inside 'unsupported'"
+    assert values["title_correct"] == 0.0, (
+        "a whole-word match: 'supported' is not inside 'unsupported'"
+    )
     values, _ = issue_detection_scores(
         [_issue(title="Recommendation partially supported: x", description=quoted)],
         _inventory([supported]),
@@ -481,9 +485,9 @@ def test_one_to_one_matching_counts_a_merged_occurrence_as_missing():
     )
 
     values, _ = issue_detection_scores([merged], _inventory([first, second]))
-    assert (
-        values["recall"] == 1.0
-    ), "by default one paragraph-level issue may cover several expected issues"
+    assert values["recall"] == 1.0, (
+        "by default one paragraph-level issue may cover several expected issues"
+    )
 
     values, note = issue_detection_scores(
         [merged], _inventory([first, second]).with_policy(pairing="one_to_one")
@@ -622,9 +626,9 @@ def test_one_to_one_matching_gives_a_shared_report_to_the_required_expectation(
         [shared], _inventory(expected).with_policy(pairing="one_to_one")
     )
 
-    assert (
-        values["recall"] == 1.0
-    ), "the optional expectation must not consume the report the required one needs"
+    assert values["recall"] == 1.0, (
+        "the optional expectation must not consume the report the required one needs"
+    )
     assert "missing" not in note
 
 
@@ -667,14 +671,12 @@ def test_evidence_tied_reports_are_matched_the_same_way_in_either_order(one_to_o
     assert forward == backward
     assert forward["recall"] == 1.0
     if one_to_one:
-        assert (
-            forward["precision"] == 0.5
-        ), "the split itself is charged to precision, whichever half is paired"
+        assert forward["precision"] == 0.5, (
+            "the split itself is charged to precision, whichever half is paired"
+        )
 
 
 def test_canonical_order_is_total_over_report_content():
-    from evals_inspectai.common.issue_checks import _canonical_order
-
     a = _issue(
         title="Same title", description="Same text.", severity="high", start=5, end=5
     )
@@ -837,8 +839,9 @@ def test_an_expected_issue_without_an_anchor_is_hit_by_its_title_wherever_the_is
 
 
 def test_anchorless_expected_issues_are_matched_one_to_one_by_title():
-    results, references = _absent(), _absent(
-        id="no_refs", title="Missing Section: References"
+    results, references = (
+        _absent(),
+        _absent(id="no_refs", title="Missing Section: References"),
     )
     issues = [
         _issue(title="Missing Section: References", start=1, end=1),
@@ -880,9 +883,9 @@ def test_title_and_line_are_not_scored_for_an_expected_issue_without_an_anchor()
     values, note = issue_detection_scores(
         issues, _inventory([_absent(), anchored]).with_policy(edits=False)
     )
-    assert (
-        values["title_correct"] == 1.0 and values["anchor_in_range"] == 0.0
-    ), "only the anchored issue is scored"
+    assert values["title_correct"] == 1.0 and values["anchor_in_range"] == 0.0, (
+        "only the anchored issue is scored"
+    )
     assert "anchored: lines 1-1 do not bracket line 5" in note
 
 
@@ -1150,8 +1153,6 @@ def test_forbidden_phrases_left_standing_in_the_edited_sentence_fail():
 
 
 def test_edited_sentence_positions_follow_earlier_edits_on_the_line():
-    from evals_inspectai.common.issue_checks import _edited_sentences
-
     line = "Alpha is short. Beta was written by the team here."
     later_then_earlier = [
         _edit("Beta was written by the team here.", "The team wrote beta here."),
@@ -1164,8 +1165,6 @@ def test_edited_sentence_positions_follow_earlier_edits_on_the_line():
 
 
 def test_sentence_scope_does_not_split_on_decimals_or_et_al():
-    from evals_inspectai.common.issue_checks import _edited_sentences
-
     line = "Attendance rose 2.1 percent (Smith et al., 2024). Costs fell."
     edit = _edit("Attendance rose 2.1 percent", "Attendance increased 2.1 percent")
     assert (
@@ -1175,8 +1174,6 @@ def test_sentence_scope_does_not_split_on_decimals_or_et_al():
 
 
 def test_sentence_scope_splits_after_a_footnote_marker_and_before_a_digit():
-    from evals_inspectai.common.issue_checks import _edited_sentences, _sentence_spans
-
     line = "Sites were shortlisted by the planners.[[4]](#footnote-5) Categories were chosen so that a source exists. 2024 was the base year."
     assert [line[s:t].strip() for s, t in _sentence_spans(line)] == [
         "Sites were shortlisted by the planners.[[4]](#footnote-5)",
@@ -1191,8 +1188,6 @@ def test_sentence_scope_splits_after_a_footnote_marker_and_before_a_digit():
 
 
 def test_a_deletion_contributes_no_neighbouring_sentence_to_the_scope():
-    from evals_inspectai.common.issue_checks import _edited_sentences
-
     line = "One is x. Two is y. Three is z."
     assert _edited_sentences(line, [_edit(" Two is y.", "")]) == ""
     lines = LINES[:8] + [line]
@@ -1207,9 +1202,9 @@ def test_a_deletion_contributes_no_neighbouring_sentence_to_the_scope():
     out = edit_checks(
         f, _issue(start=9, end=9, edits=[_edit(" Two is y.", "", line=9)]), lines
     )
-    assert (
-        out["edit_expected_phrases"][0] == 0.0
-    ), "a deletion carries no required phrase; its neighbour supplies none"
+    assert out["edit_expected_phrases"][0] == 0.0, (
+        "a deletion carries no required phrase; its neighbour supplies none"
+    )
 
 
 def test_edits_on_other_lines_are_checked_against_their_own_line():
@@ -1233,17 +1228,15 @@ def test_edits_on_other_lines_are_checked_against_their_own_line():
         _edit("respondents", "participants", line=5),
     ]
     out = edit_checks(f, _issue(start=3, end=5, edits=edits), lines)
-    assert (
-        out["edit_quote_on_line"][0] == 1.0
-    ), "the second edit is quoted from line 5, not line 3"
-    assert (
-        out["edit_expected_phrases"][0] == 1.0
-    ), "each edit's sentence is judged on its own line"
+    assert out["edit_quote_on_line"][0] == 1.0, (
+        "the second edit is quoted from line 5, not line 3"
+    )
+    assert out["edit_expected_phrases"][0] == 1.0, (
+        "each edit's sentence is judged on its own line"
+    )
 
 
 def test_quotes_with_no_break_spaces_still_locate_their_sentence():
-    from evals_inspectai.common.issue_checks import _edited_sentences
-
     line = "Attendance rose 2.1\xa0percent  in the pilot. Costs fell."
     edit = _edit(
         "Attendance rose 2.1 percent in the pilot.",
@@ -1256,8 +1249,6 @@ def test_quotes_with_no_break_spaces_still_locate_their_sentence():
 
 
 def test_percentage_points_are_not_a_percentage():
-    from evals_inspectai.common.issue_checks import _tokens
-
     assert _tokens("rose 9 percentage points") == ["9"]
     assert _tokens("rose 9 percent") == ["9%"] and _tokens("rose 9%") == ["9%"]
 
@@ -1281,9 +1272,12 @@ def test_percentage_units_travel_with_their_number():
         "Retention rose 7 per cent in the same period.",
         line=9,
     )
-    check = lambda e: edit_checks(f, _issue(start=9, end=9, edits=[e]), lines)[
-        "edit_keeps_numbers_and_markers"
-    ][0]
+
+    def check(e: ProposedEdit) -> float:
+        return edit_checks(f, _issue(start=9, end=9, edits=[e]), lines)[
+            "edit_keeps_numbers_and_markers"
+        ][0]
+
     assert check(keeps_unit) == 1.0 and check(british) == 1.0
     assert check(drops_unit) == 0.0, "a bare 7 is not 7 percent"
 

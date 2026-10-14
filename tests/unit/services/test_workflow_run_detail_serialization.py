@@ -2,7 +2,7 @@
 the row's raw ``state_json`` too doubled every project payload with an exact
 copy of ``state``; the response must emit the state once."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from lib.models.workflow_run import (
@@ -36,8 +36,8 @@ def _detail() -> WorkflowRunDetail:
         status=WorkflowRunStatus.COMPLETED,
         langgraph_thread_id="thread",
         revision=1,
-        created_at=datetime.now(timezone.utc),
-        last_updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        last_updated_at=datetime.now(UTC),
         state_json=state.model_dump(mode="json"),
     )
     return WorkflowRunDetail(

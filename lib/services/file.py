@@ -28,7 +28,7 @@ class FileDocument(BaseModel):
     )
 
     def __hash__(self):
-        return hash((self.file_path))
+        return hash(self.file_path)
 
     def __eq__(self, other):
         if not isinstance(other, FileDocument):

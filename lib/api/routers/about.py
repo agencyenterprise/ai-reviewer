@@ -30,4 +30,4 @@ async def get_about_content() -> AboutContentResponse:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="About page content is unavailable.",
-        )
+        ) from e

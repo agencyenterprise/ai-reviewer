@@ -1,14 +1,13 @@
 import asyncio
 import logging
 import uuid
-from typing import Any
 from collections.abc import Mapping
+from typing import Any
 
 from langfuse import propagate_attributes
 from langgraph.channels.base import BaseChannel
 from langgraph.graph import StateGraph
 
-from lib.services.workflow_orchestration import wait_for_dependencies
 from lib.config.env import config as env_config
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
@@ -25,9 +24,11 @@ from lib.services.file_artifacts_service.file_artifacts_service import (
 from lib.services.issue_persistence import persist_workflow_issues
 from lib.services.users import get_user_decrypted_api_key
 from lib.services.vector_store import VectorStoreService
+from lib.services.workflow_orchestration import wait_for_dependencies
 from lib.services.workflow_runs import (
     fail_workflow_run,
     get_latest_workflow_run_state_by_type,
+    get_project_workflow_runs,
     persist_workflow_run_state,
     update_workflow_run_status,
 )
@@ -258,7 +259,7 @@ async def run_workflow(
         # Status is already CANCELLED in DB; CANCELLED-guard in
         # update_workflow_run_status keeps it that way.
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.error(
             f"Workflow {workflow_type} for project {project_id} exceeded "
             f"max_duration={max_duration}s — marking FAILED"
@@ -387,7 +388,6 @@ async def _persist_issues_from_state(
 
     # Load all existing workflow states for the project and revision so manifests
     # that read data from other workflow states can resolve correctly.
-    from lib.services.workflow_runs import get_project_workflow_runs
 
     workflow_runs = await get_project_workflow_runs(
         project_id, revision=revision, include_internal=True

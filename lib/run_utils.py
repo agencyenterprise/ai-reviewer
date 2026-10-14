@@ -4,6 +4,7 @@ import os
 from typing import Any
 from uuid import UUID
 
+from lib.services.workflow_progress import update_progress
 from lib.workflows.context import current_progress_id
 from lib.workflows.error_details import build_workflow_error
 from lib.workflows.models import WorkflowError
@@ -26,9 +27,6 @@ def _get_progress_id() -> UUID | None:
 async def _update_progress_safely(progress_id: UUID, **kwargs) -> None:
     """Update progress with error handling."""
     try:
-        # Import here to avoid circular dependency at module load time
-        from lib.services.workflow_progress import update_progress
-
         await update_progress(progress_id, **kwargs)
     except Exception as e:
         logger.warning(f"Failed to update progress: {e}")

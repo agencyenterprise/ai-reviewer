@@ -7,7 +7,7 @@ scope, expired, or a Draft Detective session that did not come from a Microsoft
 sign-in, must all come back as nobody.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -28,7 +28,7 @@ KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 def entra_token(**overrides: Any) -> str:
     """An Office single sign-on token as Entra would issue it, signed with ``KEY``."""
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     claims: dict[str, Any] = {
         "aud": CLIENT_ID,
         "iss": f"https://login.microsoftonline.com/{TENANT}/v2.0",
@@ -56,7 +56,7 @@ def session_token(**overrides: Any) -> str:
         "tid": TENANT,
         "iss": "ai-reviewer",
         "aud": "ai-reviewer-api",
-        "exp": datetime.now(timezone.utc) + timedelta(minutes=15),
+        "exp": datetime.now(UTC) + timedelta(minutes=15),
         **overrides,
     }
     return jwt.encode(claims, SECRET_KEY, algorithm=ALGORITHM)
@@ -97,7 +97,7 @@ class TestOfficeSingleSignOn:
             {"aud": "another-app"},
             {"iss": "https://login.microsoftonline.com/another-tenant/v2.0"},
             {"scp": "User.Read"},
-            {"exp": datetime.now(timezone.utc) - timedelta(minutes=5)},
+            {"exp": datetime.now(UTC) - timedelta(minutes=5)},
             {"oid": None},
         ],
         ids=[

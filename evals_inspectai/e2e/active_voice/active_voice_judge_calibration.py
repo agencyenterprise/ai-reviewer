@@ -36,9 +36,9 @@ from inspect_ai.scorer import (
 )
 from inspect_ai.solver import Generate, Solver, TaskState, solver
 
+from evals_inspectai.common.issue_judge import edit_prompt, grade
 from evals_inspectai.common.loaders import yaml_dataset
 from evals_inspectai.common.scorers import DEFAULT_GRADER_MODEL
-from evals_inspectai.common.issue_judge import edit_prompt, grade
 from evals_inspectai.e2e.active_voice.criteria import MEANING_CRITERION, READS_CRITERION
 
 PAIRS = Path(__file__).parent / "calibration" / "edit_pairs.yaml"

@@ -23,7 +23,7 @@ service; what is stored is the question waiting to be answered, and where to ans
 
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
 from microsoft_agents.activity import Activity, ConversationReference
@@ -96,7 +96,7 @@ async def park(pending: PendingQuestion) -> str:
     """Store a question until its asker signs in, and return the id that finds it."""
 
     pending_id = uuid.uuid4().hex
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     async with get_async_db_session() as session:
         await session.execute(
             insert(MicrosoftTeamsSignInState).values(

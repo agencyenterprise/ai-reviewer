@@ -27,9 +27,9 @@ from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.admin_dashboard.models import (
     ActiveUserItem,
+    ActivityGranularity,
     ActivityPoint,
     DashboardFeedbackSummary,
-    ActivityGranularity,
     MetricWithDelta,
     WorkflowStatusCounts,
     WorkflowUsageItem,

@@ -92,7 +92,7 @@ def review_structure() -> Scorer:
         output, error = _output(state)
         if output is None:
             return Score(
-                value={key: 0.0 for key in STRUCTURE_DESCRIPTIONS}, explanation=error
+                value=dict.fromkeys(STRUCTURE_DESCRIPTIONS, 0.0), explanation=error
             )
         record = Reviewer2Record.model_validate(state.metadata["record"])
         values, explanation = structure_scores(output, state.input_text, record.authors)
@@ -177,7 +177,7 @@ def review_judged(calls: int = 1) -> Scorer:
         output, error = _output(state)
         if output is None or not (output.peer_review_markdown or "").strip():
             return Score(
-                value={key: 0.0 for key in JUDGED_KEYS},
+                value=dict.fromkeys(JUDGED_KEYS, 0.0),
                 explanation=error or "no peer review produced",
             )
         record = Reviewer2Record.model_validate(state.metadata["record"])

@@ -21,7 +21,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
-from lib.agents.teams_agent import answer_question, answer_text
+from lib.agents.teams_agent import SYSTEM_PROMPT, answer_question, answer_text
 from lib.agents.tools import sharepoint
 
 # Every run reads as somebody; the tests do not care who.
@@ -84,9 +84,9 @@ class TestWhatTheAgentIsGiven:
 
         files = agent.ainvoke.call_args[0][0]["files"]
         assert not any(path.startswith("/documents/") for path in files)
-        assert any(
-            path.startswith("/skills/") for path in files
-        ), "skills must be mounted before the run; a tool cannot add them"
+        assert any(path.startswith("/skills/") for path in files), (
+            "skills must be mounted before the run; a tool cannot add them"
+        )
 
     @pytest.mark.asyncio
     async def test_the_asker_is_named_in_the_prompt(self) -> None:
@@ -454,28 +454,19 @@ class TestTheToolsTheAgentGets:
 
 class TestThePrompt:
     def test_it_forbids_answering_from_a_name_alone(self) -> None:
-        from lib.agents.teams_agent import SYSTEM_PROMPT
-
         assert "Open a document before answering" in SYSTEM_PROMPT
 
     def test_a_link_is_stated_as_the_only_way_to_reach_a_document(self) -> None:
         """The behaviour most likely to drift, since searching feels helpful."""
 
-        from lib.agents.teams_agent import SYSTEM_PROMPT
-
         assert "A link is the only way to reach a document" in SYSTEM_PROMPT
         assert "must not guess at a URL" in SYSTEM_PROMPT
 
     def test_it_requires_asking_for_the_link_when_only_a_name_is_given(self) -> None:
-        from lib.agents.teams_agent import SYSTEM_PROMPT
-
         assert "ask them to paste it" in SYSTEM_PROMPT
 
     def test_it_still_answers_questions_that_need_no_document(self) -> None:
         """Asking for a link to answer "what can you do?" would be a regression."""
-
-        from lib.agents.teams_agent import SYSTEM_PROMPT
-
         assert "Some questions need no document at all" in SYSTEM_PROMPT
 
 

@@ -56,9 +56,9 @@ async def call(tool: Any, *args: Any) -> Any:
 def mounted(result: Any) -> dict[str, Any]:
     """The files a Command mounts, having checked it is a Command that mounts some."""
 
-    assert isinstance(
-        result, Command
-    ), f"expected a Command, got {type(result).__name__}: {result}"
+    assert isinstance(result, Command), (
+        f"expected a Command, got {type(result).__name__}: {result}"
+    )
     assert result.update is not None, "a Command that updates nothing mounts nothing"
     return dict(result.update["files"])
 

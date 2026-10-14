@@ -19,7 +19,8 @@ import asyncio
 import logging
 from collections.abc import Sequence
 
-from docx_editor import BatchOperationError, Document as EditorDocument, EditOperation
+from docx_editor import BatchOperationError, EditOperation
+from docx_editor import Document as EditorDocument
 
 from lib.services.docx.tracked_changes_models import (
     TRACKED_CHANGE_AUTHOR,

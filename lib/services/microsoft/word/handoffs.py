@@ -19,7 +19,7 @@ whichever of them it carries.
 import logging
 import re
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 from urllib.parse import parse_qs, unquote, urlparse
 
@@ -214,7 +214,7 @@ def _owned_by(account: Account) -> Any:
 
 
 def _fresh() -> Any:
-    return col(MicrosoftWordHandoff.created_at) >= datetime.now(timezone.utc) - KEPT_FOR
+    return col(MicrosoftWordHandoff.created_at) >= datetime.now(UTC) - KEPT_FOR
 
 
 async def _sweep(session: AsyncSession) -> None:
@@ -239,7 +239,7 @@ async def create(
     """Store a handoff, and sweep the ones past their time in the same transaction."""
 
     handoff_id = uuid.uuid4()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     async with get_async_db_session() as session:
         await session.execute(
             insert(MicrosoftWordHandoff).values(
@@ -326,7 +326,7 @@ async def finish(
                 .values(
                     status=status,
                     outcome=outcome.model_dump(mode="json") if outcome else None,
-                    finished_at=datetime.now(timezone.utc),
+                    finished_at=datetime.now(UTC),
                 )
                 .returning(
                     col(MicrosoftWordHandoff.document_name),

@@ -13,8 +13,8 @@ documents shipped with numbers their own models could not produce.
 
 import calendar
 import re
-from pathlib import Path
 from collections.abc import Sequence
+from pathlib import Path
 
 import numpy as np
 import yaml
@@ -25,8 +25,8 @@ records = yaml.safe_load(
 doc = [r for r in records if r["id"] == "appendix_parameters"][0]["input"]
 
 rows = [
-    (y, l)
-    for y, l in re.findall(r"^\| (\d{4}-\d{2}) \| (.+) \|$", doc, re.M)
+    (y, line)
+    for y, line in re.findall(r"^\| (\d{4}-\d{2}) \| (.+) \|$", doc, re.M)
     if y[0] == "2"
 ]
 WY_MONTHS = [10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -39,16 +39,13 @@ for label, line in rows:
 
 SMAX = 9840.0
 AREA = 1.42  # km^2 -> mm depth * area = Ml
-EVAP_MM = {
-    m: v for m, v in enumerate([4, 8, 21, 44, 71, 86, 92, 78, 47, 22, 7, 3], start=1)
-}
-CLIMATE = {
-    m: v
-    for m, v in enumerate(
+EVAP_MM = dict(enumerate([4, 8, 21, 44, 71, 86, 92, 78, 47, 22, 7, 3], start=1))
+CLIMATE = dict(
+    enumerate(
         [1.08, 1.06, 1.02, 0.96, 0.91, 0.84, 0.79, 0.81, 0.88, 0.97, 1.04, 1.07],
         start=1,
     )
-}
+)
 
 
 def comp_rate(month: int) -> float:  # Ml/d
@@ -119,15 +116,15 @@ for _ in range(REPLICATES):
     yields.append(yield_of(months))
 stoch_yield = float(np.median(yields))
 
-print("historical yield      : %.1f Ml/d" % hist_yield)
-print("stochastic (median)   : %.1f Ml/d" % stoch_yield)
-print("climate-adjusted      : %.1f Ml/d" % clim_yield)
+print(f"historical yield      : {hist_yield:.1f} Ml/d")
+print(f"stochastic (median)   : {stoch_yield:.1f} Ml/d")
+print(f"climate-adjusted      : {clim_yield:.1f} Ml/d")
 print(
-    "historical @99%%       : %.1f Ml/d (+%.1f%%)"
-    % (hist_99, 100 * (hist_99 / hist_yield - 1))
+    f"historical @99%       : {hist_99:.1f} Ml/d "
+    f"(+{100 * (hist_99 / hist_yield - 1):.1f}%)"
 )
 print(
-    "climate @99%%          : %.1f Ml/d (+%.1f%%)"
-    % (clim_99, 100 * (clim_99 / clim_yield - 1))
+    f"climate @99%          : {clim_99:.1f} Ml/d "
+    f"(+{100 * (clim_99 / clim_yield - 1):.1f}%)"
 )
 print("hist - climate spread : %.1f Ml/d" % (hist_yield - clim_yield))

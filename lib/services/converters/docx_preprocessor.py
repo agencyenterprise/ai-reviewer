@@ -86,7 +86,7 @@ class DocxPreprocessor:
 
             return str(output_file)
 
-        except asyncio.TimeoutError as err:
+        except TimeoutError as err:
             process.kill()
             await process.wait()
             raise RuntimeError(

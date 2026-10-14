@@ -97,9 +97,7 @@ async def test_legacy_doc_mime_is_preprocessed_to_docx():
     with (
         patch(f"{MODULE}.docx_preprocessor", preprocessor),
         patch(f"{MODULE}.rasterize_docx_drawings", new=AsyncMock(return_value=None)),
-        patch(
-            f"{MODULE}.replace_extracted_images", new=AsyncMock()
-        ) as replace_images_mock,
+        patch(f"{MODULE}.replace_extracted_images", new=AsyncMock()),
         patch(
             f"{MODULE}.convert_to_markdown_fn",
             new=AsyncMock(return_value="# legacy"),
@@ -127,9 +125,7 @@ async def test_legacy_doc_extension_without_msword_mime_uses_copy_path():
     with (
         patch(f"{MODULE}.shutil.copy") as copy_mock,
         patch(f"{MODULE}.rasterize_docx_drawings", new=AsyncMock(return_value=None)),
-        patch(
-            f"{MODULE}.replace_extracted_images", new=AsyncMock()
-        ) as replace_images_mock,
+        patch(f"{MODULE}.replace_extracted_images", new=AsyncMock()),
         patch(
             f"{MODULE}.convert_to_markdown_fn",
             new=AsyncMock(return_value="# copied"),

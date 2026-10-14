@@ -7,7 +7,6 @@ logger = logging.getLogger(__name__)
 
 
 class FileConverterProtocol(Protocol):
-
     async def convert_to_markdown(self, file_path: str) -> str: ...
 
 
@@ -28,7 +27,7 @@ async def convert_to_markdown(
     """
     if file_path.lower().endswith((".md", ".markdown")):
         logger.info(f"File '{file_path}' is already markdown, reading directly")
-        async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
+        async with aiofiles.open(file_path, encoding="utf-8") as f:
             return await f.read()
 
     logger.info(
@@ -36,14 +35,14 @@ async def convert_to_markdown(
     )
 
     if converter == "markitdown":
-        from lib.services.converters.markitdown import markitdown_converter
+        from lib.services.converters.markitdown import markitdown_converter  # noqa: PLC0415  circular: the converter imports this module
 
         return await markitdown_converter.convert_to_markdown(
             file_path, keep_data_uris=keep_data_uris
         )
 
     if converter == "pypdfium":
-        from lib.services.converters.pypdfium import pypdfium_converter
+        from lib.services.converters.pypdfium import pypdfium_converter  # noqa: PLC0415  circular: the converter imports this module
 
         return await pypdfium_converter.convert_to_markdown(file_path)
 

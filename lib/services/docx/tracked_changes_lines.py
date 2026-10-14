@@ -7,8 +7,8 @@ carries, which is the rendered one, so the rendering lives here too.
 """
 
 import re
-from difflib import SequenceMatcher
 from collections.abc import Sequence
+from difflib import SequenceMatcher
 
 from lib.models.issue_edit import IssueEdit
 from lib.services.markdown_text import render_line_text

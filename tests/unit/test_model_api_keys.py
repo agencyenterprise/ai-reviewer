@@ -3,7 +3,9 @@
 from unittest.mock import MagicMock, patch
 
 from lib.config.llm_models import LLMModel
+from lib.config.rate_limiter import get_rate_limiter as get_rl
 from lib.config.rate_limiter import hash_api_key
+from lib.models.agent import LangChainAgent
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     FileArtifactsServiceType,
 )
@@ -16,9 +18,6 @@ def _make_context(openai_api_key: str | None = None) -> ContextSchema:
         file_artifacts_service=MagicMock(spec=FileArtifactsServiceType),
         project_id="test-project",
     )
-
-
-from lib.models.agent import LangChainAgent
 
 
 class _TestAgent(LangChainAgent):
@@ -73,8 +72,6 @@ def test_rate_limiter_uses_model_key_when_no_context_key():
         mock_config.MODEL_API_KEYS = {"gpt-5-mini-2025-08-07": "sk-model-specific"}
         limiter = agent.get_rate_limiter()
 
-    from lib.config.rate_limiter import get_rate_limiter as get_rl
-
     expected = get_rl(hash_api_key("sk-model-specific"))
     assert limiter is expected
 
@@ -85,8 +82,6 @@ def test_rate_limiter_prefers_context_key_over_model_key():
         mock_config.MODEL_API_KEYS = {"gpt-5-mini-2025-08-07": "sk-model-specific"}
         limiter = agent.get_rate_limiter()
 
-    from lib.config.rate_limiter import get_rate_limiter as get_rl
-
     expected = get_rl(hash_api_key("sk-context-key"))
     assert limiter is expected
 
@@ -96,8 +91,6 @@ def test_rate_limiter_falls_back_to_context_key():
     with patch("lib.config.env.config") as mock_config:
         mock_config.MODEL_API_KEYS = {}
         limiter = agent.get_rate_limiter()
-
-    from lib.config.rate_limiter import get_rate_limiter as get_rl
 
     expected = get_rl(hash_api_key("sk-context-key"))
     assert limiter is expected

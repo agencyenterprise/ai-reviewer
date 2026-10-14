@@ -5,8 +5,8 @@ Callers supply the user prompt (specific rules/criteria) and may optionally
 override the system prompt when the default is not appropriate.
 """
 
-from typing import Any, Literal
 from collections.abc import Callable, Sequence
+from typing import Any, Literal
 
 from deepagents.backends.utils import file_data_to_string
 from langchain_core.messages import HumanMessage, SystemMessage

@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
-from lib.api.mcp.serialization import WEB_SEARCH_CONSENT_QUESTION
 import lib.skills as skills_module
+from lib.api.mcp.serialization import WEB_SEARCH_CONSENT_QUESTION
 from lib.skills import (
     _SKILLS_DIR,
     INTERACTIVE_ONLY_END,

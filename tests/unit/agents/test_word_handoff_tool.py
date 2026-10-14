@@ -82,9 +82,9 @@ class TestOffering:
         resolve.assert_awaited_once_with(URL, token=TOKEN)
         stored = create.await_args.kwargs
         assert stored["requester"].oid == "oid-ana"
-        assert (
-            stored["requester"].tid == "tid-home"
-        ), "the tenant comes from the asker's own token"
+        assert stored["requester"].tid == "tid-home", (
+            "the tenant comes from the asker's own token"
+        )
         assert stored["requester"].upn == "ana@contoso.com"
         assert stored["reference"] == REFERENCE
         assert stored["items"].count == 2

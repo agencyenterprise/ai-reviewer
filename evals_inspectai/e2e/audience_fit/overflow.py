@@ -120,7 +120,7 @@ def overflow_scores(
     """The four overflow keys; NaN unless the inventory expects more than ``CAP`` technical paragraphs."""
     split = overflow_split(inventory)
     if split is None:
-        return {key: math.nan for key in OVERFLOW_KEYS}, "not an overflow sample"
+        return dict.fromkeys(OVERFLOW_KEYS, math.nan), "not an overflow sample"
     first, rest = split
     singles = [i for i in issues if normalize(i.title) == normalize(PARAGRAPH_TITLE)]
     summaries = overflow_summaries(issues)

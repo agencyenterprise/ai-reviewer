@@ -7,6 +7,7 @@ Used by both direct multipart uploads and TUS resumable uploads.
 
 import logging
 import os
+import shutil
 import uuid
 
 import aiofiles
@@ -100,8 +101,6 @@ async def finalize_file_from_path(
 
     was_deduplicated = os.path.exists(permanent_path)
     if not was_deduplicated:
-        import shutil
-
         shutil.move(file_path, permanent_path)
         logger.info("Moved %s to permanent location (hash: %s)", filename, content_hash)
 

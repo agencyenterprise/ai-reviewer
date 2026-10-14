@@ -12,9 +12,9 @@ namespace, where pytest finds it.
 """
 
 import uuid
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from collections.abc import Sequence
 
 import pytest
 from docx_editor import Document as EditorDocument
@@ -32,7 +32,6 @@ from lib.workflows.simple_deep_agent.edit_anchoring import (
     document_lines,
     normalize_whitespace,
 )
-
 from tests.unit.services.lean_docx import new_document
 
 # The document under test. A non-breaking space inside prose and a phrase

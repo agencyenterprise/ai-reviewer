@@ -1,6 +1,6 @@
 """The time window every dashboard aggregate is computed over."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from pydantic import BaseModel
 
@@ -26,7 +26,7 @@ class DashboardWindow(BaseModel):
 
     @classmethod
     def for_days(cls, days: int) -> "DashboardWindow":
-        end = datetime.now(timezone.utc)
+        end = datetime.now(UTC)
         span = timedelta(days=days)
         return cls(
             days=days,

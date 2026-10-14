@@ -12,8 +12,8 @@ from fastapi import APIRouter, Depends, Query
 
 from lib.api.auth import get_current_user_optional
 from lib.models.issue import Issue
-from lib.models.workflow_run import WorkflowRunType
 from lib.models.user import User
+from lib.models.workflow_run import WorkflowRunType
 from lib.services.issue_persistence import get_project_issues
 from lib.services.project_content import (
     ProjectDocument,

@@ -16,9 +16,9 @@ are published.
 """
 
 import math
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
-from collections.abc import Sequence
 
 import yaml
 from inspect_ai.dataset import MemoryDataset, Sample

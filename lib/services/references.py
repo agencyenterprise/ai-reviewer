@@ -14,12 +14,12 @@ from lib.services.workflow_runs import (
     read_workflow_run_state,
 )
 from lib.workflows.models import WorkflowRunType
-
 from lib.workflows.reference_downloader.state import ReferenceDownloaderState
 from lib.workflows.reference_extraction.state import ReferenceExtractionState
 from lib.workflows.reference_file_matching.state import (
     MatchSource,
     ReferenceFileMatch,
+    ReferenceFileMatchingConfig,
     ReferenceFileMatchingState,
 )
 
@@ -66,8 +66,6 @@ async def _get_file_matching_workflow_state(
         Tuple of (workflow_run, state) or (run, None) if the revision has no
         main file to construct a default state from
     """
-    from lib.workflows.reference_file_matching.state import ReferenceFileMatchingConfig
-
     run = await get_project_workflow_run_by_type(
         project_id,
         WorkflowRunType.REFERENCE_FILE_MATCHING,

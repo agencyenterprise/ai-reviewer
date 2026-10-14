@@ -1,3 +1,4 @@
+import builtins
 from typing import cast
 
 from langgraph.graph import StateGraph
@@ -14,9 +15,8 @@ from lib.workflows.reference_validation_v2.state import (
     ReferenceValidationV2Status,
     ReferenceValidationV2WorkflowConfig,
 )
-from lib.workflows.workflow_types import WorkflowState
 from lib.workflows.util import get_state_by_type
-import builtins
+from lib.workflows.workflow_types import WorkflowState
 
 _FINAL_RESULT_SEVERITY: dict[ReferenceValidationFinalResultV2, SeverityEnum] = {
     ReferenceValidationFinalResultV2.CORRECT: SeverityEnum.NONE,
@@ -116,7 +116,7 @@ class ReferenceValidationV2Manifest(
 
             field_validations = "\n\n".join(
                 [
-                    f"- **{item.category.value.capitalize()}**: {item.problem_type.value.capitalize()}\n\n\t*Current*: {item.current_value or "-"}\n\n\t*Suggested*: {item.suggested_value}"
+                    f"- **{item.category.value.capitalize()}**: {item.problem_type.value.capitalize()}\n\n\t*Current*: {item.current_value or '-'}\n\n\t*Suggested*: {item.suggested_value}"
                     for item in result.bibliography_field_validations
                 ]
             )

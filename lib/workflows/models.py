@@ -12,8 +12,6 @@ from lib.skill_workflow_spec import read_all_skill_workflow_declarations
 class WorkflowCancelledError(Exception):
     """Raised when a workflow has been cancelled. Propagates through LangGraph without being converted to a WorkflowError."""
 
-    pass
-
 
 class DependencyWaitTimeoutError(Exception):
     """Raised when wait_for_dependencies exceeds DEPENDENCY_WAIT_TIMEOUT.
@@ -22,8 +20,6 @@ class DependencyWaitTimeoutError(Exception):
     RUNNING). The dependent run should be marked FAILED with
     failure_reason=dependency_timeout.
     """
-
-    pass
 
 
 class WorkflowErrorSeverity(StrEnum):
@@ -212,7 +208,7 @@ def is_user_visible_workflow(workflow_type: WorkflowRunType) -> bool:
     Check if a workflow type should be visible to users in the workflow list.
     Uses the is_internal flag from each workflow's manifest.
     """
-    from lib.workflows.registry import get_all_manifests
+    from lib.workflows.registry import get_all_manifests  # noqa: PLC0415  circular: registry imports this module
 
     manifest = get_all_manifests().get(workflow_type)
     if manifest is None:

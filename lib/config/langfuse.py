@@ -12,8 +12,6 @@ class NoOpCallbackHandler(BaseCallbackHandler):
     to work without tracing.
     """
 
-    pass
-
 
 def _is_langfuse_configured() -> bool:
     """Check if required Langfuse configuration is present."""

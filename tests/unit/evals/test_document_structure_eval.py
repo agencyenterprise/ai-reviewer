@@ -37,9 +37,9 @@ def test_dataset_is_well_formed():
     assert len(expected) == 13
     # Every issue is about a section the document lacks: matched on the title, no anchor.
     assert all(e.anchor is None and e.title in TITLES for e in expected)
-    assert {e.title for e in expected} == set(
-        TITLES
-    ), "every section, the appendix included, is missing somewhere"
+    assert {e.title for e in expected} == set(TITLES), (
+        "every section, the appendix included, is missing somewhere"
+    )
     assert all(e.severity == "high" for e in expected)
     assert sum(1 for r in records if not r.expected_issues) == 10
     assert expects_anchors(records) is False and expects_severities(records) is True

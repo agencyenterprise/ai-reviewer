@@ -11,12 +11,11 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from lib.models.workflow_progress import ProgressLevel
+from lib.workflows.decorators import register_node
 from lib.workflows.document_processing.nodes.convert_to_markdown import (
     convert_to_markdown,
 )
-
-from lib.models.workflow_progress import ProgressLevel
-from lib.workflows.decorators import register_node
 
 logger = logging.getLogger(__name__)
 
@@ -55,9 +54,9 @@ async def test_diagnostic_check_decorator_receives_workflow_run_id(mock_create):
     await test_node(mock_state, mock_runtime)
 
     # Check if create_and_start_progress was called
-    assert (
-        mock_create.called
-    ), "Progress tracking not triggered - workflow_run_id not detected"
+    assert mock_create.called, (
+        "Progress tracking not triggered - workflow_run_id not detected"
+    )
 
     # Verify it was called with a UUID object (converted from string)
     called_workflow_run_id = mock_create.call_args[1]["workflow_run_id"]
@@ -76,9 +75,9 @@ async def test_diagnostic_check_real_node_signature():
     # Check if it matches our expectations
     assert len(params) == 2, f"Expected 2 params, got {len(params)}"
     assert params[0] == "state", f"First param should be 'state', got '{params[0]}'"
-    assert (
-        params[1] == "runtime"
-    ), f"Second param should be 'runtime', got '{params[1]}'"
+    assert params[1] == "runtime", (
+        f"Second param should be 'runtime', got '{params[1]}'"
+    )
 
 
 @pytest.mark.asyncio
