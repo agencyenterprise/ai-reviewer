@@ -49,6 +49,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from evals_inspectai.common.loaders import resolve_input
 
+
 class EditExpectation(BaseModel):
     """What a correct proposed edit for an expected issue must and must not contain."""
 
@@ -94,7 +95,10 @@ class ExpectedIssue(BaseModel):
             "used twice with explicit lines; the loader rejects a record whose resolved ids repeat."
         ),
     )
-    line: Optional[int] = Field(default=None, description="1-indexed document line; resolved from the anchor when omitted")
+    line: Optional[int] = Field(
+        default=None,
+        description="1-indexed document line; resolved from the anchor when omitted",
+    )
     edit_expected: Optional[bool] = Field(
         default=None,
         description="True when a correct run attaches a proposed edit for this issue, False when it must not; None to not check",
@@ -129,20 +133,31 @@ class ExpectedIssue(BaseModel):
     def _located_or_titled(self) -> "ExpectedIssue":
         # A blank anchor or title would match everything: an empty title's pattern
         # matches any reported title, an empty anchor is quoted by any issue.
-        if any(value is not None and not value.strip() for value in (self.anchor, self.title)):
-            raise ValueError("an expected issue's anchor and title, when given, must not be blank")
+        if any(
+            value is not None and not value.strip()
+            for value in (self.anchor, self.title)
+        ):
+            raise ValueError(
+                "an expected issue's anchor and title, when given, must not be blank"
+            )
         if self.anchor is None and self.title is None:
             raise ValueError("an expected issue needs an anchor, a title, or both")
         if self.anchor is None and self.line is not None:
-            raise ValueError("`line` locates an anchor; an expected issue without one cannot set it")
+            raise ValueError(
+                "`line` locates an anchor; an expected issue without one cannot set it"
+            )
         return self
 
 
 class Decoy(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    anchor: str = Field(description="Verbatim text of a sentence that looks like an issue but is not; must appear in the document")
-    reason: str = Field(description="Which rule of the check would misfire here; becomes the metric no_fp_<reason>")
+    anchor: str = Field(
+        description="Verbatim text of a sentence that looks like an issue but is not; must appear in the document"
+    )
+    reason: str = Field(
+        description="Which rule of the check would misfire here; becomes the metric no_fp_<reason>"
+    )
     rationale: Optional[str] = Field(
         default=None,
         description=(
@@ -165,12 +180,20 @@ class Decoy(BaseModel):
 class InventoryRecord(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    input: str = Field(description="The document: inline markdown, or file://<path> relative to evals_inspectai/")
-    expected_issues: list[ExpectedIssue] = Field(
-        default_factory=list, description="Issues a correct run reports; empty for a clean document"
+    input: str = Field(
+        description="The document: inline markdown, or file://<path> relative to evals_inspectai/"
     )
-    decoys: list[Decoy] = Field(default_factory=list, description="Sentences a correct run leaves alone")
-    notes: Optional[str] = Field(default=None, description="Why the record exists or how it was labelled; not scored")
+    expected_issues: list[ExpectedIssue] = Field(
+        default_factory=list,
+        description="Issues a correct run reports; empty for a clean document",
+    )
+    decoys: list[Decoy] = Field(
+        default_factory=list, description="Sentences a correct run leaves alone"
+    )
+    notes: Optional[str] = Field(
+        default=None,
+        description="Why the record exists or how it was labelled; not scored",
+    )
     publication_date: Optional[str] = Field(
         default=None,
         description=(
@@ -200,7 +223,9 @@ def anchored(expected: ResolvedIssue) -> AnchoredIssue:
     """``expected`` typed as having an anchor and a line, for a check that only makes
     sense on a located issue; raises for an issue about something the document lacks."""
     if expected.anchor is None or expected.line is None:
-        raise ValueError(f"expected issue {expected.id!r} has no anchor, so it has no line to check")
+        raise ValueError(
+            f"expected issue {expected.id!r} has no anchor, so it has no line to check"
+        )
     return AnchoredIssue(**expected.model_dump())
 
 
@@ -260,7 +285,9 @@ class ResolvedInventory(BaseModel):
 
     def with_policy(self, **changes: Any) -> "ResolvedInventory":
         """This inventory scored under its policy with ``changes`` applied."""
-        return self.model_copy(update={"policy": self.policy.model_copy(update=changes)})
+        return self.model_copy(
+            update={"policy": self.policy.model_copy(update=changes)}
+        )
 
 
 def normalize(text: str) -> str:
@@ -294,7 +321,8 @@ _QUOTE_WRAPPING = "*_\"'“”‘’ "
 def quoted_verbatim(quote: str, text: str) -> bool:
     """Whether the ellipsis-separated pieces of ``quote`` occur in ``text`` in order, each
     after the previous one, after normalising case, quotes and whitespace, so a sentence
-    wrapped across lines counts and a reordered quote does not. An empty quote quotes nothing."""
+    wrapped across lines counts and a reordered quote does not. An empty quote quotes nothing.
+    """
     haystack = normalize(text)
     pieces = [normalize(p).strip(_QUOTE_WRAPPING) for p in _ELLIPSIS_RE.split(quote)]
     pieces = [p for p in pieces if p]
@@ -319,11 +347,15 @@ def locate_anchor(lines: list[str], anchor: str, label: str) -> int:
     return hits[0]
 
 
-def _resolve_line(lines: list[str], expected: ExpectedIssue, label: str) -> Optional[int]:
+def _resolve_line(
+    lines: list[str], expected: ExpectedIssue, label: str
+) -> Optional[int]:
     """The line an expected issue's anchor sits on, or None when it has no anchor."""
     if expected.anchor is None:
         return None
-    line = expected.line or locate_anchor(lines, expected.anchor, f"expected issue {label!r}")
+    line = expected.line or locate_anchor(
+        lines, expected.anchor, f"expected issue {label!r}"
+    )
     if normalize(expected.anchor) not in normalize(lines[line - 1]):
         raise ValueError(f"expected issue {label!r}: anchor is not on line {line}")
     return line
@@ -337,8 +369,12 @@ def resolve_record(record: InventoryRecord) -> ResolvedInventory:
         label = expected.id or expected.anchor or expected.title
         assert label is not None  # the model requires an anchor or a title
         line = _resolve_line(lines, expected, label)
-        issues.append(ResolvedIssue(**{**expected.model_dump(), "line": line, "id": label}))
-    repeated = sorted({i.id for i in issues if sum(1 for j in issues if j.id == i.id) > 1})
+        issues.append(
+            ResolvedIssue(**{**expected.model_dump(), "line": line, "id": label})
+        )
+    repeated = sorted(
+        {i.id for i in issues if sum(1 for j in issues if j.id == i.id) > 1}
+    )
     if repeated:
         raise ValueError(
             f"expected issue ids must be unique within a record; repeated: {repeated}. "
@@ -393,18 +429,26 @@ def expects_edits(records: Sequence[ResolvedInventory]) -> bool:
     edits (``edit_expected`` or ``edit``): the workflow proposes edits and the
     edit-hygiene checks apply. A dataset that never mentions edits is for a
     workflow that reports issues only."""
-    return any(e.edit_expected is not None or e.edit is not None for r in records for e in r.expected_issues)
+    return any(
+        e.edit_expected is not None or e.edit is not None
+        for r in records
+        for e in r.expected_issues
+    )
 
 
 def derive_policy(
-    records: Sequence[ResolvedInventory], pairing: Pairing = "shared", pair_on_location: bool = False
+    records: Sequence[ResolvedInventory],
+    pairing: Pairing = "shared",
+    pair_on_location: bool = False,
 ) -> ScoringPolicy:
     """The dataset-wide policy: what the records give each generic check to score,
     their named titles and decoy reasons, plus the pairing the workflow asks for."""
     return ScoringPolicy(
         pairing=pairing,
         pair_on_location=pair_on_location,
-        named_titles=sorted({e.title for r in records for e in r.expected_issues if e.title}),
+        named_titles=sorted(
+            {e.title for r in records for e in r.expected_issues if e.title}
+        ),
         decoy_reasons=list(decoy_reasons(records)),
         edits=expects_edits(records),
         titles=expects_titles(records),
@@ -414,7 +458,10 @@ def derive_policy(
 
 
 def load_inventory(
-    path: Path, extra_fields: Sequence[str] = (), pairing: Pairing = "shared", pair_on_location: bool = False
+    path: Path,
+    extra_fields: Sequence[str] = (),
+    pairing: Pairing = "shared",
+    pair_on_location: bool = False,
 ) -> tuple[list[ResolvedInventory], list[dict[str, Any]]]:
     """The records of an inventory file, each carrying the dataset's policy, and
     beside them each record's ``extra_fields``: fields a workflow's records add to
@@ -437,8 +484,13 @@ def inventory_to_sample(inventory: ResolvedInventory) -> Sample:
     """A resolved inventory becomes a Sample whose input is the document, whose
     target is the record's free-text expectation (empty when it has none), and
     whose metadata carries the inventory for the scorers and, when the record has
-    one, the publication date for the solver (see ``api_solver.api_workflow_solver``)."""
+    one, the publication date for the solver (see ``api_solver.api_workflow_solver``).
+    """
     metadata: dict = {"inventory": inventory.model_dump()}
     if inventory.publication_date:
         metadata["publication_date"] = inventory.publication_date
-    return Sample(input=inventory.document, target=inventory.target_answer or "", metadata=metadata)
+    return Sample(
+        input=inventory.document,
+        target=inventory.target_answer or "",
+        metadata=metadata,
+    )

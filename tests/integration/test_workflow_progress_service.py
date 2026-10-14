@@ -46,13 +46,15 @@ async def workflow_run_id(project_id):
     run_id = uuid.uuid4()
 
     async with get_async_db_session() as session:
-        session.add(WorkflowRun(
-            id=run_id,
-            langgraph_thread_id=str(uuid.uuid4()),
-            project_id=project_id,
-            type=WorkflowRunType.DOCUMENT_PROCESSING,
-            status=WorkflowRunStatus.RUNNING,
-        ))
+        session.add(
+            WorkflowRun(
+                id=run_id,
+                langgraph_thread_id=str(uuid.uuid4()),
+                project_id=project_id,
+                type=WorkflowRunType.DOCUMENT_PROCESSING,
+                status=WorkflowRunStatus.RUNNING,
+            )
+        )
         await session.commit()
 
     yield run_id
@@ -400,7 +402,9 @@ async def test_increment_and_complete_nonexistent_progress():
 
 
 @pytest.mark.asyncio
-async def test_cancel_workflow_progress_completes_incomplete_entries(workflow_run_id, project_id):
+async def test_cancel_workflow_progress_completes_incomplete_entries(
+    workflow_run_id, project_id
+):
     """All incomplete progress entries are stamped with completed_at."""
     await create_and_start_progress(
         workflow_run_id=workflow_run_id,
@@ -420,11 +424,15 @@ async def test_cancel_workflow_progress_completes_incomplete_entries(workflow_ru
     entries = await get_workflow_progress(workflow_run_id)
     assert len(entries) == 2
     for entry in entries:
-        assert entry.completed_at is not None, f"Entry {entry.name!r} should have completed_at set"
+        assert (
+            entry.completed_at is not None
+        ), f"Entry {entry.name!r} should have completed_at set"
 
 
 @pytest.mark.asyncio
-async def test_cancel_workflow_progress_is_noop_when_all_already_complete(workflow_run_id, project_id):
+async def test_cancel_workflow_progress_is_noop_when_all_already_complete(
+    workflow_run_id, project_id
+):
     """If all entries are already complete, cancel_workflow_progress does not raise."""
     progress_id = await create_and_start_progress(
         workflow_run_id=workflow_run_id,
@@ -442,17 +450,21 @@ async def test_cancel_workflow_progress_is_noop_when_all_already_complete(workfl
 
 
 @pytest.mark.asyncio
-async def test_cancel_workflow_progress_does_not_affect_different_type(workflow_run_id, project_id):
+async def test_cancel_workflow_progress_does_not_affect_different_type(
+    workflow_run_id, project_id
+):
     """Entries from a run with a different workflow type are not touched."""
     other_run_id = uuid.uuid4()
     async with get_async_db_session() as session:
-        session.add(WorkflowRun(
-            id=other_run_id,
-            langgraph_thread_id=str(uuid.uuid4()),
-            project_id=project_id,
-            type=WorkflowRunType.REFERENCE_EXTRACTION,
-            status=WorkflowRunStatus.RUNNING,
-        ))
+        session.add(
+            WorkflowRun(
+                id=other_run_id,
+                langgraph_thread_id=str(uuid.uuid4()),
+                project_id=project_id,
+                type=WorkflowRunType.REFERENCE_EXTRACTION,
+                status=WorkflowRunStatus.RUNNING,
+            )
+        )
         await session.commit()
 
     try:
@@ -486,20 +498,24 @@ async def test_cancel_workflow_progress_does_not_affect_different_type(workflow_
 
 
 @pytest.mark.asyncio
-async def test_cancel_workflow_progress_clears_stuck_progress_from_previous_runs(project_id):
+async def test_cancel_workflow_progress_clears_stuck_progress_from_previous_runs(
+    project_id,
+):
     """Incomplete entries from an older run of the same project+type are also cancelled."""
     previous_run_id = uuid.uuid4()
     current_run_id = uuid.uuid4()
 
     async with get_async_db_session() as session:
         for run_id in (previous_run_id, current_run_id):
-            session.add(WorkflowRun(
-                id=run_id,
-                langgraph_thread_id=str(uuid.uuid4()),
-                project_id=project_id,
-                type=WorkflowRunType.RECOMMENDATION_CHECK,
-                status=WorkflowRunStatus.RUNNING,
-            ))
+            session.add(
+                WorkflowRun(
+                    id=run_id,
+                    langgraph_thread_id=str(uuid.uuid4()),
+                    project_id=project_id,
+                    type=WorkflowRunType.RECOMMENDATION_CHECK,
+                    status=WorkflowRunStatus.RUNNING,
+                )
+            )
         await session.commit()
 
     try:
@@ -521,8 +537,12 @@ async def test_cancel_workflow_progress_clears_stuck_progress_from_previous_runs
         previous_entries = await get_workflow_progress(previous_run_id)
         current_entries = await get_workflow_progress(current_run_id)
 
-        assert previous_entries[0].completed_at is not None, "Stuck entry from previous run should be cleared"
-        assert current_entries[0].completed_at is not None, "Entry from current run should be cleared"
+        assert (
+            previous_entries[0].completed_at is not None
+        ), "Stuck entry from previous run should be cleared"
+        assert (
+            current_entries[0].completed_at is not None
+        ), "Entry from current run should be cleared"
     finally:
         async with get_async_db_session() as session:
             for run_id in (previous_run_id, current_run_id):

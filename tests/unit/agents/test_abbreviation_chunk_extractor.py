@@ -193,7 +193,12 @@ def _agent_on_openai(body: dict[str, Any]) -> AbbreviationChunkExtractorAgent:
 
 @pytest.mark.asyncio
 async def test_openai_reply_cut_off_mid_json_keeps_its_complete_occurrences():
-    complete = {"abbr": "NATO", "inline_definition": "", "line_start": 12, "line_end": 12}
+    complete = {
+        "abbr": "NATO",
+        "inline_definition": "",
+        "line_start": 12,
+        "line_end": 12,
+    }
     text = '{"occurrences": [' + json.dumps(complete) + ', {"abbr": "EU", "inl'
     agent = _agent_on_openai(_truncated_responses_body(text))
 

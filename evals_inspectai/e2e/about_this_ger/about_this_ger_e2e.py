@@ -92,8 +92,14 @@ def about_this_ger_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Task:
     return Task(
         dataset=suite.dataset(),
         metadata=suite.metadata(GROUND_TRUTH, OWN_METRICS),
-        solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s, item_messages_key="agent_conversations"),
-        scorer=[*suite.scorers(), about_checks(), suite.judged(JUDGE_CRITERIA, calls=judge_calls)],
+        solver=api_workflow_agent(
+            WORKFLOW_TYPE, timeout_s=timeout_s, item_messages_key="agent_conversations"
+        ),
+        scorer=[
+            *suite.scorers(),
+            about_checks(),
+            suite.judged(JUDGE_CRITERIA, calls=judge_calls),
+        ],
         fail_on_error=0.2,
         viewer=suite.viewer(OWN_METRICS, SCORE_LABELS),
     )

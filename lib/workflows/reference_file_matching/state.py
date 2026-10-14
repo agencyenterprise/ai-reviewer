@@ -46,7 +46,9 @@ class ReferenceFileMatch(BaseModel):
         if isinstance(data, Dict) and "is_manual" in data and "source" not in data:
             data = dict(data)
             data["source"] = (
-                MatchSource.MANUAL_UPLOAD if data.pop("is_manual") else MatchSource.AUTO_MATCHED
+                MatchSource.MANUAL_UPLOAD
+                if data.pop("is_manual")
+                else MatchSource.AUTO_MATCHED
             )
         return data
 

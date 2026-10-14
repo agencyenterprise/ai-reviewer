@@ -65,7 +65,7 @@ async def _create_record(session: _FakeSession):
 async def test_main_per_revision_violation_becomes_409():
     session = _FakeSession(
         commit_error=_integrity_error(
-            'duplicate key value violates unique constraint '
+            "duplicate key value violates unique constraint "
             '"uq_files_one_main_per_project_revision"'
         )
     )

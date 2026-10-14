@@ -39,4 +39,3 @@ class FileArtifactsServiceType(ABC):
         self,
         include_skills: bool = True,
     ) -> dict[str, Any]: ...
-

@@ -11,7 +11,6 @@ from lib.config.database import get_async_db_session
 from lib.models.user import User, UserRole
 from lib.services.users import get_all_users
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -58,9 +57,21 @@ async def tag():
 @pytest_asyncio.fixture
 async def three_users(tag):
     """Alice (ADMIN), Bob (USER), Carol (RAND) — names and emails all contain *tag*."""
-    alice = await _insert(_make_user(name=f"Alice {tag}", email=f"alice-{tag}@example.com", role=UserRole.ADMIN))
-    bob = await _insert(_make_user(name=f"Bob {tag}", email=f"bob-{tag}@example.com", role=UserRole.USER))
-    carol = await _insert(_make_user(name=f"Carol {tag}", email=f"carol-{tag}@example.com", role=UserRole.RAND))
+    alice = await _insert(
+        _make_user(
+            name=f"Alice {tag}", email=f"alice-{tag}@example.com", role=UserRole.ADMIN
+        )
+    )
+    bob = await _insert(
+        _make_user(
+            name=f"Bob {tag}", email=f"bob-{tag}@example.com", role=UserRole.USER
+        )
+    )
+    carol = await _insert(
+        _make_user(
+            name=f"Carol {tag}", email=f"carol-{tag}@example.com", role=UserRole.RAND
+        )
+    )
 
     yield alice, bob, carol
 

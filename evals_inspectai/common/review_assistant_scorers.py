@@ -203,5 +203,3 @@ def report_structure() -> Scorer:
         return checks_to_score(structure_checks(report, state.metadata or {}))
 
     return score
-
-

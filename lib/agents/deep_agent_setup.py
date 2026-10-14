@@ -22,7 +22,11 @@ from typing import Any, Optional, ParamSpec, TypeVar, cast
 from deepagents import create_deep_agent
 from deepagents.backends.utils import create_file_data
 from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT, SubAgent
-from langchain.agents.middleware import AgentMiddleware, InputAgentState, TodoListMiddleware
+from langchain.agents.middleware import (
+    AgentMiddleware,
+    InputAgentState,
+    TodoListMiddleware,
+)
 from langchain.chat_models import BaseChatModel, init_chat_model
 from langchain_core.messages import BaseMessage
 
@@ -74,7 +78,9 @@ def build_skill_files(
     return files
 
 
-def agent_input(files: dict[str, Any], messages: Sequence[BaseMessage]) -> InputAgentState:
+def agent_input(
+    files: dict[str, Any], messages: Sequence[BaseMessage]
+) -> InputAgentState:
     """A deep agent's input: its conversation plus the files mounted for it.
 
     `files` is the filesystem middleware's state. The runtime takes it, but the
@@ -130,12 +136,16 @@ def _with_our_additions(create: Callable[_P, _R]) -> Callable[_P, _R]:
     def build(*args: _P.args, **kwargs: _P.kwargs) -> _R:
         # The ParamSpec types every keyword argument as `object`; these are the
         # types `create_deep_agent` declares for the three it reads.
-        middleware = cast(Sequence[AgentMiddleware[Any, Any, Any]], kwargs.get("middleware") or ())
+        middleware = cast(
+            Sequence[AgentMiddleware[Any, Any, Any]], kwargs.get("middleware") or ()
+        )
         declared = cast(Sequence[Mapping[str, Any]], kwargs.get("subagents") or ())
         subagents = [_running_our_middleware(spec) for spec in declared]
         skills = cast(Optional[list[str]], kwargs.get("skills"))
         kwargs["middleware"] = [*agent_middleware(), *middleware]
-        if not any(spec.get("name") == GENERAL_PURPOSE_SUBAGENT["name"] for spec in subagents):
+        if not any(
+            spec.get("name") == GENERAL_PURPOSE_SUBAGENT["name"] for spec in subagents
+        ):
             subagents.append(general_purpose_subagent(skills=skills))
         kwargs["subagents"] = subagents
         return create(*args, **kwargs)

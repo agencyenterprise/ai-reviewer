@@ -85,9 +85,12 @@ class TestTheRestOfTheManifest:
     ) -> None:
         """Teams cannot acquire a token in a channel, so 1:1 has to be installable."""
 
-        assert "personal" in builder.manifest(
-            app_id="a", bot_id="b", version="1.0.0"
-        )["bots"][0]["scopes"]
+        assert (
+            "personal"
+            in builder.manifest(app_id="a", bot_id="b", version="1.0.0")["bots"][0][
+                "scopes"
+            ]
+        )
 
     def test_the_version_is_what_was_asked_for(self, builder: Any) -> None:
         """Teams refuses an update that does not raise the version."""

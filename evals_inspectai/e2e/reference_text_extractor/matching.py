@@ -57,7 +57,8 @@ _HEADING_RE = re.compile(r"^\s{0,3}#{1,6}\s")
 # is split over lines) or DOI, since reference styles that end on the link carry no
 # final full stop.
 _ENDS_ENTRY_RE = re.compile(
-    r"(?:[.?!]|(?:https?://|www\.)\S+|\S*/\S*|\S+\.(?:pdf|html?|aspx?|php)|doi:\s*\S+)$", re.I
+    r"(?:[.?!]|(?:https?://|www\.)\S+|\S*/\S*|\S+\.(?:pdf|html?|aspx?|php)|doi:\s*\S+)$",
+    re.I,
 )
 
 
@@ -77,10 +78,16 @@ class _Entry:
     def __init__(self) -> None:
         self.text = ""
         self.joins: set[int] = set()
-        self.pieces: list[tuple[int, int, int]] = []  # (1-indexed line, start, end) in text
+        self.pieces: list[tuple[int, int, int]] = (
+            []
+        )  # (1-indexed line, start, end) in text
         self.last_line = ""  # normalized text of the entry's last line
-        self.tail = 0  # for a placeholder entry, where the text after the placeholder starts
-        self.authors: tuple[str, ...] = ()  # for a placeholder entry, the spans the previous entry's author may take
+        self.tail = (
+            0  # for a placeholder entry, where the text after the placeholder starts
+        )
+        self.authors: tuple[
+            str, ...
+        ] = ()  # for a placeholder entry, the spans the previous entry's author may take
 
     def add(self, number: int, line: str) -> None:
         piece = normalize(line)
@@ -101,8 +108,16 @@ class _Entry:
         that follow it: before the first year (author-date styles: "Thompson, R. &
         Davis, K. (2022)"), and at the first full stop closing a name rather than an
         initial (notes-bibliography styles: "Marchetti, Lucia. *Title*, 1794")."""
-        cuts = [m.start() for m in (_YEAR_RE.search(self.text), _NAME_END_RE.search(self.text)) if m]
-        return tuple(dict.fromkeys(span for cut in cuts if (span := self.text[:cut].rstrip(" .,;:"))))
+        cuts = [
+            m.start()
+            for m in (_YEAR_RE.search(self.text), _NAME_END_RE.search(self.text))
+            if m
+        ]
+        return tuple(
+            dict.fromkeys(
+                span for cut in cuts if (span := self.text[:cut].rstrip(" .,;:"))
+            )
+        )
 
 
 def _align(ref: str, text: str, joins: set[int], start: int) -> Optional[int]:
@@ -129,7 +144,11 @@ def _continues(entry: _Entry, line: str) -> bool:
     if _PLACEHOLDER_RE.match(text):
         return False
     fragment = " " not in normalize(line) and "/" in text
-    return bool(_CONTINUATION_RE.match(text)) or fragment or not _ENDS_ENTRY_RE.search(entry.last_line)
+    return (
+        bool(_CONTINUATION_RE.match(text))
+        or fragment
+        or not _ENDS_ENTRY_RE.search(entry.last_line)
+    )
 
 
 class DocumentText:
@@ -157,16 +176,24 @@ class DocumentText:
         placeholder = None if heading else _PLACEHOLDER_RE.match(normalize(body))
         if placeholder:
             entry.tail = placeholder.end()
-            source = next((e for e in reversed(self.entries) if e.text and not e.tail), None)
+            source = next(
+                (e for e in reversed(self.entries) if e.text and not e.tail), None
+            )
             entry.authors = source.author_spans() if source else ()
         self.entries.append(entry)
         return entry
 
-    def contains(self, reference: str, start_line: Optional[int] = None, end_line: Optional[int] = None) -> bool:
+    def contains(
+        self,
+        reference: str,
+        start_line: Optional[int] = None,
+        end_line: Optional[int] = None,
+    ) -> bool:
         """Whether the reference's text is one entry's text, or part of it, with its spaces
         (see ``_align``); a placeholder entry is read with the placeholder replaced by the
         previous entry's full author, so the reference must start with exactly that
-        author. With a line range, only when the matched text lies within those lines."""
+        author. With a line range, only when the matched text lies within those lines.
+        """
         ref = normalize(reference)
         if not ref:
             return False
@@ -179,7 +206,10 @@ class DocumentText:
 
         for entry in self.entries:
             if entry.tail:
-                if any(self._resolves(ref, author, entry, within) for author in entry.authors):
+                if any(
+                    self._resolves(ref, author, entry, within)
+                    for author in entry.authors
+                ):
                     return True
                 continue
             at = entry.text.find(ref[0])
@@ -191,14 +221,16 @@ class DocumentText:
         return False
 
     @staticmethod
-    def _resolves(ref: str, author: str, entry: _Entry, within: Callable[[_Entry, int, int], bool]) -> bool:
+    def _resolves(
+        ref: str, author: str, entry: _Entry, within: Callable[[_Entry, int, int], bool]
+    ) -> bool:
         """Whether ``ref`` is ``author`` (one of the previous entry's full author spans)
         followed by the text after this entry's placeholder, from its separating
         punctuation on, so a reference can neither substitute an author of its own nor
         drop co-authors."""
         if not ref.startswith(author):
             return False
-        stop = _align(ref[len(author):], entry.text, entry.joins, entry.tail)
+        stop = _align(ref[len(author) :], entry.text, entry.joins, entry.tail)
         return stop is not None and within(entry, entry.tail, max(stop, entry.tail + 1))
 
 

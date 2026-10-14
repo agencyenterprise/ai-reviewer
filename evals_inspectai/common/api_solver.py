@@ -27,7 +27,15 @@ logger = logging.getLogger(__name__)
 # The state key under which ``include_issues`` adds the run's persisted issues,
 # shaped like an ``AgentCheckResult`` so ``issue_checks(results=...)`` reads it.
 PERSISTED_ISSUES_KEY = "persisted_issues"
-_ISSUE_FIELDS = ("title", "description", "long_description", "suggested_action", "severity", "start_line", "end_line")
+_ISSUE_FIELDS = (
+    "title",
+    "description",
+    "long_description",
+    "suggested_action",
+    "severity",
+    "start_line",
+    "end_line",
+)
 
 
 @agent
@@ -65,7 +73,9 @@ def api_workflow_agent(
         # The sample's own input stays the readable, path-referencing markdown;
         # run_workflow embeds its figures for the upload.
         document = state.messages[0].text if state.messages else ""
-        workflow_state, model = await run_workflow(document, workflow_type, timeout_s, poll_interval_s, include_issues)
+        workflow_state, model = await run_workflow(
+            document, workflow_type, timeout_s, poll_interval_s, include_issues
+        )
         await surface_conversations(
             state, workflow_state, workflow_type, item_messages_key, item_label
         )
@@ -91,7 +101,11 @@ def api_workflow_solver(
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         publication_date = (state.metadata or {}).get("publication_date")
         workflow_state, model = await run_workflow(
-            state.input_text, workflow_type, timeout_s, poll_interval_s, publication_date=publication_date
+            state.input_text,
+            workflow_type,
+            timeout_s,
+            poll_interval_s,
+            publication_date=publication_date,
         )
         await surface_conversations(state, workflow_state, workflow_type)
         state.output = ModelOutput(completion=json.dumps(workflow_state), model=model)
@@ -140,7 +154,9 @@ async def run_workflow(
     return workflow_state, output_model_name(run_detail)
 
 
-def persisted_issues(issues: list[dict[str, Any]], workflow_run_id: Optional[str]) -> list[dict[str, Any]]:
+def persisted_issues(
+    issues: list[dict[str, Any]], workflow_run_id: Optional[str]
+) -> list[dict[str, Any]]:
     """The persisted issues of one workflow run, reduced to the fields the issue
     checks read; a missing line becomes 0, as in an agent-reported issue."""
     return [
@@ -203,7 +219,8 @@ def pop_conversations(
         summary = _item_summary(index, item)
         conversations.append(
             Conversation(
-                label=item.get("name") or _item_label(item_label or item_messages_key, summary),
+                label=item.get("name")
+                or _item_label(item_label or item_messages_key, summary),
                 metadata={item_messages_key: summary},
                 messages=item_messages,
             )

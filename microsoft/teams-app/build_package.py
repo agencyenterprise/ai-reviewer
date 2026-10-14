@@ -206,7 +206,9 @@ def main() -> None:
         archive.write(outline_path, "outline.png")
 
     print(f"wrote {PACKAGE}")
-    print(f"  app id: {app_id}" + ("  (a new app in the org)" if app_id != bot_id else ""))
+    print(
+        f"  app id: {app_id}" + ("  (a new app in the org)" if app_id != bot_id else "")
+    )
     print(f"  bot id: {bot_id}")
     print(f"  version: {version}")
     print(f"  scopes: {', '.join(document['bots'][0]['scopes'])}")

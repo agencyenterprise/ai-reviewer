@@ -148,7 +148,9 @@ def test_get_required_dependents_returns_direct_dependents():
         {
             WorkflowRunType.DOCUMENT_PROCESSING: [],
             WorkflowRunType.REFERENCE_EXTRACTION: [WorkflowRunType.DOCUMENT_PROCESSING],
-            WorkflowRunType.REFERENCE_VALIDATION_V2: [WorkflowRunType.DOCUMENT_PROCESSING],
+            WorkflowRunType.REFERENCE_VALIDATION_V2: [
+                WorkflowRunType.DOCUMENT_PROCESSING
+            ],
         }
     )
     with _patch_all_manifests(manifests):
@@ -166,7 +168,9 @@ def test_get_required_dependents_returns_transitive_dependents():
         {
             WorkflowRunType.DOCUMENT_PROCESSING: [],
             WorkflowRunType.REFERENCE_EXTRACTION: [WorkflowRunType.DOCUMENT_PROCESSING],
-            WorkflowRunType.REFERENCE_VALIDATION_V2: [WorkflowRunType.REFERENCE_EXTRACTION],
+            WorkflowRunType.REFERENCE_VALIDATION_V2: [
+                WorkflowRunType.REFERENCE_EXTRACTION
+            ],
         }
     )
     with _patch_all_manifests(manifests):
@@ -201,8 +205,12 @@ def test_get_required_dependents_no_duplicates_in_diamond_graph():
         {
             WorkflowRunType.DOCUMENT_PROCESSING: [],
             WorkflowRunType.REFERENCE_EXTRACTION: [WorkflowRunType.DOCUMENT_PROCESSING],
-            WorkflowRunType.DOCUMENT_SUMMARIZATION: [WorkflowRunType.DOCUMENT_PROCESSING],
-            WorkflowRunType.REFERENCE_VALIDATION_V2: [WorkflowRunType.REFERENCE_EXTRACTION],
+            WorkflowRunType.DOCUMENT_SUMMARIZATION: [
+                WorkflowRunType.DOCUMENT_PROCESSING
+            ],
+            WorkflowRunType.REFERENCE_VALIDATION_V2: [
+                WorkflowRunType.REFERENCE_EXTRACTION
+            ],
         }
     )
     with _patch_all_manifests(manifests):

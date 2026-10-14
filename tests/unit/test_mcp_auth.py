@@ -60,9 +60,7 @@ def test_create_mcp_auth_with_google_credentials():
 
     with (
         patch("lib.api.mcp_auth.config", mock_config),
-        patch(
-            "lib.api.mcp_auth.SlashTolerantGoogleProvider"
-        ) as MockProvider,
+        patch("lib.api.mcp_auth.SlashTolerantGoogleProvider") as MockProvider,
     ):
         create_mcp_auth()
 
@@ -91,9 +89,7 @@ def test_create_mcp_auth_with_entra_id_credentials():
 
     with (
         patch("lib.api.mcp_auth.config", mock_config),
-        patch(
-            "lib.api.mcp_auth.SlashTolerantAzureProvider"
-        ) as MockProvider,
+        patch("lib.api.mcp_auth.SlashTolerantAzureProvider") as MockProvider,
     ):
         create_mcp_auth()
 
@@ -122,12 +118,8 @@ def test_create_mcp_auth_google_takes_priority():
 
     with (
         patch("lib.api.mcp_auth.config", mock_config),
-        patch(
-            "lib.api.mcp_auth.SlashTolerantGoogleProvider"
-        ) as MockGoogle,
-        patch(
-            "lib.api.mcp_auth.SlashTolerantAzureProvider"
-        ) as MockAzure,
+        patch("lib.api.mcp_auth.SlashTolerantGoogleProvider") as MockGoogle,
+        patch("lib.api.mcp_auth.SlashTolerantAzureProvider") as MockAzure,
     ):
         create_mcp_auth()
 
@@ -147,9 +139,7 @@ def test_create_mcp_auth_extracts_tenant_from_issuer():
 
     with (
         patch("lib.api.mcp_auth.config", mock_config),
-        patch(
-            "lib.api.mcp_auth.SlashTolerantAzureProvider"
-        ) as MockProvider,
+        patch("lib.api.mcp_auth.SlashTolerantAzureProvider") as MockProvider,
     ):
         create_mcp_auth()
 
@@ -167,9 +157,7 @@ def test_create_mcp_auth_cimd_enabled_google():
 
     with (
         patch("lib.api.mcp_auth.config", mock_config),
-        patch(
-            "lib.api.mcp_auth.SlashTolerantGoogleProvider"
-        ) as MockProvider,
+        patch("lib.api.mcp_auth.SlashTolerantGoogleProvider") as MockProvider,
     ):
         create_mcp_auth()
 
@@ -191,9 +179,7 @@ def test_create_mcp_auth_cimd_enabled_entra_id():
 
     with (
         patch("lib.api.mcp_auth.config", mock_config),
-        patch(
-            "lib.api.mcp_auth.SlashTolerantAzureProvider"
-        ) as MockProvider,
+        patch("lib.api.mcp_auth.SlashTolerantAzureProvider") as MockProvider,
     ):
         create_mcp_auth()
 

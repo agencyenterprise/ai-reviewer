@@ -16,7 +16,6 @@ from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunT
 from lib.services import feedback_service
 from lib.workflows.models import SeverityEnum
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -179,7 +178,9 @@ async def test_get_admin_feedbacks_returns_shared_feedback(
 
 
 @pytest.mark.asyncio
-async def test_get_admin_feedbacks_filters_private_projects(db_user, workflow_run, issue):
+async def test_get_admin_feedbacks_filters_private_projects(
+    db_user, workflow_run, issue
+):
     """Feedback from PRIVATE projects is excluded."""
     async with get_async_db_session() as session:
         stmt = select(Project).where(col(Project.id) == workflow_run.project_id)
@@ -245,7 +246,6 @@ async def test_get_admin_feedbacks_filter_by_user_id(
     assert thumbs_down_feedback.id not in ids
 
 
-
 @pytest.mark.asyncio
 async def test_get_admin_feedbacks_filter_by_feedback_type(
     thumbs_down_feedback, db_user, issue, workflow_run
@@ -267,9 +267,7 @@ async def test_get_admin_feedbacks_filter_by_feedback_type(
 
 
 @pytest.mark.asyncio
-async def test_get_admin_feedbacks_filter_by_workflow_type(
-    thumbs_down_feedback, issue
-):
+async def test_get_admin_feedbacks_filter_by_workflow_type(thumbs_down_feedback, issue):
     """workflow_type filter matches feedback for that issue workflow type."""
     async with get_async_db_session() as session:
         rows = await feedback_service.get_admin_feedbacks(

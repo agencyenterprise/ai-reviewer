@@ -25,7 +25,9 @@ def is_heading_line(line: str) -> bool:
     return _HEADING_RE.match(line) is not None
 
 
-def build_chunks(markdown: str, section_ranges: List[LineRange]) -> List[AbbreviationChunk]:
+def build_chunks(
+    markdown: str, section_ranges: List[LineRange]
+) -> List[AbbreviationChunk]:
     """Cut the document into contiguous chunks that together cover every line.
 
     Chunks break at the Abbreviations section's boundaries, so a chunk is
@@ -37,7 +39,9 @@ def build_chunks(markdown: str, section_ranges: List[LineRange]) -> List[Abbrevi
 
     lines = markdown.split("\n")
     chunks: List[AbbreviationChunk] = []
-    for start, end in _pack_segments(lines, _break_points(markdown, lines, section_ranges), section_ranges):
+    for start, end in _pack_segments(
+        lines, _break_points(markdown, lines, section_ranges), section_ranges
+    ):
         skip_reason = _skip_reason(lines[start - 1 : end], start, section_ranges)
         chunks.append(
             AbbreviationChunk(
@@ -61,7 +65,9 @@ def _skip_reason(
     return None
 
 
-def _break_points(markdown: str, lines: List[str], section_ranges: List[LineRange]) -> List[int]:
+def _break_points(
+    markdown: str, lines: List[str], section_ranges: List[LineRange]
+) -> List[int]:
     points = {1}
     points.update(s.start_line for s in split_into_sections(markdown))
     points.update(n for n, line in enumerate(lines, start=1) if is_heading_line(line))
@@ -88,7 +94,11 @@ def _pack_segments(
     size = 0
     for start, end in segments:
         seg_size = sum(len(line) + 1 for line in lines[start - 1 : end])
-        if packed and in_section(packed[-1][0]) == in_section(start) and size + seg_size <= CHUNK_CHARS:
+        if (
+            packed
+            and in_section(packed[-1][0]) == in_section(start)
+            and size + seg_size <= CHUNK_CHARS
+        ):
             packed[-1] = (packed[-1][0], end)
             size += seg_size
         else:

@@ -628,9 +628,7 @@ async def test_ignoring_a_user_removes_their_rows_from_every_aggregate(dashboard
         all_active = await queries.get_active_user_metrics(session, window)
         active = await queries.get_active_user_metrics(session, window, ignored)
         all_feedback, all_summary = await queries.get_feedback_metrics(session, window)
-        feedback, summary = await queries.get_feedback_metrics(
-            session, window, ignored
-        )
+        feedback, summary = await queries.get_feedback_metrics(session, window, ignored)
         all_activity = await queries.get_activity(session, window)
         activity = await queries.get_activity(session, window, ignored)
         workflows = await queries.get_workflow_usage(session, window, ignored)

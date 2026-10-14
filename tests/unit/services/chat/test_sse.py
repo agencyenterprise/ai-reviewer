@@ -30,7 +30,10 @@ async def _events(*events: ChatEvent, delay: float = 0.0) -> AsyncIterator[ChatE
 
 class TestEncoding:
     def test_a_frame_is_one_data_line(self) -> None:
-        assert encode_event({"t": "text", "v": "hi"}) == 'data: {"t": "text", "v": "hi"}\n\n'
+        assert (
+            encode_event({"t": "text", "v": "hi"})
+            == 'data: {"t": "text", "v": "hi"}\n\n'
+        )
 
     def test_unserialisable_values_are_stringified_rather_than_fatal(self) -> None:
         frame = encode_event({"t": "tool_result", "id": "c", "result": {1, 2}})

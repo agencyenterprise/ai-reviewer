@@ -31,7 +31,9 @@ def caller() -> AddinIdentity:
 class TestListing:
     @pytest.mark.asyncio
     async def test_it_looks_up_by_the_signed_in_account(self) -> None:
-        with patch.object(word.handoffs, "pending_for", AsyncMock(return_value=[])) as pending:
+        with patch.object(
+            word.handoffs, "pending_for", AsyncMock(return_value=[])
+        ) as pending:
             result = await word.list_pending(url="https://x/doc.docx", caller=caller())
 
         pending.assert_awaited_once_with(ANA)
@@ -42,7 +44,9 @@ class TestStarting:
     @pytest.mark.asyncio
     async def test_a_pending_handoff_is_claimed_for_the_caller(self) -> None:
         handoff_id = uuid.uuid4()
-        with patch.object(word.handoffs, "start", AsyncMock(return_value=True)) as start:
+        with patch.object(
+            word.handoffs, "start", AsyncMock(return_value=True)
+        ) as start:
             await word.start(handoff_id, caller=caller())
 
         start.assert_awaited_once_with(handoff_id, ANA)
@@ -60,32 +64,46 @@ class TestReporting:
     @pytest.mark.asyncio
     async def test_results_are_reported_for_the_caller(self) -> None:
         handoff_id = uuid.uuid4()
-        with patch.object(word.handoffs, "report_applied", AsyncMock(return_value=True)) as report:
-            await word.report_applied(handoff_id, HandoffReport(results=RESULTS), caller=caller())
+        with patch.object(
+            word.handoffs, "report_applied", AsyncMock(return_value=True)
+        ) as report:
+            await word.report_applied(
+                handoff_id, HandoffReport(results=RESULTS), caller=caller()
+            )
 
         report.assert_awaited_once_with(handoff_id, ANA, RESULTS)
 
     @pytest.mark.asyncio
     async def test_not_theirs_is_a_404(self) -> None:
-        with patch.object(word.handoffs, "report_applied", AsyncMock(return_value=False)):
+        with patch.object(
+            word.handoffs, "report_applied", AsyncMock(return_value=False)
+        ):
             with pytest.raises(HTTPException) as raised:
-                await word.report_applied(uuid.uuid4(), HandoffReport(results=RESULTS), caller=caller())
+                await word.report_applied(
+                    uuid.uuid4(), HandoffReport(results=RESULTS), caller=caller()
+                )
 
         assert raised.value.status_code == 404
 
     @pytest.mark.asyncio
     async def test_results_for_items_it_does_not_have_are_refused(self) -> None:
         with patch.object(
-            word.handoffs, "report_applied", AsyncMock(side_effect=InvalidResults("no item 9"))
+            word.handoffs,
+            "report_applied",
+            AsyncMock(side_effect=InvalidResults("no item 9")),
         ):
             with pytest.raises(HTTPException) as raised:
-                await word.report_applied(uuid.uuid4(), HandoffReport(results=RESULTS), caller=caller())
+                await word.report_applied(
+                    uuid.uuid4(), HandoffReport(results=RESULTS), caller=caller()
+                )
 
         assert raised.value.status_code == 422
 
     def test_a_report_is_capped(self) -> None:
         with pytest.raises(ValueError):
-            HandoffReport(results=[ItemResult(index=i, applied=True) for i in range(501)])
+            HandoffReport(
+                results=[ItemResult(index=i, applied=True) for i in range(501)]
+            )
 
 
 class TestDismissing:
@@ -100,7 +118,9 @@ class TestDismissing:
     @pytest.mark.asyncio
     async def test_dismissing_closes_it_for_the_caller(self) -> None:
         handoff_id = uuid.uuid4()
-        with patch.object(word.handoffs, "finish", AsyncMock(return_value=object())) as finish:
+        with patch.object(
+            word.handoffs, "finish", AsyncMock(return_value=object())
+        ) as finish:
             await word.dismiss(handoff_id, caller=caller())
 
         finish.assert_awaited_once_with(handoff_id, ANA, "dismissed")

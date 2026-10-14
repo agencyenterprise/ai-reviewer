@@ -54,7 +54,10 @@ async def test_uncached_file_goes_through_the_pipeline_converter_and_is_cached()
     converter = AsyncMock(return_value=_document(file, "Author response: done."))
 
     with (
-        patch(f"{MODULE}.load_file_document", new=AsyncMock(return_value=_document(file, ""))),
+        patch(
+            f"{MODULE}.load_file_document",
+            new=AsyncMock(return_value=_document(file, "")),
+        ),
         patch(f"{MODULE}.convert_file_document_to_markdown", new=converter),
         patch(f"{MODULE}.update_file_artifacts", new=AsyncMock()) as cache,
     ):
@@ -63,7 +66,9 @@ async def test_uncached_file_goes_through_the_pipeline_converter_and_is_cached()
     assert document.markdown == "Author response: done."
     assert converter.await_args is not None
     assert converter.await_args.kwargs["role"] == FileRole.RESPONSE_MEMO
-    cache.assert_awaited_once_with(file_id=str(file.id), markdown="Author response: done.")
+    cache.assert_awaited_once_with(
+        file_id=str(file.id), markdown="Author response: done."
+    )
 
 
 @pytest.mark.asyncio
@@ -73,7 +78,10 @@ async def test_cached_file_is_not_converted_again():
     converter = AsyncMock()
 
     with (
-        patch(f"{MODULE}.load_file_document", new=AsyncMock(return_value=_document(file, "Cached reply."))),
+        patch(
+            f"{MODULE}.load_file_document",
+            new=AsyncMock(return_value=_document(file, "Cached reply.")),
+        ),
         patch(f"{MODULE}.convert_file_document_to_markdown", new=converter),
     ):
         document = await service._load_file_document_with_markdown(file)

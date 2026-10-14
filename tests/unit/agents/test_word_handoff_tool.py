@@ -17,9 +17,16 @@ from lib.services.microsoft.graph.client import GraphError
 from lib.services.microsoft.word.handoffs import HandoffComment, HandoffEdit
 
 # The asker's Graph token. Its tenant is what the handoff records, not the Teams one.
-TOKEN = jwt.encode({"tid": "tid-home"}, "not-verified-here-only-read-for-its-tenant-claim", algorithm="HS256")
+TOKEN = jwt.encode(
+    {"tid": "tid-home"},
+    "not-verified-here-only-read-for-its-tenant-claim",
+    algorithm="HS256",
+)
 URL = "https://contoso.sharepoint.com/sites/Policy/Shared%20Documents/Draft.docx"
-REFERENCE = {"serviceUrl": "https://smba", "conversation": {"id": "19:x", "tenantId": "tid-contoso"}}
+REFERENCE = {
+    "serviceUrl": "https://smba",
+    "conversation": {"id": "19:x", "tenantId": "tid-contoso"},
+}
 ITEM: dict[str, Any] = {
     "name": "Draft.docx",
     "eTag": '"{546F3FAE-D9FB-457F-A563-D25549EB3601},4"',
@@ -35,10 +42,30 @@ async def offer(comments: list[dict[str, str]], edits: list[dict[str, str]]) -> 
 
 @pytest.fixture
 def graph() -> Any:
-    with patch.object(word_handoff.client, "resolve", AsyncMock(return_value=ITEM)) as resolve, \
-        patch.object(word_handoff.client, "library_url", AsyncMock(return_value="https://contoso.sharepoint.com/sites/Policy/Shared%20Documents")), \
-        patch.object(word_handoff.client, "me", AsyncMock(return_value={"id": "oid-ana", "userPrincipalName": "ana@contoso.com", "mail": "Ana.Lima@contoso.com"})), \
-        patch.object(word_handoff.handoffs, "create", AsyncMock()) as create:
+    with (
+        patch.object(
+            word_handoff.client, "resolve", AsyncMock(return_value=ITEM)
+        ) as resolve,
+        patch.object(
+            word_handoff.client,
+            "library_url",
+            AsyncMock(
+                return_value="https://contoso.sharepoint.com/sites/Policy/Shared%20Documents"
+            ),
+        ),
+        patch.object(
+            word_handoff.client,
+            "me",
+            AsyncMock(
+                return_value={
+                    "id": "oid-ana",
+                    "userPrincipalName": "ana@contoso.com",
+                    "mail": "Ana.Lima@contoso.com",
+                }
+            ),
+        ),
+        patch.object(word_handoff.handoffs, "create", AsyncMock()) as create,
+    ):
         yield resolve, create
 
 
@@ -55,7 +82,9 @@ class TestOffering:
         resolve.assert_awaited_once_with(URL, token=TOKEN)
         stored = create.await_args.kwargs
         assert stored["requester"].oid == "oid-ana"
-        assert stored["requester"].tid == "tid-home", "the tenant comes from the asker's own token"
+        assert (
+            stored["requester"].tid == "tid-home"
+        ), "the tenant comes from the asker's own token"
         assert stored["requester"].upn == "ana@contoso.com"
         assert stored["reference"] == REFERENCE
         assert stored["items"].count == 2
@@ -82,13 +111,16 @@ class TestOffering:
         create.assert_not_awaited()
         assert "could not save" in said
 
-
     @pytest.mark.asyncio
-    async def test_a_document_that_cannot_be_identified_is_refused(self, graph: Any) -> None:
+    async def test_a_document_that_cannot_be_identified_is_refused(
+        self, graph: Any
+    ) -> None:
         resolve, create = graph
         resolve.return_value = {"name": "Draft.docx"}
 
-        with patch.object(word_handoff.client, "library_url", AsyncMock(return_value=None)):
+        with patch.object(
+            word_handoff.client, "library_url", AsyncMock(return_value=None)
+        ):
             said = await offer([{"quote": "the words", "comment": "x"}], [])
 
         create.assert_not_awaited()
@@ -115,7 +147,10 @@ class TestUsableItems:
 
     def test_it_is_capped(self) -> None:
         many = [HandoffComment(quote=f"quote {i}", comment="x") for i in range(150)]
-        assert len(word_handoff.usable_items(many, []).comments) == word_handoff.MAX_COMMENTS
+        assert (
+            len(word_handoff.usable_items(many, []).comments)
+            == word_handoff.MAX_COMMENTS
+        )
 
 
 class TestTheAskersTenant:

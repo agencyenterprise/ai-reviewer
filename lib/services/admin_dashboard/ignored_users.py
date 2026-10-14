@@ -39,6 +39,5 @@ async def get_default_ignored_users() -> list[DashboardIgnoredUser]:
     async with get_async_db_session() as session:
         rows = (await session.execute(stmt)).all()
     return [
-        DashboardIgnoredUser(user_id=row[0], name=row[1], email=row[2])
-        for row in rows
+        DashboardIgnoredUser(user_id=row[0], name=row[1], email=row[2]) for row in rows
     ]

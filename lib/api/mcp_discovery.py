@@ -24,7 +24,9 @@ def with_slash_resource_metadata(routes: list[Route]) -> list[Route]:
     fixed: list[Route] = []
     for route in routes:
         fixed.append(route)
-        if route.path.startswith(PROTECTED_RESOURCE_METADATA_PATH) and not route.path.endswith("/"):
+        if route.path.startswith(
+            PROTECTED_RESOURCE_METADATA_PATH
+        ) and not route.path.endswith("/"):
             fixed.append(
                 Route(
                     f"{route.path}/",

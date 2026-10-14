@@ -39,13 +39,25 @@ class ExpectedOccurrence(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    abbr: str = Field(min_length=1, description="The abbreviation in its singular base form, as the skill records it")
-    occurrence_number: int = Field(ge=1, description="1 for the first appearance in the document, 2 for the second, ...")
+    abbr: str = Field(
+        min_length=1,
+        description="The abbreviation in its singular base form, as the skill records it",
+    )
+    occurrence_number: int = Field(
+        ge=1,
+        description="1 for the first appearance in the document, 2 for the second, ...",
+    )
     line_start: int = Field(ge=1)
-    line_end: Optional[int] = Field(default=None, description="Defaults to line_start for a single-line occurrence")
-    inline_definition: str = Field(default="", description="The 'Full Name (ABBR)' definition at this occurrence; empty when none")
+    line_end: Optional[int] = Field(
+        default=None, description="Defaults to line_start for a single-line occurrence"
+    )
+    inline_definition: str = Field(
+        default="",
+        description="The 'Full Name (ABBR)' definition at this occurrence; empty when none",
+    )
     abbreviations_section_definition: Optional[str] = Field(
-        default=None, description="The entry in the Abbreviations section; None when not listed or there is no section"
+        default=None,
+        description="The entry in the Abbreviations section; None when not listed or there is no section",
     )
 
     @model_validator(mode="after")
@@ -53,7 +65,9 @@ class ExpectedOccurrence(BaseModel):
         if self.line_end is None:
             self.line_end = self.line_start
         if self.line_end < self.line_start:
-            raise ValueError(f"{self.abbr}#{self.occurrence_number}: line_end precedes line_start")
+            raise ValueError(
+                f"{self.abbr}#{self.occurrence_number}: line_end precedes line_start"
+            )
         return self
 
 
@@ -70,9 +84,16 @@ class ExpectedCatalogue(BaseModel):
         for occurrence in self.abbreviations:
             by_abbr.setdefault(occurrence.abbr, []).append(occurrence)
         for abbr, occurrences in by_abbr.items():
-            numbers = [o.occurrence_number for o in sorted(occurrences, key=lambda o: (o.line_start, o.occurrence_number))]
+            numbers = [
+                o.occurrence_number
+                for o in sorted(
+                    occurrences, key=lambda o: (o.line_start, o.occurrence_number)
+                )
+            ]
             if numbers != list(range(1, len(numbers) + 1)):
-                raise ValueError(f"{abbr}: occurrence numbers {numbers} do not run 1..n in line order")
+                raise ValueError(
+                    f"{abbr}: occurrence numbers {numbers} do not run 1..n in line order"
+                )
         return self
 
 
@@ -136,7 +157,10 @@ def _label(occurrence: Occurrence) -> str:
 
 def _by_location(occurrences: Sequence[Occurrence]) -> dict[tuple[str, int, int], int]:
     """Index of each occurrence by (abbreviation, line, order among that abbreviation's uses on the line)."""
-    order = sorted(range(len(occurrences)), key=lambda i: (occurrences[i].line_start, occurrences[i].occurrence_number))
+    order = sorted(
+        range(len(occurrences)),
+        key=lambda i: (occurrences[i].line_start, occurrences[i].occurrence_number),
+    )
     keys: dict[tuple[str, int, int], int] = {}
     for i in order:
         abbr, line = occurrences[i].abbr.strip(), occurrences[i].line_start
@@ -145,24 +169,33 @@ def _by_location(occurrences: Sequence[Occurrence]) -> dict[tuple[str, int, int]
     return keys
 
 
-def _by_number(occurrences: Sequence[Occurrence], left: set[int]) -> dict[tuple[str, int], int]:
+def _by_number(
+    occurrences: Sequence[Occurrence], left: set[int]
+) -> dict[tuple[str, int], int]:
     """Index of each still-unmatched occurrence by (abbreviation, occurrence number); a repeat keeps the first."""
     keys: dict[tuple[str, int], int] = {}
     for i in sorted(left):
-        keys.setdefault((occurrences[i].abbr.strip(), occurrences[i].occurrence_number), i)
+        keys.setdefault(
+            (occurrences[i].abbr.strip(), occurrences[i].occurrence_number), i
+        )
     return keys
 
 
 def _pair(
     expected: Sequence[ExpectedOccurrence], reported: Sequence[ReportedOccurrence]
-) -> tuple[list[tuple[ExpectedOccurrence, ReportedOccurrence]], list[ExpectedOccurrence], list[ReportedOccurrence]]:
+) -> tuple[
+    list[tuple[ExpectedOccurrence, ReportedOccurrence]],
+    list[ExpectedOccurrence],
+    list[ReportedOccurrence],
+]:
     """One-to-one pairs, then the unmatched on each side.
 
     First on location (abbreviation, line, order on the line), then the rest on (abbreviation, occurrence number).
     Location comes first because the workflow numbers occurrences from the recorded ones: one missed use shifts
     every later number of that abbreviation, and pairing on numbers alone would then charge each later,
     correctly recorded use with a wrong line and flag. The fallback pairs a use recorded on the wrong line with
-    the one it stands for, so that miss costs ``lines_correct`` rather than recall and precision."""
+    the one it stands for, so that miss costs ``lines_correct`` rather than recall and precision.
+    """
     matches: dict[int, int] = {}
     reported_at = _by_location(reported)
     for place, e in _by_location(expected).items():
@@ -181,61 +214,98 @@ def _pair(
     return pairs, missing, invented
 
 
-def _field_checks(pairs: Sequence[tuple[ExpectedOccurrence, ReportedOccurrence]]) -> tuple[dict[str, float], list[str]]:
+def _field_checks(
+    pairs: Sequence[tuple[ExpectedOccurrence, ReportedOccurrence]],
+) -> tuple[dict[str, float], list[str]]:
     checks: dict[str, list[tuple[bool, str]]] = {
         "inline_definition_correct": [
-            (_text(e.inline_definition) == _text(r.inline_definition), f"{_label(e)} inline {r.inline_definition!r}, expected {e.inline_definition!r}")
+            (
+                _text(e.inline_definition) == _text(r.inline_definition),
+                f"{_label(e)} inline {r.inline_definition!r}, expected {e.inline_definition!r}",
+            )
             for e, r in pairs
         ],
         "lines_correct": [
-            ((e.line_start, e.line_end) == (r.line_start, r.line_end), f"{_label(e)} lines {r.line_start}-{r.line_end}, expected {e.line_start}-{e.line_end}")
+            (
+                (e.line_start, e.line_end) == (r.line_start, r.line_end),
+                f"{_label(e)} lines {r.line_start}-{r.line_end}, expected {e.line_start}-{e.line_end}",
+            )
             for e, r in pairs
         ],
         "section_definition_correct": [
             (
-                _text(e.abbreviations_section_definition) == _text(r.abbreviations_section_definition),
+                _text(e.abbreviations_section_definition)
+                == _text(r.abbreviations_section_definition),
                 f"{_label(e)} section {r.abbreviations_section_definition!r}, expected {e.abbreviations_section_definition!r}",
             )
             for e, r in pairs
         ],
     }
-    values = {key: fraction([float(ok) for ok, _ in results]) for key, results in checks.items()}
+    values = {
+        key: fraction([float(ok) for ok, _ in results])
+        for key, results in checks.items()
+    }
     notes = []
     for key, results in checks.items():
         wrong = [note for ok, note in results if not ok]
         if wrong:
-            notes.append(f"{key}: " + "; ".join(wrong[:_SHOWN]) + (f" (+{len(wrong) - _SHOWN} more)" if len(wrong) > _SHOWN else ""))
+            notes.append(
+                f"{key}: "
+                + "; ".join(wrong[:_SHOWN])
+                + (f" (+{len(wrong) - _SHOWN} more)" if len(wrong) > _SHOWN else "")
+            )
     return values, notes
 
 
 def _listed(kind: str, occurrences: Sequence[Occurrence]) -> str:
-    shown = ", ".join(f"{_label(o)} (line {o.line_start})" for o in occurrences[:_SHOWN])
-    return f"{kind} {len(occurrences)}: {shown}" + (" ..." if len(occurrences) > _SHOWN else "")
+    shown = ", ".join(
+        f"{_label(o)} (line {o.line_start})" for o in occurrences[:_SHOWN]
+    )
+    return f"{kind} {len(occurrences)}: {shown}" + (
+        " ..." if len(occurrences) > _SHOWN else ""
+    )
 
 
-def catalogue_scores(reported: ReportedCatalogue, expected: ExpectedCatalogue) -> tuple[dict[str, float], str]:
+def catalogue_scores(
+    reported: ReportedCatalogue, expected: ExpectedCatalogue
+) -> tuple[dict[str, float], str]:
     """The catalogue keys (``CATALOGUE_KEYS``) and an explanation naming what was missed, invented or wrong.
     A key is NaN when the sample gives it nothing to judge."""
     values: dict[str, float] = {key: math.nan for key in CATALOGUE_KEYS}
-    values["section_found_correct"] = float(reported.abbreviations_section_found == expected.abbreviations_section_found)
-    notes = [] if values["section_found_correct"] else [
-        f"abbreviations_section_found={reported.abbreviations_section_found}, expected {expected.abbreviations_section_found}"
-    ]
+    values["section_found_correct"] = float(
+        reported.abbreviations_section_found == expected.abbreviations_section_found
+    )
+    notes = (
+        []
+        if values["section_found_correct"]
+        else [
+            f"abbreviations_section_found={reported.abbreviations_section_found}, expected {expected.abbreviations_section_found}"
+        ]
+    )
     if not expected.abbreviations:
         values["clean_catalogue"] = float(not reported.abbreviations)
         if reported.abbreviations:
             # Exempt-only documents land here too, so an exempt occurrence recorded on one must count
             # against precision, not only against clean_catalogue.
             values["occurrence_precision"] = 0.0
-            notes.append(_listed("recorded on a document with no abbreviations", reported.abbreviations))
+            notes.append(
+                _listed(
+                    "recorded on a document with no abbreviations",
+                    reported.abbreviations,
+                )
+            )
         return values, " | ".join(notes) if notes else "no abbreviations, none recorded"
 
     pairs, missing, invented = _pair(expected.abbreviations, reported.abbreviations)
     values["occurrence_recall"] = len(pairs) / len(expected.abbreviations)
-    values["occurrence_precision"] = len(pairs) / len(reported.abbreviations) if reported.abbreviations else math.nan
+    values["occurrence_precision"] = (
+        len(pairs) / len(reported.abbreviations) if reported.abbreviations else math.nan
+    )
     field_values, field_notes = _field_checks(pairs)
     values.update(field_values)
-    notes.append(f"matched {len(pairs)}/{len(expected.abbreviations)} expected, {len(reported.abbreviations)} recorded")
+    notes.append(
+        f"matched {len(pairs)}/{len(expected.abbreviations)} expected, {len(reported.abbreviations)} recorded"
+    )
     if missing:
         notes.append(_listed("missing", missing))
     if invented:

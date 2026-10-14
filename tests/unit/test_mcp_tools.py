@@ -220,7 +220,9 @@ async def test_resolve_user_azure_preferred_username_no_name():
 async def test_resolve_user_azure_upstream_claims_email():
     """FastMCP reference JWT embeds Azure claims under upstream_claims."""
     token = MagicMock()
-    token.claims = {"upstream_claims": {"email": "jane@example.com", "name": "Jane Doe"}}
+    token.claims = {
+        "upstream_claims": {"email": "jane@example.com", "name": "Jane Doe"}
+    }
     mock_user = _make_user(email="jane@example.com", name="Jane Doe")
 
     with patch(
@@ -330,8 +332,14 @@ async def test_create_project_returns_project_url():
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch("lib.api.mcp.tools.projects.create_project_record", new=AsyncMock(return_value=project)),
-        patch("lib.api.mcp.tools.projects.finalize_file", new=AsyncMock(return_value=MagicMock(id=uuid4()))),
+        patch(
+            "lib.api.mcp.tools.projects.create_project_record",
+            new=AsyncMock(return_value=project),
+        ),
+        patch(
+            "lib.api.mcp.tools.projects.finalize_file",
+            new=AsyncMock(return_value=MagicMock(id=uuid4())),
+        ),
     ):
         result = await create_project(
             title="T", content_markdown="md", ctx=AsyncMock(), token=_make_token()
@@ -347,7 +355,9 @@ async def test_create_project_returns_project_url():
 @pytest.mark.asyncio
 async def test_run_workflow_rejects_invalid_type():
     with (
-        patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=_make_user())),
+        patch(
+            "lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=_make_user())
+        ),
     ):
         with pytest.raises(ValueError, match="Unknown workflow_type 'nonexistent'"):
             await run_workflow(
@@ -370,7 +380,8 @@ async def test_run_workflow_delegates_to_blocking_runner():
             new=AsyncMock(return_value=(_make_project(), MagicMock())),
         ),
         patch(
-            "lib.api.mcp.tools.workflows.run_multiple_workflows_blocking", new=AsyncMock()
+            "lib.api.mcp.tools.workflows.run_multiple_workflows_blocking",
+            new=AsyncMock(),
         ) as mock_run,
         patch(
             "lib.api.mcp.serialization.get_project_summary_json",
@@ -400,7 +411,8 @@ async def test_run_workflow_passes_approve_human_steps_to_runner():
             new=AsyncMock(return_value=(_make_project(), MagicMock())),
         ),
         patch(
-            "lib.api.mcp.tools.workflows.run_multiple_workflows_blocking", new=AsyncMock()
+            "lib.api.mcp.tools.workflows.run_multiple_workflows_blocking",
+            new=AsyncMock(),
         ) as mock_run,
         patch(
             "lib.api.mcp.serialization.get_project_summary_json",
@@ -482,7 +494,8 @@ async def test_run_workflow_passes_approve_web_search_to_runner():
             new=AsyncMock(return_value=(_make_project(), MagicMock())),
         ),
         patch(
-            "lib.api.mcp.tools.workflows.run_multiple_workflows_blocking", new=AsyncMock()
+            "lib.api.mcp.tools.workflows.run_multiple_workflows_blocking",
+            new=AsyncMock(),
         ) as mock_run,
         patch(
             "lib.api.mcp.serialization.get_project_summary_json",
@@ -810,12 +823,17 @@ async def test_export_project_docx_returns_file():
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch("lib.api.mcp.tools.files.get_project_access", new=AsyncMock(return_value=(MagicMock(), MagicMock()))),
+        patch(
+            "lib.api.mcp.tools.files.get_project_access",
+            new=AsyncMock(return_value=(MagicMock(), MagicMock())),
+        ),
         patch(
             "lib.api.mcp.tools.files.generate_docx",
             new=AsyncMock(return_value=("/tmp/report.docx", "report_comments.docx")),
         ),
-        patch("lib.api.mcp.tools.files.aiofiles.open", _make_aiofiles_open_mock(fake_docx)),
+        patch(
+            "lib.api.mcp.tools.files.aiofiles.open", _make_aiofiles_open_mock(fake_docx)
+        ),
     ):
         result = await export_project_docx(project_id=project_id, token=_make_token())
 
@@ -833,7 +851,10 @@ async def test_export_project_docx_passes_filters_to_service():
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch("lib.api.mcp.tools.files.get_project_access", new=AsyncMock(return_value=(MagicMock(), MagicMock()))),
+        patch(
+            "lib.api.mcp.tools.files.get_project_access",
+            new=AsyncMock(return_value=(MagicMock(), MagicMock())),
+        ),
         patch(
             "lib.api.mcp.tools.files.generate_docx",
             new=AsyncMock(return_value=("/tmp/out.docx", "out_comments.docx")),
@@ -880,7 +901,10 @@ async def test_get_project_returns_details():
 
 @pytest.mark.asyncio
 async def test_list_project_files_returns_files_with_reference():
-    from lib.workflows.reference_file_matching.state import MatchSource, ReferenceFileMatch
+    from lib.workflows.reference_file_matching.state import (
+        MatchSource,
+        ReferenceFileMatch,
+    )
 
     user = _make_user()
     project = MagicMock()
@@ -898,13 +922,24 @@ async def test_list_project_files_returns_files_with_reference():
     project.current_revision = 1
 
     ref_id = str(uuid4())
-    match = ReferenceFileMatch(reference_id=ref_id, file_id=str(file1.id), source=MatchSource.MANUAL_UPLOAD)
+    match = ReferenceFileMatch(
+        reference_id=ref_id, file_id=str(file1.id), source=MatchSource.MANUAL_UPLOAD
+    )
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch("lib.api.mcp.tools.files.get_project_access", new=AsyncMock(return_value=(project, MagicMock()))),
-        patch("lib.api.mcp.tools.files.get_project_files_list_items", new=AsyncMock(return_value=[file1])),
-        patch("lib.api.mcp.tools.files.get_file_reference_matches", new=AsyncMock(return_value=[match])),
+        patch(
+            "lib.api.mcp.tools.files.get_project_access",
+            new=AsyncMock(return_value=(project, MagicMock())),
+        ),
+        patch(
+            "lib.api.mcp.tools.files.get_project_files_list_items",
+            new=AsyncMock(return_value=[file1]),
+        ),
+        patch(
+            "lib.api.mcp.tools.files.get_file_reference_matches",
+            new=AsyncMock(return_value=[match]),
+        ),
     ):
         raw = await list_project_files(project_id=project_id, token=_make_token())
 
@@ -935,9 +970,18 @@ async def test_list_project_files_null_reference_when_unmatched():
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch("lib.api.mcp.tools.files.get_project_access", new=AsyncMock(return_value=(project, MagicMock()))),
-        patch("lib.api.mcp.tools.files.get_project_files_list_items", new=AsyncMock(return_value=[file1])),
-        patch("lib.api.mcp.tools.files.get_file_reference_matches", new=AsyncMock(return_value=[])),
+        patch(
+            "lib.api.mcp.tools.files.get_project_access",
+            new=AsyncMock(return_value=(project, MagicMock())),
+        ),
+        patch(
+            "lib.api.mcp.tools.files.get_project_files_list_items",
+            new=AsyncMock(return_value=[file1]),
+        ),
+        patch(
+            "lib.api.mcp.tools.files.get_file_reference_matches",
+            new=AsyncMock(return_value=[]),
+        ),
     ):
         raw = await list_project_files(project_id=str(project.id), token=_make_token())
 
@@ -954,9 +998,18 @@ async def test_list_project_files_returns_empty_list():
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch("lib.api.mcp.tools.files.get_project_access", new=AsyncMock(return_value=(project, MagicMock()))),
-        patch("lib.api.mcp.tools.files.get_project_files_list_items", new=AsyncMock(return_value=[])),
-        patch("lib.api.mcp.tools.files.get_file_reference_matches", new=AsyncMock(return_value=[])),
+        patch(
+            "lib.api.mcp.tools.files.get_project_access",
+            new=AsyncMock(return_value=(project, MagicMock())),
+        ),
+        patch(
+            "lib.api.mcp.tools.files.get_project_files_list_items",
+            new=AsyncMock(return_value=[]),
+        ),
+        patch(
+            "lib.api.mcp.tools.files.get_file_reference_matches",
+            new=AsyncMock(return_value=[]),
+        ),
     ):
         raw = await list_project_files(project_id=str(project.id), token=_make_token())
 
@@ -976,7 +1029,10 @@ async def test_remove_reference_file_returns_file_and_unlinked_refs():
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch("lib.api.mcp.tools.files.get_project_access", new=AsyncMock(return_value=(project, MagicMock()))),
+        patch(
+            "lib.api.mcp.tools.files.get_project_access",
+            new=AsyncMock(return_value=(project, MagicMock())),
+        ),
         patch(
             "lib.api.mcp.tools.files.delete_project_file_with_cleanup",
             new=AsyncMock(return_value=(1, [ref_id])),
@@ -1000,7 +1056,10 @@ async def test_remove_reference_file_raises_when_not_found():
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch("lib.api.mcp.tools.files.get_project_access", new=AsyncMock(return_value=(project, MagicMock()))),
+        patch(
+            "lib.api.mcp.tools.files.get_project_access",
+            new=AsyncMock(return_value=(project, MagicMock())),
+        ),
         patch(
             "lib.api.mcp.tools.files.delete_project_file_with_cleanup",
             new=AsyncMock(return_value=(0, [])),
@@ -1021,7 +1080,10 @@ async def test_remove_reference_file_with_no_associations():
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch("lib.api.mcp.tools.files.get_project_access", new=AsyncMock(return_value=(project, MagicMock()))),
+        patch(
+            "lib.api.mcp.tools.files.get_project_access",
+            new=AsyncMock(return_value=(project, MagicMock())),
+        ),
         patch(
             "lib.api.mcp.tools.files.delete_project_file_with_cleanup",
             new=AsyncMock(return_value=(1, [])),
@@ -1067,12 +1129,17 @@ async def test_get_tus_upload_credentials_returns_required_fields():
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch("lib.api.mcp.tools.uploads.get_project_access", new=AsyncMock(return_value=(project, MagicMock()))),
+        patch(
+            "lib.api.mcp.tools.uploads.get_project_access",
+            new=AsyncMock(return_value=(project, MagicMock())),
+        ),
         patch("lib.api.mcp.helpers.env_config") as mock_cfg,
     ):
         mock_cfg.MCP_BASE_URL = "https://app.example.com/mcp"
         mock_cfg.AUTH_SECRET = "test-secret"
-        raw = await get_tus_upload_credentials(project_id=project_id, token=_make_token())
+        raw = await get_tus_upload_credentials(
+            project_id=project_id, token=_make_token()
+        )
 
     data = json.loads(raw)
     assert data["tus_url"] == "https://app.example.com/tus"
@@ -1102,7 +1169,10 @@ async def test_get_tus_upload_credentials_includes_reference_id():
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch("lib.api.mcp.tools.uploads.get_project_access", new=AsyncMock(return_value=(project, MagicMock()))),
+        patch(
+            "lib.api.mcp.tools.uploads.get_project_access",
+            new=AsyncMock(return_value=(project, MagicMock())),
+        ),
         patch("lib.api.mcp.helpers.env_config") as mock_cfg,
     ):
         mock_cfg.MCP_BASE_URL = "https://app.example.com/mcp"
@@ -1125,13 +1195,18 @@ async def test_get_tus_upload_credentials_bearer_token_expires_in_one_hour():
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch("lib.api.mcp.tools.uploads.get_project_access", new=AsyncMock(return_value=(MagicMock(), MagicMock()))),
+        patch(
+            "lib.api.mcp.tools.uploads.get_project_access",
+            new=AsyncMock(return_value=(MagicMock(), MagicMock())),
+        ),
         patch("lib.api.mcp.helpers.env_config") as mock_cfg,
     ):
         mock_cfg.MCP_BASE_URL = "https://app.example.com/mcp"
         mock_cfg.AUTH_SECRET = "test-secret"
         before = datetime.now(timezone.utc)
-        raw = await get_tus_upload_credentials(project_id=str(uuid4()), token=_make_token())
+        raw = await get_tus_upload_credentials(
+            project_id=str(uuid4()), token=_make_token()
+        )
         after = datetime.now(timezone.utc)
 
     data = json.loads(raw)
@@ -1161,8 +1236,13 @@ async def test_create_project_without_content_returns_next_step():
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch("lib.api.mcp.tools.projects.create_project_record", new=AsyncMock(return_value=project)),
-        patch("lib.api.mcp.tools.projects.finalize_file", new=AsyncMock()) as mock_finalize,
+        patch(
+            "lib.api.mcp.tools.projects.create_project_record",
+            new=AsyncMock(return_value=project),
+        ),
+        patch(
+            "lib.api.mcp.tools.projects.finalize_file", new=AsyncMock()
+        ) as mock_finalize,
     ):
         raw = await create_project(title="Test", ctx=AsyncMock(), token=_make_token())
 
@@ -1185,8 +1265,14 @@ async def test_create_revision_with_content_returns_file_id():
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch("lib.api.mcp.tools.revisions.create_new_revision", new=AsyncMock(return_value=(2, ["recommendation_check"]))),
-        patch("lib.api.mcp.tools.revisions.finalize_file", new=AsyncMock(return_value=file_record)),
+        patch(
+            "lib.api.mcp.tools.revisions.create_new_revision",
+            new=AsyncMock(return_value=(2, ["recommendation_check"])),
+        ),
+        patch(
+            "lib.api.mcp.tools.revisions.finalize_file",
+            new=AsyncMock(return_value=file_record),
+        ),
     ):
         raw = await create_revision(
             project_id=str(uuid4()),
@@ -1207,8 +1293,13 @@ async def test_create_revision_without_content_returns_next_step():
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch("lib.api.mcp.tools.revisions.create_new_revision", new=AsyncMock(return_value=(3, []))),
-        patch("lib.api.mcp.tools.revisions.finalize_file", new=AsyncMock()) as mock_finalize,
+        patch(
+            "lib.api.mcp.tools.revisions.create_new_revision",
+            new=AsyncMock(return_value=(3, [])),
+        ),
+        patch(
+            "lib.api.mcp.tools.revisions.finalize_file", new=AsyncMock()
+        ) as mock_finalize,
     ):
         raw = await create_revision(
             project_id=str(uuid4()),
@@ -1236,18 +1327,28 @@ async def test_list_revisions_returns_all_revisions():
     file_rev1.id = uuid4()
     file_rev1.file_name = "v1.pdf"
     file_rev1.revision = 1
-    file_rev1.created_at = MagicMock(isoformat=MagicMock(return_value="2026-01-01T00:00:00"))
+    file_rev1.created_at = MagicMock(
+        isoformat=MagicMock(return_value="2026-01-01T00:00:00")
+    )
 
     file_rev2 = MagicMock()
     file_rev2.id = uuid4()
     file_rev2.file_name = "v2.pdf"
     file_rev2.revision = 2
-    file_rev2.created_at = MagicMock(isoformat=MagicMock(return_value="2026-04-10T00:00:00"))
+    file_rev2.created_at = MagicMock(
+        isoformat=MagicMock(return_value="2026-04-10T00:00:00")
+    )
 
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch("lib.api.mcp.tools.revisions.get_project_access", new=AsyncMock(return_value=(project, MagicMock()))),
-        patch("lib.api.mcp.tools.revisions.get_files_by_project_id", new=AsyncMock(return_value=[file_rev1, file_rev2])),
+        patch(
+            "lib.api.mcp.tools.revisions.get_project_access",
+            new=AsyncMock(return_value=(project, MagicMock())),
+        ),
+        patch(
+            "lib.api.mcp.tools.revisions.get_files_by_project_id",
+            new=AsyncMock(return_value=[file_rev1, file_rev2]),
+        ),
     ):
         raw = await list_revisions(project_id=str(project.id), token=_make_token())
 

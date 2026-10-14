@@ -18,15 +18,19 @@ MESSAGES = [
 
 
 def _llm(reply: str | Exception) -> SimpleNamespace:
-    ainvoke = AsyncMock(side_effect=reply) if isinstance(reply, Exception) else AsyncMock(
-        return_value=SimpleNamespace(text=reply)
+    ainvoke = (
+        AsyncMock(side_effect=reply)
+        if isinstance(reply, Exception)
+        else AsyncMock(return_value=SimpleNamespace(text=reply))
     )
     return SimpleNamespace(ainvoke=ainvoke)
 
 
 class TestGenerateTitle:
     @pytest.mark.asyncio
-    async def test_the_transcript_travels_as_one_message_under_the_instruction(self) -> None:
+    async def test_the_transcript_travels_as_one_message_under_the_instruction(
+        self,
+    ) -> None:
         """Replaying the turns makes a reasoning model answer the last one instead
         of naming the conversation, so the transcript goes in a single message."""
         llm = _llm(' "APA Reference Check" ')
@@ -50,7 +54,9 @@ class TestGenerateTitle:
     @pytest.mark.asyncio
     async def test_the_server_key_is_used_when_the_user_has_none(self) -> None:
         with (
-            patch.object(title_module, "init_chat_model", return_value=_llm("Title")) as init,
+            patch.object(
+                title_module, "init_chat_model", return_value=_llm("Title")
+            ) as init,
             patch.object(title_module, "get_model_api_key", return_value="sk-server"),
         ):
             await generate_title(MESSAGES, api_key=None)
@@ -59,7 +65,9 @@ class TestGenerateTitle:
     @pytest.mark.asyncio
     async def test_a_model_failure_yields_the_fallback(self) -> None:
         with patch.object(
-            title_module, "init_chat_model", return_value=_llm(RuntimeError("rate limited"))
+            title_module,
+            "init_chat_model",
+            return_value=_llm(RuntimeError("rate limited")),
         ):
             assert await generate_title(MESSAGES) == FALLBACK_TITLE
 

@@ -79,9 +79,7 @@ async def scenario():
         role=UserRole.USER,
         show_experimental_features=False,
     )
-    mixed = Project(
-        id=uuid.uuid4(), user_id=user.id, current_revision=1, title="mixed"
-    )
+    mixed = Project(id=uuid.uuid4(), user_id=user.id, current_revision=1, title="mixed")
     retired_only = Project(
         id=uuid.uuid4(), user_id=user.id, current_revision=1, title="retired only"
     )

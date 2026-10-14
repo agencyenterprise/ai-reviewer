@@ -32,7 +32,9 @@ def _parse_role(metadata: dict) -> FileRole:
         return FileRole.SUPPORT
 
 
-def _resolve_file_revision(metadata: dict, role: FileRole, project: Project) -> int | None:
+def _resolve_file_revision(
+    metadata: dict, role: FileRole, project: Project
+) -> int | None:
     """Resolve the revision an uploaded file belongs to.
 
     Supporting documents are shared across revisions (``None``). A main document

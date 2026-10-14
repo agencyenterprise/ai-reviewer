@@ -40,9 +40,7 @@ class PreflightValidationService:
         async with AsyncOpenAI(api_key=api_key) as client:
             return await self._test_connection(client)
 
-    async def _test_connection(
-        self, client: AsyncOpenAI
-    ) -> List[ValidationIssue]:
+    async def _test_connection(self, client: AsyncOpenAI) -> List[ValidationIssue]:
         """Test API connection with a lightweight call."""
         try:
             await client.models.list()

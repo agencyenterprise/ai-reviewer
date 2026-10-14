@@ -198,9 +198,7 @@ def test_callback_includes_endpoint_when_in_serialized(
     caplog.set_level(logging.WARNING, logger=_LOGGER_NAME)
 
     run_id = uuid4()
-    _start_chat_model(
-        callback, run_id=run_id, base_url="https://api.openai.com/v1"
-    )
+    _start_chat_model(callback, run_id=run_id, base_url="https://api.openai.com/v1")
     callback.on_llm_error(_make_openai_rate_limit_error(), run_id=run_id)
 
     record = _last_log_record(caplog)

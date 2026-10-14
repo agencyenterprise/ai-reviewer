@@ -34,7 +34,9 @@ def render_citation(payload: str) -> str:
     if match is None:
         return f"({name})"
     first, last = match.group(1), match.group(2)
-    lines = f"line {first}" if last is None or last == first else f"lines {first}–{last}"
+    lines = (
+        f"line {first}" if last is None or last == first else f"lines {first}–{last}"
+    )
     return f"({name}, {lines})"
 
 
