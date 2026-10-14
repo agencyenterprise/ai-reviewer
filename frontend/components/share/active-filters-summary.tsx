@@ -64,16 +64,17 @@ export function ExportScope({
   includeEdits: boolean;
 }) {
   const filtered = narrowsTheExport(filters);
+  const countsStatus = exportCountsStatus(counts, countsFailed);
 
   return (
     <div className="space-y-1.5">
-      {counts ? (
+      {counts && countsStatus === 'known' ? (
         <p className="text-sm">
           <span className="font-medium tabular-nums">{plural(counts.issues, 'issue')}</span>
           <span className="text-muted-foreground"> · </span>
           <span className="font-medium tabular-nums">{editsPhrase(counts.edits)}</span>
         </p>
-      ) : countsFailed ? (
+      ) : countsStatus === 'failed' ? (
         <p className="text-sm text-amber-700 dark:text-amber-400">
           Couldn&apos;t count the issues. The export still includes every one that matches.
         </p>
@@ -88,6 +89,18 @@ export function ExportScope({
       )}
     </div>
   );
+}
+
+/**
+ * Whether the counts can be stated yet. Until the issues load the count is
+ * unknown, which is not zero; once loading failed it stays unknown.
+ */
+export function exportCountsStatus(
+  counts: ExportCounts | null,
+  countsFailed: boolean,
+): 'known' | 'failed' | 'counting' {
+  if (counts) return 'known';
+  return countsFailed ? 'failed' : 'counting';
 }
 
 function plural(count: number, noun: string): string {

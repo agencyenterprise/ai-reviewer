@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasActiveFilters } from './active-filters-summary';
+import { exportCountsStatus, hasActiveFilters } from './active-filters-summary';
 import { SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 
 const NONE = { severity: [], workflowType: [], showPassing: false };
@@ -23,5 +23,20 @@ describe('hasActiveFilters', () => {
     // nothing to describe.
     expect(hasActiveFilters({ ...NONE, showPassing: true, severity: ALL_SEVERITIES })).toBe(false);
     expect(hasActiveFilters({ ...NONE, showPassing: true, severity: [SeverityEnum.High] })).toBe(true);
+  });
+});
+
+describe('exportCountsStatus', () => {
+  it('is counting, not zero, while the issues load', () => {
+    expect(exportCountsStatus(null, false)).toBe('counting');
+  });
+
+  it('is failed when the issues could not be loaded', () => {
+    expect(exportCountsStatus(null, true)).toBe('failed');
+  });
+
+  it('is known once the counts arrive, zero included', () => {
+    expect(exportCountsStatus({ issues: 3, edits: 1 }, false)).toBe('known');
+    expect(exportCountsStatus({ issues: 0, edits: 0 }, false)).toBe('known');
   });
 });

@@ -37,6 +37,11 @@ export function applyPreset(
   return [...kept, ...preset.filter((type) => offered.has(type))];
 }
 
+/** How many of the preset's assessments the picker offers: what choosing it would tick. */
+export function presetOfferedCount(preset: WorkflowRunType[], offeredTypes: WorkflowRunType[]): number {
+  return preset.filter((type) => offeredTypes.includes(type)).length;
+}
+
 interface WorkflowPresetChipsProps {
   presets: WorkflowPreset[];
   selectedTypes: WorkflowRunType[];
@@ -66,7 +71,7 @@ export function WorkflowPresetChips({
       <span className="mr-0.5 font-mono text-[10px] tracking-wide text-muted-foreground uppercase">Presets</span>
       {presets.map((preset) => {
         const active = presetIsActive(preset.workflows, selectedTypes, offeredTypes);
-        const offeredCount = preset.workflows.filter((type) => offeredTypes.includes(type)).length;
+        const offeredCount = presetOfferedCount(preset.workflows, offeredTypes);
         return (
           <Tooltip key={preset.slug}>
             <TooltipTrigger asChild>
