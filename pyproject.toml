@@ -5,7 +5,6 @@ description = "AI-powered peer-review document analysis"
 requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.14.0",
-    "black==26.3.1",
     "dotenv>=0.9.9",
     "langchain>=1.3.9",
     "langchain-text-splitters>=1.1.2",
@@ -59,10 +58,16 @@ dependencies = [
     "markdown-it-py>=4.0.0",
 ]
 
-[tool.black]
-target-version = ["py313"]
+[tool.ruff]
+target-version = "py313"
+line-length = 88
 # Alembic generates these; keep migration history untouched.
-extend-exclude = "alembic/versions"
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.format]
+# Ruff also formats Python blocks inside Markdown; the docs and skills keep
+# their snippets as written.
+exclude = ["*.md"]
 
 [tool.mypy]
 explicit_package_bases = true
@@ -104,6 +109,7 @@ addopts = [
 [dependency-groups]
 dev = [
     "lxml-stubs>=0.5.1",
+    "ruff==0.17.0",
     "types-aiofiles>=25.1.0.20251011",
     "types-pyyaml>=6.0.12.20260408",
 ]
