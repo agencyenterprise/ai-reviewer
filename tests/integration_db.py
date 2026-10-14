@@ -18,6 +18,8 @@ it by hand to get ready ahead of time, or with `--reset` to start from empty:
 import os
 import subprocess
 import sys
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 import psycopg
@@ -29,9 +31,13 @@ from sqlalchemy.engine import URL, make_url
 
 TEST_SUFFIX = "_test"
 REPO_ROOT = Path(__file__).resolve().parent.parent
-# Taken on the server while preparing, so parallel test workers wait for the
-# first one instead of all creating and migrating at once.
+# Advisory locks on the server's `postgres` database. PREPARE is held while
+# checking and migrating, so parallel workers wait for the first one. IN_USE is
+# held shared by every running test session; a rebuild takes it exclusively, so
+# it waits for those sessions to finish instead of dropping the database under
+# them (another worktree may be mid-run on the same database).
 PREPARE_LOCK_KEY = 0x44445F5445
+IN_USE_LOCK_KEY = 0x44445F5455
 
 
 def resolve_test_database_url(environ: dict[str, str]) -> URL:
@@ -98,8 +104,24 @@ def _upgrade(url: URL) -> None:
         raise RuntimeError(f"alembic upgrade head failed:\n{result.stderr}")
 
 
-def prepare_test_database(url: URL, reset: bool = False) -> None:
-    """Create, rebuild or migrate the test database until it is at head."""
+@contextmanager
+def _locked(conn: psycopg.Connection, key: int) -> Iterator[None]:
+    conn.execute("SELECT pg_advisory_lock(%s)", (key,))
+    try:
+        yield
+    finally:
+        conn.execute("SELECT pg_advisory_unlock(%s)", (key,))
+
+
+def _rebuild(admin: psycopg.Connection, name: str) -> None:
+    identifier = sql.Identifier(name)
+    with _locked(admin, IN_USE_LOCK_KEY):
+        admin.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(identifier))
+        admin.execute(sql.SQL("CREATE DATABASE {}").format(identifier))
+
+
+def _prepare(admin: psycopg.Connection, url: URL, reset: bool) -> None:
+    """Bring the test database to head; call with the PREPARE lock held."""
     name = url.database
     if not name or not is_test_database(url):
         raise RuntimeError(
@@ -107,20 +129,30 @@ def prepare_test_database(url: URL, reset: bool = False) -> None:
         )
     script = _script()
     known = {revision.revision for revision in script.walk_revisions()}
-    identifier = sql.Identifier(name)
-    with _admin_connection(url) as admin:
-        admin.execute("SELECT pg_advisory_lock(%s)", (PREPARE_LOCK_KEY,))
-        applied = _applied_revisions(url) if _exists(admin, name) else None
-        # A revision this checkout doesn't know came from another branch: the
-        # database is disposable, so rebuild it rather than ask for a downgrade.
-        if applied is not None and (reset or not applied <= known):
-            admin.execute(sql.SQL("DROP DATABASE {} WITH (FORCE)").format(identifier))
-            applied = None
-        if applied is None:
-            admin.execute(sql.SQL("CREATE DATABASE {}").format(identifier))
-        if applied != set(script.get_heads()):
-            _upgrade(url)
-        admin.execute("SELECT pg_advisory_unlock(%s)", (PREPARE_LOCK_KEY,))
+    applied = _applied_revisions(url) if _exists(admin, name) else None
+    # A revision this checkout doesn't know came from another branch: the
+    # database is disposable, so rebuild it rather than ask for a downgrade.
+    if applied is None or reset or not applied <= known:
+        _rebuild(admin, name)
+        applied = set()
+    if applied != set(script.get_heads()):
+        _upgrade(url)
+
+
+def prepare_test_database(url: URL, reset: bool = False) -> None:
+    """Create, rebuild or migrate the test database until it is at head."""
+    with _admin_connection(url) as admin, _locked(admin, PREPARE_LOCK_KEY):
+        _prepare(admin, url, reset)
+
+
+@contextmanager
+def integration_database_session(url: URL) -> Iterator[None]:
+    """Prepare the test database, then keep it from being rebuilt until exit."""
+    with _admin_connection(url) as admin, _admin_connection(url) as in_use:
+        with _locked(admin, PREPARE_LOCK_KEY):
+            _prepare(admin, url, reset=False)
+            in_use.execute("SELECT pg_advisory_lock_shared(%s)", (IN_USE_LOCK_KEY,))
+        yield
 
 
 def main() -> None:
