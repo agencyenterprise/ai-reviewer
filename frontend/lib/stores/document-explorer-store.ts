@@ -1,4 +1,5 @@
 import { Issue, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
+import { issueLineRange, issueStartLine, rangesOverlap } from '@/components/results/document-explorer/issue-lines';
 import { create } from 'zustand';
 import { sortIssueBySeverity } from '../severity';
 
@@ -67,22 +68,9 @@ function filterByWorkflowType(issues: Issue[], workflowType: WorkflowRunType[]):
   return issues.filter((issue) => workflowType.includes(issue.workflow_type));
 }
 
-function getIssueStartLine(issue: Issue): number | null {
-  const start = (issue as Issue & { start_line?: number | null }).start_line;
-  return typeof start === 'number' ? start : null;
-}
-
-function getIssueEndLine(issue: Issue): number | null {
-  const end = (issue as Issue & { end_line?: number | null }).end_line;
-  return typeof end === 'number' ? end : null;
-}
-
 function issueOverlapsRange(issue: Issue, range: LineRange): boolean {
-  const start = getIssueStartLine(issue);
-  const end = getIssueEndLine(issue);
-  if (start === null || end === null) return false;
-  const [rangeStart, rangeEnd] = range;
-  return start <= rangeEnd && end >= rangeStart;
+  const lines = issueLineRange(issue);
+  return lines !== null && rangesOverlap(lines, range);
 }
 
 /**
@@ -93,7 +81,7 @@ export function getVisibleIssues(allIssues: Issue[], filter: DocumentExplorerFil
   return allIssues
     .filter((issue) => filter.showPassing || issue.severity !== SeverityEnum.None)
     .filter((issue) => filter.showResolved || !isIssueResolved(issue))
-    .sort((a, b) => (getIssueStartLine(a) ?? 0) - (getIssueStartLine(b) ?? 0))
+    .sort((a, b) => (issueStartLine(a) ?? 0) - (issueStartLine(b) ?? 0))
     .sort(sortIssueBySeverity);
 }
 

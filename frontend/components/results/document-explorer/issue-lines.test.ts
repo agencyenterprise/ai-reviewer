@@ -1,6 +1,6 @@
 import { SeverityEnum, WorkflowRunType, type Issue } from '@/lib/generated-api';
 import { describe, expect, it } from 'vitest';
-import { formatLineLabel, issueLineRange, lineLabel } from './issue-lines';
+import { formatLineLabel, issueLineRange, issueStartLine, lineLabel, rangesOverlap } from './issue-lines';
 
 function issue(overrides: Partial<Issue> = {}): Issue {
   return {
@@ -59,5 +59,34 @@ describe('lineLabel', () => {
 
   it('returns null when the issue has no lines', () => {
     expect(lineLabel(issue())).toBeNull();
+  });
+});
+
+describe('issueStartLine', () => {
+  it('reads the start line even when the end is missing', () => {
+    expect(issueStartLine(issue({ start_line: 12, end_line: 14 }))).toBe(12);
+    expect(issueStartLine(issue({ start_line: 12 }))).toBe(12);
+  });
+
+  it('is null when there is no start line', () => {
+    expect(issueStartLine(issue())).toBeNull();
+    expect(issueStartLine(issue({ start_line: null, end_line: 14 }))).toBeNull();
+  });
+});
+
+describe('rangesOverlap', () => {
+  it('counts shared end lines as overlap', () => {
+    expect(rangesOverlap([1, 5], [5, 9])).toBe(true);
+    expect(rangesOverlap([5, 9], [1, 5])).toBe(true);
+  });
+
+  it('counts containment as overlap', () => {
+    expect(rangesOverlap([1, 10], [4, 5])).toBe(true);
+    expect(rangesOverlap([4, 5], [1, 10])).toBe(true);
+  });
+
+  it('is false for disjoint ranges', () => {
+    expect(rangesOverlap([1, 4], [5, 9])).toBe(false);
+    expect(rangesOverlap([5, 9], [1, 4])).toBe(false);
   });
 });
