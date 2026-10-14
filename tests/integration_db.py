@@ -43,6 +43,9 @@ IN_USE_LOCK_KEY = 0x44445F5455
 # libpq lets these query parameters pick the database instead of the URL's
 # path, which would slip past a check of the path's name.
 NAME_OVERRIDES = ("dbname", "service")
+# PostgreSQL truncates longer identifiers, so a longer name could reach another
+# database: "<63-byte dev name>_test" would drop the dev database.
+MAX_NAME_BYTES = 63
 
 
 def resolve_test_database_url(environ: dict[str, str]) -> URL:
@@ -56,16 +59,24 @@ def resolve_test_database_url(environ: dict[str, str]) -> URL:
             "picks its database from the URL's path."
         )
     name = url.database or ""
-    if explicit or name.endswith(TEST_SUFFIX):
-        return url
-    return url.set(database=name + TEST_SUFFIX)
+    if not explicit and not name.endswith(TEST_SUFFIX):
+        url = url.set(database=name + TEST_SUFFIX)
+    if not is_test_database(url):
+        raise ValueError(
+            f"Cannot use {url.database!r} as the test database: its name must end "
+            f"in {TEST_SUFFIX} and fit in {MAX_NAME_BYTES} bytes. Set "
+            "TEST_DATABASE_URL to one that does."
+        )
+    return url
 
 
 def is_test_database(url: str | URL) -> bool:
     url = make_url(url)
     if any(key in url.query for key in NAME_OVERRIDES):
         return False
-    return (url.database or "").endswith(TEST_SUFFIX)
+    name = url.database or ""
+    fits = len(name.encode()) <= MAX_NAME_BYTES
+    return fits and name.endswith(TEST_SUFFIX)
 
 
 def _point_at_test_database() -> None:
