@@ -18,7 +18,6 @@ flow to post answers and could only reply in a separate message. A transport-neu
 """
 
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Header, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
@@ -47,7 +46,7 @@ def _invoke_response(invoked: InvokeResponse) -> Response:
 @router.post("/messages")
 async def bot_messages(
     request: Request,
-    authorization: Optional[str] = Header(default=None),
+    authorization: str | None = Header(default=None),
 ) -> Response:
     """The bot's messaging endpoint, called by the Bot Connector.
 

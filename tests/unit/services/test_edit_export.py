@@ -4,7 +4,7 @@ import shutil
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Sequence
+from collections.abc import Sequence
 
 import pytest
 from docx_editor import BatchOperationError, Document as EditorDocument

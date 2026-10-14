@@ -36,7 +36,8 @@ a NaN key out of that metric's mean and counts the sample as unscored for it.
 import json
 import math
 import re
-from typing import Callable, Mapping, NamedTuple, Optional, Sequence
+from typing import NamedTuple
+from collections.abc import Callable, Mapping, Sequence
 
 from inspect_ai.scorer import Score, Scorer, Target, mean, scorer, stderr
 from inspect_ai.solver import TaskState
@@ -58,7 +59,7 @@ from evals_inspectai.common.issue_inventory import (
 # A workflow-specific per-edit check: (edit) -> pass?  Reported as edit_<name>.
 # A workflow's own per-edit verdict: True or False, or None when the check has
 # nothing to assess on that edit, which leaves it out of the fraction.
-EditCheck = Callable[[ProposedEdit], Optional[bool]]
+EditCheck = Callable[[ProposedEdit], bool | None]
 
 DETECTION_KEYS: tuple[str, ...] = (
     "recall",
@@ -158,7 +159,7 @@ def _issue_text(issue: IssueItem) -> str:
     return normalize(" ".join(parts))
 
 
-def _title_matches(issue: IssueItem, kind: Optional[str]) -> bool:
+def _title_matches(issue: IssueItem, kind: str | None) -> bool:
     """The expected title appears in the reported one as whole words, after
     normalisation; an expected issue with no title matches any. Whole words so
     that "supported" does not match "unsupported"."""
@@ -201,7 +202,7 @@ def hit_rank(
     issue: IssueItem,
     claimed: Sequence[str] = (),
     on_location: bool = False,
-) -> Optional[HitRank]:
+) -> HitRank | None:
     """How well ``issue`` reports ``expected`` (see ``HitRank``); None when it does not report it.
 
     Within one level of evidence, an issue whose line range brackets the expected
@@ -270,7 +271,7 @@ def hit_issue(
     issues: Sequence[IssueItem],
     claimed: Sequence[str] = (),
     on_location: bool = False,
-) -> Optional[int]:
+) -> int | None:
     """Index of the best-ranked issue that reports this expected, or None."""
     ranked = ranked_hits(expected, issues, claimed, on_location)
     return ranked[0] if ranked else None
@@ -336,7 +337,7 @@ def edits_for(expected: ResolvedIssue, issue: IssueItem) -> list[ProposedEdit]:
     return [e for e in issue.edits if overlaps(anchor, e.original_text)]
 
 
-def _line_text(lines: Sequence[str], line: Optional[int]) -> str:
+def _line_text(lines: Sequence[str], line: int | None) -> str:
     """The text of a 1-indexed line, or "" when there is no such line."""
     return lines[line - 1] if line is not None and 0 < line <= len(lines) else ""
 
@@ -386,7 +387,7 @@ def _soft(text: str) -> str:
     return re.sub(r"\s+", " ", text.replace("\xa0", " "))
 
 
-def _edited_sentences(line_text: str, edits: Sequence[ProposedEdit]) -> Optional[str]:
+def _edited_sentences(line_text: str, edits: Sequence[ProposedEdit]) -> str | None:
     """The sentence(s) of ``line_text`` that the edits produce, with every edit applied.
 
     Edits are applied in turn to the line, each replacement's position kept
@@ -432,7 +433,7 @@ def edit_checks(
     expected: ResolvedIssue,
     issue: IssueItem,
     lines: Sequence[str],
-    extra: Optional[Mapping[str, EditCheck]] = None,
+    extra: Mapping[str, EditCheck] | None = None,
 ) -> dict[str, tuple[float, str]]:
     """The edit-layer verdicts for one hit expected, with the detail behind each.
 
@@ -528,7 +529,7 @@ def edit_checks(
 
 def hit_pairs(
     issues: Sequence[IssueItem], inventory: ResolvedInventory
-) -> tuple[dict[str, Optional[int]], list[tuple[ResolvedIssue, IssueItem]]]:
+) -> tuple[dict[str, int | None], list[tuple[ResolvedIssue, IssueItem]]]:
     """Which reported issue best covers each expected one, under the inventory's
     ``policy.pairing``. The single pairing every layer uses, deterministic and
     judged alike, so they never grade different reports for the same expected issue.
@@ -615,7 +616,7 @@ def _one_to_one_hits(
     expected_issues: Sequence[ResolvedIssue],
     claimed: Sequence[str] = (),
     on_location: bool = False,
-) -> dict[str, Optional[int]]:
+) -> dict[str, int | None]:
     """A one-to-one matching of expected issues to reported issues that covers
     as many expected issues as any pairing can and, among those, uses the
     strongest evidence (lowest total ``HitRank.cost``). Solved as an assignment
@@ -642,7 +643,7 @@ def _one_to_one_hits(
             if rank is not None:
                 cost[row][col] = rank.cost()
     assignment = _min_cost_assignment(cost)
-    hits: dict[str, Optional[int]] = {}
+    hits: dict[str, int | None] = {}
     for row, e in enumerate(expected_issues):
         matched = assignment.get(row)
         hits[e.id] = (
@@ -874,7 +875,7 @@ DEFAULT_RESULTS: tuple[str, ...] = ("result",)
 
 def issues_from_state(
     state: TaskState, results: Sequence[str] = DEFAULT_RESULTS
-) -> tuple[list[IssueItem], Optional[str]]:
+) -> tuple[list[IssueItem], str | None]:
     """The issues a workflow run reported, from the API state the solver captured.
 
     ``results`` names the state fields holding an ``AgentCheckResult``; a

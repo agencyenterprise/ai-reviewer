@@ -6,7 +6,8 @@ import time
 import uuid
 from contextvars import Token
 from functools import wraps
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 from langgraph.runtime import Runtime
 

@@ -24,7 +24,7 @@ import asyncio
 import json
 import logging
 from contextlib import suppress
-from typing import AsyncGenerator, AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
 
 from lib.services.chat.events import ChatEvent, error_event
 

@@ -10,7 +10,7 @@ persisted record instead.
 import json
 import logging
 import traceback
-from typing import Any, Optional
+from typing import Any
 
 from langchain_core.messages import AIMessage
 
@@ -37,7 +37,7 @@ def _causes(exc: BaseException) -> list[BaseException]:
     """The exception plus its `__cause__`/`__context__` chain, cycle-safe."""
     chain: list[BaseException] = []
     seen: set[int] = set()
-    current: Optional[BaseException] = exc
+    current: BaseException | None = exc
     while current is not None and id(current) not in seen:
         seen.add(id(current))
         chain.append(current)
@@ -45,7 +45,7 @@ def _causes(exc: BaseException) -> list[BaseException]:
     return chain
 
 
-def _find_ai_message(exc: BaseException) -> Optional[AIMessage]:
+def _find_ai_message(exc: BaseException) -> AIMessage | None:
     """Locate the LLM response an exception was raised over.
 
     LangChain's structured-output errors expose the offending `AIMessage` as an
@@ -60,7 +60,7 @@ def _find_ai_message(exc: BaseException) -> Optional[AIMessage]:
     return None
 
 
-def _decoded_document(exc: BaseException) -> Optional[str]:
+def _decoded_document(exc: BaseException) -> str | None:
     """The text a `json.JSONDecodeError` in the chain choked on."""
     for link in _causes(exc):
         if isinstance(link, json.JSONDecodeError):
@@ -76,7 +76,7 @@ def _jsonable(value: Any) -> Any:
         return str(value)
 
 
-def _llm_metadata(message: AIMessage) -> Optional[dict]:
+def _llm_metadata(message: AIMessage) -> dict | None:
     """Response metadata for the failing call: model, finish reason, usage.
 
     `finish_reason` (or the Responses API's `incomplete_details`) is what
@@ -104,7 +104,7 @@ def capture_error_details(exc: BaseException) -> ErrorDetails:
     """Build the diagnostic payload for a caught exception."""
     ai_message = _find_ai_message(exc)
 
-    raw_output: Optional[str] = None
+    raw_output: str | None = None
     if ai_message is not None:
         raw_output = ai_message_text(ai_message) or None
     if raw_output is None:
@@ -130,9 +130,9 @@ def capture_error_details(exc: BaseException) -> ErrorDetails:
 def build_workflow_error(
     task_name: str,
     exc: BaseException,
-    workflow_run_id: Optional[str] = None,
-    chunk_index: Optional[int] = None,
-    message: Optional[str] = None,
+    workflow_run_id: str | None = None,
+    chunk_index: int | None = None,
+    message: str | None = None,
     severity: WorkflowErrorSeverity = WorkflowErrorSeverity.ERROR,
 ) -> WorkflowError:
     """Build a `WorkflowError` that carries full diagnostics for `exc`.

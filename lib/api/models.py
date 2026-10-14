@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field, computed_field, field_validator
@@ -22,7 +22,7 @@ class StartMultipleWorkflowsRequest(BaseModel):
     """Request model for starting multiple workflows"""
 
     project_id: str
-    workflow_types: List[WorkflowRunType]
+    workflow_types: list[WorkflowRunType]
     openai_api_key: str | None = None
     model: str | None = Field(
         default=None,
@@ -38,8 +38,8 @@ class StartMultipleWorkflowsResponse(BaseModel):
     """Response model for starting multiple workflows"""
 
     project_id: str
-    types: List[WorkflowRunType]
-    workflow_run_ids: List[str]
+    types: list[WorkflowRunType]
+    workflow_run_ids: list[str]
     message: str
 
 
@@ -52,8 +52,8 @@ class WorkflowProgressResponse(BaseModel):
     level: ProgressLevel
     current_step: int
     total_steps: int
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -122,7 +122,7 @@ class ApproveGateResponse(BaseModel):
 
     gate: WorkflowGate
     revision: int
-    released_workflow_run_ids: List[str] = Field(
+    released_workflow_run_ids: list[str] = Field(
         description="Runs that were awaiting this gate and have now been scheduled"
     )
 
@@ -138,7 +138,7 @@ class CreateRevisionResponse(BaseModel):
     """Response for creating a new project revision."""
 
     revision: int
-    previous_workflow_types: List[WorkflowRunType]
+    previous_workflow_types: list[WorkflowRunType]
 
 
 class RevisionListItem(BaseModel):

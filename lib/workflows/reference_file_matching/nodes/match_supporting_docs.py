@@ -6,7 +6,6 @@ Uses a two-stage approach for scalability:
 """
 
 import logging
-from typing import List, Optional
 
 from langchain_core.runnables.config import ensure_config
 from langgraph.runtime import Runtime
@@ -36,11 +35,11 @@ MAX_CONCURRENT_BATCHES = 5
 
 
 async def _retrieve_candidates(
-    reference_texts: List[str],
-    summaries: List[FileSummary],
+    reference_texts: list[str],
+    summaries: list[FileSummary],
     openai_api_key: str,
     top_k: int = 15,
-) -> List[List[CandidateMatch]]:
+) -> list[list[CandidateMatch]]:
     matcher = ReferenceEmbeddingMatcher(openai_api_key)
     await matcher.index_summaries(summaries)
     return await matcher.find_candidates(reference_texts, top_k=top_k)
@@ -48,8 +47,8 @@ async def _retrieve_candidates(
 
 def _resolve_match(
     match_candidate: str,
-    candidates: List[CandidateMatch],
-) -> Optional[str]:
+    candidates: list[CandidateMatch],
+) -> str | None:
     """Map LLM's letter response (A/B/C) back to file_id."""
     if match_candidate == "NONE" or not candidates:
         return None
@@ -65,16 +64,16 @@ def _resolve_match(
 
 
 async def _process_batch(
-    batch_refs: List[str],
-    batch_candidates: List[List[CandidateMatch]],
+    batch_refs: list[str],
+    batch_candidates: list[list[CandidateMatch]],
     agent: BatchedReferenceMatcherAgent,
     config,
-) -> List[Optional[str]]:
+) -> list[str | None]:
     """Process a batch of references and return matched file_ids."""
     try:
         result = await agent.match_batch(batch_refs, batch_candidates, config=config)
 
-        results: List[Optional[str]] = [None] * len(batch_refs)
+        results: list[str | None] = [None] * len(batch_refs)
         for match in result.matches:
             if 0 <= match.reference_index < len(batch_refs):
                 results[match.reference_index] = _resolve_match(
@@ -89,10 +88,10 @@ async def _process_batch(
 
 
 async def _two_stage_match(
-    reference_texts: List[str],
-    summaries: List[FileSummary],
+    reference_texts: list[str],
+    summaries: list[FileSummary],
     context: ContextSchema,
-) -> List[Optional[str]]:
+) -> list[str | None]:
     """Run two-stage matching and return list of matched file_ids (None if no match)."""
     logger.info("Stage 1: Retrieving candidates via embedding similarity")
     candidates_per_ref = await _retrieve_candidates(
@@ -118,7 +117,7 @@ async def _two_stage_match(
     )
 
     # Flatten results, treating failed batches as no-matches
-    all_results: List[Optional[str]] = []
+    all_results: list[str | None] = []
     for i, batch_result in enumerate(batch_results):
         if batch_result is None:
             start_idx = i * REFERENCES_PER_BATCH
@@ -141,7 +140,7 @@ async def match_supporting_docs_node(
     2. Batched LLM verification (5 references per call)
     """
     # Get extracted references from the reference extraction workflow
-    extracted_references: List[ExtractedReference] = (
+    extracted_references: list[ExtractedReference] = (
         await runtime.context.file_artifacts_service.get_extracted_references()
     )
 
@@ -165,7 +164,7 @@ async def match_supporting_docs_node(
     )
 
     # Build summaries list for supporting documents
-    summaries: List[FileSummary] = [
+    summaries: list[FileSummary] = [
         await runtime.context.file_artifacts_service.get_file_summary(file_id)
         for file_id in state.supporting_file_ids
     ]
@@ -186,7 +185,7 @@ async def match_supporting_docs_node(
         match_results = [None] * len(reference_texts)
 
     # Build ReferenceFileMatch objects only for newly matched references
-    new_matches: List[ReferenceFileMatch] = []
+    new_matches: list[ReferenceFileMatch] = []
     matched_count = 0
 
     for ref, file_id in zip(unmatched_references, match_results):

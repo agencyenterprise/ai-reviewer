@@ -1,6 +1,6 @@
 """State definitions for document processing workflow."""
 
-from typing import List, Literal, Optional
+from typing import Literal
 
 from pydantic import Field
 
@@ -25,6 +25,6 @@ class DocumentProcessingState(BaseWorkflowState):
 
     config: DocumentProcessingWorkflowConfig
     file: FileDocument
-    supporting_files: Optional[List[FileDocument]] = None
-    reviewer_memo_files: Optional[List[FileDocument]] = None
-    response_memo_files: Optional[List[FileDocument]] = None
+    supporting_files: list[FileDocument] | None = None
+    reviewer_memo_files: list[FileDocument] | None = None
+    response_memo_files: list[FileDocument] | None = None

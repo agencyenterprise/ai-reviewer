@@ -1,7 +1,6 @@
 """Vector search tool for claim verification agent."""
 
 import logging
-from typing import List
 
 from langchain.tools import ToolRuntime, tool
 
@@ -116,7 +115,7 @@ async def vector_search(
 
 
 def format_passages_with_lines(
-    passages: List[RetrievedPassage],
+    passages: list[RetrievedPassage],
     markdown_content: str,
     file_name: str,
 ) -> str:
@@ -136,7 +135,7 @@ def format_passages_with_lines(
             matched_line_indices.add(i)
 
     # Build expanded ranges (with context) for each chunk
-    ranges: List[tuple[int, int]] = []
+    ranges: list[tuple[int, int]] = []
     for p in passages:
         start = max(0, p.start_line - 1 - CONTEXT_LINES)
         end = min(total_lines, p.end_line + CONTEXT_LINES)
@@ -144,7 +143,7 @@ def format_passages_with_lines(
 
     # Sort and merge overlapping / adjacent ranges
     ranges.sort()
-    merged: List[tuple[int, int]] = []
+    merged: list[tuple[int, int]] = []
     for start, end in ranges:
         if merged and start <= merged[-1][1]:
             merged[-1] = (merged[-1][0], max(merged[-1][1], end))
@@ -152,9 +151,9 @@ def format_passages_with_lines(
             merged.append((start, end))
 
     # Format each block
-    blocks: List[str] = []
+    blocks: list[str] = []
     for start, end in merged:
-        block_lines: List[str] = []
+        block_lines: list[str] = []
         for i in range(start, end):
             line_num = i + 1  # 1-indexed for display
             separator = ":" if i in matched_line_indices else "-"

@@ -27,7 +27,7 @@ import json
 import math
 import re
 from datetime import date
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from inspect_ai.scorer import Score, Scorer, Target, scorer
 from inspect_ai.solver import TaskState
@@ -59,8 +59,8 @@ _HEADING_RE = re.compile(r"^\s*#{1,6}\s")
 
 class Citation(BaseModel):
     text: str
-    year: Optional[int]
-    first_author: Optional[str]
+    year: int | None
+    first_author: str | None
 
 
 def parse_citation(line: str) -> Citation:
@@ -75,7 +75,7 @@ def parse_citation(line: str) -> Citation:
     )
 
 
-def _first_author(line: str) -> Optional[str]:
+def _first_author(line: str) -> str | None:
     body = _LEAD_RE.sub("", line, count=1)
     # The first name ends at a comma, a parenthesis, the year, or the "and" / "&" before the next author.
     head = re.split(r"[,(&]|\sand\s|" + _YEAR_RE.pattern, body, maxsplit=1)[0]
@@ -163,7 +163,7 @@ def _names(text: str, name: str) -> bool:
     return re.search(rf"(?<!\w){re.escape(name)}(?!\w)", text, re.I) is not None
 
 
-def _publication_year(inventory: ResolvedInventory) -> Optional[int]:
+def _publication_year(inventory: ResolvedInventory) -> int | None:
     return (
         date.fromisoformat(inventory.publication_date).year
         if inventory.publication_date

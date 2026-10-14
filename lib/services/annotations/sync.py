@@ -12,7 +12,7 @@ dataset and catalog changes by itself. To run it by hand::
 
 import asyncio
 import uuid
-from typing import Sequence
+from collections.abc import Sequence
 
 from pydantic import BaseModel
 from sqlalchemy import func, select, update

@@ -6,8 +6,6 @@ They mirror the backend types in ``lib/workflows/simple_deep_agent/agent_types.p
 and the state shape in ``lib/workflows/simple_deep_agent/state.py``.
 """
 
-from typing import List, Optional
-
 from pydantic import BaseModel, Field
 
 
@@ -27,17 +25,17 @@ class IssueItem(BaseModel):
     title: str = ""
     description: str = ""
     severity: str = "medium"
-    long_description: Optional[str] = None
-    suggested_action: Optional[str] = None
+    long_description: str | None = None
+    suggested_action: str | None = None
     start_line: int = 0
     end_line: int = 0
-    edits: List[ProposedEdit] = Field(default_factory=list)
+    edits: list[ProposedEdit] = Field(default_factory=list)
 
 
 class AgentCheckResult(BaseModel):
     """Local mirror of AgentCheckResult from simple_deep_agent/agent_types.py."""
 
-    issues: List[IssueItem] = Field(default_factory=list)
+    issues: list[IssueItem] = Field(default_factory=list)
     report_markdown: str = ""
 
 
@@ -49,7 +47,7 @@ class SimpleDeepAgentOutput(BaseModel):
     Extra top-level fields (``errors``, ``type``, ``config``) are ignored.
     """
 
-    result: Optional[AgentCheckResult] = None
+    result: AgentCheckResult | None = None
 
 
 class AgentHtmlReport(BaseModel):
@@ -63,7 +61,7 @@ class AgentHtmlReport(BaseModel):
     empty here.
     """
 
-    issues: List[IssueItem] = Field(default_factory=list)
+    issues: list[IssueItem] = Field(default_factory=list)
     report_html: str = ""
 
 
@@ -74,4 +72,4 @@ class HtmlReportAgentOutput(BaseModel):
     ``result`` differ.
     """
 
-    result: Optional[AgentHtmlReport] = None
+    result: AgentHtmlReport | None = None

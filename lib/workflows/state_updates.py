@@ -1,4 +1,5 @@
-from typing import Any, Mapping, TypeVar
+from typing import Any, TypeVar
+from collections.abc import Mapping
 
 from langgraph.channels.base import BaseChannel
 from pydantic import BaseModel

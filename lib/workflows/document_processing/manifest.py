@@ -1,5 +1,4 @@
 import logging
-from typing import List, Type
 
 from langgraph.graph import StateGraph
 
@@ -13,6 +12,7 @@ from lib.workflows.document_processing.state import (
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.workflow_types import WorkflowState
+import builtins
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +27,11 @@ class DocumentProcessingManifest(
     is_internal = True
     always_run = True  # Always run document processing to ensure new files are processed. The workflow processes only new files in subsequent runs, reusing cached results from previous runs.
 
-    def get_state_type(self) -> Type[DocumentProcessingState]:
+    def get_state_type(self) -> builtins.type[DocumentProcessingState]:
         """Get the type of the workflow state."""
         return DocumentProcessingState
 
-    def get_config_type(self) -> Type[DocumentProcessingWorkflowConfig]:
+    def get_config_type(self) -> builtins.type[DocumentProcessingWorkflowConfig]:
         """Get the type of the workflow config."""
         return DocumentProcessingWorkflowConfig
 
@@ -42,7 +42,7 @@ class DocumentProcessingManifest(
     async def create_initial_state(
         self,
         config: DocumentProcessingWorkflowConfig,
-        existing_states: List[WorkflowState],
+        existing_states: list[WorkflowState],
         revision: int,
         prior_self_state: DocumentProcessingState | None = None,
     ) -> DocumentProcessingState:
@@ -109,7 +109,7 @@ class DocumentProcessingManifest(
         )
 
     def convert_state_to_issues(
-        self, state: DocumentProcessingState, other_states: List[WorkflowState]
-    ) -> List[DocumentIssue]:
+        self, state: DocumentProcessingState, other_states: list[WorkflowState]
+    ) -> list[DocumentIssue]:
         # Document processing doesn't produce issues
         return []

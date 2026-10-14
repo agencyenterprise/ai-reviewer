@@ -29,7 +29,7 @@ Run (backend must be running)::
 import asyncio
 import math
 from pathlib import Path
-from typing import Sequence
+from collections.abc import Sequence
 
 from inspect_ai import Task, task
 from inspect_ai.model import Model, get_model

@@ -1,7 +1,6 @@
 """Citation validator agent that reads document sections and validates citations."""
 
 from enum import StrEnum
-from typing import List, Optional
 
 from langchain.agents import create_agent
 from langchain.agents.structured_output import StructuredOutputError
@@ -62,11 +61,11 @@ class CitationAssessment(BaseModel):
     feedback: str = Field(
         description="Actionable suggestion for the author. Return 'No changes needed' if the citation is correct."
     )
-    evidence_sources: List[ClaimEvidenceSource] = Field(
+    evidence_sources: list[ClaimEvidenceSource] = Field(
         description="All reference files that were checked when validating this citation.",
         default_factory=list,
     )
-    citation_to_file_mapping: Optional[str] = Field(
+    citation_to_file_mapping: str | None = Field(
         default=None,
         description=(
             "The full resolution chain from the in-text citation to the supporting "
@@ -96,7 +95,7 @@ class CitationAssessment(BaseModel):
 class SectionValidationResult(BaseModel):
     """The citation-validator agent's output for one document section."""
 
-    issues: List[CitationAssessment] = Field(
+    issues: list[CitationAssessment] = Field(
         description="All citations identified in this section, with their validation results.",
         default_factory=list,
     )
@@ -115,7 +114,7 @@ class PartialSectionValidationError(Exception):
     def __init__(
         self,
         result: SectionValidationResult,
-        messages: List[BaseMessage],
+        messages: list[BaseMessage],
         source: Exception,
     ) -> None:
         self.result = result
@@ -188,8 +187,8 @@ class CitationValidatorAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: Optional[RunnableConfig] = None,
-    ) -> tuple[SectionValidationResult, List[BaseMessage]]:
+        config: RunnableConfig | None = None,
+    ) -> tuple[SectionValidationResult, list[BaseMessage]]:
         agent = create_agent(
             self.llm,
             [vector_search, search_document, read_document],
@@ -223,7 +222,7 @@ class CitationValidatorAgent(LangChainAgent):
     @staticmethod
     def _salvage(
         error: StructuredOutputError,
-    ) -> Optional[PartialSectionValidationError]:
+    ) -> PartialSectionValidationError | None:
         """Recover the assessments a truncated response had already completed.
 
         LangChain raises before the agent returns, so the only record of the

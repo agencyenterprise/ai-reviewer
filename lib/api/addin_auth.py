@@ -24,7 +24,7 @@ Two kinds of bearer token carry it:
 import asyncio
 import logging
 import re
-from typing import Any, Optional
+from typing import Any
 
 import jwt
 from fastapi import Depends, HTTPException, status
@@ -50,9 +50,9 @@ class AddinIdentity(BaseModel):
     """A Microsoft account, as the add-in's routes know it."""
 
     oid: str
-    tid: Optional[str] = None
-    email: Optional[str] = None
-    name: Optional[str] = None
+    tid: str | None = None
+    email: str | None = None
+    name: str | None = None
 
 
 _TENANT_ISSUER = re.compile(
@@ -64,7 +64,7 @@ _ANY_TENANT_ISSUER = re.compile(
 )
 
 
-def addin_app() -> tuple[Optional[str], Optional[str]]:
+def addin_app() -> tuple[str | None, str | None]:
     """The client id Office tokens must be issued for, and the one issuer to require.
 
     The app Draft Detective signs users in with, and nothing unless all three of its
@@ -88,7 +88,7 @@ def addin_app() -> tuple[Optional[str], Optional[str]]:
     return None, None
 
 
-def from_entra_token(token: str) -> Optional[AddinIdentity]:
+def from_entra_token(token: str) -> AddinIdentity | None:
     """The identity in an Office single sign-on token, or None if it is not one we accept.
 
     Blocking: the first call for a signing key fetches Microsoft's key set.
@@ -130,7 +130,7 @@ def from_entra_token(token: str) -> Optional[AddinIdentity]:
     )
 
 
-def from_session_token(token: str) -> Optional[AddinIdentity]:
+def from_session_token(token: str) -> AddinIdentity | None:
     """The identity in a Draft Detective session token from a Microsoft sign-in.
 
     Held to the same configuration as single sign-on: none without the add-in's app,
@@ -170,7 +170,7 @@ def from_session_token(token: str) -> Optional[AddinIdentity]:
     )
 
 
-async def identify(token: str) -> Optional[AddinIdentity]:
+async def identify(token: str) -> AddinIdentity | None:
     """Whichever of the two tokens this is, or None."""
 
     try:

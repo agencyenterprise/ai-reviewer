@@ -5,7 +5,6 @@ each. Plain text processing; no model is involved.
 """
 
 import re
-from typing import List, Optional
 
 from lib.services.document_sections import split_into_sections
 from lib.workflows.abbreviation_scan_v2.chunk_models import (
@@ -26,8 +25,8 @@ def is_heading_line(line: str) -> bool:
 
 
 def build_chunks(
-    markdown: str, section_ranges: List[LineRange]
-) -> List[AbbreviationChunk]:
+    markdown: str, section_ranges: list[LineRange]
+) -> list[AbbreviationChunk]:
     """Cut the document into contiguous chunks that together cover every line.
 
     Chunks break at the Abbreviations section's boundaries, so a chunk is
@@ -38,7 +37,7 @@ def build_chunks(
         return []
 
     lines = markdown.split("\n")
-    chunks: List[AbbreviationChunk] = []
+    chunks: list[AbbreviationChunk] = []
     for start, end in _pack_segments(
         lines, _break_points(markdown, lines, section_ranges), section_ranges
     ):
@@ -56,8 +55,8 @@ def build_chunks(
 
 
 def _skip_reason(
-    chunk_lines: List[str], start: int, section_ranges: List[LineRange]
-) -> Optional[str]:
+    chunk_lines: list[str], start: int, section_ranges: list[LineRange]
+) -> str | None:
     if any(r.contains(start) for r in section_ranges):
         return "abbreviations section"
     if not any(line.strip() for line in chunk_lines):
@@ -66,8 +65,8 @@ def _skip_reason(
 
 
 def _break_points(
-    markdown: str, lines: List[str], section_ranges: List[LineRange]
-) -> List[int]:
+    markdown: str, lines: list[str], section_ranges: list[LineRange]
+) -> list[int]:
     points = {1}
     points.update(s.start_line for s in split_into_sections(markdown))
     points.update(n for n, line in enumerate(lines, start=1) if is_heading_line(line))
@@ -77,8 +76,8 @@ def _break_points(
 
 
 def _pack_segments(
-    lines: List[str], breaks: List[int], section_ranges: List[LineRange]
-) -> List[tuple[int, int]]:
+    lines: list[str], breaks: list[int], section_ranges: list[LineRange]
+) -> list[tuple[int, int]]:
     """Greedily merge consecutive segments into chunks of at most CHUNK_CHARS.
 
     A segment never joins across the Abbreviations section's boundary. A single
@@ -90,7 +89,7 @@ def _pack_segments(
         return any(r.contains(line) for r in section_ranges)
 
     segments = list(zip(breaks, [b - 1 for b in breaks[1:]] + [len(lines)]))
-    packed: List[tuple[int, int]] = []
+    packed: list[tuple[int, int]] = []
     size = 0
     for start, end in segments:
         seg_size = sum(len(line) + 1 for line in lines[start - 1 : end])

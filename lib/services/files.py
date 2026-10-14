@@ -1,7 +1,7 @@
 import logging
 import os
 import uuid
-from typing import List, Optional, Sequence
+from collections.abc import Sequence
 
 from fastapi import HTTPException
 from sqlalchemy import func, or_, select, update
@@ -28,8 +28,8 @@ async def create_file_record(
     content_hash: str,
     role: FileRole,
     uploaded_by: uuid.UUID,
-    original_file_path: Optional[str] = None,
-    description: Optional[str] = None,
+    original_file_path: str | None = None,
+    description: str | None = None,
     revision: int | None = None,
 ) -> File:
     """
@@ -110,7 +110,7 @@ async def get_file_by_id(file_id: uuid.UUID | str) -> File:
         return file
 
 
-async def get_cached_summary_for_file(file_id: uuid.UUID | str) -> Optional[dict]:
+async def get_cached_summary_for_file(file_id: uuid.UUID | str) -> dict | None:
     """Return a document summary already computed for an identical file in any
     project, or None.
 
@@ -174,9 +174,9 @@ async def assert_project_has_main_file(
 
 async def get_files_by_project_id(
     project_id: uuid.UUID | str,
-    roles: List[FileRole],
+    roles: list[FileRole],
     revision: int | None = None,
-) -> List[File]:
+) -> list[File]:
     """
     Get a project's files with the given roles, optionally filtered by revision.
 
@@ -220,7 +220,7 @@ async def get_main_file_id(project_id: uuid.UUID | str, revision: int) -> str:
 
 async def get_processed_supporting_file_ids(
     project_id: uuid.UUID | str, revision: int
-) -> List[str]:
+) -> list[str]:
     """Ids of the revision's supporting files that have cached markdown.
 
     Supporting files are shared across revisions (revision IS NULL). A file
@@ -237,7 +237,7 @@ async def get_processed_supporting_file_ids(
 
 async def get_project_files_list_items(
     project_id: uuid.UUID | str,
-) -> List[FileListItem]:
+) -> list[FileListItem]:
     """
     Get files for a project as lightweight list items (excludes markdown and summary).
 
@@ -267,7 +267,7 @@ async def get_project_files_list_items(
         return [FileListItem.model_validate(f, from_attributes=True) for f in files]
 
 
-async def get_supporting_candidate_files(project_id: uuid.UUID | str) -> List[File]:
+async def get_supporting_candidate_files(project_id: uuid.UUID | str) -> list[File]:
     """
     Get all files with SUPPORTING_CANDIDATE role for a project.
 

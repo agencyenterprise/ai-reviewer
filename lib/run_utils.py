@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import os
-from typing import Any, List, Optional, Tuple
+from typing import Any
 from uuid import UUID
 
 from lib.workflows.context import current_progress_id
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 MAX_CONCURRENT_TASKS = int(os.getenv("MAX_CONCURRENT_TASKS", "20"))
 
 
-def _get_progress_id() -> Optional[UUID]:
+def _get_progress_id() -> UUID | None:
     """Get progress ID from context variable if available."""
     try:
         return current_progress_id.get()
@@ -38,7 +38,7 @@ async def run_tasks(
     tasks,
     desc="Processing tasks",
     max_concurrent=None,
-) -> Tuple[List[Any | None], List[Exception | None]]:
+) -> tuple[list[Any | None], list[Exception | None]]:
     """
     Run tasks with concurrency limit to avoid overwhelming systems.
 
@@ -93,8 +93,8 @@ async def run_tasks(
         if progress_id:
             await _update_progress_safely(progress_id, current_step=completed_count)
 
-    task_results: List[Any | None] = []
-    task_errors: List[Exception | None] = []
+    task_results: list[Any | None] = []
+    task_errors: list[Exception | None] = []
 
     for chunk_index in range(len(tasks)):
         if chunk_index not in task_results_dict:
@@ -108,10 +108,10 @@ async def run_tasks(
 
 def convert_exceptions_to_workflow_errors(
     task_name: str,
-    exceptions: List[Exception | None],
-    chunk_indices: Optional[List[int]] = None,
-    workflow_run_id: Optional[str] = None,
-) -> List[WorkflowError]:
+    exceptions: list[Exception | None],
+    chunk_indices: list[int] | None = None,
+    workflow_run_id: str | None = None,
+) -> list[WorkflowError]:
     """
     Convert a list of exceptions to WorkflowError objects.
 
@@ -132,7 +132,7 @@ def convert_exceptions_to_workflow_errors(
             f"exceptions length ({len(exceptions)})"
         )
 
-    errors: List[WorkflowError] = []
+    errors: list[WorkflowError] = []
     for i, exception in enumerate(exceptions):
         if exception is not None:
             errors.append(

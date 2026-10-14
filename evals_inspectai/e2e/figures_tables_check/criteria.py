@@ -18,7 +18,7 @@ element's content and the body text around it.
 
 import math
 import re
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from evals_inspectai.common.issue_checks import fraction, hit_pairs
 from evals_inspectai.common.issue_inventory import (
@@ -42,7 +42,7 @@ ELEMENT_RULES = (MISSING_TITLE, UNREFERENCED, MISSING_ELEMENT)
 _LABEL_RE = re.compile(r"\b(fig(?:ure)?\.?|table)\s+([a-z]?\.?\d+(?:\.\d+)*)\b", re.I)
 
 
-def label(text: str) -> Optional[tuple[str, str]]:
+def label(text: str) -> tuple[str, str] | None:
     """The first figure or table label in ``text`` as (kind, number), or None.
 
     "Fig." and "Figure" are one kind, case is ignored, and a dot between a letter
@@ -55,7 +55,7 @@ def label(text: str) -> Optional[tuple[str, str]]:
     return kind, number
 
 
-def title_parts(title: str) -> Optional[tuple[str, str]]:
+def title_parts(title: str) -> tuple[str, str] | None:
     """The skill's rule prefix a title begins with and its placeholder, or None when
     the title does not begin with one of the four prefixes and a colon."""
     for prefix in TITLE_PREFIXES:
@@ -71,7 +71,7 @@ def _known(title: str) -> bool:
     return parts is not None and parts[1] != "" and not parts[1].startswith("[")
 
 
-def _element_label(expected: ResolvedIssue) -> Optional[tuple[str, str]]:
+def _element_label(expected: ResolvedIssue) -> tuple[str, str] | None:
     """The label an expected element issue is about, read from its anchor; None for a
     numbering issue, an unanchored issue or an anchor that carries no label."""
     if expected.title not in ELEMENT_RULES or expected.anchor is None:
@@ -79,9 +79,7 @@ def _element_label(expected: ResolvedIssue) -> Optional[tuple[str, str]]:
     return label(expected.anchor)
 
 
-def _label_check(
-    expected: ResolvedIssue, issue: IssueItem
-) -> Optional[tuple[float, str]]:
+def _label_check(expected: ResolvedIssue, issue: IssueItem) -> tuple[float, str] | None:
     """Whether the reported title names the expected element's label; None when there is none to compare."""
     wanted = _element_label(expected)
     if wanted is None:

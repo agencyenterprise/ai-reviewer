@@ -13,7 +13,7 @@ anything specific it proposes comes from the report itself.
 
 import math
 import re
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from evals_inspectai.common.issue_inventory import ResolvedInventory, normalize
 from evals_inspectai.common.issue_judge import JudgeCriterion
@@ -60,7 +60,7 @@ def _body_lines(document: str) -> list[tuple[int, str]]:
     heading naming one opens a region that runs to the next heading of the same or a
     higher level, subsections included."""
     body: list[tuple[int, str]] = []
-    skipped_from: Optional[int] = (
+    skipped_from: int | None = (
         None  # level of the heading that opened a non-body region
     )
     for number, line in enumerate(document.split("\n"), 1):

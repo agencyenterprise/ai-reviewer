@@ -7,14 +7,12 @@ every claim and qualifier while tightening (graded), and read at least as
 well in place (graded).
 """
 
-from typing import Optional
-
 from evals_inspectai.common.issue_judge import JudgeCriterion
 from evals_inspectai.common.simple_deep_agent_types import ProposedEdit
 from evals_inspectai.e2e.active_voice.criteria import passive_count
 
 
-def no_added_passive(edit: ProposedEdit) -> Optional[bool]:
+def no_added_passive(edit: ProposedEdit) -> bool | None:
     """The replacement has no more be-plus-participle constructions than the
     original: tightening must not introduce passive voice as a side effect.
     None for a deletion, which has nothing to assess."""

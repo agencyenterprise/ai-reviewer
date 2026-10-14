@@ -1,6 +1,6 @@
 """Service layer for workflow types."""
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -109,7 +109,7 @@ class WorkflowTypeDescription(BaseModel):
     gates: list[WorkflowGate]
     # lucide icon name (kebab-case) chosen by the workflow, or None to let the
     # frontend fall back to its own per-type map or default icon.
-    icon: Optional[str] = None
+    icon: str | None = None
     # Whether the workflow attaches proposed edits to its issues, shown
     # alongside the original text in the document view.
     proposes_edits: bool = False

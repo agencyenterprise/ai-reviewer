@@ -10,7 +10,7 @@ The server has to allow the override (``ALLOW_WORKFLOW_MODEL_OVERRIDE=true``).
 """
 
 import re
-from typing import Any, Optional
+from typing import Any
 
 from inspect_ai.model import get_model
 
@@ -28,7 +28,7 @@ LANGCHAIN_PROVIDERS = {"google": "google_genai"}
 DATED_SUFFIX = r"-(\d{4}-\d{2}-\d{2}(-[A-Za-z0-9-]+)?|\d{8})"
 
 
-def requested_model() -> Optional[str]:
+def requested_model() -> str | None:
     """The LangChain model name to send with a workflow start, or None to keep the agents' own."""
     try:
         active = str(get_model())

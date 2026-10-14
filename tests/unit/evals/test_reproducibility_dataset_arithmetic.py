@@ -20,7 +20,7 @@ the repo and runs the same model over every inflow assumption.
 import calendar
 import re
 from pathlib import Path
-from typing import Iterable
+from collections.abc import Iterable
 
 import numpy as np
 import pytest

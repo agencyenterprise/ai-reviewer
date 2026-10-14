@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import Any, List, Optional, Union
+from typing import Any
 
 from inspect_ai.agent import Agent, AgentState, agent
 from inspect_ai.model import ModelOutput
@@ -43,8 +43,8 @@ def api_workflow_agent(
     workflow_type: str,
     timeout_s: float = 300,
     poll_interval_s: float = 5,
-    item_messages_key: Optional[str] = None,
-    item_label: Optional[str] = None,
+    item_messages_key: str | None = None,
+    item_label: str | None = None,
     include_issues: bool = False,
 ) -> Agent:
     """Run a full workflow via the API and capture its state as output.
@@ -120,7 +120,7 @@ async def run_workflow(
     timeout_s: float,
     poll_interval_s: float,
     include_issues: bool = False,
-    publication_date: Optional[str] = None,
+    publication_date: str | None = None,
 ) -> tuple[dict, str]:
     """Upload ``document`` as a new project, run ``workflow_type`` on it through the
     API, and return the run's state with the model name to record as its output.
@@ -155,7 +155,7 @@ async def run_workflow(
 
 
 def persisted_issues(
-    issues: list[dict[str, Any]], workflow_run_id: Optional[str]
+    issues: list[dict[str, Any]], workflow_run_id: str | None
 ) -> list[dict[str, Any]]:
     """The persisted issues of one workflow run, reduced to the fields the issue
     checks read; a missing line becomes 0, as in an agent-reported issue."""
@@ -171,11 +171,11 @@ def persisted_issues(
 
 
 async def surface_conversations(
-    state: Union[AgentState, TaskState],
+    state: AgentState | TaskState,
     workflow_state: dict,
     workflow_type: str,
-    item_messages_key: Optional[str] = None,
-    item_label: Optional[str] = None,
+    item_messages_key: str | None = None,
+    item_label: str | None = None,
 ) -> None:
     """Move the workflow's agent conversations from its state into the Inspect log.
 
@@ -194,16 +194,16 @@ async def surface_conversations(
 def pop_conversations(
     workflow_state: dict,
     workflow_type: str,
-    item_messages_key: Optional[str],
-    item_label: Optional[str] = None,
-) -> List[Conversation]:
+    item_messages_key: str | None,
+    item_label: str | None = None,
+) -> list[Conversation]:
     """Remove every agent conversation from the state, in run order.
 
     Messages are removed so the scored completion stays a compact JSON payload;
     they are surfaced in the Inspect transcript instead. The workflow's own
     top-level conversation comes first, then one per fan-out item that has one.
     """
-    conversations: List[Conversation] = []
+    conversations: list[Conversation] = []
     top_level = messages_from_state(workflow_state.pop("messages", None) or [])
     if top_level:
         conversations.append(Conversation(label=workflow_type, messages=top_level))

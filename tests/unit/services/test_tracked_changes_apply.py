@@ -6,7 +6,7 @@ document at all.
 """
 
 from pathlib import Path
-from typing import Dict, Sequence, Tuple
+from collections.abc import Sequence
 
 import pytest
 from docx import Document as PythonDocxDocument
@@ -65,7 +65,7 @@ class TestTheFileStaysReadable:
 # docx-editor shows the insertion -- the case that made the old text-based
 # mapping hand the redline to the wrong paragraph.
 _ALIKE = "The results are significant."
-_ALIKE_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 1), 1: (2, 2)}
+_ALIKE_LINE_RANGES: dict[int, tuple[int, int]] = {0: (1, 1), 1: (2, 2)}
 
 
 @pytest.fixture
@@ -157,8 +157,8 @@ class TestParagraphsThatCannotBeMatched:
 # markdown line per break. Word keeps nothing where a break was, so the
 # paragraph reads as its lines run together and a quote's line-relative
 # occurrence says nothing about the paragraph's own spans.
-_BREAK_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 2)}
-_THREE_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 3)}
+_BREAK_LINE_RANGES: dict[int, tuple[int, int]] = {0: (1, 2)}
+_THREE_LINE_RANGES: dict[int, tuple[int, int]] = {0: (1, 3)}
 
 # Why a repeat in such a paragraph is reported rather than placed.
 _REPEATS_DETAIL = (
@@ -197,7 +197,7 @@ class TestAParagraphSpanningSeveralMarkdownLines:
         quote: str,
         replacement: str,
         line: int,
-        ranges: Dict[int, Tuple[int, int]] | None = None,
+        ranges: dict[int, tuple[int, int]] | None = None,
     ):
         # The bytes of this save, for tests asserting the file is untouched.
         # Comparing against an earlier save is flaky: a zip entry records its
@@ -312,7 +312,7 @@ class TestAParagraphSpanningSeveralMarkdownLines:
 # the paragraph "multi-line", or `display_occurrence` would be thrown away on
 # every paragraph in the document.
 _SEPARATED_MARKDOWN = "\n".join(["Figure 3 and **Figure 3** close the section.", ""])
-_SEPARATED_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 2)}
+_SEPARATED_LINE_RANGES: dict[int, tuple[int, int]] = {0: (1, 2)}
 
 
 @pytest.fixture
@@ -355,7 +355,7 @@ class TestABlankSeparatorIsNotAnotherLine:
 # paragraph that quotes one.
 _SHORT_NESTED_PARAGRAPH = "Output for the western region increased by 14%."
 _SHORT_NESTED_MARKDOWN = "\n".join([_SHORT_NESTED_PARAGRAPH, "", "- 14%"])
-_SHORT_NESTED_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 3)}
+_SHORT_NESTED_RANGES: dict[int, tuple[int, int]] = {0: (1, 3)}
 
 
 @pytest.fixture

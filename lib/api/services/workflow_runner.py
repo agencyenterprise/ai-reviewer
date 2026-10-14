@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import uuid
-from typing import List
 
 from fastapi import BackgroundTasks, HTTPException
 from pydantic import BaseModel
@@ -68,12 +67,12 @@ class WorkflowGateRequiredError(Exception):
     def __init__(
         self,
         project_id: str,
-        pending_human_approval: List[WorkflowRunType],
-        pending_web_search: List[WorkflowRunType],
+        pending_human_approval: list[WorkflowRunType],
+        pending_web_search: list[WorkflowRunType],
         *,
         nothing_started: bool = False,
-        retry_workflow_types: List[WorkflowRunType] | None = None,
-        completed_workflows: List[WorkflowRunType] | None = None,
+        retry_workflow_types: list[WorkflowRunType] | None = None,
+        completed_workflows: list[WorkflowRunType] | None = None,
         unsuccessful_workflows: dict[WorkflowRunType, WorkflowRunStatus] | None = None,
     ):
         self.project_id = project_id
@@ -91,7 +90,7 @@ class WorkflowGateRequiredError(Exception):
                 else pending_human_approval + pending_web_search
             )
         )
-        parts: List[str] = []
+        parts: list[str] = []
         if pending_human_approval:
             parts.append(f"human_approval={[w.value for w in pending_human_approval]}")
         if pending_web_search:
@@ -144,7 +143,7 @@ def _assert_model_override_allowed(model: str | None) -> None:
 def _should_skip_existing(
     existing_run: WorkflowRun | None,
     workflow_type: WorkflowRunType,
-    requested: List[WorkflowRunType],
+    requested: list[WorkflowRunType],
 ) -> bool:
     """Whether an existing run means this workflow should not be started.
 
@@ -172,8 +171,8 @@ def _should_skip_existing(
 
 async def _raise_if_web_search_consent_missing(
     *,
-    requested: List[WorkflowRunType],
-    resolved: List[WorkflowRunType],
+    requested: list[WorkflowRunType],
+    resolved: list[WorkflowRunType],
     project_id: str,
     revision: int,
     approved_gates: set[WorkflowGate],
@@ -189,7 +188,7 @@ async def _raise_if_web_search_consent_missing(
     questions in one turn, but it is only enforced mid-flight, once the
     references exist for the user to review.
     """
-    pending_web_search: List[WorkflowRunType] = []
+    pending_web_search: list[WorkflowRunType] = []
     for workflow_type in resolved:
         if not get_workflow_manifest(workflow_type).needs_web_search:
             continue
@@ -201,7 +200,7 @@ async def _raise_if_web_search_consent_missing(
     if not pending_web_search:
         return
 
-    pending_human_approval: List[WorkflowRunType] = []
+    pending_human_approval: list[WorkflowRunType] = []
     if not approve_human_steps:
         pending_human_approval = [
             workflow_type
@@ -218,7 +217,7 @@ async def _raise_if_web_search_consent_missing(
 
 
 async def _prepare_workflow_items(
-    workflow_types: List[WorkflowRunType],
+    workflow_types: list[WorkflowRunType],
     request: StartMultipleWorkflowsRequest,
     user: User,
     *,
@@ -228,10 +227,10 @@ async def _prepare_workflow_items(
 ) -> tuple[
     Project,
     int,
-    List[str],
-    List[AutoRunWorkflowItem],
-    List[WorkflowRunType],
-    List[WorkflowRunType],
+    list[str],
+    list[AutoRunWorkflowItem],
+    list[WorkflowRunType],
+    list[WorkflowRunType],
 ]:
     """
     Resolve dependencies, apply skip logic, create run records, and build the
@@ -267,10 +266,10 @@ async def _prepare_workflow_items(
     _assert_api_key_available(user, request.openai_api_key, any_requires_key)
     _assert_model_override_allowed(request.model)
 
-    workflow_run_ids: List[str] = []
-    auto_run_items: List[AutoRunWorkflowItem] = []
-    pending_human_triggers: List[WorkflowRunType] = []
-    pending_web_search: List[WorkflowRunType] = []
+    workflow_run_ids: list[str] = []
+    auto_run_items: list[AutoRunWorkflowItem] = []
+    pending_human_triggers: list[WorkflowRunType] = []
+    pending_web_search: list[WorkflowRunType] = []
     # Workflows deferred behind the web-search consent gate (the gated
     # workflow itself plus anything downstream of it). Only the MCP path uses
     # this; resolved_workflow_types is in topological order, so a single
@@ -489,11 +488,11 @@ async def start_workflow_run(
 
 
 async def start_multiple_workflow_runs(
-    workflow_types: List[WorkflowRunType],
+    workflow_types: list[WorkflowRunType],
     request: StartMultipleWorkflowsRequest,
     user: User,
     background_tasks: BackgroundTasks,
-) -> List[str]:
+) -> list[str]:
     """
     Start multiple workflows immediately as PENDING.
 
@@ -537,13 +536,13 @@ async def start_multiple_workflow_runs(
 
 
 async def run_multiple_workflows_blocking(
-    workflow_types: List[WorkflowRunType],
+    workflow_types: list[WorkflowRunType],
     request: StartMultipleWorkflowsRequest,
     user: User,
     *,
     approve_human_steps: bool = False,
     approve_web_search: bool = False,
-) -> tuple[Project, List[str]]:
+) -> tuple[Project, list[str]]:
     """
     Prepare and run multiple workflows, blocking until all complete.
 
@@ -613,12 +612,12 @@ async def run_multiple_workflows_blocking(
 
 
 async def _batch_outcomes(
-    items: List[AutoRunWorkflowItem],
-) -> tuple[List[WorkflowRunType], dict[WorkflowRunType, WorkflowRunStatus]]:
+    items: list[AutoRunWorkflowItem],
+) -> tuple[list[WorkflowRunType], dict[WorkflowRunType, WorkflowRunStatus]]:
     """Split a finished batch into completed types and type → terminal status
     for the rest. The concurrent runner absorbs per-item failures, so this is
     read back from the run records rather than inferred."""
-    completed: List[WorkflowRunType] = []
+    completed: list[WorkflowRunType] = []
     unsuccessful: dict[WorkflowRunType, WorkflowRunStatus] = {}
     for item in items:
         status = await get_workflow_run_status(item.workflow_run_id)
@@ -634,7 +633,7 @@ async def approve_project_gate(
     gate: WorkflowGate,
     user: User,
     background_tasks: BackgroundTasks,
-) -> List[str]:
+) -> list[str]:
     """
     Approve a gate for the project's current revision and schedule every run
     that was awaiting it.
@@ -678,7 +677,7 @@ async def approve_project_gate(
 
 
 async def _run_multiple_workflows_concurrently(
-    items: List[AutoRunWorkflowItem],
+    items: list[AutoRunWorkflowItem],
     user: User,
     revision: int,
 ) -> None:

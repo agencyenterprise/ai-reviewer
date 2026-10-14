@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -17,19 +17,19 @@ class ValidationIssue(BaseModel):
     code: str = Field(description="Machine-readable issue code")
     message: str = Field(description="Human-readable description")
     severity: ValidationSeverity = Field(default=ValidationSeverity.ERROR)
-    details: Optional[Dict[str, Any]] = Field(default=None)
+    details: dict[str, Any] | None = Field(default=None)
 
 
 class PreflightResult(BaseModel):
     """Result of running all preflight validators."""
 
     valid: bool = Field(description="True if no errors (warnings allowed)")
-    issues: List[ValidationIssue] = Field(default_factory=list)
+    issues: list[ValidationIssue] = Field(default_factory=list)
 
 
 class PreflightRequest(BaseModel):
     """Request context for preflight validation."""
 
-    openai_api_key: Optional[str] = Field(
+    openai_api_key: str | None = Field(
         default=None, description="User-provided OpenAI API key to validate"
     )

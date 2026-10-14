@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-from typing import List, Tuple
 
 from langchain_core.documents import Document
 from langchain_postgres import PGVector
@@ -54,7 +53,7 @@ def _char_offset_to_line(text: str, char_offset: int) -> int:
 
 def _char_offset_to_line_range(
     text: str, char_offset: int, chunk_text: str
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """Convert a character offset and chunk text to a (start_line, end_line) tuple.
 
     Args:
@@ -73,7 +72,7 @@ def _char_offset_to_line_range(
 
 def build_chunk_docs(
     markdown_content: str, file_name: str, collection_id: str
-) -> List[Document]:
+) -> list[Document]:
     """Split markdown into chunks and compute line-range metadata for each.
 
     Uses the markdown-aware splitter with ``add_start_index=True`` so that
@@ -87,7 +86,7 @@ def build_chunk_docs(
     """
     split_docs = _splitter.create_documents([markdown_content])
 
-    docs: List[Document] = []
+    docs: list[Document] = []
     for split_doc in split_docs:
         start_index: int = split_doc.metadata.get("start_index", -1)
         if start_index < 0:
@@ -255,7 +254,7 @@ class VectorStoreService:
 
     async def retrieve_relevant_passages(
         self, query: str, collection_id: str, top_k: int
-    ) -> List[RetrievedPassage]:
+    ) -> list[RetrievedPassage]:
         """
         Retrieve most relevant passages for query from a SPECIFIC collection.
         Each document has its own collection, so no filtering needed.

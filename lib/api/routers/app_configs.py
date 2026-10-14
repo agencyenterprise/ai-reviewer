@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -29,11 +29,11 @@ class AppConfigResponse(BaseModel):
     value: str
     description: str
     updated_at: datetime
-    updated_by: Optional[str] = None
+    updated_by: str | None = None
 
     @field_validator("id", "updated_by", mode="before")
     @classmethod
-    def convert_uuid_to_str(cls, v: Any) -> Optional[str]:
+    def convert_uuid_to_str(cls, v: Any) -> str | None:
         if isinstance(v, UUID):
             return str(v)
         return v
@@ -47,13 +47,13 @@ class AppConfigValueResponse(BaseModel):
 
 class UpsertAppConfigRequest(BaseModel):
     value: str
-    description: Optional[str] = None
+    description: str | None = None
 
 
-@router.get("", response_model=List[AppConfigResponse])
+@router.get("", response_model=list[AppConfigResponse])
 async def list_app_configs(
     admin: User = Depends(require_admin),
-) -> List[AppConfigResponse]:
+) -> list[AppConfigResponse]:
     """List all application configs."""
     configs = await get_all_configs()
     return [AppConfigResponse.model_validate(c) for c in configs]

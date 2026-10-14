@@ -11,7 +11,6 @@ calibrated against human-labelled edit pairs by
 """
 
 import re
-from typing import Optional
 
 from evals_inspectai.common.simple_deep_agent_types import ProposedEdit
 from evals_inspectai.common.issue_inventory import ResolvedIssue
@@ -66,7 +65,7 @@ def passive_count(text: str) -> int:
     return sum(1 for word in _BE_PLUS_WORD_RE.findall(text) if _is_participle(word))
 
 
-def removes_passive(edit: ProposedEdit) -> Optional[bool]:
+def removes_passive(edit: ProposedEdit) -> bool | None:
     """The replacement has fewer be-plus-participle constructions than the original.
 
     None when the heuristic sees no passive in the original: there is nothing

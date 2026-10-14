@@ -24,7 +24,7 @@ service; what is stored is the question waiting to be answered, and where to ans
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from microsoft_agents.activity import Activity, ConversationReference
 from pydantic import BaseModel
@@ -124,7 +124,7 @@ async def park(pending: PendingQuestion) -> str:
     return pending_id
 
 
-async def peek(pending_id: str) -> Optional[PendingQuestion]:
+async def peek(pending_id: str) -> PendingQuestion | None:
     """The question, left in place."""
 
     async with get_async_db_session() as session:
@@ -138,7 +138,7 @@ async def peek(pending_id: str) -> Optional[PendingQuestion]:
     return PendingQuestion.model_validate(value) if value else None
 
 
-async def take(pending_id: str) -> Optional[PendingQuestion]:
+async def take(pending_id: str) -> PendingQuestion | None:
     """Remove the question and return it, in one statement.
 
     A read followed by a delete would let two requests both see it. Taking a parked

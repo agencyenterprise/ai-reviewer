@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 from openai import APIError, AsyncOpenAI, AuthenticationError
 
@@ -25,7 +24,7 @@ class PreflightValidationService:
 
     async def _validate_api_key(
         self, request: PreflightRequest
-    ) -> List[ValidationIssue]:
+    ) -> list[ValidationIssue]:
         """Validate OpenAI API key by making a lightweight API call."""
         api_key = request.openai_api_key or config.OPENAI_API_KEY
         if not api_key:
@@ -40,7 +39,7 @@ class PreflightValidationService:
         async with AsyncOpenAI(api_key=api_key) as client:
             return await self._test_connection(client)
 
-    async def _test_connection(self, client: AsyncOpenAI) -> List[ValidationIssue]:
+    async def _test_connection(self, client: AsyncOpenAI) -> list[ValidationIssue]:
         """Test API connection with a lightweight call."""
         try:
             await client.models.list()

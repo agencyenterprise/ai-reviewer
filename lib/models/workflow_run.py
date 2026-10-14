@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, field_serializer, field_validator
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, inspect
@@ -59,7 +59,7 @@ class WorkflowRun(SQLModel, table=True):
         sa_column=Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
         description="The unique identifier for the workflow run",
     )
-    project_id: Optional[uuid.UUID] = Field(
+    project_id: uuid.UUID | None = Field(
         sa_column=Column(
             UUID(as_uuid=True),
             ForeignKey("projects.id", ondelete="CASCADE"),
@@ -96,11 +96,11 @@ class WorkflowRun(SQLModel, table=True):
         ),
         description="The timestamp when the workflow run was last updated",
     )
-    started_at: Optional[datetime] = Field(
+    started_at: datetime | None = Field(
         sa_column=Column(DateTime(timezone=True), nullable=True),
         description="The timestamp when the workflow run transitioned to RUNNING",
     )
-    completed_at: Optional[datetime] = Field(
+    completed_at: datetime | None = Field(
         sa_column=Column(DateTime(timezone=True), nullable=True),
         description="The timestamp when the workflow run transitioned to COMPLETED or CANCELLED",
     )
@@ -109,11 +109,11 @@ class WorkflowRun(SQLModel, table=True):
         default=1,
         description="The project revision this workflow run belongs to",
     )
-    heartbeat_at: Optional[datetime] = Field(
+    heartbeat_at: datetime | None = Field(
         sa_column=Column(DateTime(timezone=True), nullable=True),
         description="Updated on every node entry/exit; used by the reaper to detect stuck runs",
     )
-    failure_reason: Optional[WorkflowRunFailureReason] = Field(
+    failure_reason: WorkflowRunFailureReason | None = Field(
         sa_column=Column(
             SQLModelEnum(WorkflowRunFailureReason),
             nullable=True,
@@ -121,12 +121,12 @@ class WorkflowRun(SQLModel, table=True):
         default=None,
         description="Populated only when status == FAILED",
     )
-    failure_message: Optional[str] = Field(
+    failure_message: str | None = Field(
         sa_column=Column(String(2000), nullable=True),
         default=None,
         description="Short human-readable detail of the failure. Populated only when status == FAILED.",
     )
-    model: Optional[str] = Field(
+    model: str | None = Field(
         sa_column=Column(String(255), nullable=True),
         default=None,
         description=(
@@ -135,7 +135,7 @@ class WorkflowRun(SQLModel, table=True):
             "so a run released later from a gate still runs on it."
         ),
     )
-    state_json: Optional[dict[str, Any]] = Field(
+    state_json: dict[str, Any] | None = Field(
         sa_column=Column(JSONB, nullable=True),
         default=None,
         description=(
@@ -188,19 +188,19 @@ class WorkflowRunPublic(BaseModel):
     # drop-in for the one it replaces: nullable timestamps are always present,
     # only revision and the failure fields are optional.
     id: uuid.UUID
-    project_id: Optional[uuid.UUID]
+    project_id: uuid.UUID | None
     type: WorkflowRunType
     langgraph_thread_id: str
     status: WorkflowRunStatus
     created_at: datetime
     last_updated_at: datetime
-    started_at: Optional[datetime]
-    completed_at: Optional[datetime]
+    started_at: datetime | None
+    completed_at: datetime | None
     revision: int = 1
-    heartbeat_at: Optional[datetime]
-    failure_reason: Optional[WorkflowRunFailureReason] = None
-    failure_message: Optional[str] = None
-    model: Optional[str] = None
+    heartbeat_at: datetime | None
+    failure_reason: WorkflowRunFailureReason | None = None
+    failure_message: str | None = None
+    model: str | None = None
 
 
 # Mark `state_json` as deferred-load by default. Payloads can be multiple MB

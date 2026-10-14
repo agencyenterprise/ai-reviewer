@@ -7,7 +7,7 @@ image, because the fixtures exist to test that the agent reads them there.
 """
 
 import io
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -37,7 +37,7 @@ def _fmt(value: float, span: float) -> str:
     return f"{value:.1f}" if span < 20 else f"{value:.0f}"
 
 
-def _canvas(title: Optional[str]) -> tuple[Image.Image, ImageDraw.ImageDraw]:
+def _canvas(title: str | None) -> tuple[Image.Image, ImageDraw.ImageDraw]:
     image = Image.new("RGB", (WIDTH, HEIGHT), "white")
     draw = ImageDraw.Draw(image)
     if title:
@@ -94,7 +94,7 @@ def _y_pixel(value: float, y_min: float, y_max: float) -> int:
     return int(HEIGHT - BOTTOM - fraction * plot_height)
 
 
-def _note(draw: ImageDraw.ImageDraw, note: Optional[str]) -> None:
+def _note(draw: ImageDraw.ImageDraw, note: str | None) -> None:
     if note:
         draw.text((LEFT, HEIGHT - 42), note, font=_font(17), fill=GREY)
 
@@ -112,11 +112,11 @@ def grouped_bar_chart(
     series: Sequence[Series],
     *,
     unit: str = "",
-    title: Optional[str] = None,
+    title: str | None = None,
     y_min: float = 0.0,
-    y_max: Optional[float] = None,
+    y_max: float | None = None,
     value_labels: bool = True,
-    note: Optional[str] = None,
+    note: str | None = None,
 ) -> bytes:
     """One group of bars per category, one bar per series, values on top."""
     image, draw = _canvas(title)
@@ -162,11 +162,11 @@ def bar_chart(
     values: Sequence[float],
     *,
     unit: str = "",
-    title: Optional[str] = None,
+    title: str | None = None,
     y_min: float = 0.0,
-    y_max: Optional[float] = None,
+    y_max: float | None = None,
     value_labels: bool = True,
-    note: Optional[str] = None,
+    note: str | None = None,
 ) -> bytes:
     return grouped_bar_chart(
         categories,
@@ -185,10 +185,10 @@ def line_chart(
     ys: Sequence[float],
     *,
     unit: str = "",
-    title: Optional[str] = None,
-    marker_x: Optional[int] = None,
-    marker_label: Optional[str] = None,
-    note: Optional[str] = None,
+    title: str | None = None,
+    marker_x: int | None = None,
+    marker_label: str | None = None,
+    note: str | None = None,
 ) -> bytes:
     """A single series over evenly spaced x values, optionally with a vertical marker."""
     image, draw = _canvas(title)

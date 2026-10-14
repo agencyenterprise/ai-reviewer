@@ -1,7 +1,7 @@
 """Tests for the abbreviation scan v2 graph nodes, with the agents stubbed."""
 
 from types import SimpleNamespace
-from typing import Any, List
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -52,7 +52,7 @@ def _state(**kwargs: Any) -> AbbreviationScanV2State:
 
 
 def _chunk(
-    index: int, status: ChunkStatus, occurrences: List[ChunkOccurrence] | None = None
+    index: int, status: ChunkStatus, occurrences: list[ChunkOccurrence] | None = None
 ) -> AbbreviationChunk:
     return AbbreviationChunk(
         chunk_index=index,
@@ -136,7 +136,7 @@ class TestExtractChunk:
 
 
 class TestAssemble:
-    async def _run(self, chunks: List[AbbreviationChunk]) -> dict:
+    async def _run(self, chunks: list[AbbreviationChunk]) -> dict:
         return await assemble_catalogue.assemble_catalogue_node.__wrapped__(
             _state(chunks=chunks), _runtime()
         )

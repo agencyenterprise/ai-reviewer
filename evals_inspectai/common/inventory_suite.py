@@ -23,7 +23,8 @@ A task then reads::
 """
 
 from pathlib import Path
-from typing import Any, Callable, Mapping, Optional, Sequence
+from typing import Any
+from collections.abc import Callable, Mapping, Sequence
 
 from inspect_ai.dataset import MemoryDataset
 from inspect_ai.scorer import Scorer
@@ -76,7 +77,7 @@ class InventorySuite(BaseModel):
         pair_on_location: bool = False,
         extra_fields: Sequence[str] = (),
         results: Sequence[str] = DEFAULT_RESULTS,
-        name: Optional[str] = None,
+        name: str | None = None,
     ) -> "InventorySuite":
         """Load ``path`` under the workflow's pairing. ``results`` names the state fields
         holding its issues (see ``issue_checks.issues_from_state``); ``name`` is the
@@ -97,7 +98,7 @@ class InventorySuite(BaseModel):
         )
 
     def dataset(
-        self, metadata: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None
+        self, metadata: Callable[[dict[str, Any]], dict[str, Any]] | None = None
     ) -> MemoryDataset:
         """One sample per record; ``metadata`` maps a record's extras to sample metadata of its own."""
         samples = []
@@ -119,7 +120,7 @@ class InventorySuite(BaseModel):
         return judged_criteria(criteria, calls=calls, results=self.results)
 
     def descriptions(
-        self, own: Optional[Descriptions] = None
+        self, own: Descriptions | None = None
     ) -> dict[str, dict[str, str]]:
         """The generic scorers' key descriptions, then the eval's ``own``."""
         generic: dict[str, dict[str, str]] = {
@@ -130,15 +131,15 @@ class InventorySuite(BaseModel):
         return {**generic, **{name: dict(keys) for name, keys in (own or {}).items()}}
 
     def metadata(
-        self, ground_truth: str, own: Optional[Descriptions] = None
+        self, ground_truth: str, own: Descriptions | None = None
     ) -> dict[str, Any]:
         """The Task metadata the log viewer's Info tab shows: what the ground truth is, and what each metric checks."""
         return {"ground_truth": ground_truth, "metrics": self.descriptions(own)}
 
     def viewer(
         self,
-        own: Optional[Descriptions] = None,
-        labels: Optional[Mapping[str, str]] = None,
+        own: Descriptions | None = None,
+        labels: Mapping[str, str] | None = None,
     ) -> ViewerConfig:
         """A column per generic key, then one per key of ``own`` in order; ``labels`` names the eval's own."""
         generic = [("issue_checks", key) for key in issue_check_keys(self.policy)]

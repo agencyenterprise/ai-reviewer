@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Literal, Optional, Type, overload
+from typing import Literal, overload
 
 from langgraph.graph import StateGraph
 
@@ -10,10 +10,10 @@ from lib.workflows.workflow_types import WorkflowConfig, WorkflowState
 logger = logging.getLogger(__name__)
 
 
-_workflow_manifest_registry: Dict[WorkflowRunType, WorkflowManifest] = {}
+_workflow_manifest_registry: dict[WorkflowRunType, WorkflowManifest] = {}
 
 
-def get_all_manifests() -> Dict[WorkflowRunType, WorkflowManifest]:
+def get_all_manifests() -> dict[WorkflowRunType, WorkflowManifest]:
     """Get all registered workflow manifests."""
     return dict(_workflow_manifest_registry)
 
@@ -35,7 +35,7 @@ def is_available_workflow_type(workflow_type: WorkflowRunType | str) -> bool:
     return workflow_type in _workflow_manifest_registry
 
 
-def available_workflow_type_values() -> List[str]:
+def available_workflow_type_values() -> list[str]:
     """Slugs of every workflow type that still has a manifest.
 
     The collection form of `is_available_workflow_type`, for callers that filter
@@ -66,12 +66,12 @@ def get_workflow_manifest(
 @overload
 def get_workflow_manifest(
     type: WorkflowRunType, raise_exception: Literal[False]
-) -> Optional[WorkflowManifest]: ...
+) -> WorkflowManifest | None: ...
 
 
 def get_workflow_manifest(
     type: WorkflowRunType, raise_exception: bool = True
-) -> Optional[WorkflowManifest]:
+) -> WorkflowManifest | None:
     """
     Get a workflow manifest by type.
     """
@@ -181,7 +181,7 @@ def create_graph(type: WorkflowRunType) -> StateGraph:
     return manifest.build_graph()
 
 
-def get_config_type(type: WorkflowRunType) -> Type[BaseWorkflowConfig]:
+def get_config_type(type: WorkflowRunType) -> type[BaseWorkflowConfig]:
     manifest = get_workflow_manifest(type)
     return manifest.get_config_type()
 
@@ -205,7 +205,7 @@ async def create_state(
     workflow_runs = await get_project_workflow_runs(
         config.project_id, revision=revision, include_internal=True
     )
-    existing_states: List[WorkflowState] = [
+    existing_states: list[WorkflowState] = [
         run.state for run in workflow_runs if run.state is not None
     ]
     manifest = get_workflow_manifest(config.type)

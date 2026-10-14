@@ -9,7 +9,8 @@ points at a real skill and a registered workflow.
 
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
+from collections.abc import AsyncIterator
 from unittest.mock import patch
 
 import pytest

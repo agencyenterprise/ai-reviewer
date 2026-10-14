@@ -3,7 +3,7 @@ import logging
 import uuid
 from contextlib import asynccontextmanager
 from functools import lru_cache
-from typing import List, Optional, Tuple, cast
+from typing import cast
 
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.files import get_main_file_id, get_processed_supporting_file_ids
@@ -51,7 +51,7 @@ async def _project_lock(project_id: str):
 async def _get_file_matching_workflow_state(
     project_id: str,
     revision: int,
-) -> Tuple[Optional[WorkflowRun], Optional[ReferenceFileMatchingState]]:
+) -> tuple[WorkflowRun | None, ReferenceFileMatchingState | None]:
     """
     Get the ReferenceFileMatching workflow run and state for a project.
 
@@ -138,7 +138,7 @@ async def _get_file_matching_workflow_state(
 async def _get_extraction_workflow_state(
     project_id: str,
     revision: int,
-) -> Tuple[Optional[WorkflowRun], Optional[ReferenceExtractionState]]:
+) -> tuple[WorkflowRun | None, ReferenceExtractionState | None]:
     """
     Get the ReferenceExtraction workflow run and state for a project.
     """
@@ -164,7 +164,7 @@ async def _get_extraction_workflow_state(
 
 async def get_file_reference_matches(
     project_id: str, revision: int
-) -> List[ReferenceFileMatch]:
+) -> list[ReferenceFileMatch]:
     """Return the current reference-file matches for a project (empty list if none)."""
     _, state = await _get_file_matching_workflow_state(project_id, revision)
     if state is None:
@@ -174,7 +174,7 @@ async def get_file_reference_matches(
 
 async def remove_file_from_references(
     project_id: str, file_id: str, revision: int
-) -> List[str]:
+) -> list[str]:
     """
     Remove file_id from any matches in the ReferenceFileMatching workflow state.
 
@@ -195,7 +195,7 @@ async def remove_file_from_references(
             return []
 
         # Find matches with this file_id
-        removed_reference_ids: List[str] = []
+        removed_reference_ids: list[str] = []
         for match in state.matches:
             if match.file_id == file_id:
                 removed_reference_ids.append(match.reference_id)
@@ -219,7 +219,7 @@ async def remove_file_from_references(
 async def _get_downloader_workflow_state(
     project_id: str,
     revision: int,
-) -> Tuple[Optional[WorkflowRun], Optional[ReferenceDownloaderState]]:
+) -> tuple[WorkflowRun | None, ReferenceDownloaderState | None]:
     """Get the ReferenceDownloader workflow run and state for a project."""
     run = await get_project_workflow_run_by_type(
         project_id,
@@ -231,7 +231,7 @@ async def _get_downloader_workflow_state(
         return None, None
 
     state = await read_workflow_run_state(run)
-    return run, cast(Optional[ReferenceDownloaderState], state)
+    return run, cast(ReferenceDownloaderState | None, state)
 
 
 async def remove_fetch_result_for_file(

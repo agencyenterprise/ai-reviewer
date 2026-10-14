@@ -5,7 +5,7 @@ import logging
 import re
 from enum import StrEnum
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 from docx import Document
 from docx.document import Document as DocumentObject
@@ -50,7 +50,7 @@ def _map_severity_enum_to_comment_severity(severity: SeverityEnum) -> "CommentSe
     return mapping.get(severity, CommentSeverity.NONE)
 
 
-def _resolve_issue_line_range(issue: Issue) -> Optional[Tuple[int, int]]:
+def _resolve_issue_line_range(issue: Issue) -> tuple[int, int] | None:
     """Return ``(start_line, end_line)`` for an issue, or None if it has none.
 
     Issues written before workflows moved to line ranges carry only
@@ -64,8 +64,8 @@ def _resolve_issue_line_range(issue: Issue) -> Optional[Tuple[int, int]]:
 
 
 def count_unanchorable_issues(
-    issues: Sequence[Issue], paragraph_line_ranges: Dict[int, Tuple[int, int]]
-) -> Tuple[int, int]:
+    issues: Sequence[Issue], paragraph_line_ranges: dict[int, tuple[int, int]]
+) -> tuple[int, int]:
     """Count issues no export can place, split by cause.
 
     Returns ``(no_line_range, matched_no_paragraph)``. The export silently skips
@@ -88,7 +88,7 @@ def count_unanchorable_issues(
     return no_line_range, matched_no_paragraph
 
 
-def _build_issue_anchor(line_range: Optional[Tuple[int, int]]) -> Optional[str]:
+def _build_issue_anchor(line_range: tuple[int, int] | None) -> str | None:
     """Build URL anchor fragment for a resolved issue line range (e.g. ``#L5-15``)."""
     if line_range is None:
         return None
@@ -119,9 +119,9 @@ class DocxComment(BaseModel):
 
     paragraph_index: int
     comment_text: str
-    severity: Optional[CommentSeverity] = None
-    author: Optional[str] = None
-    share_link: Optional[str] = None
+    severity: CommentSeverity | None = None
+    author: str | None = None
+    share_link: str | None = None
 
     def get_author(self) -> str:
         """Get author name, derived from severity if not explicitly set."""
@@ -151,7 +151,7 @@ class DocxComment(BaseModel):
         return "AI"
 
 
-def _get_workflow_display_name(issue: Issue) -> Optional[str]:
+def _get_workflow_display_name(issue: Issue) -> str | None:
     """Resolve the human-readable workflow name for an issue."""
     manifest = get_workflow_manifest(issue.workflow_type, raise_exception=False)
     return manifest.name if manifest else None
@@ -159,10 +159,10 @@ def _get_workflow_display_name(issue: Issue) -> Optional[str]:
 
 def issue_to_comment(
     issue: Issue,
-    paragraph_line_ranges: Dict[int, Tuple[int, int]],
-    share_token: Optional[str] = None,
+    paragraph_line_ranges: dict[int, tuple[int, int]],
+    share_token: str | None = None,
     edit_notes: Sequence[str] = (),
-) -> Optional["DocxComment"]:
+) -> "DocxComment | None":
     """Convert an Issue to DocxComment with optional share link.
 
     Resolves the issue to a paragraph by line-range overlap. Returns None when the
@@ -232,7 +232,7 @@ class DocxManipulatorService:
     async def add_comments_to_docx(
         self,
         original_docx_path: str,
-        comments: List[DocxComment],
+        comments: list[DocxComment],
         workflow_run_id: str,
         docx_type: DocxManipulatorType = DocxManipulatorType.COMMENTS,
     ) -> str:
@@ -248,7 +248,7 @@ class DocxManipulatorService:
     def _add_comments_to_docx_sync(
         self,
         original_docx_path: str,
-        comments: List[DocxComment],
+        comments: list[DocxComment],
         workflow_run_id: str,
         docx_type: DocxManipulatorType = DocxManipulatorType.COMMENTS,
     ) -> str:

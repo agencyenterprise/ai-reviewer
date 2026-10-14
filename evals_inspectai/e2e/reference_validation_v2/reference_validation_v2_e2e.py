@@ -26,7 +26,6 @@ Run (backend must be running)::
 
 import math
 from pathlib import Path
-from typing import Optional
 
 from inspect_ai import Task, task
 from inspect_ai.model import get_model
@@ -76,7 +75,7 @@ SCORE_LABELS = {
 }
 
 
-def _validation(state: TaskState) -> tuple[Optional[ValidationResult], str]:
+def _validation(state: TaskState) -> tuple[ValidationResult | None, str]:
     """The run's validation of its one reference, or None with the reason there is none.
     A per-reference error is an infrastructure failure, raised so Inspect retries it."""
     try:

@@ -1,5 +1,5 @@
 import logging
-from typing import List, Literal, Optional
+from typing import Literal
 
 from fastapi import APIRouter, Depends
 from fastapi import HTTPException, Query, status
@@ -71,7 +71,7 @@ async def create_project_endpoint(
 
 @router.get("/api/projects", response_model=ProjectListPage)
 async def list_projects_endpoint(
-    search: Optional[str] = Query(
+    search: str | None = Query(
         default=None,
         description="Only projects whose title contains every whitespace-separated term",
     ),
@@ -114,15 +114,15 @@ async def delete_project_endpoint(
 @router.get("/api/projects/{project_id}/docx/download")
 async def download_project_docx(
     project_id: str,
-    share_token: Optional[str] = Query(
+    share_token: str | None = Query(
         default=None,
         description="Share token to include share links in comments",
     ),
-    severities: Optional[List[SeverityEnum]] = Query(
+    severities: list[SeverityEnum] | None = Query(
         default=None,
         description="Filter issues by severity levels",
     ),
-    workflow_types: Optional[List[WorkflowRunType]] = Query(
+    workflow_types: list[WorkflowRunType] | None = Query(
         default=None,
         description="Filter issues by workflow types",
     ),
@@ -142,14 +142,14 @@ async def download_project_docx(
             "edit is described in its issue's comment either way."
         ),
     ),
-    revision: Optional[int] = Query(
+    revision: int | None = Query(
         default=None,
         description=(
             "Which revision of the main document to export, with the issues of "
             "that revision. Defaults to the project's current revision."
         ),
     ),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """Download DOCX with AI comments. Always regenerates from scratch."""
 
@@ -184,11 +184,11 @@ async def download_project_docx(
     )
 
 
-@router.get("/api/project/{project_id}/files", response_model=List[File])
+@router.get("/api/project/{project_id}/files", response_model=list[File])
 async def list_project_files_endpoint(
     project_id: str,
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    share_token: Optional[str] = Query(
+    current_user: User | None = Depends(get_current_user_optional),
+    share_token: str | None = Query(
         default=None,
         description="Share token for shared projects. If not provided, the current user must be the owner of the project.",
     ),
@@ -294,12 +294,12 @@ async def link_reference_file_endpoint(
 @router.get("/api/project/{project_id}/files/download-all")
 async def download_all_project_files(
     project_id: str,
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    share_token: Optional[str] = Query(
+    current_user: User | None = Depends(get_current_user_optional),
+    share_token: str | None = Query(
         default=None,
         description="Share token for shared projects. If not provided, the current user must be the owner of the project.",
     ),
-    roles: Optional[List[FileRole]] = Query(
+    roles: list[FileRole] | None = Query(
         default=[FileRole.MAIN, FileRole.SUPPORT],
         description="Filter files by role(s). If not provided, main and support files are included by default.",
     ),
@@ -334,16 +334,16 @@ async def download_all_project_files(
 
 @router.get(
     "/api/project/{project_id}/workflow-progress",
-    response_model=List[WorkflowProgressResponse],
+    response_model=list[WorkflowProgressResponse],
 )
 async def get_project_workflow_progress_endpoint(
     project_id: str,
-    revision: Optional[int] = Query(
+    revision: int | None = Query(
         default=None,
         description="Revision number. Defaults to the project's current revision.",
     ),
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    share_token: Optional[str] = Query(
+    current_user: User | None = Depends(get_current_user_optional),
+    share_token: str | None = Query(
         default=None,
         description="Share token for shared projects.",
     ),
@@ -383,12 +383,12 @@ async def create_revision_endpoint(
 
 @router.get(
     "/api/project/{project_id}/revisions",
-    response_model=List[RevisionListItem],
+    response_model=list[RevisionListItem],
 )
 async def list_revisions_endpoint(
     project_id: str,
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    share_token: Optional[str] = Query(
+    current_user: User | None = Depends(get_current_user_optional),
+    share_token: str | None = Query(
         default=None,
         description="Share token for shared projects.",
     ),

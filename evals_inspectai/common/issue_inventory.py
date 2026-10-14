@@ -41,7 +41,8 @@ alone, wherever the reported issue sits.
 
 import re
 from pathlib import Path
-from typing import Any, Literal, Optional, Sequence
+from typing import Any, Literal
+from collections.abc import Sequence
 
 import yaml
 from inspect_ai.dataset import Sample
@@ -62,7 +63,7 @@ class EditExpectation(BaseModel):
 class ExpectedIssue(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    title: Optional[str] = Field(
+    title: str | None = Field(
         default=None,
         description=(
             "The issue title a correct run uses, or a stable part of it. Matched after "
@@ -74,7 +75,7 @@ class ExpectedIssue(BaseModel):
             "its line bracketed, and title_correct is not scored for the issue."
         ),
     )
-    anchor: Optional[str] = Field(
+    anchor: str | None = Field(
         default=None,
         description=(
             "Verbatim text from the document that locates the issue, unique in the "
@@ -86,7 +87,7 @@ class ExpectedIssue(BaseModel):
             "reported issue carries that title, wherever it sits."
         ),
     )
-    id: Optional[str] = Field(
+    id: str | None = Field(
         default=None,
         description=(
             "Short label used in score explanations ('missing studies_identified', "
@@ -95,23 +96,23 @@ class ExpectedIssue(BaseModel):
             "used twice with explicit lines; the loader rejects a record whose resolved ids repeat."
         ),
     )
-    line: Optional[int] = Field(
+    line: int | None = Field(
         default=None,
         description="1-indexed document line; resolved from the anchor when omitted",
     )
-    edit_expected: Optional[bool] = Field(
+    edit_expected: bool | None = Field(
         default=None,
         description="True when a correct run attaches a proposed edit for this issue, False when it must not; None to not check",
     )
-    severity: Optional[str] = Field(
+    severity: str | None = Field(
         default=None,
         description="The severity a correct run gives the issue (low, medium, high); feeds severity_correct. None to not check",
     )
-    edit: Optional[EditExpectation] = Field(
+    edit: EditExpectation | None = Field(
         default=None,
         description="Phrases the proposed edit's replacement must carry or avoid; feeds edit_expected_phrases",
     )
-    rationale: Optional[str] = Field(
+    rationale: str | None = Field(
         default=None,
         description=(
             "The labeller's account of the expected issue: the flaw an inference commits, what a cited "
@@ -158,14 +159,14 @@ class Decoy(BaseModel):
     reason: str = Field(
         description="Which rule of the check would misfire here; becomes the metric no_fp_<reason>"
     )
-    rationale: Optional[str] = Field(
+    rationale: str | None = Field(
         default=None,
         description=(
             "The labeller's account of why the sentence is sound. Not scored deterministically; a workflow "
             "whose decoys are judged (a methodology choice no line match can tell apart) shows it to the grader."
         ),
     )
-    title: Optional[str] = Field(
+    title: str | None = Field(
         default=None,
         description=(
             "The issue kind the sentence must not be reported under, matched like an expected issue's title. "
@@ -190,18 +191,18 @@ class InventoryRecord(BaseModel):
     decoys: list[Decoy] = Field(
         default_factory=list, description="Sentences a correct run leaves alone"
     )
-    notes: Optional[str] = Field(
+    notes: str | None = Field(
         default=None,
         description="Why the record exists or how it was labelled; not scored",
     )
-    publication_date: Optional[str] = Field(
+    publication_date: str | None = Field(
         default=None,
         description=(
             "The document's publication date (YYYY-MM-DD), set on the project before the run, for a "
             "date-sensitive workflow (sources before it, or after it); omit to leave the project undated"
         ),
     )
-    target_answer: Optional[str] = Field(
+    target_answer: str | None = Field(
         default=None,
         description="Free-text expectation for a model-graded scorer, passed as the sample's target; the checks here ignore it",
     )
@@ -278,10 +279,10 @@ class ResolvedInventory(BaseModel):
     document: str
     expected_issues: list[ResolvedIssue]
     decoys: list[Decoy]
-    notes: Optional[str] = None
+    notes: str | None = None
     policy: ScoringPolicy = Field(default_factory=ScoringPolicy)
-    publication_date: Optional[str] = None
-    target_answer: Optional[str] = None
+    publication_date: str | None = None
+    target_answer: str | None = None
 
     def with_policy(self, **changes: Any) -> "ResolvedInventory":
         """This inventory scored under its policy with ``changes`` applied."""
@@ -347,9 +348,7 @@ def locate_anchor(lines: list[str], anchor: str, label: str) -> int:
     return hits[0]
 
 
-def _resolve_line(
-    lines: list[str], expected: ExpectedIssue, label: str
-) -> Optional[int]:
+def _resolve_line(lines: list[str], expected: ExpectedIssue, label: str) -> int | None:
     """The line an expected issue's anchor sits on, or None when it has no anchor."""
     if expected.anchor is None:
         return None

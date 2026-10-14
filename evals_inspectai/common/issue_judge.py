@@ -18,7 +18,8 @@ import asyncio
 import math
 import re
 import statistics
-from typing import Callable, Literal, Optional, Sequence
+from typing import Literal
+from collections.abc import Callable, Sequence
 
 from inspect_ai.model import (
     ChatMessage,
@@ -104,7 +105,7 @@ class JudgeCriterion(BaseModel):
     criterion: str
     scope: Literal["edit", "expected"] = "edit"
     # Which expected issues this criterion applies to; None means every detected one.
-    applies_to: Optional[Callable[[ResolvedIssue], bool]] = None
+    applies_to: Callable[[ResolvedIssue], bool] | None = None
     # What an expected-scope criterion shows the grader besides the anchor:
     # nothing, the section the anchor's line opens (see ``section_text``), or the
     # whole report.
@@ -186,7 +187,7 @@ def _heading_levels(lines: list[str]) -> list[int]:
     """The markdown heading level of each line, 0 for a line that is not a heading,
     including a ``#`` line inside a fenced code block."""
     levels: list[int] = []
-    fence: Optional[str] = None
+    fence: str | None = None
     for line in lines:
         marker = _FENCE_RE.match(line)
         if marker is not None and fence is None:

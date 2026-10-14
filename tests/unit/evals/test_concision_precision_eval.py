@@ -1,7 +1,6 @@
 """The Concision & Precision eval: its dataset, task and the workflow's own edit check."""
 
 from pathlib import Path
-from typing import Optional
 
 from evals_inspectai.common.issue_inventory import (
     ResolvedInventory,
@@ -58,7 +57,7 @@ def test_dataset_is_well_formed():
     )
 
 
-def _required(record: ResolvedInventory) -> dict[str, Optional[str]]:
+def _required(record: ResolvedInventory) -> dict[str, str | None]:
     return {e.id: e.anchor for e in record.expected_issues if e.required}
 
 

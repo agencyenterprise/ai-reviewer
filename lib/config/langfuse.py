@@ -1,5 +1,3 @@
-from typing import Optional
-
 from langchain_core.callbacks.base import BaseCallbackHandler
 from langfuse import Langfuse
 from langfuse.langchain import CallbackHandler
@@ -29,7 +27,7 @@ def _is_langfuse_configured() -> bool:
 
 
 # Initialize Langfuse client and handler based on configuration
-langfuse: Optional[Langfuse] = None
+langfuse: Langfuse | None = None
 langfuse_handler: BaseCallbackHandler
 
 if _is_langfuse_configured():

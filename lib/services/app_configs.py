@@ -1,7 +1,6 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import List, Optional
 
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -21,7 +20,7 @@ class DefaultConfig(BaseModel):
     description: str
 
 
-async def get_config(key: str) -> Optional[str]:
+async def get_config(key: str) -> str | None:
     """Return the value for a config key, or None if not set."""
     async with get_async_db_session() as session:
         stmt = select(AppConfig).where(col(AppConfig.key) == key)
@@ -30,7 +29,7 @@ async def get_config(key: str) -> Optional[str]:
         return row.value if row else None
 
 
-async def get_all_configs() -> List[AppConfig]:
+async def get_all_configs() -> list[AppConfig]:
     """Return all config rows, ordered by key."""
     async with get_async_db_session() as session:
         stmt = select(AppConfig).order_by(col(AppConfig.key))
@@ -39,7 +38,7 @@ async def get_all_configs() -> List[AppConfig]:
 
 
 async def upsert_config(
-    key: str, value: str, description: Optional[str], user_id: uuid.UUID
+    key: str, value: str, description: str | None, user_id: uuid.UUID
 ) -> AppConfig:
     """Create or update a config row. Returns the saved row."""
     async with get_async_db_session() as session:
@@ -80,7 +79,7 @@ async def delete_config(key: str) -> bool:
         return True
 
 
-async def ensure_defaults(defaults: List[DefaultConfig]) -> None:
+async def ensure_defaults(defaults: list[DefaultConfig]) -> None:
     """Ensure every declared config key exists in the database.
 
     Only inserts missing keys -- never overwrites values that admins
@@ -105,7 +104,7 @@ async def ensure_defaults(defaults: List[DefaultConfig]) -> None:
         await session.commit()
 
 
-def _collect_all_defaults() -> List[DefaultConfig]:
+def _collect_all_defaults() -> list[DefaultConfig]:
     """Gather every DefaultConfig list registered across the codebase.
 
     Currently empty: the About-page content moved to the committed ABOUT.md

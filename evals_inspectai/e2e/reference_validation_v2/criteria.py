@@ -12,7 +12,7 @@ reaches the labeller's account of the reference.
 """
 
 import math
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from pydantic import BaseModel, Field
 
@@ -26,8 +26,8 @@ class FieldValidation(BaseModel):
 
     category: str = ""
     problem_type: str = ""
-    current_value: Optional[str] = None
-    suggested_value: Optional[str] = None
+    current_value: str | None = None
+    suggested_value: str | None = None
 
 
 class ValidationResult(BaseModel):
@@ -38,10 +38,10 @@ class ValidationResult(BaseModel):
     suggested_action: str = ""
     url: str = ""
     reasoning: str = ""
-    updated_reference: Optional[str] = None
+    updated_reference: str | None = None
     bibliography_field_validations: list[FieldValidation] = Field(default_factory=list)
 
-    def problem(self, field: str) -> Optional[str]:
+    def problem(self, field: str) -> str | None:
         """The problem type reported for ``field``, or None when the run gave it no entry."""
         return next(
             (
@@ -64,8 +64,8 @@ class ReferenceValidationItem(BaseModel):
     reference_id: str = ""
     input_reference: str = ""
     status: str = ""
-    validation_result: Optional[ValidationResult] = None
-    error: Optional[str] = None
+    validation_result: ValidationResult | None = None
+    error: str | None = None
 
 
 class ReferenceValidationOutput(BaseModel):
@@ -103,7 +103,7 @@ def _share(values: Sequence[bool]) -> float:
     return sum(values) / len(values) if values else math.nan
 
 
-def _updated_reference_expected(record: ReferenceRecord) -> Optional[bool]:
+def _updated_reference_expected(record: ReferenceRecord) -> bool | None:
     """True when the skill requires an updated reference (an incorrect found work, or a bare
     URL, which Step 1 says to reconstruct), False when it forbids one (a correct or fabricated
     reference), None when it leaves it open (another missing field, or a record that accepts

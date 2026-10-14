@@ -1,7 +1,6 @@
 """Grep-like search tool for document content."""
 
 import re
-from typing import List, Set
 
 from langchain.tools import ToolRuntime, tool
 
@@ -68,8 +67,8 @@ def search_content(content: str, pattern: str) -> str:
         return f"Invalid regex pattern: {e}"
 
     lines = content.split("\n")
-    matches: List[str] = []
-    matched_line_indices: Set[int] = set()
+    matches: list[str] = []
+    matched_line_indices: set[int] = set()
 
     # Find all matching lines
     for i, line in enumerate(lines):

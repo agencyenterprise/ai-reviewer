@@ -20,7 +20,7 @@ anchored on a real line range.
 """
 
 import re
-from typing import Sequence
+from collections.abc import Sequence
 
 from evals_inspectai.common.issue_inventory import Decoy, ResolvedIssue
 from evals_inspectai.common.issue_judge import (

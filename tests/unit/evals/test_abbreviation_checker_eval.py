@@ -4,7 +4,7 @@ import json
 import math
 import re
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 from inspect_ai.model import ModelOutput
@@ -209,7 +209,7 @@ EXPECTED = ExpectedCatalogue(
 )
 
 
-def _reported(changes: Optional[dict[str, dict[str, Any]]] = None) -> ReportedCatalogue:
+def _reported(changes: dict[str, dict[str, Any]] | None = None) -> ReportedCatalogue:
     """The expected catalogue as a correct run reports it, with per-occurrence field changes keyed "abbr#n"."""
     occurrences = []
     for e in EXPECTED.abbreviations:

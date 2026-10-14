@@ -1,7 +1,8 @@
 import asyncio
 import re
 import statistics
-from typing import Callable, Mapping, Sequence, TypeVar
+from typing import TypeVar
+from collections.abc import Callable, Mapping, Sequence
 
 from inspect_ai.model import ChatMessageAssistant, Model, get_model
 from inspect_ai.scorer import (

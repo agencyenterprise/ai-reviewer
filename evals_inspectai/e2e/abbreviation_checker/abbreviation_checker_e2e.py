@@ -49,7 +49,7 @@ Run (backend must be running)::
 """
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from inspect_ai import Task, task
 from inspect_ai.scorer import Score, Scorer, Target, scorer
@@ -83,7 +83,7 @@ GROUND_TRUTH = (
 OWN_METRICS = {"catalogue_checks": CATALOGUE_DESCRIPTIONS}
 
 
-def load_suite(path: Path = DATASET, name: Optional[str] = None) -> InventorySuite:
+def load_suite(path: Path = DATASET, name: str | None = None) -> InventorySuite:
     """The records of ``path``: one issue per abbreviation and rule, so matching is one-to-one."""
     return InventorySuite.load(
         path,

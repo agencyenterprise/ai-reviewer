@@ -1,6 +1,5 @@
 import mimetypes
 import os
-from typing import Optional
 
 from langchain_core.messages.utils import count_tokens_approximately
 from pydantic import BaseModel, Field
@@ -15,7 +14,7 @@ class FileDocument(BaseModel):
     file_path: str = Field(
         description="The path to the uploaded file, as saved in the file system"
     )
-    original_file_path: Optional[str] = Field(
+    original_file_path: str | None = Field(
         default=None,
         description="Path to the original file if it was converted (e.g., original .docx before PDF conversion)",
     )
@@ -41,9 +40,9 @@ class FileDocument(BaseModel):
 async def create_file_document_from_path(
     file_path: str,
     file_id: str,
-    file_type: Optional[str] = None,
-    original_file_name: Optional[str] = None,
-    original_file_path: Optional[str] = None,
+    file_type: str | None = None,
+    original_file_name: str | None = None,
+    original_file_path: str | None = None,
     markdown_convert: bool = True,
 ) -> FileDocument:
     # Verify file exists

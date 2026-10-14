@@ -15,7 +15,7 @@ It operates on the *reviewed revision*: the latest revision under `/revisions/`
 that has reviewer memos attached. The agent finds it from the mounted file tree.
 """
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.simple_deep_agent.manifest_base import HtmlReportDeepAgentManifest
@@ -84,7 +84,7 @@ class RevisionPlanningSummaryManifest(HtmlReportDeepAgentManifest):
     system_prompt = _SYSTEM_PROMPT
     reasoning_effort = "high"
 
-    async def precheck(self, service: "FileArtifactsServiceType") -> Optional[str]:
+    async def precheck(self, service: "FileArtifactsServiceType") -> str | None:
         if await service.get_latest_reviewer_memo_revision() is None:
             return (
                 "No reviewer memos were found for this project. Upload one or "

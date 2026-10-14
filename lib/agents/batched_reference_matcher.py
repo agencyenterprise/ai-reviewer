@@ -5,7 +5,7 @@ Part of the two-stage reference matching approach:
 - Stage 2: This agent - LLM verification of candidates in batches
 """
 
-from typing import List, Optional, cast
+from typing import cast
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
@@ -36,7 +36,7 @@ class SingleReferenceMatch(BaseModel):
 class BatchedMatchResult(BaseModel):
     """Results from matching a batch of references."""
 
-    matches: List[SingleReferenceMatch] = Field(
+    matches: list[SingleReferenceMatch] = Field(
         description="Match results for each reference in the batch"
     )
 
@@ -51,8 +51,8 @@ def format_candidate(letter: str, summary: DocumentSummary) -> str:
 
 
 def format_batch_prompt(
-    reference_texts: List[str],
-    candidates_per_ref: List[List[CandidateMatch]],
+    reference_texts: list[str],
+    candidates_per_ref: list[list[CandidateMatch]],
 ) -> str:
     """Group refs with their candidates to reduce LLM calls (5 refs per call vs 1)."""
     sections = []
@@ -119,7 +119,7 @@ class BatchedReferenceMatcherAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: Optional[RunnableConfig] = None,
+        config: RunnableConfig | None = None,
     ) -> BatchedMatchResult:
         messages = _batched_reference_matcher_prompt.format_messages(**prompt_kwargs)
         return cast(
@@ -129,9 +129,9 @@ class BatchedReferenceMatcherAgent(LangChainAgent):
 
     async def match_batch(
         self,
-        reference_texts: List[str],
-        candidates_per_ref: List[List[CandidateMatch]],
-        config: Optional[RunnableConfig] = None,
+        reference_texts: list[str],
+        candidates_per_ref: list[list[CandidateMatch]],
+        config: RunnableConfig | None = None,
     ) -> BatchedMatchResult:
         """Convenience wrapper that handles prompt formatting."""
         batch_content = format_batch_prompt(reference_texts, candidates_per_ref)

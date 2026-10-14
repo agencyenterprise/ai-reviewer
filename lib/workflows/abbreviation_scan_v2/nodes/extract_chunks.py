@@ -6,7 +6,6 @@ chunk costs only its own lines; the rest of the document is still catalogued.
 """
 
 import logging
-from typing import List
 
 from langgraph.runtime import Runtime
 from langgraph.types import Overwrite, Send
@@ -47,7 +46,7 @@ async def prepare_chunks_node(
     return {"chunks": Overwrite(chunks)}
 
 
-def distribute_chunks(state: AbbreviationScanV2State) -> List[Send] | str:
+def distribute_chunks(state: AbbreviationScanV2State) -> list[Send] | str:
     """Fan out one extraction per pending chunk, or go straight to assembly."""
     pending = [c for c in state.chunks if c.status == ChunkStatus.PENDING]
     if not pending:

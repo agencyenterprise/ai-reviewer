@@ -8,7 +8,6 @@ overrides ``issue_reference`` and ``decoy_reference``.
 """
 
 from pathlib import Path
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -27,7 +26,7 @@ class ItemReference(BaseModel):
     explanation: str
 
 
-def with_rationale(explanation: str, rationale: Optional[str]) -> str:
+def with_rationale(explanation: str, rationale: str | None) -> str:
     """The explanation followed by the labeller's own account, when the dataset has one."""
     return f"{explanation} {rationale.strip()}" if rationale else explanation
 
@@ -53,7 +52,7 @@ class AnnotationSetSpec(BaseModel):
         ),
     )
 
-    def issue_reference(self, issue: ResolvedIssue) -> Optional[ItemReference]:
+    def issue_reference(self, issue: ResolvedIssue) -> ItemReference | None:
         """The dataset's answer for an anchored expected issue, or None when it has no single one."""
         # An optional issue is borderline by design, so neither answer is the dataset's.
         if not issue.required:
@@ -67,7 +66,7 @@ class AnnotationSetSpec(BaseModel):
             ),
         )
 
-    def decoy_reference(self, decoy: Decoy) -> Optional[ItemReference]:
+    def decoy_reference(self, decoy: Decoy) -> ItemReference | None:
         """The dataset's answer for a decoy, or None when it has no single one."""
         # A titled decoy may rightly be reported under another kind, so "should it
         # be flagged at all?" has no single answer, unless that is the only kind.

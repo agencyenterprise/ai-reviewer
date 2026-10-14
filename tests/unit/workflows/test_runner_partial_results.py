@@ -7,7 +7,7 @@ superstep completes. These tests drive a real LangGraph fan-out graph.
 
 import asyncio
 import operator
-from typing import Annotated, List
+from typing import Annotated
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
@@ -24,7 +24,7 @@ from lib.workflows.state_updates import apply_node_update
 
 
 class FanOutState(BaseWorkflowState):
-    items: Annotated[List[int], operator.add] = []
+    items: Annotated[list[int], operator.add] = []
     label: str = ""
 
 
@@ -34,7 +34,7 @@ def _build_fan_out_graph(release_rest: asyncio.Event) -> StateGraph:
     async def start(state: FanOutState) -> dict:
         return {"label": "started"}
 
-    def fan_out(state: FanOutState) -> List[Send]:
+    def fan_out(state: FanOutState) -> list[Send]:
         return [Send("work", {"i": i}) for i in range(3)]
 
     async def work(task: dict) -> dict:
@@ -61,7 +61,7 @@ def _build_fan_out_graph(release_rest: asyncio.Event) -> StateGraph:
 async def test_run_workflow_persists_each_fan_out_task_before_superstep_ends():
     workflow_run_id = str(uuid4())
     release_rest = asyncio.Event()
-    persisted: List[FanOutState] = []
+    persisted: list[FanOutState] = []
 
     async def record_persist(_run_id: str, state: FanOutState) -> None:
         persisted.append(state)

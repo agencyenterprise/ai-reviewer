@@ -10,7 +10,8 @@ import shutil
 import tempfile
 import uuid
 from contextlib import contextmanager
-from typing import Iterator, List, Literal, Optional, Tuple
+from typing import Literal
+from collections.abc import Iterator
 
 from pydantic import BaseModel
 
@@ -42,8 +43,8 @@ class EditOutcome(BaseModel):
 
     edit_id: uuid.UUID
     status: EditOutcomeStatus
-    detail: Optional[str] = None
-    winner_id: Optional[uuid.UUID] = None
+    detail: str | None = None
+    winner_id: uuid.UUID | None = None
 
 
 class PlannedEdit(BaseModel):
@@ -57,7 +58,7 @@ class PlannedEdit(BaseModel):
     occurrence: int
     # Where `find` sits in the paragraph's text. Used to order the operations of
     # one paragraph back-to-front and to refuse two that touch the same words.
-    span: Tuple[int, int]
+    span: tuple[int, int]
 
 
 class TrackedChangesPlan(BaseModel):
@@ -70,12 +71,12 @@ class TrackedChangesPlan(BaseModel):
     it was applied.
     """
 
-    planned: List[PlannedEdit]
-    outcomes: List[EditOutcome]
+    planned: list[PlannedEdit]
+    outcomes: list[EditOutcome]
 
 
 @contextmanager
-def editor_workspace(root: Optional[str]) -> Iterator[str]:
+def editor_workspace(root: str | None) -> Iterator[str]:
     """A private docx-editor workspace, removed again afterwards.
 
     One per invocation so that two exports of the same document never contend

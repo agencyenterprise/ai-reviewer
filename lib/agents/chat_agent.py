@@ -20,7 +20,8 @@ Two things are particular to the chat:
   ``stream_mode="messages"``; see ``build_llm``.
 """
 
-from typing import Any, AsyncIterator, Optional, Sequence
+from typing import Any
+from collections.abc import AsyncIterator, Sequence
 
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
@@ -170,7 +171,7 @@ with no preamble about what you are about to do.\
 
 def _manifest_for_skill(
     skill_name: str, manifests: dict[WorkflowRunType, WorkflowManifest]
-) -> Optional[WorkflowManifest]:
+) -> WorkflowManifest | None:
     """The workflow a skill backs: by the hand-written map, or, for a
     skill-declared workflow, by the skill its manifest was built from."""
     workflow_type = SKILL_WORKFLOWS.get(skill_name)
@@ -203,7 +204,7 @@ def chat_skill_catalogue() -> list[SkillSummary]:
     return catalogue
 
 
-def resolve_chat_model(model_id: Optional[str]) -> LLMModel:
+def resolve_chat_model(model_id: str | None) -> LLMModel:
     """The allowlisted model for an id, or the default for anything else.
 
     Falls back rather than failing so an old client, or a picker that still names
@@ -218,7 +219,7 @@ def resolve_chat_model(model_id: Optional[str]) -> LLMModel:
 
 
 def build_chat_agent(
-    model: LLMModel, api_key: Optional[str], checkpointer: BaseCheckpointSaver
+    model: LLMModel, api_key: str | None, checkpointer: BaseCheckpointSaver
 ) -> CompiledStateGraph:
     """A fresh agent for one turn over a durable thread: skills and web search bound."""
 
@@ -268,10 +269,10 @@ async def run_chat_turn(
     thread_id: str,
     user_id: str,
     model: LLMModel,
-    api_key: Optional[str],
+    api_key: str | None,
     text: str,
     attachments: Sequence[ChatAttachment] = (),
-    message_id: Optional[str] = None,
+    message_id: str | None = None,
 ) -> AsyncIterator[ChatEvent]:
     """One turn of a thread, as the page's events, checkpointed as it goes."""
 

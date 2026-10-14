@@ -7,7 +7,6 @@ addressing to attach feedback to any entity.
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 import uuid
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index
@@ -61,7 +60,7 @@ class Feedback(SQLModel, table=True):
         description="The user who created this feedback",
     )
 
-    issue_id: Optional[uuid.UUID] = SQLField(
+    issue_id: uuid.UUID | None = SQLField(
         sa_column=Column(
             UUID(as_uuid=True),
             ForeignKey("issues.id", ondelete="CASCADE", use_alter=True),
@@ -82,7 +81,7 @@ class Feedback(SQLModel, table=True):
         description="Type of feedback (thumbs up/down)",
     )
 
-    feedback_text: Optional[str] = SQLField(
+    feedback_text: str | None = SQLField(
         sa_column=Column(String, nullable=True),
         default=None,
         description="Optional feedback text",

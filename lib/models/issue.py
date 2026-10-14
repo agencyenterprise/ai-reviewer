@@ -8,7 +8,6 @@ when a workflow re-runs, preserving history and feedback integrity.
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
 
 from pydantic import computed_field
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
@@ -62,7 +61,7 @@ class Issue(SQLModel, table=True):
         description="The workflow run that created this issue",
     )
 
-    langgraph_checkpoint_id: Optional[str] = Field(
+    langgraph_checkpoint_id: str | None = Field(
         sa_column=Column(String(255), nullable=True),
         default=None,
         description="LangGraph checkpoint ID for time travel debugging",
@@ -83,13 +82,13 @@ class Issue(SQLModel, table=True):
         description="Short description of the issue",
     )
 
-    long_description: Optional[str] = Field(
+    long_description: str | None = Field(
         sa_column=Column(Text, nullable=True),
         default=None,
         description="Detailed description of the issue",
     )
 
-    suggested_action: Optional[str] = Field(
+    suggested_action: str | None = Field(
         sa_column=Column(Text, nullable=True),
         default=None,
         description=(
@@ -108,19 +107,19 @@ class Issue(SQLModel, table=True):
         description="The workflow type that generated this issue",
     )
 
-    chunk_indices: Optional[List[int]] = Field(
+    chunk_indices: list[int] | None = Field(
         sa_column=Column(ARRAY(Integer), nullable=True),
         default=None,
         description="All chunk indices related to this issue",
     )
 
-    start_line: Optional[int] = Field(
+    start_line: int | None = Field(
         sa_column=Column(Integer, nullable=True),
         default=None,
         description="1-indexed start line of the issue in the main document markdown",
     )
 
-    end_line: Optional[int] = Field(
+    end_line: int | None = Field(
         sa_column=Column(Integer, nullable=True),
         default=None,
         description="1-indexed end line of the issue in the main document markdown",
@@ -140,7 +139,7 @@ class Issue(SQLModel, table=True):
         description="The project revision this issue belongs to (denormalized from workflow run)",
     )
 
-    resolved_by: Optional[uuid.UUID] = Field(
+    resolved_by: uuid.UUID | None = Field(
         sa_column=Column(
             UUID(as_uuid=True),
             ForeignKey("users.id", ondelete="SET NULL"),
@@ -150,7 +149,7 @@ class Issue(SQLModel, table=True):
         description="User who resolved this issue (null if unresolved)",
     )
 
-    resolved_at: Optional[datetime] = Field(
+    resolved_at: datetime | None = Field(
         sa_column=Column(DateTime(timezone=True), nullable=True),
         default=None,
         description="When the issue was resolved",
@@ -197,7 +196,7 @@ class Issue(SQLModel, table=True):
         ),
     )
 
-    edit_rows: List["IssueEdit"] = Relationship(
+    edit_rows: list["IssueEdit"] = Relationship(
         sa_relationship_kwargs={
             "lazy": "selectin",
             "order_by": "IssueEdit.position",
@@ -207,7 +206,7 @@ class Issue(SQLModel, table=True):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def edits(self) -> List[IssueEditRead]:
+    def edits(self) -> list[IssueEditRead]:
         """The issue's proposed edits, in the order the agent proposed them.
 
         A computed field rather than a plain property so that every payload

@@ -6,7 +6,7 @@ validation, canonicalisation, and Abbreviations-section lookup remain in the
 deterministic catalogue assembly stage.
 """
 
-from typing import Any, List, Optional
+from typing import Any
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
@@ -67,7 +67,7 @@ class PartialChunkExtractionError(Exception):
     """The response was cut off, but complete occurrences were recovered."""
 
     def __init__(
-        self, result: ChunkExtractionResult, messages: List[BaseMessage]
+        self, result: ChunkExtractionResult, messages: list[BaseMessage]
     ) -> None:
         self.result = result
         self.messages = messages
@@ -88,8 +88,8 @@ class AbbreviationChunkExtractorAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: Optional[RunnableConfig] = None,
-    ) -> tuple[ChunkExtractionResult, List[BaseMessage]]:
+        config: RunnableConfig | None = None,
+    ) -> tuple[ChunkExtractionResult, list[BaseMessage]]:
         """Expects ``markdown``, ``start_line``, and ``end_line``."""
         messages = build_messages(prompt_kwargs)
         structured_kwargs: dict[str, Any] = {"include_raw": True}
@@ -139,7 +139,7 @@ class AbbreviationChunkExtractorAgent(LangChainAgent):
         )
 
 
-def build_messages(prompt_kwargs: dict) -> List[BaseMessage]:
+def build_messages(prompt_kwargs: dict) -> list[BaseMessage]:
     start_line = int(prompt_kwargs["start_line"])
     end_line = int(prompt_kwargs["end_line"])
     return [
@@ -165,7 +165,7 @@ def _numbered_chunk(markdown: str, start_line: int, end_line: int) -> str:
     )
 
 
-def _invalid_json_input(error: ValidationError) -> Optional[str]:
+def _invalid_json_input(error: ValidationError) -> str | None:
     for detail in error.errors():
         if detail.get("type") == "json_invalid" and isinstance(
             detail.get("input"), str
@@ -174,11 +174,11 @@ def _invalid_json_input(error: ValidationError) -> Optional[str]:
     return None
 
 
-def _salvage(raw: object) -> List[ChunkOccurrence]:
+def _salvage(raw: object) -> list[ChunkOccurrence]:
     if not isinstance(raw, AIMessage):
         return []
     return _salvage_text(ai_message_text(raw))
 
 
-def _salvage_text(text: str) -> List[ChunkOccurrence]:
+def _salvage_text(text: str) -> list[ChunkOccurrence]:
     return salvage_models(text, "occurrences", ChunkOccurrence)

@@ -5,7 +5,7 @@ of a document sit side by side; target and answer hidden, since an inventory
 eval has no target or answer text.
 """
 
-from typing import Mapping, Sequence
+from collections.abc import Mapping, Sequence
 
 from inspect_ai.viewer import (
     SampleScoreView,

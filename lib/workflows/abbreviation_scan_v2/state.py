@@ -1,6 +1,6 @@
 """State definitions for abbreviation scan v2 workflow."""
 
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, Literal
 
 from langchain_core.messages import BaseMessage
 from pydantic import BaseModel, Field, field_serializer
@@ -40,7 +40,7 @@ class AbbreviationItem(BaseModel):
     line_end: int = Field(
         description="1-indexed line number where this occurrence ends in the raw document."
     )
-    abbreviations_section_definition: Optional[str] = Field(
+    abbreviations_section_definition: str | None = Field(
         default=None,
         description=(
             "The definition as it appears in the Abbreviations section of the document. "
@@ -53,7 +53,7 @@ class AbbreviationItem(BaseModel):
         default=False,
         description="Legacy: True if this occurrence was excluded from compliance checks.",
     )
-    ignored_reason: Optional[str] = Field(
+    ignored_reason: str | None = Field(
         default=None,
         description="Legacy: why the occurrence was excluded, when ignored is True.",
     )
@@ -76,7 +76,7 @@ class AbbreviationScanV2State(BaseWorkflowState):
 
     config: AbbreviationScanV2Config
 
-    abbreviations: List[AbbreviationItem] = Field(
+    abbreviations: list[AbbreviationItem] = Field(
         default_factory=list,
         description="All abbreviation occurrences found in the document.",
     )
@@ -88,19 +88,19 @@ class AbbreviationScanV2State(BaseWorkflowState):
         default="",
         description="Summary of what was scanned and found.",
     )
-    abbreviations_section_ranges: List[LineRange] = Field(
+    abbreviations_section_ranges: list[LineRange] = Field(
         default_factory=list,
         description="Line ranges of the Abbreviations (or equivalent) section(s).",
     )
-    abbreviations_section_entries: List[AbbreviationSectionEntry] = Field(
+    abbreviations_section_entries: list[AbbreviationSectionEntry] = Field(
         default_factory=list,
         description="Entries listed in the Abbreviations section(s).",
     )
-    chunks: Annotated[List[AbbreviationChunk], merge_chunks] = Field(
+    chunks: Annotated[list[AbbreviationChunk], merge_chunks] = Field(
         default_factory=list,
         description="The line-range chunks the document was catalogued in, with per-chunk status.",
     )
-    messages: List[BaseMessage] = Field(
+    messages: list[BaseMessage] = Field(
         default_factory=list,
         description=(
             "The Abbreviations-section agent's conversation, system prompt included. "
@@ -110,7 +110,7 @@ class AbbreviationScanV2State(BaseWorkflowState):
 
     @field_serializer("messages")
     @classmethod
-    def _serialize_messages(cls, messages: List[BaseMessage]) -> list[dict]:
+    def _serialize_messages(cls, messages: list[BaseMessage]) -> list[dict]:
         # Checkpointer-hydrated states may contain raw dicts in `messages`
         # because reducers can append items that bypass model construction.
         return [m if isinstance(m, dict) else m.model_dump() for m in messages]

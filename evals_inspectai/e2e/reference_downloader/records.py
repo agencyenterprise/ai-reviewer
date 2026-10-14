@@ -17,7 +17,8 @@ are published.
 
 import math
 from pathlib import Path
-from typing import Literal, Optional, Sequence
+from typing import Literal
+from collections.abc import Sequence
 
 import yaml
 from inspect_ai.dataset import MemoryDataset, Sample
@@ -56,7 +57,7 @@ class DownloadRecord(BaseModel):
             "complete copy contains and a preview of its first pages does not"
         ),
     )
-    notes: Optional[str] = None
+    notes: str | None = None
 
     @field_validator("conclusion", mode="before")
     @classmethod
@@ -68,9 +69,9 @@ class FetchItem(BaseModel):
     """Local mirror of ReferenceFetchItem."""
 
     final_conclusion: str = ""
-    source_url: Optional[str] = None
-    file_id: Optional[str] = None
-    inaccessibility_reason: Optional[str] = None
+    source_url: str | None = None
+    file_id: str | None = None
+    inaccessibility_reason: str | None = None
     reasoning: str = ""
 
 
@@ -78,8 +79,8 @@ class FetchResult(BaseModel):
     reference_id: str = ""
     input_reference: str = ""
     status: str = ""
-    result: Optional[FetchItem] = None
-    error: Optional[str] = None
+    result: FetchItem | None = None
+    error: str | None = None
 
 
 class ProjectFile(BaseModel):
@@ -90,8 +91,8 @@ class ProjectFile(BaseModel):
     role: str
     file_name: str = ""
     chars: int = 0
-    title_found: Optional[bool] = None
-    end_found: Optional[bool] = None
+    title_found: bool | None = None
+    end_found: bool | None = None
 
 
 class DownloaderOutput(BaseModel):
@@ -119,18 +120,18 @@ def loose_text(text: str) -> str:
 
 def text_checks(
     record: DownloadRecord, markdown: str
-) -> tuple[Optional[bool], Optional[bool]]:
+) -> tuple[bool | None, bool | None]:
     """Whether a file's text carries every ``file_terms`` phrase and every ``end_terms``
     phrase; None for a set the record leaves empty."""
     text = loose_text(markdown)
 
-    def carries(terms: Sequence[str]) -> Optional[bool]:
+    def carries(terms: Sequence[str]) -> bool | None:
         return all(loose_text(t) in text for t in terms) if terms else None
 
     return carries(record.file_terms), carries(record.end_terms)
 
 
-def kept_file(item: FetchItem, files: Sequence[ProjectFile]) -> Optional[ProjectFile]:
+def kept_file(item: FetchItem, files: Sequence[ProjectFile]) -> ProjectFile | None:
     """The supporting file the run names as the source, if the project keeps it."""
     return next(
         (
@@ -142,7 +143,7 @@ def kept_file(item: FetchItem, files: Sequence[ProjectFile]) -> Optional[Project
     )
 
 
-def _verdict(found: Optional[bool], applies: bool) -> float:
+def _verdict(found: bool | None, applies: bool) -> float:
     return float(found) if applies and found is not None else math.nan
 
 

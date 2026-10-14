@@ -11,7 +11,7 @@ skill leaves open or a fact the web disputes.
 
 import re
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal
 
 import yaml
 from inspect_ai.dataset import MemoryDataset, Sample
@@ -65,10 +65,10 @@ class ReferenceRecord(BaseModel):
         default=False,
         description="A fabricated reference: nothing verifies, no updated reference",
     )
-    rationale: Optional[str] = Field(
+    rationale: str | None = Field(
         default=None, description="The labeller's account, for the judged criterion"
     )
-    notes: Optional[str] = None
+    notes: str | None = None
 
     @field_validator("result", mode="before")
     @classmethod

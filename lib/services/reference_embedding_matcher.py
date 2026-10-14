@@ -5,7 +5,6 @@ For larger scale, consider migrating to pgvector.
 """
 
 import logging
-from typing import List, Optional
 
 import numpy as np
 from pydantic import BaseModel
@@ -26,7 +25,7 @@ class CandidateMatch(BaseModel):
     doc_index: int
     similarity_score: float
     summary: FileSummary
-    file_id: Optional[str] = None
+    file_id: str | None = None
 
 
 def _normalize(embeddings: np.ndarray) -> np.ndarray:
@@ -57,9 +56,9 @@ class ReferenceEmbeddingMatcher:
         self._embeddings = init_embeddings(api_key=openai_api_key)
         self._rate_limiter = get_rate_limiter(hash_api_key(openai_api_key))
         self._doc_embeddings_normalized: np.ndarray | None = None
-        self._summaries: List[FileSummary] = []
+        self._summaries: list[FileSummary] = []
 
-    async def index_summaries(self, summaries: List[FileSummary]) -> None:
+    async def index_summaries(self, summaries: list[FileSummary]) -> None:
         """Pre-index at workflow start to avoid re-embedding on each lookup."""
         if not summaries:
             logger.warning("No summaries to index")
@@ -94,9 +93,9 @@ class ReferenceEmbeddingMatcher:
 
     async def find_candidates(
         self,
-        reference_texts: List[str],
+        reference_texts: list[str],
         top_k: int = DEFAULT_TOP_K,
-    ) -> List[List[CandidateMatch]]:
+    ) -> list[list[CandidateMatch]]:
         """Batch-embed references and find top-K similar docs via cosine similarity."""
         if self._doc_embeddings_normalized is None or not self._summaries:
             logger.warning("No documents indexed, returning empty candidates")
@@ -125,7 +124,7 @@ class ReferenceEmbeddingMatcher:
 
         effective_k = min(top_k, len(self._summaries))
 
-        results: List[List[CandidateMatch]] = []
+        results: list[list[CandidateMatch]] = []
         for ref_similarities in similarities:
             top_indices = np.argsort(ref_similarities)[-effective_k:][::-1]
             candidates = [

@@ -6,8 +6,6 @@ entries — but a reader does not need to be told the same abbreviation is missi
 from the Abbreviations section forty times, nor that the other forty passed.
 """
 
-from typing import Dict, List
-
 from lib.services.text_matching import text_matches
 from lib.workflows.abbreviation_scan_v2.state import (
     AbbreviationItem,
@@ -18,7 +16,7 @@ from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 _WORKFLOW_TYPE = WorkflowRunType.ABBREVIATION_SCAN_V2
 
 
-def build_issues(state: AbbreviationScanV2State) -> List[DocumentIssue]:
+def build_issues(state: AbbreviationScanV2State) -> list[DocumentIssue]:
     """Build the full list of document issues from the abbreviation scan state."""
 
     if not state.abbreviations:
@@ -32,7 +30,7 @@ def build_issues(state: AbbreviationScanV2State) -> List[DocumentIssue]:
 
     first_occurrence = _first_occurrence_per_abbr(in_scope)
 
-    issues: List[DocumentIssue] = []
+    issues: list[DocumentIssue] = []
 
     if not state.abbreviations_section_found:
         issues.append(_no_abbreviations_section_issue())
@@ -63,10 +61,10 @@ def build_issues(state: AbbreviationScanV2State) -> List[DocumentIssue]:
 
 
 def _first_occurrence_per_abbr(
-    items: List[AbbreviationItem],
-) -> Dict[str, AbbreviationItem]:
+    items: list[AbbreviationItem],
+) -> dict[str, AbbreviationItem]:
     """Map each abbreviation to the occurrence the rules treat as its first use."""
-    first: Dict[str, AbbreviationItem] = {}
+    first: dict[str, AbbreviationItem] = {}
     for item in items:
         current = first.get(item.abbr)
         if current is None or item.occurrence_number < current.occurrence_number:
@@ -74,7 +72,7 @@ def _first_occurrence_per_abbr(
     return first
 
 
-def _ambiguity_issues(items: List[AbbreviationItem]) -> List[DocumentIssue]:
+def _ambiguity_issues(items: list[AbbreviationItem]) -> list[DocumentIssue]:
     """Rule 5 — the same abbreviation given two different inline definitions.
 
     The baseline is the earliest occurrence that actually carries a definition,
@@ -85,8 +83,8 @@ def _ambiguity_issues(items: List[AbbreviationItem]) -> List[DocumentIssue]:
     Reported at the conflicting occurrence, and only once per abbreviation: a
     document that redefines a term repeatedly needs one flag, not one per use.
     """
-    issues: List[DocumentIssue] = []
-    established: Dict[str, str] = {}
+    issues: list[DocumentIssue] = []
+    established: dict[str, str] = {}
     already_flagged: set[str] = set()
 
     # Occurrence order, so "first definition" means first in the document rather

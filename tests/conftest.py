@@ -9,7 +9,6 @@ This module provides reusable utilities that work across all agent test suites:
 import os
 import shutil
 from pathlib import Path
-from typing import Optional
 
 from xxhash import xxh128
 
@@ -107,12 +106,12 @@ def extract_paragraph_from_chunk(full_document: str, chunk: str) -> str:
 
 
 def create_test_context(
-    file_artifacts_service: Optional[FileArtifactsServiceType] = None,
-    openai_api_key: Optional[str] = None,
-    vector_store: Optional[VectorStoreService] = None,
-    user_id: Optional[str] = None,
+    file_artifacts_service: FileArtifactsServiceType | None = None,
+    openai_api_key: str | None = None,
+    vector_store: VectorStoreService | None = None,
+    user_id: str | None = None,
     project_id: str = "test-project",
-    workflow_run_id: Optional[str] = None,
+    workflow_run_id: str | None = None,
 ):
     """
     Create a ContextSchema instance for testing agents.

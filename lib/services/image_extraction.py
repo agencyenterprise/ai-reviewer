@@ -25,7 +25,7 @@ import os
 import re
 import threading
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 import aiofiles
 from PIL import Image, ImageOps
@@ -129,7 +129,7 @@ IMAGE_REFERENCE_SCHEME = "draftdetective://"
 
 
 def image_reference(
-    image_file_id: uuid.UUID | str, display_size: Optional[tuple[int, int]] = None
+    image_file_id: uuid.UUID | str, display_size: tuple[int, int] | None = None
 ) -> str:
     """The src the rewritten markdown carries for an image's ``files`` row.
 
@@ -144,7 +144,7 @@ def image_reference(
 
 
 async def extract_data_uri_images(
-    markdown: str, display_sizes: Optional[DisplaySizes] = None
+    markdown: str, display_sizes: DisplaySizes | None = None
 ) -> ImageExtractionResult:
     """Extract every full data-URI image in ``markdown`` to disk.
 
@@ -209,8 +209,8 @@ async def extract_data_uri_images(
 
 
 async def _apply_declared_crop(
-    content: bytes, mime_type: str, placement: Optional[ImagePlacement]
-) -> tuple[bytes, Optional[ImagePlacement]]:
+    content: bytes, mime_type: str, placement: ImagePlacement | None
+) -> tuple[bytes, ImagePlacement | None]:
     """Crop ``content`` to the region the document displays.
 
     Word keeps the whole picture in the package and crops at display time, so
@@ -244,7 +244,7 @@ async def _apply_declared_crop(
     return cropped, placement
 
 
-def _crop_image(content: bytes, mime_type: str, crop: SourceRect) -> Optional[bytes]:
+def _crop_image(content: bytes, mime_type: str, crop: SourceRect) -> bytes | None:
     """``content`` cropped to ``crop``, or None when it cannot be applied.
 
     Admission control only; ``_crop_decoded`` does the work. Runs on a worker
@@ -267,7 +267,7 @@ def _crop_image(content: bytes, mime_type: str, crop: SourceRect) -> Optional[by
             return None
 
 
-def _crop_decoded(content: bytes, crop: SourceRect) -> Optional[bytes]:
+def _crop_decoded(content: bytes, crop: SourceRect) -> bytes | None:
     """Decode, crop and re-encode ``content``; None when it must be left alone.
 
     A no-op crop returns the bytes untouched rather than re-encoding them, so
@@ -331,7 +331,7 @@ def _crop_decoded(content: bytes, crop: SourceRect) -> Optional[bytes]:
 
 
 def _save_options(
-    content: bytes, image_format: str, icc_profile: Optional[bytes]
+    content: bytes, image_format: str, icc_profile: bytes | None
 ) -> dict[str, Any]:
     """Encoder settings that keep a cropped image looking like its source.
 

@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, cast, Callable, Awaitable, Any
+from typing import TYPE_CHECKING, cast, Any
+from collections.abc import Callable, Awaitable
 
 from deepagents.backends.utils import create_file_data
 
@@ -62,7 +63,7 @@ class FileArtifactsService(FileArtifactsServiceType):
 
     async def _get_state_by_type(
         self, run_type: WorkflowRunType, raise_exception: bool = True
-    ) -> Optional["WorkflowState"]:
+    ) -> "WorkflowState | None":
         """Retrieve workflow state for a specific workflow run type.
 
         Args:
@@ -367,7 +368,7 @@ class FileArtifactsService(FileArtifactsServiceType):
 
         # Try to get file matching state (optional)
         matching_state = cast(
-            Optional["ReferenceFileMatchingState"],
+            "ReferenceFileMatchingState | None",
             await self._get_state_by_type(
                 WorkflowRunType.REFERENCE_FILE_MATCHING, raise_exception=False
             ),

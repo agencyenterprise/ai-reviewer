@@ -1,6 +1,6 @@
 """State definitions for document summarization workflow."""
 
-from typing import Annotated, List, Literal
+from typing import Annotated, Literal
 
 from pydantic import Field
 
@@ -23,9 +23,9 @@ class FileSummary(DocumentSummary):
 
 
 def merge_summaries(
-    existing: List[FileSummary],
-    new: List[FileSummary],
-) -> List[FileSummary]:
+    existing: list[FileSummary],
+    new: list[FileSummary],
+) -> list[FileSummary]:
     """Reducer to upsert summaries by file_id.
 
     This reducer function is used by LangGraph to handle incremental updates
@@ -52,13 +52,13 @@ class DocumentSummarizationState(BaseWorkflowState):
     main_file_id: str = Field(
         description="ID of the main document to summarize (full content used)",
     )
-    supporting_file_ids: List[str] = Field(
+    supporting_file_ids: list[str] = Field(
         default_factory=list,
         description="IDs of supporting documents to summarize (truncated content used)",
     )
 
     # Outputs
-    summaries: Annotated[List[FileSummary], merge_summaries] = Field(
+    summaries: Annotated[list[FileSummary], merge_summaries] = Field(
         default_factory=list,
         description="List of document summaries for main and supporting files",
     )

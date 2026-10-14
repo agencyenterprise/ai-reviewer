@@ -19,7 +19,7 @@ Subclasses declare class-level attributes (type, name, description, and either
 """
 
 import html as html_lib
-from typing import TYPE_CHECKING, ClassVar, List, Literal, Optional, Type
+from typing import TYPE_CHECKING, ClassVar, Literal
 
 from langgraph.graph import START, StateGraph
 from langgraph.graph.state import END
@@ -72,9 +72,9 @@ class _BaseDeepAgentManifest(
     simple deep agent can reach the web, so the two always travel together.
     """
 
-    skill: ClassVar[Optional[str]] = None
-    user_prompt: ClassVar[Optional[str]] = None
-    system_prompt: ClassVar[Optional[str]] = None
+    skill: ClassVar[str | None] = None
+    user_prompt: ClassVar[str | None] = None
+    system_prompt: ClassVar[str | None] = None
 
     report_issues: ClassVar[bool] = True
     # Opt-in: when set, the issue tool also accepts proposed edits (verbatim
@@ -84,11 +84,11 @@ class _BaseDeepAgentManifest(
 
     # Per-workflow reasoning effort. None keeps SimpleDeepAgent's default;
     # set it on workflows whose task warrants more deliberation.
-    reasoning_effort: ClassVar[Optional[Literal["low", "medium", "high"]]] = None
+    reasoning_effort: ClassVar[Literal["low", "medium", "high"] | None] = None
 
     # Per-workflow LLM call timeout in seconds. None keeps SimpleDeepAgent's
     # default; raise it on workflows whose turns run long, such as web search.
-    llm_timeout: ClassVar[Optional[int]] = None
+    llm_timeout: ClassVar[int | None] = None
 
     # Whether the agent may look at the document's extracted images. Off by
     # default: only workflows whose judgment can hinge on what a figure shows
@@ -109,7 +109,7 @@ class _BaseDeepAgentManifest(
             f"{type(self).__name__} must define either `skill` or `user_prompt`"
         )
 
-    async def precheck(self, service: "FileArtifactsServiceType") -> Optional[str]:
+    async def precheck(self, service: "FileArtifactsServiceType") -> str | None:
         """Optional guard run before the agent.
 
         Return a message to short-circuit: the agent is skipped and the message
@@ -135,10 +135,10 @@ class _BaseDeepAgentManifest(
         """Map what the agent produced into the unified DeepAgentResult."""
         raise NotImplementedError
 
-    def get_state_type(self) -> Type[SimpleDeepAgentState]:
+    def get_state_type(self) -> type[SimpleDeepAgentState]:
         return SimpleDeepAgentState
 
-    def get_config_type(self) -> Type[SimpleDeepAgentConfig]:
+    def get_config_type(self) -> type[SimpleDeepAgentConfig]:
         return SimpleDeepAgentConfig
 
     def build_graph(self) -> StateGraph:
@@ -183,7 +183,7 @@ class _BaseDeepAgentManifest(
     async def create_initial_state(
         self,
         config: SimpleDeepAgentConfig,
-        existing_states: List["WorkflowState"],
+        existing_states: list["WorkflowState"],
         revision: int,
         prior_self_state: SimpleDeepAgentState | None = None,
     ) -> SimpleDeepAgentState:
@@ -192,8 +192,8 @@ class _BaseDeepAgentManifest(
     def convert_state_to_issues(
         self,
         state: SimpleDeepAgentState,
-        other_states: List["WorkflowState"],
-    ) -> List[DocumentIssue]:
+        other_states: list["WorkflowState"],
+    ) -> list[DocumentIssue]:
         # Both variants may carry issues in the unified result (the HTML variant
         # can populate them too); convert whatever is present.
         if state.result is None:

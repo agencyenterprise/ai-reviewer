@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime, date
 from enum import Enum
-from typing import Optional
 
 from sqlalchemy import Column, DateTime, ForeignKey, Date, Index, Integer
 from sqlalchemy import Enum as SQLAlchemyEnum
@@ -66,7 +65,7 @@ class Project(SQLModel, table=True):
         sa_column=Column(Date, nullable=True),
         description="The publication date of the report",
     )
-    feedback_visibility: Optional[FeedbackVisibility] = Field(
+    feedback_visibility: FeedbackVisibility | None = Field(
         sa_column=Column(
             SQLAlchemyEnum(FeedbackVisibility, name="feedbackvisibility"),
             nullable=True,

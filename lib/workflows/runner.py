@@ -1,7 +1,8 @@
 import asyncio
 import logging
 import uuid
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 from langfuse import propagate_attributes
 from langgraph.channels.base import BaseChannel

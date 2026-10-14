@@ -13,7 +13,7 @@ import json
 import logging
 from time import monotonic
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from langchain_core.callbacks import BaseCallbackHandler
@@ -53,7 +53,7 @@ class _CallMetadata:
     agent_name: str
     model_name: str
     provider: str
-    endpoint: Optional[str]
+    endpoint: str | None
     started_at: float
 
 
@@ -82,7 +82,7 @@ def _status_code(error: BaseException) -> str:
     return str(code) if code is not None else "-"
 
 
-def _endpoint_from_obj(obj: Any) -> Optional[str]:
+def _endpoint_from_obj(obj: Any) -> str | None:
     """Try to read a base URL / endpoint string off a chat model or embeddings
     client. Returns None if no known attribute is set."""
     if obj is None:
@@ -100,7 +100,7 @@ def _endpoint_from_obj(obj: Any) -> Optional[str]:
     return None
 
 
-def _endpoint_from_error(error: BaseException) -> Optional[str]:
+def _endpoint_from_error(error: BaseException) -> str | None:
     """Try to read the request URL off an httpx-style error's response."""
     response = getattr(error, "response", None)
     try:
@@ -111,8 +111,8 @@ def _endpoint_from_error(error: BaseException) -> Optional[str]:
 
 
 def _endpoint_from_serialized(
-    serialized: Optional[dict[str, Any]], extra_kwargs: dict[str, Any]
-) -> Optional[str]:
+    serialized: dict[str, Any] | None, extra_kwargs: dict[str, Any]
+) -> str | None:
     """Pull a base URL out of LangChain's `serialized` dict or the
     `invocation_params` kwarg passed alongside `on_(chat_model|llm)_start`."""
     candidates: list[dict[str, Any]] = []
@@ -132,7 +132,7 @@ def _endpoint_from_serialized(
 
 
 def _agent_name_from_metadata(
-    metadata: Optional[dict[str, Any]], tags: Optional[list[str]]
+    metadata: dict[str, Any] | None, tags: list[str] | None
 ) -> str:
     """Derive a meaningful "agent" label for the log line.
 
@@ -158,13 +158,13 @@ def _format_log_line(
     caller: str,
     model_name: str,
     provider: str,
-    endpoint: Optional[str],
-    workflow_run_id: Optional[str],
-    project_id: Optional[str],
+    endpoint: str | None,
+    workflow_run_id: str | None,
+    project_id: str | None,
     status: str,
     error_type: str,
     message: str,
-    diagnostics: Optional[dict] = None,
+    diagnostics: dict | None = None,
 ) -> str:
     """Build a single-line `PREFIX key=value …` record.
 
@@ -218,8 +218,8 @@ class ErrorLoggingCallback(BaseCallbackHandler):
     def __init__(
         self,
         *,
-        workflow_run_id: Optional[str] = None,
-        project_id: Optional[str] = None,
+        workflow_run_id: str | None = None,
+        project_id: str | None = None,
     ) -> None:
         self._workflow_run_id = workflow_run_id
         self._project_id = project_id
@@ -235,9 +235,9 @@ class ErrorLoggingCallback(BaseCallbackHandler):
         messages: Any,  # list[list[BaseMessage]] — typing loose to avoid import
         *,
         run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
-        tags: Optional[list[str]] = None,
-        metadata: Optional[dict[str, Any]] = None,
+        parent_run_id: UUID | None = None,
+        tags: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> None:
         self._calls[run_id] = self._build_metadata(
@@ -250,9 +250,9 @@ class ErrorLoggingCallback(BaseCallbackHandler):
         prompts: list[str],
         *,
         run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
-        tags: Optional[list[str]] = None,
-        metadata: Optional[dict[str, Any]] = None,
+        parent_run_id: UUID | None = None,
+        tags: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> None:
         self._calls[run_id] = self._build_metadata(
@@ -263,8 +263,8 @@ class ErrorLoggingCallback(BaseCallbackHandler):
     def _build_metadata(
         *,
         serialized: dict[str, Any],
-        tags: Optional[list[str]],
-        metadata: Optional[dict[str, Any]],
+        tags: list[str] | None,
+        metadata: dict[str, Any] | None,
         extra_kwargs: dict[str, Any],
     ) -> _CallMetadata:
         # LangChain populates `metadata["ls_model_name"]` and
@@ -287,7 +287,7 @@ class ErrorLoggingCallback(BaseCallbackHandler):
         response: Any,
         *,
         run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
+        parent_run_id: UUID | None = None,
         **kwargs: Any,
     ) -> None:
         # Successful call — drop the cached metadata to avoid unbounded growth.
@@ -298,8 +298,8 @@ class ErrorLoggingCallback(BaseCallbackHandler):
         error: BaseException,
         *,
         run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
-        tags: Optional[list[str]] = None,
+        parent_run_id: UUID | None = None,
+        tags: list[str] | None = None,
         **kwargs: Any,
     ) -> None:
         meta = self._calls.pop(run_id, None)
@@ -335,7 +335,7 @@ def log_embedding_error(
     model: str,
     provider: str,
     embeddings_client: Any = None,
-    context: Optional[ContextSchema] = None,
+    context: ContextSchema | None = None,
 ) -> None:
     """Log an error from an embeddings call in the same format as chat errors.
 

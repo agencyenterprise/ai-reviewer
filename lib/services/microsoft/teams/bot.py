@@ -35,7 +35,8 @@ import json
 import logging
 import re
 from collections.abc import Awaitable, Iterator
-from typing import Any, Callable, Optional
+from typing import Any
+from collections.abc import Callable
 
 from microsoft_agents.activity import Activity, ActivityTypes, ConversationReference
 from microsoft_agents.authentication.msal import MsalConnectionManager
@@ -117,8 +118,8 @@ class _Bot:
     """
 
     def __init__(self) -> None:
-        self._adapter: Optional[ChannelServiceAdapter] = None
-        self._validator: Optional[JwtTokenValidator] = None
+        self._adapter: ChannelServiceAdapter | None = None
+        self._validator: JwtTokenValidator | None = None
 
     def _build(self) -> None:
         if self._adapter is not None:
@@ -143,7 +144,7 @@ class _Bot:
         assert self._adapter is not None
         return self._adapter
 
-    async def claims_for(self, authorization: Optional[str]) -> ClaimsIdentity:
+    async def claims_for(self, authorization: str | None) -> ClaimsIdentity:
         """Who sent this, according to the token Teams presented.
 
         Raises if the token is missing or does not verify. This is the only thing
@@ -283,8 +284,8 @@ async def post_later(reference: ConversationReference, text: str) -> None:
 
 
 async def handle(
-    authorization: Optional[str], body: dict[str, Any], on_turn: TurnHandler
-) -> Optional[InvokeResponse]:
+    authorization: str | None, body: dict[str, Any], on_turn: TurnHandler
+) -> InvokeResponse | None:
     """Authenticate one activity and run ``on_turn`` for it.
 
     Returns the reply to an invoke -- what ``on_turn`` answered it with -- and None for
