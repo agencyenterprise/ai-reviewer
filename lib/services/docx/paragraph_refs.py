@@ -24,8 +24,8 @@ preference moot as well.
 """
 
 import logging
-from typing import Any
 from collections.abc import Sequence
+from typing import Any
 
 from docx.oxml.ns import qn
 from docx_editor import ParagraphInfo

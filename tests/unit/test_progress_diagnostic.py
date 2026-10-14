@@ -11,12 +11,11 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from lib.models.workflow_progress import ProgressLevel
+from lib.workflows.decorators import register_node
 from lib.workflows.document_processing.nodes.convert_to_markdown import (
     convert_to_markdown,
 )
-
-from lib.models.workflow_progress import ProgressLevel
-from lib.workflows.decorators import register_node
 
 logger = logging.getLogger(__name__)
 

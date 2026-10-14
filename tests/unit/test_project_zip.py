@@ -8,6 +8,7 @@ import zipfile
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import HTTPException
 
 from lib.models.file import File, FileRole
 from lib.services.project_zip import (
@@ -15,7 +16,6 @@ from lib.services.project_zip import (
     _compression_for,
     create_project_files_zip,
 )
-from fastapi import HTTPException
 
 MOUNT_PATH = "/tmp/test-uploads"
 CONFIG_PATH = "lib.services.project_zip.config"

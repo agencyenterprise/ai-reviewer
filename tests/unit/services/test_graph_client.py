@@ -1,16 +1,15 @@
 """Tests for reading SharePoint documents through Graph, as the person who asked."""
 
+import inspect
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
+from urllib.parse import unquote
 
 import httpx
 import pytest
 
 from lib.services.microsoft.graph import client
-from lib.services.microsoft.graph.client import redacted
-import inspect
-from urllib.parse import unquote
-from lib.services.microsoft.graph.client import _site_relative_path
+from lib.services.microsoft.graph.client import _site_relative_path, redacted
 
 
 class TestResolvingASharingLink:

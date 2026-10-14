@@ -6,10 +6,6 @@ from lib.workflows.about_this_ger.state import (
     AboutThisGerConfig,
     AboutThisGerState,
 )
-from lib.workflows.simple_deep_agent.state import (
-    SimpleDeepAgentConfig,
-    SimpleDeepAgentState,
-)
 from lib.workflows.claim_reference_validation_v2.state import (
     ClaimReferenceValidationV2Config,
     ClaimReferenceValidationV2State,
@@ -41,6 +37,10 @@ from lib.workflows.reference_validation_v2.state import (
 from lib.workflows.reviewer_2.state import (
     Reviewer2Config,
     Reviewer2State,
+)
+from lib.workflows.simple_deep_agent.state import (
+    SimpleDeepAgentConfig,
+    SimpleDeepAgentState,
 )
 
 WorkflowState = (

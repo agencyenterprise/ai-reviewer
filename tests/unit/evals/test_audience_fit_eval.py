@@ -16,6 +16,7 @@ from evals_inspectai.common.issue_inventory import (
     load_inventory_records,
 )
 from evals_inspectai.common.issue_judge import judge_sample
+from evals_inspectai.common.simple_deep_agent_types import IssueItem
 from evals_inspectai.e2e.audience_fit.audience_fit_e2e import audience_fit_e2e
 from evals_inspectai.e2e.audience_fit.criteria import JUDGE_CRITERIA
 from evals_inspectai.e2e.audience_fit.overflow import (
@@ -28,7 +29,6 @@ from evals_inspectai.e2e.audience_fit.overflow_judge import (
     SUMMARY_KEY,
     summary_alternative_scores,
 )
-from evals_inspectai.common.simple_deep_agent_types import IssueItem
 
 DATASET = Path("evals_inspectai/e2e/audience_fit/dataset.yaml")
 

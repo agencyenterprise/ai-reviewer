@@ -21,9 +21,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
-from lib.agents.teams_agent import answer_question, answer_text
+from lib.agents.teams_agent import SYSTEM_PROMPT, answer_question, answer_text
 from lib.agents.tools import sharepoint
-from lib.agents.teams_agent import SYSTEM_PROMPT
 
 # Every run reads as somebody; the tests do not care who.
 TOKEN = "a-user-token"

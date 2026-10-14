@@ -1,8 +1,8 @@
 """Annotation for users: the sets, the next item to judge, and saving answers."""
 
 import uuid
-from datetime import datetime, timezone
 from collections.abc import Sequence
+from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import case, func, select

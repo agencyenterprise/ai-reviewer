@@ -4,10 +4,10 @@ import os
 from typing import Any
 from uuid import UUID
 
+from lib.services.workflow_progress import update_progress
 from lib.workflows.context import current_progress_id
 from lib.workflows.error_details import build_workflow_error
 from lib.workflows.models import WorkflowError
-from lib.services.workflow_progress import update_progress
 
 logger = logging.getLogger(__name__)
 

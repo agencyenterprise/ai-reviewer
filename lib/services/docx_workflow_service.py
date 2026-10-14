@@ -5,16 +5,16 @@ import uuid
 from typing import Literal
 
 from lib.models.workflow_run import WorkflowRunType
+from lib.services.docx.edit_export import (
+    apply_edit_export,
+    describe_edit_export,
+    plan_edit_export,
+)
 from lib.services.docx.manipulator import (
     DocxManipulatorType,
     count_unanchorable_issues,
     docx_manipulator_service,
     issue_to_comment,
-)
-from lib.services.docx.edit_export import (
-    apply_edit_export,
-    describe_edit_export,
-    plan_edit_export,
 )
 from lib.services.docx.paragraph_line_mapper import build_paragraph_line_ranges
 from lib.services.file_artifacts_service.file_artifacts_service import (

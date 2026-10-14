@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import HTTPException
 
-from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.api.routers.workflows import cancel_workflow_run_endpoint
+from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 
 
 def _make_run(status: WorkflowRunStatus, run_id: str | None = None) -> WorkflowRun:

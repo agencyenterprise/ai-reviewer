@@ -36,24 +36,24 @@ a NaN key out of that metric's mean and counts the sample as unscored for it.
 import json
 import math
 import re
-from typing import NamedTuple
 from collections.abc import Callable, Mapping, Sequence
+from typing import NamedTuple
 
 from inspect_ai.scorer import Score, Scorer, Target, mean, scorer, stderr
 from inspect_ai.solver import TaskState
 
+from evals_inspectai.common.issue_inventory import (
+    Decoy,
+    ResolvedInventory,
+    ResolvedIssue,
+    ScoringPolicy,
+    normalize,
+    overlaps,
+)
 from evals_inspectai.common.simple_deep_agent_types import (
     AgentCheckResult,
     IssueItem,
     ProposedEdit,
-)
-from evals_inspectai.common.issue_inventory import (
-    Decoy,
-    ResolvedIssue,
-    ResolvedInventory,
-    ScoringPolicy,
-    normalize,
-    overlaps,
 )
 
 # A workflow-specific per-edit check: (edit) -> pass?  Reported as edit_<name>.

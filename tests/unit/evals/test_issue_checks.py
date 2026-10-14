@@ -13,38 +13,38 @@ from typing import cast
 import pytest
 from inspect_ai.solver import TaskState
 
-from evals_inspectai.common.simple_deep_agent_types import IssueItem, ProposedEdit
 from evals_inspectai.common.issue_checks import (
     DETECTION_KEYS,
     EDIT_KEYS,
     HitRank,
-    issue_check_keys,
+    _canonical_order,
+    _edited_sentences,
+    _sentence_spans,
+    _tokens,
     decoy_hits,
     decoy_scores,
-    issue_detection_scores,
     edit_checks,
     edits_for,
     extra_edit_scores,
     hit_issue,
+    issue_check_keys,
+    issue_detection_scores,
     issues_from_state,
 )
 from evals_inspectai.common.issue_inventory import (
     Decoy,
     ExpectedIssue,
     InventoryRecord,
-    ResolvedIssue,
     ResolvedInventory,
+    ResolvedIssue,
     ScoringPolicy,
-    locate_anchor,
     inventory_to_sample,
+    locate_anchor,
     overlaps,
     quoted_verbatim,
     resolve_record,
 )
-from evals_inspectai.common.issue_checks import _canonical_order
-from evals_inspectai.common.issue_checks import _edited_sentences
-from evals_inspectai.common.issue_checks import _sentence_spans
-from evals_inspectai.common.issue_checks import _tokens
+from evals_inspectai.common.simple_deep_agent_types import IssueItem, ProposedEdit
 
 DOC = "# Title\n\n## Methods\n\nData were collected from 3 sites by the field team. We then coded the notes.\n\n## Results\n\nThe scope is limited to urban sites. Findings are listed in Appendix A.\n"
 LINES = DOC.split("\n")

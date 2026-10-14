@@ -6,16 +6,16 @@ import pytest
 from docx import Document
 
 from lib.services.converters.markitdown import markitdown_converter
-from lib.services.docx.paragraph_line_mapper import (
-    build_paragraph_line_ranges,
-    find_paragraph_by_line_range,
-)
-from tests.conftest import create_test_file_document_from_path, data_path
 from lib.services.docx.manipulator import (
     CommentSeverity,
     DocxComment,
     DocxManipulatorService,
 )
+from lib.services.docx.paragraph_line_mapper import (
+    build_paragraph_line_ranges,
+    find_paragraph_by_line_range,
+)
+from tests.conftest import create_test_file_document_from_path, data_path
 
 
 @pytest.mark.asyncio

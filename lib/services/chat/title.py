@@ -1,8 +1,8 @@
 """A short title for a chat thread, from its opening messages."""
 
 import logging
-from typing import Any
 from collections.abc import Sequence
+from typing import Any
 
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage, SystemMessage

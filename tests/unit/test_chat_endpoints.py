@@ -9,9 +9,9 @@ attachment extraction fails.
 
 import io
 import uuid
+from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 from typing import Any
-from collections.abc import AsyncIterator
 from unittest.mock import AsyncMock, patch
 
 from docx import Document

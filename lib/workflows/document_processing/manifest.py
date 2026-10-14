@@ -1,9 +1,11 @@
+import builtins
 import logging
 
 from langgraph.graph import StateGraph
 
 from lib.models.file import FileRole
 from lib.services.file import FileDocument
+from lib.services.files import get_files_by_project_id, load_file_document
 from lib.workflows.document_processing.graph import build_document_processing_graph
 from lib.workflows.document_processing.state import (
     DocumentProcessingState,
@@ -12,8 +14,6 @@ from lib.workflows.document_processing.state import (
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.workflow_types import WorkflowState
-import builtins
-from lib.services.files import get_files_by_project_id, load_file_document
 
 logger = logging.getLogger(__name__)
 

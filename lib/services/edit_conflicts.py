@@ -12,9 +12,9 @@ document, the same edit wins, whatever order the rows arrive in.
 """
 
 import uuid
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from typing import Literal
-from collections.abc import Sequence
 
 from pydantic import BaseModel
 

@@ -1,5 +1,7 @@
 """Manifest for abbreviation scan v2 workflow."""
 
+import builtins
+
 from langgraph.graph import StateGraph
 
 from lib.workflows.abbreviation_scan_v2.graph import build_abbreviation_scan_v2_graph
@@ -11,7 +13,6 @@ from lib.workflows.abbreviation_scan_v2.state import (
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.workflow_types import WorkflowState
-import builtins
 
 
 class AbbreviationScanV2Manifest(

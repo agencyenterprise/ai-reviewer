@@ -7,7 +7,8 @@ from mcp.types import ToolAnnotations
 
 from lib.api.mcp import helpers
 from lib.api.mcp.instance import mcp
-from lib.models.file import File as FileModel, FileRole
+from lib.models.file import File as FileModel
+from lib.models.file import FileRole
 from lib.models.project import AccessLevel
 from lib.services.file_finalization import finalize_file
 from lib.services.files import get_files_by_project_id

@@ -18,8 +18,8 @@ from evals_inspectai.common.issue_inventory import (
 )
 from evals_inspectai.common.loaders import inline_local_images
 from lib.models.annotation import AnnotationItemKind
-from lib.services.annotations.set_spec import AnnotationSetSpec, ItemReference
 from lib.services.annotations.models import AnnotationPassage
+from lib.services.annotations.set_spec import AnnotationSetSpec, ItemReference
 
 
 class AnnotationItemDraft(BaseModel):

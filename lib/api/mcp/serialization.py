@@ -1,5 +1,4 @@
 import json
-
 import uuid
 
 from lib.api.mcp.helpers import build_project_url

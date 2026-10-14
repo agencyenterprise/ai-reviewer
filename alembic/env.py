@@ -1,14 +1,13 @@
 from logging.config import fileConfig
 
 import alembic_postgresql_enum  # noqa: F401  registers its enum comparators with alembic
+from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
-from alembic import context
-from lib.config.env import config as app_config
-
 # Importing the package registers every model with SQLModel.metadata.
 import lib.models  # noqa: F401
+from lib.config.env import config as app_config
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

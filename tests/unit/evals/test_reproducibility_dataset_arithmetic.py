@@ -19,8 +19,8 @@ the repo and runs the same model over every inflow assumption.
 
 import calendar
 import re
-from pathlib import Path
 from collections.abc import Iterable
+from pathlib import Path
 
 import numpy as np
 import pytest

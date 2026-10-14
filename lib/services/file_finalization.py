@@ -7,6 +7,7 @@ Used by both direct multipart uploads and TUS resumable uploads.
 
 import logging
 import os
+import shutil
 import uuid
 
 import aiofiles
@@ -16,7 +17,6 @@ from xxhash import xxh128
 from lib.config.env import config
 from lib.models.file import File, FileRole
 from lib.services.files import create_file_record
-import shutil
 
 logger = logging.getLogger(__name__)
 

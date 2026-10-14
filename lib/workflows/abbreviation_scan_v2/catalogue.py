@@ -10,8 +10,8 @@ import html
 import logging
 import re
 from collections import defaultdict
-from functools import lru_cache
 from collections.abc import Callable
+from functools import lru_cache
 
 from lib.workflows.abbreviation_scan_v2.chunk_models import (
     AbbreviationChunk,

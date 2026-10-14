@@ -1,7 +1,8 @@
 """Tests for automatic workflow dependency resolution."""
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from lib.workflows.dependency_resolver import (
     get_required_dependents,

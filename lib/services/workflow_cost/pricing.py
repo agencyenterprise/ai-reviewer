@@ -9,9 +9,9 @@ runs on -- every assessment on the RAND deployment reported no cost at all.
 
 import logging
 import re
+from collections.abc import Iterable, Iterator
 from decimal import Decimal
 from functools import lru_cache
-from collections.abc import Iterable, Iterator
 
 from genai_prices import Usage, calc_price
 from genai_prices.types import PriceCalculation

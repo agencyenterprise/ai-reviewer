@@ -1,6 +1,7 @@
 import os
 
 import uvicorn
+
 from lib.config.logger import setup_logger
 
 if __name__ == "__main__":

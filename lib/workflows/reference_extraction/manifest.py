@@ -1,7 +1,10 @@
 """Manifest for reference extraction workflow."""
 
+import builtins
+
 from langgraph.graph import StateGraph
 
+from lib.services.files import get_main_file_id
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.reference_extraction.graph import build_reference_extraction_graph
@@ -10,8 +13,6 @@ from lib.workflows.reference_extraction.state import (
     ReferenceExtractionState,
 )
 from lib.workflows.workflow_types import WorkflowState
-from lib.services.files import get_main_file_id
-import builtins
 
 
 class ReferenceExtractionManifest(

@@ -21,10 +21,10 @@ import base64
 import logging
 import shutil
 import tempfile
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
-from collections.abc import Iterator
 from xml.sax.saxutils import escape
 from zipfile import ZIP_DEFLATED, ZipFile
 

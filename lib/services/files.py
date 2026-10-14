@@ -4,6 +4,7 @@ import uuid
 from collections.abc import Sequence
 
 from fastapi import HTTPException
+from langchain_core.messages.utils import count_tokens_approximately
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,11 +13,10 @@ from sqlmodel import col
 from lib.config.database import get_async_db_session
 from lib.models.file import File, FileListItem, FileRole
 from lib.models.project import Project
+from lib.models.share_link import ShareLink
 from lib.services.file import FileDocument, create_file_document_from_path
 from lib.services.text_sanitization import sanitize_for_postgres
 from lib.services.uuid_utils import ensure_uuid
-from langchain_core.messages.utils import count_tokens_approximately
-from lib.models.share_link import ShareLink
 
 logger = logging.getLogger(__name__)
 

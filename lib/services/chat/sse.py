@@ -23,8 +23,8 @@ is the one type it leaves alone.
 import asyncio
 import json
 import logging
-from contextlib import suppress
 from collections.abc import AsyncGenerator, AsyncIterator
+from contextlib import suppress
 
 from lib.services.chat.events import ChatEvent, error_event
 

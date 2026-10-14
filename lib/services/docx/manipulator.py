@@ -3,9 +3,9 @@
 import asyncio
 import logging
 import re
+from collections.abc import Sequence
 from enum import StrEnum
 from pathlib import Path
-from collections.abc import Sequence
 
 from docx import Document
 from docx.document import Document as DocumentObject
@@ -15,9 +15,9 @@ from pydantic import BaseModel
 from lib.config.env import config
 from lib.models.issue import Issue
 from lib.services.docx.paragraph_line_mapper import find_paragraph_by_line_range
+from lib.services.share_links import _build_share_url
 from lib.workflows.models import SeverityEnum
 from lib.workflows.registry import get_workflow_manifest
-from lib.services.share_links import _build_share_url
 
 logger = logging.getLogger(__name__)
 

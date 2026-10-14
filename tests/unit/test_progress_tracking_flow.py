@@ -2,12 +2,13 @@
 
 import uuid
 from unittest.mock import Mock, patch
+
 import pytest
 
 from lib.models.workflow_progress import ProgressLevel
-from lib.workflows.decorators import register_node
 from lib.run_utils import run_tasks
 from lib.workflows.context import current_progress_id
+from lib.workflows.decorators import register_node
 
 
 class TestDecoratorProgressTracking:

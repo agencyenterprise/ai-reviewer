@@ -25,10 +25,9 @@ Two concerns live here, and a third next door:
 import json
 import re
 import uuid
+from collections.abc import Collection, Sequence
 from pathlib import Path
-from collections.abc import Collection
 from typing import Any
-from collections.abc import Sequence
 
 from deepagents.backends.utils import create_file_data
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage

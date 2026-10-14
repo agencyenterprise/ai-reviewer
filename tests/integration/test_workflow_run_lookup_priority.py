@@ -6,8 +6,8 @@ found ahead of terminal runs, and behind anything that is actually working.
 """
 
 import uuid
-from datetime import datetime, timedelta, timezone
 from collections.abc import Sequence
+from datetime import datetime, timedelta, timezone
 
 import pytest
 import pytest_asyncio

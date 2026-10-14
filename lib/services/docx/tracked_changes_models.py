@@ -9,9 +9,9 @@ to import the other.
 import shutil
 import tempfile
 import uuid
+from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Literal
-from collections.abc import Iterator
 
 from pydantic import BaseModel
 

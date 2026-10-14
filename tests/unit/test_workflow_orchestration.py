@@ -1,15 +1,16 @@
 """Tests for workflow orchestration - dependency and same-type locking."""
 
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
+import pytest
+
+from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services.workflow_orchestration import (
     DEPENDENCY_WAIT_TIMEOUT,
     wait_for_dependencies,
 )
 from lib.workflows.models import DependencyWaitTimeoutError, WorkflowCancelledError
-from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 
 
 def create_workflow_run(

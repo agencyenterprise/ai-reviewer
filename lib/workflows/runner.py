@@ -1,14 +1,13 @@
 import asyncio
 import logging
 import uuid
-from typing import Any
 from collections.abc import Mapping
+from typing import Any
 
 from langfuse import propagate_attributes
 from langgraph.channels.base import BaseChannel
 from langgraph.graph import StateGraph
 
-from lib.services.workflow_orchestration import wait_for_dependencies
 from lib.config.env import config as env_config
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
@@ -25,9 +24,11 @@ from lib.services.file_artifacts_service.file_artifacts_service import (
 from lib.services.issue_persistence import persist_workflow_issues
 from lib.services.users import get_user_decrypted_api_key
 from lib.services.vector_store import VectorStoreService
+from lib.services.workflow_orchestration import wait_for_dependencies
 from lib.services.workflow_runs import (
     fail_workflow_run,
     get_latest_workflow_run_state_by_type,
+    get_project_workflow_runs,
     persist_workflow_run_state,
     update_workflow_run_status,
 )
@@ -41,7 +42,6 @@ from lib.workflows.models import (
 from lib.workflows.registry import create_graph, create_state, get_workflow_manifest
 from lib.workflows.state_updates import apply_node_update
 from lib.workflows.workflow_types import WorkflowConfig, WorkflowState
-from lib.services.workflow_runs import get_project_workflow_runs
 
 logger = logging.getLogger(__name__)
 

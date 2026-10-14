@@ -1,12 +1,16 @@
 import logging
+from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, cast, Any
-from collections.abc import Callable, Awaitable
+from typing import TYPE_CHECKING, Any, cast
 
 from deepagents.backends.utils import create_file_data
 
+from lib.models.bibliography_item import BibliographyItem
 from lib.models.file import File, FileRole
 from lib.services.file import FileDocument
+from lib.services.file_artifacts_service.file_artifacts_service_type import (
+    FileArtifactsServiceType,
+)
 from lib.services.files import (
     get_file_by_id,
     get_files_by_project_id,
@@ -14,17 +18,13 @@ from lib.services.files import (
     update_file_artifacts,
 )
 from lib.services.markdown_conversion import convert_file_document_to_markdown
-from lib.services.file_artifacts_service.file_artifacts_service_type import (
-    FileArtifactsServiceType,
-)
-from lib.skills import strip_interactive_only
-from lib.workflows.models import WorkflowRunType
 from lib.services.workflow_runs import (
     get_project_workflow_run_by_type,
     read_workflow_run_state,
 )
+from lib.skills import strip_interactive_only
 from lib.workflows.document_summarization.state import FileSummary
-from lib.models.bibliography_item import BibliographyItem
+from lib.workflows.models import WorkflowRunType
 
 if TYPE_CHECKING:
     from lib.models.bibliography_item import BibliographyItem

@@ -7,10 +7,10 @@ the model allowlist fallback, and that every skill in the slash-command map
 points at a real skill and a registered workflow.
 """
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
-from collections.abc import AsyncIterator
 from unittest.mock import patch
 
 import pytest

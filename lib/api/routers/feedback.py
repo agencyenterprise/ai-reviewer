@@ -12,7 +12,6 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-
 from sqlalchemy import select
 from sqlmodel import col
 

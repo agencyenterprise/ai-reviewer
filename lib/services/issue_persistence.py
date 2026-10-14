@@ -7,8 +7,8 @@ and managing issue resolution.
 
 import logging
 import uuid
-from datetime import datetime, timezone
 from collections.abc import Sequence
+from datetime import datetime, timezone
 
 from sqlalchemy import select, update
 from sqlmodel import col

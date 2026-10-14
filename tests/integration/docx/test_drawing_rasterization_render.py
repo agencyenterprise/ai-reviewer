@@ -15,13 +15,13 @@ import struct
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from PIL import Image
 from docx import Document
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
 from docx.opc.packuri import PackURI
 from docx.opc.part import Part
 from docx.oxml import parse_xml
 from docx.oxml.ns import nsdecls
+from PIL import Image
 
 from lib.services.converters.base import convert_to_markdown
 from lib.services.docx.drawing_rasterization import (

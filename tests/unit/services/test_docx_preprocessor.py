@@ -1,8 +1,10 @@
-import pytest
-from lib.services.converters.docx_preprocessor import docx_preprocessor
 import asyncio
 import shutil
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
+from lib.services.converters.docx_preprocessor import docx_preprocessor
 
 
 @pytest.mark.asyncio

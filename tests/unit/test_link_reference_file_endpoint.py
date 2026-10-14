@@ -7,9 +7,9 @@ import pytest
 from fastapi import HTTPException
 
 from lib.api.models import LinkReferenceFileRequest
+from lib.api.routers.projects import link_reference_file_endpoint
 from lib.models.file import FileRole
 from lib.services.references import MatchSource
-from lib.api.routers.projects import link_reference_file_endpoint
 
 PROJECT_ID = str(uuid.uuid4())
 # ExtractedReference.id is an opaque str, not a UUID.

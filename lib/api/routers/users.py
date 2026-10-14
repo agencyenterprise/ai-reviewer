@@ -11,9 +11,9 @@ from lib.api.models import (
     UpdateUserRoleRequest,
     UserResponse,
 )
+from lib.models.user import User, UserRole
 from lib.services.preflight.models import PreflightRequest
 from lib.services.preflight.service import PreflightValidationService
-from lib.models.user import User, UserRole
 from lib.services.users import (
     delete_user_openai_api_key,
     get_all_users,

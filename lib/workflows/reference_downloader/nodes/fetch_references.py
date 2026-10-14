@@ -21,16 +21,16 @@ from lib.workflows.reference_downloader.agents.reference_fetcher import (
     ReferenceFetcherAgent,
     ReferenceFetcherAgentInput,
 )
+from lib.workflows.reference_downloader.fetch_logging import (
+    log_fetch_outcome,
+    log_run_summary,
+    short_reference,
+)
 from lib.workflows.reference_downloader.state import (
     ReferenceDownloaderInputItem,
     ReferenceDownloaderState,
     ReferenceFetchResult,
     ReferenceFetchStatus,
-)
-from lib.workflows.reference_downloader.fetch_logging import (
-    log_fetch_outcome,
-    log_run_summary,
-    short_reference,
 )
 from lib.workflows.reference_file_matching.state import MatchSource
 

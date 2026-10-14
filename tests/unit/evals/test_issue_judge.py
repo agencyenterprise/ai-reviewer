@@ -6,6 +6,8 @@ from typing import cast
 import pytest
 from inspect_ai.model import ContentImage, ContentText, Model
 
+from evals_inspectai.common.issue_checks import hit_pairs
+from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue
 from evals_inspectai.common.issue_judge import (
     JudgeCriterion,
     gist,
@@ -13,9 +15,7 @@ from evals_inspectai.common.issue_judge import (
     judge_sample,
     section_text,
 )
-from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue
 from evals_inspectai.common.simple_deep_agent_types import IssueItem, ProposedEdit
-from evals_inspectai.common.issue_checks import hit_pairs
 
 DOC = "# Title\n\nNine countries signed the treaty in 1962.\n\nThe institute was established in 1962. It grew fast.\n"
 

@@ -13,8 +13,8 @@ documents shipped with numbers their own models could not produce.
 
 import calendar
 import re
-from pathlib import Path
 from collections.abc import Sequence
+from pathlib import Path
 
 import numpy as np
 import yaml

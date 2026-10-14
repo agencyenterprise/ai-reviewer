@@ -87,17 +87,17 @@ def register_all_workflow_manifests():
     # manifest's nodes import lib.workflows.decorators -> workflow_runs -> this
     # module: the registry has to exist before the manifests load.
     from lib.workflows.abbreviation_scan_v2.manifest import AbbreviationScanV2Manifest  # noqa: PLC0415  circular, see above
-    from lib.workflows.document_structure.manifest import DocumentStructureManifest  # noqa: PLC0415  circular, see above
-    from lib.workflows.figures_tables_check.manifest import FiguresTablesCheckManifest  # noqa: PLC0415  circular, see above
     from lib.workflows.about_this_ger.manifest import AboutThisGerManifest  # noqa: PLC0415  circular, see above
     from lib.workflows.advocacy_tone_v2.manifest import AdvocacyToneV2Manifest  # noqa: PLC0415  circular, see above
     from lib.workflows.claim_reference_validation_v2.manifest import (  # noqa: PLC0415  circular, see above
         ClaimReferenceValidationV2Manifest,
     )
     from lib.workflows.document_processing.manifest import DocumentProcessingManifest  # noqa: PLC0415  circular, see above
+    from lib.workflows.document_structure.manifest import DocumentStructureManifest  # noqa: PLC0415  circular, see above
     from lib.workflows.document_summarization.manifest import (  # noqa: PLC0415  circular, see above
         DocumentSummarizationManifest,
     )
+    from lib.workflows.figures_tables_check.manifest import FiguresTablesCheckManifest  # noqa: PLC0415  circular, see above
     from lib.workflows.inference_validation_v2.manifest import (  # noqa: PLC0415  circular, see above
         InferenceValidationV2Manifest,
     )
@@ -106,27 +106,27 @@ def register_all_workflow_manifests():
     from lib.workflows.methodological_alignment.manifest import (  # noqa: PLC0415  circular, see above
         MethodologicalAlignmentManifest,
     )
+    from lib.workflows.recommendation_check.manifest import (  # noqa: PLC0415  circular, see above
+        RecommendationCheckManifest,
+    )
     from lib.workflows.reference_downloader.manifest import ReferenceDownloaderManifest  # noqa: PLC0415  circular, see above
     from lib.workflows.reference_extraction.manifest import ReferenceExtractionManifest  # noqa: PLC0415  circular, see above
     from lib.workflows.reference_file_matching.manifest import (  # noqa: PLC0415  circular, see above
         ReferenceFileMatchingManifest,
-    )
-    from lib.workflows.recommendation_check.manifest import (  # noqa: PLC0415  circular, see above
-        RecommendationCheckManifest,
     )
     from lib.workflows.reference_validation_v2.manifest import (  # noqa: PLC0415  circular, see above
         ReferenceValidationV2Manifest,
     )
     from lib.workflows.results_extraction.manifest import ResultsExtractionManifest  # noqa: PLC0415  circular, see above
     from lib.workflows.reviewer_2.manifest import Reviewer2Manifest  # noqa: PLC0415  circular, see above
-    from lib.workflows.revision_planning_summary.manifest import (  # noqa: PLC0415  circular, see above
-        RevisionPlanningSummaryManifest,
+    from lib.workflows.reviewer_coverage_report.manifest import (  # noqa: PLC0415  circular, see above
+        ReviewerCoverageReportManifest,
     )
     from lib.workflows.reviewer_response_memos.manifest import (  # noqa: PLC0415  circular, see above
         ReviewerResponseMemosManifest,
     )
-    from lib.workflows.reviewer_coverage_report.manifest import (  # noqa: PLC0415  circular, see above
-        ReviewerCoverageReportManifest,
+    from lib.workflows.revision_planning_summary.manifest import (  # noqa: PLC0415  circular, see above
+        RevisionPlanningSummaryManifest,
     )
 
     manifests = [

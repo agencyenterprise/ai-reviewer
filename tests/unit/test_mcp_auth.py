@@ -3,10 +3,9 @@
 from unittest.mock import ANY, MagicMock, patch
 
 import pytest
-
-from lib.api.mcp_auth import _root_url, create_mcp_auth
 from key_value.aio.wrappers.encryption import FernetEncryptionWrapper
-from lib.api.mcp_auth import _build_client_storage
+
+from lib.api.mcp_auth import _build_client_storage, _root_url, create_mcp_auth
 from lib.mcp.postgres_kv_store import PostgresKeyValueStore
 
 

@@ -7,10 +7,13 @@ from unittest.mock import patch
 import pytest
 from fastapi import HTTPException
 from fastapi.responses import FileResponse
-from lib.api.routers.logs import _resolve_safe_path
-from lib.api.routers.logs import _list_log_files
-from lib.api.routers.logs import list_logs
-from lib.api.routers.logs import download_log
+
+from lib.api.routers.logs import (
+    _list_log_files,
+    _resolve_safe_path,
+    download_log,
+    list_logs,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -6,13 +6,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from lib.services.references import remove_file_from_references
+from lib.workflows.models import WorkflowRunType
 from lib.workflows.reference_file_matching.state import (
     MatchSource,
     ReferenceFileMatch,
     ReferenceFileMatchingConfig,
     ReferenceFileMatchingState,
 )
-from lib.workflows.models import WorkflowRunType
 
 
 def _make_state(matches: list[ReferenceFileMatch]) -> ReferenceFileMatchingState:

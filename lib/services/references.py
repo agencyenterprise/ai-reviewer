@@ -14,15 +14,14 @@ from lib.services.workflow_runs import (
     read_workflow_run_state,
 )
 from lib.workflows.models import WorkflowRunType
-
 from lib.workflows.reference_downloader.state import ReferenceDownloaderState
 from lib.workflows.reference_extraction.state import ReferenceExtractionState
 from lib.workflows.reference_file_matching.state import (
     MatchSource,
     ReferenceFileMatch,
+    ReferenceFileMatchingConfig,
     ReferenceFileMatchingState,
 )
-from lib.workflows.reference_file_matching.state import ReferenceFileMatchingConfig
 
 logger = logging.getLogger(__name__)
 

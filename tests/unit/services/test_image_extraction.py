@@ -13,23 +13,23 @@ import os
 import threading
 import time
 from unittest.mock import patch
+from unittest.mock import patch as mock_patch
 
 import pytest
 from PIL import Image, ImageCms
 from xxhash import xxh128
 
+from lib.services import image_extraction
 from lib.services.docx.image_display_sizes import (
     DisplaySizes,
     ImagePlacement,
     SourceRect,
 )
-from lib.services import image_extraction
 from lib.services.image_extraction import (
     EXTRACTED_IMAGES_DIRNAME,
     extract_data_uri_images,
     image_reference,
 )
-from unittest.mock import patch as mock_patch
 
 PNG_BYTES = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="

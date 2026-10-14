@@ -27,9 +27,9 @@ Wired into FastAPI lifespan in lib/api/main.py.
 
 import asyncio
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
-from collections.abc import AsyncIterator
 
 from sqlalchemy import or_, select, text
 from sqlalchemy.orm import undefer

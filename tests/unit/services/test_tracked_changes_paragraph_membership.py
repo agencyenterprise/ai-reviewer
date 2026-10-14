@@ -10,13 +10,20 @@ from pathlib import Path
 import pytest
 
 from lib.services.docx.tracked_changes import apply_tracked_changes
-
 from tests.unit.services.lean_docx import new_document
 from tests.unit.services.tracked_changes_support import (
     OTHER_PASSAGE_DETAIL as _OTHER_PASSAGE_DETAIL,
+)
+from tests.unit.services.tracked_changes_support import (
     make_edit as _edit,
+)
+from tests.unit.services.tracked_changes_support import (
     plan_edits as _plan,
+)
+from tests.unit.services.tracked_changes_support import (
     read_document as _read,
+)
+from tests.unit.services.tracked_changes_support import (
     statuses as _statuses,
 )
 

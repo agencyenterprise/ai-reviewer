@@ -8,13 +8,13 @@ import pytest
 from fastapi import HTTPException
 from langchain_core.messages import AIMessage, ToolMessage
 
-from lib.models.file import FileRole
 from lib.agents.tools.view_image import (
     MAX_IMAGE_BYTES,
     _parse_image_file_id,
     redact_image_blocks,
     view_image,
 )
+from lib.models.file import FileRole
 
 PROJECT_ID = uuid.uuid4()
 IMAGE_ID = uuid.uuid4()

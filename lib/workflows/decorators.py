@@ -4,10 +4,10 @@ import asyncio
 import logging
 import time
 import uuid
+from collections.abc import Callable
 from contextvars import Token
 from functools import wraps
 from typing import Any
-from collections.abc import Callable
 
 from langgraph.runtime import Runtime
 

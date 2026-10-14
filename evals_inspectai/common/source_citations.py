@@ -26,8 +26,8 @@ Bibliography or Works Cited.
 import json
 import math
 import re
-from datetime import date
 from collections.abc import Sequence
+from datetime import date
 
 from inspect_ai.scorer import Score, Scorer, Target, scorer
 from inspect_ai.solver import TaskState

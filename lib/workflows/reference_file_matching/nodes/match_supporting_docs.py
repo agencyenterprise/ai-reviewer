@@ -15,13 +15,13 @@ from lib.agents.batched_reference_matcher import (
     BatchedReferenceMatcherAgent,
 )
 from lib.run_utils import run_tasks
-from lib.workflows.document_summarization.state import FileSummary
 from lib.services.reference_embedding_matcher import (
     CandidateMatch,
     ReferenceEmbeddingMatcher,
 )
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
+from lib.workflows.document_summarization.state import FileSummary
 from lib.workflows.reference_file_matching.state import (
     MatchSource,
     ReferenceFileMatch,

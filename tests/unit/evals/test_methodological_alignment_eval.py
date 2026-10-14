@@ -9,8 +9,8 @@ from inspect_ai.model import Model
 
 from evals_inspectai.common.issue_inventory import (
     Decoy,
-    InventoryRecord,
     ExpectedIssue,
+    InventoryRecord,
     load_inventory_records,
     resolve_record,
 )

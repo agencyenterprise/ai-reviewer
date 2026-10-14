@@ -8,10 +8,6 @@ from sqlalchemy import select
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
-from lib.workflows.simple_deep_agent.state import (
-    SimpleDeepAgentConfig,
-    SimpleDeepAgentState,
-)
 from lib.models.workflow_run import (
     WorkflowRun,
     WorkflowRunFailureReason,
@@ -19,10 +15,14 @@ from lib.models.workflow_run import (
     WorkflowRunType,
 )
 from lib.services.workflow_runs import (
-    persist_workflow_run_state,
     create_workflow_run,
+    persist_workflow_run_state,
     update_workflow_run_heartbeat,
     update_workflow_run_status,
+)
+from lib.workflows.simple_deep_agent.state import (
+    SimpleDeepAgentConfig,
+    SimpleDeepAgentState,
 )
 
 

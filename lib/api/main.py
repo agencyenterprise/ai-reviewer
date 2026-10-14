@@ -17,12 +17,11 @@ from fastmcp.utilities.lifespan import combine_lifespans
 from lib.agents.checkpointer import close_checkpointer_pool
 from lib.api.mcp.server import mcp_app, mcp_auth
 from lib.api.mcp_middlewares import MCPTrailingSlashMiddleware
-from lib.api.tus_middleware import TusTerminationMiddleware
 from lib.api.routers import (
     about,
     admin_dashboard,
-    annotations,
     analysis,
+    annotations,
     app_configs,
     chat,
     feedback,
@@ -40,9 +39,10 @@ from lib.api.routers import (
 )
 from lib.api.routers.microsoft import routes as microsoft_routes
 from lib.api.routers.tus_upload import tus_router
+from lib.api.tus_middleware import TusTerminationMiddleware
 from lib.config.logger import setup_logger
-from lib.services.workflow_reaper import run_reaper_loop
 from lib.services.app_configs import seed_all_defaults
+from lib.services.workflow_reaper import run_reaper_loop
 
 setup_logger()
 

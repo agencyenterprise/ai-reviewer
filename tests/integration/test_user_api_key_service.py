@@ -4,6 +4,7 @@ import uuid
 
 import pytest
 import pytest_asyncio
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlmodel import col
 
@@ -14,7 +15,6 @@ from lib.services.users import (
     get_user_decrypted_api_key,
     set_user_openai_api_key,
 )
-from fastapi import HTTPException
 
 
 def _make_user(*, email: str) -> User:

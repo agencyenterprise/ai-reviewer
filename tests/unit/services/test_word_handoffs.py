@@ -17,6 +17,7 @@ import pytest
 from lib.models.microsoft_word_handoff import MicrosoftWordHandoff
 from lib.services.microsoft.word import handoffs
 from lib.services.microsoft.word.handoffs import (
+    Account,
     FinishedHandoff,
     HandoffComment,
     HandoffEdit,
@@ -25,7 +26,6 @@ from lib.services.microsoft.word.handoffs import (
     InvalidResults,
     ItemOutcome,
     ItemResult,
-    Account,
     Requester,
 )
 

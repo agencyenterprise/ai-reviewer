@@ -34,13 +34,12 @@ import html
 import json
 import logging
 import re
-from collections.abc import Awaitable, Iterator
+from collections.abc import Awaitable, Callable, Iterator
 from typing import Any
-from collections.abc import Callable
 
 from microsoft_agents.activity import Activity, ActivityTypes, ConversationReference
-from microsoft_agents.authentication.msal import MsalConnectionManager
 from microsoft_agents.activity.invoke_response import InvokeResponse
+from microsoft_agents.authentication.msal import MsalConnectionManager
 from microsoft_agents.hosting.core import (
     AgentAuthConfiguration,
     AuthenticationConstants,

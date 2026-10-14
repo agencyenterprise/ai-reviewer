@@ -6,8 +6,8 @@ than the user's checkbox selection.
 """
 
 import uuid
-from datetime import datetime, timedelta, timezone
 from collections.abc import Sequence
+from datetime import datetime, timedelta, timezone
 
 import pytest
 import pytest_asyncio

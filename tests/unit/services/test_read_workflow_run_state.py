@@ -20,10 +20,10 @@ from lib.services.workflow_runs import (
 from lib.workflows import registry
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.reference_file_matching.state import (
+    MatchSource,
     ReferenceFileMatch,
     ReferenceFileMatchingConfig,
     ReferenceFileMatchingState,
-    MatchSource,
 )
 
 

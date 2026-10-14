@@ -13,23 +13,22 @@ manual probe against the tunnel showed it.
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
+import pydantic
 import pytest
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
     Attachment,
     ChannelAccount,
+    ConversationAccount,
     EntityTypes,
     Mention,
 )
 from microsoft_agents.activity.invoke_response import InvokeResponse
-from microsoft_agents.hosting.core import ClaimsIdentity
+from microsoft_agents.hosting.core import ClaimsIdentity, TurnContext
 
-from lib.services.microsoft.teams import bot
 from lib.config.env import config
-from microsoft_agents.activity import ConversationAccount
-from microsoft_agents.hosting.core import TurnContext
-import pydantic
+from lib.services.microsoft.teams import bot
 
 
 @pytest.fixture

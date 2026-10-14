@@ -1,5 +1,6 @@
 """Manifest for Claim Reference Validation V2 workflow."""
 
+import builtins
 from typing import cast
 
 from langgraph.graph import StateGraph
@@ -26,7 +27,6 @@ from lib.workflows.models import (
 )
 from lib.workflows.util import get_state_by_type
 from lib.workflows.workflow_types import WorkflowState
-import builtins
 
 _ISSUE_CONFIG: dict[EvidenceAlignmentLevel, tuple[str, SeverityEnum]] = {
     EvidenceAlignmentLevel.SUPPORTED: ("Supported Citation", SeverityEnum.NONE),

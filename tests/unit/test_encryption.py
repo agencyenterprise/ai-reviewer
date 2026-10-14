@@ -4,8 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from lib.services.encryption import decrypt_value, encrypt_value
-from lib.services.encryption import _get_fernet
+from lib.services.encryption import _get_fernet, decrypt_value, encrypt_value
 
 
 def test_encrypt_returns_string():
