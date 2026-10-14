@@ -48,7 +48,7 @@ class FeedbackRequest(BaseModel):
         default=None,
         description="Issue ID for issue-level feedback (preferred, derives workflow_run_id automatically)",
     )
-    feedback_type: str  # Accept as string, convert in endpoint
+    feedback_type: FeedbackType
     feedback_text: str | None = Field(
         default=None,
         description="Optional feedback text (typically used with thumbs down)",
@@ -89,7 +89,6 @@ async def submit_feedback(
 ) -> FeedbackResponse:
     """Submit or update feedback for any entity"""
     async with get_async_db_session() as session:
-        feedback_type = FeedbackType(request.feedback_type)
         workflow_run_id = request.workflow_run_id
 
         # If issue_id is provided, derive workflow_run_id from the issue
@@ -111,7 +110,7 @@ async def submit_feedback(
             session=session,
             workflow_run_id=workflow_run_id,
             entity_path=request.entity_path,
-            feedback_type=feedback_type,
+            feedback_type=request.feedback_type,
             user=current_user,
             feedback_text=request.feedback_text,
             issue_id=request.issue_id,

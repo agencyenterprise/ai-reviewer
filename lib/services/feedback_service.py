@@ -133,6 +133,7 @@ async def create_or_update_feedback(
             select(Feedback)
             .where(col(Feedback.workflow_run_id) == workflow_run_id)
             .where(col(Feedback.user_id) == user.id)
+            .where(col(Feedback.issue_id).is_(None))
             .where(col(Feedback.entity_path) == entity_path)
         )
     result = await session.execute(stmt)
@@ -141,7 +142,6 @@ async def create_or_update_feedback(
     if existing_feedback:
         existing_feedback.feedback_type = feedback_type
         existing_feedback.feedback_text = feedback_text
-        existing_feedback.issue_id = issue_id
         session.add(existing_feedback)
         await session.commit()
         await session.refresh(existing_feedback)
@@ -182,6 +182,7 @@ async def get_feedback(
         select(Feedback)
         .where(col(Feedback.workflow_run_id) == workflow_run_id)
         .where(col(Feedback.user_id) == user.id)
+        .where(col(Feedback.issue_id).is_(None))
         .where(col(Feedback.entity_path) == entity_path)
     )
     result = await session.execute(stmt)
