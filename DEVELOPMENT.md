@@ -10,7 +10,7 @@ This guide covers everything you need to know to set up, run, and develop the Dr
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-- **Node.js 20+**: For the frontend development
+- **Node.js 22.22.2+**: For the frontend development (see `frontend/.nvmrc`)
 - **pnpm**: Fast, disk space efficient package manager for Node.js. Install via npm:
 
 ```bash
@@ -46,7 +46,6 @@ docker compose version
 
 This project requires **Python 3.13**. The version is pinned in:
 
-- `.python-version` file
 - `pyproject.toml` (`requires-python = ">=3.13"`)
 
 uv will automatically install Python 3.13 if it's not present on your system.
@@ -169,7 +168,7 @@ The project includes comprehensive Docker support with three services:
 ### Docker Files
 
 - **`Dockerfile`**: Backend container (Python 3.13 + FastAPI)
-- **`frontend/Dockerfile`**: Frontend container (Node.js 20 + Next.js)
+- **`frontend/Dockerfile`**: Frontend container (Node.js 22 + Next.js)
 - **`docker-compose.yml`**: Orchestrates all services
 
 ### Quick Start
@@ -301,7 +300,7 @@ uv run ruff check .
 cd frontend && pnpm lint
 
 # Type check frontend
-cd frontend && pnpm type-check
+cd frontend && pnpm exec tsc --noEmit
 ```
 
 ## Security Scanning
@@ -319,8 +318,8 @@ brew install aquasecurity/trivy/trivy
 # Scan Docker images (build first with docker compose)
 docker compose build
 trivy image ai-reviewer-api
-trivy image ai-reviewer-frontend
-trivy image postgres:16-alpine
+trivy image ai-reviewer-app
+trivy image pgvector/pgvector:pg16
 
 # Scan for Docker/config misconfigurations
 trivy config .
