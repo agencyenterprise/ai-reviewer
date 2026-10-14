@@ -305,4 +305,4 @@ WIP
 
 ### Pull requests
 
-Always target `dev` unless the user names another base branch. The description has four sections: "Summary", "Motivation", "What's Changed" (split into backend and frontend, listing every changed file and why) and "Risks and Mitigations". Keep it under 1000 words.
+Always target `dev` unless the user names another base branch. Always fill in `.github/pull_request_template.md` for the description.
