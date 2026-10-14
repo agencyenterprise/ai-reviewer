@@ -68,7 +68,7 @@ def resolve_test_database_url(environ: dict[str, str]) -> URL:
     if not is_test_database(url):
         raise ValueError(
             f"Cannot use {url.database!r} as the test database: its name must end "
-            f"in {TEST_SUFFIX} and fit in {MAX_NAME_BYTES} bytes. Set "
+            f"in {TEST_SUFFIX}, fit in {MAX_NAME_BYTES} bytes and hold no %. Set "
             "TEST_DATABASE_URL to one that does."
         )
     return url
@@ -80,7 +80,9 @@ def is_test_database(url: str | URL) -> bool:
         return False
     name = url.database or ""
     fits = len(name.encode()) <= MAX_NAME_BYTES
-    return fits and name.endswith(TEST_SUFFIX)
+    # SQLAlchemy keeps a %-escape in the path while libpq decodes it, so the two
+    # would name different databases. Passwords are decoded by both: unaffected.
+    return fits and "%" not in name and name.endswith(TEST_SUFFIX)
 
 
 def libpq_url(url: URL) -> str:

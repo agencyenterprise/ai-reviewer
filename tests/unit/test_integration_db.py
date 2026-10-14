@@ -67,3 +67,14 @@ def test_libpq_url_drops_the_sqlalchemy_dialect():
     )
 
     assert libpq_url(url) == "postgresql://user:p%21w@h/x_test"
+
+
+def test_refuses_a_percent_escaped_database_name():
+    with pytest.raises(ValueError, match="hold no %"):
+        resolve_test_database_url({"DATABASE_URL": "postgresql://h/db%20name"})
+
+
+def test_keeps_a_percent_encoded_password():
+    url = resolve_test_database_url({"DATABASE_URL": "postgresql://u:p%25w@h/db"})
+
+    assert (url.password, url.database) == ("p%w", "db_test")
