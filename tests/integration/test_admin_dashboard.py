@@ -723,29 +723,51 @@ async def test_rows_without_an_owner_survive_the_ignore_list():
 
     `projects.user_id` is set to NULL when its owner is deleted, and a run can
     have no project; `NOT IN` alone would drop both as soon as the ignore list
-    is non-empty. Both reads share one snapshot, so parallel inserts cancel out.
+    is non-empty. The ignored user owns a project from long before the window,
+    so the run filter's subquery is non-empty (`NULL NOT IN` an empty set would
+    be true and hide the bug) while the window's totals stay the same. Both
+    reads share one snapshot, so parallel inserts cancel out.
     """
-    project = Project(id=uuid.uuid4(), title="Ownerless", created_at=NOW)
+    tag = uuid.uuid4().hex[:12]
+    ignored_user = User(
+        id=uuid.uuid4(),
+        email=f"ignored-{tag}@example.com",
+        name=f"Ignored {tag}",
+        role=UserRole.USER,
+        show_experimental_features=False,
+        created_at=NOW - timedelta(days=60),
+    )
+    old_project = Project(
+        id=uuid.uuid4(),
+        title="Before the window",
+        user_id=ignored_user.id,
+        created_at=NOW - timedelta(days=60),
+    )
+    ownerless = Project(id=uuid.uuid4(), title="Ownerless", created_at=NOW)
     run = _run(None, ASSESSMENT_SLUG, WorkflowRunStatus.COMPLETED, NOW)
     async with get_async_db_session() as session:
-        session.add_all([project, run])
+        session.add(ignored_user)
+        await session.flush()
+        session.add_all([old_project, ownerless, run])
         await session.commit()
 
     window = DashboardWindow.for_days(1)
-    nobody = [uuid.uuid4()]
+    ignored = [ignored_user.id]
     try:
         async with get_async_db_session() as session:
             await session.execute(
                 text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
             )
             all_projects = await queries.get_project_metrics(session, window)
-            projects = await queries.get_project_metrics(session, window, nobody)
+            projects = await queries.get_project_metrics(session, window, ignored)
             all_runs = await queries.get_assessment_metrics(session, window)
-            runs = await queries.get_assessment_metrics(session, window, nobody)
+            runs = await queries.get_assessment_metrics(session, window, ignored)
     finally:
         async with get_async_db_session() as session:
             await session.delete(await session.get(WorkflowRun, run.id))
-            await session.delete(await session.get(Project, project.id))
+            for record in (ownerless, old_project):
+                await session.delete(await session.get(Project, record.id))
+            await session.delete(await session.get(User, ignored_user.id))
             await session.commit()
 
     assert projects.current == all_projects.current
