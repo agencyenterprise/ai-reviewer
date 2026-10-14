@@ -265,6 +265,8 @@ uv run pytest tests/ -k "test_name"
 
 **Test Organization**: Standard tests live under `tests/unit/` and `tests/integration/`. Shared fixtures and helpers (e.g. `data_path`, `create_test_file_document_from_path`, `create_test_context`) are in `tests/conftest.py`.
 
+**Test database**: the suite never uses the `.env` database. `tests/integration_db.py` points it at the same database name with `_test` appended (`ai_reviewer_test` with the default `.env`), in the same Postgres; set `TEST_DATABASE_URL` to use another. The integration tests create and migrate it on their own, so Postgres only has to be running. It persists between runs (each test deletes its own rows); `uv run python -m tests.integration_db --reset` rebuilds it from empty.
+
 ### Evaluations (Inspect AI)
 
 LLM agent evaluations use [Inspect AI](https://inspect.ai-safety-institute.org.uk/) and live under `evals_inspectai/e2e/`. These are end-to-end evals that trigger each workflow through the running API server (backend must be running), mirroring the full pipeline that real users trigger.

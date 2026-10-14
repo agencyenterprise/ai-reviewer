@@ -83,7 +83,7 @@ jobs:
           UV_COMPILE_BYTECODE: "1"
 
       - name: Run tests
-        # Run only unit tests to avoid running integration tests which require a database.
+        # Unit tests only; the integration job below runs tests/integration against Postgres.
         # `-n logical` sizes the worker pool to the runner's vCPUs (4) instead of
         # the 10 workers pyproject.toml sets for local runs. `-n auto` counts
         # physical cores and starts only 2.
@@ -112,3 +112,54 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  integration:
+    name: pytest (integration)
+    runs-on: ubuntu-latest
+
+    services:
+      # The image docker-compose.yml runs locally, so pgvector is available to the migrations.
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: ai_reviewer
+          POSTGRES_USER: ai_reviewer_user
+          POSTGRES_PASSWORD: ai_reviewer_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ai_reviewer_user -d ai_reviewer"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      # The tests create and migrate ai_reviewer_test, derived from this, on their own.
+      DATABASE_URL: postgresql://ai_reviewer_user:ai_reviewer_password@localhost:5432/ai_reviewer
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ai_reviewer
+      POSTGRES_USER: ai_reviewer_user
+      POSTGRES_PASSWORD: ai_reviewer_password
+      AUTH_SECRET: test-secret-key-for-ci
+      FILE_UPLOADS_MOUNT_PATH: /tmp/test-uploads
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync
+        env:
+          UV_COMPILE_BYTECODE: "1"
+
+      - name: Run integration tests
+        run: uv run pytest tests/integration -n logical --tb=short
