@@ -9,7 +9,8 @@ Deeper docs, read when the task needs them: `DEVELOPMENT.md` (setup, Docker, env
 ```bash
 # Backend (always uv)
 uv run dev.py                              # Start the full dev environment
-uv run pytest tests/unit                   # Unit tests (what CI runs)
+uv run pytest tests/unit                   # Unit tests
+uv run pytest tests/integration            # Integration tests (on the *_test database)
 uv run pytest tests/path/to/test.py -k "name"
 uv run ruff format .                       # Format (CI checks the whole repo)
 uv run ruff check .                        # Lint (CI blocks on errors; --fix applies safe fixes)
@@ -27,7 +28,7 @@ cd frontend && pnpm run openapi-generate   # Regenerate API types
 
 Run the same checks CI runs for the side you touched. A red check here means a red PR.
 
-- **Python changes:** `uv run ruff format .`, `uv run ruff check .`, `uv run mypy .` and `uv run pytest tests/unit`. The tree is Ruff-clean, so run both Ruff commands on the whole repo. Also run the integration tests you touched (`uv run pytest tests/integration/...`), since CI skips them.
+- **Python changes:** `uv run ruff format .`, `uv run ruff check .`, `uv run mypy .` and `uv run pytest tests/unit`. The tree is Ruff-clean, so run both Ruff commands on the whole repo. Also run the integration tests you touched (`uv run pytest tests/integration/...`); CI runs the whole integration suite.
 - **Frontend changes:** `pnpm run lint`, `pnpm test` and `pnpm run build`, from `frontend/`.
 - **Backend API changes:** regenerate the frontend types (see below), then run the frontend checks.
 
@@ -135,6 +136,8 @@ uv run alembic revision --autogenerate -m "description"
 uv run alembic upgrade head
 ```
 
+The one exception is the test database: the integration tests migrate it themselves, and `uv run python -m tests.integration_db --reset` rebuilds it. Both only ever touch a database whose name ends in `_test`.
+
 ### Type hints
 
 Always annotate function signatures. Always use built-in generics and `|` unions (we're on Python 3.13); Ruff's `UP` rules flag `typing.List`, `Optional` and `Union`.
@@ -238,12 +241,14 @@ Skill files under `skills/` must be **environment-agnostic**. Users install them
 ### Backend Tests (pytest)
 
 ```bash
-uv run pytest tests/unit                          # Unit tests (what CI runs)
-uv run pytest tests/integration                   # Integration tests (need a database)
+uv run pytest tests/unit                          # Unit tests
+uv run pytest tests/integration                   # Integration tests
 uv run pytest tests/path/to/test.py -k "name"     # One file or pattern
 ```
 
-- `tests/unit/` has no external dependencies. `tests/integration/` talks to a real database, which is why CI skips it.
+- `tests/unit/` has no external dependencies.
+- `tests/integration/` writes to and deletes from a real Postgres (start it with `docker compose up -d db`). The suite always runs against a separate database: the `.env` database's name with `_test` appended (`ai_reviewer_test` locally), or `TEST_DATABASE_URL` when set. The first integration test creates and migrates it, and rebuilds it when it holds a migration from another branch. The tests refuse any database whose name doesn't end in `_test`, so they never touch the dev data. CI runs the whole suite in its own job, against a Postgres service.
+- Integration tests share that database and run in parallel, so never assume an empty table: create rows with fresh `uuid4` ids and delete them in the fixture's teardown.
 - Shared fixtures and helpers (`data_path`, `create_test_file_document_from_path`, `create_test_context`) are in `tests/conftest.py`. Reuse them before writing new ones.
 - Never call a real LLM in a test. Use LangChain's `GenericFakeChatModel` (see `tests/unit/services/chat/test_thread_state.py`) or patch the call.
 - Mark async tests with `@pytest.mark.asyncio`.

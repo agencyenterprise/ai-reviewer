@@ -84,11 +84,13 @@ def _user_not_ignored(
     """`user_id` is nobody the caller asked to leave out.
 
     A constant TRUE when the ignore list is empty, so every query can carry the
-    predicate unconditionally and the planner drops it.
+    predicate unconditionally and the planner drops it. A NULL owner (a deleted
+    user's project) is nobody on the list, and `NULL NOT IN (...)` is not true,
+    so it is let through explicitly.
     """
     if not ignored:
         return true()
-    return user_id.not_in(list(ignored))
+    return or_(user_id.is_(None), user_id.not_in(list(ignored)))
 
 
 def _run_owner_not_ignored(ignored: Collection[uuid.UUID]) -> ColumnElement[bool]:
@@ -101,7 +103,8 @@ def _run_owner_not_ignored(ignored: Collection[uuid.UUID]) -> ColumnElement[bool
     if not ignored:
         return true()
     owned = select(col(Project.id)).where(col(Project.user_id).in_(list(ignored)))
-    return col(WorkflowRun.project_id).not_in(owned)
+    project_id = col(WorkflowRun.project_id)
+    return or_(project_id.is_(None), project_id.not_in(owned))
 
 
 def _is_shared_feedback() -> ColumnElement[bool]:

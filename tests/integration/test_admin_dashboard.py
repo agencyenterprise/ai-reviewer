@@ -58,7 +58,7 @@ class _Fixture:
 
 
 def _run(
-    project_id: uuid.UUID,
+    project_id: uuid.UUID | None,
     slug: str,
     status: WorkflowRunStatus,
     created_at: datetime,
@@ -715,3 +715,60 @@ async def test_default_ignore_list_is_empty_when_no_eval_account_exists(monkeypa
     )
 
     assert await ignored_users.get_default_ignored_users() == []
+
+
+@pytest.mark.asyncio
+async def test_rows_without_an_owner_survive_the_ignore_list():
+    """A deleted user's project keeps counting when someone else is ignored.
+
+    `projects.user_id` is set to NULL when its owner is deleted, and a run can
+    have no project; `NOT IN` alone would drop both as soon as the ignore list
+    is non-empty. The ignored user owns a project from long before the window,
+    so the run filter's subquery is non-empty (`NULL NOT IN` an empty set would
+    be true and hide the bug) while the window's totals stay the same. Both
+    reads share one snapshot, so parallel inserts cancel out.
+    """
+    tag = uuid.uuid4().hex[:12]
+    ignored_user = User(
+        id=uuid.uuid4(),
+        email=f"ignored-{tag}@example.com",
+        name=f"Ignored {tag}",
+        role=UserRole.USER,
+        show_experimental_features=False,
+        created_at=NOW - timedelta(days=60),
+    )
+    old_project = Project(
+        id=uuid.uuid4(),
+        title="Before the window",
+        user_id=ignored_user.id,
+        created_at=NOW - timedelta(days=60),
+    )
+    ownerless = Project(id=uuid.uuid4(), title="Ownerless", created_at=NOW)
+    run = _run(None, ASSESSMENT_SLUG, WorkflowRunStatus.COMPLETED, NOW)
+    async with get_async_db_session() as session:
+        session.add(ignored_user)
+        await session.flush()
+        session.add_all([old_project, ownerless, run])
+        await session.commit()
+
+    window = DashboardWindow.for_days(1)
+    ignored = [ignored_user.id]
+    try:
+        async with get_async_db_session() as session:
+            await session.execute(
+                text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+            )
+            all_projects = await queries.get_project_metrics(session, window)
+            projects = await queries.get_project_metrics(session, window, ignored)
+            all_runs = await queries.get_assessment_metrics(session, window)
+            runs = await queries.get_assessment_metrics(session, window, ignored)
+    finally:
+        async with get_async_db_session() as session:
+            await session.delete(await session.get(WorkflowRun, run.id))
+            for record in (ownerless, old_project):
+                await session.delete(await session.get(Project, record.id))
+            await session.delete(await session.get(User, ignored_user.id))
+            await session.commit()
+
+    assert projects.current == all_projects.current
+    assert runs.current == all_runs.current

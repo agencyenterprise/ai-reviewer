@@ -149,6 +149,10 @@ addopts = [
     # files across per-workflow dirs (e.g. */test_manifest.py) would otherwise
     # collide on import.
     "--import-mode=importlib",
+    # Points DATABASE_URL at the *_test database before any test imports lib,
+    # so the suite never writes to the .env database.
+    "-p",
+    "tests.integration_db",
 ]
 
 [dependency-groups]

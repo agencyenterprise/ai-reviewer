@@ -4,7 +4,8 @@ import uuid
 
 import pytest
 
-from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType
+from lib.config.database import get_async_db_session
+from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services.workflow_progress import get_workflow_progress
 from lib.services.workflow_runs import create_workflow_run
 from tests.conftest import create_test_context
@@ -35,9 +36,16 @@ async def test_workflow_execution_tracks_progress():
     # Verify context has workflow_run_id
     assert context.workflow_run_id == str(workflow_run_id)
 
-    # Verify we can query progress (should be empty for now)
-    progress_list = await get_workflow_progress(uuid.UUID(workflow_run_id))
-    assert isinstance(progress_list, list)
+    try:
+        # Verify we can query progress (should be empty for now)
+        progress_list = await get_workflow_progress(uuid.UUID(workflow_run_id))
+        assert isinstance(progress_list, list)
+    finally:
+        async with get_async_db_session() as session:
+            run = await session.get(WorkflowRun, uuid.UUID(workflow_run_id))
+            if run:
+                await session.delete(run)
+                await session.commit()
 
     # The fact that we got here means:
     # - Models are created correctly

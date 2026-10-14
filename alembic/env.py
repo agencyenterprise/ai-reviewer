@@ -15,7 +15,9 @@ config = context.config
 
 # Set the database URL from our application config if available
 if app_config.DATABASE_URL:
-    config.set_main_option("sqlalchemy.url", app_config.DATABASE_URL)
+    # set_main_option goes through ConfigParser interpolation, so a literal % (a
+    # percent-encoded password) must be doubled.
+    config.set_main_option("sqlalchemy.url", app_config.DATABASE_URL.replace("%", "%%"))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
