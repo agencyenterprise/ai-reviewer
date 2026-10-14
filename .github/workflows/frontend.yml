@@ -1,4 +1,16 @@
-on: [pull_request, push]
+on:
+  pull_request:
+  # Branch pushes are already covered by their PR's run; pushes to these
+  # branches are what's left: merges, and commits made straight to them.
+  push:
+    branches: [dev, main]
+
+# A new push to a PR cancels the run on the commit it replaced. Pushes to dev
+# and main are grouped by commit, so none of them is cancelled or left queued
+# behind another: every merged commit keeps its own result.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: true
 
 jobs:
   build:
