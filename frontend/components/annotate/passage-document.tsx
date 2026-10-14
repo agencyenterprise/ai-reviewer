@@ -40,7 +40,7 @@ interface PassageDocumentProps {
  * selected finding gets in the explorer.
  */
 /** The row holding the passage: where the highlight landed, else the row for its source line. */
-function passageRow(container: HTMLElement, line?: number | null): HTMLElement | null {
+export function passageRow(container: HTMLElement, line?: number | null): HTMLElement | null {
   const marked = container.querySelector<HTMLElement>(ANCHOR_SELECTOR);
   if (marked) return marked.closest<HTMLElement>('[data-block-row]') ?? marked;
   if (!line) return null;
