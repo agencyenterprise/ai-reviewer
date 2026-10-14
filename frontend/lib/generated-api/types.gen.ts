@@ -26,7 +26,7 @@ export type AbbreviationChunk = {
   /**
    * Skip Reason
    *
-   * Why a SKIPPED chunk was not sent to an agent: "abbreviations section" or "blank".
+   * Why a SKIPPED chunk was not sent to the model: "abbreviations section" or "blank".
    */
   skip_reason?: string | null;
   /**
@@ -41,7 +41,7 @@ export type AbbreviationChunk = {
   /**
    * Messages
    *
-   * The agent's full conversation for this chunk, system prompt included.
+   * The model call for this chunk: system prompt, user prompt and reply.
    */
   messages?: Array<{
     [key: string]: unknown;
@@ -1306,7 +1306,7 @@ export type ChatTurnMessage = {
 /**
  * ChunkOccurrence
  *
- * One abbreviation occurrence, as recorded by a chunk extraction agent.
+ * One abbreviation occurrence, as recorded by a chunk extraction call.
  */
 export type ChunkOccurrence = {
   /**
@@ -1324,7 +1324,7 @@ export type ChunkOccurrence = {
   /**
    * Line Start
    *
-   * 1-indexed line number in /main.md where the occurrence starts.
+   * The printed 1-indexed document line number where the occurrence starts.
    */
   line_start: number;
   /**
@@ -1987,10 +1987,7 @@ export type FeedbackRequest = {
    * Issue ID for issue-level feedback (preferred, derives workflow_run_id automatically)
    */
   issue_id?: string | null;
-  /**
-   * Feedback Type
-   */
-  feedback_type: string;
+  feedback_type: FeedbackType;
   /**
    * Feedback Text
    *
