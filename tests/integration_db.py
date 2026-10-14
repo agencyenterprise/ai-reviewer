@@ -33,9 +33,9 @@ TEST_SUFFIX = "_test"
 REPO_ROOT = Path(__file__).resolve().parent.parent
 # Advisory locks on the server's `postgres` database. PREPARE is held while
 # checking and migrating, so parallel workers wait for the first one. IN_USE is
-# held shared by every running test session; a rebuild takes it exclusively, so
-# it waits for those sessions to finish instead of dropping the database under
-# them (another worktree may be mid-run on the same database).
+# held shared by every running test session; a rebuild or a migration takes it
+# exclusively, so it waits for those sessions to finish instead of changing the
+# database under them (another worktree may be mid-run on the same database).
 PREPARE_LOCK_KEY = 0x44445F5445
 IN_USE_LOCK_KEY = 0x44445F5455
 
@@ -115,9 +115,8 @@ def _locked(conn: psycopg.Connection, key: int) -> Iterator[None]:
 
 def _rebuild(admin: psycopg.Connection, name: str) -> None:
     identifier = sql.Identifier(name)
-    with _locked(admin, IN_USE_LOCK_KEY):
-        admin.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(identifier))
-        admin.execute(sql.SQL("CREATE DATABASE {}").format(identifier))
+    admin.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(identifier))
+    admin.execute(sql.SQL("CREATE DATABASE {}").format(identifier))
 
 
 def _prepare(admin: psycopg.Connection, url: URL, reset: bool) -> None:
@@ -132,10 +131,13 @@ def _prepare(admin: psycopg.Connection, url: URL, reset: bool) -> None:
     applied = _applied_revisions(url) if _exists(admin, name) else None
     # A revision this checkout doesn't know came from another branch: the
     # database is disposable, so rebuild it rather than ask for a downgrade.
-    if applied is None or reset or not applied <= known:
-        _rebuild(admin, name)
-        applied = set()
-    if applied != set(script.get_heads()):
+    rebuild = applied is None or reset or not applied <= known
+    if not rebuild and applied == set(script.get_heads()):
+        return
+    # Rebuilding or migrating changes what a running session sees: wait for them.
+    with _locked(admin, IN_USE_LOCK_KEY):
+        if rebuild:
+            _rebuild(admin, name)
         _upgrade(url)
 
 
