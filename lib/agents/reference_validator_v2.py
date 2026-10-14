@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Optional
 
 from langchain.agents.structured_output import AutoStrategy
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
@@ -54,7 +53,7 @@ class BibliographyItemValidationV2(BaseModel):
     final_result: ReferenceValidationFinalResultV2 = Field(
         description=f"Overall validation outcome. Possible values: {[e.value for e in ReferenceValidationFinalResultV2]}"
     )
-    bibliography_field_validations: List[BibliographyFieldValidationV2] = Field(
+    bibliography_field_validations: list[BibliographyFieldValidationV2] = Field(
         description="List of reference field validations."
     )
     suggested_action: str = Field(
@@ -65,7 +64,7 @@ class BibliographyItemValidationV2(BaseModel):
         default="",
         description="Step-by-step reasoning describing your approach to validate the reference.",
     )
-    updated_reference: Optional[str] = Field(
+    updated_reference: str | None = Field(
         default=None,
         description="Updated reference with the suggested changes made to make the reference valid, matching the format of the original reference. If the reference is already valid, return null.",
     )
@@ -98,7 +97,7 @@ class ReferenceValidatorV2Agent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: Optional[RunnableConfig] = None,
+        config: RunnableConfig | None = None,
     ) -> tuple[BibliographyItemValidationV2, list[BaseMessage]]:
         deep_agent = build_deep_agent(
             model=self.llm,

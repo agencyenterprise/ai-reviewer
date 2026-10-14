@@ -1,6 +1,5 @@
 """Tests for combining chunk extractions into the document-wide catalogue."""
 
-from typing import List
 
 from lib.workflows.abbreviation_scan_v2.catalogue import assemble_catalogue
 from lib.workflows.abbreviation_scan_v2.chunk_models import (
@@ -30,7 +29,7 @@ def _chunk(
     index: int,
     start: int,
     end: int,
-    occurrences: List[ChunkOccurrence],
+    occurrences: list[ChunkOccurrence],
     status: ChunkStatus = ChunkStatus.COMPLETED,
 ) -> AbbreviationChunk:
     return AbbreviationChunk(

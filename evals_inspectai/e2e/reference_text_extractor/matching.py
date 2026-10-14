@@ -20,7 +20,7 @@ document gives only as a placeholder, provided it is that previous author).
 import html
 import re
 from collections import Counter
-from typing import Callable, Optional, Sequence
+from collections.abc import Callable, Sequence
 
 _MD_ESCAPE_RE = re.compile(r"\\([\\`*_{}\[\]()#+\-.!|<>~])")
 _QUOTES = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"'})
@@ -105,7 +105,7 @@ class _Entry:
         return tuple(dict.fromkeys(span for cut in cuts if (span := self.text[:cut].rstrip(" .,;:"))))
 
 
-def _align(ref: str, text: str, joins: set[int], start: int) -> Optional[int]:
+def _align(ref: str, text: str, joins: set[int], start: int) -> int | None:
     """Where ``ref`` ends when it matches ``text`` from ``start``, or None: characters must
     agree, except that a line-join space in ``text`` may be missing from ``ref``, as when
     a URL split over two lines is merged without one. Spaces elsewhere must be kept."""
@@ -140,7 +140,7 @@ class DocumentText:
 
     def __init__(self, lines: Sequence[str]) -> None:
         self.entries: list[_Entry] = []
-        current: Optional[_Entry] = None
+        current: _Entry | None = None
         for number, line in enumerate(lines, 1):
             if not line.strip():
                 continue
@@ -162,7 +162,7 @@ class DocumentText:
         self.entries.append(entry)
         return entry
 
-    def contains(self, reference: str, start_line: Optional[int] = None, end_line: Optional[int] = None) -> bool:
+    def contains(self, reference: str, start_line: int | None = None, end_line: int | None = None) -> bool:
         """Whether the reference's text is one entry's text, or part of it, with its spaces
         (see ``_align``); a placeholder entry is read with the placeholder replaced by the
         previous entry's full author, so the reference must start with exactly that
@@ -206,7 +206,7 @@ def _tokens(text: str) -> Counter[str]:
     return Counter(re.findall(r"\w+", normalize(text).lower()))
 
 
-def similarity(extracted: str, expected: str) -> Optional[float]:
+def similarity(extracted: str, expected: str) -> float | None:
     """How alike two references are when they are the same entry, else None: 1.0 when
     their compacted texts are identical, otherwise the Dice coefficient of their word
     tokens, raised to ``TOKEN_MATCH`` when one compacted text contains the other and is

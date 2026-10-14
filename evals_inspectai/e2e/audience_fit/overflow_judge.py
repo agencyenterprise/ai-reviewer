@@ -12,7 +12,7 @@ one summary. Every other sample is NaN.
 
 import asyncio
 import math
-from typing import Sequence
+from collections.abc import Sequence
 
 from inspect_ai.model import Model, get_model
 from inspect_ai.scorer import Score, Scorer, Target, scorer

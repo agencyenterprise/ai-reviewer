@@ -10,7 +10,7 @@ heads, which it sees in full (``passage="section"``).
 """
 
 import re
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from evals_inspectai.common.issue_checks import fraction, hit_pairs
 from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue, anchored
@@ -41,7 +41,7 @@ def takes_suggestion(expected: ResolvedIssue) -> bool:
     return is_header_issue(expected) or expected.title == LEAD_TITLE
 
 
-def suggestion(action: Optional[str], kind: str) -> Optional[str]:
+def suggestion(action: str | None, kind: str) -> str | None:
     """The wording after the ``Suggested <kind>:`` a suggested action begins with, or None."""
     match = _SUGGESTION_RE.match(action or "")
     if match is None or match.group(1).lower() != kind:
@@ -50,7 +50,7 @@ def suggestion(action: Optional[str], kind: str) -> Optional[str]:
     return header_text(quoted) if quoted else None
 
 
-def _quoted(text: str, start: int) -> Optional[str]:
+def _quoted(text: str, start: int) -> str | None:
     """The text inside the quotation that opens at ``start``, keeping any quotation
     nested in it. A curly quote says which way it faces; a straight one opens when
     it follows a space and precedes a word, and closes otherwise."""
@@ -72,7 +72,7 @@ def header_text(line: str) -> str:
     return line.lstrip("#").strip().strip("*").strip()
 
 
-def section_number(header: str) -> Optional[str]:
+def section_number(header: str) -> str | None:
     """A header's section number as written, delimiter and capitals included, since
     a suggestion keeps it exactly; only the spacing inside it is normalised."""
     match = _NUMBER_RE.match(header)

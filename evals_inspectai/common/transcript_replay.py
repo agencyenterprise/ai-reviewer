@@ -8,7 +8,7 @@ has its calls directly in the transcript; a fan-out run groups each
 conversation under its own agent span, all alike.
 """
 
-from typing import Any, List, Optional
+from typing import Any
 
 from inspect_ai.event import ModelEvent
 from inspect_ai.log import transcript
@@ -37,11 +37,11 @@ class Conversation(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     label: str
-    metadata: Optional[dict] = None
-    messages: List[BaseMessage]
+    metadata: dict | None = None
+    messages: list[BaseMessage]
 
 
-def messages_from_state(raw_messages: List[Any]) -> List[BaseMessage]:
+def messages_from_state(raw_messages: list[Any]) -> list[BaseMessage]:
     """Rebuild persisted LangChain messages, keeping each reply's token usage.
 
     `convert_to_messages` drops `usage_metadata` when rebuilding an AI message
@@ -56,7 +56,7 @@ def messages_from_state(raw_messages: List[Any]) -> List[BaseMessage]:
 
 async def replay_conversation(
     conversation: Conversation, *, as_sub_agent: bool
-) -> List[ChatMessage]:
+) -> list[ChatMessage]:
     """Record the conversation's model calls as events and return its messages.
 
     The main conversation's calls go straight into the transcript; a sub-agent's
@@ -76,7 +76,7 @@ async def replay_conversation(
     return converted
 
 
-async def replay_conversations(conversations: List[Conversation]) -> List[ChatMessage]:
+async def replay_conversations(conversations: list[Conversation]) -> list[ChatMessage]:
     """Replay every conversation into the transcript.
 
     A single conversation is the whole run: its calls go straight into the
@@ -91,7 +91,7 @@ async def replay_conversations(conversations: List[Conversation]) -> List[ChatMe
     return []
 
 
-def _record_model_calls(originals: List[BaseMessage], converted: List[ChatMessage]) -> None:
+def _record_model_calls(originals: list[BaseMessage], converted: list[ChatMessage]) -> None:
     for index, (original, message) in enumerate(zip(originals, converted)):
         if isinstance(message, ChatMessageAssistant):
             # Inspect has no public API for recording a model call made
@@ -100,7 +100,7 @@ def _record_model_calls(originals: List[BaseMessage], converted: List[ChatMessag
 
 
 def _model_event(
-    history: List[ChatMessage], reply: ChatMessageAssistant, original: BaseMessage
+    history: list[ChatMessage], reply: ChatMessageAssistant, original: BaseMessage
 ) -> ModelEvent:
     model = _model_name(original)
     return ModelEvent(
@@ -127,7 +127,7 @@ def _model_name(message: BaseMessage) -> str:
     return str(metadata.get("model_name") or metadata.get("model") or "unknown")
 
 
-def _usage(message: BaseMessage) -> Optional[ModelUsage]:
+def _usage(message: BaseMessage) -> ModelUsage | None:
     usage = message.usage_metadata if isinstance(message, AIMessage) else None
     if not usage:
         return None

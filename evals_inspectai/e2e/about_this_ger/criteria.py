@@ -19,7 +19,7 @@ and supplies no credentials the report does not state.
 
 import math
 import re
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from evals_inspectai.common.issue_checks import hit_pairs
 from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue, normalize
@@ -47,7 +47,7 @@ _HONORIFIC_RE = re.compile(r"^(?:dr|prof|professor|mr|mrs|ms)\.?\s+")
 _NOT_FOUND = {normalize(NO_PREFACE), _AUTHORS_NOT_FOUND}
 
 
-def author_name(title: str) -> Optional[str]:
+def author_name(title: str) -> str | None:
     """The normalised author name an "Author Bio Issue: <name>" title carries, without a
     leading honorific (the skill substitutes the name as written, "Dr." or not); None for
     any other title."""
@@ -55,7 +55,7 @@ def author_name(title: str) -> Optional[str]:
     return _HONORIFIC_RE.sub("", match.group(1)) if match else None
 
 
-def validator_of(title: str) -> Optional[str]:
+def validator_of(title: str) -> str | None:
     """Which validator a title comes from, "preface" or "authors"; None for a title neither uses."""
     t = normalize(title)
     if t in _PREFACE_SET:

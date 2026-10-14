@@ -1,7 +1,6 @@
 """What the Active Voice eval adds on top of the generic inventory scorer."""
 
 from pathlib import Path
-from typing import Optional
 
 from evals_inspectai.common.issue_checks import DETECTION_KEYS, EDIT_KEYS
 from evals_inspectai.common.simple_deep_agent_types import ProposedEdit
@@ -85,7 +84,7 @@ def test_dataset_is_well_formed():
     assert all(f.edit_expected is not None for r in records for f in r.expected_issues if f.required)
 
 
-def _required(record: ResolvedInventory) -> dict[str, Optional[str]]:
+def _required(record: ResolvedInventory) -> dict[str, str | None]:
     return {e.id: e.anchor for e in record.expected_issues if e.required}
 
 

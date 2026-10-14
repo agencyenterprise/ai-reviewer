@@ -1,7 +1,7 @@
 import base64
 import re
 from pathlib import Path
-from typing import Callable
+from collections.abc import Callable
 
 import yaml
 from inspect_ai.dataset import MemoryDataset, Sample

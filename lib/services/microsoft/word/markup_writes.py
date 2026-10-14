@@ -15,7 +15,6 @@ back a change that rejecting would not undo.
 import logging
 import os
 from pathlib import Path
-from typing import Optional
 from uuid import uuid4
 
 from docx_editor import Document
@@ -42,10 +41,10 @@ NOT_IN_TABLE = "The words are not in this table, and no one cell can be guessed 
 
 class CommentPlacement(BaseModel):
     anchored: bool
-    ooxml: Optional[str] = Field(
+    ooxml: str | None = Field(
         default=None, description="The markup to put back, when we anchored"
     )
-    comment_id: Optional[str] = None
+    comment_id: str | None = None
     detail: str = ""
 
 
@@ -63,7 +62,7 @@ class AppliedEdit(BaseModel):
 
 class EditsWritten(BaseModel):
     applied: int = Field(description="How many changes were written")
-    ooxml: Optional[str] = Field(
+    ooxml: str | None = Field(
         default=None, description="The markup to put back, when anything was written"
     )
     edits: list[AppliedEdit] = Field(default_factory=list)
@@ -74,7 +73,7 @@ class EditsWritten(BaseModel):
     )
 
 
-def add_comment(ooxml: str, comment: str, quote: Optional[str]) -> CommentPlacement:
+def add_comment(ooxml: str, comment: str, quote: str | None) -> CommentPlacement:
     """Write one Draft Detective comment into this paragraph's markup.
 
     Mechanical: no model call, and it touches only its own paragraph, so placing
@@ -107,7 +106,7 @@ def add_comment(ooxml: str, comment: str, quote: Optional[str]) -> CommentPlacem
     )
 
 
-def _anchor_for(quote: Optional[str], paragraphs: list[ParagraphInfo]) -> Optional[str]:
+def _anchor_for(quote: str | None, paragraphs: list[ParagraphInfo]) -> str | None:
     """The text to anchor a comment to: the phrase if it is there, else the paragraph.
 
     A quote that cannot be found is not a reason to say nothing. The point being
@@ -271,7 +270,7 @@ def _visible_text(document: Document) -> str:
     return "\n".join(info.text for info in document.list_paragraphs_structured())
 
 
-def _rejected_text(markup: str) -> Optional[str]:
+def _rejected_text(markup: str) -> str | None:
     """What the text would say if the author rejected every tracked change in it.
 
     Checked on a throwaway copy: rejecting for real would undo the work. Returns

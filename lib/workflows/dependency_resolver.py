@@ -7,7 +7,6 @@ in dependency order (dependencies before dependents).
 
 import logging
 from graphlib import TopologicalSorter
-from typing import List, Set
 
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.registry import get_workflow_manifest
@@ -15,7 +14,7 @@ from lib.workflows.registry import get_workflow_manifest
 logger = logging.getLogger(__name__)
 
 
-def get_required_dependents(workflow_type: WorkflowRunType) -> List[WorkflowRunType]:
+def get_required_dependents(workflow_type: WorkflowRunType) -> list[WorkflowRunType]:
     """
     Return all workflow types that transitively require workflow_type as a dependency.
 
@@ -26,8 +25,8 @@ def get_required_dependents(workflow_type: WorkflowRunType) -> List[WorkflowRunT
     from lib.workflows.registry import get_all_manifests
 
     all_manifests = get_all_manifests()
-    visited: Set[WorkflowRunType] = set()
-    queue: List[WorkflowRunType] = [workflow_type]
+    visited: set[WorkflowRunType] = set()
+    queue: list[WorkflowRunType] = [workflow_type]
 
     while queue:
         current = queue.pop()
@@ -44,8 +43,8 @@ def get_required_dependents(workflow_type: WorkflowRunType) -> List[WorkflowRunT
 
 
 def resolve_workflow_dependencies(
-    workflow_types: List[WorkflowRunType],
-) -> List[WorkflowRunType]:
+    workflow_types: list[WorkflowRunType],
+) -> list[WorkflowRunType]:
     """
     Resolve all required transitive dependencies for given workflows.
 
@@ -82,15 +81,15 @@ def resolve_workflow_dependencies(
 
 
 def _collect_all_dependencies(
-    workflow_types: List[WorkflowRunType],
-) -> Set[WorkflowRunType]:
+    workflow_types: list[WorkflowRunType],
+) -> set[WorkflowRunType]:
     """
     Collect all required transitive dependencies.
 
     Uses depth-first search to traverse the dependency graph.
     """
-    all_workflows: Set[WorkflowRunType] = set()
-    visiting: Set[WorkflowRunType] = set()  # We need for cycle detection
+    all_workflows: set[WorkflowRunType] = set()
+    visiting: set[WorkflowRunType] = set()  # We need for cycle detection
 
     def visit(workflow_type: WorkflowRunType):
         """Visit a workflow and its dependencies."""
@@ -117,7 +116,7 @@ def _collect_all_dependencies(
     return all_workflows
 
 
-def _topological_sort(workflows: Set[WorkflowRunType]) -> List[WorkflowRunType]:
+def _topological_sort(workflows: set[WorkflowRunType]) -> list[WorkflowRunType]:
     """
     Sort workflows in dependency order using topological sort.
 

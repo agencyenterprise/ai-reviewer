@@ -25,7 +25,6 @@ on plain strings.
 import html
 import re
 import unicodedata
-from typing import List, Optional
 
 from markdown_it import MarkdownIt
 from pydantic import BaseModel, Field
@@ -137,7 +136,7 @@ def render_line_text(line: str) -> str:
 
 def rendered_replacement_in_context(
     line: str, start: int, end: int, replacement: str
-) -> Optional[str]:
+) -> str | None:
     """The replacement as the page would show it once it takes the quote's place.
 
     Rendered *in context*, not on its own, and that is the point. A quote may
@@ -201,7 +200,7 @@ def rendered_replacement_in_context(
     return leading + written + trailing
 
 
-def rendered_span(line: str, start: int, end: int) -> Optional[RenderedSpan]:
+def rendered_span(line: str, start: int, end: int) -> RenderedSpan | None:
     """The rendered form of ``line[start:end]``, or None when it has none.
 
     The raw line is marked at `start` and `end` and rendered with the marks in
@@ -261,7 +260,7 @@ def rendered_span(line: str, start: int, end: int) -> Optional[RenderedSpan]:
     )
 
 
-def link_destinations(text: str) -> List[str]:
+def link_destinations(text: str) -> list[str]:
     """Every markdown link or image destination in `text`, in document order.
 
     Used to compare a quote with its replacement: Word carries a hyperlink as a
@@ -278,7 +277,7 @@ def link_destinations(text: str) -> List[str]:
     retarget this check exists to refuse. The parser also knows that
     ``[x](y)`` inside a code span is not a link at all.
     """
-    destinations: List[str] = []
+    destinations: list[str] = []
     for token in _MARKDOWN.parseInline(text, {}):
         for child in token.children or []:
             attribute = {"link_open": "href", "image": "src"}.get(child.type)

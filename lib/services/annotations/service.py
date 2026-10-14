@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime, timezone
-from typing import Sequence
+from collections.abc import Sequence
 
 from fastapi import HTTPException
 from sqlalchemy import case, func, select

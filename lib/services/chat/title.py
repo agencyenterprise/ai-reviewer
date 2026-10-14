@@ -1,7 +1,8 @@
 """A short title for a chat thread, from its opening messages."""
 
 import logging
-from typing import Any, Optional, Sequence
+from typing import Any
+from collections.abc import Sequence
 
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -27,7 +28,7 @@ _INSTRUCTIONS = (
 
 
 async def generate_title(
-    messages: Sequence[ChatTurnMessage], api_key: Optional[str] = None
+    messages: Sequence[ChatTurnMessage], api_key: str | None = None
 ) -> str:
     """Never raises: a title is decoration, so a failure yields the fallback."""
 

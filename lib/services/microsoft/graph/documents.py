@@ -19,7 +19,6 @@ import logging
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Optional
 
 from docx_editor import Document
 from pydantic import BaseModel, Field
@@ -41,7 +40,7 @@ class LoadedDocument(BaseModel):
     comments: list[tuple[str, str]] = Field(
         default_factory=list, description="(author, text), threads and replies alike"
     )
-    last_modified: Optional[str] = None
+    last_modified: str | None = None
     size_bytes: int = 0
 
     @property

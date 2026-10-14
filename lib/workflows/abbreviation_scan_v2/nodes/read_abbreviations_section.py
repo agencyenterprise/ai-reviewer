@@ -6,7 +6,6 @@ section cannot be read, the run stops here (see `after_section`).
 """
 
 import logging
-from typing import List
 
 from langgraph.graph import END
 from langgraph.runtime import Runtime
@@ -70,10 +69,10 @@ async def read_abbreviations_section_node(
 
 
 def _valid_sections(
-    sections: List[AbbreviationsSectionRange], total_lines: int
-) -> List[AbbreviationsSectionRange]:
+    sections: list[AbbreviationsSectionRange], total_lines: int
+) -> list[AbbreviationsSectionRange]:
     """Clamp the agent's line numbers to the document, dropping impossible ranges."""
-    valid: List[AbbreviationsSectionRange] = []
+    valid: list[AbbreviationsSectionRange] = []
     for section in sections:
         start = max(section.start_line, 1)
         end = min(section.end_line, total_lines)

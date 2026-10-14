@@ -2,7 +2,6 @@
 
 import logging
 import re
-from typing import List, Tuple
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pydantic import BaseModel, Field
@@ -17,7 +16,7 @@ def char_offset_to_line(text: str, char_offset: int) -> int:
 
 def find_text_line_range(
     full_text: str, search_text: str, search_start: int = 0
-) -> Tuple[int, int, int]:
+) -> tuple[int, int, int]:
     """
     Find the line range of search_text within full_text.
 
@@ -61,7 +60,7 @@ class DocumentSection(BaseModel):
     section_index: int
     start_line: int = Field(ge=1)
     end_line: int = Field(ge=1)
-    headings: List[str] = Field(default_factory=list)
+    headings: list[str] = Field(default_factory=list)
 
 
 _HEADING_RE = re.compile(r"^(#{1,4})\s+(.+)")
@@ -73,10 +72,10 @@ _HEADING_RE = re.compile(r"^(#{1,4})\s+(.+)")
 _CHUNK_SIZE = 8_000
 
 
-def _parse_heading_boundaries(lines: List[str]) -> List[Tuple[int, List[str]]]:
+def _parse_heading_boundaries(lines: list[str]) -> list[tuple[int, list[str]]]:
     """Return (1-indexed line number, headings hierarchy) for each heading line."""
     current: dict[int, str] = {}
-    boundaries: List[Tuple[int, List[str]]] = []
+    boundaries: list[tuple[int, list[str]]] = []
     for i, line in enumerate(lines):
         m = _HEADING_RE.match(line)
         if m:
@@ -92,14 +91,14 @@ def _subsplit(
     text: str,
     full_markdown: str,
     search_start: int,
-    headings: List[str],
+    headings: list[str],
     start_index: int,
-) -> Tuple[List[DocumentSection], int]:
+) -> tuple[list[DocumentSection], int]:
     """Split a text block with RecursiveCharacterTextSplitter and map back to line numbers."""
     splitter = RecursiveCharacterTextSplitter(chunk_size=_CHUNK_SIZE, chunk_overlap=0)
     chunks = splitter.split_text(text)
 
-    sections: List[DocumentSection] = []
+    sections: list[DocumentSection] = []
     pos = search_start
     for chunk in chunks:
         if not chunk.strip():
@@ -116,7 +115,7 @@ def _subsplit(
     return sections, pos
 
 
-def split_into_sections(markdown: str) -> List[DocumentSection]:
+def split_into_sections(markdown: str) -> list[DocumentSection]:
     """Split markdown into parallel-processable sections.
 
     Two-pass strategy:
@@ -139,7 +138,7 @@ def split_into_sections(markdown: str) -> List[DocumentSection]:
         return fallback_sections or [DocumentSection(section_index=0, start_line=1, end_line=total_lines)]
 
     # Build raw sections: each heading starts a section that runs until the next heading.
-    raw: List[Tuple[int, int, List[str]]] = []
+    raw: list[tuple[int, int, list[str]]] = []
     first_heading_line = boundaries[0][0]
     if first_heading_line > 1:
         raw.append((1, first_heading_line - 1, []))
@@ -149,7 +148,7 @@ def split_into_sections(markdown: str) -> List[DocumentSection]:
         raw.append((start_line, end_line, headings))
 
     # Build sections, subsplitting any block that exceeds _CHUNK_SIZE chars.
-    sections: List[DocumentSection] = []
+    sections: list[DocumentSection] = []
     search_pos = 0
 
     for start_line, end_line, headings in raw:

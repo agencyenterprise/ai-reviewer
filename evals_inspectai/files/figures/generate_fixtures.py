@@ -12,7 +12,7 @@ deterministic, so rerunning this rewrites identical bytes.
 """
 
 from pathlib import Path
-from typing import Callable
+from collections.abc import Callable
 
 from evals_inspectai.files.figures import charts
 

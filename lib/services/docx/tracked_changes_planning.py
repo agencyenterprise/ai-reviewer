@@ -13,7 +13,7 @@ module's `PlannedEdit` rows as its instructions.
 
 import asyncio
 import uuid
-from typing import Dict, List, Mapping, Optional, Sequence, Tuple
+from collections.abc import Mapping, Sequence
 
 from docx import Document as PythonDocxDocument
 from docx_editor import Document as EditorDocument
@@ -42,8 +42,8 @@ _UNMAPPABLE_DOCUMENT = (
 
 
 def _paragraph_map(
-    docx_path: str, workspace_root: Optional[str]
-) -> Optional[Dict[int, MappedParagraph]]:
+    docx_path: str, workspace_root: str | None
+) -> dict[int, MappedParagraph] | None:
     """``{python-docx paragraph index: docx-editor paragraph}`` for a file.
 
     ``None`` when the two libraries do not agree on the document's paragraphs;
@@ -66,7 +66,7 @@ def _paragraph_map(
 
 def _paragraph_overlap_groups(
     planned: Sequence[PlannedEdit],
-) -> List[List[PlannedEdit]]:
+) -> list[list[PlannedEdit]]:
     """Group the redlines of one Word paragraph that cover the same characters.
 
     Conflicts were resolved per markdown line, but one Word paragraph can cover
@@ -79,16 +79,16 @@ def _paragraph_overlap_groups(
     spans in start order closes a group as soon as a span starts at or after
     the furthest end reached so far.
     """
-    by_paragraph: Dict[str, List[PlannedEdit]] = {}
+    by_paragraph: dict[str, list[PlannedEdit]] = {}
     for edit in planned:
         by_paragraph.setdefault(edit.paragraph_ref, []).append(edit)
 
-    groups: List[List[PlannedEdit]] = []
+    groups: list[list[PlannedEdit]] = []
     for ref in sorted(by_paragraph):
         ordered = sorted(
             by_paragraph[ref], key=lambda edit: (edit.span, str(edit.edit_id))
         )
-        current: List[PlannedEdit] = []
+        current: list[PlannedEdit] = []
         reach = -1
         for edit in ordered:
             if current and edit.span[0] < reach:
@@ -107,15 +107,15 @@ def _paragraph_overlap_groups(
 def _resolve_paragraph_overlaps(
     planned: Sequence[PlannedEdit],
     candidates_by_id: Mapping[uuid.UUID, EditCandidate],
-) -> Tuple[List[PlannedEdit], List[EditOutcome]]:
+) -> tuple[list[PlannedEdit], list[EditOutcome]]:
     """Keep one redline per overlap group, by the same policy as a line's.
 
     The winner is `pick_winner`'s, not whichever edit happened to be planned
     first: an accepted edit beats a proposed one here exactly as it does when
     both quotes sit on the same markdown line.
     """
-    kept: List[PlannedEdit] = []
-    losses: List[EditOutcome] = []
+    kept: list[PlannedEdit] = []
+    losses: list[EditOutcome] = []
     for group in _paragraph_overlap_groups(planned):
         if len(group) == 1:
             kept.append(group[0])
@@ -142,12 +142,12 @@ def _plan_sync(
     docx_path: str,
     decisions: Sequence[EditDecision],
     candidates_by_id: Mapping[uuid.UUID, EditCandidate],
-    paragraph_line_ranges: Dict[int, Tuple[int, int]],
+    paragraph_line_ranges: dict[int, tuple[int, int]],
     document_lines: Sequence[str],
-    workspace_root: Optional[str],
+    workspace_root: str | None,
 ) -> TrackedChangesPlan:
     applicable = [d for d in decisions if d.outcome == "apply"]
-    outcomes: List[EditOutcome] = [
+    outcomes: list[EditOutcome] = [
         EditOutcome(
             edit_id=decision.edit_id,
             status="conflict" if decision.outcome == "conflict" else "unlocatable",
@@ -175,7 +175,7 @@ def _plan_sync(
             ],
         )
 
-    planned: List[PlannedEdit] = []
+    planned: list[PlannedEdit] = []
     for decision in applicable:
         edit = candidates_by_id[decision.edit_id].edit
         paragraph_index = find_paragraph_by_line_range(
@@ -213,9 +213,9 @@ async def plan_tracked_changes(
     docx_path: str,
     decisions: Sequence[EditDecision],
     candidates_by_id: Mapping[uuid.UUID, EditCandidate],
-    paragraph_line_ranges: Dict[int, Tuple[int, int]],
+    paragraph_line_ranges: dict[int, tuple[int, int]],
     document_lines: Sequence[str],
-    workspace_root: Optional[str] = None,
+    workspace_root: str | None = None,
 ) -> TrackedChangesPlan:
     """Resolve the applicable edits against `docx_path` without changing it.
 

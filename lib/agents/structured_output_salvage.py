@@ -15,7 +15,7 @@ anything that would have followed it, is lost.
 import json
 import logging
 import re
-from typing import Any, List, Type, TypeVar
+from typing import Any, TypeVar
 
 from langchain_core.messages import AIMessage
 from pydantic import BaseModel, ValidationError
@@ -34,7 +34,7 @@ def ai_message_text(message: AIMessage) -> str:
     if isinstance(content, str):
         return content
 
-    parts: List[str] = []
+    parts: list[str] = []
     for block in content:
         if isinstance(block, str):
             parts.append(block)
@@ -43,7 +43,7 @@ def ai_message_text(message: AIMessage) -> str:
     return "".join(parts)
 
 
-def salvage_list_items(raw_text: str, key: str) -> List[Any]:
+def salvage_list_items(raw_text: str, key: str) -> list[Any]:
     """Decode the complete items of `raw_text`'s `key` array.
 
     Returns every element that parses, stopping at the first one that does not
@@ -55,7 +55,7 @@ def salvage_list_items(raw_text: str, key: str) -> List[Any]:
     if not match:
         return []
 
-    items: List[Any] = []
+    items: list[Any] = []
     index = match.end()
     while index < len(raw_text):
         while index < len(raw_text) and raw_text[index] in _SEPARATORS:
@@ -71,13 +71,13 @@ def salvage_list_items(raw_text: str, key: str) -> List[Any]:
     return items
 
 
-def salvage_models(raw_text: str, key: str, model: Type[ModelT]) -> List[ModelT]:
+def salvage_models(raw_text: str, key: str, model: type[ModelT]) -> list[ModelT]:
     """Salvage `key`'s array items and validate each into `model`.
 
     Items that fail validation are dropped: a truncated response can end with a
     syntactically complete object that is missing required fields.
     """
-    salvaged: List[ModelT] = []
+    salvaged: list[ModelT] = []
     for item in salvage_list_items(raw_text, key):
         try:
             salvaged.append(model.model_validate(item))

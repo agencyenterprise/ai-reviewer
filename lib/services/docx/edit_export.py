@@ -26,7 +26,7 @@ import shutil
 import tempfile
 import uuid
 from collections import Counter
-from typing import Dict, List, Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 from pydantic import BaseModel, Field
 
@@ -53,11 +53,11 @@ logger = logging.getLogger(__name__)
 class EditExport(BaseModel):
     """Everything the export still has to do about proposed edits."""
 
-    planned: List[PlannedEdit] = Field(default_factory=list)
-    outcomes: Dict[uuid.UUID, EditOutcome] = Field(default_factory=dict)
-    notes_by_issue: Dict[uuid.UUID, List[str]] = Field(default_factory=dict)
+    planned: list[PlannedEdit] = Field(default_factory=list)
+    outcomes: dict[uuid.UUID, EditOutcome] = Field(default_factory=dict)
+    notes_by_issue: dict[uuid.UUID, list[str]] = Field(default_factory=dict)
 
-    def notes_for(self, issue_id: uuid.UUID) -> List[str]:
+    def notes_for(self, issue_id: uuid.UUID) -> list[str]:
         return self.notes_by_issue.get(issue_id, [])
 
 
@@ -66,7 +66,7 @@ def _workflow_name(issue: Issue) -> str:
     return manifest.name if manifest else str(issue.workflow_type)
 
 
-def _candidates(issues: Sequence[Issue]) -> List[EditCandidate]:
+def _candidates(issues: Sequence[Issue]) -> list[EditCandidate]:
     return [
         EditCandidate(
             edit=row,
@@ -79,14 +79,14 @@ def _candidates(issues: Sequence[Issue]) -> List[EditCandidate]:
     ]
 
 
-def _unplaceable_outcomes(decisions: Sequence[EditDecision]) -> List[EditOutcome]:
+def _unplaceable_outcomes(decisions: Sequence[EditDecision]) -> list[EditOutcome]:
     """Outcomes for the case where no paragraph mapping exists at all.
 
     The line-range mapper returns an empty map when the document converts
     differently than it did at ingestion. Nothing can be anchored then, so
     every edit that would otherwise apply is reported as unmatched.
     """
-    outcomes: List[EditOutcome] = []
+    outcomes: list[EditOutcome] = []
     for decision in decisions:
         if decision.outcome == "apply":
             outcomes.append(EditOutcome(edit_id=decision.edit_id, status="not_found"))
@@ -100,8 +100,8 @@ def _unplaceable_outcomes(decisions: Sequence[EditDecision]) -> List[EditOutcome
 def _notes(
     issues: Sequence[Issue],
     decisions: Sequence[EditDecision],
-    outcomes: Dict[uuid.UUID, EditOutcome],
-) -> Dict[uuid.UUID, List[str]]:
+    outcomes: dict[uuid.UUID, EditOutcome],
+) -> dict[uuid.UUID, list[str]]:
     """Comment blocks per issue, naming the workflow a conflict lost to.
 
     A conflict is decided either per markdown line, before the document is
@@ -109,10 +109,10 @@ def _notes(
     the decision in the first case and off the outcome in the second, and both
     resolve to a workflow name the same way.
     """
-    issue_of_edit: Dict[uuid.UUID, Issue] = {
+    issue_of_edit: dict[uuid.UUID, Issue] = {
         row.id: issue for issue in issues for row in issue.edit_rows
     }
-    winner_ids: Dict[uuid.UUID, uuid.UUID] = {
+    winner_ids: dict[uuid.UUID, uuid.UUID] = {
         decision.edit_id: decision.winner_id
         for decision in decisions
         if decision.winner_id is not None
@@ -124,7 +124,7 @@ def _notes(
             if outcome.winner_id is not None
         }
     )
-    winner_names: Dict[uuid.UUID, str] = {}
+    winner_names: dict[uuid.UUID, str] = {}
     for edit_id, winner_id in winner_ids.items():
         winner = issue_of_edit.get(winner_id)
         if winner is not None:
@@ -137,8 +137,8 @@ def _notes(
 
 
 async def _rehearse(
-    docx_path: str, planned: Sequence[PlannedEdit], workspace_root: Optional[str]
-) -> List[EditOutcome]:
+    docx_path: str, planned: Sequence[PlannedEdit], workspace_root: str | None
+) -> list[EditOutcome]:
     """Apply the plan to a throwaway copy of the original and report what stuck.
 
     docx-editor is deterministic: the same operations against the same
@@ -172,7 +172,7 @@ def _merge_rehearsal(
     plan_outcomes: Sequence[EditOutcome],
     planned: Sequence[PlannedEdit],
     rehearsed: Sequence[EditOutcome],
-) -> Tuple[List[PlannedEdit], Dict[uuid.UUID, EditOutcome]]:
+) -> tuple[list[PlannedEdit], dict[uuid.UUID, EditOutcome]]:
     """Fold the rehearsal's failures into the plan.
 
     An edit the rehearsal could not write is reported as ``failed``, with the
@@ -181,7 +181,7 @@ def _merge_rehearsal(
     can promise a redline that is not in the margin.
     """
     rehearsed_by_id = {outcome.edit_id: outcome for outcome in rehearsed}
-    outcomes: Dict[uuid.UUID, EditOutcome] = {}
+    outcomes: dict[uuid.UUID, EditOutcome] = {}
     for outcome in plan_outcomes:
         attempt = rehearsed_by_id.get(outcome.edit_id)
         outcomes[outcome.edit_id] = (
@@ -203,7 +203,7 @@ def describe_edit_export(issues: Sequence[Issue]) -> EditExport:
     reports about placement is moot. A rejected edit is left out, as everywhere
     else.
     """
-    outcomes: Dict[uuid.UUID, EditOutcome] = {
+    outcomes: dict[uuid.UUID, EditOutcome] = {
         candidate.edit.id: EditOutcome(edit_id=candidate.edit.id, status="skipped")
         for candidate in _candidates(issues)
         if candidate.edit.status != IssueEditStatus.REJECTED
@@ -217,8 +217,8 @@ async def plan_edit_export(
     issues: Sequence[Issue],
     markdown: str,
     docx_path: str,
-    paragraph_line_ranges: Dict[int, tuple[int, int]],
-    workspace_root: Optional[str] = None,
+    paragraph_line_ranges: dict[int, tuple[int, int]],
+    workspace_root: str | None = None,
 ) -> EditExport:
     """Resolve the issues' proposed edits against the original document.
 
@@ -240,7 +240,7 @@ async def plan_edit_export(
             outcomes=outcomes, notes_by_issue=_notes(issues, decisions, outcomes)
         )
 
-    candidates_by_id: Dict[uuid.UUID, EditCandidate] = {
+    candidates_by_id: dict[uuid.UUID, EditCandidate] = {
         candidate.edit.id: candidate for candidate in candidates
     }
     plan = await plan_tracked_changes(
@@ -264,7 +264,7 @@ async def apply_edit_export(
     output_path: str,
     export: EditExport,
     project_id: str,
-    workspace_root: Optional[str] = None,
+    workspace_root: str | None = None,
 ) -> None:
     """Write the planned redlines into the exported file and log the tally.
 
@@ -288,7 +288,7 @@ async def apply_edit_export(
                 expected.status,
                 outcome.detail,
             )
-    merged: Dict[uuid.UUID, EditOutcome] = {
+    merged: dict[uuid.UUID, EditOutcome] = {
         **export.outcomes,
         **{outcome.edit_id: outcome for outcome in applied},
     }

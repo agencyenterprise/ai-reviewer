@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from langgraph.runtime import Runtime
 
@@ -24,7 +24,7 @@ SUPPORTING_DOC_HEADER_SIZE = 4000
 async def _summarize_document(
     document: FileDocument,
     agent: DocumentSummarizerAgent,
-    existing_summaries: List[FileSummary],
+    existing_summaries: list[FileSummary],
     role: FileRole,
     runtime: Runtime[ContextSchema],
 ) -> FileSummary:
@@ -80,7 +80,7 @@ async def _summarize_document(
 @register_node("Summarize documents")
 async def summarize_documents(
     state: DocumentSummarizationState, runtime: Runtime[ContextSchema]
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     document_summarizer_agent = DocumentSummarizerAgent(runtime.context)
     file_artifacts_service = runtime.context.file_artifacts_service
 
@@ -123,7 +123,7 @@ async def summarize_documents(
 
     results, exceptions = await run_tasks(tasks, desc="Summarizing documents")
 
-    summaries: List[FileSummary] = [result for result in results if result is not None]
+    summaries: list[FileSummary] = [result for result in results if result is not None]
     errors = convert_exceptions_to_workflow_errors(
         "summarize_documents",
         exceptions,
@@ -136,7 +136,7 @@ async def summarize_documents(
     return {"summaries": summaries, "errors": errors}
 
 
-async def _persist_summary_artifacts(summaries: List[FileSummary]) -> None:
+async def _persist_summary_artifacts(summaries: list[FileSummary]) -> None:
     """
     Persist summary artifacts to the files table for all summarized documents.
 

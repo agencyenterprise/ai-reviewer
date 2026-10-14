@@ -1,7 +1,5 @@
 """Manifest for abbreviation scan v2 workflow."""
 
-from typing import List, Type
-
 from langgraph.graph import StateGraph
 
 from lib.workflows.abbreviation_scan_v2.graph import build_abbreviation_scan_v2_graph
@@ -13,6 +11,7 @@ from lib.workflows.abbreviation_scan_v2.state import (
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.workflow_types import WorkflowState
+import builtins
 
 
 class AbbreviationScanV2Manifest(
@@ -26,10 +25,10 @@ class AbbreviationScanV2Manifest(
     is_experimental = False
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
-    def get_state_type(self) -> Type[AbbreviationScanV2State]:
+    def get_state_type(self) -> builtins.type[AbbreviationScanV2State]:
         return AbbreviationScanV2State
 
-    def get_config_type(self) -> Type[AbbreviationScanV2Config]:
+    def get_config_type(self) -> builtins.type[AbbreviationScanV2Config]:
         return AbbreviationScanV2Config
 
     def build_graph(self) -> StateGraph:
@@ -38,7 +37,7 @@ class AbbreviationScanV2Manifest(
     async def create_initial_state(
         self,
         config: AbbreviationScanV2Config,
-        existing_states: List[WorkflowState],
+        existing_states: list[WorkflowState],
         revision: int,
         prior_self_state: AbbreviationScanV2State | None = None,
     ) -> AbbreviationScanV2State:
@@ -48,6 +47,6 @@ class AbbreviationScanV2Manifest(
         )
 
     def convert_state_to_issues(
-        self, state: AbbreviationScanV2State, other_states: List[WorkflowState]
-    ) -> List[DocumentIssue]:
+        self, state: AbbreviationScanV2State, other_states: list[WorkflowState]
+    ) -> list[DocumentIssue]:
         return build_issues(state)

@@ -29,7 +29,6 @@ import asyncio
 import json
 import math
 from pathlib import Path
-from typing import Optional
 
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
@@ -76,7 +75,7 @@ def _record_to_sample(raw: dict) -> Sample:
     return Sample(input=resolve_input(record.input), metadata={"record": record.model_dump()})
 
 
-def _output(state: TaskState) -> tuple[Optional[Reviewer2Output], Optional[str]]:
+def _output(state: TaskState) -> tuple[Reviewer2Output | None, str | None]:
     try:
         return Reviewer2Output.model_validate(json.loads(state.output.completion)), None
     except (ValueError, ValidationError) as e:
@@ -111,7 +110,7 @@ async def _mean_grade(grader: Model, prompts: list[tuple[str, str]], calls: int)
 async def judge_review(grader: Model, document: str, output: Reviewer2Output, record: Reviewer2Record, calls: int) -> tuple[dict[str, float], str]:
     review, rebuttal = output.peer_review_markdown or "", output.rebuttal_markdown or ""
 
-    def on_review(criterion: str, point: Optional[str] = None) -> str:
+    def on_review(criterion: str, point: str | None = None) -> str:
         return review_prompt(criterion, document, "Peer review", review, point)
 
     per_point = {

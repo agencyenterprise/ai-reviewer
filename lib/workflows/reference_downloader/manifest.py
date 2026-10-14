@@ -1,5 +1,3 @@
-from typing import List, Type
-
 from langgraph.graph import StateGraph
 
 from lib.workflows.manifest import WorkflowManifest
@@ -11,6 +9,7 @@ from lib.workflows.reference_downloader.state import (
     ReferenceFetchStatus,
 )
 from lib.workflows.workflow_types import WorkflowState
+import builtins
 
 
 class ReferenceDownloaderManifest(
@@ -30,11 +29,11 @@ class ReferenceDownloaderManifest(
     required_dependencies = [WorkflowRunType.REFERENCE_EXTRACTION]
     optional_dependencies = [WorkflowRunType.REFERENCE_FILE_MATCHING]
 
-    def get_state_type(self) -> Type[ReferenceDownloaderState]:
+    def get_state_type(self) -> builtins.type[ReferenceDownloaderState]:
         """Get the type of the workflow state."""
         return ReferenceDownloaderState
 
-    def get_config_type(self) -> Type[ReferenceDownloaderWorkflowConfig]:
+    def get_config_type(self) -> builtins.type[ReferenceDownloaderWorkflowConfig]:
         """Get the type of the workflow config."""
         return ReferenceDownloaderWorkflowConfig
 
@@ -59,7 +58,7 @@ class ReferenceDownloaderManifest(
     async def create_initial_state(
         self,
         config: ReferenceDownloaderWorkflowConfig,
-        existing_states: List[WorkflowState],
+        existing_states: list[WorkflowState],
         revision: int,
         prior_self_state: ReferenceDownloaderState | None = None,
     ) -> ReferenceDownloaderState:
@@ -81,7 +80,7 @@ class ReferenceDownloaderManifest(
     def convert_state_to_issues(
         self,
         state: ReferenceDownloaderState,
-        other_states: List[WorkflowState],
-    ) -> List[DocumentIssue]:
+        other_states: list[WorkflowState],
+    ) -> list[DocumentIssue]:
         """Convert ReferenceDownloaderState to issues."""
         return []

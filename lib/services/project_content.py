@@ -7,7 +7,7 @@ supporting file when the page needs only the main document's title and authors.
 """
 
 import logging
-from typing import Any, List, Optional, Type, TypeVar
+from typing import Any, TypeVar
 
 from pydantic import BaseModel, Field, ValidationError
 from sqlmodel import col
@@ -28,34 +28,34 @@ _Item = TypeVar("_Item", bound=BaseModel)
 
 
 class ProjectDocument(BaseModel):
-    markdown: Optional[str] = Field(
+    markdown: str | None = Field(
         default=None,
         description="Full markdown of the main document, or null before processing completes",
     )
-    title: Optional[str] = Field(
+    title: str | None = Field(
         default=None, description="The main document's title, from its summary"
     )
-    authors: Optional[str] = Field(
+    authors: str | None = Field(
         default=None, description="The main document's authors, from its summary"
     )
 
 
 class ProjectReferences(BaseModel):
-    extracted_references: List[ExtractedReference] = Field(default_factory=list)
-    matches: List[ReferenceFileMatch] = Field(default_factory=list)
-    fetched_references: List[ReferenceFetchResult] = Field(
+    extracted_references: list[ExtractedReference] = Field(default_factory=list)
+    matches: list[ReferenceFileMatch] = Field(default_factory=list)
+    fetched_references: list[ReferenceFetchResult] = Field(
         default_factory=list,
         description="Web fetch outcomes, without the fetching agent's transcript",
     )
 
 
 def _validate_items(
-    model: Type[_Item], raw: Any, drop: tuple[str, ...] = ()
-) -> List[_Item]:
+    model: type[_Item], raw: Any, drop: tuple[str, ...] = ()
+) -> list[_Item]:
     """Validate a persisted list item by item, so one stale entry costs only itself."""
     if not isinstance(raw, list):
         return []
-    items: List[_Item] = []
+    items: list[_Item] = []
     for entry in raw:
         if not isinstance(entry, dict):
             continue
@@ -88,7 +88,7 @@ async def _main_document_summary(project_id: str, revision: int) -> dict[str, An
     return {}
 
 
-def _text_or_none(value: Any) -> Optional[str]:
+def _text_or_none(value: Any) -> str | None:
     """A persisted text field, or None when an older shape stored something else."""
     return value if isinstance(value, str) else None
 

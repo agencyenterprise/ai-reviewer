@@ -19,7 +19,7 @@ disclaimer, the document's title and its authors' names.
 
 import math
 import re
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from inspect_ai.scorer._model import default_instructions  # type: ignore[attr-defined]
 from pydantic import BaseModel, ConfigDict, Field
@@ -68,14 +68,14 @@ class Reviewer2Record(BaseModel):
     weaknesses: list[Point] = Field(description="Substantive weaknesses a rigorous review raises")
     strengths: list[Point] = Field(default_factory=list, description="Genuine strengths the review credits and does not attack")
     authors: list[str] = Field(default_factory=list, description="Surnames both header blocks must name; empty when the document names none")
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class Reviewer2Output(BaseModel):
     """Local mirror of Reviewer2State's markdown outputs."""
 
-    peer_review_markdown: Optional[str] = None
-    rebuttal_markdown: Optional[str] = None
+    peer_review_markdown: str | None = None
+    rebuttal_markdown: str | None = None
 
 
 def headings(markdown: str) -> list[tuple[int, int, str]]:
@@ -119,7 +119,7 @@ def section_starts(markdown: str) -> dict[str, tuple[int, int]]:
     return starts
 
 
-def _section(markdown: str, key: str) -> Optional[str]:
+def _section(markdown: str, key: str) -> str | None:
     """The text under the section's heading (see ``section_starts``), up to the next heading
     at the same or a higher level (a recommendation's own subheading does not end Section
     4); None when the section has no heading."""
@@ -234,7 +234,7 @@ REVIEW_TEMPLATE = """You are grading an AI-written review of a research document
 """
 
 
-def review_prompt(criterion: str, document: str, output_label: str, output: str, point: Optional[str] = None) -> str:
+def review_prompt(criterion: str, document: str, output_label: str, output: str, point: str | None = None) -> str:
     return REVIEW_TEMPLATE.format(
         document=document,
         output_label=output_label,

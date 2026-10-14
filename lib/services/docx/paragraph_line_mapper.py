@@ -16,7 +16,7 @@ import logging
 import os
 import re
 import tempfile
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from docx import Document
 from docx.oxml.ns import qn
@@ -66,13 +66,13 @@ def _inject_markers(doc: Any) -> int:
     return injected
 
 
-def _extract_marker_positions(markdown: str) -> Dict[int, int]:
+def _extract_marker_positions(markdown: str) -> dict[int, int]:
     """Return ``{paragraph_index: 1-indexed line}`` for each marker in the markdown.
 
     If the same paragraph index is found multiple times (shouldn't happen in
     practice), the first occurrence wins.
     """
-    positions: Dict[int, int] = {}
+    positions: dict[int, int] = {}
     for line_index, line in enumerate(markdown.splitlines(), start=1):
         for match in _MARKER_RE.finditer(line):
             paragraph_index = int(match.group(1))
@@ -81,8 +81,8 @@ def _extract_marker_positions(markdown: str) -> Dict[int, int]:
 
 
 async def build_paragraph_line_ranges(
-    docx_path: str, expected_line_count: Optional[int] = None
-) -> Dict[int, Tuple[int, int]]:
+    docx_path: str, expected_line_count: int | None = None
+) -> dict[int, tuple[int, int]]:
     """Compute ``{paragraph_index: (start_line, end_line)}`` for a docx.
 
     ``paragraph_index`` matches the positional index of non-empty paragraphs in
@@ -147,7 +147,7 @@ async def build_paragraph_line_ranges(
     # Derive end_line for each paragraph: the line just before the next paragraph's
     # start line. Paragraphs that share a line (table cells) get (start, start).
     sorted_by_line = sorted(start_lines.items(), key=lambda kv: (kv[1], kv[0]))
-    ranges: Dict[int, Tuple[int, int]] = {}
+    ranges: dict[int, tuple[int, int]] = {}
     for i, (para_index, start_line) in enumerate(sorted_by_line):
         if i + 1 < len(sorted_by_line):
             next_start = sorted_by_line[i + 1][1]
@@ -159,17 +159,17 @@ async def build_paragraph_line_ranges(
 
 
 def find_paragraph_by_line_range(
-    paragraph_line_ranges: Dict[int, Tuple[int, int]],
+    paragraph_line_ranges: dict[int, tuple[int, int]],
     start_line: int,
     end_line: int,
-) -> Optional[int]:
+) -> int | None:
     """Return the paragraph whose line range overlaps ``(start_line, end_line)``.
 
     Ties are broken by choosing the paragraph with the lowest index for
     determinism when multiple paragraphs overlap equally (e.g. table cells that
     share a markdown line).
     """
-    best: Optional[int] = None
+    best: int | None = None
     for para_index, (para_start, para_end) in paragraph_line_ranges.items():
         if para_start <= end_line and para_end >= start_line:
             if best is None or para_index < best:

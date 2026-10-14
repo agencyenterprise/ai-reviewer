@@ -10,7 +10,7 @@ titles, and attachment text.
 
 import uuid
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, status
 from fastapi.responses import StreamingResponse
@@ -50,19 +50,19 @@ class ChatThreadResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
-    title: Optional[str]
+    title: str | None
     is_archived: bool
     created_at: datetime
     last_updated_at: datetime
 
 
 class CreateThreadRequest(BaseModel):
-    title: Optional[str] = None
+    title: str | None = None
 
 
 class UpdateThreadRequest(BaseModel):
-    title: Optional[str] = None
-    is_archived: Optional[bool] = None
+    title: str | None = None
+    is_archived: bool | None = None
 
 
 class ThreadFileResponse(BaseModel):
@@ -83,22 +83,22 @@ class ChatSkillResponse(BaseModel):
 
 class ChatStreamRequest(BaseModel):
     message: str = Field(default="", description="The user's new message.")
-    message_id: Optional[str] = Field(
+    message_id: str | None = Field(
         default=None,
         max_length=100,
         description="The id the page shows the message under; stored as given.",
     )
-    attachments: List[ChatAttachment] = Field(
+    attachments: list[ChatAttachment] = Field(
         default_factory=list,
         description="Documents attached to this message, already converted to text.",
     )
-    model: Optional[str] = Field(
+    model: str | None = Field(
         default=None, description="A model id from GET /api/chat/models."
     )
 
 
 class GenerateTitleRequest(BaseModel):
-    messages: List[ChatTurnMessage]
+    messages: list[ChatTurnMessage]
 
 
 class ExtractResponse(BaseModel):
@@ -108,10 +108,10 @@ class ExtractResponse(BaseModel):
 # --- Thread index ------------------------------------------------------------
 
 
-@router.get("/threads", response_model=List[ChatThreadResponse])
+@router.get("/threads", response_model=list[ChatThreadResponse])
 async def list_threads(
     current_user: User = Depends(get_current_user),
-) -> List[ChatThread]:
+) -> list[ChatThread]:
     return list(await chat_thread_service.list_threads(user=current_user))
 
 
@@ -131,7 +131,7 @@ async def update_thread(
     request: UpdateThreadRequest,
     current_user: User = Depends(get_current_user),
 ) -> ChatThread:
-    thread: Optional[ChatThread] = None
+    thread: ChatThread | None = None
     if request.title is not None:
         thread = await chat_thread_service.rename_thread(
             thread_id=thread_id, user=current_user, title=request.title
@@ -162,11 +162,11 @@ async def delete_thread(
 # --- The conversation ----------------------------------------------------------
 
 
-@router.get("/threads/{thread_id}/messages", response_model=List[dict[str, Any]])
+@router.get("/threads/{thread_id}/messages", response_model=list[dict[str, Any]])
 async def list_messages(
     thread_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
-) -> List[dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """The thread's messages from the checkpointer, in the shape the page renders."""
 
     await chat_thread_service.get_thread(thread_id=thread_id, user=current_user)
@@ -238,10 +238,10 @@ async def stream_chat_turn(
 # --- Catalogues, titles, attachments -------------------------------------------
 
 
-@router.get("/models", response_model=List[ChatModelResponse])
+@router.get("/models", response_model=list[ChatModelResponse])
 async def list_chat_models(
     _current_user: User = Depends(get_current_user),
-) -> List[ChatModelResponse]:
+) -> list[ChatModelResponse]:
     return [
         ChatModelResponse(
             id=option.id,
@@ -252,10 +252,10 @@ async def list_chat_models(
     ]
 
 
-@router.get("/skills", response_model=List[ChatSkillResponse])
+@router.get("/skills", response_model=list[ChatSkillResponse])
 async def list_chat_skills(
     _current_user: User = Depends(get_current_user),
-) -> List[ChatSkillResponse]:
+) -> list[ChatSkillResponse]:
     return [
         ChatSkillResponse(name=skill.name, description=skill.description)
         for skill in chat_skill_catalogue()

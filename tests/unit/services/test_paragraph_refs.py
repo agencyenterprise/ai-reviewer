@@ -6,7 +6,7 @@ point of the mapping is that the two enumerate a document the same way.
 
 import copy
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 
 import pytest
 from docx import Document as PythonDocxDocument
@@ -61,7 +61,7 @@ def _append_content_control(document: Any, text: str) -> None:
     content.append(paragraph)
 
 
-def _editor_paragraphs(path: Path) -> List[ParagraphInfo]:
+def _editor_paragraphs(path: Path) -> list[ParagraphInfo]:
     doc = EditorDocument.open(
         path, author="Reader", workspace_dir=str(path.parent / "read-ws")
     )

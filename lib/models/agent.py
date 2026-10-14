@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Literal, Optional, TypedDict
+from typing import Any, Literal, TypedDict
 
 from langchain.chat_models import BaseChatModel, init_chat_model
 from langchain_core.rate_limiters import BaseRateLimiter
@@ -41,12 +41,12 @@ class BaseAgent(ABC):
     model: LLMModel
     timeout: int = DEFAULT_LLM_TIMEOUT
     max_retries: int = DEFAULT_LLM_MAX_RETRIES
-    reasoning: Optional[ReasoningDict] = None
-    output_schema: Optional[type[BaseModel]] = None
+    reasoning: ReasoningDict | None = None
+    output_schema: type[BaseModel] | None = None
 
     @abstractmethod
     async def ainvoke(
-        self, prompt_kwargs: dict, config: Optional[RunnableConfig] = None
+        self, prompt_kwargs: dict, config: RunnableConfig | None = None
     ) -> Any:
         """Invoke the agent."""
         pass
@@ -55,7 +55,7 @@ class BaseAgent(ABC):
 class LangChainAgent(BaseAgent):
     """Base class for agents using LangChain."""
 
-    _llm: Optional[BaseChatModel] = None
+    _llm: BaseChatModel | None = None
 
     def __init__(self, context: ContextSchema):
         self.context = context

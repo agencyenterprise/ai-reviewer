@@ -1,5 +1,5 @@
 # %%
-from typing import Optional, cast
+from typing import cast
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
@@ -103,7 +103,7 @@ class DocumentSummarizerAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: Optional[RunnableConfig] = None,
+        config: RunnableConfig | None = None,
     ) -> DocumentSummarizerResponse:
         messages = _document_summarizer_agent_prompt.format_messages(**prompt_kwargs)
         return cast(

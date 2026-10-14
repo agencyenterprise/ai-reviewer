@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import time
-from typing import List, Optional
 
 from lib.models.workflow_run import (
     ACTIVE_WORKFLOW_RUN_STATUSES,
@@ -33,7 +32,7 @@ DEPENDENCY_WAIT_TIMEOUT = 2 * 60 * 60  # 2 hours, in seconds
 async def wait_for_dependencies(
     workflow_type: WorkflowRunType,
     project_id: str,
-    current_workflow_run_id: Optional[str] = None,
+    current_workflow_run_id: str | None = None,
     revision: int = 1,
 ) -> None:
     """
@@ -70,7 +69,7 @@ async def wait_for_dependencies(
                 f"{DEPENDENCY_WAIT_TIMEOUT}s waiting for dependencies"
             )
 
-        blocking_reasons: List[str] = []
+        blocking_reasons: list[str] = []
 
         # Check same-type lock (wait for previous runs of same workflow)
         if needs_same_type_lock:
@@ -127,11 +126,11 @@ async def wait_for_dependencies(
 async def _get_pending_workflow_dependencies(
     project_id: str,
     workflow_type: WorkflowRunType,
-    dependencies: List[WorkflowRunType],
+    dependencies: list[WorkflowRunType],
     required: bool,
-    current_workflow_run_id: Optional[str] = None,
+    current_workflow_run_id: str | None = None,
     revision: int = 1,
-) -> List[WorkflowRunType]:
+) -> list[WorkflowRunType]:
     """
     Get the pending workflow dependencies for a project workflow.
 
@@ -151,7 +150,7 @@ async def _get_pending_workflow_dependencies(
         WorkflowCancelledError: If a required dependency was cancelled
     """
 
-    pending_dependencies: List[WorkflowRunType] = []
+    pending_dependencies: list[WorkflowRunType] = []
 
     for dep_type in dependencies:
         dep_run = await get_project_workflow_run_by_type(

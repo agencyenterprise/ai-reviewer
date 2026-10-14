@@ -20,7 +20,7 @@ import logging
 import re
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 from urllib.parse import parse_qs, unquote, urlparse
 
 from microsoft_agents.activity import ConversationReference
@@ -74,7 +74,7 @@ class Account(BaseModel):
     """
 
     oid: str
-    tid: Optional[str] = None
+    tid: str | None = None
 
 
 class Requester(Account):
@@ -127,7 +127,7 @@ class ItemResult(BaseModel):
 
     index: int = Field(ge=0, description="Comments first, then edits, as stored")
     applied: bool
-    reason: Optional[FailureReason] = None
+    reason: FailureReason | None = None
 
 
 class InvalidResults(ValueError):
@@ -151,7 +151,7 @@ class FinishedHandoff(BaseModel):
         return ConversationReference.model_validate(self.reference)
 
 
-def _path_key(url: str) -> Optional[str]:
+def _path_key(url: str) -> str | None:
     parsed = urlparse(url)
     if not parsed.netloc or not parsed.path:
         return None
@@ -173,7 +173,7 @@ def keys_for_url(url: str) -> set[str]:
     return keys
 
 
-def document_keys(item: dict[str, Any], library_url: Optional[str]) -> list[str]:
+def document_keys(item: dict[str, Any], library_url: str | None) -> list[str]:
     """Every key the add-in might find this drive item under.
 
     ``library_url`` is the drive's own webUrl. The item's webUrl is usually a
@@ -307,8 +307,8 @@ async def finish(
     handoff_id: uuid.UUID,
     account: Account,
     status: Literal["applied", "dismissed"],
-    outcome: Optional[HandoffOutcome] = None,
-) -> Optional[FinishedHandoff]:
+    outcome: HandoffOutcome | None = None,
+) -> FinishedHandoff | None:
     """Close an open handoff, once. ``None`` if it is not theirs or already closed.
 
     One conditional UPDATE, so two panes reporting the same handoff cannot both get a
@@ -369,9 +369,7 @@ async def start(handoff_id: uuid.UUID, account: Account) -> bool:
     return row is not None
 
 
-async def _open_items(
-    handoff_id: uuid.UUID, account: Account
-) -> Optional[HandoffItems]:
+async def _open_items(handoff_id: uuid.UUID, account: Account) -> HandoffItems | None:
     async with get_async_db_session() as session:
         value = (
             await session.execute(

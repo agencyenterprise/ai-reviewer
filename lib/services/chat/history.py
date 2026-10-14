@@ -27,7 +27,8 @@ import re
 import uuid
 from pathlib import Path
 from collections.abc import Collection
-from typing import Any, Optional, Sequence
+from typing import Any
+from collections.abc import Sequence
 
 from deepagents.backends.utils import create_file_data
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
@@ -72,7 +73,7 @@ def attachment_path(name: str, taken: Collection[str] = ()) -> str:
 
 
 def build_user_turn(
-    text: str, attachments: Sequence[ChatAttachment], message_id: Optional[str] = None
+    text: str, attachments: Sequence[ChatAttachment], message_id: str | None = None
 ) -> tuple[HumanMessage, dict[str, Any]]:
     """The message for this turn and the files it mounts.
 

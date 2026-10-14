@@ -13,7 +13,6 @@ every run whose gates are now all satisfied back to PENDING for scheduling.
 import logging
 import uuid
 from datetime import datetime
-from typing import List, Optional, Set
 
 from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -28,15 +27,15 @@ from lib.workflows.registry import get_workflow_manifest
 logger = logging.getLogger(__name__)
 
 
-def get_effective_gates(workflow_type: WorkflowRunType) -> List[WorkflowGate]:
+def get_effective_gates(workflow_type: WorkflowRunType) -> list[WorkflowGate]:
     """The workflow's own gates plus those of its required dependencies, transitively.
 
     Order is stable (own gates first, then dependencies in declaration order)
     and each gate appears once.
     """
-    seen: Set[WorkflowGate] = set()
-    ordered: List[WorkflowGate] = []
-    visited: Set[WorkflowRunType] = set()
+    seen: set[WorkflowGate] = set()
+    ordered: list[WorkflowGate] = []
+    visited: set[WorkflowRunType] = set()
 
     def visit(current: WorkflowRunType) -> None:
         if current in visited:
@@ -54,7 +53,7 @@ def get_effective_gates(workflow_type: WorkflowRunType) -> List[WorkflowGate]:
     return ordered
 
 
-async def get_approved_gates(project_id: str, revision: int) -> Set[WorkflowGate]:
+async def get_approved_gates(project_id: str, revision: int) -> set[WorkflowGate]:
     """Gates already approved for this project revision.
 
     The column is a plain string, so a value written by a gate that has since
@@ -69,7 +68,7 @@ async def get_approved_gates(project_id: str, revision: int) -> Set[WorkflowGate
             )
         )
         rows = (await session.execute(stmt)).scalars().all()
-    approved: Set[WorkflowGate] = set()
+    approved: set[WorkflowGate] = set()
     for row in rows:
         try:
             approved.add(WorkflowGate(row))
@@ -83,7 +82,7 @@ async def get_approved_gates(project_id: str, revision: int) -> Set[WorkflowGate
 
 async def get_unsatisfied_gates(
     project_id: str, revision: int, workflow_type: WorkflowRunType
-) -> List[WorkflowGate]:
+) -> list[WorkflowGate]:
     """Gates that still block ``workflow_type`` in this project revision."""
     approved = await get_approved_gates(project_id, revision)
     return [g for g in get_effective_gates(workflow_type) if g not in approved]
@@ -93,7 +92,7 @@ async def approve_gate(
     project_id: str,
     revision: int,
     gate: WorkflowGate,
-    approved_by_user_id: Optional[uuid.UUID] = None,
+    approved_by_user_id: uuid.UUID | None = None,
 ) -> None:
     """Record the approval. Idempotent: a second approval leaves the first row as is."""
     async with get_async_db_session() as session:
@@ -120,7 +119,7 @@ async def approve_gate(
 
 async def get_runs_awaiting_approval(
     project_id: str, revision: int
-) -> List[WorkflowRun]:
+) -> list[WorkflowRun]:
     """Runs of this project revision sitting in AWAITING_APPROVAL."""
     async with get_async_db_session() as session:
         stmt = (
@@ -139,7 +138,7 @@ async def get_runs_awaiting_approval(
 
 async def release_runs_awaiting_approval(
     project_id: str, revision: int
-) -> List[WorkflowRun]:
+) -> list[WorkflowRun]:
     """Move every run awaiting approval whose gates are all satisfied to PENDING.
 
     Returns the released runs so the caller can schedule them. Runs still
@@ -171,7 +170,7 @@ async def release_runs_awaiting_approval(
         released_ids = list((await session.execute(stmt)).scalars().all())
         await session.commit()
 
-    released: List[WorkflowRun] = []
+    released: list[WorkflowRun] = []
     for run_id in released_ids:
         run = candidates[run_id]
         run.status = WorkflowRunStatus.PENDING
@@ -185,7 +184,7 @@ async def release_runs_awaiting_approval(
 
 
 def _gates_satisfied(
-    workflow_type: WorkflowRunType | str, approved: Set[WorkflowGate]
+    workflow_type: WorkflowRunType | str, approved: set[WorkflowGate]
 ) -> bool:
     # Rows outlive workflows: a retired slug may not even be an enum member any
     # more. Such a run has nothing left to start, so leave it waiting rather

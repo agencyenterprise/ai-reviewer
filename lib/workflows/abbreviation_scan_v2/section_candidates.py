@@ -12,12 +12,11 @@ space out table-of-contents leaders, so a stricter test misses real sections.
 """
 
 import re
-from typing import List
 
 _SECTION_WORD_RE = re.compile(r"abbreviation|acronym|glossary", re.IGNORECASE)
 
 
-def find_candidate_lines(markdown: str) -> List[int]:
+def find_candidate_lines(markdown: str) -> list[int]:
     """1-indexed lines containing "abbreviation", "acronym" or "glossary" (any case)."""
     return [
         number

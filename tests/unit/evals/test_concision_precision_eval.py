@@ -1,7 +1,6 @@
 """The Concision & Precision eval: its dataset, task and the workflow's own edit check."""
 
 from pathlib import Path
-from typing import Optional
 
 from evals_inspectai.common.issue_inventory import ResolvedInventory, decoy_reasons, expects_edits, load_inventory_records
 from evals_inspectai.common.simple_deep_agent_types import ProposedEdit
@@ -30,7 +29,7 @@ def test_dataset_is_well_formed():
     assert all(e.edit_expected is not None for e in expected if e.title != "Obvious Statement")
 
 
-def _required(record: ResolvedInventory) -> dict[str, Optional[str]]:
+def _required(record: ResolvedInventory) -> dict[str, str | None]:
     return {e.id: e.anchor for e in record.expected_issues if e.required}
 
 

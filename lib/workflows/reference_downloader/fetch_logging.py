@@ -6,7 +6,6 @@ about what a person reading the log needs to see.
 
 import logging
 from collections import Counter
-from typing import List, Optional
 
 from langchain_core.messages import BaseMessage
 
@@ -33,8 +32,8 @@ def short_reference(reference: str) -> str:
 
 def log_fetch_outcome(
     reference: str,
-    result: Optional[ReferenceFetchItem],
-    messages: List[BaseMessage],
+    result: ReferenceFetchItem | None,
+    messages: list[BaseMessage],
 ) -> None:
     """One line per reference saying what was concluded and what it took."""
     usage = summarize_tool_usage(messages).describe()
@@ -64,7 +63,7 @@ def log_fetch_outcome(
 
 
 def log_run_summary(
-    project_id: str, fetched_references: List[ReferenceFetchResult]
+    project_id: str, fetched_references: list[ReferenceFetchResult]
 ) -> None:
     """Tally the run so the headline is readable without counting lines."""
     outcomes: Counter[str] = Counter()

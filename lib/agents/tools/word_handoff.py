@@ -10,7 +10,7 @@ report back to are closed over, never parameters the model could change.
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 import jwt
 from langchain.tools import BaseTool, tool
@@ -63,7 +63,7 @@ def usable_items(
     )
 
 
-def tenant_of(token: str) -> Optional[str]:
+def tenant_of(token: str) -> str | None:
     """The asker's home tenant, from their own Graph token.
 
     Taken from the same identity as the object id Graph ``/me`` gives, so the pair is

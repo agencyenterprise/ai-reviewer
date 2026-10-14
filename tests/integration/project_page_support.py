@@ -8,7 +8,8 @@ another kind of resource), owned by `owner` and invisible to `stranger`.
 
 import uuid
 from datetime import UTC, datetime
-from typing import Any, AsyncIterator
+from typing import Any
+from collections.abc import AsyncIterator
 
 import pytest_asyncio
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage

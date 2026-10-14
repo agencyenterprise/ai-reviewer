@@ -17,7 +17,7 @@ requiring a particular document path.
 import logging
 from collections.abc import Callable, Collection, Mapping, Sequence
 from pathlib import Path
-from typing import Any, Optional, ParamSpec, TypeVar, cast
+from typing import Any, ParamSpec, TypeVar, cast
 
 from deepagents import create_deep_agent
 from deepagents.backends.utils import create_file_data
@@ -133,7 +133,7 @@ def _with_our_additions(create: Callable[_P, _R]) -> Callable[_P, _R]:
         middleware = cast(Sequence[AgentMiddleware[Any, Any, Any]], kwargs.get("middleware") or ())
         declared = cast(Sequence[Mapping[str, Any]], kwargs.get("subagents") or ())
         subagents = [_running_our_middleware(spec) for spec in declared]
-        skills = cast(Optional[list[str]], kwargs.get("skills"))
+        skills = cast(list[str] | None, kwargs.get("skills"))
         kwargs["middleware"] = [*agent_middleware(), *middleware]
         if not any(spec.get("name") == GENERAL_PURPOSE_SUBAGENT["name"] for spec in subagents):
             subagents.append(general_purpose_subagent(skills=skills))
@@ -151,10 +151,10 @@ by ours (unless the caller passes one)."""
 
 def build_llm(
     model: LLMModel,
-    api_key: Optional[str],
+    api_key: str | None,
     *,
     reasoning: ReasoningDict = REASONING,
-    output_version: Optional[str] = None,
+    output_version: str | None = None,
 ) -> BaseChatModel:
     """Same construction LangChainAgent uses, including the shared rate limiter.
 

@@ -2,7 +2,7 @@ from datetime import date
 import logging
 import uuid
 from collections import defaultdict
-from typing import List, Optional, Sequence
+from collections.abc import Sequence
 
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, Field
@@ -45,14 +45,14 @@ MAX_PROJECT_PAGE_SIZE = 200
 
 class ProjectListItem(BaseModel):
     project: Project = Field(description="The project")
-    workflow_runs: List[WorkflowRun] = Field(
+    workflow_runs: list[WorkflowRun] = Field(
         default_factory=list,
         description="The workflow runs for the project",
     )
 
 
 class ProjectListPage(BaseModel):
-    items: List[ProjectListItem] = Field(description="The projects on this page")
+    items: list[ProjectListItem] = Field(description="The projects on this page")
     total: int = Field(description="Number of projects matching the query overall")
     limit: int = Field(description="Page size that was applied")
     offset: int = Field(description="Number of projects skipped before this page")
@@ -68,9 +68,9 @@ class ProjectCreated(BaseModel):
 
 
 class UpdateProjectRequest(BaseModel):
-    title: Optional[str] = None
-    publication_date: Optional[date] = None
-    feedback_visibility: Optional[FeedbackVisibility] = None
+    title: str | None = None
+    publication_date: date | None = None
+    feedback_visibility: FeedbackVisibility | None = None
 
 
 async def create_project(
@@ -90,7 +90,7 @@ async def create_project(
         return project
 
 
-def _user_projects_query(user: User, search: Optional[str]) -> Select[tuple[Project]]:
+def _user_projects_query(user: User, search: str | None) -> Select[tuple[Project]]:
     """Projects owned by ``user``, narrowed by every whitespace-separated search term."""
     stmt = select(Project).where(col(Project.user_id) == user.id)
     for term in (search or "").split():
@@ -99,7 +99,7 @@ def _user_projects_query(user: User, search: Optional[str]) -> Select[tuple[Proj
 
 
 async def _count_user_projects(
-    session: AsyncSession, user: User, search: Optional[str]
+    session: AsyncSession, user: User, search: str | None
 ) -> int:
     count_stmt = select(func.count()).select_from(
         _user_projects_query(user, search).subquery()
@@ -131,7 +131,7 @@ async def _live_runs_by_project(
 
 async def get_user_projects(
     user: User,
-    search: Optional[str] = None,
+    search: str | None = None,
     limit: int = 50,
     offset: int = 0,
 ) -> ProjectListPage:
@@ -202,7 +202,7 @@ def strip_converted_markdown(workflow_runs: Sequence[WorkflowRunDetail]) -> None
                 converted_file.markdown = None  # type: ignore[assignment]
 
 
-async def get_main_document_markdown(project_id: str, revision: int) -> Optional[str]:
+async def get_main_document_markdown(project_id: str, revision: int) -> str | None:
     """Load the full markdown of the main document for a revision, or None if
     it isn't available yet (e.g. before document processing completes)."""
     main_files = await get_files_by_project_id(
@@ -220,8 +220,8 @@ async def get_main_document_markdown(project_id: str, revision: int) -> Optional
 
 async def get_project_access(
     project_id: str,
-    user: Optional[User] = None,
-    share_token: Optional[str] = None,
+    user: User | None = None,
+    share_token: str | None = None,
     required_level: AccessLevel = AccessLevel.READ,
 ) -> tuple[Project, AccessLevel]:
     """
@@ -249,7 +249,7 @@ async def get_project_access(
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    access_level: Optional[AccessLevel] = None
+    access_level: AccessLevel | None = None
 
     if user is not None and project.user_id == user.id:
         access_level = AccessLevel.WRITE
@@ -273,7 +273,7 @@ async def get_project_access(
     return project, access_level
 
 
-async def get_project_files(project_id: str) -> List[File]:
+async def get_project_files(project_id: str) -> list[File]:
     """Get a project's uploaded documents — not transient supporting
     candidates or derived artifacts like extracted images. Raises
     HTTPException if project not found."""
@@ -306,7 +306,7 @@ async def get_project_files(project_id: str) -> List[File]:
 
 async def delete_project_file_with_cleanup(
     project_id: str, file_id: str, revision: int
-) -> tuple[int, List[str]]:
+) -> tuple[int, list[str]]:
     """
     Delete a file from a project and clean up all references to it.
 
@@ -364,7 +364,7 @@ async def update_project_title(project_id: str, title: str) -> None:
 
 async def create_new_revision(
     project_id: str, user: User
-) -> tuple[int, List[WorkflowRunType]]:
+) -> tuple[int, list[WorkflowRunType]]:
     """
     Create a new revision for a project.
 

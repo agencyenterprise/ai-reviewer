@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 from langchain_core.messages import BaseMessage
 from langgraph.runtime import Runtime
@@ -80,7 +79,7 @@ async def initialize_references(
 
 async def _load_unmatched_references(
     file_artifacts_service: FileArtifactsServiceType,
-) -> List[ReferenceDownloaderInputItem]:
+) -> list[ReferenceDownloaderInputItem]:
     """Fetch every extracted reference that does not yet have a matched file."""
     references = await file_artifacts_service.get_references()
 
@@ -122,7 +121,7 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
     result = None
     error = None
     status = ReferenceFetchStatus.COMPLETED
-    messages: List[BaseMessage] = []
+    messages: list[BaseMessage] = []
 
     try:
         result, messages = await agent.ainvoke(
@@ -212,8 +211,8 @@ async def cleanup_failed_resources(
 
     candidate_files = await get_supporting_candidate_files(project_id)
 
-    files_to_delete: List[str] = []
-    files_to_promote: List[str] = []
+    files_to_delete: list[str] = []
+    files_to_promote: list[str] = []
 
     for f in candidate_files:
         file_id = str(f.id)

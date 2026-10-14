@@ -12,7 +12,7 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import case, func, select
@@ -42,7 +42,7 @@ class WorkflowRunSummary(BaseModel):
     """A run without its state: enough to show its status anywhere on the page."""
 
     run: WorkflowRunPublic
-    errors: List[WorkflowError] = Field(
+    errors: list[WorkflowError] = Field(
         default_factory=list,
         description="Errors recorded by this run itself (earlier runs' errors excluded)",
     )
@@ -54,11 +54,11 @@ class ProjectOverview(BaseModel):
         description="The access level of the current user for this project",
     )
     revision: int = Field(description="The revision being returned")
-    workflow_runs: List[WorkflowRunSummary] = Field(
+    workflow_runs: list[WorkflowRunSummary] = Field(
         default_factory=list,
         description="The most relevant run per workflow type for the revision",
     )
-    files: List[FileListItem] = Field(
+    files: list[FileListItem] = Field(
         default_factory=list,
         description="The project's files across every revision",
     )
@@ -76,7 +76,7 @@ class ProjectOverview(BaseModel):
             "fetch on it so they only refetch when there is something new."
         ),
     )
-    share_status: Optional[ShareStatusResponse] = Field(
+    share_status: ShareStatusResponse | None = Field(
         default=None,
         description=(
             "Whether the project has a public link, and the link. Only for the "
@@ -93,7 +93,7 @@ def _json_array_length(expr: Any) -> Any:
     )
 
 
-def current_run_errors(run_id: uuid.UUID, raw_errors: Any) -> List[WorkflowError]:
+def current_run_errors(run_id: uuid.UUID, raw_errors: Any) -> list[WorkflowError]:
     """The persisted errors that belong to this run, skipping unreadable ones.
 
     A state's `errors` list accumulates across re-runs on the same thread, so
@@ -101,7 +101,7 @@ def current_run_errors(run_id: uuid.UUID, raw_errors: Any) -> List[WorkflowError
     """
     if not isinstance(raw_errors, list):
         return []
-    errors: List[WorkflowError] = []
+    errors: list[WorkflowError] = []
     for raw in raw_errors:
         try:
             error = WorkflowError.model_validate(raw)
@@ -120,7 +120,7 @@ def _summary(run: WorkflowRun, raw_errors: Any) -> WorkflowRunSummary:
 
 
 class _OverviewRuns(BaseModel):
-    summaries: List[WorkflowRunSummary]
+    summaries: list[WorkflowRunSummary]
     reference_count: int = 0
     has_docx: bool = False
 
@@ -172,7 +172,7 @@ async def get_issues_version(project_id: uuid.UUID, revision: int) -> str:
 async def get_project_overview(
     project: Project,
     access_level: AccessLevel,
-    revision: Optional[int] = None,
+    revision: int | None = None,
 ) -> ProjectOverview:
     """The overview of one revision; defaults to the project's current one."""
     resolved_revision = revision if revision is not None else project.current_revision
@@ -202,7 +202,7 @@ async def get_project_overview(
 
 async def _owner_share_status(
     project: Project, access_level: AccessLevel
-) -> Optional[ShareStatusResponse]:
+) -> ShareStatusResponse | None:
     # Managing the link is the owner's business: the share page itself is
     # served this overview, and admins reading a project were never shown it.
     if access_level != AccessLevel.WRITE:
@@ -214,7 +214,7 @@ async def get_workflow_run_summaries_by_type(
     project_id: str,
     workflow_type: WorkflowRunType,
     revision: int,
-) -> List[WorkflowRunSummary]:
+) -> list[WorkflowRunSummary]:
     """Every run of one type on a revision, newest first, without states."""
     stmt = (
         select(WorkflowRun, _STATE["errors"].label("errors"))

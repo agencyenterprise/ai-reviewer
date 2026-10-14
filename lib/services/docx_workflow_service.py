@@ -2,7 +2,7 @@
 
 import logging
 import uuid
-from typing import List, Literal, Optional
+from typing import Literal
 
 from lib.models.workflow_run import WorkflowRunType
 from lib.services.docx.manipulator import (
@@ -27,7 +27,7 @@ from lib.workflows.models import SeverityEnum
 logger = logging.getLogger(__name__)
 
 
-def _resolved_revision(requested: Optional[int], current: int) -> int:
+def _resolved_revision(requested: int | None, current: int) -> int:
     """The revision to export, defaulting to the project's current one.
 
     A revision the project does not have is refused rather than silently
@@ -46,13 +46,13 @@ def _resolved_revision(requested: Optional[int], current: int) -> int:
 
 async def generate_docx(
     project_id: str,
-    share_token: Optional[str],
-    severities: Optional[List[SeverityEnum]] = None,
-    workflow_types: Optional[List[WorkflowRunType]] = None,
+    share_token: str | None,
+    severities: list[SeverityEnum] | None = None,
+    workflow_types: list[WorkflowRunType] | None = None,
     docx_type: DocxManipulatorType | Literal["original"] = DocxManipulatorType.COMMENTS,
     include_passing: bool = False,
     include_edits: bool = True,
-    revision: Optional[int] = None,
+    revision: int | None = None,
 ) -> tuple[str, str]:
     """Generate an export of the project's DOCX.
 

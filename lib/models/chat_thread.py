@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -31,7 +30,7 @@ class ChatThread(SQLModel, table=True):
         ),
         description="Owner of the thread",
     )
-    title: Optional[str] = Field(
+    title: str | None = Field(
         default=None,
         sa_column=Column(String, nullable=True),
         description="Human-readable thread title (generated from the conversation)",

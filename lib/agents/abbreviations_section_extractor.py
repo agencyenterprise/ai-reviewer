@@ -1,6 +1,6 @@
 """Extract a document's Abbreviations sections with one structured LLM call."""
 
-from typing import Any, List, Optional
+from typing import Any
 
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
@@ -19,14 +19,14 @@ MAX_RETRIES = 1
 
 
 class AbbreviationsSectionExtraction(BaseModel):
-    sections: List[AbbreviationsSectionRange] = Field(
+    sections: list[AbbreviationsSectionRange] = Field(
         default_factory=list,
         description=(
             "Every Abbreviations, Acronyms, or Glossary section found, from its title line to "
             "the last line of its list. Empty when the document has none."
         ),
     )
-    entries: List[AbbreviationSectionEntry] = Field(
+    entries: list[AbbreviationSectionEntry] = Field(
         default_factory=list,
         description="Every abbreviation listed in those sections, with its definition exactly as written.",
     )
@@ -73,11 +73,11 @@ class AbbreviationsSectionExtractorAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: Optional[RunnableConfig] = None,
-    ) -> tuple[AbbreviationsSectionExtraction, List[BaseMessage]]:
+        config: RunnableConfig | None = None,
+    ) -> tuple[AbbreviationsSectionExtraction, list[BaseMessage]]:
         """Expects ``markdown`` and returns one structured extraction call."""
         markdown: str = prompt_kwargs["markdown"]
-        messages: List[BaseMessage] = [
+        messages: list[BaseMessage] = [
             SystemMessage(content=_SYSTEM_PROMPT),
             HumanMessage(
                 content=_DOCUMENT_MESSAGE.format(document=_numbered(markdown))

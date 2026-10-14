@@ -9,7 +9,6 @@ for the disk files).
 
 import os
 import uuid
-from typing import List
 
 from sqlalchemy import delete, select
 from sqlmodel import col
@@ -21,7 +20,7 @@ from lib.services.image_extraction import ExtractedImage
 
 
 async def replace_extracted_images(
-    parent_file_id: uuid.UUID | str, images: List[ExtractedImage]
+    parent_file_id: uuid.UUID | str, images: list[ExtractedImage]
 ) -> None:
     """Replace the extracted-image rows for a file.
 
@@ -46,7 +45,7 @@ async def replace_extracted_images(
             delete(File).where(col(File.parent_file_id) == parent.id)
         )
 
-        stale_paths: List[str] = []
+        stale_paths: list[str] = []
         for path, row_id in previous:
             # The new rows are not inserted yet, so paths they will reference
             # must be treated as still in use.

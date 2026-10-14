@@ -7,7 +7,8 @@ step, so a single INFO line per reference can tell those cases apart.
 """
 
 import json
-from typing import Any, Sequence
+from typing import Any
+from collections.abc import Sequence
 
 from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
 from pydantic import BaseModel, Field

@@ -21,7 +21,7 @@ a NaN key out of that metric's mean.
 """
 
 import math
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from inspect_ai.scorer import Score, Scorer, Target, scorer
 from inspect_ai.solver import TaskState
@@ -42,8 +42,8 @@ class ExtractedReference(BaseModel):
 
     id: str = ""
     text: str = ""
-    start_line: Optional[int] = None
-    end_line: Optional[int] = None
+    start_line: int | None = None
+    end_line: int | None = None
 
 
 class ReferenceExtractionOutput(BaseModel):
@@ -87,7 +87,7 @@ def _listed(label: str, texts: Sequence[str]) -> list[str]:
     return [f"{label} {len(texts)}: {shown}{more}"]
 
 
-def _in_lines(ref: ExtractedReference, document: DocumentText, line_count: int) -> Optional[bool]:
+def _in_lines(ref: ExtractedReference, document: DocumentText, line_count: int) -> bool | None:
     """Whether the reference's text lies within its own line range; None when it names none.
     Read against the whole document, so a repeated-author placeholder in range still
     resolves to the previous entry's author outside it."""

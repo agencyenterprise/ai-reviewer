@@ -17,7 +17,7 @@ rules can be unit-tested on plain strings.
 """
 
 import re
-from typing import List, Sequence, Tuple
+from collections.abc import Sequence
 
 _WHITESPACE_RUN = re.compile(r"\s+")
 
@@ -26,7 +26,7 @@ _WHITESPACE_RUN = re.compile(r"\s+")
 _EXCERPT_LIMIT = 400
 
 
-def document_lines(document_text: str) -> List[str]:
+def document_lines(document_text: str) -> list[str]:
     """Split a document into lines the way the agent's file backend numbers them.
 
     Only ``\n`` ends a line. ``str.splitlines`` would also break on form feeds
@@ -45,7 +45,7 @@ def normalize_whitespace(text: str) -> str:
 
 def _clamped_range(
     lines: Sequence[str], start_line: int, end_line: int
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """Clamp a 1-indexed inclusive line range to the document's own bounds."""
     first = max(1, start_line)
     last = min(len(lines), end_line)
@@ -64,7 +64,7 @@ def _count_occurrences(haystack: str, needle: str) -> int:
 
 def find_quote_lines(
     lines: Sequence[str], start_line: int, end_line: int, quote: str
-) -> List[int]:
+) -> list[int]:
     """Return the 1-indexed line of every occurrence of `quote` within a range.
 
     Each line is compared on its own after whitespace normalization, so a quote
@@ -76,7 +76,7 @@ def find_quote_lines(
         return []
 
     first, last = _clamped_range(lines, start_line, end_line)
-    found: List[int] = []
+    found: list[int] = []
     for number in range(first, last + 1):
         occurrences = _count_occurrences(
             normalize_whitespace(lines[number - 1]), needle

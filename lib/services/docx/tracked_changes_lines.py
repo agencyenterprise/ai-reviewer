@@ -8,7 +8,7 @@ carries, which is the rendered one, so the rendering lives here too.
 
 import re
 from difflib import SequenceMatcher
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from lib.models.issue_edit import IssueEdit
 from lib.services.markdown_text import render_line_text
@@ -31,7 +31,7 @@ _MIN_SIMILARITY = 0.9
 _MIN_COMPARABLE_LENGTH = 20
 
 
-def source_line(edit: IssueEdit, document_lines: Sequence[str]) -> Optional[str]:
+def source_line(edit: IssueEdit, document_lines: Sequence[str]) -> str | None:
     """The markdown line the edit was anchored to, if the document still has it."""
     if edit.start_line < 1 or edit.start_line > len(document_lines):
         return None
@@ -48,7 +48,7 @@ def _without_footnote_references(line: str) -> str:
     return _FOOTNOTE_REFERENCE.sub("", line)
 
 
-def line_belongs_to_paragraph(line: Optional[str], paragraph_text: str) -> bool:
+def line_belongs_to_paragraph(line: str | None, paragraph_text: str) -> bool:
     """Whether the edit's own markdown line is part of the mapped paragraph.
 
     A paragraph's line range runs to the line before the next body paragraph

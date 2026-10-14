@@ -30,7 +30,7 @@ and Word desktop keeps that lock for more than nine minutes after it quits (prob
 import base64
 import logging
 import re
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import quote, unquote, urlparse
 
 import httpx
@@ -254,7 +254,7 @@ async def me(*, token: str) -> dict[str, Any]:
     return dict(response.json())
 
 
-async def library_url(drive_id: str, *, token: str) -> Optional[str]:
+async def library_url(drive_id: str, *, token: str) -> str | None:
     """The webUrl of a document library, or ``None`` if Graph will not say.
 
     A Word document's own webUrl is a viewer link; its path has to be rebuilt from the

@@ -17,7 +17,7 @@ sentence.
 
 import math
 import re
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from evals_inspectai.common.issue_inventory import ResolvedInventory, quoted_verbatim
 from evals_inspectai.common.issue_judge import JudgeCriterion
@@ -30,7 +30,7 @@ _HEADING_RE = re.compile(r"^\s*#{1,6}\s+(.*)$")
 _WRAPPING = "*_\"'“”‘’ "
 
 
-def key_sentence(long_description: Optional[str]) -> Optional[str]:
+def key_sentence(long_description: str | None) -> str | None:
     """The block-quoted text under the long description's ``Key Sentence`` heading, or
     None when there is no such heading or nothing is quoted under it."""
     lines = (long_description or "").split("\n")

@@ -1,6 +1,6 @@
 """Manifest for reference file matching workflow."""
 
-from typing import List, Type, cast
+from typing import cast
 
 from langgraph.graph import StateGraph
 
@@ -16,6 +16,7 @@ from lib.workflows.reference_file_matching.state import (
 from lib.workflows.workflow_types import WorkflowState
 from lib.services.files import get_main_file_id, get_processed_supporting_file_ids
 from lib.workflows.util import get_state_by_type
+import builtins
 
 
 class ReferenceFileMatchingManifest(
@@ -36,11 +37,11 @@ class ReferenceFileMatchingManifest(
     ]
     always_run = True  # Always run reference file matching to ensure new files are matched. The workflow matches only new files in subsequent runs, reusing cached results from previous runs.
 
-    def get_state_type(self) -> Type[ReferenceFileMatchingState]:
+    def get_state_type(self) -> builtins.type[ReferenceFileMatchingState]:
         """Get the type of the workflow state."""
         return ReferenceFileMatchingState
 
-    def get_config_type(self) -> Type[ReferenceFileMatchingConfig]:
+    def get_config_type(self) -> builtins.type[ReferenceFileMatchingConfig]:
         """Get the type of the workflow config."""
         return ReferenceFileMatchingConfig
 
@@ -51,7 +52,7 @@ class ReferenceFileMatchingManifest(
     async def create_initial_state(
         self,
         config: ReferenceFileMatchingConfig,
-        existing_states: List[WorkflowState],
+        existing_states: list[WorkflowState],
         revision: int,
         prior_self_state: ReferenceFileMatchingState | None = None,
     ) -> ReferenceFileMatchingState:
@@ -84,8 +85,8 @@ class ReferenceFileMatchingManifest(
     def convert_state_to_issues(
         self,
         state: ReferenceFileMatchingState,
-        other_states: List[WorkflowState],
-    ) -> List[DocumentIssue]:
+        other_states: list[WorkflowState],
+    ) -> list[DocumentIssue]:
         """Reference file matching does not report issues."""
 
         return []

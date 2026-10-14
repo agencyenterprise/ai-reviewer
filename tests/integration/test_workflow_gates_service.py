@@ -6,7 +6,7 @@ release of runs awaiting approval once every gate they need is approved.
 
 import uuid
 from datetime import datetime, timedelta
-from typing import Sequence
+from collections.abc import Sequence
 
 import pytest
 import pytest_asyncio

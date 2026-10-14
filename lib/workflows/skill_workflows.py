@@ -15,7 +15,7 @@ own graphs keep their explicit manifests.
 """
 
 from pathlib import Path
-from typing import ClassVar, Optional, cast
+from typing import ClassVar, cast
 
 from pydantic import ValidationError
 
@@ -43,7 +43,7 @@ class SkillWorkflowManifest(SimpleDeepAgentManifest):
     """
 
     category: ClassVar[str]
-    icon: ClassVar[Optional[str]] = None
+    icon: ClassVar[str | None] = None
     presets: ClassVar[list[str]] = []
     skill_file: ClassVar[Path]
 
@@ -127,7 +127,7 @@ def build_skill_workflow_manifest(
 
 
 def discover_skill_workflows(
-    skills_dir: Optional[Path] = None,
+    skills_dir: Path | None = None,
 ) -> list[SkillWorkflowManifest]:
     """One manifest per skill that declares a workflow block.
 

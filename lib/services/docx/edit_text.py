@@ -11,8 +11,6 @@ Pure functions only -- no document loading -- so the rules can be unit-tested
 on plain strings.
 """
 
-from typing import Optional
-
 FIRST_LINE_ONLY = "the replacement spans more than one paragraph"
 NO_TABS = "the replacement contains a tab"
 LINK_DESTINATION_CHANGED = (
@@ -40,7 +38,7 @@ def is_table_row(line: str) -> bool:
     return stripped.endswith("|") and stripped.count("|") >= 2
 
 
-def unsupported_replacement_reason(text: str) -> Optional[str]:
+def unsupported_replacement_reason(text: str) -> str | None:
     """Why the replacement cannot become a redline, or None when it can.
 
     Two characters cannot be written as a tracked insertion: a newline, which

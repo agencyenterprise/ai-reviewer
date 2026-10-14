@@ -7,7 +7,6 @@ the whole document and are filled in afterwards, when the chunks are combined.
 """
 
 from enum import Enum
-from typing import List, Optional
 
 from langchain_core.messages import BaseMessage
 from pydantic import BaseModel, Field, field_serializer
@@ -39,7 +38,7 @@ class ChunkOccurrence(BaseModel):
 class ChunkExtractionResult(BaseModel):
     """Structured response of one chunk extraction call."""
 
-    occurrences: List[ChunkOccurrence] = Field(
+    occurrences: list[ChunkOccurrence] = Field(
         default_factory=list,
         description="Every abbreviation occurrence in the assigned line range, in reading order.",
     )
@@ -94,14 +93,14 @@ class AbbreviationChunk(BaseModel):
     start_line: int = Field(ge=1)
     end_line: int = Field(ge=1)
     status: ChunkStatus = ChunkStatus.PENDING
-    skip_reason: Optional[str] = Field(
+    skip_reason: str | None = Field(
         default=None,
         description='Why a SKIPPED chunk was not sent to the model: "abbreviations section" or "blank".',
     )
-    occurrences: List[ChunkOccurrence] = Field(default_factory=list)
-    error: Optional[str] = None
-    error_details: Optional[ErrorDetails] = None
-    messages: List[BaseMessage] = Field(
+    occurrences: list[ChunkOccurrence] = Field(default_factory=list)
+    error: str | None = None
+    error_details: ErrorDetails | None = None
+    messages: list[BaseMessage] = Field(
         default_factory=list,
         description="The model call for this chunk: system prompt, user prompt and reply.",
     )
@@ -112,15 +111,15 @@ class AbbreviationChunk(BaseModel):
 
     @field_serializer("messages")
     @classmethod
-    def _serialize_messages(cls, messages: List[BaseMessage]) -> list[dict]:
+    def _serialize_messages(cls, messages: list[BaseMessage]) -> list[dict]:
         # Checkpointer-hydrated states may contain raw dicts in `messages`
         # because reducers can append items that bypass model construction.
         return [m if isinstance(m, dict) else m.model_dump() for m in messages]
 
 
 def merge_chunks(
-    existing: List[AbbreviationChunk], new: List[AbbreviationChunk]
-) -> List[AbbreviationChunk]:
+    existing: list[AbbreviationChunk], new: list[AbbreviationChunk]
+) -> list[AbbreviationChunk]:
     """Reducer: merge by chunk_index so each fan-out result replaces its PENDING row."""
     by_index = {chunk.chunk_index: chunk for chunk in existing}
     for chunk in new:

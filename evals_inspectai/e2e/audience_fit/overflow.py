@@ -16,7 +16,7 @@ Whether the summary gives each paragraph a plain alternative is graded in
 """
 
 import math
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from evals_inspectai.common.issue_inventory import (
     AnchoredIssue,
@@ -101,7 +101,7 @@ def technical_paragraphs(inventory: ResolvedInventory) -> list[AnchoredIssue]:
 
 def overflow_split(
     inventory: ResolvedInventory,
-) -> Optional[tuple[list[AnchoredIssue], list[AnchoredIssue]]]:
+) -> tuple[list[AnchoredIssue], list[AnchoredIssue]] | None:
     """The first ``CAP`` technical paragraphs and the rest; None unless the inventory expects more than ``CAP``."""
     expected = technical_paragraphs(inventory)
     return (expected[:CAP], expected[CAP:]) if len(expected) > CAP else None

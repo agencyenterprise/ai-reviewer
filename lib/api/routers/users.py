@@ -2,7 +2,6 @@
 User-related API endpoints.
 """
 
-from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -39,7 +38,7 @@ async def get_current_user_info(user: User = Depends(get_current_user)) -> UserR
     return _user_response(user)
 
 
-@router.get("", response_model=List[UserResponse])
+@router.get("", response_model=list[UserResponse])
 async def list_users(
     admin: User = Depends(require_admin),
     search: str | None = Query(
@@ -52,7 +51,7 @@ async def list_users(
     offset: int = Query(
         default=0, ge=0, description="Number of users to skip for pagination"
     ),
-) -> List[UserResponse]:
+) -> list[UserResponse]:
     """List users (admin only), optionally filtered by name, email, or role."""
     users = await get_all_users(search=search, role=role, limit=limit, offset=offset)
     return [_user_response(user) for user in users]

@@ -26,7 +26,7 @@ invented, and recall and precision already count that.
 
 import math
 import re
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -42,9 +42,9 @@ class ExpectedOccurrence(BaseModel):
     abbr: str = Field(min_length=1, description="The abbreviation in its singular base form, as the skill records it")
     occurrence_number: int = Field(ge=1, description="1 for the first appearance in the document, 2 for the second, ...")
     line_start: int = Field(ge=1)
-    line_end: Optional[int] = Field(default=None, description="Defaults to line_start for a single-line occurrence")
+    line_end: int | None = Field(default=None, description="Defaults to line_start for a single-line occurrence")
     inline_definition: str = Field(default="", description="The 'Full Name (ABBR)' definition at this occurrence; empty when none")
-    abbreviations_section_definition: Optional[str] = Field(
+    abbreviations_section_definition: str | None = Field(
         default=None, description="The entry in the Abbreviations section; None when not listed or there is no section"
     )
 
@@ -84,7 +84,7 @@ class ReportedOccurrence(BaseModel):
     occurrence_number: int = 0
     line_start: int = 0
     line_end: int = 0
-    abbreviations_section_definition: Optional[str] = None
+    abbreviations_section_definition: str | None = None
 
 
 class ReportedCatalogue(BaseModel):
@@ -119,7 +119,7 @@ CATALOGUE_LABELS: dict[str, str] = {
 _SHOWN = 6
 
 
-def _text(value: Optional[str]) -> Optional[str]:
+def _text(value: str | None) -> str | None:
     """A definition compared without case or spacing, with an empty one the same as none."""
     if value is None:
         return None

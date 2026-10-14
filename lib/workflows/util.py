@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 from lib.workflows.models import WorkflowRunType
 
@@ -7,8 +7,8 @@ if TYPE_CHECKING:
 
 
 def get_state_by_type(
-    type: WorkflowRunType, states: List["WorkflowState"]
-) -> Optional["WorkflowState"]:
+    type: WorkflowRunType, states: list["WorkflowState"]
+) -> "WorkflowState | None":
     """
     Get a state by type from a list of states.
     """

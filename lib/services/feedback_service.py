@@ -4,7 +4,6 @@ Feedback service layer.
 Provides business logic for feedback CRUD operations using coordinate-based addressing.
 """
 
-from typing import Optional
 import uuid
 
 from fastapi import HTTPException
@@ -47,8 +46,8 @@ async def create_feedback(
     entity_path: dict,
     feedback_type: FeedbackType,
     user: User,
-    feedback_text: Optional[str] = None,
-    issue_id: Optional[uuid.UUID] = None,
+    feedback_text: str | None = None,
+    issue_id: uuid.UUID | None = None,
 ) -> Feedback:
     """
     Create new feedback for any entity.
@@ -95,8 +94,8 @@ async def create_or_update_feedback(
     entity_path: dict,
     feedback_type: FeedbackType,
     user: User,
-    feedback_text: Optional[str] = None,
-    issue_id: Optional[uuid.UUID] = None,
+    feedback_text: str | None = None,
+    issue_id: uuid.UUID | None = None,
 ) -> Feedback:
     """
     Create or update feedback for any entity.
@@ -161,7 +160,7 @@ async def create_or_update_feedback(
 
 async def get_feedback(
     session: AsyncSession, workflow_run_id: uuid.UUID, entity_path: dict, user: User
-) -> Optional[Feedback]:
+) -> Feedback | None:
     """
     Get feedback for a specific entity.
 
@@ -191,7 +190,7 @@ async def get_feedback(
 
 async def get_feedback_by_issue(
     session: AsyncSession, issue_id: uuid.UUID, user: User
-) -> Optional[Feedback]:
+) -> Feedback | None:
     """
     Get feedback for a specific issue.
 
@@ -290,11 +289,11 @@ async def get_project_issue_feedback(
 
 async def get_admin_feedbacks(
     session: AsyncSession,
-    user_id: Optional[uuid.UUID] = None,
-    workflow_type: Optional[str] = None,
-    feedback_type: Optional[FeedbackType] = None,
-    search: Optional[str] = None,
-    limit: Optional[int] = None,
+    user_id: uuid.UUID | None = None,
+    workflow_type: str | None = None,
+    feedback_type: FeedbackType | None = None,
+    search: str | None = None,
+    limit: int | None = None,
     offset: int = 0,
 ) -> list[dict]:
     """

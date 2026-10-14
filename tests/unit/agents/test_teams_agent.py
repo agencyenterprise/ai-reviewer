@@ -15,7 +15,7 @@ deliberate, and it is why the agent is given ``check_document``: a kept copy may
 been edited since, and may have been opened for somebody else in the thread.
 """
 
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -30,7 +30,7 @@ THREAD = "19:abc@thread.tacv2;messageid=1754"
 DOCUMENT_URL = "https://x.sharepoint.com/sites/X/a.docx"
 
 
-def agent_returning(answer: str, state: Optional[dict[str, Any]] = None) -> MagicMock:
+def agent_returning(answer: str, state: dict[str, Any] | None = None) -> MagicMock:
     """A deep agent whose last message is the answer.
 
     Returns the whole history the way a checkpointed run does -- the question and then

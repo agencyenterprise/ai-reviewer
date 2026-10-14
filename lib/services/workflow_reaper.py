@@ -29,7 +29,7 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 from sqlalchemy import or_, select, text
 from sqlalchemy.orm import undefer

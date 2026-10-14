@@ -4,7 +4,6 @@ Exercised through `build_issues` rather than its helpers: the rules are the
 contract, and each of them now reports at most once per abbreviation.
 """
 
-from typing import List, Optional
 
 from lib.workflows.abbreviation_scan_v2.issues import build_issues
 from lib.workflows.abbreviation_scan_v2.state import (
@@ -21,9 +20,9 @@ def _item(
     occurrence_number: int = 1,
     line_start: int = 1,
     line_end: int = 1,
-    abbreviations_section_definition: Optional[str] = None,
+    abbreviations_section_definition: str | None = None,
     ignored: bool = False,
-    ignored_reason: Optional[str] = None,
+    ignored_reason: str | None = None,
 ) -> AbbreviationItem:
     return AbbreviationItem(
         abbr=abbr,
@@ -38,7 +37,7 @@ def _item(
 
 
 def _state(
-    abbreviations: Optional[List[AbbreviationItem]] = None,
+    abbreviations: list[AbbreviationItem] | None = None,
     abbreviations_section_found: bool = False,
 ) -> AbbreviationScanV2State:
     return AbbreviationScanV2State(
@@ -49,11 +48,11 @@ def _state(
     )
 
 
-def _titles(issues) -> List[str]:
+def _titles(issues) -> list[str]:
     return [i.title for i in issues]
 
 
-def _occurrences(abbr: str, count: int, **overrides) -> List[AbbreviationItem]:
+def _occurrences(abbr: str, count: int, **overrides) -> list[AbbreviationItem]:
     """One abbreviation repeated `count` times on ascending lines."""
     return [
         _item(abbr=abbr, occurrence_number=n, line_start=n * 10, line_end=n * 10, **overrides)
@@ -265,7 +264,7 @@ class TestRule5Ambiguous:
 class TestVolume:
     def test_many_occurrences_stay_proportional_to_distinct_abbreviations(self):
         """A long document must not produce one issue per occurrence."""
-        items: List[AbbreviationItem] = []
+        items: list[AbbreviationItem] = []
         for index in range(30):
             items.extend(_occurrences(f"AB{index}", 30))
         issues = build_issues(_state(items, abbreviations_section_found=True))

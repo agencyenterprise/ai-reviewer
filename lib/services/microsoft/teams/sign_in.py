@@ -22,7 +22,7 @@ Reference: https://learn.microsoft.com/en-us/microsoftteams/platform/task-module
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from aiohttp import ClientError, ClientResponseError
 from microsoft_agents.activity import Activity, ActivityTypes, Attachment
@@ -69,9 +69,7 @@ def _token_client(context: TurnContext) -> UserTokenClientBase:
     return client
 
 
-async def user_token(
-    context: TurnContext, magic_code: Optional[str] = None
-) -> Optional[str]:
+async def user_token(context: TurnContext, magic_code: str | None = None) -> str | None:
     """The sender's Graph token, or None when they have not signed in.
 
     Asks the Bot Framework token service, which holds the refresh token and refreshes
@@ -207,14 +205,14 @@ def is_sign_in_action(activity: Activity) -> bool:
     return isinstance(action, dict) and action.get("verb") == VERB
 
 
-def pending_id_of(activity: Activity) -> Optional[str]:
+def pending_id_of(activity: Activity) -> str | None:
     value = activity.value if isinstance(activity.value, dict) else {}
     data = (value.get("action") or {}).get("data") or {}
     pending_id = data.get("pending") if isinstance(data, dict) else None
     return str(pending_id) if pending_id else None
 
 
-def magic_code_of(activity: Activity) -> Optional[str]:
+def magic_code_of(activity: Activity) -> str | None:
     value = activity.value if isinstance(activity.value, dict) else {}
     state = value.get("state")
     return str(state) if state else None

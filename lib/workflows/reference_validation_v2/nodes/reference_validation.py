@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 from langchain_core.messages import BaseMessage
 from langgraph.runtime import Runtime
@@ -65,7 +64,7 @@ async def validate_single_reference(state: dict, runtime: Runtime[ContextSchema]
     validation_result = None
     error = None
     status = ReferenceValidationV2Status.COMPLETED
-    agent_messages: List[BaseMessage] = []
+    agent_messages: list[BaseMessage] = []
 
     try:
         validation_result, agent_messages = await agent.ainvoke(

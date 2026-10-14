@@ -23,7 +23,8 @@ import shutil
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Iterator, Optional
+from typing import Any
+from collections.abc import Iterator
 from xml.sax.saxutils import escape
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -77,7 +78,7 @@ def _parts(markup: str) -> Iterator[tuple[str, str, bytes]]:
             yield name, content_type, base64.b64decode(binary.text)
 
 
-def _part_xml(xml_data: Any) -> Optional[bytes]:
+def _part_xml(xml_data: Any) -> bytes | None:
     """A part's XML, keeping anything that precedes its root element.
 
     SharePoint writes custom XML parts that open with a processing instruction, so
@@ -165,7 +166,7 @@ def _content_types(archive: ZipFile) -> tuple[dict[str, str], dict[str, str]]:
 
 def _content_type_of(
     name: str, by_extension: dict[str, str], by_name: dict[str, str]
-) -> Optional[str]:
+) -> str | None:
     """What this part declares itself to be, or None when it declares nothing.
 
     None means the part is not content: a .docx synced through OneDrive carries

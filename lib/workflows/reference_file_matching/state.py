@@ -1,7 +1,7 @@
 """State definitions for reference file matching workflow."""
 
 from enum import Enum
-from typing import Any, Dict, List, Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -43,7 +43,7 @@ class ReferenceFileMatch(BaseModel):
     @classmethod
     def migrate_is_manual(cls, data: Any) -> Any:
         """Migrate legacy is_manual bool to source enum."""
-        if isinstance(data, Dict) and "is_manual" in data and "source" not in data:
+        if isinstance(data, dict) and "is_manual" in data and "source" not in data:
             data = dict(data)
             data["source"] = (
                 MatchSource.MANUAL_UPLOAD if data.pop("is_manual") else MatchSource.AUTO_MATCHED
@@ -69,12 +69,12 @@ class ReferenceFileMatchingState(BaseWorkflowState):
     # Inputs
     config: ReferenceFileMatchingConfig
     file_id: str = Field(description="ID of the main document")
-    supporting_file_ids: List[str] = Field(
+    supporting_file_ids: list[str] = Field(
         default_factory=list, description="IDs of the supporting documents"
     )
 
     # Outputs - only matched references have entries here
-    matches: List[ReferenceFileMatch] = Field(
+    matches: list[ReferenceFileMatch] = Field(
         default_factory=list,
         description="List of matches between references and supporting files",
     )

@@ -28,7 +28,8 @@ two ever differ.
 """
 
 import uuid
-from typing import Any, AsyncIterator, Iterable, Optional
+from typing import Any
+from collections.abc import AsyncIterator, Iterable
 
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
@@ -63,7 +64,7 @@ def tool_event(call_id: str, name: str, args: Any) -> ChatEvent:
 
 
 def tool_result_event(
-    call_id: str, result: Any, is_error: bool = False, message_id: Optional[str] = None
+    call_id: str, result: Any, is_error: bool = False, message_id: str | None = None
 ) -> ChatEvent:
     event: ChatEvent = {"t": "tool_result", "id": call_id, "result": result}
     if is_error:
@@ -114,7 +115,7 @@ class GraphEventMapper:
 
     def __init__(self) -> None:
         self._announced: set[str] = set()
-        self._open_message_id: Optional[str] = None
+        self._open_message_id: str | None = None
         self._citations = CitationFilter()
 
     def map(self, mode: str, payload: Any) -> list[ChatEvent]:
@@ -185,7 +186,7 @@ class GraphEventMapper:
         self._open_message_id = None
         return events
 
-    def _open(self, message_id: Optional[str]) -> list[ChatEvent]:
+    def _open(self, message_id: str | None) -> list[ChatEvent]:
         """Announce an assistant message once, under the id it will be stored as."""
 
         if self._open_message_id is not None:

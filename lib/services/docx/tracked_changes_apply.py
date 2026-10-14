@@ -17,7 +17,7 @@ and once for real; see `lib.services.docx.edit_export`.
 
 import asyncio
 import logging
-from typing import Dict, List, Optional, Sequence
+from collections.abc import Sequence
 
 from docx_editor import BatchOperationError, Document as EditorDocument, EditOperation
 
@@ -32,8 +32,8 @@ logger = logging.getLogger(__name__)
 
 
 def _apply_paragraph(
-    doc: EditorDocument, ref: str, edits: List[PlannedEdit]
-) -> List[EditOutcome]:
+    doc: EditorDocument, ref: str, edits: list[PlannedEdit]
+) -> list[EditOutcome]:
     """Write one paragraph's redlines in a single atomic batch.
 
     Back-to-front: docx-editor matches each operation against the paragraph as
@@ -65,7 +65,7 @@ def _apply_paragraph(
             EditOutcome(edit_id=edit.edit_id, status="failed", detail=reason)
             for edit in ordered
         ]
-    outcomes: List[EditOutcome] = []
+    outcomes: list[EditOutcome] = []
     for edit, result in zip(ordered, results):
         # No revision group means docx-editor wrote nothing -- the operation
         # was a no-op, or it spliced into text an earlier one inserted. Either
@@ -94,13 +94,13 @@ def _apply_sync(
     docx_path: str,
     planned: Sequence[PlannedEdit],
     author: str,
-    workspace_root: Optional[str],
-) -> List[EditOutcome]:
-    by_paragraph: Dict[str, List[PlannedEdit]] = {}
+    workspace_root: str | None,
+) -> list[EditOutcome]:
+    by_paragraph: dict[str, list[PlannedEdit]] = {}
     for edit in planned:
         by_paragraph.setdefault(edit.paragraph_ref, []).append(edit)
 
-    outcomes: List[EditOutcome] = []
+    outcomes: list[EditOutcome] = []
     with editor_workspace(workspace_root) as workspace:
         doc = EditorDocument.open(docx_path, author=author, workspace_dir=workspace)
         try:
@@ -116,8 +116,8 @@ async def apply_tracked_changes(
     docx_path: str,
     planned: Sequence[PlannedEdit],
     author: str = TRACKED_CHANGE_AUTHOR,
-    workspace_root: Optional[str] = None,
-) -> List[EditOutcome]:
+    workspace_root: str | None = None,
+) -> list[EditOutcome]:
     """Write the planned redlines into `docx_path`, in place.
 
     The refs a plan carries were computed on the original file and stay valid

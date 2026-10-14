@@ -16,7 +16,6 @@ Every route here is called by the add-in, signed in as a Microsoft account (see
 
 import asyncio
 import logging
-from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -64,7 +63,7 @@ class AnnotateRequest(BaseModel):
     ooxml: str = Field(
         description=f"Flat OPC markup for the range the comment belongs on: {SCOPE}"
     )
-    quote: Optional[str] = Field(
+    quote: str | None = Field(
         default=None,
         description=(
             "Optionally the phrase within this paragraph to highlight, verbatim. "

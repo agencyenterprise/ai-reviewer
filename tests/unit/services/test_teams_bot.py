@@ -10,7 +10,7 @@ token turns one bad request into a retry storm. Both of these were 500s until a
 manual probe against the tunnel showed it.
 """
 
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -221,7 +221,7 @@ class TestFindingTheLinks:
     """
 
     def message(
-        self, text: str, attachments: Optional[list[Attachment]] = None
+        self, text: str, attachments: list[Attachment] | None = None
     ) -> Activity:
         return Activity(
             type=ActivityTypes.message, text=text, attachments=attachments or []

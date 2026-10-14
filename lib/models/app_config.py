@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import ForeignKey, Text
 from sqlalchemy.dialects.postgresql import UUID
@@ -33,7 +32,7 @@ class AppConfig(SQLModel, table=True):
             nullable=False,
         )
     )
-    updated_by: Optional[uuid.UUID] = Field(
+    updated_by: uuid.UUID | None = Field(
         default=None,
         sa_column=Column(
             UUID(as_uuid=True),

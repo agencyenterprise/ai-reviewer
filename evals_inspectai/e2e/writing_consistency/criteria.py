@@ -6,7 +6,6 @@ checks the sentence still says what it said.
 """
 
 from difflib import SequenceMatcher
-from typing import Optional
 
 from evals_inspectai.common.issue_inventory import normalize
 from evals_inspectai.common.issue_judge import JudgeCriterion
@@ -23,7 +22,7 @@ def _changed_words(a: str, b: str) -> int:
     return sum(max(i2 - i1, j2 - j1) for tag, i1, i2, j1, j2 in ops if tag != "equal")
 
 
-def minimal_change(edit: ProposedEdit) -> Optional[bool]:
+def minimal_change(edit: ProposedEdit) -> bool | None:
     """The replacement differs from the original by at most a few words: the
     variant and its immediate neighbours, nothing else. None for a deletion."""
     if not edit.replacement_text.strip():

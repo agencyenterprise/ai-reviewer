@@ -10,7 +10,7 @@ call per detected issue of that kind (``issue_judge``'s protocol and default
 grader model).
 """
 
-from typing import Callable
+from collections.abc import Callable
 
 from evals_inspectai.common.issue_inventory import ResolvedIssue
 from evals_inspectai.common.issue_judge import JudgeCriterion

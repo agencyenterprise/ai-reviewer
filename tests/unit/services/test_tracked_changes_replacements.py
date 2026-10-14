@@ -5,7 +5,6 @@ cannot represent is reported instead of approximated.
 """
 
 from pathlib import Path
-from typing import Dict, Tuple
 
 import pytest
 
@@ -21,7 +20,7 @@ from tests.unit.services.tracked_changes_support import (
 )
 
 _JOINED_MARKDOWN = "This is aword."
-_JOINED_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 1)}
+_JOINED_LINE_RANGES: dict[int, tuple[int, int]] = {0: (1, 1)}
 
 
 @pytest.fixture

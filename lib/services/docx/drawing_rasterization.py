@@ -34,7 +34,7 @@ import logging
 import os
 import shutil
 import tempfile
-from typing import Any, Optional
+from typing import Any
 
 import pypdfium2 as pdfium  # type: ignore[import-untyped]
 from docx import Document
@@ -63,7 +63,7 @@ _PDF_RENDER_SCALE = 4
 _EMU_PER_POINT = 12700
 
 
-async def rasterize_docx_drawings(docx_path: str) -> Optional[str]:
+async def rasterize_docx_drawings(docx_path: str) -> str | None:
     """Return a temp copy of ``docx_path`` with unrenderable drawings
     replaced by rendered images.
 
@@ -82,7 +82,7 @@ async def rasterize_docx_drawings(docx_path: str) -> Optional[str]:
         return None
 
 
-async def _rasterize_docx_drawings(docx_path: str) -> Optional[str]:
+async def _rasterize_docx_drawings(docx_path: str) -> str | None:
     document = Document(docx_path)
     renderable = [drawing for _, drawing in _renderable_paragraphs(document)]
     if not renderable:
@@ -298,7 +298,7 @@ def _render_pdf_pages(
 
 async def _render_drawings_to_images(
     docx_path: str, extents: list[tuple[int, int]]
-) -> Optional[tuple[str, list[str]]]:
+) -> tuple[str, list[str]] | None:
     """Render the document's renderable drawings; return (tmp_dir, image
     paths in drawing order), or None on failure. Caller removes tmp_dir."""
     expected = len(extents)

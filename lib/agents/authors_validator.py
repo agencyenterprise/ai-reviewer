@@ -5,8 +5,6 @@ and checks each author biography against four publication rules. Reports issues
 through tools and writes a markdown summary report to a file.
 """
 
-from typing import List, Optional
-
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 
@@ -57,8 +55,8 @@ class AuthorsValidatorAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: Optional[RunnableConfig] = None,
-    ) -> tuple[AgentCheckResult, List[BaseMessage]]:
+        config: RunnableConfig | None = None,
+    ) -> tuple[AgentCheckResult, list[BaseMessage]]:
         """Return the check result and the agent's full conversation, system prompt included."""
         issue_reporter = IssueReporter()
         deep_agent = build_deep_agent(

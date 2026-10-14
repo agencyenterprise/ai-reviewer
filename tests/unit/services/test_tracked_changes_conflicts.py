@@ -5,7 +5,7 @@ paragraph: one edit wins by the shared policy and the rest are reported.
 """
 
 from pathlib import Path
-from typing import Dict, Sequence, Tuple
+from collections.abc import Sequence
 
 import pytest
 
@@ -34,7 +34,7 @@ _TWO_LINE_MARKDOWN = "\n".join(
         "The committee recommends increasing the 2020 budget by 9%.",
     ]
 )
-_TWO_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 2)}
+_TWO_LINE_RANGES: dict[int, tuple[int, int]] = {0: (1, 2)}
 
 
 @pytest.fixture

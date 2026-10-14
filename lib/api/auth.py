@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 import jwt
 from fastapi import Depends, HTTPException, status
@@ -19,7 +18,7 @@ oauth2_scheme = HTTPBearer()
 oauth2_scheme_optional = HTTPBearer(auto_error=False)
 
 
-async def _decode_token(credentials: HTTPAuthorizationCredentials) -> Optional[User]:
+async def _decode_token(credentials: HTTPAuthorizationCredentials) -> User | None:
     """Shared token decode logic."""
     try:
         payload = jwt.decode(
@@ -57,10 +56,8 @@ async def get_current_user(
 
 
 async def get_current_user_optional(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(
-        oauth2_scheme_optional
-    ),
-) -> Optional[User]:
+    credentials: HTTPAuthorizationCredentials | None = Depends(oauth2_scheme_optional),
+) -> User | None:
     """Returns authenticated user or None if auth fails."""
     if not credentials:
         return None

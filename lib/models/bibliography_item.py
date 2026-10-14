@@ -1,6 +1,6 @@
 """Bibliography item model for reference extraction."""
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
@@ -21,11 +21,11 @@ class BibliographyItem(BaseModel):
     name_of_associated_supporting_document: str = Field(
         description="If the bibliographic item has an associated supporting document, this will be the name of the supporting document, otherwise it will be an empty string."
     )
-    file_id: Optional[str] = Field(
+    file_id: str | None = Field(
         default=None,
         description="The UUID of the associated supporting document file in the database (if matched)",
     )
-    reference_id: Optional[str] = Field(
+    reference_id: str | None = Field(
         default=None,
         description="The ID of the underlying ExtractedReference, when available.",
     )
@@ -33,8 +33,8 @@ class BibliographyItem(BaseModel):
 
 def get_associated_supporting_file(
     reference: BibliographyItem,
-    supporting_files: List["FileDocument"],
-) -> Optional["FileDocument"]:
+    supporting_files: list["FileDocument"],
+) -> "FileDocument | None":
     """
     Get the supporting file associated with a bibliography reference.
 

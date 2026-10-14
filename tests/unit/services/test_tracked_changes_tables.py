@@ -6,7 +6,6 @@ even when the cell repeats that prose word for word.
 """
 
 from pathlib import Path
-from typing import Dict, Tuple
 
 import pytest
 from docx import Document as PythonDocxDocument
@@ -36,7 +35,7 @@ _TABLE_MARKDOWN = "\n".join(
         "| Growth | 14% |",
     ]
 )
-_TABLE_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 1), 1: (3, 7)}
+_TABLE_LINE_RANGES: dict[int, tuple[int, int]] = {0: (1, 1), 1: (3, 7)}
 
 # Why an edit is turned down: because its line is a table row at all, rather
 # than because the line and the paragraph are different passages.
@@ -119,7 +118,7 @@ _ECHO_MARKDOWN = "\n".join(
         f"| {_ECHO_PARAGRAPH} |",
     ]
 )
-_ECHO_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 3)}
+_ECHO_LINE_RANGES: dict[int, tuple[int, int]] = {0: (1, 3)}
 
 
 @pytest.fixture
