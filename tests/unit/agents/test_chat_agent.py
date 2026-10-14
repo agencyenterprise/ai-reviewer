@@ -50,17 +50,24 @@ class TestResolveChatModel:
 
 
 class TestBuildChatAgent:
-    def test_the_agent_is_built_with_the_streaming_settings_and_the_checkpointer(self) -> None:
+    def test_the_agent_is_built_with_the_streaming_settings_and_the_checkpointer(
+        self,
+    ) -> None:
         llm, saver = object(), object()
         with (
             patch.object(chat_agent, "build_llm", return_value=llm) as build_llm,
-            patch.object(chat_agent, "build_deep_agent", return_value="graph") as create,
+            patch.object(
+                chat_agent, "build_deep_agent", return_value="graph"
+            ) as create,
         ):
             assert build_chat_agent(resolve_chat_model("gpt-5.6-sol"), "sk-user", saver) == "graph"  # type: ignore[arg-type]
 
         model, api_key = build_llm.call_args.args
         assert model.name == "gpt-5.6-sol" and api_key == "sk-user"
-        assert build_llm.call_args.kwargs == {"reasoning": CHAT_REASONING, "output_version": "v1"}
+        assert build_llm.call_args.kwargs == {
+            "reasoning": CHAT_REASONING,
+            "output_version": "v1",
+        }
         assert CHAT_REASONING["summary"] == "detailed"
 
         kwargs = create.call_args.kwargs
@@ -72,7 +79,9 @@ class TestBuildChatAgent:
 
     def test_the_input_mounts_interactive_skills_plus_the_turn_files(self) -> None:
         message = HumanMessage(content="hi")
-        agent_input = build_chat_input(message, {"/attachments/a.md": {"content": ["x"]}})
+        agent_input = build_chat_input(
+            message, {"/attachments/a.md": {"content": ["x"]}}
+        )
 
         assert agent_input["messages"] == [message]
         files = agent_input["files"]
@@ -107,7 +116,9 @@ class TestRunChatTurn:
         async def get_checkpointer():
             yield saver
 
-        async def fake_stream(agent: Any, agent_input: Any, config: Any) -> AsyncIterator[dict]:
+        async def fake_stream(
+            agent: Any, agent_input: Any, config: Any
+        ) -> AsyncIterator[dict]:
             seen.update(agent=agent, agent_input=agent_input, config=config)
             yield {"t": "text", "v": "ok"}
 
@@ -150,24 +161,36 @@ class TestSkillCatalogue:
         manifests = get_all_manifests()
         by_name = {skill.name: skill.description for skill in chat_skill_catalogue()}
 
-        assert by_name["reviewer-2"] == manifests[SKILL_WORKFLOWS["reviewer-2"]].description
+        assert (
+            by_name["reviewer-2"]
+            == manifests[SKILL_WORKFLOWS["reviewer-2"]].description
+        )
         # A helper skill without a workflow keeps its own description.
         assert "voice-and-tone" in by_name
         assert by_name["voice-and-tone"].startswith("How Draft Detective writes")
         assert set(by_name).isdisjoint(EXCLUDED_CHAT_SKILLS)
 
-    def test_a_skill_declared_workflow_is_described_by_its_manifest_without_a_map_entry(self) -> None:
+    def test_a_skill_declared_workflow_is_described_by_its_manifest_without_a_map_entry(
+        self,
+    ) -> None:
         manifests = get_all_manifests()
         by_name = {skill.name: skill.description for skill in chat_skill_catalogue()}
 
         assert "active-voice" not in SKILL_WORKFLOWS
-        assert by_name["active-voice"] == manifests[WorkflowRunType("active_voice")].description
-        frontmatter = read_skill_frontmatter(SKILLS_DIR / "active-voice" / "SKILL.md") or {}
+        assert (
+            by_name["active-voice"]
+            == manifests[WorkflowRunType("active_voice")].description
+        )
+        frontmatter = (
+            read_skill_frontmatter(SKILLS_DIR / "active-voice" / "SKILL.md") or {}
+        )
         assert by_name["active-voice"] != frontmatter["description"]
 
     def test_a_retired_workflow_falls_back_to_the_skill_description(self) -> None:
         with patch.object(chat_agent, "get_all_manifests", return_value={}):
-            by_name = {skill.name: skill.description for skill in chat_skill_catalogue()}
+            by_name = {
+                skill.name: skill.description for skill in chat_skill_catalogue()
+            }
         own = (SKILLS_DIR / "reviewer-2" / "SKILL.md").read_text()
         assert by_name["reviewer-2"]
         assert by_name["reviewer-2"][:40] in own.replace("\n  ", " ").replace("\n", " ")

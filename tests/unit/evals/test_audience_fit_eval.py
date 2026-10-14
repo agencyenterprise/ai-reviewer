@@ -307,10 +307,14 @@ def test_a_missing_audience_issue_quoting_the_method_paragraph_is_no_jargon_flag
         start_line=expected.line,
         end_line=expected.line,
     )
-    values, _ = decoy_scores([quoting], inventory.with_policy(decoy_reasons=["technical_audience"]))
+    values, _ = decoy_scores(
+        [quoting], inventory.with_policy(decoy_reasons=["technical_audience"])
+    )
     assert values == {"no_fp_technical_audience": 1.0}
     jargon = quoting.model_copy(update={"title": "Technical Language"})
-    values, _ = decoy_scores([jargon], inventory.with_policy(decoy_reasons=["technical_audience"]))
+    values, _ = decoy_scores(
+        [jargon], inventory.with_policy(decoy_reasons=["technical_audience"])
+    )
     assert values == {"no_fp_technical_audience": 0.0}
 
 

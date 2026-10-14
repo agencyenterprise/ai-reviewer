@@ -76,9 +76,7 @@ async def rasterize_docx_drawings(docx_path: str) -> str | None:
         return await _rasterize_docx_drawings(docx_path)
     except Exception:
         # Rendering is an enhancement; a conversion must never fail over it.
-        logger.warning(
-            "Drawing rasterization failed for %s", docx_path, exc_info=True
-        )
+        logger.warning("Drawing rasterization failed for %s", docx_path, exc_info=True)
         return None
 
 
@@ -228,7 +226,15 @@ def _write_render_source_docx(src_path: str, dst_path: str) -> int:
         if margins is None:
             margins = OxmlElement("w:pgMar")
             sectPr.append(margins)
-        for attribute in ("top", "right", "bottom", "left", "header", "footer", "gutter"):
+        for attribute in (
+            "top",
+            "right",
+            "bottom",
+            "left",
+            "header",
+            "footer",
+            "gutter",
+        ):
             margins.set(qn(f"w:{attribute}"), "0")
 
     for tag in ("w:headerReference", "w:footerReference"):
@@ -393,7 +399,7 @@ def _replace_drawing_with_image(document, drawing, image_path: str) -> bool:
         f'<pic:pic {nsdecls("pic", "a", "r")}>'
         f'<pic:nvPicPr><pic:cNvPr id="0" name="drawing"/><pic:cNvPicPr/></pic:nvPicPr>'
         f'<pic:blipFill><a:blip r:embed="{rId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
-        f"<pic:spPr><a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"{cx}\" cy=\"{cy}\"/></a:xfrm>"
+        f'<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm>'
         f'<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'
         f"</pic:pic>"
     )

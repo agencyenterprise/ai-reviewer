@@ -25,13 +25,21 @@ class TestBuildingATurn:
         )
 
         assert files == {"/attachments/draft.md": files["/attachments/draft.md"]}
-        assert file_data_to_string(files["/attachments/draft.md"]) == "# Methods\n\nWe did things."
+        assert (
+            file_data_to_string(files["/attachments/draft.md"])
+            == "# Methods\n\nWe did things."
+        )
 
         assert message.text.startswith("Check the methods section.")
-        assert 'Attached document "draft.docx" is mounted at /attachments/draft.md' in message.text
+        assert (
+            'Attached document "draft.docx" is mounted at /attachments/draft.md'
+            in message.text
+        )
         assert message.additional_kwargs == {
             "user_text": "Check the methods section.",
-            "attachments": [{"name": "draft.docx", "path": "/attachments/draft.md", "chars": 25}],
+            "attachments": [
+                {"name": "draft.docx", "path": "/attachments/draft.md", "chars": 25}
+            ],
         }
 
     def test_the_page_picks_the_message_id(self) -> None:
@@ -49,7 +57,11 @@ class TestBuildingATurn:
                 ChatAttachment(name="draft.docx", text="three"),
             ],
         )
-        assert sorted(files) == ["/attachments/Draft-copy.md", "/attachments/draft-2.md", "/attachments/draft.md"]
+        assert sorted(files) == [
+            "/attachments/Draft-copy.md",
+            "/attachments/draft-2.md",
+            "/attachments/draft.md",
+        ]
         assert [a["path"] for a in message.additional_kwargs["attachments"]] == [
             "/attachments/draft.md",
             "/attachments/Draft-copy.md",
@@ -57,7 +69,9 @@ class TestBuildingATurn:
         ]
 
     def test_a_turn_can_be_only_an_attachment(self) -> None:
-        message, files = build_user_turn("", [ChatAttachment(name="a.pdf", text="body")])
+        message, files = build_user_turn(
+            "", [ChatAttachment(name="a.pdf", text="body")]
+        )
         assert message.text.startswith('[Attached document "a.pdf"')
         assert message.additional_kwargs["user_text"] == ""
         assert set(files) == {"/attachments/a.md"}
@@ -71,19 +85,31 @@ class TestUiMessages:
         message = HumanMessage(
             content="hi\n\n[Attached document ...]",
             id="h1",
-            additional_kwargs={"user_text": "hi", "attachments": [{"name": "a.pdf", "path": "/attachments/a.md", "chars": 4}]},
+            additional_kwargs={
+                "user_text": "hi",
+                "attachments": [
+                    {"name": "a.pdf", "path": "/attachments/a.md", "chars": 4}
+                ],
+            },
         )
         assert to_ui_messages([message]) == [
             {
                 "id": "h1",
                 "type": "human",
                 "content": "hi",
-                "additional_kwargs": {"attachments": [{"name": "a.pdf", "path": "/attachments/a.md", "chars": 4}]},
+                "additional_kwargs": {
+                    "attachments": [
+                        {"name": "a.pdf", "path": "/attachments/a.md", "chars": 4}
+                    ]
+                },
             }
         ]
 
     def test_a_plain_human_message_falls_back_to_its_text(self) -> None:
-        assert to_ui_messages([HumanMessage(content="plain", id="h2")])[0]["content"] == "plain"
+        assert (
+            to_ui_messages([HumanMessage(content="plain", id="h2")])[0]["content"]
+            == "plain"
+        )
 
     def test_ai_content_is_rewritten_for_the_converter(self) -> None:
         """v1 reasoning becomes a summary list, adjacent text merges, hosted web
@@ -94,8 +120,17 @@ class TestUiMessages:
                 {"type": "reasoning", "reasoning": "Weighing the claim.", "id": "rs_1"},
                 {"type": "text", "text": "Hel"},
                 {"type": "text", "text": "lo."},
-                {"type": "server_tool_call", "id": "ws_1", "name": "web_search", "args": {"query": "q"}},
-                {"type": "server_tool_result", "tool_call_id": "ws_1", "status": "completed"},
+                {
+                    "type": "server_tool_call",
+                    "id": "ws_1",
+                    "name": "web_search",
+                    "args": {"query": "q"},
+                },
+                {
+                    "type": "server_tool_result",
+                    "tool_call_id": "ws_1",
+                    "status": "completed",
+                },
                 {"type": "tool_call", "id": "c1", "name": "read_file", "args": {}},
             ],
             tool_calls=[{"id": "c1", "name": "read_file", "args": {"file_path": "/a"}}],
@@ -106,7 +141,12 @@ class TestUiMessages:
             "id": "a1",
             "type": "ai",
             "content": [
-                {"type": "reasoning", "summary": [{"type": "summary_text", "text": "Weighing the claim."}]},
+                {
+                    "type": "reasoning",
+                    "summary": [
+                        {"type": "summary_text", "text": "Weighing the claim."}
+                    ],
+                },
                 {"type": "text", "text": "Hello."},
             ],
             "tool_calls": [
@@ -120,12 +160,25 @@ class TestUiMessages:
     def test_summary_layout_reasoning_is_accepted_too(self) -> None:
         message = AIMessage(
             id="a2",
-            content=[{"type": "reasoning", "summary": [{"type": "summary_text", "text": "A"}, {"type": "summary_text", "text": "B"}]}, {"type": "text", "text": "x"}],
+            content=[
+                {
+                    "type": "reasoning",
+                    "summary": [
+                        {"type": "summary_text", "text": "A"},
+                        {"type": "summary_text", "text": "B"},
+                    ],
+                },
+                {"type": "text", "text": "x"},
+            ],
         )
         assert to_ui_messages([message])[0]["content"][0]["summary"][0]["text"] == "AB"
 
     def test_empty_ai_messages_and_system_messages_are_dropped(self) -> None:
-        messages = [SystemMessage(content="persona"), AIMessage(content="", id="a3"), HumanMessage(content="hi", id="h1")]
+        messages = [
+            SystemMessage(content="persona"),
+            AIMessage(content="", id="a3"),
+            HumanMessage(content="hi", id="h1"),
+        ]
         assert [m["type"] for m in to_ui_messages(messages)] == ["human"]
 
     def test_a_nameless_tool_message_still_has_a_string_name(self) -> None:
@@ -134,9 +187,27 @@ class TestUiMessages:
         assert ui["name"] == "tool" and ui["status"] == "success"
 
     def test_tool_messages_keep_their_status(self) -> None:
-        ok = ToolMessage(content="contents", tool_call_id="c1", name="read_file", id="t1")
-        failed = ToolMessage(content="boom", tool_call_id="c2", name="grep", id="t2", status="error")
+        ok = ToolMessage(
+            content="contents", tool_call_id="c1", name="read_file", id="t1"
+        )
+        failed = ToolMessage(
+            content="boom", tool_call_id="c2", name="grep", id="t2", status="error"
+        )
         assert to_ui_messages([ok, failed]) == [
-            {"id": "t1", "type": "tool", "tool_call_id": "c1", "name": "read_file", "content": "contents", "status": "success"},
-            {"id": "t2", "type": "tool", "tool_call_id": "c2", "name": "grep", "content": "boom", "status": "error"},
+            {
+                "id": "t1",
+                "type": "tool",
+                "tool_call_id": "c1",
+                "name": "read_file",
+                "content": "contents",
+                "status": "success",
+            },
+            {
+                "id": "t2",
+                "type": "tool",
+                "tool_call_id": "c2",
+                "name": "grep",
+                "content": "boom",
+                "status": "error",
+            },
         ]

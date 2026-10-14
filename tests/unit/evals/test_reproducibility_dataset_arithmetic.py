@@ -90,7 +90,9 @@ def test_anchors_are_unique_within_a_sample(expectations: dict[str, list[dict]])
 def test_inline_simulation_load_is_stable(documents: dict[str, str]):
     """A single-server queue only has the reported percentiles below rho = 1."""
     doc = documents["inline_simulation"]
-    lam = float(_capture(r"\\lambda = (\d+)\$ requests per second", doc, "the arrival rate"))
+    lam = float(
+        _capture(r"\\lambda = (\d+)\$ requests per second", doc, "the arrival rate")
+    )
     mu = float(_capture(r"\$\\mu = (-?[\d.]+)\$", doc, "the lognormal mu"))
     sigma = float(_capture(r"\$\\sigma = ([\d.]+)\$", doc, "the lognormal sigma"))
 
@@ -103,13 +105,17 @@ def test_inline_simulation_load_is_stable(documents: dict[str, str]):
         f"arrival rate {lam}/s and mean service {mean_service * 1000:.3f} ms give "
         f"rho={rho:.3f}, but the document states {stated_rho}"
     )
-    assert rho < 1, "the document reports steady-state percentiles for an unstable queue"
+    assert (
+        rho < 1
+    ), "the document reports steady-state percentiles for an unstable queue"
 
     # The Pollaczek-Khinchine value the document checks its simulator against.
     cv = np.sqrt(np.exp(sigma**2) - 1)
     wait_ms = rho / (1 - rho) * (1 + cv**2) / 2 * mean_service * 1000
     stated_wait = float(
-        _capture(r"FIFO waiting time of ([\d.]+) ms", doc, "the Pollaczek-Khinchine value")
+        _capture(
+            r"FIFO waiting time of ([\d.]+) ms", doc, "the Pollaczek-Khinchine value"
+        )
     )
     assert wait_ms == pytest.approx(stated_wait, abs=0.05)
 
@@ -119,21 +125,29 @@ def test_mixed_classes_engineering_estimate_follows_its_own_table(
 ):
     """The stated coefficients must be what OLS returns, and the estimate follow."""
     doc = documents["mixed_classes"]
-    a = float(_capture(r"\$a = ([\d,]+)\$ GBP/kW", doc, "coefficient a").replace(",", ""))
-    b = float(_capture(r"\$b = ([\d,]+)\$ GBP/m", doc, "coefficient b").replace(",", ""))
+    a = float(
+        _capture(r"\$a = ([\d,]+)\$ GBP/kW", doc, "coefficient a").replace(",", "")
+    )
+    b = float(
+        _capture(r"\$b = ([\d,]+)\$ GBP/m", doc, "coefficient b").replace(",", "")
+    )
     c = float(
         _capture(r"\$c = ([\d{},]+)\$ GBP", doc, "coefficient c")
         .replace("{,}", "")
         .replace(",", "")
     )
-    q = float(_capture(r"Q_\{\\text\{design\}\} = ([\d.]+)\$ kW", doc, "the design heat loss"))
+    q = float(
+        _capture(r"Q_\{\\text\{design\}\} = ([\d.]+)\$ kW", doc, "the design heat loss")
+    )
     area = float(
-        _capture(r"A_\{\\text\{emitter\}\} = ([\d.]+)\$\n?\s*m", doc, "the emitter area")
+        _capture(
+            r"A_\{\\text\{emitter\}\} = ([\d.]+)\$\n?\s*m", doc, "the emitter area"
+        )
     )
     stated = float(
-        _capture(r"m²\) gives \*\*([\d,]+) GBP\*\*", doc, "the engineering estimate").replace(
-            ",", ""
-        )
+        _capture(
+            r"m²\) gives \*\*([\d,]+) GBP\*\*", doc, "the engineering estimate"
+        ).replace(",", "")
     )
 
     rows = re.findall(r"^\| \d+ \| ([\d.]+) \| ([\d.]+) \| ([\d,]+) \|$", doc, re.M)
@@ -191,7 +205,9 @@ def test_appendix_parameters_historical_yield_is_achievable(documents: dict[str,
         .replace(",", "")
     )
     stated = float(
-        _capture(r"\| Historical \(2011–2020\) \| ([\d.]+) \|", doc, "the historical yield")
+        _capture(
+            r"\| Historical \(2011–2020\) \| ([\d.]+) \|", doc, "the historical yield"
+        )
     )
     months = _reservoir_months(doc)
     assert len(months) == 120, f"expected 120 monthly inflows, found {len(months)}"

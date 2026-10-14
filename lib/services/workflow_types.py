@@ -20,6 +20,7 @@ from lib.workflows.skill_workflows import SkillWorkflowManifest
 if TYPE_CHECKING:
     from lib.workflows.manifest import WorkflowManifest
 
+
 def _display_config() -> list[CategoryConfig]:
     """WORKFLOW_DISPLAY_CONFIG plus the skill-declared workflows.
 
@@ -47,6 +48,7 @@ _WORKFLOW_CATEGORY_MAP: dict[WorkflowRunType, str] = {
     for wf_type in category.workflows
 }
 
+
 def _preset_config() -> list[PresetConfig]:
     """WORKFLOW_PRESETS plus the skill-declared workflows that name them.
 
@@ -58,7 +60,10 @@ def _preset_config() -> list[PresetConfig]:
     """
     presets = [
         PresetConfig(
-            slug=p.slug, label=p.label, description=p.description, workflows=list(p.workflows)
+            slug=p.slug,
+            label=p.label,
+            description=p.description,
+            workflows=list(p.workflows),
         )
         for p in WORKFLOW_PRESETS
     ]
@@ -133,7 +138,9 @@ class WorkflowPreset(BaseModel):
 
     slug: str = Field(description="Stable identifier of the preset")
     label: str = Field(description="Name shown on the preset's chip")
-    description: str = Field(description="One sentence on who the preset is for and what it runs")
+    description: str = Field(
+        description="One sentence on who the preset is for and what it runs"
+    )
     workflows: list[WorkflowRunType] = Field(
         description="The assessments the preset selects, in picker order"
     )

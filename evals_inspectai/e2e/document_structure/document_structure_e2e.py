@@ -53,7 +53,10 @@ GROUND_TRUTH = (
     "(no anchor, since the section is absent) with severity high; clean documents expect none. No edits "
     "are expected. A NaN metric value means the sample gave that check nothing to judge."
 )
-OWN_METRICS = {"structure_checks": OWN_DESCRIPTIONS, "judged_criteria": JUDGE_DESCRIPTIONS}
+OWN_METRICS = {
+    "structure_checks": OWN_DESCRIPTIONS,
+    "judged_criteria": JUDGE_DESCRIPTIONS,
+}
 
 
 @scorer(metrics=PER_KEY_METRICS)
@@ -75,7 +78,11 @@ def document_structure_e2e(timeout_s: float = 300, judge_calls: int = 1) -> Task
         dataset=suite.dataset(),
         metadata=suite.metadata(GROUND_TRUTH, OWN_METRICS),
         solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s),
-        scorer=[*suite.scorers(), structure_checks(), suite.judged(JUDGE_CRITERIA, calls=judge_calls)],
+        scorer=[
+            *suite.scorers(),
+            structure_checks(),
+            suite.judged(JUDGE_CRITERIA, calls=judge_calls),
+        ],
         fail_on_error=0.2,
         viewer=suite.viewer(OWN_METRICS, SCORE_LABELS),
     )

@@ -46,6 +46,7 @@ RUBRIC_CRITERIA = (
     "sample_expectations",
 )
 
+
 def severity_matches_label(severity: str, label: str) -> bool:
     """The split the skill mandates, without pinning the exact level."""
     if label == NOT_REPRODUCIBLE:

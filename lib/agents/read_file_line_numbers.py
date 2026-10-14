@@ -77,9 +77,11 @@ class ReadFileLineNumbersMiddleware(AgentMiddleware[Any, Any, Any]):
     def _describe(self, request: ModelRequest) -> ModelRequest:
         notes = {READ_FILE: _READ_FILE_NOTE, EDIT_FILE: _EDIT_FILE_NOTE}
         tools = [
-            _with_note(tool, notes[tool.name])
-            if isinstance(tool, BaseTool) and tool.name in notes
-            else tool
+            (
+                _with_note(tool, notes[tool.name])
+                if isinstance(tool, BaseTool) and tool.name in notes
+                else tool
+            )
             for tool in request.tools
         ]
         return request.override(tools=tools)
@@ -102,7 +104,9 @@ class ReadFileLineNumbersMiddleware(AgentMiddleware[Any, Any, Any]):
     def _number(
         request: ToolCallRequest, result: ToolMessage | Command[Any]
     ) -> ToolMessage | Command[Any]:
-        if request.tool_call.get("name") != READ_FILE or not isinstance(result, ToolMessage):
+        if request.tool_call.get("name") != READ_FILE or not isinstance(
+            result, ToolMessage
+        ):
             return result
         if not isinstance(result.content, str):
             return result
@@ -124,4 +128,3 @@ class ReadFileLineNumbersMiddleware(AgentMiddleware[Any, Any, Any]):
         handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command[Any]]],
     ) -> ToolMessage | Command[Any]:
         return self._number(request, await handler(request))
-

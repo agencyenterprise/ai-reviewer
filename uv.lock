@@ -897,7 +897,7 @@ requires-dist = [
     { name = "aiotools", specifier = ">=2.2.3" },
     { name = "alembic", specifier = ">=1.14.0" },
     { name = "alembic-postgresql-enum", specifier = ">=1.8.0" },
-    { name = "black", specifier = ">=25.1.0" },
+    { name = "black", specifier = "==26.3.1" },
     { name = "cryptography", specifier = ">=50.0.0" },
     { name = "deepagents", specifier = ">=0.7.19" },
     { name = "docx-editor", specifier = ">=0.7.1" },

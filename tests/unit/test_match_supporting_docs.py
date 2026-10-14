@@ -347,7 +347,9 @@ class TestMatchSupportingDocsNode:
     async def test_skips_already_matched_references(self, mock_state, mock_runtime):
         """References already in state.matches must not be re-matched, and their matches must be preserved."""
         summaries = {0: make_summary("Paper B", "Jones", "2021", file_id="file-id-0")}
-        extracted_refs = make_extracted_refs(["Already matched ref", "New unmatched ref"])
+        extracted_refs = make_extracted_refs(
+            ["Already matched ref", "New unmatched ref"]
+        )
         existing_match = ReferenceFileMatch(
             reference_id="ref-0", file_id="file-id-0", source=MatchSource.MANUAL_UPLOAD
         )

@@ -38,9 +38,11 @@ def test_decrypt_with_wrong_key_raises():
         mock_cfg.AUTH_SECRET = "completely-different-secret-for-testing"
         # Clear the lru_cache so the patched config is used
         from lib.services.encryption import _get_fernet
+
         _get_fernet.cache_clear()
         with pytest.raises(Exception):
             decrypt_value(ciphertext)
     # Restore cache state for subsequent tests
     from lib.services.encryption import _get_fernet
+
     _get_fernet.cache_clear()

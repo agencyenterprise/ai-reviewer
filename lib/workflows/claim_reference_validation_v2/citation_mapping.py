@@ -1,7 +1,9 @@
 """Utility for building a bibliography-to-file mapping string for agent prompts."""
 
-
-from lib.models.bibliography_item import BibliographyItem, get_associated_supporting_file
+from lib.models.bibliography_item import (
+    BibliographyItem,
+    get_associated_supporting_file,
+)
 from lib.services.file import FileDocument
 
 

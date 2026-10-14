@@ -113,6 +113,7 @@ SEVERITY_AUTHORS = {
     CommentSeverity.NONE: ("✅ Passing", "PA"),
 }
 
+
 class DocxComment(BaseModel):
     """Represents a comment to be added to a docx file."""
 

@@ -40,7 +40,11 @@ from inspect_ai.scorer import Scorer, scorer
 
 from evals_inspectai.common.api_solver import api_workflow_agent
 from evals_inspectai.common.inventory_suite import InventorySuite
-from evals_inspectai.common.issue_checks import PER_KEY_METRICS, deterministic_scorer, extra_edit_scores
+from evals_inspectai.common.issue_checks import (
+    PER_KEY_METRICS,
+    deterministic_scorer,
+    extra_edit_scores,
+)
 from evals_inspectai.e2e.writing_consistency.criteria import (
     EXTRA_EDIT_CHECKS,
     EXTRA_EDIT_DESCRIPTIONS,
@@ -56,13 +60,20 @@ GROUND_TRUTH = (
     "edit expectations, plus decoy sentences whose variation is legitimate. A NaN metric value means the "
     "sample gave that check nothing to judge."
 )
-OWN_METRICS = {"consistency_edit_checks": EXTRA_EDIT_DESCRIPTIONS, "judged_criteria": JUDGE_DESCRIPTIONS}
+OWN_METRICS = {
+    "consistency_edit_checks": EXTRA_EDIT_DESCRIPTIONS,
+    "judged_criteria": JUDGE_DESCRIPTIONS,
+}
 
 
 @scorer(metrics=PER_KEY_METRICS)
 def consistency_edit_checks() -> Scorer:
     """This workflow's own deterministic edit check: the edit changes only the variant."""
-    return deterministic_scorer(lambda issues, inventory: extra_edit_scores(issues, inventory, EXTRA_EDIT_CHECKS))
+    return deterministic_scorer(
+        lambda issues, inventory: extra_edit_scores(
+            issues, inventory, EXTRA_EDIT_CHECKS
+        )
+    )
 
 
 @task
@@ -78,7 +89,11 @@ def writing_consistency_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Tas
         dataset=suite.dataset(),
         metadata=suite.metadata(GROUND_TRUTH, OWN_METRICS),
         solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s),
-        scorer=[*suite.scorers(), consistency_edit_checks(), suite.judged(JUDGE_CRITERIA, calls=judge_calls)],
+        scorer=[
+            *suite.scorers(),
+            consistency_edit_checks(),
+            suite.judged(JUDGE_CRITERIA, calls=judge_calls),
+        ],
         fail_on_error=0.2,
         viewer=suite.viewer(OWN_METRICS, SCORE_LABELS),
     )

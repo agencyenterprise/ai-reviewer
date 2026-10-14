@@ -12,7 +12,15 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    Response,
+    UploadFile,
+    status,
+)
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -176,7 +184,9 @@ async def list_messages(
 @router.get("/threads/{thread_id}/files", response_model=ThreadFileResponse)
 async def read_thread_file_content(
     thread_id: uuid.UUID,
-    path: str = Query(description="A path in the thread's filesystem, e.g. /attachments/draft.md"),
+    path: str = Query(
+        description="A path in the thread's filesystem, e.g. /attachments/draft.md"
+    ),
     current_user: User = Depends(get_current_user),
 ) -> ThreadFileResponse:
     """An attachment from the agent's filesystem for this thread.
@@ -186,11 +196,15 @@ async def read_thread_file_content(
     """
 
     if not path.startswith(f"{ATTACHMENTS_DIR}/"):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="File not found"
+        )
     await chat_thread_service.get_thread(thread_id=thread_id, user=current_user)
     content = await read_thread_file(str(thread_id), path)
     if content is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="File not found"
+        )
     return ThreadFileResponse(path=path, content=content)
 
 
@@ -217,7 +231,9 @@ async def stream_chat_turn(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="A message needs text or an attachment.",
         )
-    thread = await chat_thread_service.touch_thread(thread_id=thread_id, user=current_user)
+    thread = await chat_thread_service.touch_thread(
+        thread_id=thread_id, user=current_user
+    )
 
     events = run_chat_turn(
         thread_id=str(thread.id),
@@ -274,7 +290,9 @@ async def generate_thread_title(
     for a title around the end of a thread's first run, sometimes more than once.
     """
 
-    thread = await chat_thread_service.get_thread(thread_id=thread_id, user=current_user)
+    thread = await chat_thread_service.get_thread(
+        thread_id=thread_id, user=current_user
+    )
     if thread.title:
         return thread
     title = await generate_title(

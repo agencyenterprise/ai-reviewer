@@ -121,9 +121,7 @@ class MockFileArtifactsService(FileArtifactsServiceType):
             skills_dir = project_root / "skills"
             for skill_file in sorted(skills_dir.rglob("*")):
                 if skill_file.is_file():
-                    virtual_path = (
-                        "/" + skill_file.relative_to(project_root).as_posix()
-                    )
+                    virtual_path = "/" + skill_file.relative_to(project_root).as_posix()
                     files[virtual_path] = create_file_data(
                         strip_interactive_only(skill_file.read_text())
                     )

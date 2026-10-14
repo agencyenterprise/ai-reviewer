@@ -37,7 +37,9 @@ SECTIONS = {
     "summary": re.compile(r"\bsummary\b", re.I),
     "strengths": re.compile(r"\bstrengths?\b", re.I),
     "weaknesses": re.compile(r"\bweakness(?:es)?\b", re.I),
-    "next_steps": re.compile(r"\bnext steps\b|\bactionable\b|\brecommendations\b", re.I),
+    "next_steps": re.compile(
+        r"\bnext steps\b|\bactionable\b|\brecommendations\b", re.I
+    ),
 }
 # The level a wholly bold line counts as, next to markdown's 1 to 6: a section title.
 _BOLD_LEVEL = 2
@@ -58,16 +60,28 @@ class Point(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: str
-    point: str = Field(description="The weakness or strength, stated as a reviewer would")
+    point: str = Field(
+        description="The weakness or strength, stated as a reviewer would"
+    )
 
 
 class Reviewer2Record(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    input: str = Field(description="The document: inline markdown, or file://<path> relative to evals_inspectai/")
-    weaknesses: list[Point] = Field(description="Substantive weaknesses a rigorous review raises")
-    strengths: list[Point] = Field(default_factory=list, description="Genuine strengths the review credits and does not attack")
-    authors: list[str] = Field(default_factory=list, description="Surnames both header blocks must name; empty when the document names none")
+    input: str = Field(
+        description="The document: inline markdown, or file://<path> relative to evals_inspectai/"
+    )
+    weaknesses: list[Point] = Field(
+        description="Substantive weaknesses a rigorous review raises"
+    )
+    strengths: list[Point] = Field(
+        default_factory=list,
+        description="Genuine strengths the review credits and does not attack",
+    )
+    authors: list[str] = Field(
+        default_factory=list,
+        description="Surnames both header blocks must name; empty when the document names none",
+    )
     notes: str | None = None
 
 
@@ -85,8 +99,18 @@ def headings(markdown: str) -> list[tuple[int, int, str]]:
     for number, line in enumerate(markdown.split("\n")):
         match = _HEADING_RE.match(line)
         if match:
-            level = len(line.lstrip()) - len(line.lstrip().lstrip("#")) if match.group("md") else _BOLD_LEVEL
-            found.append((number, level, (match.group("md") or match.group("bold") or "").strip()))
+            level = (
+                len(line.lstrip()) - len(line.lstrip().lstrip("#"))
+                if match.group("md")
+                else _BOLD_LEVEL
+            )
+            found.append(
+                (
+                    number,
+                    level,
+                    (match.group("md") or match.group("bold") or "").strip(),
+                )
+            )
     return found
 
 
@@ -99,7 +123,9 @@ def section_starts(markdown: str) -> dict[str, tuple[int, int]]:
     is left out."""
     marks = headings(markdown)
     keys = list(SECTIONS)
-    matches = [[SECTIONS[k].search(text) is not None for k in keys] for _, _, text in marks]
+    matches = [
+        [SECTIONS[k].search(text) is not None for k in keys] for _, _, text in marks
+    ]
     # best[i][k]: most sections k.. that headings i.. can head in order.
     best = [[0] * (len(keys) + 1) for _ in range(len(marks) + 1)]
     for i in range(len(marks) - 1, -1, -1):
@@ -156,7 +182,12 @@ def recommendation_count(section: str) -> int:
     out), otherwise the number of tables when there are several (one table each),
     otherwise the data rows of the one table."""
     tables = _tables(section)
-    core = [row for table in tables for row in table if re.search(r"core issue", _first_cell(row), re.I)]
+    core = [
+        row
+        for table in tables
+        for row in table
+        if re.search(r"core issue", _first_cell(row), re.I)
+    ]
     if core:
         return len(core)
     if len(tables) > 1:
@@ -166,10 +197,14 @@ def recommendation_count(section: str) -> int:
 
 def _header(markdown: str) -> str:
     """The header block's text, normalised, with markdown emphasis and quote markers removed."""
-    return normalize(re.sub(r"[*_>]", " ", "\n".join(markdown.split("\n")[:HEADER_LINES])))
+    return normalize(
+        re.sub(r"[*_>]", " ", "\n".join(markdown.split("\n")[:HEADER_LINES]))
+    )
 
 
-def header_checks(markdown: str, title: str, authors: Sequence[str]) -> list[tuple[str, bool]]:
+def header_checks(
+    markdown: str, title: str, authors: Sequence[str]
+) -> list[tuple[str, bool]]:
     header = _header(markdown)
     checks = [
         ("reviewer name", _REVIEWER_RE.search(header) is not None),
@@ -185,7 +220,9 @@ def document_title(document: str) -> str:
     return match.group(1) if match else ""
 
 
-def structure_scores(output: Reviewer2Output, document: str, authors: Sequence[str]) -> tuple[dict[str, float], str]:
+def structure_scores(
+    output: Reviewer2Output, document: str, authors: Sequence[str]
+) -> tuple[dict[str, float], str]:
     """``both_produced``: 1 when both documents reach ``MIN_CHARS``. ``review_sections``:
     share of the four sections the review heads, each under its own heading and in order. ``next_steps_in_range``: 1 when Section 4
     lists five to seven recommendations (0 when it is missing). ``header_block``: share of the
@@ -195,26 +232,45 @@ def structure_scores(output: Reviewer2Output, document: str, authors: Sequence[s
     rebuttal = (output.rebuttal_markdown or "").strip()
     produced = len(review) >= MIN_CHARS and len(rebuttal) >= MIN_CHARS
     if len(review) < MIN_CHARS:
-        nan = {"review_sections": math.nan, "next_steps_in_range": math.nan, "header_block": math.nan}
-        return {"both_produced": float(produced), **nan}, f"peer review missing or too short ({len(review)} chars)"
+        nan = {
+            "review_sections": math.nan,
+            "next_steps_in_range": math.nan,
+            "header_block": math.nan,
+        }
+        return {
+            "both_produced": float(produced),
+            **nan,
+        }, f"peer review missing or too short ({len(review)} chars)"
     missing = [k for k in SECTIONS if k not in section_starts(review)]
     steps = _section(review, "next_steps")
     count = recommendation_count(steps) if steps is not None else 0
     low, high = NEXT_STEPS_RANGE
     title = document_title(document)
-    checks = [(f"review {name}", ok) for name, ok in header_checks(review, title, authors)]
+    checks = [
+        (f"review {name}", ok) for name, ok in header_checks(review, title, authors)
+    ]
     # A missing rebuttal fails its header checks too; both_produced records that it is missing.
-    checks += [(f"rebuttal {name}", ok) for name, ok in header_checks(rebuttal, title, authors)]
+    checks += [
+        (f"rebuttal {name}", ok) for name, ok in header_checks(rebuttal, title, authors)
+    ]
     values = {
         "both_produced": float(produced),
         "review_sections": 1 - len(missing) / len(SECTIONS),
         "next_steps_in_range": float(low <= count <= high),
         "header_block": sum(ok for _, ok in checks) / len(checks),
     }
-    notes = [] if produced else [f"rebuttal missing or too short ({len(rebuttal)} chars)"]
+    notes = (
+        [] if produced else [f"rebuttal missing or too short ({len(rebuttal)} chars)"]
+    )
     notes += [f"sections missing: {missing}"] if missing else []
-    notes += [f"{count} recommendations in Section 4"] if not low <= count <= high else []
-    notes += [f"header lacks: {[n for n, ok in checks if not ok]}"] if not all(ok for _, ok in checks) else []
+    notes += (
+        [f"{count} recommendations in Section 4"] if not low <= count <= high else []
+    )
+    notes += (
+        [f"header lacks: {[n for n, ok in checks if not ok]}"]
+        if not all(ok for _, ok in checks)
+        else []
+    )
     return values, " | ".join(notes) if notes else "structure as the skill asks"
 
 
@@ -234,7 +290,13 @@ REVIEW_TEMPLATE = """You are grading an AI-written review of a research document
 """
 
 
-def review_prompt(criterion: str, document: str, output_label: str, output: str, point: str | None = None) -> str:
+def review_prompt(
+    criterion: str,
+    document: str,
+    output_label: str,
+    output: str,
+    point: str | None = None,
+) -> str:
     return REVIEW_TEMPLATE.format(
         document=document,
         output_label=output_label,
@@ -272,8 +334,8 @@ NEXT_STEPS_CONCRETE = (
     "Grade whether the recommendations in the peer review's actionable next steps are concrete and specific to "
     "this document: each says what to do (the analysis to run, the data to add, the claim to rescope, and to "
     "what) so the author could begin immediately, and they are ordered from most to least important. "
-    "Recommendations that would fit any paper (\"strengthen the methodology\", \"add more evidence\", "
-    "\"consider limitations\") are incorrect; a mix of concrete and generic ones is partially correct."
+    'Recommendations that would fit any paper ("strengthen the methodology", "add more evidence", '
+    '"consider limitations") are incorrect; a mix of concrete and generic ones is partially correct.'
 )
 REBUTTAL_CONCEDES = (
     "The document shown second is meant to be a devil's-advocate rebuttal of the reviewed document's argument. "

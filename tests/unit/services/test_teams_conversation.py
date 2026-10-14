@@ -281,7 +281,9 @@ class TestAskingBeforeAnswering:
             patch.object(
                 conversation.sign_in,
                 "sign_out",
-                AsyncMock(side_effect=conversation.sign_in.TokenServiceUnavailable("down")),
+                AsyncMock(
+                    side_effect=conversation.sign_in.TokenServiceUnavailable("down")
+                ),
             ),
         ):
             context = self.context()
@@ -293,11 +295,17 @@ class TestAskingBeforeAnswering:
     async def test_a_question_mentioning_sign_out_is_still_a_question(self) -> None:
         with (
             patch.object(
-                conversation.bot, "question_from", return_value="how do I sign out of SharePoint?"
+                conversation.bot,
+                "question_from",
+                return_value="how do I sign out of SharePoint?",
             ),
             patch.object(conversation.sign_in, "sign_out", AsyncMock()) as sign_out,
-            patch.object(conversation.sign_in, "user_token", AsyncMock(return_value=None)),
-            patch.object(conversation.pending_questions, "park", AsyncMock(return_value="p1")),
+            patch.object(
+                conversation.sign_in, "user_token", AsyncMock(return_value=None)
+            ),
+            patch.object(
+                conversation.pending_questions, "park", AsyncMock(return_value="p1")
+            ),
             patch.object(conversation.sign_in, "ask_to_sign_in", AsyncMock()),
         ):
             await conversation.on_question(self.context())
@@ -331,9 +339,12 @@ class TestAnswering:
             conversation=ConversationAccount(id="19:x;messageid=1"),
         )
         answer = MagicMock(failed=False, text="done")
-        with patch.object(
-            conversation, "answer_question", AsyncMock(return_value=answer)
-        ) as ask, patch.object(conversation.bot, "post_later", AsyncMock()):
+        with (
+            patch.object(
+                conversation, "answer_question", AsyncMock(return_value=answer)
+            ) as ask,
+            patch.object(conversation.bot, "post_later", AsyncMock()),
+        ):
             await conversation._answer_into_thread(
                 reference, "fix the typos", "Ana", "19:x;messageid=1", [], "token"
             )
@@ -341,4 +352,7 @@ class TestAnswering:
         assert ask.await_args is not None
         stored = ask.await_args.kwargs["reference"]
         assert stored["serviceUrl"] == "https://smba.trafficmanager.net/br/"
-        assert ConversationReference.model_validate(stored).conversation.id == "19:x;messageid=1"
+        assert (
+            ConversationReference.model_validate(stored).conversation.id
+            == "19:x;messageid=1"
+        )

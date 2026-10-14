@@ -43,6 +43,5 @@ def check_workflow_errors(workflow_state: dict[str, Any]) -> None:
             messages.append(f"{task}: {error}")
 
     raise WorkflowCompletionError(
-        f"Workflow completed with {len(messages)} error(s): "
-        + "; ".join(messages)
+        f"Workflow completed with {len(messages)} error(s): " + "; ".join(messages)
     )

@@ -35,7 +35,10 @@ async def test_fail_marks_run_failed_with_reason_and_message():
     run = _make_run(WorkflowRunType.DOCUMENT_PROCESSING, WorkflowRunStatus.RUNNING)
 
     with (
-        patch("lib.services.workflow_runs.get_workflow_run", new=AsyncMock(return_value=run)),
+        patch(
+            "lib.services.workflow_runs.get_workflow_run",
+            new=AsyncMock(return_value=run),
+        ),
         patch("lib.services.workflow_runs.cancel_workflow_progress", new=AsyncMock()),
         patch(
             "lib.services.workflow_runs.update_workflow_run_status", new=AsyncMock()
@@ -67,7 +70,10 @@ async def test_fail_calls_cancel_workflow_progress():
     run = _make_run(WorkflowRunType.DOCUMENT_PROCESSING, WorkflowRunStatus.RUNNING)
 
     with (
-        patch("lib.services.workflow_runs.get_workflow_run", new=AsyncMock(return_value=run)),
+        patch(
+            "lib.services.workflow_runs.get_workflow_run",
+            new=AsyncMock(return_value=run),
+        ),
         patch(
             "lib.services.workflow_runs.cancel_workflow_progress", new=AsyncMock()
         ) as mock_cancel_progress,
@@ -91,7 +97,9 @@ async def test_fail_calls_cancel_workflow_progress():
 async def test_fail_cascades_to_pending_dependent_as_cancelled():
     """A failed parent cascade-cancels active dependents (CANCELLED, not FAILED)."""
     run = _make_run(WorkflowRunType.DOCUMENT_PROCESSING, WorkflowRunStatus.RUNNING)
-    dependent_run = _make_run(WorkflowRunType.REFERENCE_EXTRACTION, WorkflowRunStatus.PENDING)
+    dependent_run = _make_run(
+        WorkflowRunType.REFERENCE_EXTRACTION, WorkflowRunStatus.PENDING
+    )
 
     runs_by_id = {str(run.id): run, str(dependent_run.id): dependent_run}
 
@@ -128,7 +136,9 @@ async def test_fail_cascades_to_pending_dependent_as_cancelled():
 
     # Dependent must be moved to CANCELLED (cascade semantics), not FAILED.
     dependent_calls = [
-        call for call in mock_update.await_args_list if call.args[0] == str(dependent_run.id)
+        call
+        for call in mock_update.await_args_list
+        if call.args[0] == str(dependent_run.id)
     ]
     assert len(dependent_calls) == 1
     assert dependent_calls[0].args[1] == WorkflowRunStatus.CANCELLED
@@ -138,10 +148,15 @@ async def test_fail_cascades_to_pending_dependent_as_cancelled():
 async def test_fail_does_not_cascade_to_completed_dependent():
     """A COMPLETED dependent is left untouched when the parent fails."""
     run = _make_run(WorkflowRunType.DOCUMENT_PROCESSING, WorkflowRunStatus.RUNNING)
-    dependent_run = _make_run(WorkflowRunType.REFERENCE_EXTRACTION, WorkflowRunStatus.COMPLETED)
+    dependent_run = _make_run(
+        WorkflowRunType.REFERENCE_EXTRACTION, WorkflowRunStatus.COMPLETED
+    )
 
     with (
-        patch("lib.services.workflow_runs.get_workflow_run", new=AsyncMock(return_value=run)),
+        patch(
+            "lib.services.workflow_runs.get_workflow_run",
+            new=AsyncMock(return_value=run),
+        ),
         patch("lib.services.workflow_runs.cancel_workflow_progress", new=AsyncMock()),
         patch(
             "lib.services.workflow_runs.update_workflow_run_status", new=AsyncMock()

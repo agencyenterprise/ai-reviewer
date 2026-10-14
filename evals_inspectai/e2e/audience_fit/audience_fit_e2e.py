@@ -87,5 +87,7 @@ def audience_fit_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Task:
             suite.judged(JUDGE_CRITERIA, calls=judge_calls),
         ],
         fail_on_error=0.2,
-        viewer=suite.viewer(OWN_METRICS, {**SCORE_LABELS, **OVERFLOW_LABELS, **SUMMARY_LABELS}),
+        viewer=suite.viewer(
+            OWN_METRICS, {**SCORE_LABELS, **OVERFLOW_LABELS, **SUMMARY_LABELS}
+        ),
     )

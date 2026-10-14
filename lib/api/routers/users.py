@@ -2,7 +2,6 @@
 User-related API endpoints.
 """
 
-
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from lib.api.auth import get_current_user, require_admin
@@ -94,9 +93,7 @@ async def set_api_key(
         messages = [issue.message for issue in result.issues]
         raise HTTPException(status_code=422, detail="; ".join(messages))
 
-    updated_user = await set_user_openai_api_key(
-        str(user.id), request.openai_api_key
-    )
+    updated_user = await set_user_openai_api_key(str(user.id), request.openai_api_key)
     return _user_response(updated_user)
 
 

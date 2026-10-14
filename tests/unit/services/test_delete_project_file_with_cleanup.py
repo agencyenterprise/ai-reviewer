@@ -38,7 +38,8 @@ async def test_happy_path_runs_all_three_steps_and_returns_tuple():
 @pytest.mark.asyncio
 async def test_file_not_found_short_circuits_cleanup_steps():
     """If the file wasn't actually deleted, we must not run reference cleanup —
-    otherwise we'd unlink references / clear fetch results that still validly point at a file."""
+    otherwise we'd unlink references / clear fetch results that still validly point at a file.
+    """
     project_id = str(uuid.uuid4())
     file_id = str(uuid.uuid4())
 

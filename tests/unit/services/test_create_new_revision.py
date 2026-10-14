@@ -238,7 +238,9 @@ async def test_create_new_revision_requires_write_access():
 
     with patch(
         "lib.services.projects.get_project_access",
-        new=AsyncMock(side_effect=HTTPException(status_code=403, detail="Access denied")),
+        new=AsyncMock(
+            side_effect=HTTPException(status_code=403, detail="Access denied")
+        ),
     ):
         with pytest.raises(HTTPException) as exc_info:
             await create_new_revision("some-project-id", MagicMock())

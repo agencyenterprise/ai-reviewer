@@ -11,7 +11,10 @@ published no earlier than the document, and not one the document already cites.
 """
 
 from evals_inspectai.common.issue_judge import JudgeCriterion
-from evals_inspectai.common.source_citations import SOURCE_DESCRIPTIONS, window_description
+from evals_inspectai.common.source_citations import (
+    SOURCE_DESCRIPTIONS,
+    window_description,
+)
 
 EVIDENCE_CRITERION = (
     "The reviewer reported that newer evidence, published after the document, updates or challenges a claim in "
@@ -30,13 +33,25 @@ ACTION_CRITERION = (
     "The reviewer reported that newer evidence updates or challenges a claim in a document, and the passage the "
     "claim sits in is shown. Grade whether the suggested action tells the author concretely how to revise this "
     "claim: what it should now say, or which qualification or citation to add and where. Generic advice "
-    "(\"update the section\", \"review recent literature\") is incorrect. An action that would keep an overturned "
+    '("update the section", "review recent literature") is incorrect. An action that would keep an overturned '
     "claim and only add a citation is partially correct."
 )
 
 JUDGE_CRITERIA = [
-    JudgeCriterion(key="evidence_updates_claim", criterion=EVIDENCE_CRITERION, scope="expected", passage="section", reads="analysis", reference=True),
-    JudgeCriterion(key="action_revises_claim", criterion=ACTION_CRITERION, scope="expected", passage="section"),
+    JudgeCriterion(
+        key="evidence_updates_claim",
+        criterion=EVIDENCE_CRITERION,
+        scope="expected",
+        passage="section",
+        reads="analysis",
+        reference=True,
+    ),
+    JudgeCriterion(
+        key="action_revises_claim",
+        criterion=ACTION_CRITERION,
+        scope="expected",
+        passage="section",
+    ),
 ]
 
 JUDGE_DESCRIPTIONS = {

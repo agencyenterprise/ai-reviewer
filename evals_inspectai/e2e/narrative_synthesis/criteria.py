@@ -33,17 +33,28 @@ RULE_REFERENCE_RE = re.compile(
 
 
 def _issue_text(issue: IssueItem) -> str:
-    return " ".join([issue.title, issue.description, issue.long_description or "", issue.suggested_action or ""])
+    return " ".join(
+        [
+            issue.title,
+            issue.description,
+            issue.long_description or "",
+            issue.suggested_action or "",
+        ]
+    )
 
 
-def rule_reference_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> tuple[dict[str, float], str]:
+def rule_reference_scores(
+    issues: Sequence[IssueItem], inventory: ResolvedInventory
+) -> tuple[dict[str, float], str]:
     """``no_rule_reference``: share of reported issues whose text names no rule or
     guideline. NaN when the run reported nothing."""
     if not issues:
         return {"no_rule_reference": math.nan}, "nothing reported"
     cited = [i.title for i in issues if RULE_REFERENCE_RE.search(_issue_text(i))]
     value = 1 - len(cited) / len(issues)
-    return {"no_rule_reference": value}, (f"cites a rule: {cited}" if cited else "no issue cites a rule")
+    return {"no_rule_reference": value}, (
+        f"cites a rule: {cited}" if cited else "no issue cites a rule"
+    )
 
 
 SPECIFIC_CRITERION = (
@@ -55,8 +66,8 @@ SPECIFIC_CRITERION = (
     "or the specific question the author must answer to state a takeaway; for order, which section should "
     "move and where; for a missing framing question, what the answer should cover given the report's topic; "
     "for a restated point, which earlier section already made it and whether to cut it or refer back. Generic "
-    "advice that fits any passage (\"add interpretation\", \"consider restructuring\", \"explain why this "
-    "matters\") is incorrect. An action that is specific but also asks the author to decide between readings "
+    'advice that fits any passage ("add interpretation", "consider restructuring", "explain why this '
+    'matters") is incorrect. An action that is specific but also asks the author to decide between readings '
     "is correct."
 )
 
@@ -77,7 +88,12 @@ def _is_data_issue(expected: ResolvedIssue) -> bool:
 
 
 JUDGE_CRITERIA = [
-    JudgeCriterion(key="action_specific", criterion=SPECIFIC_CRITERION, scope="expected", passage="section"),
+    JudgeCriterion(
+        key="action_specific",
+        criterion=SPECIFIC_CRITERION,
+        scope="expected",
+        passage="section",
+    ),
     JudgeCriterion(
         key="takeaway_within_evidence",
         criterion=WITHIN_EVIDENCE_CRITERION,

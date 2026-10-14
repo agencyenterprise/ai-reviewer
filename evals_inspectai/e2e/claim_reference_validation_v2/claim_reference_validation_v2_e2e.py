@@ -49,7 +49,11 @@ from evals_inspectai.common.api_client import (
 )
 from evals_inspectai.common.api_solver import surface_conversations
 from evals_inspectai.common.errors import WorkflowCompletionError
-from evals_inspectai.common.issue_checks import PER_KEY_METRICS, inventory_from_state, issues_from_state
+from evals_inspectai.common.issue_checks import (
+    PER_KEY_METRICS,
+    inventory_from_state,
+    issues_from_state,
+)
 from evals_inspectai.common.model_override import output_model_name
 from evals_inspectai.e2e.claim_reference_validation_v2.criteria import (
     JUDGE_CRITERIA,
@@ -78,11 +82,16 @@ GROUND_TRUTH = (
     "footnotes and uncited claims. Severity follows the level and is not checked; no edits are expected. "
     "A NaN metric value means the sample gave that check nothing to judge."
 )
-OWN_METRICS = {"citation_checks": OWN_DESCRIPTIONS, "judged_criteria": JUDGE_DESCRIPTIONS}
+OWN_METRICS = {
+    "citation_checks": OWN_DESCRIPTIONS,
+    "judged_criteria": JUDGE_DESCRIPTIONS,
+}
 
 
 @solver
-def claim_reference_validation_v2_solver(timeout_s: float = 900, poll_interval_s: float = 5) -> Solver:
+def claim_reference_validation_v2_solver(
+    timeout_s: float = 900, poll_interval_s: float = 5
+) -> Solver:
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         sources = (state.metadata or {}).get(SOURCES_KEY, [])
         project_id = await create_project_and_start_workflows(
@@ -107,16 +116,25 @@ def claim_reference_validation_v2_solver(timeout_s: float = 900, poll_interval_s
 
         try:
             run_detail = await poll_until_complete(
-                project_id=project_id, workflow_type=WORKFLOW_TYPE, timeout_s=timeout_s, interval_s=poll_interval_s
+                project_id=project_id,
+                workflow_type=WORKFLOW_TYPE,
+                timeout_s=timeout_s,
+                interval_s=poll_interval_s,
             )
         except TimeoutError as e:
             raise WorkflowCompletionError(str(e)) from e
 
         workflow_state = run_detail.get("state") or {}
-        workflow_state[CITATIONS_KEY] = {"issues": as_issues(workflow_state.get("citation_issues") or [])}
+        workflow_state[CITATIONS_KEY] = {
+            "issues": as_issues(workflow_state.get("citation_issues") or [])
+        }
         # Each section's validator conversation goes into the transcript.
-        await surface_conversations(state, workflow_state, WORKFLOW_TYPE, "section_verifications", "section")
-        state.output = ModelOutput(completion=json.dumps(workflow_state), model=output_model_name(run_detail))
+        await surface_conversations(
+            state, workflow_state, WORKFLOW_TYPE, "section_verifications", "section"
+        )
+        state.output = ModelOutput(
+            completion=json.dumps(workflow_state), model=output_model_name(run_detail)
+        )
         return state
 
     return solve
@@ -130,19 +148,29 @@ def citation_checks() -> Scorer:
     async def score(state: TaskState, target: Target) -> Score:
         issues, error = issues_from_state(state, RESULTS)
         labels, label_note = label_scores(issues, inventory_from_state(state))
-        records = [] if error else json.loads(state.output.completion).get("citation_issues") or []
-        evidence, evidence_note = evidence_scores(records, (state.metadata or {}).get(SOURCES_KEY, []))
+        records = (
+            []
+            if error
+            else json.loads(state.output.completion).get("citation_issues") or []
+        )
+        evidence, evidence_note = evidence_scores(
+            records, (state.metadata or {}).get(SOURCES_KEY, [])
+        )
         quotes, quote_note = quote_scores(records, state.input_text)
         values = {**labels, **evidence, **quotes}
         if error:
             return Score(value={key: 0.0 for key in values}, explanation=error)
-        return Score(value=values, explanation=f"{label_note} | {evidence_note} | {quote_note}")
+        return Score(
+            value=values, explanation=f"{label_note} | {evidence_note} | {quote_note}"
+        )
 
     return score
 
 
 @task
-def claim_reference_validation_v2_e2e(timeout_s: float = 900, judge_calls: int = 1) -> Task:
+def claim_reference_validation_v2_e2e(
+    timeout_s: float = 900, judge_calls: int = 1
+) -> Task:
     """Run Claim Reference Validation on every sample and score it against the inventory.
 
     Args:
@@ -154,7 +182,11 @@ def claim_reference_validation_v2_e2e(timeout_s: float = 900, judge_calls: int =
         dataset=suite.dataset(sources_metadata),
         metadata=suite.metadata(GROUND_TRUTH, OWN_METRICS),
         solver=claim_reference_validation_v2_solver(timeout_s=timeout_s),
-        scorer=[*suite.scorers(), citation_checks(), suite.judged(JUDGE_CRITERIA, calls=judge_calls)],
+        scorer=[
+            *suite.scorers(),
+            citation_checks(),
+            suite.judged(JUDGE_CRITERIA, calls=judge_calls),
+        ],
         fail_on_error=0.2,
         viewer=suite.viewer(OWN_METRICS, SCORE_LABELS),
     )

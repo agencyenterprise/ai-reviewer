@@ -23,7 +23,10 @@ def test_lines_naming_the_section_are_candidates(line: str) -> None:
 
 @pytest.mark.parametrize(
     "line",
-    ["# Burden Sharing Among Allies", "DTSA reviews export licenses under ITAR and the EAR."],
+    [
+        "# Burden Sharing Among Allies",
+        "DTSA reviews export licenses under ITAR and the EAR.",
+    ],
 )
 def test_other_lines_are_not(line: str) -> None:
     assert find_candidate_lines(f"# Report\n\n{line}") == []

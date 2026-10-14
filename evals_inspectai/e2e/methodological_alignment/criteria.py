@@ -23,7 +23,12 @@ import re
 from collections.abc import Sequence
 
 from evals_inspectai.common.issue_inventory import Decoy, ResolvedIssue
-from evals_inspectai.common.issue_judge import READS_LABELS, REFERENCE_LABEL, issue_prompt_from, section_text
+from evals_inspectai.common.issue_judge import (
+    READS_LABELS,
+    REFERENCE_LABEL,
+    issue_prompt_from,
+    section_text,
+)
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
 
 # Section headings the skill's report template requires, matched as headings of any level.
@@ -43,7 +48,9 @@ def _has_heading(report: str, title: str) -> bool:
     return re.search(rf"^#+\s*{re.escape(title)}\b", report, re.M | re.I) is not None
 
 
-def report_scores(report: str, issues: Sequence[IssueItem], document: str) -> tuple[dict[str, float], str]:
+def report_scores(
+    report: str, issues: Sequence[IssueItem], document: str
+) -> tuple[dict[str, float], str]:
     """``report_sections``: share of the five required sections present. ``report_cites_links``:
     1 if the report cites a web source as a markdown link. ``no_informational``: share of issues
     whose severity is not ``none``. ``valid_line_ranges``: share of issues whose range lies
@@ -53,15 +60,23 @@ def report_scores(report: str, issues: Sequence[IssueItem], document: str) -> tu
     missing = [t for t in REQUIRED_SECTIONS if not _has_heading(report, t)]
     informational = [i.title for i in issues if i.severity.lower() == "none"]
     last = len(document.split("\n"))
-    off = [f"{i.title} ({i.start_line}-{i.end_line})" for i in issues if not 1 <= i.start_line <= i.end_line <= last]
+    off = [
+        f"{i.title} ({i.start_line}-{i.end_line})"
+        for i in issues
+        if not 1 <= i.start_line <= i.end_line <= last
+    ]
     values = {
         "report_sections": 1 - len(missing) / len(REQUIRED_SECTIONS),
         "report_cites_links": float(bool(_CITATION_LINK.search(report))),
-        "no_informational": 1 - len(informational) / len(issues) if issues else float("nan"),
+        "no_informational": (
+            1 - len(informational) / len(issues) if issues else float("nan")
+        ),
         "valid_line_ranges": 1 - len(off) / len(issues) if issues else float("nan"),
     }
     notes = [f"missing sections: {missing}"] if missing else []
-    notes += ["no markdown link to a web source"] if not values["report_cites_links"] else []
+    notes += (
+        ["no markdown link to a web source"] if not values["report_cites_links"] else []
+    )
     notes += [f"informational issues: {informational}"] if informational else []
     notes += [f"line ranges outside lines 1-{last} or reversed: {off}"] if off else []
     return values, " | ".join(notes) if notes else "report contract met"
@@ -72,7 +87,9 @@ def severity_fits(expected: ResolvedIssue, issues: Sequence[IssueItem]) -> bool:
     labelled one, so a plant labelled high is not reported only as low or none."""
     assert expected.severity is not None
     target = _SEVERITY_RANK[expected.severity]
-    return any(abs(target - _SEVERITY_RANK.get(i.severity.lower(), 0)) <= 1 for i in issues)
+    return any(
+        abs(target - _SEVERITY_RANK.get(i.severity.lower(), 0)) <= 1 for i in issues
+    )
 
 
 GAP_CRITERION = (
@@ -89,8 +106,8 @@ REPAIR_CRITERION = (
     "A reviewer reported a methodological risk in a paper, and the passage it sits in is shown with the "
     "labeller's account of what the field does instead. Grade whether the suggested action tells the authors "
     "concretely how to repair this risk: the design change, analysis or check the field uses, or, when the data "
-    "cannot be changed, how to bound the claims. Generic advice (\"improve rigor\", \"follow best practice\", "
-    "\"add more detail\") is incorrect."
+    'cannot be changed, how to bound the claims. Generic advice ("improve rigor", "follow best practice", '
+    '"add more detail") is incorrect.'
 )
 
 DECOY_CRITERION = (
@@ -103,29 +120,50 @@ DECOY_CRITERION = (
 )
 
 
-def gap_prompt(criterion: str, expected: ResolvedIssue, issue: IssueItem, document: str, reads: str) -> str:
+def gap_prompt(
+    criterion: str, expected: ResolvedIssue, issue: IssueItem, document: str, reads: str
+) -> str:
     """The prompt grading one issue on a plant's line against the labeller's account of the plant."""
     assert expected.line is not None and expected.anchor is not None
     if reads == "suggested_action":
         read = issue.suggested_action or ""
     else:
-        read = "\n\n".join(part for part in (issue.title, issue.description, issue.long_description or "") if part.strip())
+        read = "\n\n".join(
+            part
+            for part in (issue.title, issue.description, issue.long_description or "")
+            if part.strip()
+        )
     return issue_prompt_from(
         criterion,
         [
             ("Passage the issue is about", section_text(document, expected.line)),
             ("Text the planted risk is anchored to", expected.anchor),
             (REFERENCE_LABEL, expected.rationale or ""),
-            (READS_LABELS["suggested_action" if reads == "suggested_action" else "analysis"], read),
+            (
+                READS_LABELS[
+                    "suggested_action" if reads == "suggested_action" else "analysis"
+                ],
+                read,
+            ),
         ],
     )
 
 
 def _issue_summary(issue: IssueItem) -> str:
     """One reported issue in full, since its criticism of a choice may sit in any field."""
-    parts = [f"- {issue.title} (lines {issue.start_line}-{issue.end_line}): {issue.description}"]
-    parts += [f"  Analysis: {issue.long_description}"] if (issue.long_description or "").strip() else []
-    parts += [f"  Suggested action: {issue.suggested_action}"] if (issue.suggested_action or "").strip() else []
+    parts = [
+        f"- {issue.title} (lines {issue.start_line}-{issue.end_line}): {issue.description}"
+    ]
+    parts += (
+        [f"  Analysis: {issue.long_description}"]
+        if (issue.long_description or "").strip()
+        else []
+    )
+    parts += (
+        [f"  Suggested action: {issue.suggested_action}"]
+        if (issue.suggested_action or "").strip()
+        else []
+    )
     return "\n".join(parts)
 
 
@@ -137,7 +175,10 @@ def decoy_prompt(decoy: Decoy, issues: Sequence[IssueItem], document: str) -> st
             ("Paper under review", document),
             ("Design choice marked sound", decoy.anchor),
             ("Labeller's reason it is sound", decoy.rationale or decoy.reason),
-            ("Reviewer's issues", "\n".join(_issue_summary(i) for i in issues) or "(none)"),
+            (
+                "Reviewer's issues",
+                "\n".join(_issue_summary(i) for i in issues) or "(none)",
+            ),
         ],
     )
 

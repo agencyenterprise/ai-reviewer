@@ -4,7 +4,9 @@ from unittest.mock import MagicMock, patch
 
 from lib.config.llm_models import LLMModel
 from lib.config.rate_limiter import hash_api_key
-from lib.services.file_artifacts_service.file_artifacts_service_type import FileArtifactsServiceType
+from lib.services.file_artifacts_service.file_artifacts_service_type import (
+    FileArtifactsServiceType,
+)
 from lib.workflows.context import ContextSchema
 
 
@@ -72,6 +74,7 @@ def test_rate_limiter_uses_model_key_when_no_context_key():
         limiter = agent.get_rate_limiter()
 
     from lib.config.rate_limiter import get_rate_limiter as get_rl
+
     expected = get_rl(hash_api_key("sk-model-specific"))
     assert limiter is expected
 
@@ -83,6 +86,7 @@ def test_rate_limiter_prefers_context_key_over_model_key():
         limiter = agent.get_rate_limiter()
 
     from lib.config.rate_limiter import get_rate_limiter as get_rl
+
     expected = get_rl(hash_api_key("sk-context-key"))
     assert limiter is expected
 
@@ -94,5 +98,6 @@ def test_rate_limiter_falls_back_to_context_key():
         limiter = agent.get_rate_limiter()
 
     from lib.config.rate_limiter import get_rate_limiter as get_rl
+
     expected = get_rl(hash_api_key("sk-context-key"))
     assert limiter is expected

@@ -37,7 +37,18 @@ _IRREGULAR_PARTICIPLES = frozenset(
 )
 # Words a suffix test would take for participles.
 _NOT_PARTICIPLES = frozenset("even seven then when open often none need indeed".split())
-_PARTICIPLE_SUFFIXES = ("ed", "en", "own", "ought", "aught", "uilt", "ade", "eld", "one", "aid")
+_PARTICIPLE_SUFFIXES = (
+    "ed",
+    "en",
+    "own",
+    "ought",
+    "aught",
+    "uilt",
+    "ade",
+    "eld",
+    "one",
+    "aid",
+)
 
 
 def _is_participle(word: str) -> bool:
@@ -80,7 +91,7 @@ MEANING_CRITERION = (
     "The replacement rewrites the original from passive into active voice and preserves its meaning. "
     "Normally, the edit names the actor the passive left implicit; this does not count as adding "
     "information, as long as the actor named is the one the sentence or its paragraph supports (for a report "
-    "written in the first person, the authors as \"we\"). There is one purpose-statement exception: when "
+    'written in the first person, the authors as "we"). There is one purpose-statement exception: when '
     "the text does not name the designer or creator, and the thing itself can perform the stated purpose, "
     "making that thing the subject of a verb of aim (aims/aimed to, seeks/sought to) is a correct active "
     "rewrite. Under this exception, expressing the design or creation purpose as the thing's aim preserves "
@@ -95,7 +106,7 @@ MEANING_CRITERION = (
 
 READS_CRITERION = (
     "Substituted into its paragraph, the replacement reads at least as clearly and naturally as the original. "
-    "The change from passive to active (often by naming the actor or using \"we\") is intended and is not a "
+    'The change from passive to active (often by naming the actor or using "we") is intended and is not a '
     "defect; whether the content is preserved is graded separately and must be ignored here. Mark it incorrect "
     "only for a clear defect a careful editor would fix: ungrammatical or hard-to-parse word order; a subject "
     "longer than about twelve words before the verb; the paragraph's topic pushed out of subject position; a "
@@ -122,7 +133,9 @@ JUDGE_DESCRIPTIONS = {
 }
 
 JUDGE_CRITERIA = [
-    JudgeCriterion(key="edit_meaning_preserved", criterion=MEANING_CRITERION, scope="edit"),
+    JudgeCriterion(
+        key="edit_meaning_preserved", criterion=MEANING_CRITERION, scope="edit"
+    ),
     JudgeCriterion(key="edit_reads_well", criterion=READS_CRITERION, scope="edit"),
     JudgeCriterion(
         key="unknown_actor_asked_not_guessed",

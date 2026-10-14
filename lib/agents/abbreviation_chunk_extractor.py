@@ -167,7 +167,9 @@ def _numbered_chunk(markdown: str, start_line: int, end_line: int) -> str:
 
 def _invalid_json_input(error: ValidationError) -> str | None:
     for detail in error.errors():
-        if detail.get("type") == "json_invalid" and isinstance(detail.get("input"), str):
+        if detail.get("type") == "json_invalid" and isinstance(
+            detail.get("input"), str
+        ):
             return detail["input"]
     return None
 

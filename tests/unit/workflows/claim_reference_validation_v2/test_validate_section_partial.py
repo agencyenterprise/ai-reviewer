@@ -62,9 +62,7 @@ def _runtime() -> SimpleNamespace:
 
 async def _validate_section_raising(error: Exception) -> dict:
     agent = SimpleNamespace(ainvoke=AsyncMock(side_effect=error))
-    with patch.object(
-        validate_sections, "CitationValidatorAgent", return_value=agent
-    ):
+    with patch.object(validate_sections, "CitationValidatorAgent", return_value=agent):
         return await validate_sections.validate_section.__wrapped__(
             dict(SECTION_INPUT), _runtime()
         )

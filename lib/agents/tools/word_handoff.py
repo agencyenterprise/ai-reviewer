@@ -52,7 +52,10 @@ def usable_items(
     seen: set[str] = set()
     for edit in edits:
         words = " ".join(edit.quote.split()).lower()
-        if len(words) < MIN_QUOTE_CHARS or edit.replacement.strip() == edit.quote.strip():
+        if (
+            len(words) < MIN_QUOTE_CHARS
+            or edit.replacement.strip() == edit.quote.strip()
+        ):
             continue
         if words in seen:
             continue
@@ -114,7 +117,9 @@ def offer_changes_for(token: str, reference: dict[str, Any]) -> BaseTool:
 
         items = usable_items(comments, edits)
         if not items.count:
-            return "Nothing was saved: none of those comments or edits could be applied."
+            return (
+                "Nothing was saved: none of those comments or edits could be applied."
+            )
 
         try:
             item = await client.resolve(url, token=token)

@@ -72,7 +72,9 @@ DATASET = Path(__file__).parent / "dataset.yaml"
 
 def _record_to_sample(raw: dict) -> Sample:
     record = Reviewer2Record.model_validate(raw)
-    return Sample(input=resolve_input(record.input), metadata={"record": record.model_dump()})
+    return Sample(
+        input=resolve_input(record.input), metadata={"record": record.model_dump()}
+    )
 
 
 def _output(state: TaskState) -> tuple[Reviewer2Output | None, str | None]:
@@ -89,7 +91,9 @@ def review_structure() -> Scorer:
     async def score(state: TaskState, target: Target) -> Score:
         output, error = _output(state)
         if output is None:
-            return Score(value={key: 0.0 for key in STRUCTURE_DESCRIPTIONS}, explanation=error)
+            return Score(
+                value={key: 0.0 for key in STRUCTURE_DESCRIPTIONS}, explanation=error
+            )
         record = Reviewer2Record.model_validate(state.metadata["record"])
         values, explanation = structure_scores(output, state.input_text, record.authors)
         return Score(value=values, explanation=explanation)
@@ -97,33 +101,68 @@ def review_structure() -> Scorer:
     return score
 
 
-async def _mean_grade(grader: Model, prompts: list[tuple[str, str]], calls: int) -> tuple[float, list[str]]:
+async def _mean_grade(
+    grader: Model, prompts: list[tuple[str, str]], calls: int
+) -> tuple[float, list[str]]:
     """The mean grade over the labelled prompts (NaN for none), with the label and grade of
     each one below full marks."""
     if not prompts:
         return math.nan, []
-    graded = await asyncio.gather(*(grade(grader, prompt, calls) for _, prompt in prompts))
-    below = [f"{label} {value}" for (label, _), (value, _) in zip(prompts, graded) if value < 1.0]
+    graded = await asyncio.gather(
+        *(grade(grader, prompt, calls) for _, prompt in prompts)
+    )
+    below = [
+        f"{label} {value}"
+        for (label, _), (value, _) in zip(prompts, graded)
+        if value < 1.0
+    ]
     return sum(v for v, _ in graded) / len(graded), below
 
 
-async def judge_review(grader: Model, document: str, output: Reviewer2Output, record: Reviewer2Record, calls: int) -> tuple[dict[str, float], str]:
+async def judge_review(
+    grader: Model,
+    document: str,
+    output: Reviewer2Output,
+    record: Reviewer2Record,
+    calls: int,
+) -> tuple[dict[str, float], str]:
     review, rebuttal = output.peer_review_markdown or "", output.rebuttal_markdown or ""
 
     def on_review(criterion: str, point: str | None = None) -> str:
         return review_prompt(criterion, document, "Peer review", review, point)
 
     per_point = {
-        "weaknesses_raised": [(w.id, on_review(WEAKNESS_RAISED, w.point)) for w in record.weaknesses],
-        "strengths_credited": [(s.id, on_review(STRENGTH_CREDITED, s.point)) for s in record.strengths],
-        "strengths_not_attacked": [(s.id, on_review(STRENGTH_NOT_ATTACKED, s.point)) for s in record.strengths],
+        "weaknesses_raised": [
+            (w.id, on_review(WEAKNESS_RAISED, w.point)) for w in record.weaknesses
+        ],
+        "strengths_credited": [
+            (s.id, on_review(STRENGTH_CREDITED, s.point)) for s in record.strengths
+        ],
+        "strengths_not_attacked": [
+            (s.id, on_review(STRENGTH_NOT_ATTACKED, s.point)) for s in record.strengths
+        ],
         "claims_accurate": [("review", on_review(CLAIMS_ACCURATE))],
         "next_steps_concrete": [("review", on_review(NEXT_STEPS_CONCRETE))],
-        "rebuttal_concedes": [("rebuttal", review_prompt(REBUTTAL_CONCEDES, document, "Rebuttal", rebuttal))] if rebuttal.strip() else [],
+        "rebuttal_concedes": (
+            [
+                (
+                    "rebuttal",
+                    review_prompt(REBUTTAL_CONCEDES, document, "Rebuttal", rebuttal),
+                )
+            ]
+            if rebuttal.strip()
+            else []
+        ),
     }
-    results = await asyncio.gather(*(_mean_grade(grader, per_point[key], calls) for key in JUDGED_KEYS))
+    results = await asyncio.gather(
+        *(_mean_grade(grader, per_point[key], calls) for key in JUDGED_KEYS)
+    )
     values = {key: value for key, (value, _) in zip(JUDGED_KEYS, results)}
-    notes = [f"{key}: {', '.join(below)}" for key, (_, below) in zip(JUDGED_KEYS, results) if below]
+    notes = [
+        f"{key}: {', '.join(below)}"
+        for key, (_, below) in zip(JUDGED_KEYS, results)
+        if below
+    ]
     if not rebuttal.strip():
         values["rebuttal_concedes"] = 0.0
         notes.append("rebuttal_concedes: no rebuttal produced")
@@ -137,17 +176,25 @@ def review_judged(calls: int = 1) -> Scorer:
     async def score(state: TaskState, target: Target) -> Score:
         output, error = _output(state)
         if output is None or not (output.peer_review_markdown or "").strip():
-            return Score(value={key: 0.0 for key in JUDGED_KEYS}, explanation=error or "no peer review produced")
+            return Score(
+                value={key: 0.0 for key in JUDGED_KEYS},
+                explanation=error or "no peer review produced",
+            )
         record = Reviewer2Record.model_validate(state.metadata["record"])
         grader = get_model(role="grader", default=DEFAULT_GRADER_MODEL)
-        values, explanation = await judge_review(grader, state.input_text, output, record, calls)
+        values, explanation = await judge_review(
+            grader, state.input_text, output, record, calls
+        )
         return Score(value=values, explanation=explanation)
 
     return score
 
 
 def _viewer() -> ViewerConfig:
-    scored = [*(("review_structure", k) for k in STRUCTURE_DESCRIPTIONS), *(("review_judged", k) for k in JUDGED_KEYS)]
+    scored = [
+        *(("review_structure", k) for k in STRUCTURE_DESCRIPTIONS),
+        *(("review_judged", k) for k in JUDGED_KEYS),
+    ]
     return ViewerConfig(
         task_samples_view=TaskSamplesView(
             name="Checks by sample and epoch",
@@ -162,11 +209,17 @@ def _viewer() -> ViewerConfig:
                 TaskSamplesColumn(id="target", visible=False),
                 TaskSamplesColumn(id="answer", visible=False),
             ],
-            sort=[TaskSamplesSort(column="sampleId", dir="asc"), TaskSamplesSort(column="epoch", dir="asc")],
+            sort=[
+                TaskSamplesSort(column="sampleId", dir="asc"),
+                TaskSamplesSort(column="epoch", dir="asc"),
+            ],
             compact_scores=True,
             multiline=False,
             score_labels=SCORE_LABELS,
-            score_color_scales={k: ScoreColorScale(palette="good-high", min=0.0, max=1.0) for _, k in scored},
+            score_color_scales={
+                k: ScoreColorScale(palette="good-high", min=0.0, max=1.0)
+                for _, k in scored
+            },
             color_scales_enabled=True,
         )
     )
@@ -188,7 +241,10 @@ def reviewer_2_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Task:
                 "credits, each graded on its own, plus the skill's required structure. A NaN metric value means the "
                 "sample gave that check nothing to judge."
             ),
-            "metrics": {"review_structure": STRUCTURE_DESCRIPTIONS, "review_judged": JUDGE_DESCRIPTIONS},
+            "metrics": {
+                "review_structure": STRUCTURE_DESCRIPTIONS,
+                "review_judged": JUDGE_DESCRIPTIONS,
+            },
         },
         solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s),
         scorer=[review_structure(), review_judged(calls=judge_calls)],

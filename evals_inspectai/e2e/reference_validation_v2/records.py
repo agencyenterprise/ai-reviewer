@@ -43,10 +43,16 @@ class ReferenceRecord(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: str
-    reference: str = Field(description="The bibliographic entry, placed alone under a References heading")
-    result: list[Result] = Field(default_factory=lambda: list(_CORRECT), description="Final results a correct run may give")
+    reference: str = Field(
+        description="The bibliographic entry, placed alone under a References heading"
+    )
+    result: list[Result] = Field(
+        default_factory=lambda: list(_CORRECT),
+        description="Final results a correct run may give",
+    )
     fields: dict[str, list[Problem]] = Field(
-        default_factory=dict, description="Accepted problem types per field; a field left out must be correct"
+        default_factory=dict,
+        description="Accepted problem types per field; a field left out must be correct",
     )
     corrections: dict[str, list[str]] = Field(
         default_factory=dict,
@@ -55,8 +61,13 @@ class ReferenceRecord(BaseModel):
             "accepts any of its forms, for a name the skill accepts as a well-known abbreviation (NeurIPS)"
         ),
     )
-    not_found: bool = Field(default=False, description="A fabricated reference: nothing verifies, no updated reference")
-    rationale: str | None = Field(default=None, description="The labeller's account, for the judged criterion")
+    not_found: bool = Field(
+        default=False,
+        description="A fabricated reference: nothing verifies, no updated reference",
+    )
+    rationale: str | None = Field(
+        default=None, description="The labeller's account, for the judged criterion"
+    )
     notes: str | None = None
 
     @field_validator("result", mode="before")
@@ -67,20 +78,34 @@ class ReferenceRecord(BaseModel):
     @field_validator("fields", mode="before")
     @classmethod
     def _one_or_many_problems(cls, value: object) -> object:
-        return {k: _as_list(v) for k, v in value.items()} if isinstance(value, dict) else value
+        return (
+            {k: _as_list(v) for k, v in value.items()}
+            if isinstance(value, dict)
+            else value
+        )
 
     @field_validator("corrections", mode="before")
     @classmethod
     def _one_or_many_phrases(cls, value: object) -> object:
-        return {k: _as_list(v) for k, v in value.items()} if isinstance(value, dict) else value
+        return (
+            {k: _as_list(v) for k, v in value.items()}
+            if isinstance(value, dict)
+            else value
+        )
 
     @model_validator(mode="after")
     def _known_fields(self) -> "ReferenceRecord":
         unknown = (set(self.fields) | set(self.corrections)) - set(FIELDS)
         if unknown:
             raise ValueError(f"{self.id}: unknown fields {sorted(unknown)}")
-        if self.not_found and (self.fields or self.corrections or self.result not in (["correct"], ["incorrect_fields"])):
-            raise ValueError(f"{self.id}: a not-found record sets no result, fields or corrections")
+        if self.not_found and (
+            self.fields
+            or self.corrections
+            or self.result not in (["correct"], ["incorrect_fields"])
+        ):
+            raise ValueError(
+                f"{self.id}: a not-found record sets no result, fields or corrections"
+            )
         if self.not_found:
             # Step 6: a reference that cannot be located is incorrect_fields. Stored, so the
             # record survives a round trip through sample metadata.
@@ -107,7 +132,9 @@ class ReferenceRecord(BaseModel):
 
 
 def load_records(path: Path) -> list[ReferenceRecord]:
-    records = [ReferenceRecord.model_validate(r) for r in yaml.safe_load(path.read_text())]
+    records = [
+        ReferenceRecord.model_validate(r) for r in yaml.safe_load(path.read_text())
+    ]
     ids = [r.id for r in records]
     if len(ids) != len(set(ids)):
         raise ValueError(f"{path}: record ids repeat")
@@ -119,7 +146,11 @@ def reference_dataset(records: list[ReferenceRecord], path: Path) -> MemoryDatas
     workflow's reference extraction expects a document to present it."""
     return MemoryDataset(
         samples=[
-            Sample(id=r.id, input=f"## References\n\n{r.reference}\n", metadata={"record": r.model_dump()})
+            Sample(
+                id=r.id,
+                input=f"## References\n\n{r.reference}\n",
+                metadata={"record": r.model_dump()},
+            )
             for r in records
         ],
         name=path.parent.name,

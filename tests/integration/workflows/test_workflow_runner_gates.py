@@ -274,7 +274,8 @@ async def test_a_released_awaiting_run_keeps_the_model_its_row_records(
     monkeypatch: pytest.MonkeyPatch,
 ):
     monkeypatch.setattr(
-        "lib.api.services.workflow_runner.env_config.ALLOW_WORKFLOW_MODEL_OVERRIDE", True
+        "lib.api.services.workflow_runner.env_config.ALLOW_WORKFLOW_MODEL_OVERRIDE",
+        True,
     )
     project_id = uuid4()
     awaiting = _run(project_id, CLAIM, WorkflowRunStatus.AWAITING_APPROVAL)
@@ -554,7 +555,8 @@ async def test_model_override_is_kept_on_the_awaiting_run_and_used_on_release(
     monkeypatch: pytest.MonkeyPatch,
 ):
     monkeypatch.setattr(
-        "lib.api.services.workflow_runner.env_config.ALLOW_WORKFLOW_MODEL_OVERRIDE", True
+        "lib.api.services.workflow_runner.env_config.ALLOW_WORKFLOW_MODEL_OVERRIDE",
+        True,
     )
     harness = Harness()
     harness.request.model = "openai:gpt-5.6-sol"

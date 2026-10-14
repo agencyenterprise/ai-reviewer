@@ -61,6 +61,8 @@ def table_row_count(report: str) -> tuple[int, str]:
     if inventories:
         return max(inventories), "inventory table (header names reproducibility)"
     if tables:
-        return max(rows for _, rows in tables), "widest table (no header named reproducibility)"
+        return (
+            max(rows for _, rows in tables),
+            "widest table (no header named reproducibility)",
+        )
     return 0, "no markdown table found"
-

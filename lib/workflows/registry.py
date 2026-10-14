@@ -157,7 +157,10 @@ def register_all_workflow_manifests():
     # Imported here like the manifests above: the skill-workflow module pulls
     # in the deep-agent manifest base, which must not be imported at registry
     # import time.
-    from lib.workflows.skill_workflows import SkillWorkflowError, discover_skill_workflows
+    from lib.workflows.skill_workflows import (
+        SkillWorkflowError,
+        discover_skill_workflows,
+    )
 
     # Skill-declared checks: one SKILL.md with a draft_detective block, no manifest.py.
     for manifest in discover_skill_workflows():

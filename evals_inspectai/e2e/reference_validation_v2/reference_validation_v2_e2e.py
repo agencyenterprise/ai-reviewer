@@ -47,7 +47,11 @@ from evals_inspectai.e2e.reference_validation_v2.criteria import (
     reasoning_prompt,
     validation_scores,
 )
-from evals_inspectai.e2e.reference_validation_v2.records import ReferenceRecord, load_records, reference_dataset
+from evals_inspectai.e2e.reference_validation_v2.records import (
+    ReferenceRecord,
+    load_records,
+    reference_dataset,
+)
 
 WORKFLOW_TYPE = "reference_validation_v2"
 DATASET = Path(__file__).parent / "dataset.yaml"
@@ -82,7 +86,9 @@ def _validation(state: TaskState) -> tuple[ValidationResult | None, str]:
         return None, "no reference was validated"
     item = output.reference_validations[0]
     if item.error:
-        raise WorkflowCompletionError(f"Reference '{item.input_reference}' failed: {item.error}")
+        raise WorkflowCompletionError(
+            f"Reference '{item.input_reference}' failed: {item.error}"
+        )
     if item.validation_result is None:
         return None, "the reference has no validation result"
     return item.validation_result, ""
@@ -113,13 +119,19 @@ def validation_judged(calls: int = 1) -> Scorer:
     async def score(state: TaskState, target: Target) -> Score:
         record = _record(state)
         if not record.rationale:
-            return Score(value={"reasoning_matches": math.nan}, explanation="no labeller's rationale")
+            return Score(
+                value={"reasoning_matches": math.nan},
+                explanation="no labeller's rationale",
+            )
         result, why = _validation(state)
         if result is None:
             return Score(value={"reasoning_matches": 0.0}, explanation=why)
         grader = get_model(role="grader", default=DEFAULT_GRADER_MODEL)
         value, reasoning = await grade(grader, reasoning_prompt(record, result), calls)
-        return Score(value={"reasoning_matches": value}, explanation=gist(reasoning) if value < 1.0 else "matches")
+        return Score(
+            value={"reasoning_matches": value},
+            explanation=gist(reasoning) if value < 1.0 else "matches",
+        )
 
     return score
 
@@ -133,7 +145,10 @@ def reference_validation_v2_e2e(timeout_s: float = 600, judge_calls: int = 1) ->
         judge_calls: Grader calls per record; the median grade is kept.
     """
     records = load_records(DATASET)
-    columns = [*(("validation_checks", k) for k in KEYS), ("validation_judged", "reasoning_matches")]
+    columns = [
+        *(("validation_checks", k) for k in KEYS),
+        ("validation_judged", "reasoning_matches"),
+    ]
     return Task(
         dataset=reference_dataset(records, DATASET),
         metadata={
@@ -142,10 +157,16 @@ def reference_validation_v2_e2e(timeout_s: float = 600, judge_calls: int = 1) ->
                 "result, each field's problem type (a list accepts any), correction phrases, and whether the "
                 "reference is fabricated. A NaN metric value means the sample gave that check nothing to judge."
             ),
-            "metrics": {"validation_checks": DESCRIPTIONS, "validation_judged": JUDGE_DESCRIPTIONS},
+            "metrics": {
+                "validation_checks": DESCRIPTIONS,
+                "validation_judged": JUDGE_DESCRIPTIONS,
+            },
         },
         solver=api_workflow_agent(
-            WORKFLOW_TYPE, timeout_s=timeout_s, item_messages_key="reference_validations", item_label="reference"
+            WORKFLOW_TYPE,
+            timeout_s=timeout_s,
+            item_messages_key="reference_validations",
+            item_label="reference",
         ),
         scorer=[validation_checks(), validation_judged(calls=judge_calls)],
         fail_on_error=0.2,

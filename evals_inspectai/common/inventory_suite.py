@@ -83,7 +83,11 @@ class InventorySuite(BaseModel):
         holding its issues (see ``issue_checks.issues_from_state``); ``name`` is the
         dataset name, the file's directory by default."""
         records, extras = load_inventory(path, extra_fields, pairing, pair_on_location)
-        policy = records[0].policy if records else derive_policy([], pairing, pair_on_location)
+        policy = (
+            records[0].policy
+            if records
+            else derive_policy([], pairing, pair_on_location)
+        )
         return cls(
             path=path,
             name=name or path.parent.name,
@@ -93,7 +97,9 @@ class InventorySuite(BaseModel):
             results=tuple(results),
         )
 
-    def dataset(self, metadata: Callable[[dict[str, Any]], dict[str, Any]] | None = None) -> MemoryDataset:
+    def dataset(
+        self, metadata: Callable[[dict[str, Any]], dict[str, Any]] | None = None
+    ) -> MemoryDataset:
         """One sample per record; ``metadata`` maps a record's extras to sample metadata of its own."""
         samples = []
         for record, extra in zip(self.records, self.extras):
@@ -113,20 +119,37 @@ class InventorySuite(BaseModel):
         """``judged_criteria`` reading the suite's state fields."""
         return judged_criteria(criteria, calls=calls, results=self.results)
 
-    def descriptions(self, own: Descriptions | None = None) -> dict[str, dict[str, str]]:
+    def descriptions(
+        self, own: Descriptions | None = None
+    ) -> dict[str, dict[str, str]]:
         """The generic scorers' key descriptions, then the eval's ``own``."""
-        generic: dict[str, dict[str, str]] = {"issue_checks": issue_check_descriptions(self.policy)}
+        generic: dict[str, dict[str, str]] = {
+            "issue_checks": issue_check_descriptions(self.policy)
+        }
         if self.policy.decoy_reasons:
             generic["decoy_checks"] = decoy_descriptions(self.policy.decoy_reasons)
         return {**generic, **{name: dict(keys) for name, keys in (own or {}).items()}}
 
-    def metadata(self, ground_truth: str, own: Descriptions | None = None) -> dict[str, Any]:
+    def metadata(
+        self, ground_truth: str, own: Descriptions | None = None
+    ) -> dict[str, Any]:
         """The Task metadata the log viewer's Info tab shows: what the ground truth is, and what each metric checks."""
         return {"ground_truth": ground_truth, "metrics": self.descriptions(own)}
 
-    def viewer(self, own: Descriptions | None = None, labels: Mapping[str, str] | None = None) -> ViewerConfig:
+    def viewer(
+        self,
+        own: Descriptions | None = None,
+        labels: Mapping[str, str] | None = None,
+    ) -> ViewerConfig:
         """A column per generic key, then one per key of ``own`` in order; ``labels`` names the eval's own."""
         generic = [("issue_checks", key) for key in issue_check_keys(self.policy)]
-        generic += [("decoy_checks", f"no_fp_{reason}") for reason in self.policy.decoy_reasons]
-        columns = [*generic, *((name, key) for name, keys in (own or {}).items() for key in keys)]
-        return issue_viewer_config(columns, {**decoy_labels(self.policy.decoy_reasons), **(labels or {})})
+        generic += [
+            ("decoy_checks", f"no_fp_{reason}") for reason in self.policy.decoy_reasons
+        ]
+        columns = [
+            *generic,
+            *((name, key) for name, keys in (own or {}).items() for key in keys),
+        ]
+        return issue_viewer_config(
+            columns, {**decoy_labels(self.policy.decoy_reasons), **(labels or {})}
+        )

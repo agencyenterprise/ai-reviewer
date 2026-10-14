@@ -72,7 +72,9 @@ async def test_cancel_already_cancelled_workflow_is_idempotent():
         "lib.api.routers.workflows.get_workflow_run",
         new=AsyncMock(return_value=run),
     ):
-        response = await cancel_workflow_run_endpoint(str(run.id), current_user=_mock_user())
+        response = await cancel_workflow_run_endpoint(
+            str(run.id), current_user=_mock_user()
+        )
 
     assert response.message == "Already cancelled"
     assert response.workflow_run_id == str(run.id)
@@ -95,7 +97,9 @@ async def test_cancel_running_workflow_triggers_cancellation():
             new=AsyncMock(),
         ) as mock_cancel,
     ):
-        response = await cancel_workflow_run_endpoint(str(run.id), current_user=_mock_user())
+        response = await cancel_workflow_run_endpoint(
+            str(run.id), current_user=_mock_user()
+        )
 
     mock_cancel.assert_awaited_once_with(str(run.id), str(run.project_id))
     assert response.message == "Workflow cancellation requested"
@@ -119,7 +123,9 @@ async def test_cancel_pending_workflow_triggers_cancellation():
             new=AsyncMock(),
         ) as mock_cancel,
     ):
-        response = await cancel_workflow_run_endpoint(str(run.id), current_user=_mock_user())
+        response = await cancel_workflow_run_endpoint(
+            str(run.id), current_user=_mock_user()
+        )
 
     mock_cancel.assert_awaited_once_with(str(run.id), str(run.project_id))
     assert response.message == "Workflow cancellation requested"

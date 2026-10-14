@@ -41,9 +41,7 @@ async def replace_extracted_images(
             for row in (await session.execute(previous_stmt)).scalars()
         ]
 
-        await session.execute(
-            delete(File).where(col(File.parent_file_id) == parent.id)
-        )
+        await session.execute(delete(File).where(col(File.parent_file_id) == parent.id))
 
         stale_paths: list[str] = []
         for path, row_id in previous:

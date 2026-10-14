@@ -62,7 +62,9 @@ def _workflow_type_for(declaration: SkillWorkflowDeclaration) -> WorkflowRunType
         ) from e
 
 
-def _dependency_type(declaration: SkillWorkflowDeclaration, slug: str) -> WorkflowRunType:
+def _dependency_type(
+    declaration: SkillWorkflowDeclaration, slug: str
+) -> WorkflowRunType:
     try:
         return WorkflowRunType(slug)
     except ValueError as e:
@@ -138,5 +140,7 @@ def discover_skill_workflows(
     try:
         declarations = read_all_skill_workflow_declarations(skills_dir)
     except ValidationError as e:
-        raise SkillWorkflowError(f"invalid draft_detective block in a skill: {e}") from e
+        raise SkillWorkflowError(
+            f"invalid draft_detective block in a skill: {e}"
+        ) from e
     return [build_skill_workflow_manifest(d) for d in declarations]

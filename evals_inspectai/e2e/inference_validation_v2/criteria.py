@@ -34,7 +34,14 @@ def key_sentence(long_description: str | None) -> str | None:
     """The block-quoted text under the long description's ``Key Sentence`` heading, or
     None when there is no such heading or nothing is quoted under it."""
     lines = (long_description or "").split("\n")
-    start = next((i for i, line in enumerate(lines) if re.match(r"^\s*#{1,6}\s+key sentence\s*$", line, re.I)), None)
+    start = next(
+        (
+            i
+            for i, line in enumerate(lines)
+            if re.match(r"^\s*#{1,6}\s+key sentence\s*$", line, re.I)
+        ),
+        None,
+    )
     if start is None:
         return None
     quoted: list[str] = []
@@ -47,16 +54,30 @@ def key_sentence(long_description: str | None) -> str | None:
     return text or None
 
 
-def inference_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> tuple[dict[str, float], str]:
+def inference_scores(
+    issues: Sequence[IssueItem], inventory: ResolvedInventory
+) -> tuple[dict[str, float], str]:
     """``no_informational``: share of reported issues whose severity is not ``none``.
     ``title_names_flaw``: share titled ``Invalid Inference: <label>``.
     ``key_sentence_quoted``: share whose long description quotes, under a Key Sentence
-    heading, text found verbatim in the document. Each is NaN when nothing was reported."""
+    heading, text found verbatim in the document. Each is NaN when nothing was reported.
+    """
     if not issues:
-        return {"no_informational": math.nan, "title_names_flaw": math.nan, "key_sentence_quoted": math.nan}, "nothing reported"
+        return {
+            "no_informational": math.nan,
+            "title_names_flaw": math.nan,
+            "key_sentence_quoted": math.nan,
+        }, "nothing reported"
     informational = [i.title for i in issues if i.severity.lower() == "none"]
     untitled = [i.title for i in issues if not _TITLE_RE.match(i.title.strip())]
-    unquoted = [i.title for i in issues if not ((q := key_sentence(i.long_description)) and quoted_verbatim(q, inventory.document))]
+    unquoted = [
+        i.title
+        for i in issues
+        if not (
+            (q := key_sentence(i.long_description))
+            and quoted_verbatim(q, inventory.document)
+        )
+    ]
     n = len(issues)
     values = {
         "no_informational": 1 - len(informational) / n,
@@ -85,13 +106,25 @@ REPAIR_CRITERION = (
     "inference: bound the conclusion to what the premises support (saying to what population, period or "
     "conditions), name the evidence or comparison that would support it (a control group, the other causes to "
     "rule out, the missing data), or restate the claim so it follows. Generic advice that fits any argument "
-    "(\"provide more evidence\", \"strengthen the reasoning\", \"avoid fallacies\") is incorrect. An action that "
+    '("provide more evidence", "strengthen the reasoning", "avoid fallacies") is incorrect. An action that '
     "would introduce a new unsupported claim is incorrect."
 )
 
 JUDGE_CRITERIA = [
-    JudgeCriterion(key="flaw_identified", criterion=FLAW_CRITERION, scope="expected", passage="section", reads="analysis", reference=True),
-    JudgeCriterion(key="action_repairs", criterion=REPAIR_CRITERION, scope="expected", passage="section"),
+    JudgeCriterion(
+        key="flaw_identified",
+        criterion=FLAW_CRITERION,
+        scope="expected",
+        passage="section",
+        reads="analysis",
+        reference=True,
+    ),
+    JudgeCriterion(
+        key="action_repairs",
+        criterion=REPAIR_CRITERION,
+        scope="expected",
+        passage="section",
+    ),
 ]
 
 JUDGE_DESCRIPTIONS = {

@@ -102,7 +102,9 @@ def new_messages(channel_value: Any) -> list[BaseMessage]:
     if isinstance(channel_value, BaseMessage):
         return [channel_value]
     if isinstance(channel_value, list):
-        return [message for message in channel_value if isinstance(message, BaseMessage)]
+        return [
+            message for message in channel_value if isinstance(message, BaseMessage)
+        ]
     return []
 
 
@@ -161,9 +163,13 @@ class GraphEventMapper:
         for call in message.tool_calls:
             call_id = call.get("id")
             if call_id:
-                events.extend(self._announce(call_id, call["name"], call.get("args") or {}))
+                events.extend(
+                    self._announce(call_id, call["name"], call.get("args") or {})
+                )
         for block in content_blocks(message.content):
-            kind, call_id = block.get("type"), block.get("id") or block.get("tool_call_id")
+            kind, call_id = block.get("type"), block.get("id") or block.get(
+                "tool_call_id"
+            )
             if not call_id:
                 continue
             if kind == "server_tool_call":

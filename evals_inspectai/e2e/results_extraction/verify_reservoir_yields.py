@@ -10,6 +10,7 @@ replicates of a bisection, so it lives here instead.
 Every figure it prints should match the document. It exists because two of these
 documents shipped with numbers their own models could not produce.
 """
+
 import calendar
 import re
 from pathlib import Path
@@ -18,12 +19,18 @@ from collections.abc import Sequence
 import numpy as np
 import yaml
 
-records = yaml.safe_load(Path("evals_inspectai/e2e/results_extraction/dataset.yaml").read_text())
+records = yaml.safe_load(
+    Path("evals_inspectai/e2e/results_extraction/dataset.yaml").read_text()
+)
 doc = [r for r in records if r["id"] == "appendix_parameters"][0]["input"]
 
-rows = [(y, l) for y, l in re.findall(r"^\| (\d{4}-\d{2}) \| (.+) \|$", doc, re.M) if y[0] == "2"]
+rows = [
+    (y, l)
+    for y, l in re.findall(r"^\| (\d{4}-\d{2}) \| (.+) \|$", doc, re.M)
+    if y[0] == "2"
+]
 WY_MONTHS = [10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-series: list[tuple[int, int, float]] = []      # (year, month, inflow Ml)
+series: list[tuple[int, int, float]] = []  # (year, month, inflow Ml)
 for label, line in rows:
     start = int(label[:4])
     vals = [int(x.strip().replace(",", "")) for x in line.split("|")]
@@ -31,13 +38,20 @@ for label, line in rows:
         series.append((start if m >= 10 else start + 1, m, float(v)))
 
 SMAX = 9840.0
-AREA = 1.42                                    # km^2 -> mm depth * area = Ml
-EVAP_MM = {m: v for m, v in enumerate([4, 8, 21, 44, 71, 86, 92, 78, 47, 22, 7, 3], start=1)}
-CLIMATE = {m: v for m, v in enumerate(
-    [1.08, 1.06, 1.02, 0.96, 0.91, 0.84, 0.79, 0.81, 0.88, 0.97, 1.04, 1.07], start=1)}
+AREA = 1.42  # km^2 -> mm depth * area = Ml
+EVAP_MM = {
+    m: v for m, v in enumerate([4, 8, 21, 44, 71, 86, 92, 78, 47, 22, 7, 3], start=1)
+}
+CLIMATE = {
+    m: v
+    for m, v in enumerate(
+        [1.08, 1.06, 1.02, 0.96, 0.91, 0.84, 0.79, 0.81, 0.88, 0.97, 1.04, 1.07],
+        start=1,
+    )
+}
 
 
-def comp_rate(month: int) -> float:            # Ml/d
+def comp_rate(month: int) -> float:  # Ml/d
     return 4.1 if 4 <= month <= 9 else 6.8
 
 
@@ -48,7 +62,9 @@ def fails(
     storage, failures = SMAX, 0
     for year, month, inflow in months:
         days = calendar.monthrange(year, month)[1]
-        out = demand * days + EVAP_MM[month] * AREA * evap_scale + comp_rate(month) * days
+        out = (
+            demand * days + EVAP_MM[month] * AREA * evap_scale + comp_rate(month) * days
+        )
         nxt = storage + inflow - out
         if nxt < 0:
             failures += 1
@@ -88,7 +104,9 @@ rng = np.random.default_rng(20240115)
 PHI = 0.61
 REPLICATES, YEARS = 1000, 60
 BURN = 12
-month_cycle = [(2001 + (k + 9) // 12, WY_MONTHS[k % 12]) for k in range(YEARS * 12 + BURN)]
+month_cycle = [
+    (2001 + (k + 9) // 12, WY_MONTHS[k % 12]) for k in range(YEARS * 12 + BURN)
+]
 
 yields: list[float] = []
 for _ in range(REPLICATES):
@@ -104,6 +122,12 @@ stoch_yield = float(np.median(yields))
 print("historical yield      : %.1f Ml/d" % hist_yield)
 print("stochastic (median)   : %.1f Ml/d" % stoch_yield)
 print("climate-adjusted      : %.1f Ml/d" % clim_yield)
-print("historical @99%%       : %.1f Ml/d (+%.1f%%)" % (hist_99, 100 * (hist_99 / hist_yield - 1)))
-print("climate @99%%          : %.1f Ml/d (+%.1f%%)" % (clim_99, 100 * (clim_99 / clim_yield - 1)))
+print(
+    "historical @99%%       : %.1f Ml/d (+%.1f%%)"
+    % (hist_99, 100 * (hist_99 / hist_yield - 1))
+)
+print(
+    "climate @99%%          : %.1f Ml/d (+%.1f%%)"
+    % (clim_99, 100 * (clim_99 / clim_yield - 1))
+)
 print("hist - climate spread : %.1f Ml/d" % (hist_yield - clim_yield))
