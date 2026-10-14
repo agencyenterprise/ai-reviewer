@@ -58,7 +58,7 @@ class _Fixture:
 
 
 def _run(
-    project_id: uuid.UUID,
+    project_id: uuid.UUID | None,
     slug: str,
     status: WorkflowRunStatus,
     created_at: datetime,
@@ -715,3 +715,38 @@ async def test_default_ignore_list_is_empty_when_no_eval_account_exists(monkeypa
     )
 
     assert await ignored_users.get_default_ignored_users() == []
+
+
+@pytest.mark.asyncio
+async def test_rows_without_an_owner_survive_the_ignore_list():
+    """A deleted user's project keeps counting when someone else is ignored.
+
+    `projects.user_id` is set to NULL when its owner is deleted, and a run can
+    have no project; `NOT IN` alone would drop both as soon as the ignore list
+    is non-empty. Both reads share one snapshot, so parallel inserts cancel out.
+    """
+    project = Project(id=uuid.uuid4(), title="Ownerless", created_at=NOW)
+    run = _run(None, ASSESSMENT_SLUG, WorkflowRunStatus.COMPLETED, NOW)
+    async with get_async_db_session() as session:
+        session.add_all([project, run])
+        await session.commit()
+
+    window = DashboardWindow.for_days(1)
+    nobody = [uuid.uuid4()]
+    try:
+        async with get_async_db_session() as session:
+            await session.execute(
+                text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+            )
+            all_projects = await queries.get_project_metrics(session, window)
+            projects = await queries.get_project_metrics(session, window, nobody)
+            all_runs = await queries.get_assessment_metrics(session, window)
+            runs = await queries.get_assessment_metrics(session, window, nobody)
+    finally:
+        async with get_async_db_session() as session:
+            await session.delete(await session.get(WorkflowRun, run.id))
+            await session.delete(await session.get(Project, project.id))
+            await session.commit()
+
+    assert projects.current == all_projects.current
+    assert runs.current == all_runs.current
