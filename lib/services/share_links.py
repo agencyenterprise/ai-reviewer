@@ -134,16 +134,3 @@ async def get_share_status(
     if share_link:
         return ShareStatusResponse(enabled=True, share_link=_to_response(share_link))
     return ShareStatusResponse(enabled=False, share_link=None)
-
-
-async def is_project_shared(project_id: str) -> bool:
-    """Check if a project is shared."""
-
-    async with get_async_db_session() as session:
-        stmt = select(ShareLink).where(
-            col(ShareLink.resource_type) == "project",
-            col(ShareLink.resource_id) == project_id,
-            col(ShareLink.is_active).is_(True),
-        )
-        result = await session.execute(stmt)
-        return result.scalar_one_or_none() is not None
