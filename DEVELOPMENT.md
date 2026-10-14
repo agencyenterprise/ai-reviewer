@@ -308,21 +308,3 @@ cd frontend && pnpm exec tsc --noEmit
 Security scans run automatically on every PR using [Trivy](https://trivy.dev/) via the official [trivy-action](https://github.com/aquasecurity/trivy-action).
 
 > **Why Trivy?** While Docker Scout is excellent and integrates natively with Docker, we use Trivy for compliance and auditing purposes. Trivy is open-source, vendor-neutral, and widely accepted in enterprise security workflows.
-
-### Local Scanning (Optional)
-
-```bash
-# Install Trivy (macOS)
-brew install aquasecurity/trivy/trivy
-
-# Scan Docker images (build first with docker compose). Compose names the
-# built images after the project directory, so ask it for the names.
-docker compose build
-docker compose pull db
-for image in $(docker compose config --images); do trivy image "$image"; done
-
-# Scan for Docker/config misconfigurations
-trivy config .
-```
-
-**Note:** Trivy automatically uses `trivy.yaml` configuration (scans HIGH/CRITICAL only, outputs SARIF format).
