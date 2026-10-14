@@ -5,7 +5,7 @@ this runtime: where the documents are mounted, that nobody labeled them, which
 outputs were asked for, and where each deliverable is written.
 """
 
-from typing import Iterable
+from collections.abc import Iterable
 
 from lib.workflows.review_assistant.inputs import INPUTS_INDEX_PATH, INPUTS_ROOT
 from lib.workflows.review_assistant.state import ReviewAssistantOutput

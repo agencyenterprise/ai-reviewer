@@ -26,12 +26,16 @@ class MarkedUpCopy(BaseModel):
     """A dataset record's marked-up copy: which draft, whose comments, and on what."""
 
     file_name: str
-    marked_up_from: str = Field(description="`file://` reference to the draft's markdown")
+    marked_up_from: str = Field(
+        description="`file://` reference to the draft's markdown"
+    )
     author: str
     comments: list[FixtureComment]
 
     def content(self) -> bytes:
-        return marked_up_docx(resolve_input(self.marked_up_from), self.author, self.comments)
+        return marked_up_docx(
+            resolve_input(self.marked_up_from), self.author, self.comments
+        )
 
 
 def with_byline(text: str, byline: str) -> str:
@@ -61,7 +65,9 @@ def marked_up_docx(markdown: str, author: str, comments: list[FixtureComment]) -
     with tempfile.TemporaryDirectory() as workdir:
         path = Path(workdir) / "marked-up.docx"
         _markdown_to_docx(markdown, path)
-        doc = EditorDocument.open(path, author=author, workspace_dir=str(Path(workdir) / "ws"))
+        doc = EditorDocument.open(
+            path, author=author, workspace_dir=str(Path(workdir) / "ws")
+        )
         try:
             for comment in comments:
                 doc.add_comment(comment.anchor, comment.text)

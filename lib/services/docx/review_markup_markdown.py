@@ -5,8 +5,6 @@ stand on its own: it names the document it belongs to and says how to find
 each item again in that document's converted text.
 """
 
-from typing import List, Optional
-
 from lib.services.docx.review_markup import (
     DocxComment,
     DocxReviewMarkup,
@@ -23,16 +21,21 @@ def _quote(text: str) -> str:
 
 
 def _clip(text: str) -> str:
-    return text if len(text) <= _CONTEXT_LIMIT else text[:_CONTEXT_LIMIT].rstrip() + " …"
+    return (
+        text if len(text) <= _CONTEXT_LIMIT else text[:_CONTEXT_LIMIT].rstrip() + " …"
+    )
 
 
-def _byline(author: str, date: Optional[str]) -> str:
+def _byline(author: str, date: str | None) -> str:
     return f"{author}, {date}" if date else author
 
 
-def _comment_block(number: int, comment: DocxComment) -> List[str]:
+def _comment_block(number: int, comment: DocxComment) -> list[str]:
     status = " (resolved)" if comment.resolved else ""
-    lines = [f"## Comment {number}: {_byline(comment.author, comment.date)}{status}", ""]
+    lines = [
+        f"## Comment {number}: {_byline(comment.author, comment.date)}{status}",
+        "",
+    ]
     if comment.anchor_deleted:
         lines += [f'Attached to deleted text: "{comment.anchor}"', ""]
     elif comment.anchor:
@@ -43,11 +46,16 @@ def _comment_block(number: int, comment: DocxComment) -> List[str]:
         lines += [f'In the paragraph: "{_clip(comment.context)}"', ""]
     lines += ["Comment:", "", _quote(comment.text), ""]
     for reply in comment.replies:
-        lines += [f"Reply from {_byline(reply.author, reply.date)}:", "", _quote(reply.text), ""]
+        lines += [
+            f"Reply from {_byline(reply.author, reply.date)}:",
+            "",
+            _quote(reply.text),
+            "",
+        ]
     return lines
 
 
-def comments_markdown(file_name: str, markup: DocxReviewMarkup) -> Optional[str]:
+def comments_markdown(file_name: str, markup: DocxReviewMarkup) -> str | None:
     """The document's comment threads, or None when it has none."""
     if not markup.comments:
         return None
@@ -65,8 +73,11 @@ def comments_markdown(file_name: str, markup: DocxReviewMarkup) -> Optional[str]
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _change_block(number: int, change: DocxTrackedChange) -> List[str]:
-    lines = [f"## Change {number}: {change.kind}, {_byline(change.author, change.date)}", ""]
+def _change_block(number: int, change: DocxTrackedChange) -> list[str]:
+    lines = [
+        f"## Change {number}: {change.kind}, {_byline(change.author, change.date)}",
+        "",
+    ]
     if change.deleted:
         lines += [f'Deleted: "{change.deleted.strip()}"', ""]
     if change.inserted:
@@ -76,12 +87,14 @@ def _change_block(number: int, change: DocxTrackedChange) -> List[str]:
     return lines
 
 
-def visible_changes(markup: DocxReviewMarkup) -> List[DocxTrackedChange]:
+def visible_changes(markup: DocxReviewMarkup) -> list[DocxTrackedChange]:
     """The tracked changes that touch text, leaving out whitespace-only ones."""
-    return [c for c in markup.tracked_changes if c.inserted.strip() or c.deleted.strip()]
+    return [
+        c for c in markup.tracked_changes if c.inserted.strip() or c.deleted.strip()
+    ]
 
 
-def tracked_changes_markdown(file_name: str, markup: DocxReviewMarkup) -> Optional[str]:
+def tracked_changes_markdown(file_name: str, markup: DocxReviewMarkup) -> str | None:
     """The document's tracked insertions and deletions, or None when it has none."""
     changes = visible_changes(markup)
     if not changes:

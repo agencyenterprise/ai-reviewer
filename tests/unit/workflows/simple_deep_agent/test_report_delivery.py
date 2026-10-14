@@ -120,7 +120,9 @@ def test_the_final_message_cannot_influence_the_report():
 
 
 @pytest.mark.parametrize("workflow_type", _MARKDOWN_WORKFLOWS)
-def test_markdown_workflows_run_on_the_simple_deep_agent(workflow_type: WorkflowRunType):
+def test_markdown_workflows_run_on_the_simple_deep_agent(
+    workflow_type: WorkflowRunType,
+):
     assert isinstance(get_workflow_manifest(workflow_type), SimpleDeepAgentManifest)
 
 

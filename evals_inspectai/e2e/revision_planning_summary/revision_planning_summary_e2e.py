@@ -356,7 +356,11 @@ def _viewer_config() -> ViewerConfig:
             # in every column and gives a passing column its full-marks green.
             score_color_scales={
                 name: ScoreColorScale(palette="good-high", min=0.0, max=1.0)
-                for name in (*STRUCTURE_CHECKS, *RUBRIC_CRITERIA, "input_identification")
+                for name in (
+                    *STRUCTURE_CHECKS,
+                    *RUBRIC_CRITERIA,
+                    "input_identification",
+                )
             },
             color_scales_enabled=True,
         ),

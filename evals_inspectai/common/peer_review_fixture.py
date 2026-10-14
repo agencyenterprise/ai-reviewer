@@ -78,7 +78,9 @@ async def build_review_project(
             role=_REVIEW_INPUT_ROLE,
         )
 
-    ids_by_name = {f["file_name"]: str(f["id"]) for f in await get_project_files(project_id)}
+    ids_by_name = {
+        f["file_name"]: str(f["id"]) for f in await get_project_files(project_id)
+    }
     logger.info("Review project %s ready with %d document(s)", project_id, len(names))
     return project_id, ids_by_name
 
@@ -116,11 +118,11 @@ def expected_input_roles(
     record for every document; `input_identification` compares against them.
     """
     roles = {DRAFT_FILE_NAME: "original draft"}
-    roles.update({name: "reviewer memo" for name in memo_names})
-    roles.update({name: "marked-up draft" for name in marked_up_names or []})
+    roles.update(dict.fromkeys(memo_names, "reviewer memo"))
+    roles.update(dict.fromkeys(marked_up_names or [], "marked-up draft"))
     if revised:
         roles[REVISED_DRAFT_FILE_NAME] = "revised draft"
-    roles.update({name: "response memo" for name in response_names or []})
+    roles.update(dict.fromkeys(response_names or [], "response memo"))
     return roles
 
 
@@ -144,20 +146,34 @@ async def run_review_assistant_request(
     Returns the completed run's WorkflowRunDetail dict.
     """
     if not memos and not marked_up:
-        raise ValueError("A review cycle needs reviewer feedback: a memo or a marked-up copy")
+        raise ValueError(
+            "A review cycle needs reviewer feedback: a memo or a marked-up copy"
+        )
     if response_memos and revised_draft is None:
-        raise ValueError("response_memos describe a revised draft; pass revised_draft as well")
+        raise ValueError(
+            "response_memos describe a revised draft; pass revised_draft as well"
+        )
     if revised_draft is not None and revised_draft == draft:
-        raise ValueError("revised_draft is identical to draft, so there is nothing to compare")
+        raise ValueError(
+            "revised_draft is identical to draft, so there is nothing to compare"
+        )
 
     rest = [
         *memos,
         *(marked_up or []),
-        *([ReviewDocument(REVISED_DRAFT_FILE_NAME, revised_draft)] if revised_draft is not None else []),
+        *(
+            [ReviewDocument(REVISED_DRAFT_FILE_NAME, revised_draft)]
+            if revised_draft is not None
+            else []
+        ),
         *(response_memos or []),
     ]
     project_id, ids_by_name = await build_review_project(DRAFT_FILE_NAME, draft, rest)
     file_ids = [ids_by_name[DRAFT_FILE_NAME], *(ids_by_name[d.file_name] for d in rest)]
     return await run_review_request(
-        project_id, outputs, file_ids, timeout_s=timeout_s, poll_interval_s=poll_interval_s
+        project_id,
+        outputs,
+        file_ids,
+        timeout_s=timeout_s,
+        poll_interval_s=poll_interval_s,
     )

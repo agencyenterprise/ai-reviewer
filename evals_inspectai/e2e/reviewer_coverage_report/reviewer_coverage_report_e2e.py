@@ -187,7 +187,8 @@ def reviewer_coverage_report_solver(
             timeout_s=timeout_s,
             revised_draft=meta["revised_draft"],
             response_memos=[
-                ReviewDocument(m["file_name"], m["content"]) for m in meta["response_memos"]
+                ReviewDocument(m["file_name"], m["content"])
+                for m in meta["response_memos"]
             ],
             poll_interval_s=poll_interval_s,
         )
@@ -397,7 +398,11 @@ def _viewer_config() -> ViewerConfig:
             # would read differently from one column to the next.
             score_color_scales={
                 name: ScoreColorScale(palette="good-high", min=0.0, max=1.0)
-                for name in (*ALL_STRUCTURE_CHECKS, *RUBRIC_CRITERIA, "input_identification")
+                for name in (
+                    *ALL_STRUCTURE_CHECKS,
+                    *RUBRIC_CRITERIA,
+                    "input_identification",
+                )
             },
             color_scales_enabled=True,
         ),

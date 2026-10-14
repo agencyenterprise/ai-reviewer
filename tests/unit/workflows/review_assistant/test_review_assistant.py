@@ -23,14 +23,19 @@ from lib.workflows.review_assistant.state import (
     ReviewAssistantOutput,
     ReviewAssistantState,
 )
-from lib.workflows.simple_deep_agent.agent_types import DeepAgentRun, ReportNotWrittenError
+from lib.workflows.simple_deep_agent.agent_types import (
+    DeepAgentRun,
+    ReportNotWrittenError,
+)
 from tests.unit.services.lean_docx import new_document
 
 PLAN = ReviewAssistantOutput.REVISION_PLANNING_SUMMARY
 COVERAGE = ReviewAssistantOutput.REVIEWER_COVERAGE_REPORT
 
 
-def _document(file_id: str, name: str, path: str = "", markdown: str = "text") -> FileDocument:
+def _document(
+    file_id: str, name: str, path: str = "", markdown: str = "text"
+) -> FileDocument:
     return FileDocument(
         file_id=file_id,
         file_name=name,
@@ -47,7 +52,9 @@ def commented_docx(tmp_path: Path) -> Path:
     document.add_paragraph("The survey reached 400 households.")
     path = tmp_path / "draft with comments.docx"
     document.save(str(path))
-    doc = EditorDocument.open(path, author="Reviewer 2", workspace_dir=str(tmp_path / "ws"))
+    doc = EditorDocument.open(
+        path, author="Reviewer 2", workspace_dir=str(tmp_path / "ws")
+    )
     try:
         doc.add_comment("400 households", "How were these sampled?")
         doc.save()
@@ -57,15 +64,24 @@ def commented_docx(tmp_path: Path) -> Path:
 
 
 def _config(*outputs: ReviewAssistantOutput) -> ReviewAssistantConfig:
-    return ReviewAssistantConfig(project_id="p", outputs=list(outputs), input_file_ids=["a"])
+    return ReviewAssistantConfig(
+        project_id="p", outputs=list(outputs), input_file_ids=["a"]
+    )
 
 
 @pytest.mark.asyncio
-async def test_each_document_gets_a_numbered_folder_with_its_text(commented_docx: Path) -> None:
+async def test_each_document_gets_a_numbered_folder_with_its_text(
+    commented_docx: Path,
+) -> None:
     mounted = await mount_review_inputs(
         [
             _document("memo", "Reviewer memo.pdf", markdown="# Memo"),
-            _document("draft", commented_docx.name, path=str(commented_docx), markdown="# Draft"),
+            _document(
+                "draft",
+                commented_docx.name,
+                path=str(commented_docx),
+                markdown="# Draft",
+            ),
         ]
     )
 
@@ -73,12 +89,17 @@ async def test_each_document_gets_a_numbered_folder_with_its_text(commented_docx
         "/inputs/01-reviewer-memo",
         "/inputs/02-draft-with-comments",
     ]
-    assert file_data_to_string(mounted.files["/inputs/01-reviewer-memo/document.md"]) == "# Memo"
+    assert (
+        file_data_to_string(mounted.files["/inputs/01-reviewer-memo/document.md"])
+        == "# Memo"
+    )
     assert "/inputs/01-reviewer-memo/comments.md" not in mounted.files
 
 
 @pytest.mark.asyncio
-async def test_a_word_file_brings_its_comments_beside_its_text(commented_docx: Path) -> None:
+async def test_a_word_file_brings_its_comments_beside_its_text(
+    commented_docx: Path,
+) -> None:
     mounted = await mount_review_inputs(
         [_document("draft", commented_docx.name, path=str(commented_docx))]
     )
@@ -96,7 +117,9 @@ async def test_a_word_file_brings_its_comments_beside_its_text(commented_docx: P
 
 @pytest.mark.asyncio
 async def test_a_word_file_that_will_not_parse_keeps_its_text() -> None:
-    mounted = await mount_review_inputs([_document("bad", "broken.docx", markdown="still here")])
+    mounted = await mount_review_inputs(
+        [_document("bad", "broken.docx", markdown="still here")]
+    )
 
     folder = mounted.inputs[0].folder
     assert file_data_to_string(mounted.files[f"{folder}/document.md"]) == "still here"
@@ -130,7 +153,9 @@ def test_the_agents_reading_of_the_inputs_is_kept_when_it_parses() -> None:
 
 
 def test_a_folder_given_with_a_trailing_slash_still_matches_its_input() -> None:
-    run = DeepAgentRun(files={INPUT_READINGS_PATH: '[{"folder": "/inputs/01-x/", "role": "x"}]'})
+    run = DeepAgentRun(
+        files={INPUT_READINGS_PATH: '[{"folder": "/inputs/01-x/", "role": "x"}]'}
+    )
     assert [r.folder for r in read_input_readings(run)] == ["/inputs/01-x"]
 
 
@@ -140,7 +165,10 @@ def test_an_unreadable_reading_costs_only_the_reading(raw: str) -> None:
 
 
 def test_a_request_needs_an_output_and_a_document() -> None:
-    assert precheck(ReviewAssistantConfig(project_id="p", input_file_ids=["a"])) is not None
+    assert (
+        precheck(ReviewAssistantConfig(project_id="p", input_file_ids=["a"]))
+        is not None
+    )
     assert precheck(ReviewAssistantConfig(project_id="p", outputs=[PLAN])) is not None
     assert precheck(_config(PLAN)) is None
 

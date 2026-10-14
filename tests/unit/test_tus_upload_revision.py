@@ -54,7 +54,9 @@ class TestResolveRevision:
 
     @pytest.mark.parametrize("value", ["3", " 3 ", ""])
     def test_main_tolerates_the_current_revision_or_none(self, value: str):
-        assert _resolve_file_revision({"revision": value}, FileRole.MAIN, _project(3)) == 3
+        assert (
+            _resolve_file_revision({"revision": value}, FileRole.MAIN, _project(3)) == 3
+        )
 
     def test_main_rejects_a_back_dated_revision(self):
         with pytest.raises(HTTPException) as exc:

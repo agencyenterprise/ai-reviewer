@@ -88,7 +88,14 @@ GRADER_MODEL = "openai/gpt-5.6-terra"
 _WORKFLOW_TIMEOUT_S = 3600
 
 # The shared rules that apply to this output, and the one it adds.
-MEMO_CHECKS = ("verbatim", "quoted", "id_scheme", "self_contained", "voice", "flags_block")
+MEMO_CHECKS = (
+    "verbatim",
+    "quoted",
+    "id_scheme",
+    "self_contained",
+    "voice",
+    "flags_block",
+)
 REQUEST_CHECKS = ("outputs_delivered", "ids_consistent")
 
 # How the skill tells the author to delete the block before the memo goes out.
@@ -99,7 +106,10 @@ _BEFORE_SENDING = re.compile(
 
 
 def _memo_file(ref: str) -> dict[str, str]:
-    return {"file_name": Path(ref.removeprefix("file://")).name, "content": resolve_input(ref)}
+    return {
+        "file_name": Path(ref.removeprefix("file://")).name,
+        "content": resolve_input(ref),
+    }
 
 
 def _record_to_sample(record: dict) -> Sample:
@@ -259,8 +269,8 @@ SHARED_CRITERIA: dict[str, str] = {
         "reproduced verbatim as quotes; the internal block for the author at the top, marked to "
         "be removed before sending; and how points left unanswered by the revision are handled, "
         "which another criterion judges. The memos are written as the author to each "
-        "reviewer: collegial and plain, opinions owned in the first person (\"I\" or, for "
-        "several authors, \"we\"), declines given with "
+        'reviewer: collegial and plain, opinions owned in the first person ("I" or, for '
+        'several authors, "we"), declines given with '
         "a clear reason rather than an apology or reflexive agreement. Each memo is addressed to "
         "one reviewer, carries that reviewer's own header or rating block reframed as a response, "
         "and opens with a short courtesy preamble and a paragraph or two summarizing how the "

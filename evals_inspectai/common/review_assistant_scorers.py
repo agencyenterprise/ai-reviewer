@@ -100,7 +100,9 @@ class ReviewAssistantOutput(BaseModel):
 def parse_output(state: TaskState) -> ReviewAssistantOutput:
     """The run's state, or an empty one when it cannot be read."""
     try:
-        return ReviewAssistantOutput.model_validate(json.loads(state.output.completion or "{}"))
+        return ReviewAssistantOutput.model_validate(
+            json.loads(state.output.completion or "{}")
+        )
     except (ValueError, ValidationError):
         return ReviewAssistantOutput()
 

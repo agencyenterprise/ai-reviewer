@@ -18,8 +18,8 @@ class UnreadableDocument(BaseModel):
 class LoadedDocuments(BaseModel):
     """The documents that loaded, and the ones that did not."""
 
-    documents: List[FileDocument]
-    unreadable: List[UnreadableDocument] = Field(default_factory=list)
+    documents: list[FileDocument]
+    unreadable: list[UnreadableDocument] = Field(default_factory=list)
 
 
 if TYPE_CHECKING:

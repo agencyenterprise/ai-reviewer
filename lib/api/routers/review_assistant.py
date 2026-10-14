@@ -1,7 +1,5 @@
 """Review Assistant requests: the outputs an author wants from their documents."""
 
-from typing import List
-
 from fastapi import APIRouter, BackgroundTasks, Depends
 
 from lib.api.auth import get_current_user
@@ -51,7 +49,7 @@ async def start_review_assistant_request_endpoint(
 
 @router.get(
     "/api/project/{project_id}/review-assistant/requests",
-    response_model=List[ReviewAssistantRequestSummary],
+    response_model=list[ReviewAssistantRequestSummary],
 )
 async def list_review_assistant_requests_endpoint(
     project_id: str,

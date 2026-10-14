@@ -6,7 +6,7 @@ keeps one HTML report per requested output.
 """
 
 from enum import Enum
-from typing import List, Literal, Optional
+from typing import Literal
 
 from langchain_core.messages import BaseMessage
 from pydantic import BaseModel, Field, field_serializer
@@ -24,10 +24,10 @@ class ReviewAssistantOutput(str, Enum):
 
 class ReviewAssistantConfig(BaseWorkflowConfig):
     type: Literal[WorkflowRunType.REVIEW_ASSISTANT] = WorkflowRunType.REVIEW_ASSISTANT
-    outputs: List[ReviewAssistantOutput] = Field(
+    outputs: list[ReviewAssistantOutput] = Field(
         default_factory=list, description="The deliverables to produce, at least one"
     )
-    input_file_ids: List[str] = Field(
+    input_file_ids: list[str] = Field(
         default_factory=list,
         description="Every document to read, in the order the author gave them",
     )
@@ -38,7 +38,9 @@ class ReviewAssistantInput(BaseModel):
 
     file_id: str
     file_name: str
-    folder: str = Field(description="Its folder on the agent filesystem, e.g. /inputs/01-memo")
+    folder: str = Field(
+        description="Its folder on the agent filesystem, e.g. /inputs/01-memo"
+    )
     comment_count: int = 0
     tracked_change_count: int = 0
 
@@ -49,8 +51,8 @@ class ReviewAssistantInputReading(BaseModel):
 
     folder: str
     role: str = ""
-    reviewer: Optional[str] = None
-    note: Optional[str] = None
+    reviewer: str | None = None
+    note: str | None = None
 
 
 class ReviewAssistantReport(BaseModel):
@@ -61,17 +63,17 @@ class ReviewAssistantReport(BaseModel):
 class ReviewAssistantState(BaseWorkflowState):
     type: Literal[WorkflowRunType.REVIEW_ASSISTANT] = WorkflowRunType.REVIEW_ASSISTANT
     config: ReviewAssistantConfig
-    inputs: List[ReviewAssistantInput] = Field(default_factory=list)
-    input_readings: List[ReviewAssistantInputReading] = Field(default_factory=list)
-    reports: List[ReviewAssistantReport] = Field(default_factory=list)
-    guard_message: Optional[str] = Field(
+    inputs: list[ReviewAssistantInput] = Field(default_factory=list)
+    input_readings: list[ReviewAssistantInputReading] = Field(default_factory=list)
+    reports: list[ReviewAssistantReport] = Field(default_factory=list)
+    guard_message: str | None = Field(
         default=None,
         description="Why the run stopped before the agent started, when it did",
     )
-    messages: List[BaseMessage] = Field(default_factory=list)
+    messages: list[BaseMessage] = Field(default_factory=list)
 
     @field_serializer("messages")
     @classmethod
-    def _serialize_messages(cls, messages: List[BaseMessage]) -> list[dict]:
+    def _serialize_messages(cls, messages: list[BaseMessage]) -> list[dict]:
         # Checkpointer-hydrated states may contain raw dicts in `messages`.
         return [m if isinstance(m, dict) else m.model_dump() for m in messages]
