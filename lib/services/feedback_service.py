@@ -142,7 +142,6 @@ async def create_or_update_feedback(
     if existing_feedback:
         existing_feedback.feedback_type = feedback_type
         existing_feedback.feedback_text = feedback_text
-        existing_feedback.issue_id = issue_id
         session.add(existing_feedback)
         await session.commit()
         await session.refresh(existing_feedback)

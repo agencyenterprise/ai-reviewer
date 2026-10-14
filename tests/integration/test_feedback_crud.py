@@ -213,21 +213,24 @@ async def test_a_different_entity_path_creates_a_new_row(run, author):
 
 
 @pytest.mark.asyncio
-async def test_run_level_feedback_leaves_issue_feedback_alone(run, author, issues):
+@pytest.mark.parametrize("rated", [1, 2], ids=["one-rated-issue", "two-rated-issues"])
+async def test_run_level_feedback_leaves_issue_feedback_alone(
+    rated, run, author, issues
+):
     """Issue feedback is stored with entity_path={} too, so run-level feedback must
-    not match it: it used to overwrite one issue's row, or fail with two rated."""
-    first_issue, second_issue = issues
-    await _upsert(run, author, FeedbackType.THUMBS_DOWN, issue_id=first_issue.id)
-    await _upsert(run, author, FeedbackType.THUMBS_DOWN, issue_id=second_issue.id)
+    not match it. It used to silently overwrite and unlink a single rated issue's
+    row, and fail with MultipleResultsFound once two were rated."""
+    rated_issues = issues[:rated]
+    for issue in rated_issues:
+        await _upsert(run, author, FeedbackType.THUMBS_DOWN, issue_id=issue.id)
     created = await _upsert(run, author, FeedbackType.THUMBS_UP)
-    updated = await _upsert(run, author, FeedbackType.THUMBS_DOWN, feedback_text="meh")
+    updated = await _upsert(run, author, FeedbackType.THUMBS_UP, feedback_text="meh")
 
     assert updated.id == created.id
     by_issue = {row.issue_id: row.feedback_type for row in await _feedback_rows(run.id)}
     assert by_issue == {
-        first_issue.id: FeedbackType.THUMBS_DOWN,
-        second_issue.id: FeedbackType.THUMBS_DOWN,
-        None: FeedbackType.THUMBS_DOWN,
+        **{issue.id: FeedbackType.THUMBS_DOWN for issue in rated_issues},
+        None: FeedbackType.THUMBS_UP,
     }
 
     async with get_async_db_session() as session:
