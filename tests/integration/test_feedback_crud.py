@@ -213,24 +213,28 @@ async def test_a_different_entity_path_creates_a_new_row(run, author):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Bug: run-level feedback (entity_path={}, no issue_id) is looked up by "
-        "entity_path alone, which also matches issue feedback, so it overwrites the "
-        "issue's row and clears its issue_id. lib/services/feedback_service.py:136"
-    ),
-)
 async def test_run_level_feedback_leaves_issue_feedback_alone(run, author, issues):
-    issue, _ = issues
-    await _upsert(run, author, FeedbackType.THUMBS_DOWN, issue_id=issue.id)
-    await _upsert(run, author, FeedbackType.THUMBS_UP)
+    """Issue feedback is stored with entity_path={} too, so run-level feedback must
+    not match it: it used to overwrite one issue's row, or fail with two rated."""
+    first_issue, second_issue = issues
+    await _upsert(run, author, FeedbackType.THUMBS_DOWN, issue_id=first_issue.id)
+    await _upsert(run, author, FeedbackType.THUMBS_DOWN, issue_id=second_issue.id)
+    created = await _upsert(run, author, FeedbackType.THUMBS_UP)
+    updated = await _upsert(run, author, FeedbackType.THUMBS_DOWN, feedback_text="meh")
 
+    assert updated.id == created.id
     by_issue = {row.issue_id: row.feedback_type for row in await _feedback_rows(run.id)}
     assert by_issue == {
-        issue.id: FeedbackType.THUMBS_DOWN,
-        None: FeedbackType.THUMBS_UP,
+        first_issue.id: FeedbackType.THUMBS_DOWN,
+        second_issue.id: FeedbackType.THUMBS_DOWN,
+        None: FeedbackType.THUMBS_DOWN,
     }
+
+    async with get_async_db_session() as session:
+        found = await feedback_service.get_feedback(
+            session=session, workflow_run_id=run.id, entity_path={}, user=author
+        )
+    assert found is not None and found.id == created.id
 
 
 # ---------------------------------------------------------------------------
