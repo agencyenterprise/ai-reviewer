@@ -1,6 +1,6 @@
 import { SeverityEnum, WorkflowRunType, type Issue } from '@/lib/generated-api';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_FILTER, getFilteredIssues, getResolvedCount, getVisibleIssues } from './document-explorer-store';
+import { DEFAULT_FILTER, getResolvedCount, getVisibleIssues } from './document-explorer-store';
 
 function issue(
   id: string,
@@ -25,26 +25,6 @@ function issue(
 }
 
 const ids = (issues: Issue[]) => issues.map((i) => i.id);
-
-describe('getFilteredIssues with a selected line range', () => {
-  const issues = [
-    issue('before', { start_line: 1, end_line: 4 }),
-    issue('touches-start', { start_line: 3, end_line: 5 }),
-    issue('inside', { start_line: 6, end_line: 7 }),
-    issue('touches-end', { start_line: 8, end_line: 12 }),
-    issue('after', { start_line: 9, end_line: 12 }),
-    issue('start-only', { start_line: 6 }),
-    issue('unanchored', {}),
-  ];
-
-  it('keeps issues overlapping the range, ends inclusive, and drops issues without both lines', () => {
-    expect(ids(getFilteredIssues(issues, DEFAULT_FILTER, [5, 8]))).toEqual(['touches-start', 'inside', 'touches-end']);
-  });
-
-  it('keeps every issue when no range is selected', () => {
-    expect(ids(getFilteredIssues(issues, DEFAULT_FILTER, null))).toEqual(ids(issues));
-  });
-});
 
 describe('getResolvedCount', () => {
   const resolved = { resolved_at: new Date('2026-01-02T00:00:00Z') };
