@@ -84,8 +84,12 @@ async def _link(reference_id: str, file_id: str = "f_new") -> bool:
     "matching, extraction",
     [
         pytest.param((None, None), _extraction_state(["r1"]), id="no-matching-run"),
-        pytest.param((_make_run(), None), _extraction_state(["r1"]), id="no-matching-state"),
-        pytest.param((_make_run(), _matching_state([])), None, id="no-extraction-state"),
+        pytest.param(
+            (_make_run(), None), _extraction_state(["r1"]), id="no-matching-state"
+        ),
+        pytest.param(
+            (_make_run(), _matching_state([])), None, id="no-extraction-state"
+        ),
         pytest.param(
             (_make_run(), _matching_state([])),
             _extraction_state(["r2"]),
