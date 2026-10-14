@@ -24,6 +24,7 @@ import { Columns2, ListFilter, Loader2 } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { DocumentHeader, DocumentView, DocumentViewHandle } from './document-view';
 import { IssuesColumn, IssuesColumnHandle, issueCountLabel } from './issues-column';
+import { issueLineRange } from './issue-lines';
 import { IssueNav, useIssueShortcuts } from './issue-nav';
 import { Rail, RailToggle, SidePane, useRailState } from '../panes';
 import { OutlineRail } from './outline-rail';
@@ -49,14 +50,6 @@ interface DocumentExplorerTabProps {
   /** False on a shared or older revision, where the header hides its run button too. */
   canRunAssessments: boolean;
   onNavigateToAnalyses: () => void;
-}
-
-type IssueWithLines = Issue & { start_line?: number | null; end_line?: number | null };
-
-function getIssueLineRange(issue: Issue): [number, number] | null {
-  const { start_line, end_line } = issue as IssueWithLines;
-  if (typeof start_line !== 'number' || typeof end_line !== 'number') return null;
-  return [start_line, end_line];
 }
 
 export function DocumentExplorerTab({
@@ -121,7 +114,7 @@ export function DocumentExplorerTab({
     if (openIssueId && highlightIssues.some((issue) => issue.id === openIssueId)) return openIssueId;
     if (!selectedLineRange) return null;
     const match = highlightIssues.find((issue) => {
-      const range = getIssueLineRange(issue);
+      const range = issueLineRange(issue);
       return range !== null && range[0] <= selectedLineRange[1] && range[1] >= selectedLineRange[0];
     });
     return match?.id ?? null;
@@ -160,7 +153,7 @@ export function DocumentExplorerTab({
         return;
       }
 
-      const range = getIssueLineRange(issue);
+      const range = issueLineRange(issue);
       // Opening the issue does not depend on it having a range: start_line is
       // nullable, and an issue with none can only be read here.
       setOpenIssueId(issue.id);
@@ -182,7 +175,7 @@ export function DocumentExplorerTab({
         handleCloseIssue();
         return;
       }
-      const range = getIssueLineRange(issue);
+      const range = issueLineRange(issue);
       setOpenIssueId(issue.id);
       if (range) selectLineRange(range);
       else clearLineSelection();
@@ -199,8 +192,8 @@ export function DocumentExplorerTab({
   const orderedIssues = useMemo(() => {
     const anchored: Issue[] = [];
     const unanchored: Issue[] = [];
-    for (const issue of highlightIssues) (getIssueLineRange(issue) ? anchored : unanchored).push(issue);
-    anchored.sort((a, b) => getIssueLineRange(a)![0] - getIssueLineRange(b)![0]);
+    for (const issue of highlightIssues) (issueLineRange(issue) ? anchored : unanchored).push(issue);
+    anchored.sort((a, b) => issueLineRange(a)![0] - issueLineRange(b)![0]);
     return [...unanchored, ...anchored];
   }, [highlightIssues]);
 
@@ -212,7 +205,7 @@ export function DocumentExplorerTab({
   /** Takes the reader to an issue, wherever in the document it sits. */
   const goToIssue = useCallback(
     (issue: Issue) => {
-      const range = getIssueLineRange(issue);
+      const range = issueLineRange(issue);
       setOpenIssueId(issue.id);
       issuesRef.current?.scrollToIssue(issue);
       if (range) {
@@ -253,7 +246,7 @@ export function DocumentExplorerTab({
         clearLineSelection();
         return;
       }
-      const range = getIssueLineRange(issue);
+      const range = issueLineRange(issue);
       if (!range) return;
 
       setOpenIssueId(issue.id);

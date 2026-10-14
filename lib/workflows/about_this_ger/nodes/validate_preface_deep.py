@@ -4,7 +4,7 @@ import logging
 
 from langgraph.runtime import Runtime
 
-from lib.agents.preface_validator import PrefaceValidatorAgent
+from lib.agents.about_this_validators import PrefaceValidatorAgent
 from lib.workflows.about_this_ger.state import AboutThisGerState, AgentConversation
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node

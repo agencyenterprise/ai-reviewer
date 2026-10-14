@@ -1,5 +1,7 @@
 import type { Issue } from '@/lib/generated-api';
 
+type IssueLines = Issue & { start_line?: number | null; end_line?: number | null };
+
 /**
  * Where an issue sits in the document, or nowhere.
  *
@@ -7,12 +9,20 @@ import type { Issue } from '@/lib/generated-api';
  * finding about the document rather than a place in it carries none at all.
  */
 export function issueLineRange(issue: Issue): [number, number] | null {
-  const { start_line: start, end_line: end } = issue as Issue & {
-    start_line?: number | null;
-    end_line?: number | null;
-  };
+  const { start_line: start, end_line: end } = issue as IssueLines;
   if (typeof start !== 'number' || typeof end !== 'number') return null;
   return [start, end];
+}
+
+/** The line an issue starts on, even when its end line is missing. */
+export function issueStartLine(issue: Issue): number | null {
+  const { start_line: start } = issue as IssueLines;
+  return typeof start === 'number' ? start : null;
+}
+
+/** Whether two inclusive line ranges share at least one line. */
+export function rangesOverlap(a: [number, number], b: [number, number]): boolean {
+  return a[0] <= b[1] && a[1] >= b[0];
 }
 
 /**
