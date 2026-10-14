@@ -19,6 +19,7 @@ from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
 from mcp.types import TextContent
 
 from lib.models.user import User, UserRole
+from lib.workflows.models import WorkflowRunType
 
 # Patch auth factory before importing the MCP module.
 # lib.api.mcp calls create_mcp_auth() at module level, which raises
@@ -29,7 +30,6 @@ _orig_create_mcp_auth = _mcp_auth_mod.create_mcp_auth
 _mcp_auth_mod.create_mcp_auth = lambda: None
 
 from lib.api.mcp.server import mcp  # noqa: E402
-from lib.workflows.models import WorkflowRunType
 
 _mcp_auth_mod.create_mcp_auth = _orig_create_mcp_auth
 

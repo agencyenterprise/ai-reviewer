@@ -1,7 +1,6 @@
 from enum import StrEnum
 
 from langchain.agents import create_agent
-from langchain.chat_models import init_chat_model
 from langchain_core.messages import BaseMessage, SystemMessage
 from langgraph.graph.state import RunnableConfig
 from pydantic import BaseModel, ConfigDict, Field
@@ -9,15 +8,15 @@ from pydantic import BaseModel, ConfigDict, Field
 from lib.config.llm_models import gpt_5_6_terra_model, web_search_tool
 from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
-
-# Recursion limit for the agent's tool-calling loop
-# Each search-download-verify cycle uses ~3 tool calls, so 50 allows ~16 cycles
-REFERENCE_FETCH_RECURSION_LIMIT = 50
 from lib.workflows.context import ContextSchema
 from lib.workflows.reference_downloader.tools.download_file_from_url import (
     download_file_from_url,
 )
 from lib.workflows.reference_downloader.tools.read_file_content import read_file_content
+
+# Recursion limit for the agent's tool-calling loop
+# Each search-download-verify cycle uses ~3 tool calls, so 50 allows ~16 cycles
+REFERENCE_FETCH_RECURSION_LIMIT = 50
 
 
 class ReferenceFetcherAgentInput(BaseModel):

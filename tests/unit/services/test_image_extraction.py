@@ -250,7 +250,7 @@ async def test_declared_crop_is_applied_to_the_stored_image(tmp_path):
     with Image.open(image.image_path) as stored:
         assert stored.size == (750, 357)
         assert abs(stored.width / stored.height - 624 / 297) < 0.01
-    assert f"?w=624&h=297" in result.markdown
+    assert "?w=624&h=297" in result.markdown
 
 
 @pytest.mark.asyncio

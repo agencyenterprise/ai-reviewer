@@ -16,3 +16,30 @@ from .user import User
 from .workflow_progress import WorkflowProgress
 from .workflow_gate_approval import WorkflowGateApproval
 from .workflow_run import WorkflowRun
+
+__all__ = [
+    "Annotation",
+    "AnnotationItem",
+    "AnnotationSet",
+    "AppConfig",
+    "BibliographyItem",
+    "ChatThread",
+    "Feedback",
+    "File",
+    "FileRole",
+    "Issue",
+    "IssueEdit",
+    "IssueEditRead",
+    "IssueEditStatus",
+    "IssueStatus",
+    "MCPOAuthKV",
+    "MicrosoftTeamsSignInState",
+    "MicrosoftWordHandoff",
+    "Project",
+    "RateLimiterBucket",
+    "ShareLink",
+    "User",
+    "WorkflowGateApproval",
+    "WorkflowProgress",
+    "WorkflowRun",
+]

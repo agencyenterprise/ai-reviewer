@@ -1,7 +1,7 @@
 """Unit tests for cancel_workflow_run cascade logic."""
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 

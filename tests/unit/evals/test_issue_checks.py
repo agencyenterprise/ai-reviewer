@@ -1272,9 +1272,12 @@ def test_percentage_units_travel_with_their_number():
         "Retention rose 7 per cent in the same period.",
         line=9,
     )
-    check = lambda e: edit_checks(f, _issue(start=9, end=9, edits=[e]), lines)[
-        "edit_keeps_numbers_and_markers"
-    ][0]
+
+    def check(e):
+        return edit_checks(f, _issue(start=9, end=9, edits=[e]), lines)[
+            "edit_keeps_numbers_and_markers"
+        ][0]
+
     assert check(keeps_unit) == 1.0 and check(british) == 1.0
     assert check(drops_unit) == 0.0, "a bare 7 is not 7 percent"
 

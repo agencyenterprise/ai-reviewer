@@ -1,7 +1,5 @@
 """Tests for PostgreSQL sanitization utilities"""
 
-import pytest
-
 from lib.services.text_sanitization import sanitize_for_postgres
 
 

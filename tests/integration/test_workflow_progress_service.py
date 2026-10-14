@@ -9,7 +9,7 @@ from sqlmodel import col
 
 from lib.config.database import get_async_db_session
 from lib.models.project import Project
-from lib.models.workflow_progress import ProgressLevel, WorkflowProgress
+from lib.models.workflow_progress import ProgressLevel
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services.workflow_progress import (
     cancel_workflow_progress,
@@ -154,19 +154,19 @@ async def test_complete_progress(workflow_run_id):
 async def test_get_workflow_progress_ordering(workflow_run_id):
     """Test that progress entries are returned in creation order."""
     # Create multiple progress entries
-    id1 = await create_and_start_progress(
+    await create_and_start_progress(
         workflow_run_id=workflow_run_id,
         name="First Node",
         level=ProgressLevel.NODE,
     )
 
-    id2 = await create_and_start_progress(
+    await create_and_start_progress(
         workflow_run_id=workflow_run_id,
         name="Second Node",
         level=ProgressLevel.NODE,
     )
 
-    id3 = await create_and_start_progress(
+    await create_and_start_progress(
         workflow_run_id=workflow_run_id,
         name="Third Node",
         level=ProgressLevel.NODE,

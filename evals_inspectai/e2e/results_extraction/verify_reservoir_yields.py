@@ -25,8 +25,8 @@ records = yaml.safe_load(
 doc = [r for r in records if r["id"] == "appendix_parameters"][0]["input"]
 
 rows = [
-    (y, l)
-    for y, l in re.findall(r"^\| (\d{4}-\d{2}) \| (.+) \|$", doc, re.M)
+    (y, line)
+    for y, line in re.findall(r"^\| (\d{4}-\d{2}) \| (.+) \|$", doc, re.M)
     if y[0] == "2"
 ]
 WY_MONTHS = [10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9]

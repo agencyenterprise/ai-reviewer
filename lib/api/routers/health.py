@@ -4,7 +4,7 @@ Health check and system metadata endpoints
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, Response
 from sqlalchemy import text
 
 from lib.config.database import get_async_db_session
@@ -23,6 +23,6 @@ async def read_health():
             await session.execute(text("SELECT 1"))
     except Exception as e:
         logger.error(f"Database unavailable: {e}", exc_info=True)
-        return Response(status_code=503, content=f"Database unavailable")
+        return Response(status_code=503, content="Database unavailable")
 
     return {"status": "healthy"}

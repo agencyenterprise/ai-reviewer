@@ -6,7 +6,6 @@ from lib.workflows.about_this_ger.graph import build_about_this_ger_graph
 from lib.workflows.about_this_ger.state import (
     AboutThisGerConfig,
     AboutThisGerState,
-    AgentCheckResult,
 )
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType

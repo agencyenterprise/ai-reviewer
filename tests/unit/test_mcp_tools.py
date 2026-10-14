@@ -2,11 +2,18 @@
 
 import asyncio
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
+import jwt as pyjwt
 import pytest
+from fastmcp.utilities.types import File
+
+from lib.api.mcp.serialization import build_gate_required_payload
+from lib.api.services.workflow_runner import WorkflowGateRequiredError
+from lib.workflows.models import SeverityEnum
+from lib.workflows.reference_file_matching.state import MatchSource, ReferenceFileMatch
 
 # Patch auth factory before importing the MCP module (see test_mcp_server.py).
 import lib.api.mcp_auth as _mcp_auth_mod
@@ -44,13 +51,6 @@ from lib.api.mcp.tools.workflows import (  # noqa: E402
 )
 from lib.models.file import FileRole  # noqa: E402
 from lib.models.workflow_run import WorkflowRunStatus, WorkflowRunType  # noqa: E402
-from lib.api.services.workflow_runner import WorkflowGateRequiredError
-from lib.api.mcp.serialization import build_gate_required_payload
-from fastmcp.utilities.types import File
-from lib.workflows.models import SeverityEnum, WorkflowRunType
-from lib.workflows.reference_file_matching.state import MatchSource, ReferenceFileMatch
-import jwt as pyjwt
-from datetime import datetime, timezone
 
 _mcp_auth_mod.create_mcp_auth = _orig
 
@@ -1177,11 +1177,9 @@ async def test_get_tus_upload_credentials_bearer_token_expires_in_one_hour():
     ):
         mock_cfg.MCP_BASE_URL = "https://app.example.com/mcp"
         mock_cfg.AUTH_SECRET = "test-secret"
-        before = datetime.now(timezone.utc)
         raw = await get_tus_upload_credentials(
             project_id=str(uuid4()), token=_make_token()
         )
-        after = datetime.now(timezone.utc)
 
     data = json.loads(raw)
     decoded = pyjwt.decode(

@@ -18,7 +18,7 @@ from lib.services.docx.manipulator import (
 )
 from lib.services.docx.edit_export import EditExport
 from lib.services.docx_workflow_service import _resolved_revision, generate_docx
-from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
+from lib.workflows.models import SeverityEnum, WorkflowRunType
 
 _SERVICE = "lib.services.docx_workflow_service"
 

@@ -3,7 +3,9 @@
 from unittest.mock import MagicMock, patch
 
 from lib.config.llm_models import LLMModel
+from lib.config.rate_limiter import get_rate_limiter as get_rl
 from lib.config.rate_limiter import hash_api_key
+from lib.models.agent import LangChainAgent
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     FileArtifactsServiceType,
 )
@@ -16,10 +18,6 @@ def _make_context(openai_api_key: str | None = None) -> ContextSchema:
         file_artifacts_service=MagicMock(spec=FileArtifactsServiceType),
         project_id="test-project",
     )
-
-
-from lib.models.agent import LangChainAgent
-from lib.config.rate_limiter import get_rate_limiter as get_rl
 
 
 class _TestAgent(LangChainAgent):

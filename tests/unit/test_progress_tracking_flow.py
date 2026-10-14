@@ -39,7 +39,7 @@ class TestDecoratorProgressTracking:
         mock_state = Mock()
         mock_state.config = Mock()
         mock_state.config.project_id = "test-project"
-        result = await test_node(mock_state, mock_runtime)
+        await test_node(mock_state, mock_runtime)
 
         # Verify progress was created with UUID (converted from string)
         mock_get_or_create.assert_called_once()

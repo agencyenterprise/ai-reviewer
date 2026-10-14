@@ -1,12 +1,9 @@
 """Unit tests for vector_store chunking and line-range computation."""
 
-import pytest
-
 from lib.config.database import async_engine as shared_async_engine
 from lib.services.vector_store import (
     VectorStoreService,
     _char_offset_to_line,
-    _splitter,
     build_chunk_docs,
 )
 
