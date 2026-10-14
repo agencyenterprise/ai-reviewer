@@ -22,7 +22,6 @@ from lib.services.reference_embedding_matcher import (
 )
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
-from lib.workflows.reference_extraction.state import ExtractedReference
 from lib.workflows.reference_file_matching.state import (
     MatchSource,
     ReferenceFileMatch,
@@ -140,7 +139,7 @@ async def match_supporting_docs_node(
     2. Batched LLM verification (5 references per call)
     """
     # Get extracted references from the reference extraction workflow
-    extracted_references: list[ExtractedReference] = (
+    extracted_references = (
         await runtime.context.file_artifacts_service.get_extracted_references()
     )
 

@@ -78,9 +78,8 @@ class _Entry:
     def __init__(self) -> None:
         self.text = ""
         self.joins: set[int] = set()
-        self.pieces: list[tuple[int, int, int]] = (
-            []
-        )  # (1-indexed line, start, end) in text
+        # (1-indexed line, start, end) in text
+        self.pieces: list[tuple[int, int, int]] = []
         self.last_line = ""  # normalized text of the entry's last line
         self.tail = (
             0  # for a placeholder entry, where the text after the placeholder starts
