@@ -9,6 +9,7 @@ A Python backend (FastAPI + LangChain, under `lib/`) and a Next.js frontend (und
 uv run dev.py                              # Start the full dev environment
 uv run pytest tests/unit                   # Unit tests (what CI runs)
 uv run pytest tests/path/to/test.py -k "name"
+uv run black <files>                       # Format changed files (CI checks changed lines)
 uv run mypy .                              # Type check (CI blocks on errors)
 
 # Frontend (always pnpm, from frontend/)
@@ -23,7 +24,7 @@ cd frontend && pnpm run openapi-generate   # Regenerate API types
 
 Run the same checks CI runs for the side you touched. A red check here means a red PR.
 
-- **Python changes:** `uv run mypy .` and `uv run pytest tests/unit`. Also run the integration tests you touched (`uv run pytest tests/integration/...`), since CI skips them.
+- **Python changes:** `uv run black <files you changed>`, `uv run mypy .` and `uv run pytest tests/unit`. CI's Black job flags only changed lines, and the tree isn't fully Black-clean, so never run Black on the whole repo. Also run the integration tests you touched (`uv run pytest tests/integration/...`), since CI skips them.
 - **Frontend changes:** `pnpm run lint`, `pnpm test` and `pnpm run build`, from `frontend/`.
 - **Backend API changes:** regenerate the frontend types (see below), then run the frontend checks.
 
@@ -236,7 +237,7 @@ cd frontend && pnpm test lib/workflow-state.test.ts   # One file
 cd frontend && pnpm test -t "name of the test"        # Tests matching a name
 ```
 
-- Tests live next to the module they cover, as `*.test.ts` (e.g. `components/workflows/run-readiness.test.ts`).
+- Tests live next to the module they cover, as `*.test.ts`, or `*.test.tsx` when the test needs JSX (e.g. a hook exercised through a small harness component).
 - Import `describe`/`it`/`expect`/`vi` from `vitest` explicitly; globals are off.
 - The `@/` path alias resolves as it does in the app.
 
@@ -244,7 +245,9 @@ cd frontend && pnpm test -t "name of the test"        # Tests matching a name
 
 Frontend tests cover **logic and business rules**: data derivation and transformation, state transitions, validation, filtering and sorting, API response mapping, and the decisions a hook or store makes. They **never test UI**: markup, DOM structure, CSS classes, styling, layout, copy, icons or snapshots. UI assertions break on every cosmetic change without catching real bugs.
 
-When logic is tangled inside a component, extract it into a plain function, hook or store module and test that.
+When logic is tangled inside a component, extract it into a plain function, hook or store module and test that. Rendering is fine when it's the only way to drive a hook or store, as long as the assertions are about logic and not markup.
+
+The suite still has older render tests (`*.render.test.tsx`) that assert on UI. This rule applies to tests you add: keep the existing ones passing, and never delete one without replacing its coverage with a logic test.
 
 ```ts
 // ✅ Correct - test the rule the run dialog relies on
