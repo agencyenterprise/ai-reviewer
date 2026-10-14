@@ -118,20 +118,3 @@ export function getResolvedCount(allIssues: Issue[], selectedLineRange: LineRang
 export function getHighlightIssues(visibleIssues: Issue[], filter: DocumentExplorerFilter): Issue[] {
   return filterBySeverity(filterByWorkflowType(visibleIssues, filter.workflowType), filter.severity);
 }
-
-/**
- * Issues filtered by all active filters including line-range selection.
- */
-export function getFilteredIssues(
-  visibleIssues: Issue[],
-  filter: DocumentExplorerFilter,
-  selectedLineRange: LineRange | null,
-): Issue[] {
-  let result = getHighlightIssues(visibleIssues, filter);
-
-  if (selectedLineRange) {
-    result = result.filter((issue) => issueOverlapsRange(issue, selectedLineRange)).sort(sortIssueBySeverity);
-  }
-
-  return result;
-}
