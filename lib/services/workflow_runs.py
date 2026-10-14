@@ -521,34 +521,6 @@ async def get_latest_workflow_run_state_by_type(
     return hydrate_workflow_run_state(run) if run is not None else None
 
 
-async def get_project_workflow_runs_by_type(
-    project_id: str,
-    workflow_type: WorkflowRunType,
-    revision: int,
-    include_state: bool = False,
-) -> list[WorkflowRun]:
-    """
-    Get all workflow runs of a specific type for a project and revision.
-
-    Returns all runs ordered by created_at descending (newest first).
-    """
-    async with get_async_db_session() as session:
-        stmt = (
-            select(WorkflowRun)
-            .where(
-                and_(
-                    col(WorkflowRun.project_id) == project_id,
-                    col(WorkflowRun.type) == workflow_type,
-                    col(WorkflowRun.revision) == revision,
-                )
-            )
-            .order_by(col(WorkflowRun.created_at).desc())
-        )
-        if include_state:
-            stmt = stmt.options(undefer(col(WorkflowRun.state_json)))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
-        return list((await session.execute(stmt)).scalars().all())
-
-
 def latest_run_per_type_stmt(
     project_id: str, revision: int
 ) -> Select[tuple[WorkflowRun]]:

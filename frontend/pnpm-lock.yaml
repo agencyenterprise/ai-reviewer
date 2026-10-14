@@ -97,12 +97,6 @@ importers:
       '@tanstack/react-virtual':
         specifier: ^3.13.12
         version: 3.13.12(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      '@types/lodash':
-        specifier: ^4.17.20
-        version: 4.17.20
-      '@types/uuid':
-        specifier: ^11.0.0
-        version: 11.0.0
       '@uppy/core':
         specifier: ^5.2.0
         version: 5.2.0
@@ -133,9 +127,6 @@ importers:
       jose:
         specifier: ^6.1.1
         version: 6.1.1
-      lodash:
-        specifier: ^4.18.1
-        version: 4.18.1
       lucide-react:
         specifier: ^0.544.0
         version: 0.544.0(react@19.2.3)
@@ -181,9 +172,6 @@ importers:
       use-debounce:
         specifier: ^10.1.0
         version: 10.1.0(react@19.2.3)
-      uuid:
-        specifier: ^14.0.0
-        version: 14.0.0
       zustand:
         specifier: ^5.0.11
         version: 5.0.11(@types/react@19.1.12)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))
@@ -1931,9 +1919,6 @@ packages:
   '@types/katex@0.16.7':
     resolution: {integrity: sha512-HMwFiRujE5PjrgwHQ25+bsLJgowjGjm5Z8FVSf0N6PwgJrwxH0QxzHYDcKsTfV3wva0vzrpqMTJS2jXPr5BMEQ==}
 
-  '@types/lodash@4.17.20':
-    resolution: {integrity: sha512-H3MHACvFUEiujabxhaI/ImO6gUrd8oOurg7LQtS7mbwIXA/cUqWrvBsaeJ23aZEPk1TAYkurjfMbSELfoCXlGA==}
-
   '@types/mdast@4.0.4':
     resolution: {integrity: sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA==}
 
@@ -1968,10 +1953,6 @@ packages:
 
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
-
-  '@types/uuid@11.0.0':
-    resolution: {integrity: sha512-HVyk8nj2m+jcFRNazzqyVKiZezyhDKrGUA3jlEcg/nZ6Ms+qHwocba1Y/AaVaznJTAM9xpdFSh+ptbNrhOGvZA==}
-    deprecated: This is a stub types definition. uuid provides its own type definitions, so you do not need this installed.
 
   '@typescript-eslint/eslint-plugin@8.43.0':
     resolution: {integrity: sha512-8tg+gt7ENL7KewsKMKDHXR1vm8tt9eMxjJBYINf6swonlWgkYn5NwyIgXpbbDxTNU5DgpDFfj95prcTq2clIQQ==}
@@ -4568,10 +4549,6 @@ packages:
     resolution: {integrity: sha512-XQegIaBTVUjSHliKqcnFqYypAd4S+WCYt5NIeRs6w/UAry7z8Y9j5ZwRRL4kzq9U3sD6v+85er9FvkEaBpji2w==}
     hasBin: true
 
-  uuid@14.0.0:
-    resolution: {integrity: sha512-Qo+uWgilfSmAhXCMav1uYFynlQO7fMFiMVZsQqZRMIXp0O7rR7qjkj+cPvBHLgBqi960QCoo/PH2/6ZtVqKvrg==}
-    hasBin: true
-
   vfile-location@5.0.3:
     resolution: {integrity: sha512-5yXvWDEgqeiYiBe1lbxYF7UMAIm/IcopxMHrMQDq3nvKcjPKIhZklUKL+AE7J7uApI4kwe2snsK+eI6UTj9EHg==}
 
@@ -6419,8 +6396,6 @@ snapshots:
 
   '@types/katex@0.16.7': {}
 
-  '@types/lodash@4.17.20': {}
-
   '@types/mdast@4.0.4':
     dependencies:
       '@types/unist': 3.0.3
@@ -6453,10 +6428,6 @@ snapshots:
   '@types/unist@2.0.11': {}
 
   '@types/unist@3.0.3': {}
-
-  '@types/uuid@11.0.0':
-    dependencies:
-      uuid: 14.0.0
 
   '@typescript-eslint/eslint-plugin@8.43.0(@typescript-eslint/parser@8.43.0(eslint@9.35.0(jiti@2.6.1))(typescript@5.9.2))(eslint@9.35.0(jiti@2.6.1))(typescript@5.9.2)':
     dependencies:
@@ -9623,8 +9594,6 @@ snapshots:
   util-deprecate@1.0.2: {}
 
   uuid@13.0.0: {}
-
-  uuid@14.0.0: {}
 
   vfile-location@5.0.3:
     dependencies:

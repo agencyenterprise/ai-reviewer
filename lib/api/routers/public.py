@@ -4,32 +4,13 @@ Public API routes for unauthenticated access to shared resources.
 These routes require a valid share token instead of authentication.
 """
 
-from datetime import datetime
-
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
 
 from lib.services.project_overview import ProjectOverview, get_project_overview
 from lib.services.projects import get_project_access
 from lib.services.share_links import get_resource_by_token
 
 router = APIRouter(prefix="/api/public", tags=["public"])
-
-
-class SharedProjectInfo(BaseModel):
-    """Minimal project info for shared view (no sensitive data)."""
-
-    id: str
-    title: str
-    created_at: datetime
-
-
-class SharedWorkflowRun(BaseModel):
-    """Minimal workflow run info for shared view."""
-
-    id: str
-    type: str
-    status: str
 
 
 @router.get("/share/{token}", response_model=ProjectOverview)

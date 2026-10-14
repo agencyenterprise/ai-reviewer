@@ -34,11 +34,6 @@ class LLMModel(BaseModel):
     def __str__(self) -> str:
         return self.model_name
 
-    def get_model_name_for_inspectai(self) -> str:
-        """For usage with InspectAI's GenerateConfig"""
-
-        return self.model_name.replace(":", "/")
-
     @staticmethod
     def from_model_name(model_name: str) -> "LLMModel":
         """Create an LLMModel from a LangChain model name (e.g. 'openai:gpt-5.6-sol').
@@ -48,15 +43,6 @@ class LLMModel(BaseModel):
         web-search tool by the provider.
         """
         provider, _, name = model_name.rpartition(":")
-        return LLMModel(provider=provider, name=name)
-
-    @staticmethod
-    def from_inspectai_name(inspectai_name: str) -> "LLMModel":
-        """Create an LLMModel from an InspectAI model name (e.g. 'openai/gpt-5.2')."""
-        if "/" in inspectai_name:
-            provider, name = inspectai_name.split("/", 1)
-        else:
-            provider, name = "", inspectai_name
         return LLMModel(provider=provider, name=name)
 
 

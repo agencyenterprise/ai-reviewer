@@ -194,17 +194,6 @@ export function isAnyWorkflowProcessing(workflowRuns: RunLike[]): boolean {
 }
 
 /**
- * Whether any assessment is waiting on the user to approve a gate.
- *
- * Gate-agnostic: a run in AwaitingApproval could be waiting on any gate. For
- * the reference review specifically, see `needsReferenceReview` in
- * `components/workflows/utils`.
- */
-export function needsApproval(workflowRuns: RunLike[]): boolean {
-  return workflowRuns.some(isWorkflowAwaitingApproval);
-}
-
-/**
  * Whether assessments are actively working, as opposed to waiting on the user.
  *
  * A run in AwaitingApproval is not processing, so this is the same question as
