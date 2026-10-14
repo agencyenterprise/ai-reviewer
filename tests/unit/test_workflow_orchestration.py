@@ -336,8 +336,6 @@ async def test_same_type_cancelled_run_does_not_block(mock_manifest):
 @pytest.mark.asyncio
 async def test_cancelled_required_dependency_raises_workflow_cancelled_error():
     """If a required dependency is CANCELLED, WorkflowCancelledError is raised and the current run is cancelled."""
-    from lib.workflows.models import WorkflowCancelledError
-
     project_id = str(uuid4())
     current_run_id = str(uuid4())
 

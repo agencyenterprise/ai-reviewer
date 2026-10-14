@@ -15,6 +15,7 @@ from lib.services.project_zip import (
     _compression_for,
     create_project_files_zip,
 )
+from fastapi import HTTPException
 
 MOUNT_PATH = "/tmp/test-uploads"
 CONFIG_PATH = "lib.services.project_zip.config"
@@ -253,8 +254,6 @@ class TestCreateProjectFilesZip:
     async def test_raises_404_when_no_files(self, mock_get_files: AsyncMock):
         mock_get_files.return_value = []
 
-        from fastapi import HTTPException
-
         with pytest.raises(HTTPException) as exc_info:
             await create_project_files_zip(uuid.uuid4())
         assert exc_info.value.status_code == 404
@@ -269,8 +268,6 @@ class TestCreateProjectFilesZip:
         mock_config.FILE_UPLOADS_MOUNT_PATH = MOUNT_PATH
         f = make_file(file_path=f"{MOUNT_PATH}/missing/file.pdf")
         mock_get_files.return_value = [f]
-
-        from fastapi import HTTPException
 
         with pytest.raises(HTTPException) as exc_info:
             await create_project_files_zip(uuid.uuid4())

@@ -14,6 +14,8 @@ from lib.models.project import FeedbackVisibility, Project
 from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.workflows.models import SeverityEnum
+from lib.api.routers.feedback import export_admin_feedbacks_csv
+from lib.api.routers.feedback import get_admin_feedbacks
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -115,8 +117,6 @@ async def _read_streaming_response(response) -> str:
 @pytest.mark.asyncio
 async def test_csv_headers():
     """The export response contains all expected column headers."""
-    from lib.api.routers.feedback import export_admin_feedbacks_csv
-
     with patch(
         "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
@@ -151,8 +151,6 @@ async def test_csv_headers():
 @pytest.mark.asyncio
 async def test_csv_empty_returns_only_header():
     """When there is no feedback, the CSV contains only the header row."""
-    from lib.api.routers.feedback import export_admin_feedbacks_csv
-
     with patch(
         "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
@@ -167,8 +165,6 @@ async def test_csv_empty_returns_only_header():
 @pytest.mark.asyncio
 async def test_csv_row_values():
     """Each CSV row contains the correct values from the feedback data."""
-    from lib.api.routers.feedback import export_admin_feedbacks_csv
-
     user = _make_user(name="Bob", email="bob@example.com")
     project = _make_project(
         title="Report", feedback_visibility=FeedbackVisibility.FULL_PROJECT
@@ -232,8 +228,6 @@ async def test_csv_row_values():
 @pytest.mark.asyncio
 async def test_csv_empty_feedback_text():
     """Feedback with no text produces an empty string in the CSV, not 'None'."""
-    from lib.api.routers.feedback import export_admin_feedbacks_csv
-
     feedback = _make_feedback(feedback_type=FeedbackType.THUMBS_UP, feedback_text=None)
     mock_rows = [
         {
@@ -260,8 +254,6 @@ async def test_csv_empty_feedback_text():
 @pytest.mark.asyncio
 async def test_csv_no_extra_columns():
     """The CSV does not include removed columns (Status, Chunk Indices, Created At)."""
-    from lib.api.routers.feedback import export_admin_feedbacks_csv
-
     with patch(
         "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
@@ -280,8 +272,6 @@ async def test_csv_no_extra_columns():
 @pytest.mark.asyncio
 async def test_csv_multiple_rows_ordered():
     """Multiple feedback rows are all written to the CSV."""
-    from lib.api.routers.feedback import export_admin_feedbacks_csv
-
     rows_data = [
         {
             "feedback": _make_feedback(feedback_type=FeedbackType.THUMBS_UP),
@@ -316,8 +306,6 @@ async def test_csv_multiple_rows_ordered():
 @pytest.mark.asyncio
 async def test_csv_response_headers():
     """StreamingResponse has the correct content-type and content-disposition."""
-    from lib.api.routers.feedback import export_admin_feedbacks_csv
-
     with patch(
         "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
@@ -338,8 +326,6 @@ async def test_csv_response_headers():
 @pytest.mark.asyncio
 async def test_admin_feedbacks_default_pagination():
     """Default limit=25 and offset=0 are forwarded to the service."""
-    from lib.api.routers.feedback import get_admin_feedbacks
-
     with patch(
         "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
@@ -354,8 +340,6 @@ async def test_admin_feedbacks_default_pagination():
 @pytest.mark.asyncio
 async def test_admin_feedbacks_custom_pagination():
     """Custom limit and offset values are forwarded to the service."""
-    from lib.api.routers.feedback import get_admin_feedbacks
-
     with patch(
         "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
@@ -370,8 +354,6 @@ async def test_admin_feedbacks_custom_pagination():
 @pytest.mark.asyncio
 async def test_csv_export_does_not_pass_pagination():
     """CSV export endpoint does NOT forward limit/offset (always exports all results)."""
-    from lib.api.routers.feedback import export_admin_feedbacks_csv
-
     with patch(
         "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
@@ -391,8 +373,6 @@ async def test_csv_export_does_not_pass_pagination():
 @pytest.mark.asyncio
 async def test_search_forwarded_to_service():
     """search param is forwarded to the service when provided."""
-    from lib.api.routers.feedback import get_admin_feedbacks
-
     with patch(
         "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
@@ -406,8 +386,6 @@ async def test_search_forwarded_to_service():
 @pytest.mark.asyncio
 async def test_search_default_is_none():
     """search defaults to None when not provided."""
-    from lib.api.routers.feedback import get_admin_feedbacks
-
     with patch(
         "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
@@ -421,8 +399,6 @@ async def test_search_default_is_none():
 @pytest.mark.asyncio
 async def test_csv_export_search_forwarded_to_service():
     """CSV export forwards the search param to the service."""
-    from lib.api.routers.feedback import export_admin_feedbacks_csv
-
     with patch(
         "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),
@@ -436,8 +412,6 @@ async def test_csv_export_search_forwarded_to_service():
 @pytest.mark.asyncio
 async def test_csv_export_search_default_is_none():
     """CSV export search defaults to None when not provided."""
-    from lib.api.routers.feedback import export_admin_feedbacks_csv
-
     with patch(
         "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
         new=AsyncMock(return_value=[]),

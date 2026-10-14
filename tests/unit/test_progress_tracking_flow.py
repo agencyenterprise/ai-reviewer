@@ -6,6 +6,8 @@ import pytest
 
 from lib.models.workflow_progress import ProgressLevel
 from lib.workflows.decorators import register_node
+from lib.run_utils import run_tasks
+from lib.workflows.context import current_progress_id
 
 
 class TestDecoratorProgressTracking:
@@ -57,9 +59,6 @@ class TestRunTasksProgressTracking:
     @pytest.mark.asyncio
     async def test_run_tasks_updates_progress_via_contextvar(self):
         """Test that run_tasks reads progress_id from contextvar and updates progress."""
-        from lib.run_utils import run_tasks
-        from lib.workflows.context import current_progress_id
-
         progress_id = uuid.uuid4()
         update_calls = []
 
@@ -68,7 +67,7 @@ class TestRunTasksProgressTracking:
 
         try:
             # Patch update_progress to capture calls
-            with patch("lib.services.workflow_progress.update_progress") as mock_update:
+            with patch("lib.run_utils.update_progress") as mock_update:
                 mock_update.side_effect = lambda pid, **kwargs: update_calls.append(
                     (pid, kwargs)
                 )
@@ -106,7 +105,6 @@ class TestRunTasksProgressTracking:
     @pytest.mark.asyncio
     async def test_run_tasks_works_without_progress_context(self):
         """Test that run_tasks works fine when no progress_id is set."""
-        from lib.run_utils import run_tasks
 
         # Create simple async tasks
         async def task1():

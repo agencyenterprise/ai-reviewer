@@ -22,6 +22,7 @@ from lib.workflows.reference_file_matching.state import (
     ReferenceFileMatch,
     ReferenceFileMatchingState,
 )
+from lib.workflows.reference_file_matching.state import ReferenceFileMatchingConfig
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +67,6 @@ async def _get_file_matching_workflow_state(
         Tuple of (workflow_run, state) or (run, None) if the revision has no
         main file to construct a default state from
     """
-    from lib.workflows.reference_file_matching.state import ReferenceFileMatchingConfig
-
     run = await get_project_workflow_run_by_type(
         project_id,
         WorkflowRunType.REFERENCE_FILE_MATCHING,

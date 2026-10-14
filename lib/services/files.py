@@ -15,6 +15,8 @@ from lib.models.project import Project
 from lib.services.file import FileDocument, create_file_document_from_path
 from lib.services.text_sanitization import sanitize_for_postgres
 from lib.services.uuid_utils import ensure_uuid
+from langchain_core.messages.utils import count_tokens_approximately
+from lib.models.share_link import ShareLink
 
 logger = logging.getLogger(__name__)
 
@@ -358,8 +360,6 @@ async def load_file_document(
     Raises:
         FileNotFoundError: If the file doesn't exist on disk
     """
-    from langchain_core.messages.utils import count_tokens_approximately
-
     # Use cached artifacts if available and requested
     if use_cached_artifacts and file.markdown is not None:
         return FileDocument(
@@ -439,9 +439,6 @@ async def check_file_access_by_share_token(
     Raises:
         HTTPException: 400 for invalid file ID, 404 if file/share not found, 403 if access denied
     """
-    from lib.models.project import Project
-    from lib.models.share_link import ShareLink
-
     file_id = ensure_uuid(file_id, "file ID")
 
     async with get_async_db_session() as session:

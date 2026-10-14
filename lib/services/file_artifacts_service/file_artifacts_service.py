@@ -19,6 +19,12 @@ from lib.services.file_artifacts_service.file_artifacts_service_type import (
 )
 from lib.skills import strip_interactive_only
 from lib.workflows.models import WorkflowRunType
+from lib.services.workflow_runs import (
+    get_project_workflow_run_by_type,
+    read_workflow_run_state,
+)
+from lib.workflows.document_summarization.state import FileSummary
+from lib.models.bibliography_item import BibliographyItem
 
 if TYPE_CHECKING:
     from lib.models.bibliography_item import BibliographyItem
@@ -77,11 +83,6 @@ class FileArtifactsService(FileArtifactsServiceType):
             ValueError: If no workflow run or state is found for the given type
                 and project ID.
         """
-        from lib.services.workflow_runs import (
-            get_project_workflow_run_by_type,
-            read_workflow_run_state,
-        )
-
         workflow_run = await get_project_workflow_run_by_type(
             self.project_id, run_type, revision=self.revision, include_state=True
         )
@@ -285,8 +286,6 @@ class FileArtifactsService(FileArtifactsServiceType):
             ValueError: If no file summary with the given file ID is found
                 in the project's document summarization workflow state.
         """
-        from lib.workflows.document_summarization.state import FileSummary
-
         summary = await self._try_load(
             f"summary for file {file_id}",
             lambda: self._get_file_summary_from_db(file_id, FileSummary),
@@ -354,8 +353,6 @@ class FileArtifactsService(FileArtifactsServiceType):
             ValueError: If no reference extraction workflow run or state is found
                 for the project.
         """
-        from lib.models.bibliography_item import BibliographyItem
-
         # Get extracted references (required)
         extraction_state = cast(
             "ReferenceExtractionState",

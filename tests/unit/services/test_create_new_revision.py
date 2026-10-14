@@ -10,6 +10,7 @@ from lib.models.project import AccessLevel, Project
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services.projects import create_new_revision
 from lib.workflows.registry import get_all_manifests
+from fastapi import HTTPException
 
 
 def _make_project(current_revision: int = 1) -> Project:
@@ -234,8 +235,6 @@ async def test_create_new_revision_excludes_workflows_opted_out_of_auto_rerun():
 @pytest.mark.asyncio
 async def test_create_new_revision_requires_write_access():
     """Should raise when user lacks WRITE access."""
-    from fastapi import HTTPException
-
     with patch(
         "lib.services.projects.get_project_access",
         new=AsyncMock(

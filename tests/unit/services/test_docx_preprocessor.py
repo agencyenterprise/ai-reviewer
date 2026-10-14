@@ -1,5 +1,8 @@
 import pytest
 from lib.services.converters.docx_preprocessor import docx_preprocessor
+import asyncio
+import shutil
+from unittest.mock import AsyncMock, MagicMock
 
 
 @pytest.mark.asyncio
@@ -28,10 +31,6 @@ async def test_convert_to_pdf_skips_if_exists(tmp_path):
 @pytest.mark.asyncio
 async def test_convert_to_pdf_timeout_error(tmp_path, monkeypatch):
     """Test that timeout errors are properly handled"""
-    import asyncio
-    import shutil
-    from unittest.mock import AsyncMock, MagicMock
-
     docx_file = tmp_path / "test.docx"
     docx_file.write_text("dummy content")
 
@@ -67,8 +66,6 @@ async def test_convert_to_pdf_timeout_error(tmp_path, monkeypatch):
 @pytest.mark.asyncio
 async def test_convert_to_pdf_libreoffice_not_found(tmp_path, monkeypatch):
     """Test that missing LibreOffice is properly handled"""
-    import shutil
-
     docx_file = tmp_path / "test.docx"
     docx_file.write_text("dummy content")
 
@@ -105,10 +102,6 @@ async def test_convert_doc_to_docx_skips_if_exists(tmp_path):
 @pytest.mark.asyncio
 async def test_convert_doc_to_docx_timeout_error(tmp_path, monkeypatch):
     """Test that timeout errors are properly handled for DOC to DOCX conversion"""
-    import asyncio
-    import shutil
-    from unittest.mock import AsyncMock, MagicMock
-
     doc_file = tmp_path / "test.doc"
     doc_file.write_text("dummy content")
 
@@ -144,8 +137,6 @@ async def test_convert_doc_to_docx_timeout_error(tmp_path, monkeypatch):
 @pytest.mark.asyncio
 async def test_convert_doc_to_docx_libreoffice_not_found(tmp_path, monkeypatch):
     """Test that missing LibreOffice is properly handled for DOC to DOCX conversion"""
-    import shutil
-
     doc_file = tmp_path / "test.doc"
     doc_file.write_text("dummy content")
 

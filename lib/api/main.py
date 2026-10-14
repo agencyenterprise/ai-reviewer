@@ -42,6 +42,7 @@ from lib.api.routers.microsoft import routes as microsoft_routes
 from lib.api.routers.tus_upload import tus_router
 from lib.config.logger import setup_logger
 from lib.services.workflow_reaper import run_reaper_loop
+from lib.services.app_configs import seed_all_defaults
 
 setup_logger()
 
@@ -51,10 +52,6 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Seed default runtime configs on startup; stop the reaper on shutdown."""
-    # `seed_all_defaults` stays lazy to keep the import graph simple — it pulls
-    # in services that don't need to load on every test that imports main.py.
-    from lib.services.app_configs import seed_all_defaults
-
     await seed_all_defaults()
     reaper_task = asyncio.create_task(run_reaper_loop(), name="workflow-reaper")
     try:

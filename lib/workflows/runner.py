@@ -41,6 +41,7 @@ from lib.workflows.models import (
 from lib.workflows.registry import create_graph, create_state, get_workflow_manifest
 from lib.workflows.state_updates import apply_node_update
 from lib.workflows.workflow_types import WorkflowConfig, WorkflowState
+from lib.services.workflow_runs import get_project_workflow_runs
 
 logger = logging.getLogger(__name__)
 
@@ -387,7 +388,6 @@ async def _persist_issues_from_state(
 
     # Load all existing workflow states for the project and revision so manifests
     # that read data from other workflow states can resolve correctly.
-    from lib.services.workflow_runs import get_project_workflow_runs
 
     workflow_runs = await get_project_workflow_runs(
         project_id, revision=revision, include_internal=True

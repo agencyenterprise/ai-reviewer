@@ -35,14 +35,14 @@ async def convert_to_markdown(
     )
 
     if converter == "markitdown":
-        from lib.services.converters.markitdown import markitdown_converter
+        from lib.services.converters.markitdown import markitdown_converter  # noqa: PLC0415  circular: the converter imports this module
 
         return await markitdown_converter.convert_to_markdown(
             file_path, keep_data_uris=keep_data_uris
         )
 
     if converter == "pypdfium":
-        from lib.services.converters.pypdfium import pypdfium_converter
+        from lib.services.converters.pypdfium import pypdfium_converter  # noqa: PLC0415  circular: the converter imports this module
 
         return await pypdfium_converter.convert_to_markdown(file_path)
 

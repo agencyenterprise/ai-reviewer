@@ -41,6 +41,10 @@ from evals_inspectai.common.issue_inventory import (
     quoted_verbatim,
     resolve_record,
 )
+from evals_inspectai.common.issue_checks import _canonical_order
+from evals_inspectai.common.issue_checks import _edited_sentences
+from evals_inspectai.common.issue_checks import _sentence_spans
+from evals_inspectai.common.issue_checks import _tokens
 
 DOC = "# Title\n\n## Methods\n\nData were collected from 3 sites by the field team. We then coded the notes.\n\n## Results\n\nThe scope is limited to urban sites. Findings are listed in Appendix A.\n"
 LINES = DOC.split("\n")
@@ -673,8 +677,6 @@ def test_evidence_tied_reports_are_matched_the_same_way_in_either_order(one_to_o
 
 
 def test_canonical_order_is_total_over_report_content():
-    from evals_inspectai.common.issue_checks import _canonical_order
-
     a = _issue(
         title="Same title", description="Same text.", severity="high", start=5, end=5
     )
@@ -1151,8 +1153,6 @@ def test_forbidden_phrases_left_standing_in_the_edited_sentence_fail():
 
 
 def test_edited_sentence_positions_follow_earlier_edits_on_the_line():
-    from evals_inspectai.common.issue_checks import _edited_sentences
-
     line = "Alpha is short. Beta was written by the team here."
     later_then_earlier = [
         _edit("Beta was written by the team here.", "The team wrote beta here."),
@@ -1165,8 +1165,6 @@ def test_edited_sentence_positions_follow_earlier_edits_on_the_line():
 
 
 def test_sentence_scope_does_not_split_on_decimals_or_et_al():
-    from evals_inspectai.common.issue_checks import _edited_sentences
-
     line = "Attendance rose 2.1 percent (Smith et al., 2024). Costs fell."
     edit = _edit("Attendance rose 2.1 percent", "Attendance increased 2.1 percent")
     assert (
@@ -1176,8 +1174,6 @@ def test_sentence_scope_does_not_split_on_decimals_or_et_al():
 
 
 def test_sentence_scope_splits_after_a_footnote_marker_and_before_a_digit():
-    from evals_inspectai.common.issue_checks import _edited_sentences, _sentence_spans
-
     line = "Sites were shortlisted by the planners.[[4]](#footnote-5) Categories were chosen so that a source exists. 2024 was the base year."
     assert [line[s:t].strip() for s, t in _sentence_spans(line)] == [
         "Sites were shortlisted by the planners.[[4]](#footnote-5)",
@@ -1192,8 +1188,6 @@ def test_sentence_scope_splits_after_a_footnote_marker_and_before_a_digit():
 
 
 def test_a_deletion_contributes_no_neighbouring_sentence_to_the_scope():
-    from evals_inspectai.common.issue_checks import _edited_sentences
-
     line = "One is x. Two is y. Three is z."
     assert _edited_sentences(line, [_edit(" Two is y.", "")]) == ""
     lines = LINES[:8] + [line]
@@ -1243,8 +1237,6 @@ def test_edits_on_other_lines_are_checked_against_their_own_line():
 
 
 def test_quotes_with_no_break_spaces_still_locate_their_sentence():
-    from evals_inspectai.common.issue_checks import _edited_sentences
-
     line = "Attendance rose 2.1\xa0percent  in the pilot. Costs fell."
     edit = _edit(
         "Attendance rose 2.1 percent in the pilot.",
@@ -1257,8 +1249,6 @@ def test_quotes_with_no_break_spaces_still_locate_their_sentence():
 
 
 def test_percentage_points_are_not_a_percentage():
-    from evals_inspectai.common.issue_checks import _tokens
-
     assert _tokens("rose 9 percentage points") == ["9"]
     assert _tokens("rose 9 percent") == ["9%"] and _tokens("rose 9%") == ["9%"]
 

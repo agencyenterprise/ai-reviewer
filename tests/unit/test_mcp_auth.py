@@ -5,6 +5,9 @@ from unittest.mock import ANY, MagicMock, patch
 import pytest
 
 from lib.api.mcp_auth import _root_url, create_mcp_auth
+from key_value.aio.wrappers.encryption import FernetEncryptionWrapper
+from lib.api.mcp_auth import _build_client_storage
+from lib.mcp.postgres_kv_store import PostgresKeyValueStore
 
 
 def _base_mock_config() -> MagicMock:
@@ -190,11 +193,6 @@ def test_create_mcp_auth_cimd_enabled_entra_id():
 
 def test_client_storage_wraps_postgres_in_fernet_derived_from_auth_secret():
     """Storage is a FernetEncryptionWrapper over Postgres, keyed off AUTH_SECRET."""
-    from key_value.aio.wrappers.encryption import FernetEncryptionWrapper
-
-    from lib.api.mcp_auth import _build_client_storage
-    from lib.mcp.postgres_kv_store import PostgresKeyValueStore
-
     mock_config = _base_mock_config()
 
     with patch("lib.api.mcp_auth.config", mock_config):

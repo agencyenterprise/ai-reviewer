@@ -15,6 +15,7 @@ from evals_inspectai.common.issue_judge import (
 )
 from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue
 from evals_inspectai.common.simple_deep_agent_types import IssueItem, ProposedEdit
+from evals_inspectai.common.issue_checks import hit_pairs
 
 DOC = "# Title\n\nNine countries signed the treaty in 1962.\n\nThe institute was established in 1962. It grew fast.\n"
 
@@ -145,8 +146,6 @@ async def test_undetected_issue_leaves_every_criterion_unscored():
 async def test_judge_grades_the_same_report_as_the_deterministic_pairing_in_either_order(
     reversed_order,
 ):
-    from evals_inspectai.common.issue_checks import hit_pairs
-
     expected = _expected(title=None, edit_expected=True)
     original = "The institute was established in 1962."
     first = IssueItem(

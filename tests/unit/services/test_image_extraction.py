@@ -29,6 +29,7 @@ from lib.services.image_extraction import (
     extract_data_uri_images,
     image_reference,
 )
+from unittest.mock import patch as mock_patch
 
 PNG_BYTES = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
@@ -192,8 +193,6 @@ async def test_write_leaves_no_temp_artifacts(tmp_path):
 async def test_existing_image_file_is_not_rewritten(tmp_path):
     """Content-addressed files are immutable: a second extraction of the same
     bytes must not touch the existing file (readers may be serving it)."""
-    from unittest.mock import patch as mock_patch
-
     markdown = f"![a](data:image/png;base64,{PNG_B64})\n"
     with _uploads_patch(tmp_path):
         first = await extract_data_uri_images(markdown)

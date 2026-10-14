@@ -26,14 +26,15 @@ from microsoft_agents.activity.invoke_response import InvokeResponse
 from microsoft_agents.hosting.core import ClaimsIdentity
 
 from lib.services.microsoft.teams import bot
+from lib.config.env import config
+from microsoft_agents.activity import ConversationAccount
+from microsoft_agents.hosting.core import TurnContext
+import pydantic
 
 
 @pytest.fixture
 def configured(monkeypatch: pytest.MonkeyPatch) -> None:
     """Credentials present, so failures cannot be blamed on configuration."""
-
-    from lib.config.env import config
-
     monkeypatch.setattr(
         config, "TEAMS_BOT_APP_ID", "11111111-2222-3333-4444-555555555555"
     )
@@ -74,8 +75,6 @@ class TestRefusingRequests:
     ) -> None:
         """A deployment without the bot configured should say so, not 401."""
 
-        from lib.config.env import config
-
         monkeypatch.setattr(config, "TEAMS_BOT_APP_ID", None)
         monkeypatch.setattr(config, "TEAMS_BOT_APP_PASSWORD", None)
         monkeypatch.setattr(bot, "bot", bot._Bot())
@@ -91,8 +90,6 @@ class TestRequiringTheSignInConnection:
     async def test_no_connection_means_the_bot_is_not_configured(
         self, configured: None, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from lib.config.env import config
-
         monkeypatch.setattr(config, "TEAMS_USER_AUTH_CONNECTION", None)
         monkeypatch.setattr(bot, "bot", bot._Bot())
 
@@ -125,13 +122,6 @@ class TestTheFollowUpActivity:
     field, which validating back rejects on all thirty of them."""
 
     def incoming(self):
-        from microsoft_agents.activity import (
-            Activity,
-            ActivityTypes,
-            ChannelAccount,
-            ConversationAccount,
-        )
-
         return Activity(
             type=ActivityTypes.message,
             id="1785865987930",
@@ -144,9 +134,6 @@ class TestTheFollowUpActivity:
         )
 
     def test_the_continuation_keeps_where_to_send(self) -> None:
-        from microsoft_agents.activity import Activity, ActivityTypes
-        from microsoft_agents.hosting.core import TurnContext
-
         reference = bot.reference_for(self.incoming())
         continuation = TurnContext.apply_conversation_reference(
             Activity(type=ActivityTypes.event, name="continue"),
@@ -159,11 +146,6 @@ class TestTheFollowUpActivity:
 
     def test_round_tripping_the_continuation_would_break_it(self) -> None:
         """Pins the actual failure, so nobody reintroduces the dump/validate pair."""
-
-        import pydantic
-        from microsoft_agents.activity import Activity, ActivityTypes
-        from microsoft_agents.hosting.core import TurnContext
-
         continuation = TurnContext.apply_conversation_reference(
             Activity(type=ActivityTypes.event, name="continue"),
             bot.reference_for(self.incoming()),

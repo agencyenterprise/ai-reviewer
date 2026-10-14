@@ -8,6 +8,9 @@ import pytest
 
 from lib.services.microsoft.graph import client
 from lib.services.microsoft.graph.client import redacted
+import inspect
+from urllib.parse import unquote
+from lib.services.microsoft.graph.client import _site_relative_path
 
 
 class TestResolvingASharingLink:
@@ -46,9 +49,6 @@ class TestWhoseIdentityReads:
 
     def test_neither_call_can_be_made_without_saying_whose_it_is(self) -> None:
         """A keyword-only, non-defaulted token is the whole guard. Pin it."""
-
-        import inspect
-
         for function in (client.resolve, client.download):
             token = inspect.signature(function).parameters["token"]
             assert token.kind is inspect.Parameter.KEYWORD_ONLY, function.__name__
@@ -205,10 +205,6 @@ class TestTheFallbackResolver:
     """
 
     def parts_of(self, url: str) -> list[str]:
-        from urllib.parse import unquote
-
-        from lib.services.microsoft.graph.client import _site_relative_path
-
         return [unquote(p) for p in _site_relative_path(url).split("/") if p]
 
     def test_a_copy_link_url_yields_a_site_and_path(self) -> None:

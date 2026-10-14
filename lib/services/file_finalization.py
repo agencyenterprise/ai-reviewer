@@ -16,6 +16,7 @@ from xxhash import xxh128
 from lib.config.env import config
 from lib.models.file import File, FileRole
 from lib.services.files import create_file_record
+import shutil
 
 logger = logging.getLogger(__name__)
 
@@ -100,8 +101,6 @@ async def finalize_file_from_path(
 
     was_deduplicated = os.path.exists(permanent_path)
     if not was_deduplicated:
-        import shutil
-
         shutil.move(file_path, permanent_path)
         logger.info("Moved %s to permanent location (hash: %s)", filename, content_hash)
 

@@ -17,6 +17,7 @@ from lib.models.issue import Issue
 from lib.services.docx.paragraph_line_mapper import find_paragraph_by_line_range
 from lib.workflows.models import SeverityEnum
 from lib.workflows.registry import get_workflow_manifest
+from lib.services.share_links import _build_share_url
 
 logger = logging.getLogger(__name__)
 
@@ -184,8 +185,6 @@ def issue_to_comment(
 
     share_link = None
     if share_token:
-        from lib.services.share_links import _build_share_url
-
         anchor = _build_issue_anchor(line_range)
         share_link = _build_share_url(share_token, anchor)
 

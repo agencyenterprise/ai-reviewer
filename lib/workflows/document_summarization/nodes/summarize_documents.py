@@ -14,6 +14,8 @@ from lib.workflows.document_summarization.state import (
     DocumentSummarizationState,
     FileSummary,
 )
+from lib.services.files import get_cached_summary_for_file
+from lib.services.files import update_file_artifacts
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +37,6 @@ async def _summarize_document(
     if existing:
         logger.info(f"Using existing summary for file {document.file_id}")
         return existing
-
-    # Imported here to match this node's convention of pulling service helpers
-    # in lazily (avoids a circular import at module load).
-    from lib.services.files import get_cached_summary_for_file
 
     # Cross-project DB cache: reuse a summary already computed for an identical
     # file (same content_hash) in a previous project.
@@ -67,7 +65,7 @@ async def _summarize_document(
         summary = FileSummary(file_id=document.file_id, **response.summary.model_dump())
 
     if role == FileRole.MAIN:
-        from lib.services.projects import update_project_title
+        from lib.services.projects import update_project_title  # noqa: PLC0415  circular: projects -> registry -> this node
 
         await update_project_title(
             project_id=runtime.context.project_id,
@@ -143,8 +141,6 @@ async def _persist_summary_artifacts(summaries: list[FileSummary]) -> None:
     Args:
         summaries: List of FileSummary objects containing file_id and summary data
     """
-    from lib.services.files import update_file_artifacts
-
     for summary in summaries:
         await update_file_artifacts(
             file_id=summary.file_id,
