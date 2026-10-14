@@ -175,8 +175,9 @@ When port 8000 belongs to another checkout's server, generate from a file instea
 
 ```bash
 uv run python -c "import json; from lib.api.main import app; json.dump(app.openapi(), open('/tmp/openapi.json','w'))"
-cd frontend && npx @hey-api/openapi-ts -i /tmp/openapi.json
-git checkout frontend/lib/generated-api/client.gen.ts
+cd frontend
+pnpm exec openapi-ts -i /tmp/openapi.json
+git checkout lib/generated-api/client.gen.ts
 ```
 
 A file input also rewrites the `baseUrl: 'http://localhost:8000' | (string & {});` line in `types.gen.ts`: restore that one line by hand, so `git diff` shows only your real changes.

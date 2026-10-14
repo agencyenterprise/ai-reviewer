@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Download, Link, Loader2, PencilLineIcon } from 'lucide-react';
 import { DocxType } from '../results/components/use-download-docx';
-import { ActiveFilters, exportCountsStatus, ExportScope } from './active-filters-summary';
+import { ActiveFilters, ExportScope } from './active-filters-summary';
 import type { ExportCounts } from '@/lib/export-scope';
 
 interface ShareWarningDialogProps {
@@ -45,31 +45,6 @@ export interface DownloadOptions {
   includeEdits: boolean;
 }
 
-/** What the reader picked in the dialog's options. */
-export interface DownloadChoices {
-  /** Make the project public and link each comment to its issue. */
-  addLinks: boolean;
-  includeEdits: boolean;
-}
-
-/** The dialog opens with edits included, and links on only for a project that is already public. */
-export function initialChoices(isProjectPublic: boolean): DownloadChoices {
-  return { addLinks: isProjectPublic, includeEdits: true };
-}
-
-/**
- * The download the choices amount to. Links are never asked for when the backend
- * would drop them: the file would be the same either way, and asking would make a
- * private project public for nothing.
- */
-export function downloadRequest(
-  choices: DownloadChoices,
-  linksAvailable: boolean,
-): { type: DocxType; options: DownloadOptions } {
-  const type: DocxType = linksAvailable && choices.addLinks ? 'comments-with-links' : 'comments';
-  return { type, options: { includeEdits: choices.includeEdits } };
-}
-
 export function ShareWarningDialog({
   open,
   onOpenChange,
@@ -85,23 +60,29 @@ export function ShareWarningDialog({
   const isProcessing = isEnablingShare || isDownloading;
   // Hold the download until the reader can see what it contains; a failed count
   // does not hold it, since the export does not depend on the count.
-  const isCounting = exportCountsStatus(counts, countsFailed) === 'counting';
-  const [choices, setChoices] = useState(() => initialChoices(isProjectPublic));
-  const { addLinks: makePublicAndAddLinks, includeEdits } = choices;
-  const setIncludeEdits = (value: boolean) => setChoices((current) => ({ ...current, includeEdits: value }));
-  const setMakePublicAndAddLinks = (value: boolean) => setChoices((current) => ({ ...current, addLinks: value }));
+  const isCounting = counts === null && !countsFailed;
+  const [makePublicAndAddLinks, setMakePublicAndAddLinks] = useState(isProjectPublic);
+  const [includeEdits, setIncludeEdits] = useState(true);
 
   const shouldShowLinksCheckbox = !isProjectPublic && linksAvailable;
+  // Never ask for links the backend would drop: the file would be the same
+  // either way, and asking would make a private project public for nothing.
+  const addLinks = linksAvailable && makePublicAndAddLinks;
 
   const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen) setChoices(initialChoices(isProjectPublic));
+    if (!isOpen) {
+      setMakePublicAndAddLinks(isProjectPublic);
+      setIncludeEdits(true);
+    }
     onOpenChange(isOpen);
   };
 
   const handleDownload = () => {
-    const { type, options } = downloadRequest(choices, linksAvailable);
-    onDownload(type, options);
-    setChoices(initialChoices(isProjectPublic));
+    const docxType: DocxType = addLinks ? 'comments-with-links' : 'comments';
+
+    onDownload(docxType, { includeEdits });
+    setMakePublicAndAddLinks(isProjectPublic);
+    setIncludeEdits(true);
   };
 
   return (
