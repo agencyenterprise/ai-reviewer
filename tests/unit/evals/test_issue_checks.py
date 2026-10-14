@@ -1273,7 +1273,7 @@ def test_percentage_units_travel_with_their_number():
         line=9,
     )
 
-    def check(e):
+    def check(e: ProposedEdit) -> float:
         return edit_checks(f, _issue(start=9, end=9, edits=[e]), lines)[
             "edit_keeps_numbers_and_markers"
         ][0]
