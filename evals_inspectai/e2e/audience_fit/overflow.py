@@ -95,7 +95,9 @@ def unmatched(
 
 def technical_paragraphs(inventory: ResolvedInventory) -> list[AnchoredIssue]:
     """The expected paragraph-level technical-language issues, in document order."""
-    kept = [anchored(e) for e in inventory.expected_issues if e.title == PARAGRAPH_TITLE]
+    kept = [
+        anchored(e) for e in inventory.expected_issues if e.title == PARAGRAPH_TITLE
+    ]
     return sorted(kept, key=lambda e: e.line)
 
 

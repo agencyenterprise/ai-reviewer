@@ -117,7 +117,9 @@ class TestBuildingADeepAgent:
         ]
         assert seen["middleware"][-1] is own
 
-    def test_the_general_purpose_subagent_runs_our_middleware_and_the_parents_skills(self) -> None:
+    def test_the_general_purpose_subagent_runs_our_middleware_and_the_parents_skills(
+        self,
+    ) -> None:
         (subagent,) = self._captured(model="m", skills=["/skills/"])["subagents"]
         assert subagent["name"] == "general-purpose"
         assert subagent["skills"] == ["/skills/"]
@@ -127,14 +129,25 @@ class TestBuildingADeepAgent:
         ]
 
     def test_a_callers_own_general_purpose_subagent_is_kept(self) -> None:
-        own = {"name": "general-purpose", "description": "mine", "system_prompt": "mine"}
+        own = {
+            "name": "general-purpose",
+            "description": "mine",
+            "system_prompt": "mine",
+        }
         (subagent,) = self._captured(model="m", subagents=[own])["subagents"]
         assert {k: v for k, v in subagent.items() if k != "middleware"} == own
 
     def test_a_declared_subagent_runs_our_middleware_ahead_of_its_own(self) -> None:
         own = object()
-        spec = {"name": "checker", "description": "d", "system_prompt": "p", "middleware": [own]}
-        declared, _general_purpose = self._captured(model="m", subagents=[spec])["subagents"]
+        spec = {
+            "name": "checker",
+            "description": "d",
+            "system_prompt": "p",
+            "middleware": [own],
+        }
+        declared, _general_purpose = self._captured(model="m", subagents=[spec])[
+            "subagents"
+        ]
         assert [type(m).__name__ for m in declared["middleware"][:-1]] == [
             "TodoListMiddleware",
             "ReadFileLineNumbersMiddleware",
@@ -151,5 +164,7 @@ class TestBuildingADeepAgent:
 
     def test_a_precompiled_subagent_is_used_as_given(self) -> None:
         compiled = {"name": "compiled", "description": "d", "runnable": object()}
-        declared, _general_purpose = self._captured(model="m", subagents=[compiled])["subagents"]
+        declared, _general_purpose = self._captured(model="m", subagents=[compiled])[
+            "subagents"
+        ]
         assert declared is compiled

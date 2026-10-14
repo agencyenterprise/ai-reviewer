@@ -15,6 +15,7 @@ from evals_inspectai.e2e.results_extraction.contract import (
     RUBRIC_CRITERIA,
 )
 
+
 def viewer_config() -> ViewerConfig:
     """Per-check columns, grouped by sample so repeats sit side by side."""
     score_columns = [
@@ -78,4 +79,3 @@ def viewer_config() -> ViewerConfig:
             sort=SampleScoreViewSort(column="value", dir="asc"),
         ),
     )
-

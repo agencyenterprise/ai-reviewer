@@ -48,7 +48,9 @@ class PostgresKeyValueStore(BaseStore):
         # schema is under our own migration control.
         super().__init__(stable_api=True)
 
-    async def _get_managed_entry(self, *, collection: str, key: str) -> ManagedEntry | None:
+    async def _get_managed_entry(
+        self, *, collection: str, key: str
+    ) -> ManagedEntry | None:
         async with AsyncSessionLocal() as session:
             row = (
                 await session.execute(
@@ -83,13 +85,17 @@ class PostgresKeyValueStore(BaseStore):
 
         async with AsyncSessionLocal() as session:
             rows = (
-                await session.execute(
-                    select(MCPOAuthKV).where(
-                        col(MCPOAuthKV.collection) == collection,
-                        col(MCPOAuthKV.key).in_(list(keys)),
+                (
+                    await session.execute(
+                        select(MCPOAuthKV).where(
+                            col(MCPOAuthKV.collection) == collection,
+                            col(MCPOAuthKV.key).in_(list(keys)),
+                        )
                     )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
 
             by_key = {row.key: row for row in rows}
             expired_keys: list[str] = []

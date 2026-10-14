@@ -9,6 +9,7 @@ from typing import Any
 
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
 
+
 def _issue_text(issue: IssueItem) -> tuple[str, str]:
     """An issue's title and its body, both lowercased, for anchor matching."""
     body = " ".join(
@@ -95,4 +96,3 @@ def match_expected(
             matched_now.add(e_index)
 
     return {expected[e]["id"]: i for i, e in owner.items()}
-

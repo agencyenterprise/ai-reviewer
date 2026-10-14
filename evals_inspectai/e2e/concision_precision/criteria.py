@@ -36,11 +36,11 @@ MEANING_CRITERION = (
     "a redundant word, or a wordy phrase in favour of its plain equivalent is the purpose of the edit and does "
     "not count as losing content; naming what a vague reference points to, when the paragraph supports it, "
     "does not count as adding content. Everything else is strict: every claim, qualifier (including source "
-    "qualifiers such as \"staff reported\"), hedge, number, date, citation and footnote marker in the original "
+    'qualifiers such as "staff reported"), hedge, number, date, citation and footnote marker in the original '
     "survives with the same meaning, no clause carrying data or a conclusion is dropped, no new information or "
     "jargon is added, and two sentences are not merged with a semicolon. An empty replacement deletes the "
     "sentence. The sentence was flagged as filler, empty framing or a statement of the obvious, so its general "
-    "assertion (\"the picture is complex\", \"funding is essential\", \"there are several things to consider\") "
+    'assertion ("the picture is complex", "funding is essential", "there are several things to consider") '
     "does not count as content: a deletion is correct unless the deleted sentence carried a number, a source "
     "qualifier, a hedge on another claim, a citation, or a specific fact that appears nowhere else in the "
     "paragraph."
@@ -63,7 +63,9 @@ JUDGE_DESCRIPTIONS = {
 }
 
 JUDGE_CRITERIA = [
-    JudgeCriterion(key="edit_meaning_preserved", criterion=MEANING_CRITERION, scope="edit"),
+    JudgeCriterion(
+        key="edit_meaning_preserved", criterion=MEANING_CRITERION, scope="edit"
+    ),
     JudgeCriterion(key="edit_reads_well", criterion=READS_CRITERION, scope="edit"),
 ]
 

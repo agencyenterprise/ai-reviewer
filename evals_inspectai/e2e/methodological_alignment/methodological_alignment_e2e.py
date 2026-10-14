@@ -50,7 +50,10 @@ from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIs
 from evals_inspectai.common.issue_judge import gist, grade
 from evals_inspectai.common.issue_viewer import issue_viewer_config
 from evals_inspectai.common.scorers import DEFAULT_GRADER_MODEL
-from evals_inspectai.common.simple_deep_agent_types import IssueItem, SimpleDeepAgentOutput
+from evals_inspectai.common.simple_deep_agent_types import (
+    IssueItem,
+    SimpleDeepAgentOutput,
+)
 from evals_inspectai.e2e.methodological_alignment.criteria import (
     GAP_CRITERION,
     JUDGE_DESCRIPTIONS,
@@ -69,7 +72,9 @@ WORKFLOW_TYPE = "methodological_alignment"
 DATASET = Path(__file__).parent / "dataset.yaml"
 
 
-def plant_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> tuple[dict[str, float], str]:
+def plant_scores(
+    issues: Sequence[IssueItem], inventory: ResolvedInventory
+) -> tuple[dict[str, float], str]:
     """``recall``, ``anchor_in_range`` and ``severity_fits`` over the planted risks (see ``PLANT_DESCRIPTIONS``)."""
     plants = [e for e in inventory.expected_issues if e.required]
     on_line = {e.id: reports_of(e, issues, inventory) for e in plants}
@@ -77,18 +82,36 @@ def plant_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> t
     high = [e for e in covered if e.severity]
     values = {
         "recall": len(covered) / len(plants) if plants else math.nan,
-        "anchor_in_range": fraction([float(any(i.start_line <= (e.line or 0) <= i.end_line for i in on_line[e.id])) for e in covered]),
-        "severity_fits": fraction([float(severity_fits(e, on_line[e.id])) for e in high]),
+        "anchor_in_range": fraction(
+            [
+                float(
+                    any(
+                        i.start_line <= (e.line or 0) <= i.end_line
+                        for i in on_line[e.id]
+                    )
+                )
+                for e in covered
+            ]
+        ),
+        "severity_fits": fraction(
+            [float(severity_fits(e, on_line[e.id])) for e in high]
+        ),
     }
     missing = [e.id for e in plants if not on_line[e.id]]
     misjudged = [e.id for e in high if not severity_fits(e, on_line[e.id])]
-    notes = [f"recall {len(covered)}/{len(plants)}" + (f" (nothing on the line of {', '.join(missing)})" if missing else "")]
+    notes = [
+        f"recall {len(covered)}/{len(plants)}"
+        + (f" (nothing on the line of {', '.join(missing)})" if missing else "")
+    ]
     notes += [f"high-severity plants reported low: {misjudged}"] if misjudged else []
     return values, " | ".join(notes)
 
 
 async def judge_methodology(
-    grader: Model, issues: Sequence[IssueItem], inventory: ResolvedInventory, calls: int = 1
+    grader: Model,
+    issues: Sequence[IssueItem],
+    inventory: ResolvedInventory,
+    calls: int = 1,
 ) -> tuple[dict[str, float], str]:
     """``gap_identified``, ``action_repairs`` and ``sound_choices_respected`` (see ``criteria``)."""
     document = inventory.document
@@ -98,21 +121,50 @@ async def judge_methodology(
     for plant in (e for e in inventory.expected_issues if e.required):
         candidates = reports_of(plant, issues, inventory)
         results = await asyncio.gather(
-            *(grade(grader, gap_prompt(GAP_CRITERION, plant, c, document, "analysis"), calls) for c in candidates)
+            *(
+                grade(
+                    grader,
+                    gap_prompt(GAP_CRITERION, plant, c, document, "analysis"),
+                    calls,
+                )
+                for c in candidates
+            )
         )
         best = max(range(len(results)), key=lambda k: results[k][0], default=None)
         if best is None or results[best][0] == 0.0:
             gaps.append(0.0)
-            notes.append(f"{plant.id} gap_identified 0.0: " + ("nothing on its line" if best is None else gist(results[best][1])))
+            notes.append(
+                f"{plant.id} gap_identified 0.0: "
+                + ("nothing on its line" if best is None else gist(results[best][1]))
+            )
             continue
         top = results[best][0]
         gaps.append(top)
-        notes += [f"{plant.id} gap_identified {top}: {gist(results[best][1])}"] if top < 1.0 else []
-        value, why = await _best_repair(grader, plant, [c for c, (v, _) in zip(candidates, results) if v == top], document, calls)
+        notes += (
+            [f"{plant.id} gap_identified {top}: {gist(results[best][1])}"]
+            if top < 1.0
+            else []
+        )
+        value, why = await _best_repair(
+            grader,
+            plant,
+            [c for c, (v, _) in zip(candidates, results) if v == top],
+            document,
+            calls,
+        )
         actions.append(value)
         notes += [f"{plant.id} action_repairs {value}: {why}"] if value < 1.0 else []
-    sound = await asyncio.gather(*(grade(grader, decoy_prompt(d, issues, document), calls) for d in inventory.decoys))
-    notes += [f"{d.reason} sound_choices_respected {v}: {gist(why)}" for d, (v, why) in zip(inventory.decoys, sound) if v < 1.0]
+    sound = await asyncio.gather(
+        *(
+            grade(grader, decoy_prompt(d, issues, document), calls)
+            for d in inventory.decoys
+        )
+    )
+    notes += [
+        f"{d.reason} sound_choices_respected {v}: {gist(why)}"
+        for d, (v, why) in zip(inventory.decoys, sound)
+        if v < 1.0
+    ]
     values = {
         "gap_identified": fraction(gaps),
         "action_repairs": fraction(actions),
@@ -122,16 +174,28 @@ async def judge_methodology(
 
 
 async def _best_repair(
-    grader: Model, plant: ResolvedIssue, named: Sequence[IssueItem], document: str, calls: int
+    grader: Model,
+    plant: ResolvedIssue,
+    named: Sequence[IssueItem],
+    document: str,
+    calls: int,
 ) -> tuple[float, str]:
     """The best action grade among the issues that named the plant equally well, so the
     grade does not depend on which of them the run happened to list first; an issue with no
     suggested action scores 0."""
     graded = await asyncio.gather(
         *(
-            grade(grader, gap_prompt(REPAIR_CRITERION, plant, issue, document, "suggested_action"), calls)
-            if (issue.suggested_action or "").strip()
-            else _no_action()
+            (
+                grade(
+                    grader,
+                    gap_prompt(
+                        REPAIR_CRITERION, plant, issue, document, "suggested_action"
+                    ),
+                    calls,
+                )
+                if (issue.suggested_action or "").strip()
+                else _no_action()
+            )
             for issue in named
         )
     )
@@ -151,10 +215,18 @@ def report_checks() -> Scorer:
         try:
             output = SimpleDeepAgentOutput.model_validate_json(state.output.completion)
         except ValueError as e:
-            return Score(value={k: 0.0 for k in OWN_DESCRIPTIONS}, explanation=f"could not parse the workflow state: {e}")
+            return Score(
+                value={k: 0.0 for k in OWN_DESCRIPTIONS},
+                explanation=f"could not parse the workflow state: {e}",
+            )
         if output.result is None:
-            return Score(value={k: 0.0 for k in OWN_DESCRIPTIONS}, explanation="no result in workflow state")
-        values, explanation = report_scores(output.result.report_markdown or "", output.result.issues, state.input_text)
+            return Score(
+                value={k: 0.0 for k in OWN_DESCRIPTIONS},
+                explanation="no result in workflow state",
+            )
+        values, explanation = report_scores(
+            output.result.report_markdown or "", output.result.issues, state.input_text
+        )
         return Score(value=values, explanation=explanation)
 
     return score
@@ -175,7 +247,9 @@ def methodology_judged(calls: int = 1) -> Scorer:
         if error:
             return Score(value={k: 0.0 for k in JUDGED_KEYS}, explanation=error)
         grader = get_model(role="grader", default=DEFAULT_GRADER_MODEL)
-        values, explanation = await judge_methodology(grader, issues, inventory_from_state(state), calls)
+        values, explanation = await judge_methodology(
+            grader, issues, inventory_from_state(state), calls
+        )
         return Score(value=values, explanation=explanation)
 
     return score

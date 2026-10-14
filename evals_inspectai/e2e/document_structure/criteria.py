@@ -19,13 +19,24 @@ from evals_inspectai.common.issue_inventory import ResolvedInventory, normalize
 from evals_inspectai.common.issue_judge import JudgeCriterion
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
 
-SECTIONS = ("About This", "Acknowledgements", "Methods", "Results", "Conclusion", "References", "Appendix")
+SECTIONS = (
+    "About This",
+    "Acknowledgements",
+    "Methods",
+    "Results",
+    "Conclusion",
+    "References",
+    "Appendix",
+)
 TITLES = tuple(f"Missing Section: {name}" for name in SECTIONS)
 APPENDIX_TITLE = "Missing Section: Appendix"
 
 _HEADING_RE = re.compile(r"^\s{0,3}(#{1,6})\s+(.*)$")
 # Sections whose text is not the body: the reference list and the appendix itself.
-_NON_BODY_RE = re.compile(r"\b(?:references?|bibliography|works cited|sources|appendix|appendices|supplementary)\b", re.I)
+_NON_BODY_RE = re.compile(
+    r"\b(?:references?|bibliography|works cited|sources|appendix|appendices|supplementary)\b",
+    re.I,
+)
 _APPENDIX_RE = re.compile(r"\bappendix\b", re.I)
 _SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
 # Consecutive words an issue must share with the sentence to count as quoting it.
@@ -33,7 +44,15 @@ QUOTE_WORDS = 4
 
 
 def _issue_text(issue: IssueItem) -> str:
-    return normalize(" ".join([issue.description, issue.long_description or "", issue.suggested_action or ""]))
+    return normalize(
+        " ".join(
+            [
+                issue.description,
+                issue.long_description or "",
+                issue.suggested_action or "",
+            ]
+        )
+    )
 
 
 def _body_lines(document: str) -> list[tuple[int, str]]:
@@ -41,7 +60,9 @@ def _body_lines(document: str) -> list[tuple[int, str]]:
     heading naming one opens a region that runs to the next heading of the same or a
     higher level, subsections included."""
     body: list[tuple[int, str]] = []
-    skipped_from: Optional[int] = None  # level of the heading that opened a non-body region
+    skipped_from: Optional[int] = (
+        None  # level of the heading that opened a non-body region
+    )
     for number, line in enumerate(document.split("\n"), 1):
         heading = _HEADING_RE.match(line)
         if heading is None:
@@ -59,7 +80,8 @@ def _body_lines(document: str) -> list[tuple[int, str]]:
 def appendix_mentions(document: str) -> list[tuple[int, str]]:
     """The body sentences that mention an appendix, with their 1-indexed line. Headings,
     the reference list and the appendix's own text are left out: a cited work titled
-    "Technical Appendix" or an appendix heading is not a reference to this report's appendix."""
+    "Technical Appendix" or an appendix heading is not a reference to this report's appendix.
+    """
     return [
         (number, sentence)
         for number, line in _body_lines(document)
@@ -70,7 +92,10 @@ def appendix_mentions(document: str) -> list[tuple[int, str]]:
 
 def _quotes(text: str, sentence: str) -> bool:
     words = normalize(sentence).split()
-    runs = {" ".join(words[i : i + QUOTE_WORDS]) for i in range(len(words) - QUOTE_WORDS + 1)}
+    runs = {
+        " ".join(words[i : i + QUOTE_WORDS])
+        for i in range(len(words) - QUOTE_WORDS + 1)
+    }
     return any(run in text for run in runs)
 
 
@@ -86,7 +111,9 @@ def _cites(issue: IssueItem, mentions: Sequence[tuple[int, str]]) -> bool:
     )
 
 
-def structure_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> tuple[dict[str, float], str]:
+def structure_scores(
+    issues: Sequence[IssueItem], inventory: ResolvedInventory
+) -> tuple[dict[str, float], str]:
     """``known_titles``: share of reported issues titled exactly as the skill names a
     missing section; NaN when nothing was reported. ``appendix_reference_cited``:
     share of reported appendix issues that point to a body sentence mentioning the
@@ -98,11 +125,21 @@ def structure_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) 
     uncited = [i for i in appendix if not _cites(i, mentions)]
     values = {
         "known_titles": 1 - len(odd) / len(issues) if issues else math.nan,
-        "appendix_reference_cited": 1 - len(uncited) / len(appendix) if appendix else math.nan,
+        "appendix_reference_cited": (
+            1 - len(uncited) / len(appendix) if appendix else math.nan
+        ),
     }
     notes = [f"titles outside the skill's set: {odd}"] if odd else []
-    notes += [f"{len(uncited)}/{len(appendix)} appendix issues do not point to the sentence that refers to it"] if uncited else []
-    return values, " | ".join(notes) if notes else "titles known; appendix references cited"
+    notes += (
+        [
+            f"{len(uncited)}/{len(appendix)} appendix issues do not point to the sentence that refers to it"
+        ]
+        if uncited
+        else []
+    )
+    return values, (
+        " | ".join(notes) if notes else "titles known; appendix references cited"
+    )
 
 
 SPECIFIC_CRITERION = (
@@ -115,7 +152,7 @@ SPECIFIC_CRITERION = (
     "This, the purpose and audience the report's content suggests; for Conclusion, the implications of this "
     "report's findings. Where the report gives nothing to draw on (no funder or contributor is named anywhere, "
     "say, for Acknowledgements), asking the author for that information is correct. Advice that could be "
-    "pasted onto any report (\"add a Methods section describing your methodology\") is incorrect."
+    'pasted onto any report ("add a Methods section describing your methodology") is incorrect.'
 )
 
 GROUNDED_CRITERION = (
@@ -128,8 +165,18 @@ GROUNDED_CRITERION = (
 )
 
 JUDGE_CRITERIA = [
-    JudgeCriterion(key="action_specific", criterion=SPECIFIC_CRITERION, scope="expected", passage="document"),
-    JudgeCriterion(key="action_grounded", criterion=GROUNDED_CRITERION, scope="expected", passage="document"),
+    JudgeCriterion(
+        key="action_specific",
+        criterion=SPECIFIC_CRITERION,
+        scope="expected",
+        passage="document",
+    ),
+    JudgeCriterion(
+        key="action_grounded",
+        criterion=GROUNDED_CRITERION,
+        scope="expected",
+        passage="document",
+    ),
 ]
 
 JUDGE_DESCRIPTIONS = {

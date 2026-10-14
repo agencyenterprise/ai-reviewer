@@ -104,7 +104,9 @@ def _subsplit(
     for chunk in chunks:
         if not chunk.strip():
             continue
-        start_line, end_line, pos = find_text_line_range(full_markdown, chunk.strip(), pos)
+        start_line, end_line, pos = find_text_line_range(
+            full_markdown, chunk.strip(), pos
+        )
         sections.append(
             DocumentSection(
                 section_index=start_index + len(sections),
@@ -136,7 +138,9 @@ def split_into_sections(markdown: str) -> List[DocumentSection]:
 
     if not boundaries:
         fallback_sections, _ = _subsplit(markdown, markdown, 0, [], 0)
-        return fallback_sections or [DocumentSection(section_index=0, start_line=1, end_line=total_lines)]
+        return fallback_sections or [
+            DocumentSection(section_index=0, start_line=1, end_line=total_lines)
+        ]
 
     # Build raw sections: each heading starts a section that runs until the next heading.
     raw: List[Tuple[int, int, List[str]]] = []
@@ -145,7 +149,9 @@ def split_into_sections(markdown: str) -> List[DocumentSection]:
         raw.append((1, first_heading_line - 1, []))
 
     for idx, (start_line, headings) in enumerate(boundaries):
-        end_line = boundaries[idx + 1][0] - 1 if idx + 1 < len(boundaries) else total_lines
+        end_line = (
+            boundaries[idx + 1][0] - 1 if idx + 1 < len(boundaries) else total_lines
+        )
         raw.append((start_line, end_line, headings))
 
     # Build sections, subsplitting any block that exceeds _CHUNK_SIZE chars.
@@ -175,7 +181,9 @@ def split_into_sections(markdown: str) -> List[DocumentSection]:
                 )
             )
         else:
-            sub, search_pos = _subsplit(block, markdown, search_pos, headings, len(sections))
+            sub, search_pos = _subsplit(
+                block, markdown, search_pos, headings, len(sections)
+            )
             sections.extend(sub)
 
     if not sections:

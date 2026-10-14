@@ -84,7 +84,10 @@ def viewer_config() -> ViewerConfig:
             multiline=False,
             score_labels=SCORE_LABELS,
             # Pinned to 0..1 so a check that passes everywhere still paints green.
-            score_color_scales={key: ScoreColorScale(palette="good-high", min=0.0, max=1.0) for key in KEYS},
+            score_color_scales={
+                key: ScoreColorScale(palette="good-high", min=0.0, max=1.0)
+                for key in KEYS
+            },
             color_scales_enabled=True,
         ),
         sample_score_view=SampleScoreView(

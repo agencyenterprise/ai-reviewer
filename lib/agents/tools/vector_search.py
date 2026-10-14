@@ -72,8 +72,10 @@ async def vector_search(
         if not vector_store:
             return "Error: Vector store is not available."
 
-        supporting_files = await runtime.context.file_artifacts_service.get_project_files(
-            [FileRole.SUPPORT]
+        supporting_files = (
+            await runtime.context.file_artifacts_service.get_project_files(
+                [FileRole.SUPPORT]
+            )
         )
         file_doc = next((f for f in supporting_files if f.file_id == file_id), None)
         if not file_doc:

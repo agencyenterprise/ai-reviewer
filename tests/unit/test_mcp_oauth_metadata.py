@@ -30,7 +30,11 @@ INITIALIZE = {
     "jsonrpc": "2.0",
     "id": 1,
     "method": "initialize",
-    "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "t", "version": "0"}},
+    "params": {
+        "protocolVersion": "2025-06-18",
+        "capabilities": {},
+        "clientInfo": {"name": "t", "version": "0"},
+    },
 }
 MCP_HEADERS = {"Accept": "application/json, text/event-stream"}
 
@@ -40,9 +44,13 @@ def _config(provider: str, cimd: bool) -> MagicMock:
     mock_config.AUTH_GOOGLE_ID = "google-id" if provider == "google" else None
     mock_config.AUTH_GOOGLE_SECRET = "google-secret" if provider == "google" else None
     mock_config.AUTH_MICROSOFT_ENTRA_ID_ID = "entra-id" if provider == "entra" else None
-    mock_config.AUTH_MICROSOFT_ENTRA_ID_SECRET = "entra-secret" if provider == "entra" else None
+    mock_config.AUTH_MICROSOFT_ENTRA_ID_SECRET = (
+        "entra-secret" if provider == "entra" else None
+    )
     mock_config.AUTH_MICROSOFT_ENTRA_ID_ISSUER = (
-        "https://login.microsoftonline.com/tenant-abc/v2.0" if provider == "entra" else None
+        "https://login.microsoftonline.com/tenant-abc/v2.0"
+        if provider == "entra"
+        else None
     )
     mock_config.MCP_BASE_URL = BASE_URL
     mock_config.MCP_CIMD_ENABLED = cimd
@@ -63,7 +71,9 @@ def _client(auth: OAuthProvider) -> TestClient:
 
 
 def _resource_metadata_path(response_headers: dict[str, str]) -> str:
-    match = re.search(r'resource_metadata="([^"]+)"', response_headers["www-authenticate"])
+    match = re.search(
+        r'resource_metadata="([^"]+)"', response_headers["www-authenticate"]
+    )
     assert match, response_headers["www-authenticate"]
     return urlparse(match.group(1)).path
 
@@ -81,7 +91,9 @@ def _sdk_accepts_resource(server_url: str, resource: str) -> bool:
         return False
     if len(requested.path) < len(configured.path):
         return False
-    return (requested.path.rstrip("/") + "/").startswith(configured.path.rstrip("/") + "/")
+    return (requested.path.rstrip("/") + "/").startswith(
+        configured.path.rstrip("/") + "/"
+    )
 
 
 @pytest.fixture(params=["google", "entra"])
@@ -97,11 +109,15 @@ def client(provider_name: str, request: pytest.FixtureRequest) -> TestClient:
     return _client(auth)
 
 
-@pytest.mark.parametrize("server_url", [BASE_URL, f"{BASE_URL}/"], ids=["no-slash", "slash"])
+@pytest.mark.parametrize(
+    "server_url", [BASE_URL, f"{BASE_URL}/"], ids=["no-slash", "slash"]
+)
 def test_client_can_follow_the_challenge_to_the_authorization_server(
     client: TestClient, server_url: str
 ) -> None:
-    challenge = client.post(urlparse(server_url).path, json=INITIALIZE, headers=MCP_HEADERS)
+    challenge = client.post(
+        urlparse(server_url).path, json=INITIALIZE, headers=MCP_HEADERS
+    )
     assert challenge.status_code == 401
 
     resource = client.get(_resource_metadata_path(dict(challenge.headers))).json()

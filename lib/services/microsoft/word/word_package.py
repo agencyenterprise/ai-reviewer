@@ -39,9 +39,7 @@ DRAFT_DETECTIVE = "Draft Detective"
 _CONTENT_TYPES_PART = "[Content_Types].xml"
 _DOCUMENT_ZIP_ENTRY = "word/document.xml"
 
-_RELATIONSHIP_CONTENT_TYPE = (
-    "application/vnd.openxmlformats-package.relationships+xml"
-)
+_RELATIONSHIP_CONTENT_TYPE = "application/vnd.openxmlformats-package.relationships+xml"
 _CONTENT_TYPES_NS = "http://schemas.openxmlformats.org/package/2006/content-types"
 
 # Word writes this ahead of the root and expects it back; without it the package
@@ -201,7 +199,9 @@ def from_docx(path: Path) -> str:
                 logger.info("leaving out %s: the package declares no type for it", name)
                 continue
             payload = archive.read(name)
-            attributes = f'pkg:name="/{escape(name)}" pkg:contentType="{escape(content_type)}"'
+            attributes = (
+                f'pkg:name="/{escape(name)}" pkg:contentType="{escape(content_type)}"'
+            )
             if _is_xml(name, content_type):
                 body = payload.decode("utf-8")
                 # Flat OPC nests the part's root element directly; its own

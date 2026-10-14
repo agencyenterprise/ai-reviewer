@@ -39,7 +39,9 @@ async def test_supervise_bumps_heartbeat_while_node_runs():
             new=AsyncMock(),
         ) as heartbeat_mock,
     ):
-        await asyncio.gather(node_task, _supervise_node(workflow_run_id, node_task, interval))
+        await asyncio.gather(
+            node_task, _supervise_node(workflow_run_id, node_task, interval)
+        )
 
     # At least two heartbeats over four intervals — exact count varies with
     # event-loop scheduling, but zero would mean the loop never ticked.

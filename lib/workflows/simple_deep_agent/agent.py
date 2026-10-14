@@ -183,7 +183,9 @@ class SimpleDeepAgent(LangChainAgent):
             agent_input(
                 files=files,
                 messages=[
-                    SystemMessage(content=self._system_prompt + _document_size_note(document)),
+                    SystemMessage(
+                        content=self._system_prompt + _document_size_note(document)
+                    ),
                     HumanMessage(content=self._user_prompt),
                 ],
             ),

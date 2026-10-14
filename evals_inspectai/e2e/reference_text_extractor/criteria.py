@@ -29,7 +29,12 @@ from pydantic import BaseModel, Field, ValidationError
 
 from evals_inspectai.common.issue_checks import PER_KEY_METRICS
 from evals_inspectai.common.scorers import failed_score
-from evals_inspectai.e2e.reference_text_extractor.matching import DocumentText, compact, match, normalize
+from evals_inspectai.e2e.reference_text_extractor.matching import (
+    DocumentText,
+    compact,
+    match,
+    normalize,
+)
 
 NAN = math.nan
 # How many missing or extra references an explanation names, and how much of each.
@@ -87,7 +92,9 @@ def _listed(label: str, texts: Sequence[str]) -> list[str]:
     return [f"{label} {len(texts)}: {shown}{more}"]
 
 
-def _in_lines(ref: ExtractedReference, document: DocumentText, line_count: int) -> Optional[bool]:
+def _in_lines(
+    ref: ExtractedReference, document: DocumentText, line_count: int
+) -> Optional[bool]:
     """Whether the reference's text lies within its own line range; None when it names none.
     Read against the whole document, so a repeated-author placeholder in range still
     resolves to the previous entry's author outside it."""
@@ -122,12 +129,16 @@ def reference_scores(
         """Identical after normalization, or differing only in spaces the document's line
         joins allow: equal without spaces, and both the document's own text."""
         a, b = texts[i], expected[j]
-        return normalize(a) == normalize(b) or (compact(a) == compact(b) and in_document[i] and text.contains(b))
+        return normalize(a) == normalize(b) or (
+            compact(a) == compact(b) and in_document[i] and text.contains(b)
+        )
 
     inexact = [texts[i] for i, j in pairs if not exact(i, j)]
     verbatim = [r for r, ok in zip(extracted, in_document) if ok]
     invented = [r.text for r, ok in zip(extracted, in_document) if not ok]
-    placed = [(r, ok) for r in verbatim if (ok := _in_lines(r, text, len(lines))) is not None]
+    placed = [
+        (r, ok) for r in verbatim if (ok := _in_lines(r, text, len(lines))) is not None
+    ]
     misplaced = [f"{r.start_line}-{r.end_line}: {r.text}" for r, ok in placed if not ok]
 
     recall = _fraction(len(pairs), len(expected))
@@ -135,14 +146,24 @@ def reference_scores(
     values = {
         "recall": recall,
         "precision": precision,
-        "f1": NAN if not expected else (2 * recall * precision / (recall + precision) if pairs else 0.0),
+        "f1": (
+            NAN
+            if not expected
+            else (2 * recall * precision / (recall + precision) if pairs else 0.0)
+        ),
         "clean_document_untouched": NAN if expected else float(not extra),
         "text_exact": _fraction(len(pairs) - len(inexact), len(pairs)),
         "verbatim_in_document": _fraction(len(verbatim), len(extracted)),
         "lines_bracket_text": _fraction(sum(ok for _, ok in placed), len(placed)),
     }
-    notes = [f"{len(pairs)}/{len(expected)} expected found, {len(extracted)} extracted ({len(tolerated)} optional)"]
-    notes += _listed("missing", missing) + _listed("extra", extra) + _listed("inexact", inexact)
+    notes = [
+        f"{len(pairs)}/{len(expected)} expected found, {len(extracted)} extracted ({len(tolerated)} optional)"
+    ]
+    notes += (
+        _listed("missing", missing)
+        + _listed("extra", extra)
+        + _listed("inexact", inexact)
+    )
     notes += _listed("not verbatim", invented)
     notes += _listed("lines do not hold the text", misplaced)
     return values, " | ".join(notes)
@@ -154,7 +175,9 @@ def reference_checks() -> Scorer:
 
     async def score(state: TaskState, target: Target) -> Score:
         try:
-            output = ReferenceExtractionOutput.model_validate_json(state.output.completion)
+            output = ReferenceExtractionOutput.model_validate_json(
+                state.output.completion
+            )
         except ValidationError as e:
             return failed_score(KEYS, f"could not parse the workflow state: {e}")
         values, explanation = reference_scores(

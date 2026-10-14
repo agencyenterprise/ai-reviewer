@@ -14,7 +14,10 @@ UNDEFINED = "Abbreviation not defined at first use"
 def load_records() -> list[tuple[ResolvedInventory, ExpectedCatalogue]]:
     """Each record of the report dataset with its expected catalogue."""
     suite = load_suite(DATASET)
-    return [(inventory, ExpectedCatalogue.model_validate(extra)) for inventory, extra in zip(suite.records, suite.extras)]
+    return [
+        (inventory, ExpectedCatalogue.model_validate(extra))
+        for inventory, extra in zip(suite.records, suite.extras)
+    ]
 
 
 def test_report_dataset_is_well_formed():
@@ -48,21 +51,43 @@ def test_each_variant_differs_from_the_report_only_by_its_removed_definitions():
         lines = inventory.document.split("\n")
         edited = {n for n, (a, b) in enumerate(zip(report_lines, lines), 1) if a != b}
         assert len(lines) == len(report_lines) and edited, inventory.notes
-        assert len(catalogue.abbreviations) == len(report_catalogue.abbreviations), inventory.notes
+        assert len(catalogue.abbreviations) == len(
+            report_catalogue.abbreviations
+        ), inventory.notes
         cleared = 0
-        for before, after in zip(report_catalogue.abbreviations, catalogue.abbreviations):
+        for before, after in zip(
+            report_catalogue.abbreviations, catalogue.abbreviations
+        ):
             if before.inline_definition != after.inline_definition:
-                assert before.line_start in edited and before.inline_definition and not after.inline_definition
+                assert (
+                    before.line_start in edited
+                    and before.inline_definition
+                    and not after.inline_definition
+                )
                 cleared += 1
-            assert before.model_copy(update={"inline_definition": ""}) == after.model_copy(update={"inline_definition": ""})
-        assert cleared >= len(edited), "every edited line removes at least one definition"
+            assert before.model_copy(
+                update={"inline_definition": ""}
+            ) == after.model_copy(update={"inline_definition": ""})
+        assert cleared >= len(
+            edited
+        ), "every edited line removes at least one definition"
         added = [e for e in inventory.expected_issues if e.id not in report_ids]
         assert report_ids <= {e.id for e in inventory.expected_issues}
-        assert all(e.title == UNDEFINED and e.line in edited for e in added), "a removal only adds Rule 2 where it edits"
+        assert all(
+            e.title == UNDEFINED and e.line in edited for e in added
+        ), "a removal only adds Rule 2 where it edits"
 
 
 def test_report_task_composition():
     t = abbreviation_checker_report_e2e()
-    assert len(t.dataset) == 10 and len(t.scorer) == 3 and t.dataset.name == "abbreviation_checker_report"
-    assert set(t.metadata["metrics"]) == {"catalogue_checks", "issue_checks", "decoy_checks"}
+    assert (
+        len(t.dataset) == 10
+        and len(t.scorer) == 3
+        and t.dataset.name == "abbreviation_checker_report"
+    )
+    assert set(t.metadata["metrics"]) == {
+        "catalogue_checks",
+        "issue_checks",
+        "decoy_checks",
+    }
     assert "no_fp_url" in t.metadata["metrics"]["decoy_checks"]

@@ -40,7 +40,9 @@ def decoy_labels(reasons: Sequence[str]) -> dict[str, str]:
     return {f"no_fp_{r}": f"No FP {r}" for r in reasons}
 
 
-def issue_viewer_config(scored: Sequence[tuple[str, str]], labels: Mapping[str, str] | None = None) -> ViewerConfig:
+def issue_viewer_config(
+    scored: Sequence[tuple[str, str]], labels: Mapping[str, str] | None = None
+) -> ViewerConfig:
     """One column per (scorer name, score key) in ``scored``, in that order;
     ``labels`` adds headers to the generic ones. ``InventorySuite.viewer`` puts the
     generic scorers' columns first and the eval's own after them.
@@ -74,7 +76,10 @@ def issue_viewer_config(scored: Sequence[tuple[str, str]], labels: Mapping[str, 
             score_labels={**SCORE_LABELS, **(labels or {})},
             # Pinned to 0..1 so a check that passes everywhere still paints green,
             # rather than the viewer anchoring each palette to the observed range.
-            score_color_scales={key: ScoreColorScale(palette="good-high", min=0.0, max=1.0) for _, key in scored},
+            score_color_scales={
+                key: ScoreColorScale(palette="good-high", min=0.0, max=1.0)
+                for _, key in scored
+            },
             color_scales_enabled=True,
         ),
         sample_score_view=SampleScoreView(

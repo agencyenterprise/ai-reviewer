@@ -149,10 +149,14 @@ async def assert_project_has_main_file(
     """Raise HTTPException 422 if the project has no MAIN file for the given revision."""
     project_id = ensure_uuid(project_id, "project ID")
     async with get_async_db_session() as session:
-        stmt = select(func.count()).select_from(File).where(
-            col(File.project_id) == project_id,
-            col(File.role) == FileRole.MAIN,
-            col(File.revision) == revision,
+        stmt = (
+            select(func.count())
+            .select_from(File)
+            .where(
+                col(File.project_id) == project_id,
+                col(File.role) == FileRole.MAIN,
+                col(File.revision) == revision,
+            )
         )
         count = (await session.execute(stmt)).scalar_one()
 
@@ -535,9 +539,7 @@ async def delete_project_files(
     return deleted_count
 
 
-async def _is_path_shared(
-    session: AsyncSession, path: str, file_id: uuid.UUID
-) -> bool:
+async def _is_path_shared(session: AsyncSession, path: str, file_id: uuid.UUID) -> bool:
     """
     Check whether any other file row references the same disk path.
 

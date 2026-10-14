@@ -8,7 +8,6 @@ import pytest
 from fastapi import HTTPException
 from fastapi.responses import FileResponse
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -174,7 +173,11 @@ def test_list_log_files_sorted_newest_first(tmp_path):
     with _patch_log_dir(tmp_path):
         result = _list_log_files()
 
-    assert [f.name for f in result] == ["app.log", "app.log.2024-06-01", "app.log.2024-01-01"]
+    assert [f.name for f in result] == [
+        "app.log",
+        "app.log.2024-06-01",
+        "app.log.2024-01-01",
+    ]
 
 
 # ---------------------------------------------------------------------------

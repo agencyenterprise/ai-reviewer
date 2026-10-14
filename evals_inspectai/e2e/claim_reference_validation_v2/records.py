@@ -27,24 +27,33 @@ class Source(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    file_name: str = Field(description="Upload name; the app matches it, with its title, to a bibliography entry")
-    markdown: str = Field(description="The file's text: inline markdown, or file://<path> relative to evals_inspectai/")
+    file_name: str = Field(
+        description="Upload name; the app matches it, with its title, to a bibliography entry"
+    )
+    markdown: str = Field(
+        description="The file's text: inline markdown, or file://<path> relative to evals_inspectai/"
+    )
 
 
 def load_claim_suite(path: Path) -> InventorySuite:
     """One record per citation, so matching is one-to-one; a level is the verdict on a
     citation, not the kind of issue, so reports pair on the cited claim alone."""
     return InventorySuite.load(
-        path, pairing="one_to_one", pair_on_location=True, extra_fields=(SOURCES_KEY,), results=RESULTS
+        path,
+        pairing="one_to_one",
+        pair_on_location=True,
+        extra_fields=(SOURCES_KEY,),
+        results=RESULTS,
     )
 
 
 def sources_of(extra: dict[str, Any]) -> list[Source]:
     """A record's sources, their markdown read in."""
     sources = [Source.model_validate(s) for s in extra.get(SOURCES_KEY) or []]
-    return [s.model_copy(update={"markdown": resolve_input(s.markdown)}) for s in sources]
+    return [
+        s.model_copy(update={"markdown": resolve_input(s.markdown)}) for s in sources
+    ]
 
 
 def sources_metadata(extra: dict[str, Any]) -> dict[str, Any]:
     return {SOURCES_KEY: [s.model_dump() for s in sources_of(extra)]}
-

@@ -86,7 +86,9 @@ async def test_converts_modern_docx_via_markitdown():
 @pytest.mark.asyncio
 async def test_legacy_doc_mime_is_preprocessed_to_docx():
     """`application/msword` triggers libreoffice conversion before markitdown."""
-    doc = _file_document(file_path="/uploads/legacy.doc", file_type="application/msword")
+    doc = _file_document(
+        file_path="/uploads/legacy.doc", file_type="application/msword"
+    )
     converted_path = "/uploads/legacy.docx"
 
     preprocessor = MagicMock()
@@ -176,7 +178,9 @@ async def test_cache_persists_converted_markdown():
     file_id = str(uuid.uuid4())
     file_row = _file_row(has_cached=False, file_id=file_id)
     loaded = _file_document(markdown="")
-    converted = loaded.model_copy(update={"markdown": "# fresh", "markdown_token_count": 2})
+    converted = loaded.model_copy(
+        update={"markdown": "# fresh", "markdown_token_count": 2}
+    )
 
     with (
         patch(f"{MODULE}.get_file_by_id", new=AsyncMock(return_value=file_row)),
@@ -198,7 +202,9 @@ async def test_cache_skips_write_when_conversion_yields_empty_markdown():
     file_id = str(uuid.uuid4())
     file_row = _file_row(has_cached=False, file_id=file_id)
     loaded = _file_document(markdown="")
-    empty_converted = loaded.model_copy(update={"markdown": "", "markdown_token_count": 0})
+    empty_converted = loaded.model_copy(
+        update={"markdown": "", "markdown_token_count": 0}
+    )
 
     with (
         patch(f"{MODULE}.get_file_by_id", new=AsyncMock(return_value=file_row)),
@@ -212,6 +218,7 @@ async def test_cache_skips_write_when_conversion_yields_empty_markdown():
         await convert_and_cache_file_markdown(file_id)
 
     update_mock.assert_not_called()
+
 
 # --- _converter_for ---
 
@@ -319,9 +326,7 @@ async def test_uppercase_doc_extension_is_copied_beside_itself_as_docx():
     with (
         patch(f"{MODULE}.shutil.copy") as copy_mock,
         patch(f"{MODULE}.os.remove"),
-        patch(
-            f"{MODULE}._convert_docx", new=AsyncMock(return_value=("# Reply", None))
-        ),
+        patch(f"{MODULE}._convert_docx", new=AsyncMock(return_value=("# Reply", None))),
     ):
         await convert_file_document_to_markdown(doc, role=FileRole.REVIEWER_MEMO)
 

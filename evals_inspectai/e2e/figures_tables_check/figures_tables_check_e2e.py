@@ -75,7 +75,9 @@ GROUND_TRUTH = (
 OWN_METRICS = {
     "title_checks": OWN_DESCRIPTIONS,
     "judged_criteria": JUDGE_DESCRIPTIONS,
-    "tool_called": {"tool_called": "On a sample whose document embeds an image, whether the agent called view_image."},
+    "tool_called": {
+        "tool_called": "On a sample whose document embeds an image, whether the agent called view_image."
+    },
 }
 
 
@@ -105,5 +107,7 @@ def figures_tables_check_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Ta
             tool_called("view_image"),
         ],
         fail_on_error=0.2,
-        viewer=suite.viewer(OWN_METRICS, {**SCORE_LABELS, "tool_called": "Viewed image"}),
+        viewer=suite.viewer(
+            OWN_METRICS, {**SCORE_LABELS, "tool_called": "Viewed image"}
+        ),
     )

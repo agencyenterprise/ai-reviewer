@@ -101,7 +101,9 @@ class TestBuildZipArchive:
         mock_config.FILE_UPLOADS_MOUNT_PATH = MOUNT_PATH
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            f1 = make_file(file_name="report.pdf", file_path=f"{MOUNT_PATH}/a/report.pdf")
+            f1 = make_file(
+                file_name="report.pdf", file_path=f"{MOUNT_PATH}/a/report.pdf"
+            )
             f2 = make_file(file_name="notes.txt", file_path=f"{MOUNT_PATH}/b/notes.txt")
             self._create_temp_file(tmpdir, f1)
             self._create_temp_file(tmpdir, f2)

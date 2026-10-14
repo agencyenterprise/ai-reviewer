@@ -121,7 +121,9 @@ class SkillWorkflowSpec(BaseModel):
             "along with the rest of their set."
         ),
     )
-    required_dependencies: list[str] = Field(default_factory=lambda: ["document_processing"])
+    required_dependencies: list[str] = Field(
+        default_factory=lambda: ["document_processing"]
+    )
 
 
 class SkillWorkflowDeclaration(BaseModel):

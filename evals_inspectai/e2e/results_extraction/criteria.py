@@ -65,4 +65,3 @@ def answer_text(result: AgentCheckResult) -> str:
         f"=== RESULT INVENTORY ({len(result.issues)} reported) ===\n{inventory}\n\n"
         f"=== REPORT ===\n{result.report_markdown}\n"
     )
-

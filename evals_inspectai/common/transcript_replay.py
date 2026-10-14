@@ -49,7 +49,11 @@ def messages_from_state(raw_messages: List[Any]) -> List[BaseMessage]:
     """
     messages = convert_to_messages(raw_messages)
     for raw, message in zip(raw_messages, messages):
-        if isinstance(message, AIMessage) and isinstance(raw, dict) and raw.get("usage_metadata"):
+        if (
+            isinstance(message, AIMessage)
+            and isinstance(raw, dict)
+            and raw.get("usage_metadata")
+        ):
             message.usage_metadata = raw["usage_metadata"]
     return messages
 
@@ -72,7 +76,10 @@ async def replay_conversation(
         _record_model_calls(conversation.messages, converted)
 
     if converted and conversation.metadata:
-        converted[0].metadata = {**(converted[0].metadata or {}), **conversation.metadata}
+        converted[0].metadata = {
+            **(converted[0].metadata or {}),
+            **conversation.metadata,
+        }
     return converted
 
 
@@ -91,7 +98,9 @@ async def replay_conversations(conversations: List[Conversation]) -> List[ChatMe
     return []
 
 
-def _record_model_calls(originals: List[BaseMessage], converted: List[ChatMessage]) -> None:
+def _record_model_calls(
+    originals: List[BaseMessage], converted: List[ChatMessage]
+) -> None:
     for index, (original, message) in enumerate(zip(originals, converted)):
         if isinstance(message, ChatMessageAssistant):
             # Inspect has no public API for recording a model call made

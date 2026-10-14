@@ -35,24 +35,34 @@ MARKDOWN = "# Report\n\nThe NATO alliance.\n\n## Abbreviations\n\n- NATO: North 
 
 
 def _runtime(markdown: str = MARKDOWN) -> Any:
-    service = SimpleNamespace(get_main_file=AsyncMock(return_value=SimpleNamespace(markdown=markdown)))
+    service = SimpleNamespace(
+        get_main_file=AsyncMock(return_value=SimpleNamespace(markdown=markdown))
+    )
     return SimpleNamespace(
-        context=SimpleNamespace(file_artifacts_service=service, workflow_run_id="run-1", openai_api_key=None)
+        context=SimpleNamespace(
+            file_artifacts_service=service, workflow_run_id="run-1", openai_api_key=None
+        )
     )
 
 
 def _state(**kwargs: Any) -> AbbreviationScanV2State:
-    return AbbreviationScanV2State(config=AbbreviationScanV2Config(project_id="p"), **kwargs)
+    return AbbreviationScanV2State(
+        config=AbbreviationScanV2Config(project_id="p"), **kwargs
+    )
 
 
-def _chunk(index: int, status: ChunkStatus, occurrences: List[ChunkOccurrence] | None = None) -> AbbreviationChunk:
+def _chunk(
+    index: int, status: ChunkStatus, occurrences: List[ChunkOccurrence] | None = None
+) -> AbbreviationChunk:
     return AbbreviationChunk(
         chunk_index=index,
         start_line=1 + index * 3,
         end_line=3 + index * 3,
         status=status,
         occurrences=occurrences or [],
-        error=None if status in (ChunkStatus.COMPLETED, ChunkStatus.SKIPPED) else "boom",
+        error=(
+            None if status in (ChunkStatus.COMPLETED, ChunkStatus.SKIPPED) else "boom"
+        ),
     )
 
 
@@ -62,29 +72,45 @@ def test_graph_compiles():
 
 class TestDistribute:
     def test_one_send_per_pending_chunk(self):
-        state = _state(chunks=[_chunk(0, ChunkStatus.PENDING), _chunk(1, ChunkStatus.SKIPPED), _chunk(2, ChunkStatus.PENDING)])
+        state = _state(
+            chunks=[
+                _chunk(0, ChunkStatus.PENDING),
+                _chunk(1, ChunkStatus.SKIPPED),
+                _chunk(2, ChunkStatus.PENDING),
+            ]
+        )
         sends = extract_chunks.distribute_chunks(state)
         assert isinstance(sends, list)
         assert all(isinstance(s, Send) and s.node == "extract_chunk" for s in sends)
         assert [s.arg["chunk"]["chunk_index"] for s in sends] == [0, 2]
 
     def test_nothing_pending_goes_straight_to_assembly(self):
-        assert extract_chunks.distribute_chunks(_state(chunks=[_chunk(0, ChunkStatus.SKIPPED)])) == "assemble_catalogue"
+        assert (
+            extract_chunks.distribute_chunks(
+                _state(chunks=[_chunk(0, ChunkStatus.SKIPPED)])
+            )
+            == "assemble_catalogue"
+        )
 
 
 class TestExtractChunk:
     async def _run(self, agent_result: Any) -> AbbreviationChunk:
         agent = SimpleNamespace(ainvoke=AsyncMock(**agent_result))
-        with patch.object(extract_chunks, "AbbreviationChunkExtractorAgent", return_value=agent):
+        with patch.object(
+            extract_chunks, "AbbreviationChunkExtractorAgent", return_value=agent
+        ):
             result = await extract_chunks.extract_chunk_node.__wrapped__(
-                {"chunk": _chunk(0, ChunkStatus.PENDING).model_dump(mode="json")}, _runtime()
+                {"chunk": _chunk(0, ChunkStatus.PENDING).model_dump(mode="json")},
+                _runtime(),
             )
         self.kwargs = agent.ainvoke.call_args.args[0]
         return result["chunks"][0]
 
     @pytest.mark.asyncio
     async def test_success_records_occurrences_and_passes_the_document_and_range(self):
-        found = ChunkExtractionResult(occurrences=[ChunkOccurrence(abbr="NATO", line_start=3, line_end=3)])
+        found = ChunkExtractionResult(
+            occurrences=[ChunkOccurrence(abbr="NATO", line_start=3, line_end=3)]
+        )
         chunk = await self._run({"return_value": (found, [AIMessage(content="{}")])})
         assert chunk.status == ChunkStatus.COMPLETED
         assert [o.abbr for o in chunk.occurrences] == ["NATO"]
@@ -92,8 +118,12 @@ class TestExtractChunk:
 
     @pytest.mark.asyncio
     async def test_truncation_is_partial_and_keeps_the_salvage(self):
-        salvaged = ChunkExtractionResult(occurrences=[ChunkOccurrence(abbr="NATO", line_start=3, line_end=3)])
-        chunk = await self._run({"side_effect": PartialChunkExtractionError(salvaged, [])})
+        salvaged = ChunkExtractionResult(
+            occurrences=[ChunkOccurrence(abbr="NATO", line_start=3, line_end=3)]
+        )
+        chunk = await self._run(
+            {"side_effect": PartialChunkExtractionError(salvaged, [])}
+        )
         assert chunk.status == ChunkStatus.PARTIAL
         assert len(chunk.occurrences) == 1
         assert chunk.error_details is not None
@@ -107,13 +137,19 @@ class TestExtractChunk:
 
 class TestAssemble:
     async def _run(self, chunks: List[AbbreviationChunk]) -> dict:
-        return await assemble_catalogue.assemble_catalogue_node.__wrapped__(_state(chunks=chunks), _runtime())
+        return await assemble_catalogue.assemble_catalogue_node.__wrapped__(
+            _state(chunks=chunks), _runtime()
+        )
 
     @pytest.mark.asyncio
     async def test_failed_chunks_are_warnings_while_others_produced_results(self):
         result = await self._run(
             [
-                _chunk(0, ChunkStatus.COMPLETED, [ChunkOccurrence(abbr="NATO", line_start=3, line_end=3)]),
+                _chunk(
+                    0,
+                    ChunkStatus.COMPLETED,
+                    [ChunkOccurrence(abbr="NATO", line_start=3, line_end=3)],
+                ),
                 _chunk(1, ChunkStatus.ERROR),
                 _chunk(2, ChunkStatus.SKIPPED),
             ]
@@ -130,22 +166,34 @@ class TestAssemble:
         # Copilot review on #783: a completed chunk with zero occurrences counted
         # as usable output, so a failure elsewhere stayed a warning while the
         # catalogue came back empty and read as an all-clear.
-        result = await self._run([_chunk(0, ChunkStatus.COMPLETED), _chunk(1, ChunkStatus.ERROR)])
+        result = await self._run(
+            [_chunk(0, ChunkStatus.COMPLETED), _chunk(1, ChunkStatus.ERROR)]
+        )
         assert result["abbreviations"] == []
         assert {e.severity for e in result["errors"]} == {WorkflowErrorSeverity.ERROR}
 
     @pytest.mark.asyncio
     async def test_every_chunk_failing_escalates_to_an_error(self):
-        result = await self._run([_chunk(0, ChunkStatus.ERROR), _chunk(1, ChunkStatus.ERROR)])
+        result = await self._run(
+            [_chunk(0, ChunkStatus.ERROR), _chunk(1, ChunkStatus.ERROR)]
+        )
         assert result["abbreviations"] == []
         assert {e.severity for e in result["errors"]} == {WorkflowErrorSeverity.ERROR}
 
 
 class TestReadAbbreviationsSection:
-    async def _run(self, extraction: AbbreviationsSectionExtraction, markdown: str = MARKDOWN) -> dict:
+    async def _run(
+        self, extraction: AbbreviationsSectionExtraction, markdown: str = MARKDOWN
+    ) -> dict:
         conversation = [AIMessage(content="{}")]
-        agent = SimpleNamespace(ainvoke=AsyncMock(return_value=(extraction, conversation)))
-        with patch.object(read_abbreviations_section, "AbbreviationsSectionExtractorAgent", return_value=agent):
+        agent = SimpleNamespace(
+            ainvoke=AsyncMock(return_value=(extraction, conversation))
+        )
+        with patch.object(
+            read_abbreviations_section,
+            "AbbreviationsSectionExtractorAgent",
+            return_value=agent,
+        ):
             result = await read_abbreviations_section.read_abbreviations_section_node.__wrapped__(
                 _state(), _runtime(markdown)
             )
@@ -155,38 +203,58 @@ class TestReadAbbreviationsSection:
 
     @pytest.mark.asyncio
     async def test_listing_section_is_found_with_its_range_and_entries(self):
-        entry = AbbreviationSectionEntry(abbr="NATO", definition="North Atlantic Treaty Organization")
+        entry = AbbreviationSectionEntry(
+            abbr="NATO", definition="North Atlantic Treaty Organization"
+        )
         result = await self._run(
             AbbreviationsSectionExtraction(
-                sections=[AbbreviationsSectionRange(start_line=5, end_line=7, lists_abbreviations=True)],
+                sections=[
+                    AbbreviationsSectionRange(
+                        start_line=5, end_line=7, lists_abbreviations=True
+                    )
+                ],
                 entries=[entry],
             )
         )
         assert result["abbreviations_section_found"] is True
-        assert [(r.start_line, r.end_line) for r in result["abbreviations_section_ranges"]] == [(5, 7)]
+        assert [
+            (r.start_line, r.end_line) for r in result["abbreviations_section_ranges"]
+        ] == [(5, 7)]
         assert result["abbreviations_section_entries"] == [entry]
 
     @pytest.mark.asyncio
     async def test_glossary_of_ordinary_terms_is_excluded_but_not_found(self):
         result = await self._run(
             AbbreviationsSectionExtraction(
-                sections=[AbbreviationsSectionRange(start_line=5, end_line=7, lists_abbreviations=False)]
+                sections=[
+                    AbbreviationsSectionRange(
+                        start_line=5, end_line=7, lists_abbreviations=False
+                    )
+                ]
             )
         )
         assert result["abbreviations_section_found"] is False
-        assert [(r.start_line, r.end_line) for r in result["abbreviations_section_ranges"]] == [(5, 7)]
+        assert [
+            (r.start_line, r.end_line) for r in result["abbreviations_section_ranges"]
+        ] == [(5, 7)]
 
     @pytest.mark.asyncio
     async def test_ranges_are_clamped_to_the_document_and_impossible_ones_dropped(self):
         result = await self._run(
             AbbreviationsSectionExtraction(
                 sections=[
-                    AbbreviationsSectionRange(start_line=5, end_line=90, lists_abbreviations=True),
-                    AbbreviationsSectionRange(start_line=50, end_line=60, lists_abbreviations=True),
+                    AbbreviationsSectionRange(
+                        start_line=5, end_line=90, lists_abbreviations=True
+                    ),
+                    AbbreviationsSectionRange(
+                        start_line=50, end_line=60, lists_abbreviations=True
+                    ),
                 ]
             )
         )
-        assert [(r.start_line, r.end_line) for r in result["abbreviations_section_ranges"]] == [(5, 7)]
+        assert [
+            (r.start_line, r.end_line) for r in result["abbreviations_section_ranges"]
+        ] == [(5, 7)]
 
     @pytest.mark.asyncio
     async def test_a_section_with_no_valid_range_is_not_found(self):
@@ -194,10 +262,16 @@ class TestReadAbbreviationsSection:
         # reported outside the document suppressed "No Abbreviations section
         # found" and flagged every abbreviation as missing from a section that
         # does not exist.
-        entry = AbbreviationSectionEntry(abbr="NATO", definition="North Atlantic Treaty Organization")
+        entry = AbbreviationSectionEntry(
+            abbr="NATO", definition="North Atlantic Treaty Organization"
+        )
         result = await self._run(
             AbbreviationsSectionExtraction(
-                sections=[AbbreviationsSectionRange(start_line=50, end_line=60, lists_abbreviations=True)],
+                sections=[
+                    AbbreviationsSectionRange(
+                        start_line=50, end_line=60, lists_abbreviations=True
+                    )
+                ],
                 entries=[entry],
             )
         )
@@ -216,8 +290,14 @@ class TestReadAbbreviationsSection:
         # A long draft with no Abbreviations section kept the agent searching
         # until the LLM gateway timed out every retry, for 20 minutes.
         agent = SimpleNamespace(ainvoke=AsyncMock())
-        markdown = "# Report\n\nThe NATO alliance. DTSA reviews export licenses under ITAR."
-        with patch.object(read_abbreviations_section, "AbbreviationsSectionExtractorAgent", return_value=agent):
+        markdown = (
+            "# Report\n\nThe NATO alliance. DTSA reviews export licenses under ITAR."
+        )
+        with patch.object(
+            read_abbreviations_section,
+            "AbbreviationsSectionExtractorAgent",
+            return_value=agent,
+        ):
             result = await read_abbreviations_section.read_abbreviations_section_node.__wrapped__(
                 _state(), _runtime(markdown)
             )
@@ -226,14 +306,26 @@ class TestReadAbbreviationsSection:
 
 
 class TestAfterSection:
-    def _error(self, task_name: str, severity: WorkflowErrorSeverity = WorkflowErrorSeverity.ERROR) -> WorkflowError:
-        return WorkflowError(task_name=task_name, error="Request timed out.", severity=severity)
+    def _error(
+        self,
+        task_name: str,
+        severity: WorkflowErrorSeverity = WorkflowErrorSeverity.ERROR,
+    ) -> WorkflowError:
+        return WorkflowError(
+            task_name=task_name, error="Request timed out.", severity=severity
+        )
 
     def test_section_read_continues_to_chunking(self):
         assert read_abbreviations_section.after_section(_state()) == "prepare_chunks"
 
     def test_failed_section_read_ends_the_run(self):
-        state = _state(errors=[self._error(read_abbreviations_section.read_abbreviations_section_node.__name__)])
+        state = _state(
+            errors=[
+                self._error(
+                    read_abbreviations_section.read_abbreviations_section_node.__name__
+                )
+            ]
+        )
         assert read_abbreviations_section.after_section(state) == END
 
     def test_other_errors_and_warnings_do_not_stop_the_run(self):
@@ -247,7 +339,6 @@ class TestAfterSection:
             ]
         )
         assert read_abbreviations_section.after_section(state) == "prepare_chunks"
-
 
 
 def test_graph_routes_the_section_read_through_after_section():

@@ -42,8 +42,7 @@ class DocumentSummarizerResponse(BaseModel):
     )
 
 
-_document_summarizer_agent_prompt = ChatPromptTemplate.from_template(
-    """
+_document_summarizer_agent_prompt = ChatPromptTemplate.from_template("""
 # Task
 You are an expert research analyst and document summarizer. You are given a document and must produce a ~1000-word miniature version of it that focuses on the main argument and its essential support.
 
@@ -90,8 +89,7 @@ This summary should feel like a compressed research report focused on the argume
 
 {document}
 
-"""
-)
+""")
 
 
 class DocumentSummarizerAgent(LangChainAgent):

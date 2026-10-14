@@ -2,7 +2,10 @@
 
 from typing import List
 
-from lib.models.bibliography_item import BibliographyItem, get_associated_supporting_file
+from lib.models.bibliography_item import (
+    BibliographyItem,
+    get_associated_supporting_file,
+)
 from lib.services.file import FileDocument
 
 

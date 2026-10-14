@@ -130,7 +130,9 @@ async def _answer_into_thread(
             # Stored with any changes offered, so applying them in Word can be reported
             # back here. Dumped the way pending questions are, without the unset fields
             # that would not validate back.
-            reference=reference.model_dump(mode="json", by_alias=True, exclude_none=True),
+            reference=reference.model_dump(
+                mode="json", by_alias=True, exclude_none=True
+            ),
         )
     except Exception:  # noqa: BLE001 - nobody upstream to hand this to
         # ``answer_question`` reports a failure rather than raising, so arriving here

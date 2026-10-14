@@ -51,7 +51,9 @@ def assemble_catalogue(
     recorded.sort(key=lambda occurrence: occurrence.line_start)
 
     definitions = _section_definitions(section_entries)
-    canonical = _canonicalizer({occ.abbr.strip() for occ in recorded} | set(definitions))
+    canonical = _canonicalizer(
+        {occ.abbr.strip() for occ in recorded} | set(definitions)
+    )
 
     counts: Dict[str, int] = defaultdict(int)
     catalogue: List[AbbreviationItem] = []
@@ -156,7 +158,9 @@ def _abbreviation_pattern(abbr: str) -> Optional[re.Pattern[str]]:
     runs = _ALNUM_RUN_RE.findall(html.unescape(abbr))
     if not runs:
         return None
-    body = r"[^0-9A-Za-z]{0,3}".join(r"\.?".join(re.escape(c) for c in run) for run in runs)
+    body = r"[^0-9A-Za-z]{0,3}".join(
+        r"\.?".join(re.escape(c) for c in run) for run in runs
+    )
     before = r"(?<![0-9])" if runs[0][0].isdigit() else r"(?<![A-Za-z])"
     after = r"(?![0-9])" if runs[-1][-1].isdigit() else r"(?![A-Za-z])"
     return re.compile(before + body + r"(?:'?s)?" + after)
@@ -164,7 +168,9 @@ def _abbreviation_pattern(abbr: str) -> Optional[re.Pattern[str]]:
 
 def _on_heading(occurrence: ChunkOccurrence, lines: List[str]) -> bool:
     """Enforce the skill's heading rule, which the agent sometimes misses."""
-    line = lines[occurrence.line_start - 1] if occurrence.line_start <= len(lines) else ""
+    line = (
+        lines[occurrence.line_start - 1] if occurrence.line_start <= len(lines) else ""
+    )
     return is_heading_line(line)
 
 

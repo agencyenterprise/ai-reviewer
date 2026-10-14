@@ -80,11 +80,11 @@ class CitationAssessment(BaseModel):
             "long entry with ' [...]' but keep enough to identify it (authors, title, "
             "publisher, year). Examples — an author-year citation, with the long entry "
             "truncated: '(Appenzeller, Bornstein, and Casado, 2023) → Reference: "
-            "\"Appenzeller, Guido, Matt Bornstein, and Martin Casado, “Navigating the "
-            "High Cost of AI Compute,” Andreessen Horowitz, April 27, 2023 [...]\" → "
+            '"Appenzeller, Guido, Matt Bornstein, and Martin Casado, “Navigating the '
+            'High Cost of AI Compute,” Andreessen Horowitz, April 27, 2023 [...]" → '
             "navigating_the_high_cost_of_ai_compute.md'; and a footnote marker, whose "
             "footnote entry is a jump of its own: '[^12] → Footnote 12: \"World Bank "
-            "Group, “World Bank Open Data,” 2024\" → Reference: \"World Bank Group, "
+            'Group, “World Bank Open Data,” 2024" → Reference: "World Bank Group, '
             "“World Bank Open Data,” webpage, undated. As of October 15, 2024: "
             "https://data.worldbank.org/\" → world_bank_open_data.md'. "
             "Do not include file_id UUIDs in this string; the file_id belongs in each "
@@ -221,7 +221,9 @@ class CitationValidatorAgent(LangChainAgent):
         return structured, result["messages"]
 
     @staticmethod
-    def _salvage(error: StructuredOutputError) -> Optional[PartialSectionValidationError]:
+    def _salvage(
+        error: StructuredOutputError,
+    ) -> Optional[PartialSectionValidationError]:
         """Recover the assessments a truncated response had already completed.
 
         LangChain raises before the agent returns, so the only record of the

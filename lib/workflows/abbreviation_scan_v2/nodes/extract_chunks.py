@@ -63,7 +63,9 @@ async def extract_chunk_node(state: dict, runtime: Runtime[ContextSchema]) -> di
     chunk = AbbreviationChunk.model_validate(state["chunk"])
     try:
         main_file = await runtime.context.file_artifacts_service.get_main_file()
-        result, messages = await AbbreviationChunkExtractorAgent(runtime.context).ainvoke(
+        result, messages = await AbbreviationChunkExtractorAgent(
+            runtime.context
+        ).ainvoke(
             {
                 "markdown": main_file.markdown,
                 "start_line": chunk.start_line,

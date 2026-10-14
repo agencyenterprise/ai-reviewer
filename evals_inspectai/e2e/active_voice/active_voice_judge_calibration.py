@@ -24,7 +24,16 @@ from pathlib import Path
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
 from inspect_ai.model import get_model
-from inspect_ai.scorer import Metric, SampleScore, Score, Scorer, Target, accuracy, metric, scorer
+from inspect_ai.scorer import (
+    Metric,
+    SampleScore,
+    Score,
+    Scorer,
+    Target,
+    accuracy,
+    metric,
+    scorer,
+)
 from inspect_ai.solver import Generate, Solver, TaskState, solver
 
 from evals_inspectai.common.loaders import yaml_dataset
@@ -67,8 +76,14 @@ def true_positive_rate() -> Metric:
     """Of the pairs the reviewer passed, the share the judge also passed."""
 
     def compute(scores: list[SampleScore]) -> float:
-        positives = [s for s in scores if (s.score.metadata or {}).get("label") == "pass"]
-        return sum(s.score.as_float() for s in positives) / len(positives) if positives else float("nan")
+        positives = [
+            s for s in scores if (s.score.metadata or {}).get("label") == "pass"
+        ]
+        return (
+            sum(s.score.as_float() for s in positives) / len(positives)
+            if positives
+            else float("nan")
+        )
 
     return compute
 
@@ -78,8 +93,14 @@ def true_negative_rate() -> Metric:
     """Of the pairs the reviewer failed, the share the judge also failed."""
 
     def compute(scores: list[SampleScore]) -> float:
-        negatives = [s for s in scores if (s.score.metadata or {}).get("label") == "fail"]
-        return sum(s.score.as_float() for s in negatives) / len(negatives) if negatives else float("nan")
+        negatives = [
+            s for s in scores if (s.score.metadata or {}).get("label") == "fail"
+        ]
+        return (
+            sum(s.score.as_float() for s in negatives) / len(negatives)
+            if negatives
+            else float("nan")
+        )
 
     return compute
 
@@ -89,7 +110,12 @@ def _judge_agreement(name: str, criterion: str, calls: int) -> Scorer:
         grader = get_model(role="grader", default=DEFAULT_GRADER_MODEL)
         value, why = await grade(
             grader,
-            edit_prompt(criterion, state.metadata["paragraph"], state.input_text, state.output.completion),
+            edit_prompt(
+                criterion,
+                state.metadata["paragraph"],
+                state.input_text,
+                state.output.completion,
+            ),
             calls,
         )
         label = state.metadata["labels"][name]
@@ -115,10 +141,20 @@ def reads_agreement(calls: int = 1) -> Scorer:
 
 
 @task
-def active_voice_judge_calibration(calls: int = 1, purpose_rewrites: bool = False) -> Task:
+def active_voice_judge_calibration(
+    calls: int = 1, purpose_rewrites: bool = False
+) -> Task:
     return Task(
-        dataset=yaml_dataset(PURPOSE_PAIRS if purpose_rewrites else PAIRS, _record_to_sample),
-        metadata={"label_source": "rubric-derived regression cases" if purpose_rewrites else "human-labelled pairs"},
+        dataset=yaml_dataset(
+            PURPOSE_PAIRS if purpose_rewrites else PAIRS, _record_to_sample
+        ),
+        metadata={
+            "label_source": (
+                "rubric-derived regression cases"
+                if purpose_rewrites
+                else "human-labelled pairs"
+            )
+        },
         solver=replacement_as_output(),
         scorer=[meaning_agreement(calls), reads_agreement(calls)],
     )

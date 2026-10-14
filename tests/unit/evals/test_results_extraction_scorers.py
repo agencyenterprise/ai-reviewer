@@ -42,8 +42,18 @@ class TestMatchExpected:
             _issue("Result: beta only (Fully Reproducible)"),
         ]
         expected = [
-            {"id": "wide", "match": ["beta"], "class": "fully_reproducible", "importance": "central"},
-            {"id": "narrow", "match": ["alpha"], "class": "fully_reproducible", "importance": "central"},
+            {
+                "id": "wide",
+                "match": ["beta"],
+                "class": "fully_reproducible",
+                "importance": "central",
+            },
+            {
+                "id": "narrow",
+                "match": ["alpha"],
+                "class": "fully_reproducible",
+                "importance": "central",
+            },
         ]
         matched = match_expected(issues, expected)
         assert set(matched) == {"wide", "narrow"}
@@ -53,11 +63,19 @@ class TestMatchExpected:
     def test_a_title_hit_outranks_a_body_hit(self):
         """An anchor in the title binds before the same anchor in prose."""
         issues = [
-            _issue("Result: something else (Not Reproducible)", "mentions Table 1 in passing"),
+            _issue(
+                "Result: something else (Not Reproducible)",
+                "mentions Table 1 in passing",
+            ),
             _issue("Result: Table 1 summary (Not Reproducible)"),
         ]
         expected = [
-            {"id": "tab1", "match": ["table 1"], "class": "not_reproducible", "importance": "central"},
+            {
+                "id": "tab1",
+                "match": ["table 1"],
+                "class": "not_reproducible",
+                "importance": "central",
+            },
         ]
         assert match_expected(issues, expected) == {"tab1": 1}
 
@@ -71,12 +89,27 @@ class TestMatchExpected:
         title hit and `beta` stays unmatched.
         """
         issues = [
-            _issue("Result: alpha measurement (Not Reproducible)", "compared against beta"),
-            _issue("Result: something unrelated (Not Reproducible)", "mentions alpha in passing"),
+            _issue(
+                "Result: alpha measurement (Not Reproducible)", "compared against beta"
+            ),
+            _issue(
+                "Result: something unrelated (Not Reproducible)",
+                "mentions alpha in passing",
+            ),
         ]
         expected = [
-            {"id": "alpha", "match": ["alpha"], "class": "not_reproducible", "importance": "central"},
-            {"id": "beta", "match": ["beta"], "class": "not_reproducible", "importance": "central"},
+            {
+                "id": "alpha",
+                "match": ["alpha"],
+                "class": "not_reproducible",
+                "importance": "central",
+            },
+            {
+                "id": "beta",
+                "match": ["beta"],
+                "class": "not_reproducible",
+                "importance": "central",
+            },
         ]
         matched = match_expected(issues, expected)
         assert matched == {"alpha": 0}, matched
@@ -85,8 +118,18 @@ class TestMatchExpected:
         """One-to-one is what makes merging visible."""
         issues = [_issue("Result: alpha and beta together (Not Reproducible)")]
         expected = [
-            {"id": "a", "match": ["alpha"], "class": "not_reproducible", "importance": "central"},
-            {"id": "b", "match": ["beta"], "class": "not_reproducible", "importance": "central"},
+            {
+                "id": "a",
+                "match": ["alpha"],
+                "class": "not_reproducible",
+                "importance": "central",
+            },
+            {
+                "id": "b",
+                "match": ["beta"],
+                "class": "not_reproducible",
+                "importance": "central",
+            },
         ]
         assert len(match_expected(issues, expected)) == 1
 
@@ -101,7 +144,8 @@ class TestTableRowCount:
         """A copied data table must not stand in for a truncated inventory."""
         report = (
             "## Data copied from the document\n\n"
-            "| # | Value |\n|---|---|\n" + "".join(f"| {i} | {i * 2} |\n" for i in range(10))
+            "| # | Value |\n|---|---|\n"
+            + "".join(f"| {i} | {i * 2} |\n" for i in range(10))
             + "\n## Inventory\n\n"
             "| Title | Location | Reproducibility |\n|---|---|---|\n"
             "| A | Figure 1 | Not Reproducible |\n"
@@ -123,7 +167,12 @@ class TestLineRanges:
         )
         meta = {
             "expected_results": [
-                {"id": "a", "match": ["alpha"], "class": "not_reproducible", "importance": "central"}
+                {
+                    "id": "a",
+                    "match": ["alpha"],
+                    "class": "not_reproducible",
+                    "importance": "central",
+                }
             ]
         }
         return inventory_check_results(result, meta, document_lines)
@@ -147,7 +196,16 @@ class TestLineRanges:
             issues=[duplicate, duplicate.model_copy()],
             report_markdown="x" * 500,
         )
-        meta = {"expected_results": [{"id": "a", "match": ["alpha"], "class": "not_reproducible", "importance": "central"}]}
+        meta = {
+            "expected_results": [
+                {
+                    "id": "a",
+                    "match": ["alpha"],
+                    "class": "not_reproducible",
+                    "importance": "central",
+                }
+            ]
+        }
         ok, detail = inventory_check_results(result, meta, 100)["no_duplicates"]
         assert not ok
         assert "2 times" in detail

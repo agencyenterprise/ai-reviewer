@@ -17,13 +17,19 @@ LINES = ["NATO, EU, OSCE, AI, LLMs, UN, FDA, Dr. and cm; NATO again"] * 40
 LINES[19] = "## A heading with NATO"  # line 20
 LINES[24] = "## Introduction"  # line 25
 LINES[26] = "Spending on R&amp;D rose."  # line 27
-LINES[27] = "Samples tested positive for Escherichia coli; a modified E. coli strain followed."  # line 28
+LINES[27] = (
+    "Samples tested positive for Escherichia coli; a modified E. coli strain followed."  # line 28
+)
 LINES[28] = "OpenAI released a new MAIN model."  # line 29: "AI" only inside other words
-LINES[29] = "The AI team at OpenAI met; the U.S. and US teams, a Ph.D. and a PhD, cost $9.6B."  # line 30
+LINES[29] = (
+    "The AI team at OpenAI met; the U.S. and US teams, a Ph.D. and a PhD, cost $9.6B."  # line 30
+)
 
 
 def _occ(abbr: str, line: int, inline_definition: str = "") -> ChunkOccurrence:
-    return ChunkOccurrence(abbr=abbr, inline_definition=inline_definition, line_start=line, line_end=line)
+    return ChunkOccurrence(
+        abbr=abbr, inline_definition=inline_definition, line_start=line, line_end=line
+    )
 
 
 def _chunk(
@@ -52,7 +58,15 @@ def test_occurrence_numbers_are_counted_across_chunks_in_document_order():
             # Out of order on purpose: the reducer sorts, but the catalogue
             # must not depend on it.
             _chunk(1, 11, 19, [_occ("NATO", 12), _occ("EU", 15)]),
-            _chunk(0, 1, 10, [_occ("NATO", 3, "North Atlantic Treaty Organization"), _occ("NATO", 7)]),
+            _chunk(
+                0,
+                1,
+                10,
+                [
+                    _occ("NATO", 3, "North Atlantic Treaty Organization"),
+                    _occ("NATO", 7),
+                ],
+            ),
         ]
     )
     assert [(i.abbr, i.line_start, i.occurrence_number) for i in catalogue] == [
@@ -65,8 +79,14 @@ def test_occurrence_numbers_are_counted_across_chunks_in_document_order():
 
 
 def test_same_line_occurrences_keep_reading_order():
-    catalogue = _assemble([_chunk(0, 1, 10, [_occ("NATO", 5), _occ("OSCE", 5), _occ("NATO", 5)])])
-    assert [(i.abbr, i.occurrence_number) for i in catalogue] == [("NATO", 1), ("OSCE", 1), ("NATO", 2)]
+    catalogue = _assemble(
+        [_chunk(0, 1, 10, [_occ("NATO", 5), _occ("OSCE", 5), _occ("NATO", 5)])]
+    )
+    assert [(i.abbr, i.occurrence_number) for i in catalogue] == [
+        ("NATO", 1),
+        ("OSCE", 1),
+        ("NATO", 2),
+    ]
 
 
 def test_section_definitions_are_attached_including_plural_listings():
@@ -74,7 +94,9 @@ def test_section_definitions_are_attached_including_plural_listings():
         AbbreviationSectionEntry(abbr="AI", definition="Artificial Intelligence"),
         AbbreviationSectionEntry(abbr="LLMs", definition="Large Language Models"),
     ]
-    catalogue = _assemble([_chunk(0, 1, 10, [_occ("AI", 2), _occ("LLM", 3), _occ("EU", 4)])], entries)
+    catalogue = _assemble(
+        [_chunk(0, 1, 10, [_occ("AI", 2), _occ("LLM", 3), _occ("EU", 4)])], entries
+    )
     assert [i.abbreviations_section_definition for i in catalogue] == [
         "Artificial Intelligence",
         "Large Language Models",
@@ -89,7 +111,10 @@ def test_plural_is_folded_onto_a_singular_recorded_elsewhere():
             _chunk(1, 11, 19, [_occ("LLMs", 12)]),
         ]
     )
-    assert [(i.abbr, i.occurrence_number) for i in catalogue] == [("LLM", 1), ("LLM", 2)]
+    assert [(i.abbr, i.occurrence_number) for i in catalogue] == [
+        ("LLM", 1),
+        ("LLM", 2),
+    ]
 
 
 def test_failed_and_skipped_chunks_contribute_nothing_but_partial_ones_do():
@@ -105,8 +130,13 @@ def test_failed_and_skipped_chunks_contribute_nothing_but_partial_ones_do():
 
 def test_heading_occurrences_are_dropped():
     # The skill never records a heading's abbreviations; the agent sometimes does.
-    catalogue = _assemble([_chunk(0, 11, 21, [_occ("NATO", 20), _occ("EU", 12), _occ("NATO", 21)])])
-    assert [(i.abbr, i.line_start, i.occurrence_number) for i in catalogue] == [("EU", 12, 1), ("NATO", 21, 1)]
+    catalogue = _assemble(
+        [_chunk(0, 11, 21, [_occ("NATO", 20), _occ("EU", 12), _occ("NATO", 21)])]
+    )
+    assert [(i.abbr, i.line_start, i.occurrence_number) for i in catalogue] == [
+        ("EU", 12, 1),
+        ("NATO", 21, 1),
+    ]
     assert not any(i.ignored for i in catalogue)
 
 
@@ -127,12 +157,22 @@ def test_occurrences_outside_the_chunk_and_blank_abbrs_are_dropped():
             _chunk(1, 11, 19, [_occ("AI", 12)]),
         ]
     )
-    assert [(i.abbr, i.line_start, i.occurrence_number) for i in catalogue] == [("EU", 4, 1), ("AI", 12, 1)]
+    assert [(i.abbr, i.line_start, i.occurrence_number) for i in catalogue] == [
+        ("EU", 4, 1),
+        ("AI", 12, 1),
+    ]
 
 
 def test_occurrences_not_on_their_reported_lines_are_dropped():
     catalogue = _assemble(
-        [_chunk(0, 20, 30, [_occ("NATO", 21), _occ("ML", 25), _occ("Ph.D.", 26), _occ("R&D", 27)])]
+        [
+            _chunk(
+                0,
+                20,
+                30,
+                [_occ("NATO", 21), _occ("ML", 25), _occ("Ph.D.", 26), _occ("R&D", 27)],
+            )
+        ]
     )
     assert [i.abbr for i in catalogue] == ["NATO", "R&D"]
 
@@ -141,9 +181,25 @@ def test_entries_beyond_the_times_an_abbreviation_appears_on_the_line_are_droppe
     # Line 28 spells out "Escherichia coli" once and uses "E. coli" once; line 5
     # uses NATO twice, so both of its NATO entries stay.
     catalogue = _assemble(
-        [_chunk(0, 1, 30, [_occ("NATO", 5), _occ("NATO", 5), _occ("E. coli", 28), _occ("E. coli", 28)])]
+        [
+            _chunk(
+                0,
+                1,
+                30,
+                [
+                    _occ("NATO", 5),
+                    _occ("NATO", 5),
+                    _occ("E. coli", 28),
+                    _occ("E. coli", 28),
+                ],
+            )
+        ]
     )
-    assert [(i.abbr, i.line_start) for i in catalogue] == [("NATO", 5), ("NATO", 5), ("E. coli", 28)]
+    assert [(i.abbr, i.line_start) for i in catalogue] == [
+        ("NATO", 5),
+        ("NATO", 5),
+        ("E. coli", 28),
+    ]
 
 
 def test_an_abbreviation_inside_another_word_does_not_count_as_on_the_line():
@@ -168,8 +224,10 @@ def test_token_matching_still_accepts_punctuation_plural_and_magnitude_variants(
                 1,
                 30,
                 [
-                    _occ("U.S.", 30), _occ("US", 30),  # "U.S." and "US" both match either spelling
-                    _occ("PhD", 30), _occ("Ph.D.", 30),
+                    _occ("U.S.", 30),
+                    _occ("US", 30),  # "U.S." and "US" both match either spelling
+                    _occ("PhD", 30),
+                    _occ("Ph.D.", 30),
                     _occ("B", 30),  # the magnitude suffix in "$9.6B"
                     _occ("LLM", 5),  # plural "LLMs" on line 5
                 ],

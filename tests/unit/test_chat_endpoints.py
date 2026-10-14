@@ -71,7 +71,9 @@ class TestGuard:
         assert client.get("/api/chat/skills").status_code == 401
         assert client.get(f"/api/chat/threads/{THREAD_ID}/messages").status_code == 401
         assert (
-            client.post(f"/api/chat/threads/{THREAD_ID}/stream", json={"message": "hi"}).status_code
+            client.post(
+                f"/api/chat/threads/{THREAD_ID}/stream", json={"message": "hi"}
+            ).status_code
             == 401
         )
 
@@ -79,7 +81,9 @@ class TestGuard:
 class TestCatalogues:
     def test_models_come_from_the_allowlist_with_one_default(self) -> None:
         rows = _client().get("/api/chat/models").json()
-        assert [row["id"] for row in rows] == [o.id for o in chat_agent_module.CHAT_MODELS]
+        assert [row["id"] for row in rows] == [
+            o.id for o in chat_agent_module.CHAT_MODELS
+        ]
         assert [row["is_default"] for row in rows].count(True) == 1
         assert rows[0]["id"] == chat_agent_module.DEFAULT_CHAT_MODEL.name
 
@@ -93,7 +97,12 @@ class TestCatalogues:
 class TestStream:
     EVENTS: list[dict[str, Any]] = [
         {"t": "reasoning", "v": "hm"},
-        {"t": "tool", "id": "c1", "name": "read_file", "args": {"file_path": "/attachments/a.md"}},
+        {
+            "t": "tool",
+            "id": "c1",
+            "name": "read_file",
+            "args": {"file_path": "/attachments/a.md"},
+        },
         {"t": "tool_result", "id": "c1", "result": "text"},
         {"t": "text", "v": "Done."},
     ]
@@ -101,7 +110,11 @@ class TestStream:
     def test_a_turn_streams_the_agent_events(self) -> None:
         calls: list[dict[str, Any]] = []
         with (
-            patch.object(chat.chat_thread_service, "touch_thread", AsyncMock(return_value=_thread())) as touch,
+            patch.object(
+                chat.chat_thread_service,
+                "touch_thread",
+                AsyncMock(return_value=_thread()),
+            ) as touch,
             patch.object(chat, "run_chat_turn", _turn(self.EVENTS, calls)),
         ):
             response = _client().post(
@@ -136,7 +149,11 @@ class TestStream:
     def test_an_unknown_model_falls_back_to_the_default(self) -> None:
         calls: list[dict[str, Any]] = []
         with (
-            patch.object(chat.chat_thread_service, "touch_thread", AsyncMock(return_value=_thread())),
+            patch.object(
+                chat.chat_thread_service,
+                "touch_thread",
+                AsyncMock(return_value=_thread()),
+            ),
             patch.object(chat, "run_chat_turn", _turn([], calls)),
         ):
             _client().post(
@@ -146,7 +163,9 @@ class TestStream:
         assert calls[0]["model"] == chat_agent_module.DEFAULT_CHAT_MODEL
 
     def test_an_empty_turn_is_rejected_before_touching_anything(self) -> None:
-        with patch.object(chat.chat_thread_service, "touch_thread", AsyncMock()) as touch:
+        with patch.object(
+            chat.chat_thread_service, "touch_thread", AsyncMock()
+        ) as touch:
             response = _client().post(
                 f"/api/chat/threads/{THREAD_ID}/stream", json={"message": "   "}
             )
@@ -156,7 +175,11 @@ class TestStream:
     def test_an_attachment_alone_is_a_valid_turn(self) -> None:
         calls: list[dict[str, Any]] = []
         with (
-            patch.object(chat.chat_thread_service, "touch_thread", AsyncMock(return_value=_thread())),
+            patch.object(
+                chat.chat_thread_service,
+                "touch_thread",
+                AsyncMock(return_value=_thread()),
+            ),
             patch.object(chat, "run_chat_turn", _turn([], calls)),
         ):
             response = _client().post(
@@ -171,7 +194,11 @@ class TestStream:
             raise RuntimeError("rate limited")
 
         with (
-            patch.object(chat.chat_thread_service, "touch_thread", AsyncMock(return_value=_thread())),
+            patch.object(
+                chat.chat_thread_service,
+                "touch_thread",
+                AsyncMock(return_value=_thread()),
+            ),
             patch.object(chat, "run_chat_turn", failing),
         ):
             response = _client().post(
@@ -184,46 +211,95 @@ class TestStream:
 class TestHistory:
     def test_messages_come_from_the_checkpointer_in_ui_shape(self) -> None:
         stored = [
-            HumanMessage(content="hi\n\n[Attached ...]", id="h1", additional_kwargs={"user_text": "hi", "attachments": []}),
+            HumanMessage(
+                content="hi\n\n[Attached ...]",
+                id="h1",
+                additional_kwargs={"user_text": "hi", "attachments": []},
+            ),
             AIMessage(content=[{"type": "text", "text": "hello"}], id="a1"),
         ]
         with (
-            patch.object(chat.chat_thread_service, "get_thread", AsyncMock(return_value=_thread())),
-            patch.object(chat, "load_thread_messages", AsyncMock(return_value=stored)) as load,
+            patch.object(
+                chat.chat_thread_service,
+                "get_thread",
+                AsyncMock(return_value=_thread()),
+            ),
+            patch.object(
+                chat, "load_thread_messages", AsyncMock(return_value=stored)
+            ) as load,
         ):
             response = _client().get(f"/api/chat/threads/{THREAD_ID}/messages")
 
         assert response.status_code == 200
         assert response.json() == [
-            {"id": "h1", "type": "human", "content": "hi", "additional_kwargs": {"attachments": []}},
-            {"id": "a1", "type": "ai", "content": [{"type": "text", "text": "hello"}], "tool_calls": []},
+            {
+                "id": "h1",
+                "type": "human",
+                "content": "hi",
+                "additional_kwargs": {"attachments": []},
+            },
+            {
+                "id": "a1",
+                "type": "ai",
+                "content": [{"type": "text", "text": "hello"}],
+                "tool_calls": [],
+            },
         ]
         load.assert_awaited_once_with(str(THREAD_ID))
 
     def test_only_attachments_are_served(self) -> None:
         """The same filesystem holds the mounted skills; those are not the page's to read."""
         with (
-            patch.object(chat.chat_thread_service, "get_thread", AsyncMock(return_value=_thread())),
-            patch.object(chat, "read_thread_file", AsyncMock(return_value="secret")) as read,
+            patch.object(
+                chat.chat_thread_service,
+                "get_thread",
+                AsyncMock(return_value=_thread()),
+            ),
+            patch.object(
+                chat, "read_thread_file", AsyncMock(return_value="secret")
+            ) as read,
         ):
-            for path in ("/skills/issues/SKILL.md", "/report.md", "attachments/a.md", "/attachmentsX/a.md"):
-                assert _client().get(f"/api/chat/threads/{THREAD_ID}/files", params={"path": path}).status_code == 404
+            for path in (
+                "/skills/issues/SKILL.md",
+                "/report.md",
+                "attachments/a.md",
+                "/attachmentsX/a.md",
+            ):
+                assert (
+                    _client()
+                    .get(f"/api/chat/threads/{THREAD_ID}/files", params={"path": path})
+                    .status_code
+                    == 404
+                )
         read.assert_not_awaited()
 
     def test_a_thread_file_is_served_or_404(self) -> None:
         with (
-            patch.object(chat.chat_thread_service, "get_thread", AsyncMock(return_value=_thread())),
-            patch.object(chat, "read_thread_file", AsyncMock(side_effect=["one\ntwo", None])),
+            patch.object(
+                chat.chat_thread_service,
+                "get_thread",
+                AsyncMock(return_value=_thread()),
+            ),
+            patch.object(
+                chat, "read_thread_file", AsyncMock(side_effect=["one\ntwo", None])
+            ),
         ):
-            found = _client().get(f"/api/chat/threads/{THREAD_ID}/files", params={"path": "/attachments/a.md"})
-            missing = _client().get(f"/api/chat/threads/{THREAD_ID}/files", params={"path": "/nope"})
+            found = _client().get(
+                f"/api/chat/threads/{THREAD_ID}/files",
+                params={"path": "/attachments/a.md"},
+            )
+            missing = _client().get(
+                f"/api/chat/threads/{THREAD_ID}/files", params={"path": "/nope"}
+            )
         assert found.status_code == 200
         assert found.json() == {"path": "/attachments/a.md", "content": "one\ntwo"}
         assert missing.status_code == 404
 
     def test_deleting_a_thread_deletes_its_checkpoints(self) -> None:
         with (
-            patch.object(chat.chat_thread_service, "delete_thread", AsyncMock()) as delete_row,
+            patch.object(
+                chat.chat_thread_service, "delete_thread", AsyncMock()
+            ) as delete_row,
             patch.object(chat, "delete_thread_state", AsyncMock()) as delete_state,
         ):
             response = _client().delete(f"/api/chat/threads/{THREAD_ID}")
@@ -235,8 +311,14 @@ class TestHistory:
 class TestTitle:
     def test_the_generated_title_is_stored_on_the_thread(self) -> None:
         with (
-            patch.object(chat.chat_thread_service, "get_thread", AsyncMock(return_value=_thread())),
-            patch.object(chat, "generate_title", AsyncMock(return_value="Citation check")),
+            patch.object(
+                chat.chat_thread_service,
+                "get_thread",
+                AsyncMock(return_value=_thread()),
+            ),
+            patch.object(
+                chat, "generate_title", AsyncMock(return_value="Citation check")
+            ),
             patch.object(
                 chat.chat_thread_service,
                 "rename_thread",
@@ -251,13 +333,18 @@ class TestTitle:
         assert response.json()["title"] == "Citation check"
         assert rename.call_args.kwargs["title"] == "Citation check"
 
-
     def test_a_titled_thread_keeps_its_title(self) -> None:
         """assistant-ui can ask twice around the first run; the second ask is a no-op."""
         with (
-            patch.object(chat.chat_thread_service, "get_thread", AsyncMock(return_value=_thread(title="Kept"))),
+            patch.object(
+                chat.chat_thread_service,
+                "get_thread",
+                AsyncMock(return_value=_thread(title="Kept")),
+            ),
             patch.object(chat, "generate_title", AsyncMock()) as generate,
-            patch.object(chat.chat_thread_service, "rename_thread", AsyncMock()) as rename,
+            patch.object(
+                chat.chat_thread_service, "rename_thread", AsyncMock()
+            ) as rename,
         ):
             response = _client().post(
                 f"/api/chat/threads/{THREAD_ID}/title",
@@ -284,7 +371,9 @@ class TestExtract:
         assert "The effect was small." in response.json()["text"]
 
     def test_other_types_are_refused(self) -> None:
-        response = _client().post("/api/chat/extract", files={"file": ("notes.txt", b"hello")})
+        response = _client().post(
+            "/api/chat/extract", files={"file": ("notes.txt", b"hello")}
+        )
         assert response.status_code == 415
 
     def test_an_empty_document_is_reported(self) -> None:

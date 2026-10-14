@@ -13,7 +13,10 @@ require a findable citation in the right date window.
 """
 
 from evals_inspectai.common.issue_judge import JudgeCriterion
-from evals_inspectai.common.source_citations import SOURCE_DESCRIPTIONS, window_description
+from evals_inspectai.common.source_citations import (
+    SOURCE_DESCRIPTIONS,
+    window_description,
+)
 
 SOURCE_CRITERION = (
     "The reviewer recommended a source for a claim in a document, and the labeller has described the "
@@ -33,14 +36,26 @@ ACTION_CRITERION = (
     "The reviewer recommended a source for a claim in a document, and the passage the claim sits in is shown. "
     "Grade whether the suggested action tells the author concretely what to do at this claim: add the citation "
     "at this sentence, cite an existing reference here, or revise or qualify the claim in a stated way because of "
-    "what the source shows. Generic advice (\"consider the literature\", \"add more references\") is incorrect. "
+    'what the source shows. Generic advice ("consider the literature", "add more references") is incorrect. '
     "An action asking the author to cite a supporting source for a claim the passage makes more strongly than "
     "that source supports, without qualifying the claim, is partially correct."
 )
 
 JUDGE_CRITERIA = [
-    JudgeCriterion(key="source_bears_on_claim", criterion=SOURCE_CRITERION, scope="expected", passage="section", reads="analysis", reference=True),
-    JudgeCriterion(key="action_fits", criterion=ACTION_CRITERION, scope="expected", passage="section"),
+    JudgeCriterion(
+        key="source_bears_on_claim",
+        criterion=SOURCE_CRITERION,
+        scope="expected",
+        passage="section",
+        reads="analysis",
+        reference=True,
+    ),
+    JudgeCriterion(
+        key="action_fits",
+        criterion=ACTION_CRITERION,
+        scope="expected",
+        passage="section",
+    ),
 ]
 
 JUDGE_DESCRIPTIONS = {

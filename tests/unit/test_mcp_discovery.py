@@ -23,11 +23,18 @@ async def _metadata(request: Request) -> Response:
 
 @pytest.mark.parametrize(
     "endpoint",
-    [_metadata, CORSMiddleware(Starlette(routes=[Route("/{p:path}", _metadata)]), allow_origins=["*"])],
+    [
+        _metadata,
+        CORSMiddleware(
+            Starlette(routes=[Route("/{p:path}", _metadata)]), allow_origins=["*"]
+        ),
+    ],
     ids=["function", "asgi-app"],
 )
 def test_slash_alias_serves_the_same_document(endpoint: Callable[..., Any]) -> None:
-    routes = with_slash_resource_metadata([Route(PRM_PATH, endpoint=endpoint, methods=["GET"])])
+    routes = with_slash_resource_metadata(
+        [Route(PRM_PATH, endpoint=endpoint, methods=["GET"])]
+    )
     client = TestClient(Starlette(routes=routes))
 
     slashless = client.get(PRM_PATH)

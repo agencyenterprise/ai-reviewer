@@ -19,7 +19,10 @@ def test_dataset_is_well_formed():
         claimed = {e.line for e in record.expected_issues}
         lines = record.document.split("\n")
         for decoy in record.decoys:
-            assert next(n for n, line in enumerate(lines, 1) if decoy.anchor in line) not in claimed, decoy.anchor
+            assert (
+                next(n for n, line in enumerate(lines, 1) if decoy.anchor in line)
+                not in claimed
+            ), decoy.anchor
 
 
 def test_task_checks_sources_are_new_and_after_the_publication_date():

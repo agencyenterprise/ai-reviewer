@@ -20,7 +20,15 @@ import re
 import statistics
 from typing import Callable, Literal, Optional, Sequence
 
-from inspect_ai.model import ChatMessage, ChatMessageUser, Content, ContentImage, ContentText, Model, get_model
+from inspect_ai.model import (
+    ChatMessage,
+    ChatMessageUser,
+    Content,
+    ContentImage,
+    ContentText,
+    Model,
+    get_model,
+)
 from inspect_ai.scorer import Score, Scorer, Target, scorer
 from inspect_ai.scorer._model import (  # type: ignore[attr-defined]
     DEFAULT_GRADE_PATTERN,
@@ -68,9 +76,15 @@ EDIT_TEMPLATE = """You are grading one proposed edit to a sentence in a research
 # when ``reference`` asks for it, and the part of the issue the criterion reads.
 ISSUE_PREAMBLE = "You are grading one reviewer issue against one criterion."
 
-PASSAGE_LABELS = {"section": "Passage the issue is about", "document": "The full report"}
+PASSAGE_LABELS = {
+    "section": "Passage the issue is about",
+    "document": "The full report",
+}
 # What an issue-level criterion reads of the reported issue, and the label it is shown under.
-READS_LABELS = {"suggested_action": "Reviewer's suggested action", "analysis": "Reviewer's analysis"}
+READS_LABELS = {
+    "suggested_action": "Reviewer's suggested action",
+    "analysis": "Reviewer's analysis",
+}
 REFERENCE_LABEL = "Labeller's reference rationale"
 
 # CommonMark allows up to three leading spaces; four or more make a code block.
@@ -127,7 +141,11 @@ def grader_input(prompt: str) -> str | list[ChatMessage]:
 def gist(reasoning: str, width: int = 200) -> str:
     """The grader's conclusion, for a score note: the last line of its reasoning before
     the grade, since the step-by-step reasoning opens by restating the task."""
-    lines = [line.strip() for line in reasoning.splitlines() if line.strip() and not re.match(DEFAULT_GRADE_PATTERN, line.strip())]
+    lines = [
+        line.strip()
+        for line in reasoning.splitlines()
+        if line.strip() and not re.match(DEFAULT_GRADE_PATTERN, line.strip())
+    ]
     return (lines[-1] if lines else "")[:width]
 
 
@@ -135,7 +153,10 @@ async def grade(grader: Model, prompt: str, calls: int) -> tuple[float, str]:
     """The median grade over ``calls`` grader calls, plus the first reasoning."""
     request = grader_input(prompt)
     results = await asyncio.gather(*(grader.generate(request) for _ in range(calls)))
-    return statistics.median(parse_grade(r.completion) for r in results), results[0].completion.strip()
+    return (
+        statistics.median(parse_grade(r.completion) for r in results),
+        results[0].completion.strip(),
+    )
 
 
 def edit_prompt(criterion: str, paragraph: str, original: str, replacement: str) -> str:
@@ -170,9 +191,15 @@ def _heading_levels(lines: list[str]) -> list[int]:
         marker = _FENCE_RE.match(line)
         if marker is not None and fence is None:
             fence = marker.group(1)
-        elif marker is not None and fence is not None and _closes(fence, marker.group(1), marker.group(2)):
+        elif (
+            marker is not None
+            and fence is not None
+            and _closes(fence, marker.group(1), marker.group(2))
+        ):
             fence = None
-        heading = None if fence is not None or marker is not None else _HEADING_RE.match(line)
+        heading = (
+            None if fence is not None or marker is not None else _HEADING_RE.match(line)
+        )
         levels.append(len(heading.group(1)) if heading else 0)
     return levels
 
@@ -225,24 +252,36 @@ def _anchor_text(expected: ResolvedIssue) -> str:
 
 def _paragraph(expected: ResolvedIssue, document: str) -> str:
     # An expected issue without an anchor has no line, so no paragraph to show.
-    return _paragraph_text(document.split("\n"), expected.line) if expected.line is not None else ""
+    return (
+        _paragraph_text(document.split("\n"), expected.line)
+        if expected.line is not None
+        else ""
+    )
 
 
 def _read(criterion: JudgeCriterion, issue: IssueItem) -> str:
     """The part of the reported issue the criterion grades."""
     if criterion.reads == "analysis":
-        return "\n\n".join(part for part in (issue.description, issue.long_description or "") if part.strip())
+        return "\n\n".join(
+            part
+            for part in (issue.description, issue.long_description or "")
+            if part.strip()
+        )
     return issue.suggested_action or ""
 
 
-def expected_prompt(criterion: JudgeCriterion, expected: ResolvedIssue, issue: IssueItem, document: str) -> str:
+def expected_prompt(
+    criterion: JudgeCriterion, expected: ResolvedIssue, issue: IssueItem, document: str
+) -> str:
     """The grading prompt for an expected-scope criterion on one detected issue."""
     blocks: list[tuple[str, str]] = []
     if criterion.passage != "none":
         # An expected issue without an anchor has no line to open a section: it gets the document.
         line = expected.line if criterion.passage == "section" else None
         passage = section_text(document, line) if line is not None else document
-        blocks += [(PASSAGE_LABELS["section" if line is not None else "document"], passage)]
+        blocks += [
+            (PASSAGE_LABELS["section" if line is not None else "document"], passage)
+        ]
         blocks += [("Text the issue quotes or is anchored to", _anchor_text(expected))]
     else:
         blocks += [("Sentence the issue is about", _anchor_text(expected))]
@@ -281,7 +320,9 @@ async def judge_sample(
     values: dict[str, list[float]] = {c.key: [] for c in criteria}
     notes: list[str] = []
 
-    def record(criterion: JudgeCriterion, expected: ResolvedIssue, value: float, why: str) -> None:
+    def record(
+        criterion: JudgeCriterion, expected: ResolvedIssue, value: float, why: str
+    ) -> None:
         values[criterion.key].append(value)
         if value < 1.0:
             notes.append(f"{expected.id} {criterion.key} {value}: {gist(why)}")
@@ -293,10 +334,19 @@ async def judge_sample(
                 continue
             if criterion.scope == "edit":
                 for edit in edits_for(expected, issue):
-                    prompt = edit_prompt(criterion.criterion, paragraph, edit.original_text, edit.replacement_text)
+                    prompt = edit_prompt(
+                        criterion.criterion,
+                        paragraph,
+                        edit.original_text,
+                        edit.replacement_text,
+                    )
                     record(criterion, expected, *await grade(grader, prompt, calls))
             elif not _read(criterion, issue).strip():
-                what = "suggested action" if criterion.reads == "suggested_action" else "analysis"
+                what = (
+                    "suggested action"
+                    if criterion.reads == "suggested_action"
+                    else "analysis"
+                )
                 record(criterion, expected, 0.0, f"no {what} to judge")
             else:
                 prompt = expected_prompt(criterion, expected, issue, inventory.document)
@@ -310,7 +360,9 @@ async def judge_sample(
 
 @scorer(metrics=PER_KEY_METRICS)
 def judged_criteria(
-    criteria: Sequence[JudgeCriterion], calls: int = 1, results: Sequence[str] = DEFAULT_RESULTS
+    criteria: Sequence[JudgeCriterion],
+    calls: int = 1,
+    results: Sequence[str] = DEFAULT_RESULTS,
 ) -> Scorer:
     """A workflow's judged criteria, one focused grader call per item.
 
@@ -325,7 +377,9 @@ def judged_criteria(
         if error:
             return Score(value={c.key: 0.0 for c in criteria}, explanation=error)
         grader = get_model(role="grader", default=DEFAULT_GRADER_MODEL)
-        values, explanation = await judge_sample(grader, issues, inventory_from_state(state), criteria, calls=calls)
+        values, explanation = await judge_sample(
+            grader, issues, inventory_from_state(state), criteria, calls=calls
+        )
         return Score(value=values, explanation=explanation)
 
     return score

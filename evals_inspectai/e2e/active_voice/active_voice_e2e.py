@@ -37,7 +37,11 @@ from inspect_ai.scorer import Scorer, scorer
 
 from evals_inspectai.common.api_solver import api_workflow_agent
 from evals_inspectai.common.inventory_suite import InventorySuite
-from evals_inspectai.common.issue_checks import PER_KEY_METRICS, deterministic_scorer, extra_edit_scores
+from evals_inspectai.common.issue_checks import (
+    PER_KEY_METRICS,
+    deterministic_scorer,
+    extra_edit_scores,
+)
 from evals_inspectai.e2e.active_voice.criteria import (
     EXTRA_EDIT_CHECKS,
     EXTRA_EDIT_DESCRIPTIONS,
@@ -54,13 +58,20 @@ GROUND_TRUTH = (
 )
 # What each of this eval's own metrics checks, per scorer: stored as Task metadata so the
 # log viewer's Info tab explains the columns. Score explanations stay per sample.
-OWN_METRICS = {"active_voice_edit_checks": EXTRA_EDIT_DESCRIPTIONS, "judged_criteria": JUDGE_DESCRIPTIONS}
+OWN_METRICS = {
+    "active_voice_edit_checks": EXTRA_EDIT_DESCRIPTIONS,
+    "judged_criteria": JUDGE_DESCRIPTIONS,
+}
 
 
 @scorer(metrics=PER_KEY_METRICS)
 def active_voice_edit_checks() -> Scorer:
     """This workflow's own deterministic edit check: the passive is gone."""
-    return deterministic_scorer(lambda issues, inventory: extra_edit_scores(issues, inventory, EXTRA_EDIT_CHECKS))
+    return deterministic_scorer(
+        lambda issues, inventory: extra_edit_scores(
+            issues, inventory, EXTRA_EDIT_CHECKS
+        )
+    )
 
 
 @task
@@ -79,7 +90,11 @@ def active_voice_e2e(timeout_s: float = 1200, judge_calls: int = 1) -> Task:
         dataset=suite.dataset(),
         metadata=suite.metadata(GROUND_TRUTH, OWN_METRICS),
         solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s),
-        scorer=[*suite.scorers(), active_voice_edit_checks(), suite.judged(JUDGE_CRITERIA, calls=judge_calls)],
+        scorer=[
+            *suite.scorers(),
+            active_voice_edit_checks(),
+            suite.judged(JUDGE_CRITERIA, calls=judge_calls),
+        ],
         fail_on_error=0.2,
         viewer=suite.viewer(OWN_METRICS, SCORE_LABELS),
     )

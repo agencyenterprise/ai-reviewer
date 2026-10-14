@@ -43,8 +43,14 @@ def _minimal_emf() -> bytes:
         "<II4i4iIIIIHHIIIiiii",
         1,  # EMR_HEADER
         88,  # record size
-        0, 0, 99, 99,  # rclBounds (device units)
-        0, 0, 2646, 2646,  # rclFrame (0.01 mm)
+        0,
+        0,
+        99,
+        99,  # rclBounds (device units)
+        0,
+        0,
+        2646,
+        2646,  # rclFrame (0.01 mm)
         0x464D4520,  # " EMF" signature
         0x00010000,  # version
         108,  # total bytes
@@ -54,8 +60,10 @@ def _minimal_emf() -> bytes:
         0,  # description length
         0,  # description offset
         0,  # palette entries
-        1024, 768,  # device size in pixels
-        320, 240,  # device size in millimeters
+        1024,
+        768,  # device size in pixels
+        320,
+        240,  # device size in millimeters
     )
     eof = struct.pack("<IIIII", 14, 20, 0, 16, 20)  # EMR_EOF
     return header + eof

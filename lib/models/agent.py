@@ -115,7 +115,9 @@ class LangChainAgent(BaseAgent):
             # schema: it returned a nested object as a JSON string. Its native
             # structured output does. OpenAI's default already is that.
             if self.model.provider == "anthropic":
-                llm = llm.with_structured_output(self.output_schema, method="json_schema")
+                llm = llm.with_structured_output(
+                    self.output_schema, method="json_schema"
+                )
             else:
                 llm = llm.with_structured_output(self.output_schema)
 
@@ -126,4 +128,3 @@ class LangChainAgent(BaseAgent):
         if self._llm is None:
             self._llm = self.create_llm()
         return self._llm
-

@@ -15,7 +15,6 @@ from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.workflows.models import SeverityEnum
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -179,9 +178,9 @@ async def test_csv_row_values():
         description="The citation is incorrect.",
         long_description="Detailed explanation here.",
         severity=SeverityEnum.MEDIUM,
-            workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
-            status=IssueStatus.ACTIVE,
-            chunk_indices=[1, 3],
+        workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
+        status=IssueStatus.ACTIVE,
+        chunk_indices=[1, 3],
     )
     feedback = _make_feedback(
         feedback_type=FeedbackType.THUMBS_DOWN,
@@ -326,7 +325,9 @@ async def test_csv_response_headers():
         response = await export_admin_feedbacks_csv(workflow_type=None)
 
     assert response.media_type == "text/csv"
-    assert response.headers["content-disposition"] == "attachment; filename=feedbacks.csv"
+    assert (
+        response.headers["content-disposition"] == "attachment; filename=feedbacks.csv"
+    )
 
 
 # ---------------------------------------------------------------------------

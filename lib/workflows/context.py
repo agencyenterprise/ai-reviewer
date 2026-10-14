@@ -5,7 +5,9 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from lib.config.llm_models import LLMModel
-from lib.services.file_artifacts_service.file_artifacts_service_type import FileArtifactsServiceType
+from lib.services.file_artifacts_service.file_artifacts_service_type import (
+    FileArtifactsServiceType,
+)
 from lib.services.vector_store import VectorStoreService
 
 

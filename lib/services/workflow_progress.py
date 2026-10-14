@@ -232,7 +232,10 @@ async def cancel_workflow_progress(
     async with get_async_db_session() as session:
         stmt = (
             select(WorkflowProgress)
-            .join(WorkflowRun, col(WorkflowProgress.workflow_run_id) == col(WorkflowRun.id))
+            .join(
+                WorkflowRun,
+                col(WorkflowProgress.workflow_run_id) == col(WorkflowRun.id),
+            )
             .where(
                 col(WorkflowRun.project_id) == project_id,
                 col(WorkflowRun.type) == workflow_type,

@@ -28,7 +28,9 @@ def minimal_change(edit: ProposedEdit) -> Optional[bool]:
     variant and its immediate neighbours, nothing else. None for a deletion."""
     if not edit.replacement_text.strip():
         return None
-    return _changed_words(edit.original_text, edit.replacement_text) <= MAX_CHANGED_WORDS
+    return (
+        _changed_words(edit.original_text, edit.replacement_text) <= MAX_CHANGED_WORDS
+    )
 
 
 EXTRA_EDIT_CHECKS = {"minimal_change": minimal_change}
@@ -45,8 +47,8 @@ MEANING_CRITERION = (
     "another the document uses for the same thing (participants for respondents), one spelling or hyphenation "
     "for another (healthcare for health care, next-generation for next generation), a number style (7 percent "
     "for 7%), a finding's verb tense, a verb moved to the tense its own sentence calls for (has added to added "
-    "after \"In 2023\", completed to have completed after \"Since 2021\"), or the house-style compound "
-    "\"decisionmaking\" (one word, no hyphen, a deliberate style rather than a misspelling) are all the intended "
+    'after "In 2023", completed to have completed after "Since 2021"), or the house-style compound '
+    '"decisionmaking" (one word, no hyphen, a deliberate style rather than a misspelling) are all the intended '
     "change. Judge only that nothing beyond "
     "the variant moved: every claim, qualifier, number, date, citation and footnote marker survives, no other "
     "wording is altered, and the sentence still refers to the same thing. It is incorrect if the edit rewrites "
@@ -58,6 +60,13 @@ JUDGE_DESCRIPTIONS = {
     "edit_meaning_preserved": "Graded per edit: only the inconsistent variant changed, to the consistent form, with the sentence's meaning intact (C=1, P=0.5, I=0).",
 }
 
-JUDGE_CRITERIA = [JudgeCriterion(key="edit_meaning_preserved", criterion=MEANING_CRITERION, scope="edit")]
+JUDGE_CRITERIA = [
+    JudgeCriterion(
+        key="edit_meaning_preserved", criterion=MEANING_CRITERION, scope="edit"
+    )
+]
 
-SCORE_LABELS = {"edit_minimal_change": "Minimal change", "edit_meaning_preserved": "Meaning"}
+SCORE_LABELS = {
+    "edit_minimal_change": "Minimal change",
+    "edit_meaning_preserved": "Meaning",
+}

@@ -222,6 +222,7 @@ class TestContextvarManagement:
         token = current_progress_id.set(sentinel)
 
         try:
+
             @register_node("Test Node")
             async def test_node(state, runtime):
                 return {}
@@ -239,6 +240,7 @@ class TestContextvarManagement:
         token = current_progress_id.set(sentinel)
 
         try:
+
             @register_node("Test Node")
             async def failing_node(state, runtime):
                 raise RuntimeError("error")

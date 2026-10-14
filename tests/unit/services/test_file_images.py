@@ -119,7 +119,9 @@ async def test_stale_disk_file_of_replaced_row_is_removed():
     """A reconversion that produced different bytes must not strand the old
     files on disk — cleanup discovers disk files only through rows."""
     parent = _parent()
-    session = _FakeSession(previous_rows=[_previous_row("/uploads/extracted_images/old.png")])
+    session = _FakeSession(
+        previous_rows=[_previous_row("/uploads/extracted_images/old.png")]
+    )
 
     with (
         patch(f"{MODULE}.get_file_by_id", new=AsyncMock(return_value=parent)),
@@ -154,7 +156,9 @@ async def test_disk_file_reused_by_new_images_is_kept():
 @pytest.mark.asyncio
 async def test_disk_file_shared_with_another_row_is_kept():
     parent = _parent()
-    session = _FakeSession(previous_rows=[_previous_row("/uploads/extracted_images/shared.png")])
+    session = _FakeSession(
+        previous_rows=[_previous_row("/uploads/extracted_images/shared.png")]
+    )
 
     with (
         patch(f"{MODULE}.get_file_by_id", new=AsyncMock(return_value=parent)),
@@ -174,7 +178,9 @@ async def test_disk_cleanup_happens_only_after_commit():
     parent = _parent()
     events: list = []
 
-    session = _FakeSession(previous_rows=[_previous_row("/uploads/extracted_images/old.png")])
+    session = _FakeSession(
+        previous_rows=[_previous_row("/uploads/extracted_images/old.png")]
+    )
     original_commit = session.commit
 
     async def logging_commit():
@@ -200,7 +206,9 @@ async def test_disk_cleanup_happens_only_after_commit():
 @pytest.mark.asyncio
 async def test_no_disk_cleanup_when_commit_fails():
     parent = _parent()
-    session = _FakeSession(previous_rows=[_previous_row("/uploads/extracted_images/old.png")])
+    session = _FakeSession(
+        previous_rows=[_previous_row("/uploads/extracted_images/old.png")]
+    )
 
     async def failing_commit():
         raise RuntimeError("constraint violation")

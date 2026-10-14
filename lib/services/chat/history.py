@@ -90,7 +90,9 @@ def build_user_turn(
     for attachment in attachments:
         path = attachment_path(attachment.name, taken=files)
         files[path] = create_file_data(attachment.text)
-        listed.append({"name": attachment.name, "path": path, "chars": len(attachment.text)})
+        listed.append(
+            {"name": attachment.name, "path": path, "chars": len(attachment.text)}
+        )
         notes.append(
             f'[Attached document "{attachment.name}" is mounted at {path}. '
             "Read it with your file tools.]"
@@ -148,7 +150,10 @@ def _ai(message: AIMessage) -> list[UiMessage]:
             summary = _reasoning_text(block)
             if summary:
                 content.append(
-                    {"type": "reasoning", "summary": [{"type": "summary_text", "text": summary}]}
+                    {
+                        "type": "reasoning",
+                        "summary": [{"type": "summary_text", "text": summary}],
+                    }
                 )
         elif kind == "server_tool_call" and block.get("id"):
             tool_calls.append(
@@ -160,7 +165,9 @@ def _ai(message: AIMessage) -> list[UiMessage]:
             )
         elif kind == "server_tool_result" and block.get("tool_call_id"):
             call_id = block["tool_call_id"]
-            name = next((c["name"] for c in tool_calls if c["id"] == call_id), "web_search")
+            name = next(
+                (c["name"] for c in tool_calls if c["id"] == call_id), "web_search"
+            )
             status = block.get("status")
             results.append(
                 {
