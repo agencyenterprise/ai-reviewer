@@ -12,8 +12,6 @@ from lib.skill_workflow_spec import read_all_skill_workflow_declarations
 class WorkflowCancelledError(Exception):
     """Raised when a workflow has been cancelled. Propagates through LangGraph without being converted to a WorkflowError."""
 
-    pass
-
 
 class DependencyWaitTimeoutError(Exception):
     """Raised when wait_for_dependencies exceeds DEPENDENCY_WAIT_TIMEOUT.
@@ -22,8 +20,6 @@ class DependencyWaitTimeoutError(Exception):
     RUNNING). The dependent run should be marked FAILED with
     failure_reason=dependency_timeout.
     """
-
-    pass
 
 
 class WorkflowErrorSeverity(StrEnum):

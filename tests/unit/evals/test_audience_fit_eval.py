@@ -149,7 +149,7 @@ def test_overflow_passes_the_first_fifteen_plus_one_summary():
     paragraphs = technical_paragraphs(inventory)
     issues = [_single(e) for e in paragraphs[:CAP]] + [_summary(paragraphs[CAP:])]
     values, _ = overflow_scores(issues, inventory)
-    assert values == {key: 1.0 for key in OVERFLOW_KEYS}
+    assert values == dict.fromkeys(OVERFLOW_KEYS, 1.0)
 
 
 def test_overflow_fails_a_run_that_reports_every_paragraph_on_its_own():

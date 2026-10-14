@@ -52,30 +52,20 @@ def _ground_truth_checks(
             if not issues
             else f"document presents no results, but {len(issues)} were reported"
         )
-        return {
-            key: (verdict, note)
-            for key in (
-                "completeness",
-                "class_accuracy",
-                "no_extras",
-                "severity_ordering",
-            )
-        }
+        return dict.fromkeys(
+            ("completeness", "class_accuracy", "no_extras", "severity_ordering"),
+            (verdict, note),
+        )
     if not expected:
         # Every record is required to declare its inventory (`_load_dataset`
         # enforces it), so reaching here means the dataset is malformed. Failing
         # is the honest reading: scoring 1.0 would report four passes that were
         # never tested, and a sample with no ground truth cannot be checked.
         note = "no expected inventory declared -- this sample cannot be scored"
-        return {
-            key: (0.0, note)
-            for key in (
-                "completeness",
-                "class_accuracy",
-                "no_extras",
-                "severity_ordering",
-            )
-        }
+        return dict.fromkeys(
+            ("completeness", "class_accuracy", "no_extras", "severity_ordering"),
+            (0.0, note),
+        )
 
     matched = match_expected(issues, expected)
     by_id = {entry["id"]: entry for entry in expected}

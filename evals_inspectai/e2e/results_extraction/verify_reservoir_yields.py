@@ -39,16 +39,13 @@ for label, line in rows:
 
 SMAX = 9840.0
 AREA = 1.42  # km^2 -> mm depth * area = Ml
-EVAP_MM = {
-    m: v for m, v in enumerate([4, 8, 21, 44, 71, 86, 92, 78, 47, 22, 7, 3], start=1)
-}
-CLIMATE = {
-    m: v
-    for m, v in enumerate(
+EVAP_MM = dict(enumerate([4, 8, 21, 44, 71, 86, 92, 78, 47, 22, 7, 3], start=1))
+CLIMATE = dict(
+    enumerate(
         [1.08, 1.06, 1.02, 0.96, 0.91, 0.84, 0.79, 0.81, 0.88, 0.97, 1.04, 1.07],
         start=1,
     )
-}
+)
 
 
 def comp_rate(month: int) -> float:  # Ml/d

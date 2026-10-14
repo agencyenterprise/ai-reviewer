@@ -105,7 +105,7 @@ def validation_checks() -> Scorer:
     async def score(state: TaskState, target: Target) -> Score:
         result, why = _validation(state)
         if result is None:
-            return Score(value={k: 0.0 for k in KEYS}, explanation=why)
+            return Score(value=dict.fromkeys(KEYS, 0.0), explanation=why)
         values, explanation = validation_scores(result, _record(state))
         return Score(value=values, explanation=explanation)
 

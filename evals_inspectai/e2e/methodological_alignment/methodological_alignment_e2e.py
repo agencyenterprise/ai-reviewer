@@ -216,12 +216,12 @@ def report_checks() -> Scorer:
             output = SimpleDeepAgentOutput.model_validate_json(state.output.completion)
         except ValueError as e:
             return Score(
-                value={k: 0.0 for k in OWN_DESCRIPTIONS},
+                value=dict.fromkeys(OWN_DESCRIPTIONS, 0.0),
                 explanation=f"could not parse the workflow state: {e}",
             )
         if output.result is None:
             return Score(
-                value={k: 0.0 for k in OWN_DESCRIPTIONS},
+                value=dict.fromkeys(OWN_DESCRIPTIONS, 0.0),
                 explanation="no result in workflow state",
             )
         values, explanation = report_scores(
@@ -245,7 +245,7 @@ def methodology_judged(calls: int = 1) -> Scorer:
     async def score(state: TaskState, target: Target) -> Score:
         issues, error = issues_from_state(state)
         if error:
-            return Score(value={k: 0.0 for k in JUDGED_KEYS}, explanation=error)
+            return Score(value=dict.fromkeys(JUDGED_KEYS, 0.0), explanation=error)
         grader = get_model(role="grader", default=DEFAULT_GRADER_MODEL)
         values, explanation = await judge_methodology(
             grader, issues, inventory_from_state(state), calls

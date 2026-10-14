@@ -375,7 +375,7 @@ def self_containment_violations(html: str) -> list[str]:
     if css:
         violations.append(
             f"{len(css)} CSS url() reference(s) leave the document: "
-            + ", ".join(sorted(set(u[:40] for u in css))[:3])
+            + ", ".join(sorted({u[:40] for u in css})[:3])
         )
     return violations
 

@@ -176,7 +176,7 @@ def structured_output_scorer(
 
 def failed_score(keys: Sequence[str], reason: str) -> Score:
     """Score every key as failed, for an output there is nothing to check in."""
-    return Score(value={key: 0.0 for key in keys}, explanation=reason)
+    return Score(value=dict.fromkeys(keys, 0.0), explanation=reason)
 
 
 def checks_to_score(checks: Mapping[str, tuple[bool | float, str]]) -> Score:

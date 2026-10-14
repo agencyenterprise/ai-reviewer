@@ -713,7 +713,7 @@ def issue_detection_scores(
     one_to_one = policy.pairing == "one_to_one"
     lines = inventory.document.split("\n")
     expected_issues = inventory.expected_issues
-    values: dict[str, float] = {key: NOT_APPLICABLE for key in issue_check_keys(policy)}
+    values: dict[str, float] = dict.fromkeys(issue_check_keys(policy), NOT_APPLICABLE)
     notes: list[str] = []
 
     hits, pairs = hit_pairs(issues, inventory)
@@ -917,7 +917,7 @@ def deterministic_scorer(
         issues, error = issues_from_state(state, results)
         values, explanation = scoring(issues, inventory_from_state(state))
         if error:
-            return Score(value={key: 0.0 for key in values}, explanation=error)
+            return Score(value=dict.fromkeys(values, 0.0), explanation=error)
         return Score(value=values, explanation=explanation)
 
     return score

@@ -271,7 +271,7 @@ def catalogue_scores(
 ) -> tuple[dict[str, float], str]:
     """The catalogue keys (``CATALOGUE_KEYS``) and an explanation naming what was missed, invented or wrong.
     A key is NaN when the sample gives it nothing to judge."""
-    values: dict[str, float] = {key: math.nan for key in CATALOGUE_KEYS}
+    values: dict[str, float] = dict.fromkeys(CATALOGUE_KEYS, math.nan)
     values["section_found_correct"] = float(
         reported.abbreviations_section_found == expected.abbreviations_section_found
     )

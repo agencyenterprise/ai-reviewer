@@ -215,7 +215,7 @@ def test_a_bare_url_must_get_an_updated_reference():
             "id": "url",
             "reference": "https://example.org/post",
             "result": "missing_fields",
-            "fields": {f: "missing" for f in FIELDS},
+            "fields": dict.fromkeys(FIELDS, "missing"),
         }
     )
     assert bare.is_bare_url
