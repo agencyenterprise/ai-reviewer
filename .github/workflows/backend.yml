@@ -143,6 +143,10 @@ jobs:
       POSTGRES_USER: ai_reviewer_user
       POSTGRES_PASSWORD: ai_reviewer_password
       AUTH_SECRET: test-secret-key-for-ci
+      # lib.api.mcp builds its auth provider at import and refuses to without a
+      # login provider; nothing in the tests signs in, so placeholders do.
+      AUTH_GOOGLE_ID: ci-placeholder
+      AUTH_GOOGLE_SECRET: ci-placeholder
       FILE_UPLOADS_MOUNT_PATH: /tmp/test-uploads
 
     steps:
