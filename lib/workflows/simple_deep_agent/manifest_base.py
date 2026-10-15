@@ -95,6 +95,9 @@ class _BaseDeepAgentManifest(
     # opt in, so text-only checks are not tempted to spend turns on logos.
     view_images: ClassVar[bool] = False
 
+    # The node's label in the run's progress. None uses the workflow's name.
+    progress_label: ClassVar[str | None] = None
+
     def resolve_user_prompt(self) -> str:
         """Resolve the rules/criteria used as the deep agent's user prompt.
 
@@ -116,6 +119,12 @@ class _BaseDeepAgentManifest(
         is surfaced as the run's report. Return None to proceed. Default: no guard.
         """
         return None
+
+    async def prompt_inputs(
+        self, state: SimpleDeepAgentState, service: "FileArtifactsServiceType"
+    ) -> str:
+        """Per-run inputs appended to the user prompt. Default: none."""
+        return ""
 
     def agent_tools(self, model: LLMModel) -> list[dict]:
         """Workflow tools handed to the agent alongside the issue reporter.
@@ -156,7 +165,8 @@ class _BaseDeepAgentManifest(
             agent = SimpleDeepAgent(
                 context=runtime.context,
                 system_prompt=manifest.system_prompt,
-                user_prompt=manifest.resolve_user_prompt(),
+                user_prompt=manifest.resolve_user_prompt()
+                + await manifest.prompt_inputs(state, service),
                 report_issues=manifest.report_issues,
                 propose_edits=manifest.propose_edits,
                 tools=manifest.agent_tools(
@@ -172,7 +182,7 @@ class _BaseDeepAgentManifest(
                 "messages": run.messages,
             }
 
-        decorated = register_node(self.name)(run_agent)
+        decorated = register_node(self.progress_label or self.name)(run_agent)
 
         graph = StateGraph(SimpleDeepAgentState, context_schema=ContextSchema)
         graph.add_node("run_agent", decorated)

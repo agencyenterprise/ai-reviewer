@@ -5,12 +5,10 @@ import { IssueDocumentLink } from '@/components/results/document-explorer/issue-
 import { GroupHeader, IssueRow } from '@/components/results/document-explorer/issue-row';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Issue, SeverityEnum } from '@/lib/generated-api';
+import { REPORTED_SEVERITIES } from '@/lib/severity';
 import { cn } from '@/lib/utils';
 import { CheckCircle2, ChevronDownIcon } from 'lucide-react';
 import { ReactNode, useState } from 'react';
-
-/** Worst first, as the explorer's queue orders them. */
-const SEVERITY_ORDER: SeverityEnum[] = [SeverityEnum.High, SeverityEnum.Medium, SeverityEnum.Low];
 
 interface WorkflowIssuesListProps {
   issues: Issue[];
@@ -89,7 +87,7 @@ export function WorkflowIssuesList({
             <p className="py-4 text-center text-sm text-muted-foreground">No issues match the selected severities.</p>
           ) : (
             <RowFrame>
-              {SEVERITY_ORDER.map((severity) => {
+              {REPORTED_SEVERITIES.map((severity) => {
                 const group = visibleIssues.filter((issue) => issue.severity === severity);
                 if (group.length === 0) return null;
                 return (
