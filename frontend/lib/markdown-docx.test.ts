@@ -39,6 +39,15 @@ describe('markdownToDocx blockquotes', () => {
     expect(await quoteRuns('> first\n> more\n>\n> second')).toEqual([['first', '⏎more'], ['second']]);
   });
 
+  it.each([
+    ['an external link', 'https://example.com'],
+    ['an internal link', '#target'],
+    ['an unsafe link, rendered as text', 'javascript:alert(1)'],
+  ])('keeps line breaks inside %s', async (_, href) => {
+    const runs = await quoteRuns(`# Target\n\n> before [first\n> second](${href}) after`);
+    expect(runs).toEqual([['before ', 'first', '⏎second', ' after']]);
+  });
+
   it('leaves line breaks outside blockquotes alone', async () => {
     const paragraphs = await paragraphsOf('plain one\nplain two');
     expect(paragraphs.some((p) => p.includes('<w:br/>'))).toBe(false);

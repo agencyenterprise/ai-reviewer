@@ -10,7 +10,7 @@ overrides:
 
 patchedDependencies:
   '@mohtasham/md-to-docx@4.0.1':
-    hash: c3b61651d7030103b798cdef7c4f0ea08b626ffdac28ae4475af223d290ad0af
+    hash: ba1a90832a489236824bcfe03bbabf428dd0aa98ad1bbdbc06682fabf1d435cc
     path: patches/@mohtasham__md-to-docx@4.0.1.patch
 
 importers:
@@ -40,7 +40,7 @@ importers:
         version: 2.2.10(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@mohtasham/md-to-docx':
         specifier: ^4.0.1
-        version: 4.0.1(patch_hash=c3b61651d7030103b798cdef7c4f0ea08b626ffdac28ae4475af223d290ad0af)
+        version: 4.0.1(patch_hash=ba1a90832a489236824bcfe03bbabf428dd0aa98ad1bbdbc06682fabf1d435cc)
       '@open-iframe-resizer/core':
         specifier: ^2.4.1
         version: 2.4.1
@@ -5628,7 +5628,7 @@ snapshots:
 
   '@lukeed/ms@2.0.2': {}
 
-  '@mohtasham/md-to-docx@4.0.1(patch_hash=c3b61651d7030103b798cdef7c4f0ea08b626ffdac28ae4475af223d290ad0af)':
+  '@mohtasham/md-to-docx@4.0.1(patch_hash=ba1a90832a489236824bcfe03bbabf428dd0aa98ad1bbdbc06682fabf1d435cc)':
     dependencies:
       '@types/mdast': 4.0.4
       '@xmldom/xmldom': 0.9.12
