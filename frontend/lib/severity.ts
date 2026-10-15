@@ -9,7 +9,7 @@ export const SEVERITIES_WORST_FIRST = [
 ] as const;
 
 /** The severities that flag a problem, worst first: all but the passing `none`. */
-export const REPORTED_SEVERITIES = [SeverityEnum.High, SeverityEnum.Medium, SeverityEnum.Low] as const;
+export const REPORTED_SEVERITIES = SEVERITIES_WORST_FIRST.filter((severity) => severity !== SeverityEnum.None);
 
 const RANK = Object.fromEntries(
   SEVERITIES_WORST_FIRST.map((severity, i) => [severity, SEVERITIES_WORST_FIRST.length - 1 - i]),

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { Issue, SeverityEnum } from './generated-api';
-import { getMaxSeverity, severityRank, sortIssueBySeverity } from './severity';
+import { getMaxSeverity, REPORTED_SEVERITIES, severityRank, sortIssueBySeverity } from './severity';
 
 const issue = (id: string, severity: SeverityEnum) => ({ id, severity }) as Issue;
 
@@ -39,5 +39,11 @@ describe('severityRank', () => {
     expect([SeverityEnum.None, SeverityEnum.Low, SeverityEnum.Medium, SeverityEnum.High].map(severityRank)).toEqual([
       0, 1, 2, 3,
     ]);
+  });
+});
+
+describe('REPORTED_SEVERITIES', () => {
+  it('is every severity but the passing one, worst first', () => {
+    expect(REPORTED_SEVERITIES).toEqual([SeverityEnum.High, SeverityEnum.Medium, SeverityEnum.Low]);
   });
 });
