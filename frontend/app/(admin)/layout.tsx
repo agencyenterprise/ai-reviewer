@@ -1,13 +1,15 @@
 import { auth } from '@/auth';
+import { REQUEST_PATH_HEADER, signInUrl } from '@/lib/sign-in-redirect';
 import { baseUrl } from '@/lib/api';
 import { getCurrentUserInfoApiUsersMeGet, UserRole } from '@/lib/generated-api';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
 
   if (!session || !session.user || !session.accessToken) {
-    redirect('/api/auth/signin');
+    redirect(signInUrl((await headers()).get(REQUEST_PATH_HEADER)));
   }
 
   const user = await getCurrentUserInfoApiUsersMeGet({ baseUrl, auth: session.accessToken });
