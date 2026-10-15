@@ -1,11 +1,12 @@
 """Integration tests for get_project_access — the central project permission gate."""
 
 import uuid
+from collections.abc import AsyncIterator
 
 import pytest
 import pytest_asyncio
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
@@ -19,13 +20,12 @@ from lib.services.projects import get_project_access
 # ---------------------------------------------------------------------------
 
 
-@pytest_asyncio.fixture
-async def owner():
+async def _persisted_user(label: str, role: UserRole) -> AsyncIterator[User]:
     user = User(
         id=uuid.uuid4(),
-        email=f"owner-{uuid.uuid4()}@example.com",
-        name="Owner",
-        role=UserRole.USER,
+        email=f"{label}-{uuid.uuid4()}@example.com",
+        name=label.title(),
+        role=role,
         show_experimental_features=False,
     )
     async with get_async_db_session() as session:
@@ -33,56 +33,26 @@ async def owner():
         await session.commit()
     yield user
     async with get_async_db_session() as session:
-        u = (
-            await session.execute(select(User).where(col(User.id) == user.id))
-        ).scalar_one_or_none()
-        if u:
-            await session.delete(u)
-            await session.commit()
+        await session.execute(delete(User).where(col(User.id) == user.id))
+        await session.commit()
 
 
 @pytest_asyncio.fixture
-async def admin():
-    user = User(
-        id=uuid.uuid4(),
-        email=f"admin-{uuid.uuid4()}@example.com",
-        name="Admin",
-        role=UserRole.ADMIN,
-        show_experimental_features=False,
-    )
-    async with get_async_db_session() as session:
-        session.add(user)
-        await session.commit()
-    yield user
-    async with get_async_db_session() as session:
-        u = (
-            await session.execute(select(User).where(col(User.id) == user.id))
-        ).scalar_one_or_none()
-        if u:
-            await session.delete(u)
-            await session.commit()
+async def owner() -> AsyncIterator[User]:
+    async for user in _persisted_user("owner", UserRole.USER):
+        yield user
 
 
 @pytest_asyncio.fixture
-async def other_user():
-    user = User(
-        id=uuid.uuid4(),
-        email=f"other-{uuid.uuid4()}@example.com",
-        name="Other",
-        role=UserRole.USER,
-        show_experimental_features=False,
-    )
-    async with get_async_db_session() as session:
-        session.add(user)
-        await session.commit()
-    yield user
-    async with get_async_db_session() as session:
-        u = (
-            await session.execute(select(User).where(col(User.id) == user.id))
-        ).scalar_one_or_none()
-        if u:
-            await session.delete(u)
-            await session.commit()
+async def admin() -> AsyncIterator[User]:
+    async for user in _persisted_user("admin", UserRole.ADMIN):
+        yield user
+
+
+@pytest_asyncio.fixture
+async def other_user() -> AsyncIterator[User]:
+    async for user in _persisted_user("other", UserRole.USER):
+        yield user
 
 
 async def _make_project(owner: User, visibility: FeedbackVisibility | None) -> Project:
@@ -197,6 +167,22 @@ async def test_valid_share_token_grants_read_access(owner):
         )
         assert level == AccessLevel.READ
         assert result_project.id == project.id
+    finally:
+        await _delete_share_link(link)
+        await _delete_project(project)
+
+
+@pytest.mark.asyncio
+async def test_signed_in_stranger_with_share_token_gets_read_access(
+    owner: User, other_user: User
+) -> None:
+    project = await _make_project(owner, FeedbackVisibility.PRIVATE)
+    link = await _make_share_link(project, owner)
+    try:
+        _, level = await get_project_access(
+            str(project.id), user=other_user, share_token=link.token
+        )
+        assert level == AccessLevel.READ
     finally:
         await _delete_share_link(link)
         await _delete_project(project)
