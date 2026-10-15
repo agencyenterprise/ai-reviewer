@@ -79,7 +79,10 @@ export class TurnAccumulator {
       case 'reasoning':
         this.appendBlock({ type: 'reasoning', summary: [{ type: 'summary_text', text: event.v }] }, (last) =>
           last.type === 'reasoning'
-            ? { type: 'reasoning', summary: [{ type: 'summary_text', text: (last.summary[0]?.text ?? '') + event.v }] }
+            ? {
+                type: 'reasoning',
+                summary: [{ type: 'summary_text', text: (last.summary?.[0]?.text ?? '') + event.v }],
+              }
             : null,
         );
         break;
