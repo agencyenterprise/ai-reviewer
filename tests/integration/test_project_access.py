@@ -173,7 +173,9 @@ async def test_valid_share_token_grants_read_access(owner):
 
 
 @pytest.mark.asyncio
-async def test_signed_in_stranger_with_share_token_gets_read_access(owner, other_user):
+async def test_signed_in_stranger_with_share_token_gets_read_access(
+    owner: User, other_user: User
+) -> None:
     project = await _make_project(owner, FeedbackVisibility.PRIVATE)
     link = await _make_share_link(project, owner)
     try:

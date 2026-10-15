@@ -7,7 +7,7 @@ sharing on or off.
 """
 
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
 
 import pytest
@@ -24,11 +24,14 @@ from lib.models.share_link import ShareLink
 from lib.models.user import User, UserRole
 from lib.services.projects import get_project_access
 from lib.services.share_links import (
+    ShareStatusResponse,
     disable_sharing,
     enable_sharing,
     get_resource_by_token,
     get_share_status,
 )
+
+ShareRoute = Callable[..., Awaitable[ShareStatusResponse]]
 
 
 def _user(label: str, role: UserRole = UserRole.USER) -> User:
@@ -105,7 +108,9 @@ async def _reads_with_token(project: Project, token: str) -> bool:
 
 
 @pytest.mark.asyncio
-async def test_enabling_creates_one_active_link_with_a_frontend_url(setup, monkeypatch):
+async def test_enabling_creates_one_active_link_with_a_frontend_url(
+    setup: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(config, "FRONTEND_URL", "https://dd.example")
     project = setup["project"]
 
@@ -122,7 +127,7 @@ async def test_enabling_creates_one_active_link_with_a_frontend_url(setup, monke
 
 
 @pytest.mark.asyncio
-async def test_enabling_twice_returns_the_same_link(setup):
+async def test_enabling_twice_returns_the_same_link(setup: dict[str, Any]) -> None:
     project, owner = setup["project"], setup["owner"]
 
     first = await _enabled_token(project, owner)
@@ -133,7 +138,7 @@ async def test_enabling_twice_returns_the_same_link(setup):
 
 
 @pytest.mark.asyncio
-async def test_disabling_revokes_access_through_the_link(setup):
+async def test_disabling_revokes_access_through_the_link(setup: dict[str, Any]) -> None:
     project = setup["project"]
     token = await _enabled_token(project, setup["owner"])
     assert await _reads_with_token(project, token)
@@ -147,7 +152,9 @@ async def test_disabling_revokes_access_through_the_link(setup):
 
 
 @pytest.mark.asyncio
-async def test_re_enabling_issues_a_new_token_and_the_old_one_stays_dead(setup):
+async def test_re_enabling_issues_a_new_token_and_the_old_one_stays_dead(
+    setup: dict[str, Any],
+) -> None:
     project, owner = setup["project"], setup["owner"]
     old = await _enabled_token(project, owner)
     await disable_sharing("project", project.id)
@@ -160,7 +167,9 @@ async def test_re_enabling_issues_a_new_token_and_the_old_one_stays_dead(setup):
 
 
 @pytest.mark.asyncio
-async def test_disabling_revokes_every_active_link_of_the_resource_only(setup):
+async def test_disabling_revokes_every_active_link_of_the_resource_only(
+    setup: dict[str, Any],
+) -> None:
     project, other, owner = setup["project"], setup["other_project"], setup["owner"]
     # Two active links for one project: the orphaned state disable must clean up.
     orphans = [
@@ -181,14 +190,16 @@ async def test_disabling_revokes_every_active_link_of_the_resource_only(setup):
 
 
 @pytest.mark.asyncio
-async def test_a_link_reads_only_its_own_project(setup):
+async def test_a_link_reads_only_its_own_project(setup: dict[str, Any]) -> None:
     token = await _enabled_token(setup["project"], setup["owner"])
 
     assert not await _reads_with_token(setup["other_project"], token)
 
 
 @pytest.mark.asyncio
-async def test_disabling_a_project_that_was_never_shared_is_a_no_op(setup):
+async def test_disabling_a_project_that_was_never_shared_is_a_no_op(
+    setup: dict[str, Any],
+) -> None:
     status = await disable_sharing("project", setup["project"].id)
 
     assert (status.enabled, status.share_link) == (False, None)
@@ -196,7 +207,7 @@ async def test_disabling_a_project_that_was_never_shared_is_a_no_op(setup):
 
 
 @pytest.mark.asyncio
-async def test_owner_toggles_sharing_through_the_routes(setup):
+async def test_owner_toggles_sharing_through_the_routes(setup: dict[str, Any]) -> None:
     project, owner = setup["project"], setup["owner"]
 
     enabled = await enable_project_sharing(str(project.id), current_user=owner)
@@ -210,7 +221,9 @@ async def test_owner_toggles_sharing_through_the_routes(setup):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("who", ["stranger", "admin"])
 @pytest.mark.parametrize("route", [enable_project_sharing, disable_project_sharing])
-async def test_only_the_owner_may_toggle_sharing(setup, who, route):
+async def test_only_the_owner_may_toggle_sharing(
+    setup: dict[str, Any], who: str, route: ShareRoute
+) -> None:
     project, owner = setup["project"], setup["owner"]
     token = await _enabled_token(project, owner)
 
