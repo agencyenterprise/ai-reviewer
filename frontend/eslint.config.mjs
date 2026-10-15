@@ -20,8 +20,12 @@ const eslintConfig = [
       'next-env.d.ts',
       'lib/generated-api/**',
       // Copied from the assistant-ui registry and kept as upstream ships it. Its code targets
-      // newer react-hooks rules than ours, so it is type-checked but not linted.
-      'components/assistant-ui/elements/**',
+      // newer react-hooks rules than ours, so it is type-checked but not linted. The files
+      // that carry our own `Draft Detective:` edits stay linted.
+      'components/assistant-ui/elements/**/*',
+      '!components/assistant-ui/elements/thread.aui.tsx',
+      '!components/assistant-ui/elements/tool-fallback.aui.tsx',
+      '!components/assistant-ui/elements/reasoning-panel.tsx',
       'components/assistant-ui/utils/**',
       'hooks/use-attachment-src.ts',
       'hooks/use-copy-to-clipboard.ts',

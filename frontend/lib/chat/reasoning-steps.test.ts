@@ -33,6 +33,19 @@ describe('reasoningSteps', () => {
     ]);
   });
 
+  it('splits sections the converter joined with newlines', () => {
+    expect(reasoningSteps('**Read**\n\nOpen the file.\n\n\n**Answer**\n\nKeep it short.')).toEqual([
+      { title: 'Read', body: 'Open the file.' },
+      { title: 'Answer', body: 'Keep it short.' },
+    ]);
+  });
+
+  it('keeps bold text that ends a line inside its body', () => {
+    expect(reasoningSteps('**Plan**\n\nFirst I will open **SKILL.md**\nthen follow it.')).toEqual([
+      { title: 'Plan', body: 'First I will open **SKILL.md**\nthen follow it.' },
+    ]);
+  });
+
   it('shows a heading whose body has not streamed yet', () => {
     expect(reasoningSteps('**Plan**\n')).toEqual([{ title: 'Plan', body: '' }]);
   });

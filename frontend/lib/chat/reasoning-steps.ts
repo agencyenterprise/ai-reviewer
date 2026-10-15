@@ -1,9 +1,12 @@
 import type { ReasoningStep } from '@/components/assistant-ui/elements/reasoning-panel';
 
 // A reasoning summary section opens with a bold heading on its own line. The
-// backend joins a turn's sections with no separator, so one reasoning part can
-// hold several: `**Title**\n\nbody**Next title**\n\nbody`.
-const HEADING = /\*\*([^*\n]+)\*\*[ \t]*\n/g;
+// converter joins summary items with newlines, but the backend's chat history
+// joins them with no separator, so one reasoning part can hold several:
+// `**Title**\n\nbody.**Next title**\n\nbody`. A heading therefore starts the
+// text, follows a newline, or follows sentence punctuation directly; bold
+// text that merely ends a line inside a body is not a heading.
+const HEADING = /(?:^|\n|(?<=[.!?:)]))\*\*([^*\n]+)\*\*[ \t]*\n/g;
 
 /** Splits reasoning summary text into the titled steps `ReasoningPanel` shows. */
 export function reasoningSteps(text: string, fallbackTitle = 'Thinking'): ReasoningStep[] {
