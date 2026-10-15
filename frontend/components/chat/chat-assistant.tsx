@@ -28,7 +28,7 @@ import {
   type AssistantRuntime,
 } from '@assistant-ui/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
 // Stateless; one shared instance is fine.
@@ -150,7 +150,9 @@ function useChatThreadRuntime(): AssistantRuntime {
     onCancel: async () => abortRef.current?.abort(),
     adapters: { attachments: attachmentAdapter },
   });
-  runtimeRef.current = runtime;
+  useLayoutEffect(() => {
+    runtimeRef.current = runtime;
+  });
   return runtime;
 }
 

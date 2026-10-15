@@ -34,7 +34,7 @@ import {
   Upload,
   User,
 } from 'lucide-react';
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { readFetchOutcome } from './fetch-outcome';
 import { STATUS } from './status';
 
@@ -77,9 +77,8 @@ export function ReferenceDetail({ reference, projectId, readOnly, disabled }: Re
   const displayStatus: ReferenceReviewStatus = isFetching ? 'fetching' : status;
   const fetchRead = fetchResult ? readFetchOutcome(fetchResult) : null;
 
-  useEffect(() => {
-    if (fetchInitiated && (status === 'fetching' || status === 'matched')) setFetchInitiated(false);
-  }, [fetchInitiated, status]);
+  // Once the backend reports the fetch, its status takes over.
+  if (fetchInitiated && (status === 'fetching' || status === 'matched')) setFetchInitiated(false);
 
   return (
     <div className="flex h-full flex-col">

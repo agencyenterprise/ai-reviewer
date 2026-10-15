@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/api-error';
@@ -69,19 +69,23 @@ export function ReplaceMainDocumentDialog({
   const queryClient = useQueryClient();
   const abortRef = useRef(false);
 
-  useEffect(() => {
+  // Start fresh each time the dialog opens, during render rather than in an
+  // effect so the first open frame never shows the previous run.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
     if (isOpen) {
       setSelectedFile(null);
       setRerunAnalyses(true);
       setStage('select');
       setUploadProgress(null);
-      abortRef.current = false;
     }
-  }, [isOpen]);
+  }
 
   const replaceMutation = useMutation({
     mutationFn: async () => {
       if (!selectedFile) throw new Error('No file selected');
+      abortRef.current = false;
 
       // Step 1: Create new revision
       setStage('creating-revision');
