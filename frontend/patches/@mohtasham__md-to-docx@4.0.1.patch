@@ -1,0 +1,43 @@
+diff --git a/dist/modelToDocx.js b/dist/modelToDocx.js
+index 9e19e02a05d36eff260453dac2d256d2b1d5b589..4d017fd6f15d2b6ffc81bd287f8bf3652669af8b 100644
+--- a/dist/modelToDocx.js
++++ b/dist/modelToDocx.js
+@@ -77,6 +77,7 @@ export async function modelToDocx(model, style, options, renderOptions = {}) {
+         }
+         return new TextRun({
+             text: node.value,
++            break: node.breakBefore ? 1 : undefined,
+             bold: overrides.forceBold || node.bold,
+             italics: overrides.forceItalic || node.italic,
+             strike: node.strikethrough,
+@@ -175,6 +176,17 @@ export async function modelToDocx(model, style, options, renderOptions = {}) {
+                     link: node.link,
+                 }));
+             }
++            else if (overrides.preserveLineBreaks &&
++                !node.code &&
++                node.value.includes("\n")) {
++                // Word ignores "\n" inside a run: emit one run per line, with a
++                // break before each line after the first.
++                node.value.split("\n").forEach((line, index) => {
++                    if (index === 0 && line === "")
++                        return;
++                    out.push(textRunFromNode({ ...node, value: line, breakBefore: index > 0 }, overrides));
++                });
++            }
+             else {
+                 out.push(textRunFromNode(node, overrides));
+             }
+@@ -573,10 +585,11 @@ export async function modelToDocx(model, style, options, renderOptions = {}) {
+         };
+         const out = [];
+         const blockquoteTextOverrides = node.calloutType
+-            ? { size: style.blockquoteSize || 24 }
++            ? { size: style.blockquoteSize || 24, preserveLineBreaks: true }
+             : {
+                 size: style.blockquoteSize || 24,
+                 forceItalic: true,
++                preserveLineBreaks: true,
+             };
+         if (node.calloutType) {
+             const calloutStyle = resolveCalloutStyle(style, node.calloutType);
