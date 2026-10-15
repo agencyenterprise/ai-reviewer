@@ -20,14 +20,7 @@ import { SharingTopic } from './topics/sharing';
 import { SourceFilesTopic } from './topics/source-files';
 
 export type HelpTopicId =
-  | 'assessments'
-  | 'issues'
-  | 'references'
-  | 'source-files'
-  | 'revisions'
-  | 'sharing'
-  | 'peer-review'
-  | 'feedback';
+  'assessments' | 'issues' | 'references' | 'source-files' | 'revisions' | 'sharing' | 'peer-review' | 'feedback';
 
 export interface HelpTopicBodyProps {
   /**
