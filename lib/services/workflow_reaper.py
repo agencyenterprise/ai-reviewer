@@ -71,8 +71,8 @@ PENDING_GRACE_SECONDS = float(DEPENDENCY_WAIT_TIMEOUT)
 # Postgres advisory-lock key — used to serialize reaper sweeps across pods.
 # Without this, every pod's lifespan starts its own reaper and N pods each
 # do the same sweep every 30s: redundant FAILED writes, redundant cascades,
-# N copies of the manifest on_cancel hook appending to the LangGraph
-# checkpoint. With the lock, only one pod's sweep runs at a time; others
+# N copies of the manifest on_cancel hook rewriting the run's persisted
+# state_json. With the lock, only one pod's sweep runs at a time; others
 # fail-fast on pg_try_advisory_lock and skip until the next tick. The key
 # is an arbitrary but stable bigint derived from the ASCII bytes "WFREAPER"
 # so it won't collide with advisory locks taken by other systems sharing

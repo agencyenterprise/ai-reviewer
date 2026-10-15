@@ -2,7 +2,7 @@
 Shared file finalization logic for uploads.
 
 Handles content hashing, deduplication, MIME detection, and database record creation.
-Used by both direct multipart uploads and TUS resumable uploads.
+Used by TUS resumable uploads and by the MCP tools, which pass content inline.
 """
 
 import logging

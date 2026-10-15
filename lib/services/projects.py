@@ -368,9 +368,9 @@ async def create_new_revision(
     """
     Create a new revision for a project.
 
-    Archives active issues from the current revision, cancels running workflows,
-    increments the revision counter, and returns the new revision number along with
-    the workflow types that were previously run (for re-triggering).
+    Cancels running workflows of the current revision, increments the revision
+    counter, and returns the new revision number along with the previously run
+    workflow types that opt into re-running on a new revision.
     """
     project, _ = await get_project_access(
         project_id, user=user, required_level=AccessLevel.WRITE
