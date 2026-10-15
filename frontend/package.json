@@ -28,10 +28,10 @@
     ]
   },
   "dependencies": {
-    "@assistant-ui/react": "^0.12.28",
-    "@assistant-ui/react-devtools": "1.0.6",
-    "@assistant-ui/react-langgraph": "^0.13.12",
-    "@assistant-ui/react-markdown": "^0.12.6",
+    "@assistant-ui/react": "^0.15.28",
+    "@assistant-ui/react-devtools": "1.2.24",
+    "@assistant-ui/react-langgraph": "^0.14.35",
+    "@assistant-ui/react-markdown": "^0.14.22",
     "@base-ui/react": "^1.6.0",
     "@daiji256/rehype-mathml": "^1.2.1",
     "@headlessui/react": "^2.2.9",
@@ -108,7 +108,6 @@
   },
   "pnpm": {
     "overrides": {
-      "@assistant-ui/store": "0.2.13",
       "js-yaml@>=4.0.0 <4.3.2": "4.3.2",
       "postcss@>=8.0.0 <8.5.23": "8.5.23"
     },
