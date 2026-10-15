@@ -7,10 +7,10 @@ import pytest
 from langchain_core.messages import AIMessage
 
 from lib.config.llm_models import gpt_5_6_terra_model, web_search_tool
-from lib.workflows.literature_review_v2.nodes.literature_review import (
+from lib.workflows.literature_review_v2.manifest import (
     _SYSTEM_PROMPT as LITERATURE_REVIEW_PROMPT,
 )
-from lib.workflows.live_reports_v2.nodes.live_reports import (
+from lib.workflows.live_reports_v2.manifest import (
     _SYSTEM_PROMPT as LIVE_REPORTS_PROMPT,
 )
 from lib.workflows.models import WorkflowRunType
