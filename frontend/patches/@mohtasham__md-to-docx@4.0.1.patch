@@ -1,0 +1,85 @@
+diff --git a/dist/modelToDocx.js b/dist/modelToDocx.js
+index 9e19e02a05d36eff260453dac2d256d2b1d5b589..ed17b196d8594add0c7545c7401031fe2ec764f3 100644
+--- a/dist/modelToDocx.js
++++ b/dist/modelToDocx.js
+@@ -77,6 +77,7 @@ export async function modelToDocx(model, style, options, renderOptions = {}) {
+         }
+         return new TextRun({
+             text: node.value,
++            break: node.breakBefore ? 1 : undefined,
+             bold: overrides.forceBold || node.bold,
+             italics: overrides.forceItalic || node.italic,
+             strike: node.strikethrough,
+@@ -112,6 +113,16 @@ export async function modelToDocx(model, style, options, renderOptions = {}) {
+         });
+         return textRunFromNode(unsupportedMathText(value, block));
+     }
++    // Word ignores "\n" inside a run, so blockquote text (preserveLineBreaks) is cut
++    // into one piece per line, each after the first opening with a line break.
++    function lineBreakPieces(node, overrides) {
++        if (!overrides.preserveLineBreaks || node.code || !node.value?.includes("\n"))
++            return [node];
++        return node.value
++            .split("\n")
++            .map((line, index) => ({ ...node, value: line, breakBefore: index > 0 }))
++            .filter((piece, index) => index > 0 || piece.value !== "");
++    }
+     function renderInlineNodes(nodes, overrides = {}) {
+         const out = [];
+         for (const node of nodes) {
+@@ -148,19 +159,20 @@ export async function modelToDocx(model, style, options, renderOptions = {}) {
+                 // Resolve after all sections have registered their headings.
+                 const link = new InternalHyperlink({
+                     anchor: fragment,
+-                    children: [textRunFromNode(node, overrides)],
++                    children: lineBreakPieces(node, overrides).map((piece) => textRunFromNode(piece, overrides)),
+                 });
+                 pendingLinks.push({ link, fragment, source: node.link });
+                 out.push(link);
+             }
+             else if (node.link && !isSafeLinkUrl(node.link)) {
+-                out.push(textRunFromNode({ ...node, link: undefined }, overrides));
++                for (const piece of lineBreakPieces({ ...node, link: undefined }, overrides))
++                    out.push(textRunFromNode(piece, overrides));
+             }
+             else if (node.link) {
+                 out.push(new ExternalHyperlink({
+-                    children: [
+-                        new TextRun({
+-                            text: node.value,
++                    children: lineBreakPieces(node, overrides).map((piece) => new TextRun({
++                            text: piece.value,
++                            break: piece.breakBefore ? 1 : undefined,
+                             color: "0000FF",
+                             underline: { type: "single" },
+                             bold: overrides.forceBold || node.bold,
+@@ -170,13 +182,13 @@ export async function modelToDocx(model, style, options, renderOptions = {}) {
+                             font: resolveFontFamily(style),
+                             rightToLeft: style.direction === "RTL",
+                             language: runLanguage(style),
+-                        }),
+-                    ],
++                        })),
+                     link: node.link,
+                 }));
+             }
+             else {
+-                out.push(textRunFromNode(node, overrides));
++                for (const piece of lineBreakPieces(node, overrides))
++                    out.push(textRunFromNode(piece, overrides));
+             }
+         }
+         if (out.length === 0) {
+@@ -573,10 +585,11 @@ export async function modelToDocx(model, style, options, renderOptions = {}) {
+         };
+         const out = [];
+         const blockquoteTextOverrides = node.calloutType
+-            ? { size: style.blockquoteSize || 24 }
++            ? { size: style.blockquoteSize || 24, preserveLineBreaks: true }
+             : {
+                 size: style.blockquoteSize || 24,
+                 forceItalic: true,
++                preserveLineBreaks: true,
+             };
+         if (node.calloutType) {
+             const calloutStyle = resolveCalloutStyle(style, node.calloutType);
