@@ -3,7 +3,7 @@
  * Used by file upload dialogs for supporting documents.
  */
 
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useLayoutEffect, useRef, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import Uppy from '@uppy/core';
@@ -31,14 +31,16 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
 
   // Refs for callbacks to get latest values in event handlers
   const callbackRefs = useRef({ onFileComplete, onAllComplete, onError });
-  callbackRefs.current = { onFileComplete, onAllComplete, onError };
 
   // The Uppy instance is created once and cached, so its `file-added` handler
   // would otherwise capture the revision selected at first render. Read it
   // through a ref, and re-stamp it at upload time, so changing the target
   // revision after files are picked still takes effect.
   const targetRevisionRef = useRef(targetRevision);
-  targetRevisionRef.current = targetRevision;
+  useLayoutEffect(() => {
+    callbackRefs.current = { onFileComplete, onAllComplete, onError };
+    targetRevisionRef.current = targetRevision;
+  });
 
   const findUppyId = useCallback((fileId: string): string | undefined => {
     for (const [uppyId, entry] of fileMapRef.current.entries()) {

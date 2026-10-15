@@ -13,18 +13,18 @@ function formatSeconds(totalSeconds: number): string {
   return `${s}s`;
 }
 
-function useElapsedSeconds(startDate: Date | null, active: boolean): number | null {
-  const [elapsed, setElapsed] = useState<number | null>(
-    startDate ? Math.floor((Date.now() - startDate.getTime()) / 1000) : null,
-  );
+// Takes the start as a timestamp: a `Date` built during render is a new object
+// every time, which would restart the interval on each render.
+function useElapsedSeconds(startMs: number | null, active: boolean): number | null {
+  const [elapsed, setElapsed] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!startDate || !active) return;
-    const tick = () => setElapsed(Math.floor((Date.now() - startDate.getTime()) / 1000));
+    if (startMs === null || !active) return;
+    const tick = () => setElapsed(Math.floor((Date.now() - startMs) / 1000));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [startDate, active]);
+  }, [startMs, active]);
 
   return elapsed;
 }
@@ -38,7 +38,7 @@ export function WorkflowDuration({ run }: WorkflowDurationProps) {
   const startDate = run.started_at ? new Date(run.started_at) : null;
   const endDate = run.completed_at ? new Date(run.completed_at) : null;
 
-  const liveElapsed = useElapsedSeconds(startDate, isRunning);
+  const liveElapsed = useElapsedSeconds(startDate?.getTime() ?? null, isRunning);
 
   if (!startDate) return null;
 

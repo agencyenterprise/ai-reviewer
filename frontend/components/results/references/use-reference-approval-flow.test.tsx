@@ -8,7 +8,7 @@ import {
   WorkflowRunType,
 } from '@/lib/generated-api';
 import { flush, renderInto, testQueryClient, withQueryClient } from '@/lib/test-render';
-import { act } from 'react';
+import { act, useLayoutEffect } from 'react';
 import { focusManager, QueryClient } from '@tanstack/react-query';
 import { useReferenceApprovalFlow } from './use-reference-approval-flow';
 
@@ -43,16 +43,20 @@ const references = {
 
 type Flow = ReturnType<typeof useReferenceApprovalFlow>;
 
-function Probe({ of, seen }: { of: ProjectOverview; seen: { current?: Flow } }) {
-  seen.current = useReferenceApprovalFlow(of);
+function Probe({ of, seenRef }: { of: ProjectOverview; seenRef: { current?: Flow } }) {
+  const flow = useReferenceApprovalFlow(of);
+  useLayoutEffect(() => {
+    seenRef.current = flow;
+  });
   return null;
 }
 
 async function mountFlow() {
   const seen: { current?: Flow } = {};
   const client = testQueryClient();
-  const view = await renderInto(withQueryClient(client, <Probe of={overview} seen={seen} />));
-  const rerender = (next: ProjectOverview) => view.rerender(withQueryClient(client, <Probe of={next} seen={seen} />));
+  const view = await renderInto(withQueryClient(client, <Probe of={overview} seenRef={seen} />));
+  const rerender = (next: ProjectOverview) =>
+    view.rerender(withQueryClient(client, <Probe of={next} seenRef={seen} />));
   return { seen, view, rerender };
 }
 
@@ -127,7 +131,7 @@ describe('useReferenceApprovalFlow', () => {
     fetchReferences.mockRejectedValue(new Error('Server error'));
     const seen: { current?: Flow } = {};
     const client = new QueryClient({ defaultOptions: { queries: { retry: 1, retryDelay: 0 } } });
-    const view = await renderInto(withQueryClient(client, <Probe of={overview} seen={seen} />));
+    const view = await renderInto(withQueryClient(client, <Probe of={overview} seenRef={seen} />));
     await flush();
     await flush();
 

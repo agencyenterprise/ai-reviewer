@@ -69,7 +69,9 @@ export function MarginLayer({ issues, documentIssues, activeIssueId, readOnly, o
   // selection re-runs the layout (below) without rebuilding the observer that
   // watches every note for reflow.
   const activeRef = useRef(activeIssueId);
-  activeRef.current = activeIssueId;
+  useLayoutEffect(() => {
+    activeRef.current = activeIssueId;
+  });
 
   const layout = useCallback(() => {
     const body = layerRef.current?.parentElement;

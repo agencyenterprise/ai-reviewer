@@ -43,12 +43,19 @@ export function ShareDialog({
   const shareUrl = shareStatus?.share_link?.url;
   const isEnabled = shareStatus?.enabled && shareUrl;
 
-  // Reset state when dialog opens/closes
-  useEffect(() => {
+  // Reset state when the dialog closes, during render rather than in an effect
+  // so the closed dialog never renders the stale view.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
     if (!open) {
       setHasCopied(false);
       setView('share');
-    } else if (isEnabled && inputRef.current) {
+    }
+  }
+
+  useEffect(() => {
+    if (open && isEnabled && inputRef.current) {
       setTimeout(() => inputRef.current?.select(), 100);
     }
   }, [open, isEnabled]);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { getErrorMessage } from '@/lib/api-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -97,7 +97,6 @@ export function FileUploadDialog({
   const [selectedRevision, setSelectedRevision] = useState<number | undefined>(targetRevision);
   const [isStartingWorkflow, setIsStartingWorkflow] = useState(false);
   const queryClient = useQueryClient();
-  const resetRef = useRef<(() => void) | null>(null);
 
   const isMemoUpload = fileRole === FileRole.ReviewerMemo;
   // Reference matching only applies to supporting documents (that aren't
@@ -153,18 +152,23 @@ export function FileUploadDialog({
     onAllComplete: handleAllComplete,
   });
 
-  // Store reset in ref to avoid effect dependency on uploadHook
-  resetRef.current = uploadHook.reset;
-
-  // Reset state when dialog opens
-  useEffect(() => {
+  // Start fresh each time the dialog opens, during render rather than in an
+  // effect so the first open frame never shows the previous selection.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
     if (isOpen) {
       setSelectedFiles([]);
       setSelectedRevision(targetRevision);
       setIsStartingWorkflow(false);
-      resetRef.current?.();
     }
-  }, [isOpen, targetRevision]);
+  }
+
+  // The upload hook owns an Uppy instance, so clearing it is a side effect.
+  const resetUploads = uploadHook.reset;
+  useEffect(() => {
+    if (isOpen) resetUploads();
+  }, [isOpen, resetUploads]);
 
   const handleFilesChange = (newFiles: File[]) => {
     setSelectedFiles(multiple ? newFiles : newFiles.slice(-1));
