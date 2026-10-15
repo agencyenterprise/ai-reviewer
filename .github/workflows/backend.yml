@@ -104,11 +104,6 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
           # Database config (test environment)
           DATABASE_URL: postgresql://test:test@localhost:5432/test_db
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
-          POSTGRES_DB: test_db
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
           # Auth config
           AUTH_SECRET: test-secret-key-for-ci
           # File uploads (temporary directory for tests)
@@ -151,11 +146,6 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       # The tests create and migrate ai_reviewer_test, derived from this, on their own.
       DATABASE_URL: postgresql://ai_reviewer_user:ai_reviewer_password@localhost:5432/ai_reviewer
-      POSTGRES_HOST: localhost
-      POSTGRES_PORT: "5432"
-      POSTGRES_DB: ai_reviewer
-      POSTGRES_USER: ai_reviewer_user
-      POSTGRES_PASSWORD: ai_reviewer_password
       AUTH_SECRET: test-secret-key-for-ci
       # lib.api.mcp builds its auth provider at import and refuses to without a
       # login provider; nothing in the tests signs in, so placeholders do.
