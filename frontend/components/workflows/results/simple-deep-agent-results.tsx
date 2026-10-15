@@ -17,7 +17,7 @@ import {
   isWorkflowProcessing,
   WorkflowRunDetailTyped,
 } from '@/lib/workflow-state';
-import { AssistantRuntimeProvider, ThreadMessageLike, useExternalStoreRuntime } from '@assistant-ui/react';
+import { AssistantRuntimeProvider, useExternalMessageConverter, useExternalStoreRuntime } from '@assistant-ui/react';
 import { convertLangChainMessages, LangChainMessage } from '@assistant-ui/react-langgraph';
 import { Ban, ClipboardList, Download, Loader2, MessageSquare, XCircle } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
@@ -52,8 +52,8 @@ export function SimpleDeepAgentResults({
   workflowName,
   onNavigateToDocumentExplorer,
 }: SimpleDeepAgentResultsProps) {
-  const messages = workflowDetail.state?.messages ?? [];
-  const displayedMessages = messages.filter((message) => message.type !== 'tool');
+  const stateMessages = workflowDetail.state?.messages;
+  const messages = useMemo(() => (stateMessages ?? []) as unknown as LangChainMessage[], [stateMessages]);
 
   const workflowRunId = workflowDetail.run.id;
   const issues = useMemo(
@@ -61,9 +61,16 @@ export function SimpleDeepAgentResults({
     [allIssues, workflowRunId],
   );
 
+  // The converter joins each tool result into its tool call (so finished calls
+  // read as done) and merges consecutive steps into one assistant message.
+  const threadMessages = useExternalMessageConverter<LangChainMessage>({
+    callback: convertLangChainMessages,
+    messages,
+    isRunning: false,
+  });
+
   const runtime = useExternalStoreRuntime({
-    messages: displayedMessages,
-    convertMessage: (message) => convertLangChainMessages(message as LangChainMessage, {}) as ThreadMessageLike,
+    messages: threadMessages,
     isRunning: false,
     onNew: async () => {},
   });

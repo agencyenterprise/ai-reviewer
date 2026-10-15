@@ -12,7 +12,20 @@ const compat = new FlatCompat({
 const eslintConfig = [
   ...compat.extends('next/core-web-vitals', 'next/typescript', 'prettier'),
   {
-    ignores: ['node_modules/**', '.next/**', 'out/**', 'build/**', 'next-env.d.ts', 'lib/generated-api/**'],
+    ignores: [
+      'node_modules/**',
+      '.next/**',
+      'out/**',
+      'build/**',
+      'next-env.d.ts',
+      'lib/generated-api/**',
+      // Copied from the assistant-ui registry and kept as upstream ships it. Its code targets
+      // newer react-hooks rules than ours, so it is type-checked but not linted.
+      'components/assistant-ui/elements/**',
+      'components/assistant-ui/utils/**',
+      'hooks/use-attachment-src.ts',
+      'hooks/use-copy-to-clipboard.ts',
+    ],
   },
 ];
 
