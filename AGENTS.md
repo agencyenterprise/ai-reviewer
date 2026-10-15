@@ -166,6 +166,10 @@ The baseline is zero, so any error mypy reports came from the current work. The 
 
 ## Frontend Rules
 
+### Check Next.js APIs against the installed docs
+
+We're on Next.js 16, which renamed and removed APIs your training data may still describe (`middleware.ts` is now `proxy.ts`, for one). Before using a Next.js API, config option or file convention you aren't sure of, read its guide in `frontend/node_modules/next/dist/docs/`, which matches the installed version. Heed its deprecation notices.
+
 ### Always use `pnpm`, from `frontend/`
 
 Dependencies are pinned in `pnpm-lock.yaml`. `npm` and `yarn` ignore it.
