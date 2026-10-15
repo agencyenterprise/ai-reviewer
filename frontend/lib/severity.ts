@@ -1,29 +1,29 @@
 import { Issue, SeverityEnum } from './generated-api';
 
+/** Every severity, worst first. */
+export const SEVERITIES_WORST_FIRST = [
+  SeverityEnum.High,
+  SeverityEnum.Medium,
+  SeverityEnum.Low,
+  SeverityEnum.None,
+] as const;
+
+/** The severities that flag a problem, worst first: all but the passing `none`. */
+export const REPORTED_SEVERITIES = [SeverityEnum.High, SeverityEnum.Medium, SeverityEnum.Low] as const;
+
+const RANK = Object.fromEntries(
+  SEVERITIES_WORST_FIRST.map((severity, i) => [severity, SEVERITIES_WORST_FIRST.length - 1 - i]),
+) as Record<SeverityEnum, number>;
+
+/** Higher is worse: `none` ranks 0 and `high` ranks 3. */
+export function severityRank(severity: SeverityEnum): number {
+  return RANK[severity];
+}
+
 export function sortIssueBySeverity(a: Issue, b: Issue) {
-  return severitySortIndex[b.severity] - severitySortIndex[a.severity];
+  return severityRank(b.severity) - severityRank(a.severity);
 }
 
 export function getMaxSeverity(issues: Issue[]): SeverityEnum | undefined {
-  const severities = issues.map((issue) => issue.severity);
-  if (severities.includes(SeverityEnum.High)) {
-    return SeverityEnum.High;
-  }
-  if (severities.includes(SeverityEnum.Medium)) {
-    return SeverityEnum.Medium;
-  }
-  if (severities.includes(SeverityEnum.Low)) {
-    return SeverityEnum.Low;
-  }
-  if (severities.includes(SeverityEnum.None)) {
-    return SeverityEnum.None;
-  }
-  return undefined;
+  return SEVERITIES_WORST_FIRST.find((severity) => issues.some((issue) => issue.severity === severity));
 }
-
-const severitySortIndex: Record<SeverityEnum, number> = {
-  [SeverityEnum.None]: 0,
-  [SeverityEnum.Low]: 1,
-  [SeverityEnum.Medium]: 2,
-  [SeverityEnum.High]: 3,
-};

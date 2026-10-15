@@ -4,6 +4,7 @@ import { HelpLink } from '@/components/help/help-link';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Issue, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
+import { REPORTED_SEVERITIES } from '@/lib/severity';
 import { SEVERITY } from '@/lib/severity-style';
 import { DocumentExplorerFilter, hasActiveFilters } from '@/lib/stores/document-explorer-store';
 import { RAIL_ITEM_ACTIVE, RAIL_ITEM_IDLE } from '@/lib/rail-style';
@@ -12,10 +13,6 @@ import { CircleHelp } from 'lucide-react';
 import { useMemo } from 'react';
 import { AssessmentFilter } from './assessment-filter';
 import { OutlineEntry, issuesInSection } from './outline';
-
-/** The severities this rail filters by, worst first. Their colours and labels
- *  come from the shared palette so the rail cannot drift from the margin. */
-const SEVERITY_ROWS = [SeverityEnum.High, SeverityEnum.Medium, SeverityEnum.Low] as const;
 
 interface OutlineRailProps {
   outline: OutlineEntry[];
@@ -78,7 +75,8 @@ export function OutlineRail({
         </div>
 
         <div className="mt-2 space-y-px">
-          {SEVERITY_ROWS.map((severity) => {
+          {/* Colours and labels come from the shared palette, so the rail cannot drift from the margin. */}
+          {REPORTED_SEVERITIES.map((severity) => {
             const count = visibleIssues.filter((i) => i.severity === severity).length;
             const on = filter.severity.includes(severity);
             return (

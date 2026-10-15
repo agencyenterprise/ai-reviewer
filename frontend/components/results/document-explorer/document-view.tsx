@@ -1,7 +1,7 @@
 'use client';
 
 import type { Issue } from '@/lib/generated-api';
-import { SeverityEnum } from '@/lib/generated-api';
+import { severityRank } from '@/lib/severity';
 import { cn } from '@/lib/utils';
 import type { Element } from 'hast';
 import { DocumentImage, documentUrlTransform } from '@/components/document-image';
@@ -70,13 +70,6 @@ interface DocumentViewProps {
   margin?: { activeIssueId: string | null; readOnly: boolean; onSelect: (issue: Issue) => void };
 }
 
-const SEVERITY_RANK: Record<string, number> = {
-  [SeverityEnum.None]: 0,
-  [SeverityEnum.Low]: 1,
-  [SeverityEnum.Medium]: 2,
-  [SeverityEnum.High]: 3,
-};
-
 /** Resting mark on flagged text, as in the mock: the mark is on the text, not behind it. */
 const FLAGGED_CLASSES = ['underline', 'decoration-dotted', 'underline-offset-4', 'decoration-muted-foreground/50'];
 
@@ -95,7 +88,7 @@ function pickTopSeverityIssue(issues: IssueWithLines[], lineStart: number, lineE
   for (const issue of issues) {
     const lines = issueLineRange(issue);
     if (!lines || !rangesOverlap(lines, [lineStart, lineEnd])) continue;
-    if (!best || SEVERITY_RANK[issue.severity] > SEVERITY_RANK[best.severity]) {
+    if (!best || severityRank(issue.severity) > severityRank(best.severity)) {
       best = issue;
     }
   }
