@@ -34,11 +34,6 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://ai_reviewer_user:ai_reviewer_password@db:5432/ai_reviewer
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=ai_reviewer
-      - POSTGRES_USER=ai_reviewer_user
-      - POSTGRES_PASSWORD=ai_reviewer_password
     env_file:
       - .env
     volumes:

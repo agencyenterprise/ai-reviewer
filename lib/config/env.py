@@ -20,7 +20,6 @@ class Config(BaseModel):
     LANGFUSE_SECRET_KEY: str | None = None
     LANGFUSE_PUBLIC_KEY: str | None = None
     LANGFUSE_HOST: str | None = None
-    LANGFUSE_PROJECT_ID: str | None = None
 
     # Langgraph Configuration
     LANGGRAPH_MAX_CONCURRENCY: int = Field(
@@ -30,11 +29,6 @@ class Config(BaseModel):
 
     # Database Configuration
     DATABASE_URL: str
-    POSTGRES_HOST: str
-    POSTGRES_PORT: str
-    POSTGRES_DB: str
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
 
     # Authentication
     AUTH_SECRET: str = Field(
@@ -81,16 +75,6 @@ class Config(BaseModel):
 
     # File uploads
     FILE_UPLOADS_MOUNT_PATH: str
-
-    # Resumable upload configuration
-    UPLOAD_CHUNK_SIZE: int = Field(
-        default=5 * 1024 * 1024,
-        description="Chunk size for resumable uploads in bytes (default: 5MB)",
-    )
-    UPLOAD_SESSION_TTL_HOURS: int = Field(
-        default=24,
-        description="Upload session time-to-live in hours (default: 24)",
-    )
 
     # Frontend URL for share links
     FRONTEND_URL: str = Field(
@@ -145,18 +129,10 @@ config = Config(
     LANGFUSE_HOST=os.getenv("LANGFUSE_HOST"),
     LANGFUSE_SECRET_KEY=os.getenv("LANGFUSE_SECRET_KEY"),
     LANGFUSE_PUBLIC_KEY=os.getenv("LANGFUSE_PUBLIC_KEY"),
-    LANGFUSE_PROJECT_ID=os.getenv("LANGFUSE_PROJECT_ID"),
     LANGGRAPH_MAX_CONCURRENCY=int(os.getenv("LANGGRAPH_MAX_CONCURRENCY", "30")),
     FILE_UPLOADS_MOUNT_PATH=os.getenv("FILE_UPLOADS_MOUNT_PATH", "uploads"),
-    UPLOAD_CHUNK_SIZE=int(os.getenv("UPLOAD_CHUNK_SIZE", str(5 * 1024 * 1024))),
-    UPLOAD_SESSION_TTL_HOURS=int(os.getenv("UPLOAD_SESSION_TTL_HOURS", "24")),
     FRONTEND_URL=os.getenv("FRONTEND_URL", "http://localhost:3000"),
     DATABASE_URL=os.environ["DATABASE_URL"],
-    POSTGRES_HOST=os.environ["POSTGRES_HOST"],
-    POSTGRES_PORT=os.environ["POSTGRES_PORT"],
-    POSTGRES_DB=os.environ["POSTGRES_DB"],
-    POSTGRES_USER=os.environ["POSTGRES_USER"],
-    POSTGRES_PASSWORD=os.environ["POSTGRES_PASSWORD"],
     AUTH_SECRET=os.environ["AUTH_SECRET"],
     AUTH_GOOGLE_ID=os.getenv("AUTH_GOOGLE_ID"),
     AUTH_GOOGLE_SECRET=os.getenv("AUTH_GOOGLE_SECRET"),
