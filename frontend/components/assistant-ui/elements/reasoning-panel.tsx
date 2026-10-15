@@ -41,8 +41,9 @@ export function ReasoningPanel({
       onOpenChange={onOpenChange}
       className={cn('w-full max-w-sm', className)}
     >
-      {/* Draft Detective: trigger and chevron sized like ToolGroup's ghost trigger (upstream: 13.5px, down/up chevron). */}
-      <CollapsibleTrigger className="group/trigger text-muted-foreground hover:text-foreground flex items-center gap-2 py-1.5 text-xs leading-none transition-[color,scale] outline-none active:scale-[0.98]">
+      {/* Draft Detective: trigger and chevron sized like ToolGroup's ghost trigger, keeping its focus outline
+          (upstream: 13.5px, down/up chevron, outline-none). */}
+      <CollapsibleTrigger className="group/trigger text-muted-foreground hover:text-foreground flex items-center gap-2 py-1.5 text-xs leading-none transition-[color,scale] active:scale-[0.98]">
         <SwapLabel active={streaming ? 0 : 1} className="text-start">
           <>
             <ShimmerLabel active={streaming} className="relative inline-block leading-none">
