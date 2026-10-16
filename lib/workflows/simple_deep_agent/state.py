@@ -24,9 +24,8 @@ class SimpleDeepAgentConfig(BaseWorkflowConfig):
 class SimpleDeepAgentState(BaseWorkflowState):
     """Shared state for all single-node deep-agent workflows.
 
-    ``result`` is the unified DeepAgentResult; markdown variants fill its
-    ``report_markdown`` (+ ``issues``) from file/tool deliveries, while HTML
-    variants fill its ``report_html`` from a file.
+    ``result`` is the DeepAgentResult, filled from the report file and the
+    issues the agent reported through its tool.
     """
 
     type: WorkflowRunType = Field(
@@ -35,7 +34,7 @@ class SimpleDeepAgentState(BaseWorkflowState):
     config: SimpleDeepAgentConfig
     result: DeepAgentResult | None = Field(
         default=None,
-        description="Result from the deep agent pass (markdown/issues or HTML report)",
+        description="Result from the deep agent pass (markdown report and issues)",
     )
     messages: AgentMessages = Field(
         default_factory=list,

@@ -160,6 +160,41 @@ async def test_create_new_revision_cancels_active_workflows():
 
 
 @pytest.mark.asyncio
+async def test_create_new_revision_leaves_independent_runs_running():
+    """A Review Assistant request reads the files it names, not the revision it
+    started on, so replacing the draft must not cancel it."""
+    project = _make_project(current_revision=1)
+    request_run = _make_run(
+        project.id, WorkflowRunType.REVIEW_ASSISTANT, WorkflowRunStatus.RUNNING
+    )
+    check_run = _make_run(
+        project.id, WorkflowRunType.RECOMMENDATION_CHECK, WorkflowRunStatus.RUNNING
+    )
+
+    sessions = [
+        _FakeSession(scalars_result=[request_run, check_run]),
+        _FakeSession(all_result=[]),
+    ]
+    session_iter = iter(sessions)
+    mock_cancel = AsyncMock()
+
+    with (
+        patch(
+            "lib.services.projects.get_project_access",
+            new=AsyncMock(return_value=(project, AccessLevel.WRITE)),
+        ),
+        patch(
+            "lib.services.projects.get_async_db_session",
+            side_effect=lambda: next(session_iter),
+        ),
+        patch("lib.services.projects.cancel_workflow_run", new=mock_cancel),
+    ):
+        await create_new_revision(str(project.id), MagicMock())
+
+    assert [call.args[0] for call in mock_cancel.await_args_list] == [str(check_run.id)]
+
+
+@pytest.mark.asyncio
 async def test_create_new_revision_returns_previous_workflow_types():
     """Should return the distinct workflow types from the old revision."""
     project = _make_project(current_revision=1)
@@ -197,17 +232,15 @@ async def test_create_new_revision_returns_previous_workflow_types():
 async def test_create_new_revision_excludes_workflows_opted_out_of_auto_rerun():
     """Workflows with auto_rerun_on_new_revision=False are not offered for re-run.
 
-    The peer-review workflows read the *reviewed* revision against the current
-    draft, so re-running them the moment a revision is created would waste an
-    expensive run or return a guard message.
+    A Review Assistant request reads the documents it was given, not the current
+    draft, so re-running it the moment a revision is created would only repeat
+    an expensive run on the same inputs.
     """
     project = _make_project(current_revision=1)
 
     previous_types = [
         (WorkflowRunType.RECOMMENDATION_CHECK,),
-        (WorkflowRunType.REVISION_PLANNING_SUMMARY,),
-        (WorkflowRunType.REVIEWER_RESPONSE_MEMOS,),
-        (WorkflowRunType.REVIEWER_COVERAGE_REPORT,),
+        (WorkflowRunType.REVIEW_ASSISTANT,),
     ]
 
     sessions = [

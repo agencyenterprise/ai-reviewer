@@ -183,23 +183,19 @@ async def tus_upload_file(
     file_name: str,
     content: str | bytes,
     role: str,
-    revision: int | None = None,
 ) -> None:
     """Upload a file into an existing project through the TUS endpoint.
 
     This is the only upload path the app has, and the only one that reads a
-    `role` (and, for the revision-scoped roles, a `revision`) from the upload
-    metadata.
+    `role` from the upload metadata.
 
     Args:
         project_id: Project to attach the file to.
         file_name: Display name for the uploaded file.
         content: File content, either text or raw bytes (e.g. a PDF).
-        role: A `FileRole` value, e.g. "main", "support", "reviewer_memo" or
-            "response_memo".
-        revision: Revision the file belongs to. Only meaningful for the
-            revision-scoped roles (main, reviewer_memo, response_memo);
-            omitting it attaches the file to the project's current revision.
+        role: A `FileRole` value, e.g. "main", "support" or "review_input".
+            A main document attaches to the project's current revision; the
+            other roles are shared across revisions.
 
     The upload is done as a create (POST) followed by a single write (PATCH).
     The creation-with-upload shortcut is deliberately not used: tuspyserver
@@ -209,8 +205,6 @@ async def tus_upload_file(
     """
     payload = content.encode() if isinstance(content, str) else content
     metadata = {"filename": file_name, "project_id": project_id, "role": role}
-    if revision is not None:
-        metadata["revision"] = str(revision)
 
     async with _build_client() as client:
         create = await client.post(
@@ -238,10 +232,9 @@ async def tus_upload_file(
         )
         write.raise_for_status()
         logger.info(
-            "Uploaded %s (role=%s, revision=%s) to project %s",
+            "Uploaded %s (role=%s) to project %s",
             file_name,
             role,
-            revision,
             project_id,
         )
 
@@ -401,21 +394,21 @@ async def start_workflow(config: dict[str, Any]) -> str:
         return body["workflow_run_id"]
 
 
-async def create_revision(project_id: str) -> int:
-    """Create a new revision on a project and return its number.
-
-    Creating a revision archives the current revision's issues and cancels any
-    workflow still running against it, so anything that must belong to the
-    outgoing revision has to be uploaded before this is called. The new main
-    document is uploaded afterwards, through TUS.
-    """
+async def start_review_assistant_request(
+    project_id: str, outputs: list[str], file_ids: list[str]
+) -> str:
+    """Start a Review Assistant request, as the Review Assistant tab does, and
+    return its workflow run id. Carries the eval's `--model`, like the other
+    start helpers, so the run is checked against the model it was asked for."""
+    payload: dict[str, Any] = {"outputs": outputs, "file_ids": file_ids}
+    if model := requested_model():
+        payload["model"] = model
     async with _build_client() as client:
-        resp = await client.post(f"/api/project/{project_id}/revisions")
+        resp = await client.post(
+            f"/api/project/{project_id}/review-assistant/requests", json=payload
+        )
         resp.raise_for_status()
-        revision = int(resp.json()["revision"])
-
-    logger.info("Created revision %s on project %s", revision, project_id)
-    return revision
+        return str(resp.json()["workflow_run_id"])
 
 
 async def start_workflow_types(project_id: str, workflow_types: list[str]) -> None:

@@ -59,6 +59,7 @@ export function FilesTab({ overview, readOnly, onRevisionCreated }: FilesTabProp
     FileRole.Support,
     FileRole.ReviewerMemo,
     FileRole.ResponseMemo,
+    FileRole.ReviewInput,
   ]);
 
   // Only labels each file with the reference it backs, so the table does not wait on it.
@@ -81,6 +82,7 @@ export function FilesTab({ overview, readOnly, onRevisionCreated }: FilesTabProp
       source: files.filter((file) => fileGroup(file.role) === 'source').length,
       memo: files.filter((file) => fileGroup(file.role) === 'memo').length,
       response: files.filter((file) => fileGroup(file.role) === 'response').length,
+      review: files.filter((file) => fileGroup(file.role) === 'review').length,
     }),
     [files],
   );
@@ -114,8 +116,8 @@ export function FilesTab({ overview, readOnly, onRevisionCreated }: FilesTabProp
         isOpen={uploadOpen}
         projectId={projectId}
         title="Add files"
-        // Memos are added from the Peer Review tab, which explains the draft
-        // each kind is tied to; this dialog adds source documents only.
+        // Review documents are added from the Review Assistant tab, where the
+        // request that reads them is; this dialog adds source documents only.
         description="Add source documents to this project."
         multiple
         onCancel={() => setUploadOpen(false)}
@@ -324,6 +326,7 @@ const LENSES: { id: Lens; label: string }[] = [
   { id: 'source', label: GROUP.source.plural },
   { id: 'memo', label: GROUP.memo.plural },
   { id: 'response', label: GROUP.response.plural },
+  { id: 'review', label: GROUP.review.plural },
 ];
 
 function KindRail({

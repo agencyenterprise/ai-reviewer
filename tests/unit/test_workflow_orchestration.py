@@ -32,6 +32,7 @@ def create_workflow_run(
 def mock_manifest():
     """Mock workflow manifest with no dependencies."""
     manifest = MagicMock()
+    manifest.independent_runs = False
     manifest.required_dependencies = []
     manifest.optional_dependencies = []
     return manifest
@@ -84,6 +85,34 @@ async def test_same_type_lock_waits_for_running_workflow(mock_manifest):
 
     # Should have polled twice (once found RUNNING, once found COMPLETED)
     assert call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_independent_runs_do_not_wait_for_each_other(mock_manifest):
+    """Runs that read only their own inputs skip the same-type lock, so a queued
+    request is not left to time out behind long ones."""
+    mock_manifest.independent_runs = True
+    other_run = create_workflow_run(
+        WorkflowRunType.REVIEW_ASSISTANT, WorkflowRunStatus.RUNNING
+    )
+
+    with (
+        patch(
+            "lib.services.workflow_orchestration.get_workflow_manifest",
+            return_value=mock_manifest,
+        ),
+        patch(
+            "lib.services.workflow_orchestration.get_project_workflow_run_by_type",
+            return_value=other_run,
+        ) as mock_get_run,
+    ):
+        await wait_for_dependencies(
+            WorkflowRunType.REVIEW_ASSISTANT,
+            str(uuid4()),
+            current_workflow_run_id=str(uuid4()),
+        )
+
+    mock_get_run.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -237,6 +266,7 @@ async def test_waits_for_both_same_type_and_dependencies():
 
     # Manifest with a required dependency
     manifest = MagicMock()
+    manifest.independent_runs = False
     manifest.required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
     manifest.optional_dependencies = []
 
@@ -341,6 +371,7 @@ async def test_cancelled_required_dependency_raises_workflow_cancelled_error():
     current_run_id = str(uuid4())
 
     manifest = MagicMock()
+    manifest.independent_runs = False
     manifest.required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
     manifest.optional_dependencies = []
 
@@ -389,6 +420,7 @@ async def test_cancelled_optional_dependency_does_not_raise():
     current_run_id = str(uuid4())
 
     manifest = MagicMock()
+    manifest.independent_runs = False
     manifest.required_dependencies = []
     manifest.optional_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
@@ -521,6 +553,7 @@ async def test_required_dependency_awaiting_approval_blocks_until_released():
     project_id = str(uuid4())
 
     manifest = MagicMock()
+    manifest.independent_runs = False
     manifest.required_dependencies = [WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2]
     manifest.optional_dependencies = []
 

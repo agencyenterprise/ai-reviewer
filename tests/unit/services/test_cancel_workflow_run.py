@@ -108,7 +108,32 @@ async def test_cancel_calls_cancel_workflow_progress():
     ):
         await cancel_workflow_run(str(run.id), "project-1")
 
-    mock_cancel_progress.assert_awaited_once_with(run.project_id, run.type)
+    mock_cancel_progress.assert_awaited_once_with(
+        run.project_id, run.type, only_run_id=None
+    )
+
+
+@pytest.mark.asyncio
+async def test_cancelling_one_independent_run_leaves_the_others_progress():
+    """Review Assistant requests run side by side, so cancelling one clears only its own progress."""
+    run = _make_run(WorkflowRunType.REVIEW_ASSISTANT, WorkflowRunStatus.RUNNING)
+
+    with (
+        patch(
+            "lib.services.workflow_runs.get_workflow_run",
+            new=AsyncMock(return_value=run),
+        ),
+        patch(
+            "lib.services.workflow_runs.cancel_workflow_progress", new=AsyncMock()
+        ) as mock_cancel_progress,
+        patch("lib.services.workflow_runs.update_workflow_run_status", new=AsyncMock()),
+        patch("lib.services.workflow_runs.get_required_dependents", return_value=[]),
+    ):
+        await cancel_workflow_run(str(run.id), "project-1")
+
+    mock_cancel_progress.assert_awaited_once_with(
+        run.project_id, run.type, only_run_id=run.id
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -15,15 +15,7 @@ import { createProgress, isActiveStatus } from './types';
 import { projectQueryKeys } from '@/lib/hooks/use-project-data';
 
 export function useUpload(options: UseUploadOptions): UseUploadReturn {
-  const {
-    projectId,
-    fileRole = FileRole.Support,
-    referenceId,
-    targetRevision,
-    onFileComplete,
-    onAllComplete,
-    onError,
-  } = options;
+  const { projectId, fileRole = FileRole.Support, referenceId, onFileComplete, onAllComplete, onError } = options;
 
   const queryClient = useQueryClient();
   const [files, setFiles] = useState<UploadFileState[]>([]);
@@ -33,14 +25,8 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
   // Refs for callbacks to get latest values in event handlers
   const callbackRefs = useRef({ onFileComplete, onAllComplete, onError });
 
-  // The Uppy instance is created once and cached, so its `file-added` handler
-  // would otherwise capture the revision selected at first render. Read it
-  // through a ref, and re-stamp it at upload time, so changing the target
-  // revision after files are picked still takes effect.
-  const targetRevisionRef = useRef(targetRevision);
   useLayoutEffect(() => {
     callbackRefs.current = { onFileComplete, onAllComplete, onError };
-    targetRevisionRef.current = targetRevision;
   });
 
   const findUppyId = useCallback((fileId: string): string | undefined => {
@@ -78,10 +64,6 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
       };
       if (referenceId) {
         meta.reference_id = referenceId;
-      }
-      // TUS metadata values are strings; the server parses and validates this.
-      if (targetRevisionRef.current !== undefined) {
-        meta.revision = String(targetRevisionRef.current);
       }
       uppy.setFileMeta(file.id, meta);
     });
@@ -164,9 +146,6 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
           if (referenceId) {
             meta.reference_id = referenceId;
           }
-          if (targetRevisionRef.current !== undefined) {
-            meta.revision = String(targetRevisionRef.current);
-          }
           const uppyFileId = uppy.addFile({
             name: file.name,
             type: file.type,
@@ -175,8 +154,13 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
           });
           fileMapRef.current.set(uppyFileId, { file, state });
         } catch (err) {
+          // Uppy turned the file away before it started (a restriction, or a
+          // duplicate). Report it like a failed upload: no upload event follows.
+          const error = err instanceof Error ? err : new Error('Failed to add file');
           state.status = 'error';
-          state.error = err instanceof Error ? err.message : 'Failed to add file';
+          state.error = error.message;
+          callbackRefs.current.onError?.(error, file.name);
+          toast.error(`Failed to upload ${file.name}: ${error.message}`);
         }
       }
 
@@ -207,12 +191,6 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
       const uppy = getUppy();
       if (filesToUpload && filesToUpload.length > 0) {
         addFiles(filesToUpload);
-      }
-      // Re-stamp in case the target revision changed after the files were added.
-      if (targetRevisionRef.current !== undefined) {
-        for (const uppyFile of uppy.getFiles()) {
-          uppy.setFileMeta(uppyFile.id, { revision: String(targetRevisionRef.current) });
-        }
       }
       setFiles((prev) => prev.map((f) => (f.status === 'pending' ? { ...f, status: 'uploading' as UploadStatus } : f)));
       uppy.upload();

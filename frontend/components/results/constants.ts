@@ -1,6 +1,6 @@
 import { WorkflowRunType } from '@/lib/generated-api';
 
-export const TABS = ['document-explorer', 'references', 'files', 'analyses', 'peer-review'] as const;
+export const TABS = ['document-explorer', 'references', 'files', 'analyses', 'review-assistant'] as const;
 
 export type TabType = (typeof TABS)[number];
 

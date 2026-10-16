@@ -90,7 +90,9 @@ async def test_fail_calls_cancel_workflow_progress():
             failure_reason=WorkflowRunFailureReason.UNHANDLED_EXCEPTION,
         )
 
-    mock_cancel_progress.assert_awaited_once_with(run.project_id, run.type)
+    mock_cancel_progress.assert_awaited_once_with(
+        run.project_id, run.type, only_run_id=None
+    )
 
 
 @pytest.mark.asyncio

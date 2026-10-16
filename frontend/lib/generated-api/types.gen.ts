@@ -1598,12 +1598,8 @@ export type DashboardIgnoredUser = {
 /**
  * DeepAgentResult
  *
- * Unified result stored in the workflow state.
- *
- * Holds the superset of what the deep-agent variants produce. Exactly one
- * report field is populated per run (markdown workflows fill
- * ``report_markdown``; HTML workflows fill ``report_html``); the UI renders
- * whichever is present. ``issues`` is populated by the markdown variant only.
+ * Result stored in the workflow state: the markdown report and the issues
+ * the agent reported through its tool.
  */
 export type DeepAgentResult = {
   /**
@@ -1614,10 +1610,6 @@ export type DeepAgentResult = {
    * Report Markdown
    */
   report_markdown?: string;
-  /**
-   * Report Html
-   */
-  report_html?: string;
 };
 
 /**
@@ -1642,14 +1634,6 @@ export type DocumentProcessingState = {
    * Supporting Files
    */
   supporting_files?: Array<FileDocument> | null;
-  /**
-   * Reviewer Memo Files
-   */
-  reviewer_memo_files?: Array<FileDocument> | null;
-  /**
-   * Response Memo Files
-   */
-  response_memo_files?: Array<FileDocument> | null;
 };
 
 /**
@@ -2272,6 +2256,7 @@ export const FileRole = {
   SupportingCandidate: 'supporting_candidate',
   ReviewerMemo: 'reviewer_memo',
   ResponseMemo: 'response_memo',
+  ReviewInput: 'review_input',
   ExtractedImage: 'extracted_image',
 } as const;
 
@@ -3850,6 +3835,198 @@ export type ReferenceValidationV2WorkflowConfig = {
 };
 
 /**
+ * ReviewAssistantConfig
+ */
+export type ReviewAssistantConfig = {
+  /**
+   * Project Id
+   *
+   * The ID of the project that this workflow run should be associated with
+   */
+  project_id: string;
+  /**
+   * Openai Api Key
+   *
+   * The OpenAI API key to use for this workflow execution
+   */
+  openai_api_key?: string | null;
+  /**
+   * Publication Date
+   *
+   * Publication date of the document (YYYY-MM-DD format)
+   */
+  publication_date?: string | null;
+  /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
+  /**
+   * Type
+   */
+  type?: 'review_assistant';
+  /**
+   * Outputs
+   *
+   * The deliverables to produce, at least one
+   */
+  outputs?: Array<ReviewAssistantOutput>;
+  /**
+   * Input File Ids
+   *
+   * Every document to read, in the order the author gave them
+   */
+  input_file_ids?: Array<string>;
+};
+
+/**
+ * ReviewAssistantInput
+ *
+ * One document as it was mounted for the agent.
+ */
+export type ReviewAssistantInput = {
+  /**
+   * File Id
+   */
+  file_id: string;
+  /**
+   * File Name
+   */
+  file_name: string;
+  /**
+   * Folder
+   *
+   * Its folder on the agent filesystem, e.g. /inputs/01-memo
+   */
+  folder: string;
+  /**
+   * Comment Count
+   */
+  comment_count?: number;
+  /**
+   * Tracked Change Count
+   */
+  tracked_change_count?: number;
+};
+
+/**
+ * ReviewAssistantInputReading
+ *
+ * What the agent decided a document is. Read from the agent's own notes,
+ * so every field but the folder is optional.
+ */
+export type ReviewAssistantInputReading = {
+  /**
+   * Folder
+   */
+  folder: string;
+  /**
+   * Role
+   */
+  role?: string;
+  /**
+   * Reviewer
+   */
+  reviewer?: string | null;
+  /**
+   * Note
+   */
+  note?: string | null;
+};
+
+/**
+ * ReviewAssistantOutput
+ *
+ * The deliverables the review-assistant skill can produce.
+ */
+export const ReviewAssistantOutput = {
+  RevisionPlanningSummary: 'revision_planning_summary',
+  ReviewerResponseMemos: 'reviewer_response_memos',
+  ReviewerCoverageReport: 'reviewer_coverage_report',
+} as const;
+
+/**
+ * ReviewAssistantOutput
+ *
+ * The deliverables the review-assistant skill can produce.
+ */
+export type ReviewAssistantOutput = (typeof ReviewAssistantOutput)[keyof typeof ReviewAssistantOutput];
+
+/**
+ * ReviewAssistantReport
+ */
+export type ReviewAssistantReport = {
+  output: ReviewAssistantOutput;
+  /**
+   * Report Html
+   */
+  report_html: string;
+};
+
+/**
+ * ReviewAssistantRequestSummary
+ */
+export type ReviewAssistantRequestSummary = {
+  run: WorkflowRunPublic;
+  /**
+   * Outputs
+   */
+  outputs: Array<ReviewAssistantOutput>;
+  /**
+   * Input File Ids
+   */
+  input_file_ids: Array<string>;
+  /**
+   * Errors
+   *
+   * Errors recorded by this run itself, which can turn a completed run into a failed one
+   */
+  errors?: Array<WorkflowError>;
+};
+
+/**
+ * ReviewAssistantState
+ */
+export type ReviewAssistantState = {
+  /**
+   * Errors
+   *
+   * Errors that occurred during the workflow execution.
+   */
+  errors?: Array<WorkflowError>;
+  /**
+   * Type
+   */
+  type?: 'review_assistant';
+  config: ReviewAssistantConfig;
+  /**
+   * Inputs
+   */
+  inputs?: Array<ReviewAssistantInput>;
+  /**
+   * Input Readings
+   */
+  input_readings?: Array<ReviewAssistantInputReading>;
+  /**
+   * Reports
+   */
+  reports?: Array<ReviewAssistantReport>;
+  /**
+   * Guard Message
+   *
+   * Why the run stopped before the agent started, when it did
+   */
+  guard_message?: string | null;
+  /**
+   * Messages
+   */
+  messages?: Array<{
+    [key: string]: unknown;
+  }>;
+};
+
+/**
  * Reviewer2Config
  *
  * Configuration for the Reviewer 2 workflow.
@@ -4129,9 +4306,8 @@ export type SimpleDeepAgentConfig = {
  *
  * Shared state for all single-node deep-agent workflows.
  *
- * ``result`` is the unified DeepAgentResult; markdown variants fill its
- * ``report_markdown`` (+ ``issues``) from file/tool deliveries, while HTML
- * variants fill its ``report_html`` from a file.
+ * ``result`` is the DeepAgentResult, filled from the report file and the
+ * issues the agent reported through its tool.
  */
 export type SimpleDeepAgentState = {
   /**
@@ -4146,7 +4322,7 @@ export type SimpleDeepAgentState = {
   type: WorkflowRunType;
   config: SimpleDeepAgentConfig;
   /**
-   * Result from the deep agent pass (markdown/issues or HTML report)
+   * Result from the deep agent pass (markdown report and issues)
    */
   result?: DeepAgentResult | null;
   /**
@@ -4207,6 +4383,26 @@ export type StartMultipleWorkflowsResponse = {
    * Message
    */
   message: string;
+};
+
+/**
+ * StartReviewAssistantRequest
+ */
+export type StartReviewAssistantRequest = {
+  /**
+   * Outputs
+   */
+  outputs: Array<ReviewAssistantOutput>;
+  /**
+   * File Ids
+   *
+   * The documents to read, in the order to read them
+   */
+  file_ids: Array<string>;
+  /**
+   * Model
+   */
+  model?: string | null;
 };
 
 /**
@@ -4770,6 +4966,7 @@ export type WorkflowRunDetail = {
     | ReferenceDownloaderState
     | ReferenceValidationV2State
     | Reviewer2State
+    | ReviewAssistantState
     | SimpleDeepAgentState
     | null;
   cost?: CostBreakdown | null;
@@ -4919,9 +5116,7 @@ export const WorkflowRunType = {
   DocumentStructure: 'document_structure',
   FiguresTablesCheck: 'figures_tables_check',
   RecommendationCheck: 'recommendation_check',
-  RevisionPlanningSummary: 'revision_planning_summary',
-  ReviewerResponseMemos: 'reviewer_response_memos',
-  ReviewerCoverageReport: 'reviewer_coverage_report',
+  ReviewAssistant: 'review_assistant',
   ActiveVoice: 'active_voice',
   AudienceFit: 'audience_fit',
   ConcisionPrecision: 'concision_precision',
@@ -5957,6 +6152,7 @@ export type StartWorkflowApiWorkflowsStartPostData = {
     | ReferenceDownloaderWorkflowConfig
     | ReferenceValidationV2WorkflowConfig
     | Reviewer2Config
+    | ReviewAssistantConfig
     | SimpleDeepAgentConfig;
   path?: never;
   query?: never;
@@ -7407,6 +7603,72 @@ export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsG
 
 export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse =
   GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses[keyof GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses];
+
+export type ListReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: never;
+  url: '/api/project/{project_id}/review-assistant/requests';
+};
+
+export type ListReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ListReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetError =
+  ListReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetErrors[keyof ListReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetErrors];
+
+export type ListReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetResponses = {
+  /**
+   * Response List Review Assistant Requests Endpoint Api Project  Project Id  Review Assistant Requests Get
+   *
+   * Successful Response
+   */
+  200: Array<ReviewAssistantRequestSummary>;
+};
+
+export type ListReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetResponse =
+  ListReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetResponses[keyof ListReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetResponses];
+
+export type StartReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPostData = {
+  body: StartReviewAssistantRequest;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: never;
+  url: '/api/project/{project_id}/review-assistant/requests';
+};
+
+export type StartReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type StartReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPostError =
+  StartReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPostErrors[keyof StartReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPostErrors];
+
+export type StartReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: StartWorkflowResponse;
+};
+
+export type StartReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPostResponse =
+  StartReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPostResponses[keyof StartReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPostResponses];
 
 export type EnableProjectSharingApiProjectsProjectIdShareEnablePostData = {
   body?: never;

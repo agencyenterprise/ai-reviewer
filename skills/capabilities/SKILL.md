@@ -37,7 +37,7 @@ These review the document and flag issues.
 
 ## Peer review response
 
-This helps you respond to peer reviewers rather than analyzing a single document. It works from a draft (and optionally a revised draft) plus one or more reviewer memos.
+This helps you respond to peer reviewers rather than analyzing a single document. It works from a draft (and optionally a revised draft) plus the reviewers' feedback, as memos or as comments and tracked changes in a copy of the draft, and the documents do not need to be labeled.
 
 | Capability | What it does | Skill | Web search |
 |---|---|---|---|

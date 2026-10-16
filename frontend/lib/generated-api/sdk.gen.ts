@@ -189,6 +189,9 @@ import type {
   ListProjectsEndpointApiProjectsGetData,
   ListProjectsEndpointApiProjectsGetErrors,
   ListProjectsEndpointApiProjectsGetResponses,
+  ListReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetData,
+  ListReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetErrors,
+  ListReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetResponses,
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetData,
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetErrors,
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponses,
@@ -221,6 +224,9 @@ import type {
   StartMultipleWorkflowsApiWorkflowsStartMultiplePostData,
   StartMultipleWorkflowsApiWorkflowsStartMultiplePostErrors,
   StartMultipleWorkflowsApiWorkflowsStartMultiplePostResponses,
+  StartReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPostData,
+  StartReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPostErrors,
+  StartReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPostResponses,
   StartWorkflowApiWorkflowsStartPostData,
   StartWorkflowApiWorkflowsStartPostErrors,
   StartWorkflowApiWorkflowsStartPostResponses,
@@ -1823,6 +1829,64 @@ export const getProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRuns
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/project/{project_id}/workflow-runs',
     ...options,
+  });
+
+/**
+ * List Review Assistant Requests Endpoint
+ *
+ * The project's requests across every revision, newest first.
+ */
+export const listReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGet = <
+  ThrowOnError extends boolean = true,
+>(
+  options: Options<ListReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetData, ThrowOnError>,
+): RequestResult<
+  ListReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetResponses,
+  ListReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).get<
+    ListReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetResponses,
+    ListReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/review-assistant/requests',
+    ...options,
+  });
+
+/**
+ * Start Review Assistant Request Endpoint
+ *
+ * Start a request: produce these outputs from these documents.
+ */
+export const startReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPost = <
+  ThrowOnError extends boolean = true,
+>(
+  options: Options<StartReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPostData, ThrowOnError>,
+): RequestResult<
+  StartReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPostResponses,
+  StartReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPostErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).post<
+    StartReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPostResponses,
+    StartReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/review-assistant/requests',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**

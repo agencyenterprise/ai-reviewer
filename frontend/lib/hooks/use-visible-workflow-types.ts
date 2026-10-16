@@ -12,8 +12,8 @@ export interface VisibleWorkflowGroup {
  * The assessments on offer in the picker, grouped by category.
  *
  * Category membership is what decides whether a workflow is on offer:
- * anything absent from every category (the peer-review workflows, which are
- * started from their own tab) is not listed and not counted. Internal
+ * anything absent from every category (the Review Assistant, which is
+ * started from its own tab) is not listed and not counted. Internal
  * workflows, and experimental ones for users who have not opted in, are
  * filtered out as well.
  */

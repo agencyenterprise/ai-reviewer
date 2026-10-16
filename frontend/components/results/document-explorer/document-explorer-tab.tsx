@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { isAssessmentRun } from '@/lib/review-assistant';
 import { AccessLevel, Issue, ProjectDocument, ProjectOverview, WorkflowRunType } from '@/lib/generated-api';
 import { useLineHashNavigation } from '@/lib/line-hash';
 import {
@@ -81,7 +82,12 @@ export function DocumentExplorerTab({
 
   const mainDocumentMarkdown = document.markdown ?? '';
 
-  const workflowDetails = useMemo(() => overview.workflow_runs ?? [], [overview.workflow_runs]);
+  // Review Assistant requests do not read the draft, so they neither count as
+  // processing here nor raise errors that point at Assessments.
+  const workflowDetails = useMemo(
+    () => (overview.workflow_runs ?? []).filter((detail) => isAssessmentRun(detail.run.type)),
+    [overview.workflow_runs],
+  );
 
   // What the summarizer read off the document itself, which is what the reader
   // wants at the top of the page — not the project's name, which is editable

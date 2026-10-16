@@ -1,15 +1,14 @@
-"""E2E eval for the revision_planning_summary workflow.
+"""E2E eval for the Review Assistant's revision-planning summary.
 
-The workflow runs the `review-assistant` skill over a reviewed draft plus its
-reviewer memos and returns one self-contained HTML document: a Part 1 worklist
-for the author, and a Part 2 that reproduces every memo verbatim with a
-planning note under each point.
+The Review Assistant runs the `review-assistant` skill over a reviewed draft
+plus its reviewer memos and returns, for this output, one self-contained HTML
+document: a Part 1 worklist for the author, and a Part 2 that reproduces every
+memo verbatim with a planning note under each point.
 
-Unlike the other e2e evals, the project this needs cannot be created by a
-single upload: the memos have to carry the `reviewer_memo` role, which only the
-TUS path can set, and the workflow short-circuits through its precheck if they
-are missing. `peer_review_fixture` builds that project and then starts the
-workflow against it.
+The project is built the way an author would: the reviewed draft is the main
+document, the memos are uploaded unlabeled, and a request for this one output
+names them all. `peer_review_fixture` does that through the Review Assistant's
+own endpoints.
 
 The prose is free-form, so scoring splits in two:
 
@@ -29,10 +28,16 @@ carries the per-scenario expectations.
   triaging Part 1 into substantial asks versus a count of quick fixes, carrying
   a scope and a suggestion under every point, and the trap the scenario plants.
 
+- `input_identification`, the share of documents the agent took for what
+  they are: nobody labels them, so a misreading is what every other score
+  would then inherit.
+
 Each dataset sample plants a specific trap: conflicting reviewers, a compound
 bullet that needs sub-point IDs, three reviewers on a commentary where many
 asks are out of scope, a memo that refers to everything by a number the
-revision will change, and a memo dominated by trivial corrections.
+revision will change, a memo dominated by trivial corrections, and a reviewer
+who left only Word comments on a copy of the draft, which must count as a
+reviewer of their own.
 """
 
 import json
@@ -62,21 +67,24 @@ from inspect_ai.viewer import (
 )
 
 from evals_inspectai.common.api_solver import surface_conversations
+from evals_inspectai.common.docx_fixture import MarkedUpCopy, with_byline
 from evals_inspectai.common.loaders import resolve_input
 from evals_inspectai.common.model_override import output_model_name
 from evals_inspectai.common.peer_review_fixture import (
-    ReviewerMemo,
-    run_review_assistant_workflow,
-    setup_peer_review_project,
+    ReviewDocument,
+    expected_input_roles,
+    run_review_assistant_request,
 )
 from evals_inspectai.common.review_assistant_scorers import (
     STRUCTURE_CHECKS,
     extract_report,
+    input_identification,
     report_structure,
 )
 from evals_inspectai.common.scorers import criteria_for, failed_score, grade_criteria
 
-_TARGET_WORKFLOW = "revision_planning_summary"
+_TARGET_OUTPUT = "revision_planning_summary"
+_WORKFLOW = "review_assistant"
 
 # Grader for the judged criteria. Set here rather than taking the shared
 # `DEFAULT_GRADER_MODEL`, so changing this suite's judge does not silently
@@ -88,6 +96,15 @@ GRADER_MODEL = "openai/gpt-5.6-terra"
 _WORKFLOW_TIMEOUT_S = 2400
 
 
+def _memo(entry: str | dict) -> dict[str, str]:
+    """A memo's display name and text; a mapping may sign it with a `byline`."""
+    ref = entry if isinstance(entry, str) else entry["source"]
+    text = resolve_input(ref)
+    if isinstance(entry, dict) and entry.get("byline"):
+        text = with_byline(text, entry["byline"])
+    return {"file_name": Path(ref.removeprefix("file://")).name, "content": text}
+
+
 def _record_to_sample(record: dict) -> Sample:
     """Build a sample from one dataset record.
 
@@ -95,15 +112,12 @@ def _record_to_sample(record: dict) -> Sample:
     Keeping them on disk as markdown rather than embedding them keeps the
     dataset readable and lets the fixture documents be edited as the documents
     they are; the memo's file name is carried through as its display name on
-    upload.
+    upload. A memo may be given as a mapping instead, to add a `byline`, and a
+    record may carry `marked_up` copies of the draft, built as Word files at
+    upload time.
     """
-    memos = [
-        {
-            "file_name": Path(ref.removeprefix("file://")).name,
-            "content": resolve_input(ref),
-        }
-        for ref in record["memos"]
-    ]
+    memos = [_memo(entry) for entry in record.get("memos", [])]
+    marked_up = [MarkedUpCopy.model_validate(m) for m in record.get("marked_up", [])]
     return Sample(
         id=record["id"],
         # The draft is the sample input so it reaches the grader as the question.
@@ -112,7 +126,13 @@ def _record_to_sample(record: dict) -> Sample:
         # viewer. The graded criteria are read from metadata, not from here.
         target=record["rubric"]["scenario_trap"],
         metadata={
+            "output": _TARGET_OUTPUT,
             "memos": memos,
+            "marked_up": [m.model_dump() for m in marked_up],
+            "expected_roles": expected_input_roles(
+                memo_names=[m["file_name"] for m in memos],
+                marked_up_names=[m.file_name for m in marked_up],
+            ),
             "expected_reviewers": record["expected_reviewers"],
             "point_count_bands": record["point_count_bands"],
             "verbatim_probes": record["verbatim_probes"],
@@ -143,27 +163,24 @@ def revision_planning_summary_solver(
     timeout_s: float = _WORKFLOW_TIMEOUT_S,
     poll_interval_s: float = 10,
 ) -> Solver:
-    """Build a peer-review project from the sample, then run the workflow on it.
+    """Ask the Review Assistant for the planning summary over the sample's documents.
 
     A custom solver rather than the shared `api_workflow_agent` because the
-    project needs reviewer memos in place before the workflow starts; see
+    memos have to be uploaded alongside the draft and named in the request; see
     `peer_review_fixture`.
     """
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         meta = state.metadata or {}
 
-        project_id = await setup_peer_review_project(
+        run_detail = await run_review_assistant_request(
             draft=state.input_text,
-            memos=[
-                ReviewerMemo(file_name=m["file_name"], content=m["content"])
-                for m in meta["memos"]
+            memos=[ReviewDocument(m["file_name"], m["content"]) for m in meta["memos"]],
+            marked_up=[
+                ReviewDocument(m.file_name, m.content())
+                for m in (MarkedUpCopy.model_validate(raw) for raw in meta["marked_up"])
             ],
-        )
-
-        run_detail = await run_review_assistant_workflow(
-            project_id=project_id,
-            workflow_type=_TARGET_WORKFLOW,
+            outputs=[_TARGET_OUTPUT],
             timeout_s=timeout_s,
             poll_interval_s=poll_interval_s,
         )
@@ -173,7 +190,7 @@ def revision_planning_summary_solver(
         # Hand the agent's own conversation to Inspect, the same way the shared
         # `api_workflow_agent` does: lifted out of the state dict so the
         # completion the scorers parse stays just the workflow result.
-        await surface_conversations(state, workflow_state, _TARGET_WORKFLOW)
+        await surface_conversations(state, workflow_state, _WORKFLOW)
 
         state.output = ModelOutput(
             completion=json.dumps(workflow_state),
@@ -272,6 +289,7 @@ def _viewer_config() -> ViewerConfig:
             for name in STRUCTURE_CHECKS
         ),
         *(TaskSamplesColumn.score("rubric_criteria", name) for name in RUBRIC_CRITERIA),
+        TaskSamplesColumn.score("input_identification"),
     ]
 
     return ViewerConfig(
@@ -319,6 +337,7 @@ def _viewer_config() -> ViewerConfig:
                 "part1_triage": "Triage",
                 "planning_notes": "Notes",
                 "scenario_trap": "Trap",
+                "input_identification": "Inputs",
             },
             # Everything is numeric with 1 good. The rubric criteria are no
             # longer categorical C/P/I: they are graded that way and mapped to
@@ -337,7 +356,11 @@ def _viewer_config() -> ViewerConfig:
             # in every column and gives a passing column its full-marks green.
             score_color_scales={
                 name: ScoreColorScale(palette="good-high", min=0.0, max=1.0)
-                for name in (*STRUCTURE_CHECKS, *RUBRIC_CRITERIA)
+                for name in (
+                    *STRUCTURE_CHECKS,
+                    *RUBRIC_CRITERIA,
+                    "input_identification",
+                )
             },
             color_scales_enabled=True,
         ),
@@ -357,6 +380,7 @@ def revision_planning_summary_e2e():
         scorer=[
             report_structure(),
             rubric_criteria(),
+            input_identification(),
         ],
         viewer=_viewer_config(),
     )

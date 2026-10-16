@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import uuid
 from datetime import datetime
 from enum import StrEnum
 from typing import Any, TypeVar, cast
@@ -358,6 +359,17 @@ async def get_workflow_run_status(workflow_run_id: str) -> WorkflowRunStatus | N
         return (await session.execute(stmt)).scalar_one_or_none()
 
 
+def _own_progress_only(run: WorkflowRun) -> uuid.UUID | None:
+    """The run's id when ending it must leave its siblings' progress alone.
+
+    Runs of a type usually go one at a time, so clearing the whole type's
+    progress also sweeps up entries stuck from earlier runs. Independent runs
+    go side by side, and the others are still working.
+    """
+    manifest = get_workflow_manifest(run.type, raise_exception=False)
+    return run.id if manifest is not None and manifest.independent_runs else None
+
+
 async def cancel_workflow_run(workflow_run_id: str, project_id: str) -> None:
     """
     Cancel a workflow run and recursively cancel any active runs that depend on it.
@@ -368,7 +380,9 @@ async def cancel_workflow_run(workflow_run_id: str, project_id: str) -> None:
     run = await get_workflow_run(workflow_run_id)
     if run.project_id is None:
         raise ValueError(f"Workflow run {workflow_run_id} has no project_id")
-    await cancel_workflow_progress(run.project_id, run.type)
+    await cancel_workflow_progress(
+        run.project_id, run.type, only_run_id=_own_progress_only(run)
+    )
     await update_workflow_run_status(workflow_run_id, WorkflowRunStatus.CANCELLED)
     await _cascade_cancel_dependents(run.type, project_id, run.revision)
 
@@ -389,7 +403,9 @@ async def fail_workflow_run(
     run = await get_workflow_run(workflow_run_id)
     if run.project_id is None:
         raise ValueError(f"Workflow run {workflow_run_id} has no project_id")
-    await cancel_workflow_progress(run.project_id, run.type)
+    await cancel_workflow_progress(
+        run.project_id, run.type, only_run_id=_own_progress_only(run)
+    )
     await update_workflow_run_status(
         workflow_run_id,
         WorkflowRunStatus.FAILED,

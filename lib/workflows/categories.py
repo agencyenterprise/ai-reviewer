@@ -56,13 +56,10 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
             WorkflowRunType.ADVOCACY_TONE_V2,
         ],
     ),
-    # The peer-review workflows (REVISION_PLANNING_SUMMARY,
-    # REVIEWER_RESPONSE_MEMOS, REVIEWER_COVERAGE_REPORT) are deliberately absent.
-    # They are started only from the Peer Review tab, which sequences their
-    # prerequisites — memos first, then the revised draft — and starting them out
-    # of order returns a guard message instead of a report. Leaving them out of
-    # every category is what keeps them out of the assessment picker; they stay
-    # registered, so existing runs still list and render normally.
+    # REVIEW_ASSISTANT is deliberately absent. The Review Assistant tab starts it
+    # with the outputs and documents the author picked, and a run without them
+    # has nothing to read. Leaving it out of every category is what keeps it out
+    # of the assessment picker.
     # The Research & Writing Assistant workflows (LITERATURE_REVIEW_V2 and
     # LIVE_REPORTS_V2) are deliberately absent. Draft Detective is positioned as a
     # suite of checks that review a draft the author already has; these instead go
