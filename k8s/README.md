@@ -42,6 +42,11 @@ cp ../.env.template .env
 # Edit .env with your OpenAI key, database password, etc.
 ```
 
+The template's defaults are for local development. Before you create the secret, change these in `.env`:
+
+- `DATABASE_URL`: use the `db` Service as the host, with the same user, password and database name as `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB` (for example `postgresql://ai_reviewer_user:<password>@db:5432/ai_reviewer`).
+- `FRONTEND_URL` and `MCP_BASE_URL`: use the public Route or Ingress URLs, not `localhost` (`MCP_BASE_URL` keeps its `/mcp` path). The API builds share links and its OAuth base URL from them.
+
 ### 3. Deploy to Cluster
 
 **OpenShift:**
