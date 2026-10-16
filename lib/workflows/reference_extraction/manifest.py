@@ -1,9 +1,10 @@
 """Manifest for reference extraction workflow."""
 
-from typing import List, Type
+import builtins
 
 from langgraph.graph import StateGraph
 
+from lib.services.files import get_main_file_id
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.reference_extraction.graph import build_reference_extraction_graph
@@ -12,7 +13,6 @@ from lib.workflows.reference_extraction.state import (
     ReferenceExtractionState,
 )
 from lib.workflows.workflow_types import WorkflowState
-from lib.services.files import get_main_file_id
 
 
 class ReferenceExtractionManifest(
@@ -27,11 +27,11 @@ class ReferenceExtractionManifest(
     is_internal = True
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
-    def get_state_type(self) -> Type[ReferenceExtractionState]:
+    def get_state_type(self) -> builtins.type[ReferenceExtractionState]:
         """Get the type of the workflow state."""
         return ReferenceExtractionState
 
-    def get_config_type(self) -> Type[ReferenceExtractionConfig]:
+    def get_config_type(self) -> builtins.type[ReferenceExtractionConfig]:
         """Get the type of the workflow config."""
         return ReferenceExtractionConfig
 
@@ -42,7 +42,7 @@ class ReferenceExtractionManifest(
     async def create_initial_state(
         self,
         config: ReferenceExtractionConfig,
-        existing_states: List[WorkflowState],
+        existing_states: list[WorkflowState],
         revision: int,
         prior_self_state: ReferenceExtractionState | None = None,
     ) -> ReferenceExtractionState:
@@ -62,7 +62,7 @@ class ReferenceExtractionManifest(
     def convert_state_to_issues(
         self,
         state: ReferenceExtractionState,
-        other_states: List[WorkflowState],
-    ) -> List[DocumentIssue]:
+        other_states: list[WorkflowState],
+    ) -> list[DocumentIssue]:
         """Reference extraction does not produce issues directly."""
         return []

@@ -131,9 +131,7 @@ async def _convert_and_persist(
     without aborting the rest of the batch.
     """
     try:
-        converted = await convert_file_document_to_markdown(
-            file_document, role=role
-        )
+        converted = await convert_file_document_to_markdown(file_document, role=role)
     except Exception as exc:
         logger.error(
             f"Markdown conversion failed for {file_document.file_name} "

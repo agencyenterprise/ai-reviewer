@@ -1,10 +1,10 @@
 from enum import Enum
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, Literal
 
-from langchain_core.messages import BaseMessage
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field
 
 from lib.agents.reference_validator_v2 import BibliographyItemValidationV2
+from lib.workflows.agent_messages import AgentMessages
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
 
@@ -34,31 +34,24 @@ class ReferenceValidationV2Item(BaseModel):
         default=ReferenceValidationV2Status.PENDING,
         description="Current status of this reference validation.",
     )
-    validation_result: Optional[BibliographyItemValidationV2] = Field(
+    validation_result: BibliographyItemValidationV2 | None = Field(
         default=None,
         description="The validation result for the reference, present on success.",
     )
-    error: Optional[str] = Field(
+    error: str | None = Field(
         default=None,
         description="Error message, present on failure.",
     )
-    messages: List[BaseMessage] = Field(
+    messages: AgentMessages = Field(
         default_factory=list,
         description="LLM conversation messages from the agent invocation.",
     )
 
-    @field_serializer("messages")
-    @classmethod
-    def _serialize_messages(cls, messages: List[BaseMessage]) -> list[dict]:
-        # Checkpointer-hydrated states may contain raw dicts in `messages`
-        # because reducers can append items that bypass model construction.
-        return [m if isinstance(m, dict) else m.model_dump() for m in messages]
-
 
 def merge_validation_results(
-    existing: List[ReferenceValidationV2Item],
-    new: List[ReferenceValidationV2Item],
-) -> List[ReferenceValidationV2Item]:
+    existing: list[ReferenceValidationV2Item],
+    new: list[ReferenceValidationV2Item],
+) -> list[ReferenceValidationV2Item]:
     """Reducer to merge results by reference_id, preserving order."""
     results_by_id = {r.reference_id: r for r in existing}
 
@@ -76,5 +69,5 @@ class ReferenceValidationV2State(BaseWorkflowState):
     )
     config: ReferenceValidationV2WorkflowConfig
     reference_validations: Annotated[
-        List[ReferenceValidationV2Item], merge_validation_results
+        list[ReferenceValidationV2Item], merge_validation_results
     ] = Field(default_factory=list)

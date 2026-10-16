@@ -4,21 +4,28 @@ Within one markdown line, and across two lines that map into one Word
 paragraph: one edit wins by the shared policy and the rest are reported.
 """
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Dict, Sequence, Tuple
 
 import pytest
 
 from lib.models.issue_edit import IssueEdit, IssueEditStatus
 from lib.services.docx.tracked_changes import apply_tracked_changes
 from lib.workflows.models import SeverityEnum
-
 from tests.unit.services.lean_docx import new_document
 from tests.unit.services.tracked_changes_support import (
     docx_path,  # noqa: F401 -- a fixture, reached by name
+)
+from tests.unit.services.tracked_changes_support import (
     make_edit as _edit,
+)
+from tests.unit.services.tracked_changes_support import (
     plan_edits as _plan,
+)
+from tests.unit.services.tracked_changes_support import (
     read_document as _read,
+)
+from tests.unit.services.tracked_changes_support import (
     statuses as _statuses,
 )
 
@@ -34,7 +41,7 @@ _TWO_LINE_MARKDOWN = "\n".join(
         "The committee recommends increasing the 2020 budget by 9%.",
     ]
 )
-_TWO_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 2)}
+_TWO_LINE_RANGES: dict[int, tuple[int, int]] = {0: (1, 2)}
 
 
 @pytest.fixture

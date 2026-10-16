@@ -46,9 +46,9 @@ def _section(
         issues=issues or [],
         num_citations=len(issues or []),
         error=error,
-        error_details=ErrorDetails(error_type="PartialSectionValidationError")
-        if error
-        else None,
+        error_details=(
+            ErrorDetails(error_type="PartialSectionValidationError") if error else None
+        ),
     )
 
 

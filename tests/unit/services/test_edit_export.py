@@ -2,12 +2,13 @@
 
 import shutil
 import uuid
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Sequence
 
 import pytest
-from docx_editor import BatchOperationError, Document as EditorDocument
+from docx_editor import BatchOperationError
+from docx_editor import Document as EditorDocument
 
 from lib.models.issue import Issue
 from lib.models.issue_edit import IssueEdit, IssueEditStatus
@@ -18,7 +19,6 @@ from lib.services.docx.edit_export import (
     plan_edit_export,
 )
 from lib.workflows.models import SeverityEnum, WorkflowRunType
-
 from tests.unit.services.lean_docx import new_document
 from tests.unit.services.tracked_changes_support import display_fields
 

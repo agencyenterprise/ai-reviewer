@@ -7,7 +7,6 @@ from unittest.mock import patch
 import httpx2
 import openai
 import pytest
-
 from langchain_openai import ChatOpenAI
 
 from lib.config.llm_diagnostics import capture_http_error

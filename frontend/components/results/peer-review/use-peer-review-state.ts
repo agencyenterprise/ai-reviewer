@@ -8,7 +8,7 @@ import {
   WorkflowRunSummary,
   WorkflowRunType,
 } from '@/lib/generated-api';
-import { useProjectOverview } from '@/lib/hooks/use-project-data';
+import { projectQueryKeys, useProjectOverview } from '@/lib/hooks/use-project-data';
 import { findRunByType } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
@@ -68,7 +68,7 @@ export function usePeerReviewState({ overview }: UsePeerReviewStateArgs): PeerRe
     return run ? { run, revision: facts.reviewedRevision, overview: reviewedRevisionOverview } : undefined;
   }, [needsPlanFallback, reviewedRevisionOverview, facts.reviewedRevision]);
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
 
   const startMutation = useMutation({
     mutationFn: async (workflowTypes: WorkflowRunType[]) =>

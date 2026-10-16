@@ -15,7 +15,7 @@ in one of them, so a quote it repeats is reported instead of placed.
 """
 
 import re
-from typing import Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 from lib.models.issue_edit import IssueEdit
 from lib.services.docx.edit_text import (
@@ -53,7 +53,7 @@ REPEATS_ACROSS_LINES = (
 
 def _spans_several_lines(
     edit: IssueEdit,
-    paragraph_range: Tuple[int, int],
+    paragraph_range: tuple[int, int],
     document_lines: Sequence[str],
 ) -> bool:
     """Whether the paragraph really covers markdown lines besides the edit's.
@@ -77,9 +77,9 @@ def _spans_several_lines(
 def _resolve_span(
     edit: IssueEdit,
     paragraph_text: str,
-    paragraph_range: Tuple[int, int],
+    paragraph_range: tuple[int, int],
     document_lines: Sequence[str],
-) -> Tuple[Optional[Tuple[int, int]], EditOutcomeStatus, Optional[str]]:
+) -> tuple[tuple[int, int] | None, EditOutcomeStatus, str | None]:
     """Locate the edit's quote in the Word paragraph.
 
     `display_text` is the quote as the document renders it, worked out when the
@@ -137,8 +137,8 @@ def _resolve_span(
 
 
 def _with_boundary_whitespace(
-    span: Tuple[int, int], paragraph_text: str, original_text: str
-) -> Tuple[int, int]:
+    span: tuple[int, int], paragraph_text: str, original_text: str
+) -> tuple[int, int]:
     """Grow the span over the whitespace the quote itself asked for.
 
     A quote is located by its words: `display_text` normalizes ``" bad "``
@@ -162,9 +162,9 @@ def plan_edit(
     edit: IssueEdit,
     paragraph_index: int,
     paragraph: MappedParagraph,
-    paragraph_range: Tuple[int, int],
+    paragraph_range: tuple[int, int],
     document_lines: Sequence[str],
-) -> Tuple[Optional[PlannedEdit], EditOutcome]:
+) -> tuple[PlannedEdit | None, EditOutcome]:
     """Turn one applicable edit into a redline, or say why it cannot be one."""
     line = source_line(edit, document_lines)
     # Before any comparison with the paragraph: a row repeating the prose above

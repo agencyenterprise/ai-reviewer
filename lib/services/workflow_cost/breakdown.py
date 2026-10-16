@@ -1,5 +1,4 @@
 from decimal import Decimal
-from typing import Dict
 
 from pydantic import BaseModel, Field
 
@@ -37,4 +36,4 @@ class CostBreakdown(BaseModel):
     total_output_tokens: int = 0
     total_cache_read_tokens: int = 0
     request_count: int = 0
-    by_model: Dict[str, ModelCostBreakdown] = Field(default_factory=dict)
+    by_model: dict[str, ModelCostBreakdown] = Field(default_factory=dict)

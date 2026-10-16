@@ -6,7 +6,6 @@ chunk costs only its own lines; the rest of the document is still catalogued.
 """
 
 import logging
-from typing import List
 
 from langgraph.runtime import Runtime
 from langgraph.types import Overwrite, Send
@@ -47,7 +46,7 @@ async def prepare_chunks_node(
     return {"chunks": Overwrite(chunks)}
 
 
-def distribute_chunks(state: AbbreviationScanV2State) -> List[Send] | str:
+def distribute_chunks(state: AbbreviationScanV2State) -> list[Send] | str:
     """Fan out one extraction per pending chunk, or go straight to assembly."""
     pending = [c for c in state.chunks if c.status == ChunkStatus.PENDING]
     if not pending:
@@ -63,7 +62,9 @@ async def extract_chunk_node(state: dict, runtime: Runtime[ContextSchema]) -> di
     chunk = AbbreviationChunk.model_validate(state["chunk"])
     try:
         main_file = await runtime.context.file_artifacts_service.get_main_file()
-        result, messages = await AbbreviationChunkExtractorAgent(runtime.context).ainvoke(
+        result, messages = await AbbreviationChunkExtractorAgent(
+            runtime.context
+        ).ainvoke(
             {
                 "markdown": main_file.markdown,
                 "start_line": chunk.start_line,

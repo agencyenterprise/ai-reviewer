@@ -8,7 +8,6 @@ the evals' own loader, so anchors resolve exactly as they do for the scorers.
 
 import hashlib
 from pathlib import Path
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -19,8 +18,8 @@ from evals_inspectai.common.issue_inventory import (
 )
 from evals_inspectai.common.loaders import inline_local_images
 from lib.models.annotation import AnnotationItemKind
-from lib.services.annotations.set_spec import AnnotationSetSpec, ItemReference
 from lib.services.annotations.models import AnnotationPassage
+from lib.services.annotations.set_spec import AnnotationSetSpec, ItemReference
 
 
 class AnnotationItemDraft(BaseModel):
@@ -30,7 +29,7 @@ class AnnotationItemDraft(BaseModel):
     kind: AnnotationItemKind
     passage: AnnotationPassage
     reference_answers: dict[str, str]
-    reference_explanation: Optional[str]
+    reference_explanation: str | None
 
 
 def _digest(text: str) -> str:
@@ -43,7 +42,7 @@ def _source_key(document: str, anchor: str, kind: AnnotationItemKind) -> str:
     return f"{_digest(document)}:{_digest(normalize(anchor))}:{kind.value}"
 
 
-def _line_of(document: str, anchor: str) -> Optional[int]:
+def _line_of(document: str, anchor: str) -> int | None:
     target = normalize(anchor)
     for number, line in enumerate(document.split("\n"), 1):
         if target in normalize(line):
@@ -55,9 +54,9 @@ def _item(
     document: str,
     anchor: str,
     kind: AnnotationItemKind,
-    reference: Optional[ItemReference],
-    line: Optional[int] = None,
-) -> Optional[AnnotationItemDraft]:
+    reference: ItemReference | None,
+    line: int | None = None,
+) -> AnnotationItemDraft | None:
     if reference is None:
         return None
     return AnnotationItemDraft(
@@ -73,7 +72,7 @@ def _item(
 
 def _record_items(
     record: ResolvedInventory, spec: AnnotationSetSpec
-) -> list[Optional[AnnotationItemDraft]]:
+) -> list[AnnotationItemDraft | None]:
     # Figures are inlined so the annotation screen shows them as the run sees them;
     # each stays on its own line, so line numbers are unchanged.
     document = inline_local_images(record.document)
@@ -102,7 +101,7 @@ def _record_items(
 
 
 def items_from_inventory(
-    spec: AnnotationSetSpec, path: Optional[Path] = None
+    spec: AnnotationSetSpec, path: Path | None = None
 ) -> list[AnnotationItemDraft]:
     """One item per anchored passage in the dataset, deduplicated by source key."""
     drafts: dict[str, AnnotationItemDraft] = {}

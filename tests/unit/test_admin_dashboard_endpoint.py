@@ -10,7 +10,7 @@ spelled several ways.
 """
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi import FastAPI
@@ -63,7 +63,7 @@ def stub_the_aggregates(monkeypatch):
     async def fake_dashboard(
         days: int, ignored_user_ids: tuple[uuid.UUID, ...]
     ) -> AdminDashboardResponse:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         empty = MetricWithDelta(current=0, previous=0)
         return AdminDashboardResponse(
             period_days=days,

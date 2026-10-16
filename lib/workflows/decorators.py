@@ -4,9 +4,10 @@ import asyncio
 import logging
 import time
 import uuid
+from collections.abc import Callable
 from contextvars import Token
 from functools import wraps
-from typing import Any, Callable
+from typing import Any
 
 from langgraph.runtime import Runtime
 
@@ -55,7 +56,7 @@ async def _supervise_node(
     """
     # Lazy import — see the module-level comment about the circular chain
     # decorators → workflow_runs → registry → … → decorators.
-    from lib.services.workflow_runs import (
+    from lib.services.workflow_runs import (  # noqa: PLC0415  circular, see the comment at the imports
         get_workflow_run_status,
         update_workflow_run_heartbeat,
     )
@@ -92,7 +93,7 @@ async def _setup_progress(
 async def _check_cancellation(workflow_run_id: str, func_name: str) -> None:
     """Raise WorkflowCancelledError if the workflow is already cancelled."""
     # Lazy import — see module-level comment about the circular chain.
-    from lib.services.workflow_runs import get_workflow_run_status
+    from lib.services.workflow_runs import get_workflow_run_status  # noqa: PLC0415  circular, see the comment at the imports
 
     status = await get_workflow_run_status(workflow_run_id)
     if status == WorkflowRunStatus.CANCELLED:
@@ -109,7 +110,7 @@ async def _run_node_with_cancellation(
 ) -> dict[str, Any]:
     """Run the node function alongside a cancellation poller."""
     # Lazy import — see module-level comment about the circular chain.
-    from lib.services.workflow_runs import get_workflow_run_status
+    from lib.services.workflow_runs import get_workflow_run_status  # noqa: PLC0415  circular, see the comment at the imports
 
     node_task = asyncio.ensure_future(func(state, runtime))
     supervisor_task = asyncio.ensure_future(
@@ -117,13 +118,13 @@ async def _run_node_with_cancellation(
     )
     try:
         return await node_task
-    except asyncio.CancelledError:
+    except asyncio.CancelledError as e:
         # Confirm the cancellation came from our supervisor and not an external event loop shutdown
         status = await get_workflow_run_status(workflow_run_id)
         if status == WorkflowRunStatus.CANCELLED:
             raise WorkflowCancelledError(
                 f"Workflow {workflow_run_id} was cancelled during node {func.__name__}"
-            )
+            ) from e
         raise
     finally:
         supervisor_task.cancel()

@@ -32,7 +32,9 @@ def _patched(saver: InMemorySaver):
         yield saver
 
     def build_chat_agent(model: Any, api_key: Any, checkpointer: Any) -> Any:
-        return create_deep_agent(model=_FakeModel(messages=iter([])), checkpointer=checkpointer)
+        return create_deep_agent(
+            model=_FakeModel(messages=iter([])), checkpointer=checkpointer
+        )
 
     return (
         patch.object(thread_state, "get_checkpointer", get_checkpointer),
@@ -45,7 +47,10 @@ async def _run_turns(saver: InMemorySaver, thread_id: str) -> None:
     agent = create_deep_agent(model=_FakeModel(messages=replies), checkpointer=saver)
     config = thread_config(thread_id)
     await agent.ainvoke(
-        agent_input(files={"/attachments/a.md": create_file_data("one\ntwo")}, messages=[HumanMessage("first")]),
+        agent_input(
+            files={"/attachments/a.md": create_file_data("one\ntwo")},
+            messages=[HumanMessage("first")],
+        ),
         config=config,
     )
     await agent.ainvoke({"messages": [HumanMessage("second")]}, config=config)

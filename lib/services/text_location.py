@@ -11,15 +11,14 @@ Pure functions only, and nothing here knows about markdown.
 """
 
 import re
-from typing import List, Tuple
 
 # The same class `normalize_whitespace` collapses, one character at a time.
 _WHITESPACE = re.compile(r"\s")
 
 
-def all_offsets(haystack: str, needle: str) -> List[int]:
+def all_offsets(haystack: str, needle: str) -> list[int]:
     """Start offset of every occurrence of `needle`, overlapping ones included."""
-    offsets: List[int] = []
+    offsets: list[int] = []
     if not needle:
         return offsets
     position = haystack.find(needle)
@@ -29,7 +28,7 @@ def all_offsets(haystack: str, needle: str) -> List[int]:
     return offsets
 
 
-def _normalized_index(text: str) -> Tuple[str, List[int]]:
+def _normalized_index(text: str) -> tuple[str, list[int]]:
     """Whitespace-normalize `text`, keeping each character's source offset.
 
     Mirrors the frontend's `buildTextIndex`: a run of whitespace collapses to
@@ -38,8 +37,8 @@ def _normalized_index(text: str) -> Tuple[str, List[int]]:
     The mapping is what lets a normalized match be handed back as the exact
     substring of the original, non-breaking spaces and all.
     """
-    normalized: List[str] = []
-    sources: List[int] = []
+    normalized: list[str] = []
+    sources: list[int] = []
     pending_space = False
     for offset, char in enumerate(text):
         if _WHITESPACE.match(char):
@@ -54,7 +53,7 @@ def _normalized_index(text: str) -> Tuple[str, List[int]]:
     return "".join(normalized), sources
 
 
-def locate_in_paragraph(paragraph_text: str, needle: str) -> List[Tuple[int, int]]:
+def locate_in_paragraph(paragraph_text: str, needle: str) -> list[tuple[int, int]]:
     """Every occurrence of `needle` in `paragraph_text`, as original-text spans.
 
     `needle` is matched on a whitespace-normalized basis (the paragraph and the
@@ -69,7 +68,7 @@ def locate_in_paragraph(paragraph_text: str, needle: str) -> List[Tuple[int, int
     if not needle:
         return []
     normalized, sources = _normalized_index(paragraph_text)
-    spans: List[Tuple[int, int]] = []
+    spans: list[tuple[int, int]] = []
     for offset in all_offsets(normalized, needle):
         spans.append((sources[offset], sources[offset + len(needle) - 1] + 1))
     return spans

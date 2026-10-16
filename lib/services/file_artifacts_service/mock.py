@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from deepagents.backends.utils import create_file_data
 
@@ -34,12 +34,12 @@ class MockFileArtifactsService(FileArtifactsServiceType):
 
     def __init__(
         self,
-        main_file: Optional[FileDocument] = None,
-        supporting_files: Optional[list[FileDocument]] = None,
-        extracted_references: Optional[list[ExtractedReference]] = None,
-        references: Optional[list[BibliographyItem]] = None,
-        reviewer_memo_files: Optional[list[FileDocument]] = None,
-        response_memo_files: Optional[list[FileDocument]] = None,
+        main_file: FileDocument | None = None,
+        supporting_files: list[FileDocument] | None = None,
+        extracted_references: list[ExtractedReference] | None = None,
+        references: list[BibliographyItem] | None = None,
+        reviewer_memo_files: list[FileDocument] | None = None,
+        response_memo_files: list[FileDocument] | None = None,
     ):
         self._main_file = main_file
         self._supporting_files = supporting_files or []
@@ -121,9 +121,7 @@ class MockFileArtifactsService(FileArtifactsServiceType):
             skills_dir = project_root / "skills"
             for skill_file in sorted(skills_dir.rglob("*")):
                 if skill_file.is_file():
-                    virtual_path = (
-                        "/" + skill_file.relative_to(project_root).as_posix()
-                    )
+                    virtual_path = "/" + skill_file.relative_to(project_root).as_posix()
                     files[virtual_path] = create_file_data(
                         strip_interactive_only(skill_file.read_text())
                     )

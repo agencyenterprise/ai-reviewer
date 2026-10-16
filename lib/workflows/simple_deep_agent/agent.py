@@ -5,7 +5,8 @@ Callers supply the user prompt (specific rules/criteria) and may optionally
 override the system prompt when the default is not appropriate.
 """
 
-from typing import Any, Callable, Literal, Optional, Sequence, Union
+from collections.abc import Callable, Sequence
+from typing import Any, Literal
 
 from deepagents.backends.utils import file_data_to_string
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -79,7 +80,7 @@ _DOCUMENT_SIZE_NOTE = """
 """
 
 
-def _document_size_note(document: Optional[str]) -> str:
+def _document_size_note(document: str | None) -> str:
     """The document's line count for the system prompt, or nothing when there is no document.
 
     Stated up front so a line threshold in the workflow criteria is checked
@@ -90,7 +91,7 @@ def _document_size_note(document: Optional[str]) -> str:
     return _DOCUMENT_SIZE_NOTE.format(lines=len(document.splitlines()))
 
 
-def _main_document_text(files: dict[str, Any]) -> Optional[str]:
+def _main_document_text(files: dict[str, Any]) -> str | None:
     """Read the document under review out of the DeepAgent backend file tree."""
     file_data = files.get(MAIN_DOCUMENT_PATH)
     if file_data is None:
@@ -119,12 +120,12 @@ class SimpleDeepAgent(LangChainAgent):
         self,
         context: ContextSchema,
         user_prompt: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         report_issues: bool = True,
         propose_edits: bool = False,
-        tools: Optional[Sequence[Union[BaseTool, Callable, dict[str, Any]]]] = None,
-        reasoning_effort: Optional[Literal["low", "medium", "high"]] = None,
-        timeout: Optional[int] = None,
+        tools: Sequence[BaseTool | Callable | dict[str, Any]] | None = None,
+        reasoning_effort: Literal["low", "medium", "high"] | None = None,
+        timeout: int | None = None,
         view_images: bool = False,
     ):
         super().__init__(context)
@@ -149,7 +150,7 @@ class SimpleDeepAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: Optional[RunnableConfig] = None,
+        config: RunnableConfig | None = None,
     ) -> DeepAgentRun:
         # Fetched before the agent is built: the collector needs the document's
         # text to check any proposed edit against real lines, and the same file
@@ -183,7 +184,9 @@ class SimpleDeepAgent(LangChainAgent):
             agent_input(
                 files=files,
                 messages=[
-                    SystemMessage(content=self._system_prompt + _document_size_note(document)),
+                    SystemMessage(
+                        content=self._system_prompt + _document_size_note(document)
+                    ),
                     HumanMessage(content=self._user_prompt),
                 ],
             ),

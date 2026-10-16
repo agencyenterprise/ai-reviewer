@@ -2,11 +2,12 @@
 Shared file finalization logic for uploads.
 
 Handles content hashing, deduplication, MIME detection, and database record creation.
-Used by both direct multipart uploads and TUS resumable uploads.
+Used by TUS resumable uploads and by the MCP tools, which pass content inline.
 """
 
 import logging
 import os
+import shutil
 import uuid
 
 import aiofiles
@@ -43,11 +44,15 @@ async def finalize_file(
 
     content_hash = xxh128(content).hexdigest()
     file_extension = os.path.splitext(filename)[1]
-    file_path = os.path.join(config.FILE_UPLOADS_MOUNT_PATH, content_hash + file_extension)
+    file_path = os.path.join(
+        config.FILE_UPLOADS_MOUNT_PATH, content_hash + file_extension
+    )
     file_size = len(content)
 
     if os.path.exists(file_path):
-        logger.info("File %s already exists (hash: %s), reusing", filename, content_hash)
+        logger.info(
+            "File %s already exists (hash: %s), reusing", filename, content_hash
+        )
     else:
         if file_size == 0:
             logger.warning("Uploaded file %s is empty", filename)
@@ -80,7 +85,7 @@ async def finalize_file_from_path(
 ) -> tuple[File, bool]:
     """
     Finalize a file that's already on disk (e.g., from TUS upload).
-    
+
     Returns (file_record, was_deduplicated) - caller should clean up source if deduplicated.
     """
     validate_filename(filename)
@@ -90,11 +95,12 @@ async def finalize_file_from_path(
 
     content_hash = xxh128(content).hexdigest()
     file_extension = os.path.splitext(filename)[1]
-    permanent_path = os.path.join(config.FILE_UPLOADS_MOUNT_PATH, content_hash + file_extension)
+    permanent_path = os.path.join(
+        config.FILE_UPLOADS_MOUNT_PATH, content_hash + file_extension
+    )
 
     was_deduplicated = os.path.exists(permanent_path)
     if not was_deduplicated:
-        import shutil
         shutil.move(file_path, permanent_path)
         logger.info("Moved %s to permanent location (hash: %s)", filename, content_hash)
 
@@ -113,4 +119,3 @@ async def finalize_file_from_path(
     )
 
     return file_record, was_deduplicated
-

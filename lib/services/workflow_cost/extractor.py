@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any
 
 from langchain_core.messages import BaseMessage
 
@@ -48,7 +48,7 @@ def _extract_record(message: Any) -> UsageRecord | None:
     )
 
 
-def walk_state_for_usage(state: Any) -> List[UsageRecord]:
+def walk_state_for_usage(state: Any) -> list[UsageRecord]:
     """Recursively walk a workflow state and collect token usage from all messages.
 
     Handles:
@@ -56,12 +56,12 @@ def walk_state_for_usage(state: Any) -> List[UsageRecord]:
     - Serialized message dicts (loaded from checkpointer)
     - Messages nested anywhere: top-level lists, dicts, Pydantic models
     """
-    records: List[UsageRecord] = []
+    records: list[UsageRecord] = []
     _walk(state, records, _seen=set())
     return records
 
 
-def _walk(node: Any, records: List[UsageRecord], _seen: set) -> None:
+def _walk(node: Any, records: list[UsageRecord], _seen: set) -> None:
     if node is None or isinstance(node, (str, int, float, bool, bytes)):
         return
 

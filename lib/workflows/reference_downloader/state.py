@@ -1,9 +1,9 @@
 from enum import Enum
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, Literal
 
-from langchain_core.messages import BaseMessage
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field
 
+from lib.workflows.agent_messages import AgentMessages
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 from lib.workflows.reference_downloader.agents.reference_fetcher import (
     ReferenceFetchItem,
@@ -28,29 +28,22 @@ class ReferenceFetchResult(BaseModel):
         default=ReferenceFetchStatus.PENDING,
         description="Current status of this reference fetch",
     )
-    result: Optional[ReferenceFetchItem] = Field(
+    result: ReferenceFetchItem | None = Field(
         default=None, description="The fetch result, present on success"
     )
-    error: Optional[str] = Field(
+    error: str | None = Field(
         default=None, description="Error message, present on failure"
     )
-    messages: List[BaseMessage] = Field(
+    messages: AgentMessages = Field(
         default_factory=list,
         description="LLM conversation messages from the reference fetcher agent invocation.",
     )
 
-    @field_serializer("messages")
-    @classmethod
-    def _serialize_messages(cls, messages: List[BaseMessage]) -> list[dict]:
-        # Checkpointer-hydrated states may contain raw dicts in `messages`
-        # because reducers can append items that bypass model construction.
-        return [m if isinstance(m, dict) else m.model_dump() for m in messages]
-
 
 def merge_fetch_results(
-    existing: List[ReferenceFetchResult],
-    new: List[ReferenceFetchResult],
-) -> List[ReferenceFetchResult]:
+    existing: list[ReferenceFetchResult],
+    new: list[ReferenceFetchResult],
+) -> list[ReferenceFetchResult]:
     """Reducer to merge results by reference_id, preserving order.
 
     This reducer function is used by LangGraph to handle incremental updates
@@ -83,7 +76,7 @@ class ReferenceDownloaderWorkflowConfig(BaseWorkflowConfig):
     type: Literal[WorkflowRunType.REFERENCE_DOWNLOADER] = Field(
         WorkflowRunType.REFERENCE_DOWNLOADER
     )
-    references: Optional[List[ReferenceDownloaderInputItem]] = Field(
+    references: list[ReferenceDownloaderInputItem] | None = Field(
         default=None,
         description=(
             "The references to fetch from the internet. When omitted, the "
@@ -102,7 +95,7 @@ class ReferenceDownloaderState(BaseWorkflowState):
     config: ReferenceDownloaderWorkflowConfig = Field(
         description="The configuration for the workflow",
     )
-    fetched_references: Annotated[List[ReferenceFetchResult], merge_fetch_results] = (
+    fetched_references: Annotated[list[ReferenceFetchResult], merge_fetch_results] = (
         Field(
             default_factory=list,
             description="The response from the reference fetcher agent",

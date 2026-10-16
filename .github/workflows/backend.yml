@@ -1,18 +1,41 @@
-on: [pull_request, push]
+on:
+  pull_request:
+  # Branch pushes are already covered by their PR's run; pushes to these
+  # branches are what's left: merges, and commits made straight to them.
+  push:
+    branches: [dev, main]
+
+# A new push to a PR cancels the run on the commit it replaced. Pushes to dev
+# and main are grouped by commit, so none of them is cancelled or left queued
+# behind another: every merged commit keeps its own result.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: true
 
 jobs:
   lint:
-    name: black formatter
+    name: ruff
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: reviewdog/action-black@v3.22.4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          reporter: github-pr-check
-          level: error
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Check formatting
+        run: uv run ruff format --check --diff .
+
+      - name: Lint
+        run: uv run ruff check --output-format=github .
 
   typecheck:
     name: mypy
@@ -49,7 +72,7 @@ jobs:
         run: uv run mypy .
 
   test:
-    name: pytest (unit & integration)
+    name: pytest (unit)
     runs-on: ubuntu-latest
 
     steps:
@@ -72,7 +95,7 @@ jobs:
           UV_COMPILE_BYTECODE: "1"
 
       - name: Run tests
-        # Run only unit tests to avoid running integration tests which require a database.
+        # Unit tests only; the integration job below runs tests/integration against Postgres.
         # `-n logical` sizes the worker pool to the runner's vCPUs (4) instead of
         # the 10 workers pyproject.toml sets for local runs. `-n auto` counts
         # physical cores and starts only 2.
@@ -81,11 +104,6 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
           # Database config (test environment)
           DATABASE_URL: postgresql://test:test@localhost:5432/test_db
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
-          POSTGRES_DB: test_db
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
           # Auth config
           AUTH_SECRET: test-secret-key-for-ci
           # File uploads (temporary directory for tests)
@@ -101,3 +119,55 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  integration:
+    name: pytest (integration)
+    runs-on: ubuntu-latest
+    # The suite takes about a minute; a stuck lock wait gives up after 5.
+    timeout-minutes: 15
+
+    services:
+      # The image docker-compose.yml runs locally, so pgvector is available to the migrations.
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: ai_reviewer
+          POSTGRES_USER: ai_reviewer_user
+          POSTGRES_PASSWORD: ai_reviewer_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ai_reviewer_user -d ai_reviewer"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      # The tests create and migrate ai_reviewer_test, derived from this, on their own.
+      DATABASE_URL: postgresql://ai_reviewer_user:ai_reviewer_password@localhost:5432/ai_reviewer
+      AUTH_SECRET: test-secret-key-for-ci
+      # lib.api.mcp builds its auth provider at import and refuses to without a
+      # login provider; nothing in the tests signs in, so placeholders do.
+      AUTH_GOOGLE_ID: ci-placeholder
+      AUTH_GOOGLE_SECRET: ci-placeholder
+      FILE_UPLOADS_MOUNT_PATH: /tmp/test-uploads
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync
+        env:
+          UV_COMPILE_BYTECODE: "1"
+
+      - name: Run integration tests
+        run: uv run pytest tests/integration -n logical --tb=short

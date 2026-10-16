@@ -1,13 +1,15 @@
 """Tests for automatic workflow dependency resolution."""
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from lib.workflows.dependency_resolver import (
     get_required_dependents,
     resolve_workflow_dependencies,
 )
 from lib.workflows.models import WorkflowRunType
+from lib.workflows.registry import get_workflow_manifest
 
 
 # Test helpers
@@ -88,8 +90,6 @@ def test_deterministic_ordering():
 
 def test_circular_dependency_detection():
     """Test that circular dependencies are detected and raise an error."""
-    from lib.workflows.registry import get_workflow_manifest
-
     original_get_manifest = get_workflow_manifest
 
     def mock_get_manifest(workflow_type):
@@ -125,7 +125,9 @@ def _make_all_manifests(deps: dict[WorkflowRunType, list[WorkflowRunType]]):
 
 
 def _patch_all_manifests(manifests):
-    return patch("lib.workflows.registry.get_all_manifests", return_value=manifests)
+    return patch(
+        "lib.workflows.dependency_resolver.get_all_manifests", return_value=manifests
+    )
 
 
 def test_get_required_dependents_returns_empty_for_leaf_node():
@@ -148,7 +150,9 @@ def test_get_required_dependents_returns_direct_dependents():
         {
             WorkflowRunType.DOCUMENT_PROCESSING: [],
             WorkflowRunType.REFERENCE_EXTRACTION: [WorkflowRunType.DOCUMENT_PROCESSING],
-            WorkflowRunType.REFERENCE_VALIDATION_V2: [WorkflowRunType.DOCUMENT_PROCESSING],
+            WorkflowRunType.REFERENCE_VALIDATION_V2: [
+                WorkflowRunType.DOCUMENT_PROCESSING
+            ],
         }
     )
     with _patch_all_manifests(manifests):
@@ -166,7 +170,9 @@ def test_get_required_dependents_returns_transitive_dependents():
         {
             WorkflowRunType.DOCUMENT_PROCESSING: [],
             WorkflowRunType.REFERENCE_EXTRACTION: [WorkflowRunType.DOCUMENT_PROCESSING],
-            WorkflowRunType.REFERENCE_VALIDATION_V2: [WorkflowRunType.REFERENCE_EXTRACTION],
+            WorkflowRunType.REFERENCE_VALIDATION_V2: [
+                WorkflowRunType.REFERENCE_EXTRACTION
+            ],
         }
     )
     with _patch_all_manifests(manifests):
@@ -201,8 +207,12 @@ def test_get_required_dependents_no_duplicates_in_diamond_graph():
         {
             WorkflowRunType.DOCUMENT_PROCESSING: [],
             WorkflowRunType.REFERENCE_EXTRACTION: [WorkflowRunType.DOCUMENT_PROCESSING],
-            WorkflowRunType.DOCUMENT_SUMMARIZATION: [WorkflowRunType.DOCUMENT_PROCESSING],
-            WorkflowRunType.REFERENCE_VALIDATION_V2: [WorkflowRunType.REFERENCE_EXTRACTION],
+            WorkflowRunType.DOCUMENT_SUMMARIZATION: [
+                WorkflowRunType.DOCUMENT_PROCESSING
+            ],
+            WorkflowRunType.REFERENCE_VALIDATION_V2: [
+                WorkflowRunType.REFERENCE_EXTRACTION
+            ],
         }
     )
     with _patch_all_manifests(manifests):

@@ -7,8 +7,9 @@ another kind of resource), owned by `owner` and invisible to `stranger`.
 """
 
 import uuid
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime
-from typing import Any, AsyncIterator
+from typing import Any
 
 import pytest_asyncio
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage

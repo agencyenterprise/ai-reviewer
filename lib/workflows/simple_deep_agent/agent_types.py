@@ -5,7 +5,7 @@ single-node deep-agent workflows, plus the helper that converts them into
 DocumentIssue objects.
 """
 
-from typing import Dict, List, Literal, Optional
+from typing import Literal
 
 from langchain_core.messages import BaseMessage
 from pydantic import BaseModel, ConfigDict, Field
@@ -29,7 +29,7 @@ class IssueItem(BaseModel):
         default="medium",
         description="Issue severity: none, low, medium, or high. Use 'none' for informational items that should be surfaced but do not represent a problem.",
     )
-    long_description: Optional[str] = Field(
+    long_description: str | None = Field(
         default=None,
         description=(
             "Extended markdown description for issues that require more detail than fits in "
@@ -37,7 +37,7 @@ class IssueItem(BaseModel):
             "Leave unset when description alone is sufficient."
         ),
     )
-    suggested_action: Optional[str] = Field(
+    suggested_action: str | None = Field(
         default=None,
         description=(
             "A direct, concise recommendation to the author on what to do to resolve this "
@@ -50,7 +50,7 @@ class IssueItem(BaseModel):
     end_line: int = Field(
         description="1-indexed end line in the document where the text relevant to this issue ends",
     )
-    edits: List[ProposedEdit] = Field(
+    edits: list[ProposedEdit] = Field(
         default_factory=list,
         description=(
             "Proposed edits resolving this issue, already located in the document. "
@@ -68,7 +68,7 @@ class IssueItem(BaseModel):
 class AgentCheckResult(BaseModel):
     """Persisted result for a validation pass: issues plus a markdown report."""
 
-    issues: List[IssueItem] = Field(
+    issues: list[IssueItem] = Field(
         default_factory=list,
         description="Issues found during validation",
     )
@@ -108,7 +108,7 @@ class ReportNotWrittenError(Exception):
     would hide it from both the UI and the evals.
     """
 
-    def __init__(self, path: str, files: List[str]) -> None:
+    def __init__(self, path: str, files: list[str]) -> None:
         self.path = path
         super().__init__(
             f"The agent wrote no report at {path}. Files present: {sorted(files)}"
@@ -125,9 +125,9 @@ class DeepAgentRun(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    files: Dict[str, str] = Field(default_factory=dict)
-    reported_issues: List[IssueItem] = Field(default_factory=list)
-    messages: List[BaseMessage] = Field(default_factory=list)
+    files: dict[str, str] = Field(default_factory=dict)
+    reported_issues: list[IssueItem] = Field(default_factory=list)
+    messages: list[BaseMessage] = Field(default_factory=list)
 
 
 # --- Unified state result ------------------------------------------------
@@ -142,12 +142,12 @@ class DeepAgentResult(BaseModel):
     whichever is present. ``issues`` is populated by the markdown variant only.
     """
 
-    issues: List[IssueItem] = Field(default_factory=list)
+    issues: list[IssueItem] = Field(default_factory=list)
     report_markdown: str = Field(default="")
     report_html: str = Field(default="")
 
 
-def report_file(files: Dict[str, str], path: str) -> str:
+def report_file(files: dict[str, str], path: str) -> str:
     """Read a required, non-empty report file or fail the workflow."""
     report = files.get(path, "").strip()
     if not report:
@@ -175,7 +175,7 @@ _SEVERITY_MAP = {
 def issues_from_agent_result(
     result: AgentCheckResult | DeepAgentResult,
     workflow_type: WorkflowRunType,
-) -> List[DocumentIssue]:
+) -> list[DocumentIssue]:
     """Convert a result's issues into DocumentIssue objects.
 
     Emits line ranges only; ``chunk_indices`` is left unset and derived at

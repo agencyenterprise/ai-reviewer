@@ -24,7 +24,9 @@ _SKILL_BACKED_WORKFLOWS = sorted(
 )
 
 
-@pytest.mark.parametrize("workflow_type", _SKILL_BACKED_WORKFLOWS, ids=lambda t: t.value)
+@pytest.mark.parametrize(
+    "workflow_type", _SKILL_BACKED_WORKFLOWS, ids=lambda t: t.value
+)
 def test_skill_backed_manifest_resolves_prompt(workflow_type: WorkflowRunType):
     manifest = get_workflow_manifest(workflow_type)
     assert isinstance(manifest, SimpleDeepAgentManifest)

@@ -10,10 +10,8 @@ prefer a seq scan, masking any misconfiguration.
 
 import pytest
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from lib.config.database import get_async_db_session
-
 
 EXPECTED_INDEXES = [
     ("feedback", "ix_feedback_feedback_text_trgm"),

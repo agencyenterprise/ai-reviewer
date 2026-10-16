@@ -16,6 +16,7 @@ from evals_inspectai.common.issue_inventory import (
     load_inventory_records,
 )
 from evals_inspectai.common.issue_judge import judge_sample
+from evals_inspectai.common.simple_deep_agent_types import IssueItem
 from evals_inspectai.e2e.audience_fit.audience_fit_e2e import audience_fit_e2e
 from evals_inspectai.e2e.audience_fit.criteria import JUDGE_CRITERIA
 from evals_inspectai.e2e.audience_fit.overflow import (
@@ -28,7 +29,6 @@ from evals_inspectai.e2e.audience_fit.overflow_judge import (
     SUMMARY_KEY,
     summary_alternative_scores,
 )
-from evals_inspectai.common.simple_deep_agent_types import IssueItem
 
 DATASET = Path("evals_inspectai/e2e/audience_fit/dataset.yaml")
 
@@ -149,7 +149,7 @@ def test_overflow_passes_the_first_fifteen_plus_one_summary():
     paragraphs = technical_paragraphs(inventory)
     issues = [_single(e) for e in paragraphs[:CAP]] + [_summary(paragraphs[CAP:])]
     values, _ = overflow_scores(issues, inventory)
-    assert values == {key: 1.0 for key in OVERFLOW_KEYS}
+    assert values == dict.fromkeys(OVERFLOW_KEYS, 1.0)
 
 
 def test_overflow_fails_a_run_that_reports_every_paragraph_on_its_own():
@@ -307,10 +307,14 @@ def test_a_missing_audience_issue_quoting_the_method_paragraph_is_no_jargon_flag
         start_line=expected.line,
         end_line=expected.line,
     )
-    values, _ = decoy_scores([quoting], inventory.with_policy(decoy_reasons=["technical_audience"]))
+    values, _ = decoy_scores(
+        [quoting], inventory.with_policy(decoy_reasons=["technical_audience"])
+    )
     assert values == {"no_fp_technical_audience": 1.0}
     jargon = quoting.model_copy(update={"title": "Technical Language"})
-    values, _ = decoy_scores([jargon], inventory.with_policy(decoy_reasons=["technical_audience"]))
+    values, _ = decoy_scores(
+        [jargon], inventory.with_policy(decoy_reasons=["technical_audience"])
+    )
     assert values == {"no_fp_technical_audience": 0.0}
 
 

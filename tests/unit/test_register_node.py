@@ -1,7 +1,7 @@
 """Unit tests for the register_node decorator."""
 
 import uuid
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -222,6 +222,7 @@ class TestContextvarManagement:
         token = current_progress_id.set(sentinel)
 
         try:
+
             @register_node("Test Node")
             async def test_node(state, runtime):
                 return {}
@@ -239,6 +240,7 @@ class TestContextvarManagement:
         token = current_progress_id.set(sentinel)
 
         try:
+
             @register_node("Test Node")
             async def failing_node(state, runtime):
                 raise RuntimeError("error")

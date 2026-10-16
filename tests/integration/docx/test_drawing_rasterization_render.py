@@ -15,13 +15,13 @@ import struct
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from PIL import Image
 from docx import Document
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
 from docx.opc.packuri import PackURI
 from docx.opc.part import Part
 from docx.oxml import parse_xml
 from docx.oxml.ns import nsdecls
+from PIL import Image
 
 from lib.services.converters.base import convert_to_markdown
 from lib.services.docx.drawing_rasterization import (
@@ -43,8 +43,14 @@ def _minimal_emf() -> bytes:
         "<II4i4iIIIIHHIIIiiii",
         1,  # EMR_HEADER
         88,  # record size
-        0, 0, 99, 99,  # rclBounds (device units)
-        0, 0, 2646, 2646,  # rclFrame (0.01 mm)
+        0,
+        0,
+        99,
+        99,  # rclBounds (device units)
+        0,
+        0,
+        2646,
+        2646,  # rclFrame (0.01 mm)
         0x464D4520,  # " EMF" signature
         0x00010000,  # version
         108,  # total bytes
@@ -54,15 +60,17 @@ def _minimal_emf() -> bytes:
         0,  # description length
         0,  # description offset
         0,  # palette entries
-        1024, 768,  # device size in pixels
-        320, 240,  # device size in millimeters
+        1024,
+        768,  # device size in pixels
+        320,
+        240,  # device size in millimeters
     )
     eof = struct.pack("<IIIII", 14, 20, 0, 16, 20)  # EMR_EOF
     return header + eof
 
 
 def _append_paragraph_xml(document, inner: str) -> None:
-    xml = f'<w:p {nsdecls("w", "wp", "a", "r", "c", "pic")}><w:r>{inner}</w:r></w:p>'
+    xml = f"<w:p {nsdecls('w', 'wp', 'a', 'r', 'c', 'pic')}><w:r>{inner}</w:r></w:p>"
     document.element.body.get_or_add_sectPr().addprevious(parse_xml(xml))
 
 

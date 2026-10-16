@@ -10,8 +10,8 @@ import html
 import logging
 import re
 from collections import defaultdict
+from collections.abc import Callable
 from functools import lru_cache
-from typing import Callable, Dict, List, Optional, Set, Tuple
 
 from lib.workflows.abbreviation_scan_v2.chunk_models import (
     AbbreviationChunk,
@@ -28,11 +28,11 @@ _ALNUM_RUN_RE = re.compile(r"[0-9A-Za-z]+")
 
 
 def assemble_catalogue(
-    chunks: List[AbbreviationChunk],
-    section_entries: List[AbbreviationSectionEntry],
-    section_ranges: List[LineRange],
-    lines: List[str],
-) -> List[AbbreviationItem]:
+    chunks: list[AbbreviationChunk],
+    section_entries: list[AbbreviationSectionEntry],
+    section_ranges: list[LineRange],
+    lines: list[str],
+) -> list[AbbreviationItem]:
     """Build the ordered, numbered catalogue from every chunk that produced results."""
     recorded = [
         occurrence
@@ -51,10 +51,12 @@ def assemble_catalogue(
     recorded.sort(key=lambda occurrence: occurrence.line_start)
 
     definitions = _section_definitions(section_entries)
-    canonical = _canonicalizer({occ.abbr.strip() for occ in recorded} | set(definitions))
+    canonical = _canonicalizer(
+        {occ.abbr.strip() for occ in recorded} | set(definitions)
+    )
 
-    counts: Dict[str, int] = defaultdict(int)
-    catalogue: List[AbbreviationItem] = []
+    counts: dict[str, int] = defaultdict(int)
+    catalogue: list[AbbreviationItem] = []
     for occ in recorded:
         abbr = canonical(occ.abbr.strip())
         counts[abbr] += 1
@@ -87,7 +89,7 @@ def _inside_chunk(occurrence: ChunkOccurrence, chunk: AbbreviationChunk) -> bool
     return False
 
 
-def _appears_on_its_lines(occurrence: ChunkOccurrence, lines: List[str]) -> bool:
+def _appears_on_its_lines(occurrence: ChunkOccurrence, lines: list[str]) -> bool:
     """Reject an occurrence whose abbreviation is not on the lines it names.
 
     The model occasionally reports an abbreviation on a line that does not
@@ -103,8 +105,8 @@ def _appears_on_its_lines(occurrence: ChunkOccurrence, lines: List[str]) -> bool
 
 
 def _within_text_count(
-    occurrences: List[ChunkOccurrence], lines: List[str]
-) -> List[ChunkOccurrence]:
+    occurrences: list[ChunkOccurrence], lines: list[str]
+) -> list[ChunkOccurrence]:
     """Cap each abbreviation's entries on a line range at how often it appears there.
 
     The model occasionally records the same occurrence twice, e.g. counting the
@@ -112,8 +114,8 @@ def _within_text_count(
     Entries beyond the number of times the abbreviation actually appears in the
     text are dropped, keeping the first ones in reading order.
     """
-    kept: List[ChunkOccurrence] = []
-    seen: Dict[Tuple[int, int, str], int] = defaultdict(int)
+    kept: list[ChunkOccurrence] = []
+    seen: dict[tuple[int, int, str], int] = defaultdict(int)
     for occurrence in occurrences:
         end = max(occurrence.line_end, occurrence.line_start)
         key = (occurrence.line_start, end, occurrence.abbr.strip())
@@ -129,7 +131,7 @@ def _within_text_count(
     return kept
 
 
-def _count_on_lines(occurrence: ChunkOccurrence, lines: List[str]) -> int:
+def _count_on_lines(occurrence: ChunkOccurrence, lines: list[str]) -> int:
     """How many times the abbreviation appears as a whole token on its lines.
 
     HTML entities are decoded first (the converted markdown writes "R&amp;D").
@@ -143,7 +145,7 @@ def _count_on_lines(occurrence: ChunkOccurrence, lines: List[str]) -> int:
 
 
 @lru_cache(maxsize=4096)
-def _abbreviation_pattern(abbr: str) -> Optional[re.Pattern[str]]:
+def _abbreviation_pattern(abbr: str) -> re.Pattern[str] | None:
     """A regex matching `abbr` as a whole token, tolerant of how it is spelled.
 
     - Punctuation and spacing between the abbreviation's parts may vary:
@@ -156,20 +158,24 @@ def _abbreviation_pattern(abbr: str) -> Optional[re.Pattern[str]]:
     runs = _ALNUM_RUN_RE.findall(html.unescape(abbr))
     if not runs:
         return None
-    body = r"[^0-9A-Za-z]{0,3}".join(r"\.?".join(re.escape(c) for c in run) for run in runs)
+    body = r"[^0-9A-Za-z]{0,3}".join(
+        r"\.?".join(re.escape(c) for c in run) for run in runs
+    )
     before = r"(?<![0-9])" if runs[0][0].isdigit() else r"(?<![A-Za-z])"
     after = r"(?![0-9])" if runs[-1][-1].isdigit() else r"(?![A-Za-z])"
     return re.compile(before + body + r"(?:'?s)?" + after)
 
 
-def _on_heading(occurrence: ChunkOccurrence, lines: List[str]) -> bool:
+def _on_heading(occurrence: ChunkOccurrence, lines: list[str]) -> bool:
     """Enforce the skill's heading rule, which the agent sometimes misses."""
-    line = lines[occurrence.line_start - 1] if occurrence.line_start <= len(lines) else ""
+    line = (
+        lines[occurrence.line_start - 1] if occurrence.line_start <= len(lines) else ""
+    )
     return is_heading_line(line)
 
 
-def _section_definitions(entries: List[AbbreviationSectionEntry]) -> Dict[str, str]:
-    definitions: Dict[str, str] = {}
+def _section_definitions(entries: list[AbbreviationSectionEntry]) -> dict[str, str]:
+    definitions: dict[str, str] = {}
     for entry in entries:
         abbr, definition = entry.abbr.strip(), entry.definition.strip()
         if abbr and definition:
@@ -177,12 +183,12 @@ def _section_definitions(entries: List[AbbreviationSectionEntry]) -> Dict[str, s
     return definitions
 
 
-def _lookup(definitions: Dict[str, str], abbr: str) -> Optional[str]:
+def _lookup(definitions: dict[str, str], abbr: str) -> str | None:
     """Section definition for `abbr`, accepting a section that lists the plural."""
     return definitions.get(abbr) or definitions.get(f"{abbr}s")
 
 
-def _canonicalizer(known: Set[str]) -> Callable[[str], str]:
+def _canonicalizer(known: set[str]) -> Callable[[str], str]:
     """Fold a plural onto its singular when the singular is also in use.
 
     Each chunk is told to record the singular base form, but they run

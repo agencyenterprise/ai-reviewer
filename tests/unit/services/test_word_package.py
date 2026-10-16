@@ -36,9 +36,7 @@ def flat_opc(tmp_path: Path, *paragraphs: str) -> str:
 
 def part_names(markup: str) -> list[str]:
     root = etree.fromstring(markup.encode("utf-8"))
-    return [
-        node.get(qn("name", PKG)) or "" for node in root.iterfind(qn("part", PKG))
-    ]
+    return [node.get(qn("name", PKG)) or "" for node in root.iterfind(qn("part", PKG))]
 
 
 class TestTheRoundTrip:
@@ -156,7 +154,8 @@ class TestWhatWordActuallySends:
                     declaration = payload.split(b"?>", 1)
                     body = declaration[1] if len(declaration) > 1 else payload
                     payload = (
-                        b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' + body
+                        b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                        + body
                     )
                     # Word writes a byte-order mark; str.lstrip() ignores it.
                     payload = b"\xef\xbb\xbf" + payload
@@ -250,7 +249,7 @@ class TestRefusals:
             to_docx(markup, tmp_path / "broken.docx")
 
     def test_markup_that_is_not_a_package_is_refused(self, tmp_path: Path) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(etree.XMLSyntaxError):
             to_docx("not xml at all", tmp_path / "broken.docx")
 
 

@@ -105,9 +105,6 @@ import type {
   GetAdminFeedbacksApiAdminFeedbacksGetData,
   GetAdminFeedbacksApiAdminFeedbacksGetErrors,
   GetAdminFeedbacksApiAdminFeedbacksGetResponses,
-  GetAppConfigApiAppConfigsKeyGetData,
-  GetAppConfigApiAppConfigsKeyGetErrors,
-  GetAppConfigApiAppConfigsKeyGetResponses,
   GetCurrentUserInfoApiUsersMeGetData,
   GetCurrentUserInfoApiUsersMeGetResponses,
   GetDashboardApiAdminDashboardGetData,
@@ -174,8 +171,6 @@ import type {
   ListAnnotationSetsApiAnnotationsSetsGetResponses,
   ListAnnotationSetStatsApiAdminAnnotationsSetsGetData,
   ListAnnotationSetStatsApiAdminAnnotationsSetsGetResponses,
-  ListAppConfigsApiAppConfigsGetData,
-  ListAppConfigsApiAppConfigsGetResponses,
   ListChatModelsApiChatModelsGetData,
   ListChatModelsApiChatModelsGetResponses,
   ListChatSkillsApiChatSkillsGetData,
@@ -214,9 +209,6 @@ import type {
   ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostData,
   ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostErrors,
   ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostResponses,
-  ResetAppConfigApiAppConfigsKeyDeleteData,
-  ResetAppConfigApiAppConfigsKeyDeleteErrors,
-  ResetAppConfigApiAppConfigsKeyDeleteResponses,
   ResolveIssueEndpointApiIssuesIssueIdResolvePostData,
   ResolveIssueEndpointApiIssuesIssueIdResolvePostErrors,
   ResolveIssueEndpointApiIssuesIssueIdResolvePostResponses,
@@ -244,9 +236,6 @@ import type {
   UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostData,
   UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostErrors,
   UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostResponses,
-  UpdateAppConfigApiAppConfigsKeyPutData,
-  UpdateAppConfigApiAppConfigsKeyPutErrors,
-  UpdateAppConfigApiAppConfigsKeyPutResponses,
   UpdatePreferencesApiUsersMePreferencesPatchData,
   UpdatePreferencesApiUsersMePreferencesPatchErrors,
   UpdatePreferencesApiUsersMePreferencesPatchResponses,
@@ -518,99 +507,6 @@ export const listAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGet = <ThrowOnErr
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/admin/annotations/sets/{slug}/items',
     ...options,
-  });
-
-/**
- * List App Configs
- *
- * List all application configs.
- */
-export const listAppConfigsApiAppConfigsGet = <ThrowOnError extends boolean = true>(
-  options?: Options<ListAppConfigsApiAppConfigsGetData, ThrowOnError>,
-): RequestResult<ListAppConfigsApiAppConfigsGetResponses, unknown, ThrowOnError, 'data'> =>
-  (options?.client ?? client).get<ListAppConfigsApiAppConfigsGetResponses, unknown, ThrowOnError, 'data'>({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/app-configs',
-    ...options,
-  });
-
-/**
- * Reset App Config
- *
- * Delete a config override (resets to code default).
- */
-export const resetAppConfigApiAppConfigsKeyDelete = <ThrowOnError extends boolean = true>(
-  options: Options<ResetAppConfigApiAppConfigsKeyDeleteData, ThrowOnError>,
-): RequestResult<
-  ResetAppConfigApiAppConfigsKeyDeleteResponses,
-  ResetAppConfigApiAppConfigsKeyDeleteErrors,
-  ThrowOnError,
-  'data'
-> =>
-  (options.client ?? client).delete<
-    ResetAppConfigApiAppConfigsKeyDeleteResponses,
-    ResetAppConfigApiAppConfigsKeyDeleteErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/app-configs/{key}',
-    ...options,
-  });
-
-/**
- * Get App Config
- *
- * Return the value for a single config key. Public endpoint, no auth required.
- */
-export const getAppConfigApiAppConfigsKeyGet = <ThrowOnError extends boolean = true>(
-  options: Options<GetAppConfigApiAppConfigsKeyGetData, ThrowOnError>,
-): RequestResult<
-  GetAppConfigApiAppConfigsKeyGetResponses,
-  GetAppConfigApiAppConfigsKeyGetErrors,
-  ThrowOnError,
-  'data'
-> =>
-  (options.client ?? client).get<
-    GetAppConfigApiAppConfigsKeyGetResponses,
-    GetAppConfigApiAppConfigsKeyGetErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    url: '/api/app-configs/{key}',
-    ...options,
-  });
-
-/**
- * Update App Config
- *
- * Create or update an application config value.
- */
-export const updateAppConfigApiAppConfigsKeyPut = <ThrowOnError extends boolean = true>(
-  options: Options<UpdateAppConfigApiAppConfigsKeyPutData, ThrowOnError>,
-): RequestResult<
-  UpdateAppConfigApiAppConfigsKeyPutResponses,
-  UpdateAppConfigApiAppConfigsKeyPutErrors,
-  ThrowOnError,
-  'data'
-> =>
-  (options.client ?? client).put<
-    UpdateAppConfigApiAppConfigsKeyPutResponses,
-    UpdateAppConfigApiAppConfigsKeyPutErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/app-configs/{key}',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
   });
 
 /**

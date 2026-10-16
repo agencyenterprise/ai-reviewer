@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import HTTPException
 from sqlalchemy import or_, select
 from sqlmodel import col
@@ -29,7 +27,7 @@ async def get_all_users(
     role: UserRole | None = None,
     limit: int = 20,
     offset: int = 0,
-) -> List[User]:
+) -> list[User]:
     """Get all users (admin only), optionally filtered by name, email, or role."""
     async with get_async_db_session() as session:
         stmt = select(User)

@@ -12,8 +12,9 @@ document, the same edit wins, whatever order the rows arrive in.
 """
 
 import uuid
-from datetime import datetime, timezone
-from typing import Dict, List, Literal, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from datetime import UTC, datetime
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -44,14 +45,14 @@ class EditDecision(BaseModel):
 
     edit_id: uuid.UUID
     line: int
-    span: Optional[Tuple[int, int]]
+    span: tuple[int, int] | None
     outcome: EditOutcomeName
-    winner_id: Optional[uuid.UUID] = None
+    winner_id: uuid.UUID | None = None
 
 
 def _located_span(
     candidate: EditCandidate, document_lines: Sequence[str]
-) -> Optional[Tuple[int, int]]:
+) -> tuple[int, int] | None:
     """The quote's span on its own markdown line, or None when it is not unique.
 
     A quote the line carries twice is as good as absent here: the edit cannot
@@ -66,7 +67,7 @@ def _located_span(
     return spans[0] if len(spans) == 1 else None
 
 
-def winner_sort_key(candidate: EditCandidate) -> Tuple[int, int, float, str]:
+def winner_sort_key(candidate: EditCandidate) -> tuple[int, int, float, str]:
     """Sort key picking the edit to keep: an accepted edit first, then the
     higher severity, then the older issue, then the lower id.
 
@@ -77,7 +78,7 @@ def winner_sort_key(candidate: EditCandidate) -> Tuple[int, int, float, str]:
     """
     created = candidate.issue_created_at
     if created.tzinfo is None:
-        created = created.replace(tzinfo=timezone.utc)
+        created = created.replace(tzinfo=UTC)
     return (
         0 if candidate.edit.status == IssueEditStatus.ACCEPTED else 1,
         -candidate.issue_severity.sort_index(),
@@ -92,23 +93,23 @@ def pick_winner(candidates: Sequence[EditCandidate]) -> EditCandidate:
 
 
 def _overlap_groups(
-    located: Sequence[Tuple[EditCandidate, Tuple[int, int]]],
-) -> List[List[EditCandidate]]:
+    located: Sequence[tuple[EditCandidate, tuple[int, int]]],
+) -> list[list[EditCandidate]]:
     """Group edits that overlap, transitively, within one line.
 
     Walking the spans in start order is enough: a group is closed as soon as a
     span starts at or after the furthest end reached so far.
     """
-    by_line: Dict[int, List[Tuple[EditCandidate, Tuple[int, int]]]] = {}
+    by_line: dict[int, list[tuple[EditCandidate, tuple[int, int]]]] = {}
     for candidate, span in located:
         by_line.setdefault(candidate.edit.start_line, []).append((candidate, span))
 
-    groups: List[List[EditCandidate]] = []
+    groups: list[list[EditCandidate]] = []
     for line in sorted(by_line):
         ordered = sorted(
             by_line[line], key=lambda pair: (pair[1], str(pair[0].edit.id))
         )
-        current: List[EditCandidate] = []
+        current: list[EditCandidate] = []
         reach = -1
         for candidate, span in ordered:
             if current and span[0] < reach:
@@ -126,7 +127,7 @@ def _overlap_groups(
 
 def resolve_edit_conflicts(
     candidates: Sequence[EditCandidate], document_lines: Sequence[str]
-) -> List[EditDecision]:
+) -> list[EditDecision]:
     """Decide, for every candidate, whether it can be applied to the document.
 
     Rejected edits are reported as such and never compete. An edit whose quote
@@ -137,9 +138,9 @@ def resolve_edit_conflicts(
     Returned in line then span then id order, so the result does not depend on
     the order the rows came in.
     """
-    decisions: List[EditDecision] = []
-    located: List[Tuple[EditCandidate, Tuple[int, int]]] = []
-    spans: Dict[uuid.UUID, Tuple[int, int]] = {}
+    decisions: list[EditDecision] = []
+    located: list[tuple[EditCandidate, tuple[int, int]]] = []
+    spans: dict[uuid.UUID, tuple[int, int]] = {}
 
     for candidate in candidates:
         edit = candidate.edit

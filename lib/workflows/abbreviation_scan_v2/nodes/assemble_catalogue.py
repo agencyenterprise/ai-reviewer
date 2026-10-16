@@ -1,7 +1,6 @@
 """Combine chunk extractions into the catalogue for abbreviation scan v2."""
 
 import logging
-from typing import List
 
 from langgraph.runtime import Runtime
 
@@ -47,7 +46,7 @@ async def assemble_catalogue_node(
 
 
 def _summary(
-    state: AbbreviationScanV2State, catalogue: List[AbbreviationItem], total_lines: int
+    state: AbbreviationScanV2State, catalogue: list[AbbreviationItem], total_lines: int
 ) -> str:
     extracted = [c for c in state.chunks if c.status != ChunkStatus.SKIPPED]
     failed = [c for c in extracted if c.status == ChunkStatus.ERROR]
@@ -72,10 +71,10 @@ def _summary(
 
 
 def _chunk_errors(
-    chunks: List[AbbreviationChunk],
-    catalogue: List[AbbreviationItem],
+    chunks: list[AbbreviationChunk],
+    catalogue: list[AbbreviationItem],
     workflow_run_id: str | None,
-) -> List[WorkflowError]:
+) -> list[WorkflowError]:
     """One error per failed or truncated chunk.
 
     A failed chunk costs part of the document, not the run, so these are

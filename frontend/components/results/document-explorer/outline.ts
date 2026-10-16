@@ -1,4 +1,5 @@
 import type { Issue } from '@/lib/generated-api';
+import { issueStartLine } from './issue-lines';
 
 export interface OutlineEntry {
   id: string;
@@ -56,11 +57,6 @@ export function extractOutline(markdown: string): OutlineEntry[] {
   });
 
   return entries;
-}
-
-function issueStartLine(issue: Issue): number | null {
-  const start = (issue as Issue & { start_line?: number | null }).start_line;
-  return typeof start === 'number' ? start : null;
 }
 
 /** Issues whose start line falls inside a section, for the rail's severity dots. */

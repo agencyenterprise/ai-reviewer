@@ -1,12 +1,10 @@
 'use client';
 
 import { Issue, SeverityEnum } from '@/lib/generated-api';
+import { SEVERITIES_WORST_FIRST } from '@/lib/severity';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ReactNode, Ref, useImperativeHandle, useMemo } from 'react';
 import { GroupHeader, IssueRow } from './issue-row';
-
-/** Worst first, matching the order the store already sorts issues into. */
-const SEVERITY_ORDER: SeverityEnum[] = [SeverityEnum.High, SeverityEnum.Medium, SeverityEnum.Low, SeverityEnum.None];
 
 type Row = { kind: 'header'; severity: SeverityEnum; count: number } | { kind: 'issue'; issue: Issue };
 
@@ -41,7 +39,7 @@ export function IssuesList({
 }: IssuesListProps) {
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = [];
-    for (const severity of SEVERITY_ORDER) {
+    for (const severity of SEVERITIES_WORST_FIRST) {
       const group = issues.filter((issue) => issue.severity === severity);
       if (group.length === 0) continue;
       out.push({ kind: 'header', severity, count: group.length });

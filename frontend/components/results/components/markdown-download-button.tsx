@@ -8,7 +8,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { convertMarkdownToDocx, downloadDocx } from '@mohtasham/md-to-docx';
+import { markdownToDocx } from '@/lib/markdown-docx';
+import { downloadDocx } from '@mohtasham/md-to-docx';
 import { ChevronDown, Download, FileText, Loader2, Printer } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -32,12 +33,8 @@ export function MarkdownDownloadButton({ markdown, fileName }: MarkdownDownloadB
   const handleDownloadDocx = async () => {
     setIsConverting(true);
     try {
-      const blob = await convertMarkdownToDocx(markdown, {
-        style: {
-          fontFamily: 'Georgia',
-        },
-      });
-      downloadDocx(blob, `${fileName}.docx`);
+      const blob = await markdownToDocx(markdown);
+      await downloadDocx(blob, `${fileName}.docx`);
     } catch (error) {
       console.error('Failed to convert markdown to DOCX:', error);
       toast.error('Failed to generate DOCX file');

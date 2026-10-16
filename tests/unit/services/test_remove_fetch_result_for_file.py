@@ -6,17 +6,17 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from lib.services.references import remove_fetch_result_for_file
+from lib.workflows.models import WorkflowRunType
+from lib.workflows.reference_downloader.agents.reference_fetcher import (
+    ReferenceFetchConclusion,
+    ReferenceFetchItem,
+)
 from lib.workflows.reference_downloader.state import (
     ReferenceDownloaderState,
     ReferenceDownloaderWorkflowConfig,
     ReferenceFetchResult,
     ReferenceFetchStatus,
 )
-from lib.workflows.reference_downloader.agents.reference_fetcher import (
-    ReferenceFetchConclusion,
-    ReferenceFetchItem,
-)
-from lib.workflows.models import WorkflowRunType
 
 
 def _make_fetch_item(

@@ -56,6 +56,7 @@ from inspect_ai.viewer import (
 
 from evals_inspectai.common.api_solver import surface_conversations
 from evals_inspectai.common.loaders import resolve_input
+from evals_inspectai.common.model_override import output_model_name
 from evals_inspectai.common.peer_review_fixture import (
     ResponseMemo,
     ReviewerMemo,
@@ -67,8 +68,12 @@ from evals_inspectai.common.review_assistant_scorers import (
     extract_report,
     structure_checks,
 )
-from evals_inspectai.common.scorers import checks_to_score, criteria_for, failed_score, grade_criteria
-from evals_inspectai.common.model_override import output_model_name
+from evals_inspectai.common.scorers import (
+    checks_to_score,
+    criteria_for,
+    failed_score,
+    grade_criteria,
+)
 from evals_inspectai.e2e.reviewer_coverage_report.response_checks import (
     check_author_verbatim,
     check_response_slots,
@@ -102,7 +107,10 @@ ALL_STRUCTURE_CHECKS = (*STRUCTURE_CHECKS, *COVERAGE_CHECKS)
 
 
 def _memo_file(ref: str) -> dict[str, str]:
-    return {"file_name": Path(ref.removeprefix("file://")).name, "content": resolve_input(ref)}
+    return {
+        "file_name": Path(ref.removeprefix("file://")).name,
+        "content": resolve_input(ref),
+    }
 
 
 def _record_to_sample(record: dict) -> Sample:
@@ -189,7 +197,9 @@ def reviewer_coverage_report_solver(
         # completion the scorers parse stays just the workflow result.
         await surface_conversations(state, workflow_state, _TARGET_WORKFLOW)
 
-        state.output = ModelOutput(completion=json.dumps(workflow_state), model=output_model_name(run_detail))
+        state.output = ModelOutput(
+            completion=json.dumps(workflow_state), model=output_model_name(run_detail)
+        )
         return state
 
     return solve

@@ -13,17 +13,18 @@ import os
 import threading
 import time
 from unittest.mock import patch
+from unittest.mock import patch as mock_patch
 
 import pytest
 from PIL import Image, ImageCms
 from xxhash import xxh128
 
+from lib.services import image_extraction
 from lib.services.docx.image_display_sizes import (
     DisplaySizes,
     ImagePlacement,
     SourceRect,
 )
-from lib.services import image_extraction
 from lib.services.image_extraction import (
     EXTRACTED_IMAGES_DIRNAME,
     extract_data_uri_images,
@@ -192,8 +193,6 @@ async def test_write_leaves_no_temp_artifacts(tmp_path):
 async def test_existing_image_file_is_not_rewritten(tmp_path):
     """Content-addressed files are immutable: a second extraction of the same
     bytes must not touch the existing file (readers may be serving it)."""
-    from unittest.mock import patch as mock_patch
-
     markdown = f"![a](data:image/png;base64,{PNG_B64})\n"
     with _uploads_patch(tmp_path):
         first = await extract_data_uri_images(markdown)
@@ -251,7 +250,7 @@ async def test_declared_crop_is_applied_to_the_stored_image(tmp_path):
     with Image.open(image.image_path) as stored:
         assert stored.size == (750, 357)
         assert abs(stored.width / stored.height - 624 / 297) < 0.01
-    assert f"?w=624&h=297" in result.markdown
+    assert "?w=624&h=297" in result.markdown
 
 
 @pytest.mark.asyncio

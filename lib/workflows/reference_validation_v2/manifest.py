@@ -1,4 +1,5 @@
-from typing import List, Type, cast
+import builtins
+from typing import cast
 
 from langgraph.graph import StateGraph
 
@@ -14,8 +15,8 @@ from lib.workflows.reference_validation_v2.state import (
     ReferenceValidationV2Status,
     ReferenceValidationV2WorkflowConfig,
 )
-from lib.workflows.workflow_types import WorkflowState
 from lib.workflows.util import get_state_by_type
+from lib.workflows.workflow_types import WorkflowState
 
 _FINAL_RESULT_SEVERITY: dict[ReferenceValidationFinalResultV2, SeverityEnum] = {
     ReferenceValidationFinalResultV2.CORRECT: SeverityEnum.NONE,
@@ -42,10 +43,10 @@ class ReferenceValidationV2Manifest(
     # run in parallel so large bibliographies don't trip provider 429s.
     max_concurrency = 20
 
-    def get_state_type(self) -> Type[ReferenceValidationV2State]:
+    def get_state_type(self) -> builtins.type[ReferenceValidationV2State]:
         return ReferenceValidationV2State
 
-    def get_config_type(self) -> Type[ReferenceValidationV2WorkflowConfig]:
+    def get_config_type(self) -> builtins.type[ReferenceValidationV2WorkflowConfig]:
         return ReferenceValidationV2WorkflowConfig
 
     def build_graph(self) -> StateGraph:
@@ -70,7 +71,7 @@ class ReferenceValidationV2Manifest(
     async def create_initial_state(
         self,
         config: ReferenceValidationV2WorkflowConfig,
-        existing_states: List[WorkflowState],
+        existing_states: list[WorkflowState],
         revision: int,
         prior_self_state: ReferenceValidationV2State | None = None,
     ) -> ReferenceValidationV2State:
@@ -80,11 +81,11 @@ class ReferenceValidationV2Manifest(
         )
 
     def convert_state_to_issues(
-        self, state: ReferenceValidationV2State, other_states: List[WorkflowState]
-    ) -> List[DocumentIssue]:
+        self, state: ReferenceValidationV2State, other_states: list[WorkflowState]
+    ) -> list[DocumentIssue]:
         """Convert ReferenceValidationV2State to issues."""
 
-        issues: List[DocumentIssue] = []
+        issues: list[DocumentIssue] = []
 
         ref_extraction_state = get_state_by_type(
             WorkflowRunType.REFERENCE_EXTRACTION, other_states
@@ -115,7 +116,7 @@ class ReferenceValidationV2Manifest(
 
             field_validations = "\n\n".join(
                 [
-                    f"- **{item.category.value.capitalize()}**: {item.problem_type.value.capitalize()}\n\n\t*Current*: {item.current_value or "-"}\n\n\t*Suggested*: {item.suggested_value}"
+                    f"- **{item.category.value.capitalize()}**: {item.problem_type.value.capitalize()}\n\n\t*Current*: {item.current_value or '-'}\n\n\t*Suggested*: {item.suggested_value}"
                     for item in result.bibliography_field_validations
                 ]
             )

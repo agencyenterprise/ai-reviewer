@@ -1,7 +1,5 @@
 """Tests for the markitdown file converter post-processing."""
 
-import pytest
-
 from lib.services.converters.markitdown import _fix_escaped_underscores_in_urls
 
 

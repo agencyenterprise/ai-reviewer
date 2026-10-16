@@ -2,7 +2,6 @@
 
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
@@ -57,7 +56,7 @@ class WorkflowGateApproval(SQLModel, table=True):
         ),
         description="When the gate was approved",
     )
-    approved_by_user_id: Optional[uuid.UUID] = Field(
+    approved_by_user_id: uuid.UUID | None = Field(
         default=None,
         sa_column=Column(
             UUID(as_uuid=True),

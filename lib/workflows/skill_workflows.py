@@ -15,7 +15,7 @@ own graphs keep their explicit manifests.
 """
 
 from pathlib import Path
-from typing import ClassVar, Optional, cast
+from typing import ClassVar, cast
 
 from pydantic import ValidationError
 
@@ -43,7 +43,7 @@ class SkillWorkflowManifest(SimpleDeepAgentManifest):
     """
 
     category: ClassVar[str]
-    icon: ClassVar[Optional[str]] = None
+    icon: ClassVar[str | None] = None
     presets: ClassVar[list[str]] = []
     skill_file: ClassVar[Path]
 
@@ -62,7 +62,9 @@ def _workflow_type_for(declaration: SkillWorkflowDeclaration) -> WorkflowRunType
         ) from e
 
 
-def _dependency_type(declaration: SkillWorkflowDeclaration, slug: str) -> WorkflowRunType:
+def _dependency_type(
+    declaration: SkillWorkflowDeclaration, slug: str
+) -> WorkflowRunType:
     try:
         return WorkflowRunType(slug)
     except ValueError as e:
@@ -127,7 +129,7 @@ def build_skill_workflow_manifest(
 
 
 def discover_skill_workflows(
-    skills_dir: Optional[Path] = None,
+    skills_dir: Path | None = None,
 ) -> list[SkillWorkflowManifest]:
     """One manifest per skill that declares a workflow block.
 
@@ -138,5 +140,7 @@ def discover_skill_workflows(
     try:
         declarations = read_all_skill_workflow_declarations(skills_dir)
     except ValidationError as e:
-        raise SkillWorkflowError(f"invalid draft_detective block in a skill: {e}") from e
+        raise SkillWorkflowError(
+            f"invalid draft_detective block in a skill: {e}"
+        ) from e
     return [build_skill_workflow_manifest(d) for d in declarations]

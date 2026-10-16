@@ -24,7 +24,8 @@ preference moot as well.
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any
 
 from docx.oxml.ns import qn
 from docx_editor import ParagraphInfo
@@ -45,7 +46,7 @@ class MappedParagraph(BaseModel):
     text: str
 
 
-def paragraph_ordinals(document: Any) -> Optional[Tuple[List[int], int]]:
+def paragraph_ordinals(document: Any) -> tuple[list[int], int] | None:
     """``([document ordinal of each mapped paragraph], total <w:p> count)``.
 
     The mapped paragraphs are the non-empty body paragraphs, in the order the
@@ -65,7 +66,7 @@ def paragraph_ordinals(document: Any) -> Optional[Tuple[List[int], int]]:
         element: ordinal
         for ordinal, element in enumerate(document.element.body.iter(qn("w:p")), 1)
     }
-    ordinals: List[int] = []
+    ordinals: list[int] = []
     for paragraph in document.paragraphs:
         if not paragraph.text.strip():
             continue
@@ -81,7 +82,7 @@ def map_paragraph_refs(
     mapped_ordinals: Sequence[int],
     total_paragraphs: int,
     editor_paragraphs: Sequence[ParagraphInfo],
-) -> Optional[Dict[int, MappedParagraph]]:
+) -> dict[int, MappedParagraph] | None:
     """Map ``{python-docx paragraph index: docx-editor paragraph}``.
 
     `mapped_ordinals` and `total_paragraphs` come from `paragraph_ordinals`;
@@ -103,7 +104,7 @@ def map_paragraph_refs(
     # Keyed by docx-editor's own 1-based index rather than by list position, so
     # a partial listing is caught below instead of shifting every ref.
     by_ordinal = {info.index: info for info in editor_paragraphs}
-    mapped: Dict[int, MappedParagraph] = {}
+    mapped: dict[int, MappedParagraph] = {}
     for index, ordinal in enumerate(mapped_ordinals):
         info = by_ordinal.get(ordinal)
         if info is None:

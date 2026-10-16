@@ -6,11 +6,9 @@ because deserialization always goes through the manifest's get_state_type(),
 not Pydantic union dispatch.
 """
 
-from typing import List, Optional
+from pydantic import Field
 
-from langchain_core.messages import BaseMessage
-from pydantic import Field, field_serializer
-
+from lib.workflows.agent_messages import AgentMessages
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 from lib.workflows.simple_deep_agent.agent_types import DeepAgentResult
 
@@ -35,18 +33,11 @@ class SimpleDeepAgentState(BaseWorkflowState):
         description="The workflow type, set per-manifest at runtime"
     )
     config: SimpleDeepAgentConfig
-    result: Optional[DeepAgentResult] = Field(
+    result: DeepAgentResult | None = Field(
         default=None,
         description="Result from the deep agent pass (markdown/issues or HTML report)",
     )
-    messages: List[BaseMessage] = Field(
+    messages: AgentMessages = Field(
         default_factory=list,
         description="LLM conversation messages from the agent invocation.",
     )
-
-    @field_serializer("messages")
-    @classmethod
-    def _serialize_messages(cls, messages: List[BaseMessage]) -> list[dict]:
-        # Checkpointer-hydrated states may contain raw dicts in `messages`
-        # because reducers can append items that bypass model construction.
-        return [m if isinstance(m, dict) else m.model_dump() for m in messages]

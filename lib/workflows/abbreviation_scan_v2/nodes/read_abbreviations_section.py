@@ -6,7 +6,6 @@ section cannot be read, the run stops here (see `after_section`).
 """
 
 import logging
-from typing import List
 
 from langgraph.graph import END
 from langgraph.runtime import Runtime
@@ -38,12 +37,14 @@ async def read_abbreviations_section_node(
     if not find_candidate_lines(markdown):
         # Nothing the extractor could find; skip the call rather than send a
         # long document to the model for nothing.
-        logger.info("[AbbreviationScanV2] No line mentions an Abbreviations section; skipping the extractor")
+        logger.info(
+            "[AbbreviationScanV2] No line mentions an Abbreviations section; skipping the extractor"
+        )
         return {"abbreviations_section_found": False}
 
-    result, messages = await AbbreviationsSectionExtractorAgent(runtime.context).ainvoke(
-        {"markdown": markdown}
-    )
+    result, messages = await AbbreviationsSectionExtractorAgent(
+        runtime.context
+    ).ainvoke({"markdown": markdown})
     sections = _valid_sections(result.sections, markdown.count("\n") + 1)
     ranges = [LineRange(start_line=s.start_line, end_line=s.end_line) for s in sections]
     # Every reported section stays out of the chunks (the skill never
@@ -70,10 +71,10 @@ async def read_abbreviations_section_node(
 
 
 def _valid_sections(
-    sections: List[AbbreviationsSectionRange], total_lines: int
-) -> List[AbbreviationsSectionRange]:
+    sections: list[AbbreviationsSectionRange], total_lines: int
+) -> list[AbbreviationsSectionRange]:
     """Clamp the agent's line numbers to the document, dropping impossible ranges."""
-    valid: List[AbbreviationsSectionRange] = []
+    valid: list[AbbreviationsSectionRange] = []
     for section in sections:
         start = max(section.start_line, 1)
         end = min(section.end_line, total_lines)

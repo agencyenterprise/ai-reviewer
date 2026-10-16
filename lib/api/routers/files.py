@@ -1,5 +1,4 @@
 import os
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from starlette.responses import FileResponse
@@ -15,10 +14,8 @@ router = APIRouter(tags=["files"])
 @router.get("/api/files/download/{file_id}")
 async def download_file(
     file_id: str,
-    share_token: Optional[str] = Query(
-        None, description="Share token for public access"
-    ),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    share_token: str | None = Query(None, description="Share token for public access"),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """
     Download a file by ID with access control.

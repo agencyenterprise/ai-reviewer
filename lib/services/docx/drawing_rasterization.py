@@ -34,7 +34,7 @@ import logging
 import os
 import shutil
 import tempfile
-from typing import Any, Optional
+from typing import Any
 
 import pypdfium2 as pdfium  # type: ignore[import-untyped]
 from docx import Document
@@ -63,7 +63,7 @@ _PDF_RENDER_SCALE = 4
 _EMU_PER_POINT = 12700
 
 
-async def rasterize_docx_drawings(docx_path: str) -> Optional[str]:
+async def rasterize_docx_drawings(docx_path: str) -> str | None:
     """Return a temp copy of ``docx_path`` with unrenderable drawings
     replaced by rendered images.
 
@@ -76,13 +76,11 @@ async def rasterize_docx_drawings(docx_path: str) -> Optional[str]:
         return await _rasterize_docx_drawings(docx_path)
     except Exception:
         # Rendering is an enhancement; a conversion must never fail over it.
-        logger.warning(
-            "Drawing rasterization failed for %s", docx_path, exc_info=True
-        )
+        logger.warning("Drawing rasterization failed for %s", docx_path, exc_info=True)
         return None
 
 
-async def _rasterize_docx_drawings(docx_path: str) -> Optional[str]:
+async def _rasterize_docx_drawings(docx_path: str) -> str | None:
     document = Document(docx_path)
     renderable = [drawing for _, drawing in _renderable_paragraphs(document)]
     if not renderable:
@@ -228,7 +226,15 @@ def _write_render_source_docx(src_path: str, dst_path: str) -> int:
         if margins is None:
             margins = OxmlElement("w:pgMar")
             sectPr.append(margins)
-        for attribute in ("top", "right", "bottom", "left", "header", "footer", "gutter"):
+        for attribute in (
+            "top",
+            "right",
+            "bottom",
+            "left",
+            "header",
+            "footer",
+            "gutter",
+        ):
             margins.set(qn(f"w:{attribute}"), "0")
 
     for tag in ("w:headerReference", "w:footerReference"):
@@ -251,9 +257,7 @@ def _convert_anchor_to_inline(anchor) -> None:
     if extent is None or graphic is None:
         return
     inline = parse_xml(
-        f'<wp:inline {nsdecls("wp", "a")}>'
-        '<wp:docPr id="1" name="drawing"/>'
-        "</wp:inline>"
+        f'<wp:inline {nsdecls("wp", "a")}><wp:docPr id="1" name="drawing"/></wp:inline>'
     )
     inline.insert(0, extent)  # moves the element
     inline.append(graphic)
@@ -298,7 +302,7 @@ def _render_pdf_pages(
 
 async def _render_drawings_to_images(
     docx_path: str, extents: list[tuple[int, int]]
-) -> Optional[tuple[str, list[str]]]:
+) -> tuple[str, list[str]] | None:
     """Render the document's renderable drawings; return (tmp_dir, image
     paths in drawing order), or None on failure. Caller removes tmp_dir."""
     expected = len(extents)
@@ -365,7 +369,7 @@ async def _render_drawings_to_images(
             return None
         succeeded = True
         return tmp_dir, image_paths
-    except asyncio.TimeoutError:
+    except TimeoutError:
         process.kill()
         await process.wait()
         logger.warning("LibreOffice PDF render timed out")
@@ -390,10 +394,10 @@ def _replace_drawing_with_image(document, drawing, image_path: str) -> bool:
         return False
 
     pic_xml = (
-        f'<pic:pic {nsdecls("pic", "a", "r")}>'
+        f"<pic:pic {nsdecls('pic', 'a', 'r')}>"
         f'<pic:nvPicPr><pic:cNvPr id="0" name="drawing"/><pic:cNvPicPr/></pic:nvPicPr>'
         f'<pic:blipFill><a:blip r:embed="{rId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
-        f"<pic:spPr><a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"{cx}\" cy=\"{cy}\"/></a:xfrm>"
+        f'<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm>'
         f'<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'
         f"</pic:pic>"
     )

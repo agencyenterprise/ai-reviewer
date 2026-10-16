@@ -1,6 +1,5 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 
 const DEFAULT_TITLE = 'Draft Detective';
@@ -15,21 +14,30 @@ const DEFAULT_TITLE = 'Draft Detective';
  * the app-wide default with it, so switching tabs left the tab unnamed.
  *
  * Setting `document.title` is a side effect on something React does not own, so
- * an effect is the right tool here rather than the exception. It is keyed on the
- * path as well as the title: the shell stays mounted across tab switches, and
- * the title has to be written again after each one rewrites the head.
+ * an effect is the right tool here rather than the exception. Writing it once is
+ * not enough: the shell stays mounted across tab switches, and since Next 16 the
+ * router inserts the route's `<title>` after this effect has run. So the effect
+ * watches the head and writes the title back whenever the router replaces it.
  */
 export function PageTitle({ title }: { title: string }) {
-  const pathname = usePathname();
-
   useEffect(() => {
-    const trimmed = title.trim();
-    document.title = trimmed ? `${trimmed} · ${DEFAULT_TITLE}` : DEFAULT_TITLE;
+    // `document.title` reads back with whitespace collapsed, so compare against that
+    // form; otherwise a title with a double space would rewrite itself forever.
+    const trimmed = title.replace(/\s+/g, ' ').trim();
+    const wanted = trimmed ? `${trimmed} · ${DEFAULT_TITLE}` : DEFAULT_TITLE;
+    const apply = () => {
+      if (document.title !== wanted) document.title = wanted;
+    };
+
+    apply();
+    const observer = new MutationObserver(apply);
+    observer.observe(document.head, { childList: true, subtree: true, characterData: true });
 
     return () => {
+      observer.disconnect();
       document.title = DEFAULT_TITLE;
     };
-  }, [title, pathname]);
+  }, [title]);
 
   return null;
 }

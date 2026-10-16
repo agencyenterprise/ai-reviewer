@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Literal, Optional, Type, overload
+from typing import Literal, overload
 
 from langgraph.graph import StateGraph
 
@@ -10,10 +10,10 @@ from lib.workflows.workflow_types import WorkflowConfig, WorkflowState
 logger = logging.getLogger(__name__)
 
 
-_workflow_manifest_registry: Dict[WorkflowRunType, WorkflowManifest] = {}
+_workflow_manifest_registry: dict[WorkflowRunType, WorkflowManifest] = {}
 
 
-def get_all_manifests() -> Dict[WorkflowRunType, WorkflowManifest]:
+def get_all_manifests() -> dict[WorkflowRunType, WorkflowManifest]:
     """Get all registered workflow manifests."""
     return dict(_workflow_manifest_registry)
 
@@ -35,7 +35,7 @@ def is_available_workflow_type(workflow_type: WorkflowRunType | str) -> bool:
     return workflow_type in _workflow_manifest_registry
 
 
-def available_workflow_type_values() -> List[str]:
+def available_workflow_type_values() -> list[str]:
     """Slugs of every workflow type that still has a manifest.
 
     The collection form of `is_available_workflow_type`, for callers that filter
@@ -66,12 +66,12 @@ def get_workflow_manifest(
 @overload
 def get_workflow_manifest(
     type: WorkflowRunType, raise_exception: Literal[False]
-) -> Optional[WorkflowManifest]: ...
+) -> WorkflowManifest | None: ...
 
 
 def get_workflow_manifest(
     type: WorkflowRunType, raise_exception: bool = True
-) -> Optional[WorkflowManifest]:
+) -> WorkflowManifest | None:
     """
     Get a workflow manifest by type.
     """
@@ -83,47 +83,50 @@ def get_workflow_manifest(
 
 
 def register_all_workflow_manifests():
-    from lib.workflows.abbreviation_scan_v2.manifest import AbbreviationScanV2Manifest
-    from lib.workflows.document_structure.manifest import DocumentStructureManifest
-    from lib.workflows.figures_tables_check.manifest import FiguresTablesCheckManifest
-    from lib.workflows.about_this_ger.manifest import AboutThisGerManifest
-    from lib.workflows.advocacy_tone_v2.manifest import AdvocacyToneV2Manifest
-    from lib.workflows.claim_reference_validation_v2.manifest import (
+    # Imported here, and called at the bottom of this module, because every
+    # manifest's nodes import lib.workflows.decorators -> workflow_runs -> this
+    # module: the registry has to exist before the manifests load.
+    from lib.workflows.abbreviation_scan_v2.manifest import AbbreviationScanV2Manifest  # noqa: PLC0415  circular, see above
+    from lib.workflows.about_this_ger.manifest import AboutThisGerManifest  # noqa: PLC0415  circular, see above
+    from lib.workflows.advocacy_tone_v2.manifest import AdvocacyToneV2Manifest  # noqa: PLC0415  circular, see above
+    from lib.workflows.claim_reference_validation_v2.manifest import (  # noqa: PLC0415  circular, see above
         ClaimReferenceValidationV2Manifest,
     )
-    from lib.workflows.document_processing.manifest import DocumentProcessingManifest
-    from lib.workflows.document_summarization.manifest import (
+    from lib.workflows.document_processing.manifest import DocumentProcessingManifest  # noqa: PLC0415  circular, see above
+    from lib.workflows.document_structure.manifest import DocumentStructureManifest  # noqa: PLC0415  circular, see above
+    from lib.workflows.document_summarization.manifest import (  # noqa: PLC0415  circular, see above
         DocumentSummarizationManifest,
     )
-    from lib.workflows.inference_validation_v2.manifest import (
+    from lib.workflows.figures_tables_check.manifest import FiguresTablesCheckManifest  # noqa: PLC0415  circular, see above
+    from lib.workflows.inference_validation_v2.manifest import (  # noqa: PLC0415  circular, see above
         InferenceValidationV2Manifest,
     )
-    from lib.workflows.literature_review_v2.manifest import LiteratureReviewV2Manifest
-    from lib.workflows.live_reports_v2.manifest import LiveReportsV2Manifest
-    from lib.workflows.methodological_alignment.manifest import (
+    from lib.workflows.literature_review_v2.manifest import LiteratureReviewV2Manifest  # noqa: PLC0415  circular, see above
+    from lib.workflows.live_reports_v2.manifest import LiveReportsV2Manifest  # noqa: PLC0415  circular, see above
+    from lib.workflows.methodological_alignment.manifest import (  # noqa: PLC0415  circular, see above
         MethodologicalAlignmentManifest,
     )
-    from lib.workflows.reference_downloader.manifest import ReferenceDownloaderManifest
-    from lib.workflows.reference_extraction.manifest import ReferenceExtractionManifest
-    from lib.workflows.reference_file_matching.manifest import (
-        ReferenceFileMatchingManifest,
-    )
-    from lib.workflows.recommendation_check.manifest import (
+    from lib.workflows.recommendation_check.manifest import (  # noqa: PLC0415  circular, see above
         RecommendationCheckManifest,
     )
-    from lib.workflows.reference_validation_v2.manifest import (
+    from lib.workflows.reference_downloader.manifest import ReferenceDownloaderManifest  # noqa: PLC0415  circular, see above
+    from lib.workflows.reference_extraction.manifest import ReferenceExtractionManifest  # noqa: PLC0415  circular, see above
+    from lib.workflows.reference_file_matching.manifest import (  # noqa: PLC0415  circular, see above
+        ReferenceFileMatchingManifest,
+    )
+    from lib.workflows.reference_validation_v2.manifest import (  # noqa: PLC0415  circular, see above
         ReferenceValidationV2Manifest,
     )
-    from lib.workflows.results_extraction.manifest import ResultsExtractionManifest
-    from lib.workflows.reviewer_2.manifest import Reviewer2Manifest
-    from lib.workflows.revision_planning_summary.manifest import (
-        RevisionPlanningSummaryManifest,
+    from lib.workflows.results_extraction.manifest import ResultsExtractionManifest  # noqa: PLC0415  circular, see above
+    from lib.workflows.reviewer_2.manifest import Reviewer2Manifest  # noqa: PLC0415  circular, see above
+    from lib.workflows.reviewer_coverage_report.manifest import (  # noqa: PLC0415  circular, see above
+        ReviewerCoverageReportManifest,
     )
-    from lib.workflows.reviewer_response_memos.manifest import (
+    from lib.workflows.reviewer_response_memos.manifest import (  # noqa: PLC0415  circular, see above
         ReviewerResponseMemosManifest,
     )
-    from lib.workflows.reviewer_coverage_report.manifest import (
-        ReviewerCoverageReportManifest,
+    from lib.workflows.revision_planning_summary.manifest import (  # noqa: PLC0415  circular, see above
+        RevisionPlanningSummaryManifest,
     )
 
     manifests = [
@@ -157,7 +160,10 @@ def register_all_workflow_manifests():
     # Imported here like the manifests above: the skill-workflow module pulls
     # in the deep-agent manifest base, which must not be imported at registry
     # import time.
-    from lib.workflows.skill_workflows import SkillWorkflowError, discover_skill_workflows
+    from lib.workflows.skill_workflows import (  # noqa: PLC0415  circular, see above
+        SkillWorkflowError,
+        discover_skill_workflows,
+    )
 
     # Skill-declared checks: one SKILL.md with a draft_detective block, no manifest.py.
     for manifest in discover_skill_workflows():
@@ -178,7 +184,7 @@ def create_graph(type: WorkflowRunType) -> StateGraph:
     return manifest.build_graph()
 
 
-def get_config_type(type: WorkflowRunType) -> Type[BaseWorkflowConfig]:
+def get_config_type(type: WorkflowRunType) -> type[BaseWorkflowConfig]:
     manifest = get_workflow_manifest(type)
     return manifest.get_config_type()
 
@@ -196,13 +202,13 @@ async def create_state(
     it is passed to create_initial_state, which most workflows ignore — only
     accumulating workflows (e.g. reference_downloader) seed from it.
     """
-    from lib.services.workflow_runs import get_project_workflow_runs
+    from lib.services.workflow_runs import get_project_workflow_runs  # noqa: PLC0415  circular: workflow_runs imports this module
 
     # Include internal workflows so dependencies can access their states
     workflow_runs = await get_project_workflow_runs(
         config.project_id, revision=revision, include_internal=True
     )
-    existing_states: List[WorkflowState] = [
+    existing_states: list[WorkflowState] = [
         run.state for run in workflow_runs if run.state is not None
     ]
     manifest = get_workflow_manifest(config.type)

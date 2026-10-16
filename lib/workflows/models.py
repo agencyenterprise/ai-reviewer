@@ -1,7 +1,7 @@
 import hashlib
 from enum import Enum, StrEnum
 from operator import add
-from typing import Annotated, List, Optional, Self
+from typing import Annotated, Self
 
 from aenum import extend_enum
 from pydantic import BaseModel, Field, model_validator
@@ -12,8 +12,6 @@ from lib.skill_workflow_spec import read_all_skill_workflow_declarations
 class WorkflowCancelledError(Exception):
     """Raised when a workflow has been cancelled. Propagates through LangGraph without being converted to a WorkflowError."""
 
-    pass
-
 
 class DependencyWaitTimeoutError(Exception):
     """Raised when wait_for_dependencies exceeds DEPENDENCY_WAIT_TIMEOUT.
@@ -22,8 +20,6 @@ class DependencyWaitTimeoutError(Exception):
     RUNNING). The dependent run should be marked FAILED with
     failure_reason=dependency_timeout.
     """
-
-    pass
 
 
 class WorkflowErrorSeverity(StrEnum):
@@ -48,19 +44,19 @@ class ErrorDetails(BaseModel):
     predates this model, and not every exception carries model output.
     """
 
-    error_type: Optional[str] = Field(
+    error_type: str | None = Field(
         default=None,
         description="Class name of the exception that was caught, e.g. 'StructuredOutputValidationError'.",
     )
-    traceback: Optional[str] = Field(
+    traceback: str | None = Field(
         default=None,
         description="Formatted traceback, including chained causes. Truncated if very long.",
     )
-    raw_model_output: Optional[str] = Field(
+    raw_model_output: str | None = Field(
         default=None,
         description="Raw text the LLM returned, when the exception carried it. Truncated if very long.",
     )
-    llm_metadata: Optional[dict] = Field(
+    llm_metadata: dict | None = Field(
         default=None,
         description="Response metadata from the failing LLM call (model name, finish/stop reason, token usage).",
     )
@@ -69,13 +65,13 @@ class ErrorDetails(BaseModel):
 class WorkflowError(BaseModel):
     """Error object for the overall workflow or specific chunks."""
 
-    chunk_index: Optional[int] = Field(
+    chunk_index: int | None = Field(
         default=None,
         description="The index of the chunk that caused the error. This is None if the error occurred before the chunk was processed or in the overall workflow (not chunk-related).",
     )
     task_name: str = Field(description="The name of the task that caused the error.")
     error: str = Field(description="The error message.")
-    workflow_run_id: Optional[str] = Field(
+    workflow_run_id: str | None = Field(
         default=None,
         description="The workflow run ID when this error occurred. Used to filter errors to current run only.",
     )
@@ -87,7 +83,7 @@ class WorkflowError(BaseModel):
             "before this field existed read as 'error'."
         ),
     )
-    details: Optional[ErrorDetails] = Field(
+    details: ErrorDetails | None = Field(
         default=None,
         description="Diagnostic details (traceback, raw model output, LLM metadata) for debugging this error.",
     )
@@ -96,7 +92,7 @@ class WorkflowError(BaseModel):
 class BaseWorkflowState(BaseModel):
     """Base model for all workflow states."""
 
-    errors: Annotated[List[WorkflowError], add] = Field(
+    errors: Annotated[list[WorkflowError], add] = Field(
         default_factory=list,
         description="Errors that occurred during the workflow execution.",
     )
@@ -108,14 +104,14 @@ class BaseWorkflowConfig(BaseModel):
     project_id: str = Field(
         description="The ID of the project that this workflow run should be associated with",
     )
-    openai_api_key: Optional[str] = Field(
+    openai_api_key: str | None = Field(
         default=None,
         description="The OpenAI API key to use for this workflow execution",
     )
-    publication_date: Optional[str] = Field(
+    publication_date: str | None = Field(
         default=None, description="Publication date of the document (YYYY-MM-DD format)"
     )
-    model: Optional[str] = Field(
+    model: str | None = Field(
         default=None,
         description=(
             "LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this "
@@ -212,7 +208,7 @@ def is_user_visible_workflow(workflow_type: WorkflowRunType) -> bool:
     Check if a workflow type should be visible to users in the workflow list.
     Uses the is_internal flag from each workflow's manifest.
     """
-    from lib.workflows.registry import get_all_manifests
+    from lib.workflows.registry import get_all_manifests  # noqa: PLC0415  circular: registry imports this module
 
     manifest = get_all_manifests().get(workflow_type)
     if manifest is None:
@@ -295,11 +291,11 @@ class DocumentIssue(BaseModel):
     description: str = Field(
         description="A short description of the issue, enough to understand the issue at a glance. Can be markdown."
     )
-    long_description: Optional[str] = Field(
+    long_description: str | None = Field(
         description="A long description of the issue, including all the details necessary to understand the issue in detail. Can be markdown.",
         default=None,
     )
-    suggested_action: Optional[str] = Field(
+    suggested_action: str | None = Field(
         default=None,
         description=(
             "A direct, concise recommendation to the author on what to do to resolve "
@@ -310,19 +306,19 @@ class DocumentIssue(BaseModel):
     type: WorkflowRunType = Field(
         description="The workflow type that generated this issue"
     )
-    chunk_indices: Optional[List[int]] = Field(
+    chunk_indices: list[int] | None = Field(
         description="The indices of all chunks that contain the issue",
         default=None,
     )
-    start_line: Optional[int] = Field(
+    start_line: int | None = Field(
         description="1-indexed start line of the issue in the main document markdown",
         default=None,
     )
-    end_line: Optional[int] = Field(
+    end_line: int | None = Field(
         description="1-indexed end line of the issue in the main document markdown",
         default=None,
     )
-    edits: List[ProposedEdit] = Field(
+    edits: list[ProposedEdit] = Field(
         default_factory=list,
         description=(
             "Optional proposed edits: mechanical text replacements that resolve this "

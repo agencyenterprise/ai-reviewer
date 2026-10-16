@@ -1,7 +1,5 @@
 """Reference extractor v2 agent using document search tool."""
 
-from typing import List, Optional
-
 from langchain.agents import create_agent
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langgraph.graph.state import RunnableConfig
@@ -37,7 +35,7 @@ class ReferenceExtractorV2Output(BaseModel):
     reasoning: str = Field(
         description="Step-by-step reasoning describing how references were found and extracted"
     )
-    references: List[ExtractedReferenceWithLines] = Field(
+    references: list[ExtractedReferenceWithLines] = Field(
         description="List of extracted bibliographic references with their line locations"
     )
 
@@ -80,7 +78,7 @@ class ReferenceExtractorV2Agent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: Optional[RunnableConfig] = None,
+        config: RunnableConfig | None = None,
     ) -> tuple[ReferenceExtractorV2Output, list[BaseMessage]]:
         agent = create_agent(
             self.llm,

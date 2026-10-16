@@ -2,6 +2,7 @@
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { SeverityEnum } from '@/lib/generated-api';
+import { REPORTED_SEVERITIES } from '@/lib/severity';
 import { ReportedIssuesSummary } from '@/lib/health-status';
 import { cn } from '@/lib/utils';
 import {
@@ -26,8 +27,6 @@ const severityDisplay: Record<
 };
 
 /** Most severe first — the order the breakdown is read in. */
-const REPORTED_TIERS = [SeverityEnum.High, SeverityEnum.Medium, SeverityEnum.Low];
-
 /**
  * Compact count of the issues one assessment reported.
  *
@@ -63,7 +62,7 @@ export function IssueCountBadge({ summary }: { summary: ReportedIssuesSummary })
               {summary.total} reported {summary.total === 1 ? 'issue' : 'issues'}
             </p>
             <ul>
-              {REPORTED_TIERS.filter((tier) => summary.counts[tier] > 0).map((tier) => {
+              {REPORTED_SEVERITIES.filter((tier) => summary.counts[tier] > 0).map((tier) => {
                 const { icon: TierIcon, label } = severityDisplay[tier];
                 return (
                   <li key={tier} className="flex items-center gap-1.5">

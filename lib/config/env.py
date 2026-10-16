@@ -1,6 +1,5 @@
 import json
 import os
-from typing import Optional
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
@@ -9,7 +8,7 @@ load_dotenv()
 
 
 class Config(BaseModel):
-    OPENAI_API_KEY: Optional[str]
+    OPENAI_API_KEY: str | None
 
     # Logging Configuration
     LOG_RICH_HANDLER: bool = Field(
@@ -18,10 +17,9 @@ class Config(BaseModel):
     )
 
     # Langfuse Configuration
-    LANGFUSE_SECRET_KEY: Optional[str] = None
-    LANGFUSE_PUBLIC_KEY: Optional[str] = None
-    LANGFUSE_HOST: Optional[str] = None
-    LANGFUSE_PROJECT_ID: Optional[str] = None
+    LANGFUSE_SECRET_KEY: str | None = None
+    LANGFUSE_PUBLIC_KEY: str | None = None
+    LANGFUSE_HOST: str | None = None
 
     # Langgraph Configuration
     LANGGRAPH_MAX_CONCURRENCY: int = Field(
@@ -31,11 +29,6 @@ class Config(BaseModel):
 
     # Database Configuration
     DATABASE_URL: str
-    POSTGRES_HOST: str
-    POSTGRES_PORT: str
-    POSTGRES_DB: str
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
 
     # Authentication
     AUTH_SECRET: str = Field(
@@ -43,11 +36,11 @@ class Config(BaseModel):
     )
 
     # MCP / OAuth Authentication
-    AUTH_GOOGLE_ID: Optional[str] = None
-    AUTH_GOOGLE_SECRET: Optional[str] = None
-    AUTH_MICROSOFT_ENTRA_ID_ID: Optional[str] = None
-    AUTH_MICROSOFT_ENTRA_ID_SECRET: Optional[str] = None
-    AUTH_MICROSOFT_ENTRA_ID_ISSUER: Optional[str] = None
+    AUTH_GOOGLE_ID: str | None = None
+    AUTH_GOOGLE_SECRET: str | None = None
+    AUTH_MICROSOFT_ENTRA_ID_ID: str | None = None
+    AUTH_MICROSOFT_ENTRA_ID_SECRET: str | None = None
+    AUTH_MICROSOFT_ENTRA_ID_ISSUER: str | None = None
     MCP_BASE_URL: str = Field(
         default="http://localhost:8000/mcp",
         description="Public URL of the MCP server (must include /mcp path)",
@@ -60,9 +53,9 @@ class Config(BaseModel):
     # The Teams bot. Its own app registration, separate from the Graph one: a
     # different purpose, a different secret to rotate, and a different blast radius
     # if either leaks.
-    TEAMS_BOT_APP_ID: Optional[str] = None
-    TEAMS_BOT_APP_PASSWORD: Optional[str] = None
-    TEAMS_BOT_TENANT_ID: Optional[str] = Field(
+    TEAMS_BOT_APP_ID: str | None = None
+    TEAMS_BOT_APP_PASSWORD: str | None = None
+    TEAMS_BOT_TENANT_ID: str | None = Field(
         default=None,
         description=(
             "Set for a single-tenant bot; leave unset for a multi-tenant one. It "
@@ -70,7 +63,7 @@ class Config(BaseModel):
             "issued for the wrong authority."
         ),
     )
-    TEAMS_USER_AUTH_CONNECTION: Optional[str] = Field(
+    TEAMS_USER_AUTH_CONNECTION: str | None = Field(
         default=None,
         description=(
             "Name of the OAuth connection configured on the Azure Bot resource. "
@@ -82,16 +75,6 @@ class Config(BaseModel):
 
     # File uploads
     FILE_UPLOADS_MOUNT_PATH: str
-
-    # Resumable upload configuration
-    UPLOAD_CHUNK_SIZE: int = Field(
-        default=5 * 1024 * 1024,
-        description="Chunk size for resumable uploads in bytes (default: 5MB)",
-    )
-    UPLOAD_SESSION_TTL_HOURS: int = Field(
-        default=24,
-        description="Upload session time-to-live in hours (default: 24)",
-    )
 
     # Frontend URL for share links
     FRONTEND_URL: str = Field(
@@ -120,7 +103,7 @@ class Config(BaseModel):
     # reference downloader. Optional: without a key requests are anonymous, which
     # Jina rate-limits per source IP and which Cloudflare may challenge for
     # datacenter egress addresses. With a key, limits are tracked per key instead.
-    JINA_API_KEY: Optional[str] = Field(
+    JINA_API_KEY: str | None = Field(
         default=None,
         description="Jina AI API key sent as a bearer token to the Reader API. Optional.",
     )
@@ -146,18 +129,10 @@ config = Config(
     LANGFUSE_HOST=os.getenv("LANGFUSE_HOST"),
     LANGFUSE_SECRET_KEY=os.getenv("LANGFUSE_SECRET_KEY"),
     LANGFUSE_PUBLIC_KEY=os.getenv("LANGFUSE_PUBLIC_KEY"),
-    LANGFUSE_PROJECT_ID=os.getenv("LANGFUSE_PROJECT_ID"),
     LANGGRAPH_MAX_CONCURRENCY=int(os.getenv("LANGGRAPH_MAX_CONCURRENCY", "30")),
     FILE_UPLOADS_MOUNT_PATH=os.getenv("FILE_UPLOADS_MOUNT_PATH", "uploads"),
-    UPLOAD_CHUNK_SIZE=int(os.getenv("UPLOAD_CHUNK_SIZE", str(5 * 1024 * 1024))),
-    UPLOAD_SESSION_TTL_HOURS=int(os.getenv("UPLOAD_SESSION_TTL_HOURS", "24")),
     FRONTEND_URL=os.getenv("FRONTEND_URL", "http://localhost:3000"),
     DATABASE_URL=os.environ["DATABASE_URL"],
-    POSTGRES_HOST=os.environ["POSTGRES_HOST"],
-    POSTGRES_PORT=os.environ["POSTGRES_PORT"],
-    POSTGRES_DB=os.environ["POSTGRES_DB"],
-    POSTGRES_USER=os.environ["POSTGRES_USER"],
-    POSTGRES_PASSWORD=os.environ["POSTGRES_PASSWORD"],
     AUTH_SECRET=os.environ["AUTH_SECRET"],
     AUTH_GOOGLE_ID=os.getenv("AUTH_GOOGLE_ID"),
     AUTH_GOOGLE_SECRET=os.getenv("AUTH_GOOGLE_SECRET"),

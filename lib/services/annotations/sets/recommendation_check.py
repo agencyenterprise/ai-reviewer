@@ -7,8 +7,6 @@ should not. Its actionability, audience and length issues ask different
 questions and are left out.
 """
 
-from typing import Optional
-
 from evals_inspectai.common.issue_inventory import ResolvedIssue
 from lib.services.annotations.set_spec import (
     SHOULD_FLAG,
@@ -28,7 +26,7 @@ SUPPORT_BY_SEVERITY = {
 class RecommendationSupportSpec(AnnotationSetSpec):
     """Flags a recommendation its findings do not fully support."""
 
-    def issue_reference(self, issue: ResolvedIssue) -> Optional[ItemReference]:
+    def issue_reference(self, issue: ResolvedIssue) -> ItemReference | None:
         # Titled issues are the actionability, audience and length ones; an
         # unlabelled severity leaves the classification open.
         support = SUPPORT_BY_SEVERITY.get(issue.severity or "")

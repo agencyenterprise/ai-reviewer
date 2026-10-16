@@ -19,7 +19,7 @@ Subclasses declare class-level attributes (type, name, description, and either
 """
 
 import html as html_lib
-from typing import TYPE_CHECKING, ClassVar, List, Literal, Optional, Type
+from typing import TYPE_CHECKING, ClassVar, Literal
 
 from langgraph.graph import START, StateGraph
 from langgraph.graph.state import END
@@ -72,9 +72,9 @@ class _BaseDeepAgentManifest(
     simple deep agent can reach the web, so the two always travel together.
     """
 
-    skill: ClassVar[Optional[str]] = None
-    user_prompt: ClassVar[Optional[str]] = None
-    system_prompt: ClassVar[Optional[str]] = None
+    skill: ClassVar[str | None] = None
+    user_prompt: ClassVar[str | None] = None
+    system_prompt: ClassVar[str | None] = None
 
     report_issues: ClassVar[bool] = True
     # Opt-in: when set, the issue tool also accepts proposed edits (verbatim
@@ -84,16 +84,19 @@ class _BaseDeepAgentManifest(
 
     # Per-workflow reasoning effort. None keeps SimpleDeepAgent's default;
     # set it on workflows whose task warrants more deliberation.
-    reasoning_effort: ClassVar[Optional[Literal["low", "medium", "high"]]] = None
+    reasoning_effort: ClassVar[Literal["low", "medium", "high"] | None] = None
 
     # Per-workflow LLM call timeout in seconds. None keeps SimpleDeepAgent's
     # default; raise it on workflows whose turns run long, such as web search.
-    llm_timeout: ClassVar[Optional[int]] = None
+    llm_timeout: ClassVar[int | None] = None
 
     # Whether the agent may look at the document's extracted images. Off by
     # default: only workflows whose judgment can hinge on what a figure shows
     # opt in, so text-only checks are not tempted to spend turns on logos.
     view_images: ClassVar[bool] = False
+
+    # The node's label in the run's progress. None uses the workflow's name.
+    progress_label: ClassVar[str | None] = None
 
     def resolve_user_prompt(self) -> str:
         """Resolve the rules/criteria used as the deep agent's user prompt.
@@ -109,13 +112,19 @@ class _BaseDeepAgentManifest(
             f"{type(self).__name__} must define either `skill` or `user_prompt`"
         )
 
-    async def precheck(self, service: "FileArtifactsServiceType") -> Optional[str]:
+    async def precheck(self, service: "FileArtifactsServiceType") -> str | None:
         """Optional guard run before the agent.
 
         Return a message to short-circuit: the agent is skipped and the message
         is surfaced as the run's report. Return None to proceed. Default: no guard.
         """
         return None
+
+    async def prompt_inputs(
+        self, state: SimpleDeepAgentState, service: "FileArtifactsServiceType"
+    ) -> str:
+        """Per-run inputs appended to the user prompt. Default: none."""
+        return ""
 
     def agent_tools(self, model: LLMModel) -> list[dict]:
         """Workflow tools handed to the agent alongside the issue reporter.
@@ -135,10 +144,10 @@ class _BaseDeepAgentManifest(
         """Map what the agent produced into the unified DeepAgentResult."""
         raise NotImplementedError
 
-    def get_state_type(self) -> Type[SimpleDeepAgentState]:
+    def get_state_type(self) -> type[SimpleDeepAgentState]:
         return SimpleDeepAgentState
 
-    def get_config_type(self) -> Type[SimpleDeepAgentConfig]:
+    def get_config_type(self) -> type[SimpleDeepAgentConfig]:
         return SimpleDeepAgentConfig
 
     def build_graph(self) -> StateGraph:
@@ -156,7 +165,8 @@ class _BaseDeepAgentManifest(
             agent = SimpleDeepAgent(
                 context=runtime.context,
                 system_prompt=manifest.system_prompt,
-                user_prompt=manifest.resolve_user_prompt(),
+                user_prompt=manifest.resolve_user_prompt()
+                + await manifest.prompt_inputs(state, service),
                 report_issues=manifest.report_issues,
                 propose_edits=manifest.propose_edits,
                 tools=manifest.agent_tools(
@@ -172,7 +182,7 @@ class _BaseDeepAgentManifest(
                 "messages": run.messages,
             }
 
-        decorated = register_node(self.name)(run_agent)
+        decorated = register_node(self.progress_label or self.name)(run_agent)
 
         graph = StateGraph(SimpleDeepAgentState, context_schema=ContextSchema)
         graph.add_node("run_agent", decorated)
@@ -183,7 +193,7 @@ class _BaseDeepAgentManifest(
     async def create_initial_state(
         self,
         config: SimpleDeepAgentConfig,
-        existing_states: List["WorkflowState"],
+        existing_states: list["WorkflowState"],
         revision: int,
         prior_self_state: SimpleDeepAgentState | None = None,
     ) -> SimpleDeepAgentState:
@@ -192,8 +202,8 @@ class _BaseDeepAgentManifest(
     def convert_state_to_issues(
         self,
         state: SimpleDeepAgentState,
-        other_states: List["WorkflowState"],
-    ) -> List[DocumentIssue]:
+        other_states: list["WorkflowState"],
+    ) -> list[DocumentIssue]:
         # Both variants may carry issues in the unified result (the HTML variant
         # can populate them too); convert whatever is present.
         if state.result is None:

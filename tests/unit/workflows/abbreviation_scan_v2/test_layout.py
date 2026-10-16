@@ -1,7 +1,11 @@
 """Tests for abbreviation scan v2 chunking."""
 
 from lib.workflows.abbreviation_scan_v2.chunk_models import ChunkStatus, LineRange
-from lib.workflows.abbreviation_scan_v2.layout import CHUNK_CHARS, build_chunks, is_heading_line
+from lib.workflows.abbreviation_scan_v2.layout import (
+    CHUNK_CHARS,
+    build_chunks,
+    is_heading_line,
+)
 
 DOC = """\
 # Machine Learning in Drug Discovery
@@ -49,7 +53,10 @@ def test_long_documents_are_packed_under_the_budget():
     doc = "\n\n".join(f"## Section {i}\n\n{paragraph}" for i in range(60))
     chunks = build_chunks(doc, [])
     lines = doc.split("\n")
-    sizes = [sum(len(line) + 1 for line in lines[c.start_line - 1 : c.end_line]) for c in chunks]
+    sizes = [
+        sum(len(line) + 1 for line in lines[c.start_line - 1 : c.end_line])
+        for c in chunks
+    ]
     assert 1 < len(chunks) < 60
     assert max(sizes) <= CHUNK_CHARS
 

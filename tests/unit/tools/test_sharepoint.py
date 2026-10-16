@@ -17,7 +17,7 @@ token is what makes the bot no more privileged than the asker, so losing it is a
 regression rather than a bug in a feature.
 """
 
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -56,9 +56,9 @@ async def call(tool: Any, *args: Any) -> Any:
 def mounted(result: Any) -> dict[str, Any]:
     """The files a Command mounts, having checked it is a Command that mounts some."""
 
-    assert isinstance(
-        result, Command
-    ), f"expected a Command, got {type(result).__name__}: {result}"
+    assert isinstance(result, Command), (
+        f"expected a Command, got {type(result).__name__}: {result}"
+    )
     assert result.update is not None, "a Command that updates nothing mounts nothing"
     return dict(result.update["files"])
 
@@ -86,8 +86,8 @@ def runtime() -> MagicMock:
 
 
 def document(
-    markdown: Optional[str] = None,
-    comments: Optional[list[tuple[str, str]]] = None,
+    markdown: str | None = None,
+    comments: list[tuple[str, str]] | None = None,
 ) -> LoadedDocument:
     return LoadedDocument(
         name="v2-cern-for-ai.docx",

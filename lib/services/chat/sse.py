@@ -23,8 +23,8 @@ is the one type it leaves alone.
 import asyncio
 import json
 import logging
+from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import suppress
-from typing import AsyncGenerator, AsyncIterator
 
 from lib.services.chat.events import ChatEvent, error_event
 
@@ -52,7 +52,7 @@ async def sse_stream(
     *,
     heartbeat_seconds: float = HEARTBEAT_SECONDS,
     turn_timeout_seconds: float = TURN_TIMEOUT_SECONDS,
-) -> AsyncGenerator[str, None]:
+) -> AsyncGenerator[str]:
     """Encode ``events`` as SSE, with heartbeats while the producer is quiet.
 
     A producer failure or timeout becomes an ``error`` event and ends the stream;

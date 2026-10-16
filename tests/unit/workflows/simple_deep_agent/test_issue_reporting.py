@@ -3,7 +3,6 @@
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
-
 from langchain_core.messages import AIMessage, ToolMessage
 
 from lib.workflows.simple_deep_agent.issue_reporting import (

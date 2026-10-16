@@ -1,6 +1,6 @@
 """Unit tests for the dashboard window and its activity buckets."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from lib.services.admin_dashboard.models import ActivityGranularity
 from lib.services.admin_dashboard.queries import _bucket_starts
@@ -34,7 +34,7 @@ def test_short_windows_bucket_by_day_long_ones_by_week():
 
 
 def test_daily_buckets_cover_every_day_in_the_window():
-    end = datetime(2026, 3, 10, 14, 30, tzinfo=timezone.utc)
+    end = datetime(2026, 3, 10, 14, 30, tzinfo=UTC)
     buckets = _bucket_starts(_window(7, ActivityGranularity.DAY, end))
 
     assert buckets[0].isoformat() == "2026-03-03"
@@ -48,7 +48,7 @@ def test_daily_buckets_cover_every_day_in_the_window():
 
 def test_weekly_buckets_start_on_monday():
     # 2026-03-10 is a Tuesday; the window opens mid-week a year earlier.
-    end = datetime(2026, 3, 10, tzinfo=timezone.utc)
+    end = datetime(2026, 3, 10, tzinfo=UTC)
     buckets = _bucket_starts(_window(365, ActivityGranularity.WEEK, end))
 
     assert all(bucket.weekday() == 0 for bucket in buckets)

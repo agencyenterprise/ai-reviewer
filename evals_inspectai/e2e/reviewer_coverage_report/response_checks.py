@@ -57,7 +57,7 @@ def _under_author_label(report: HtmlReport, snippet: str) -> bool:
     position = report.text.find(normalize(snippet))
     if position < 0:
         return False
-    labels = [m for m in _AUTHOR_LABEL.finditer(report.text, 0, position)]
+    labels = list(_AUTHOR_LABEL.finditer(report.text, 0, position))
     if not labels:
         return False
     between = report.text[labels[-1].end() : position]
@@ -74,9 +74,7 @@ def _invented_replies(report: HtmlReport) -> list[str]:
     return invented
 
 
-def check_author_verbatim(
-    report: HtmlReport, meta: dict[str, Any]
-) -> tuple[bool, str]:
+def check_author_verbatim(report: HtmlReport, meta: dict[str, Any]) -> tuple[bool, str]:
     """Replies reproduced verbatim inside quotes, or none invented.
 
     With response memos, the probes are distinctive sentences drawn from every
@@ -90,9 +88,11 @@ def check_author_verbatim(
         invented = _invented_replies(report)
         return (
             not invented,
-            "no author replies presented"
-            if not invented
-            else f"{len(invented)} reply slot(s) carry text without response memos; first: {invented[0]!r}",
+            (
+                "no author replies presented"
+                if not invented
+                else f"{len(invented)} reply slot(s) carry text without response memos; first: {invented[0]!r}"
+            ),
         )
 
     probes: list[str] = meta.get("author_probes") or []
@@ -114,9 +114,7 @@ def check_author_verbatim(
     )
 
 
-def check_response_slots(
-    report: HtmlReport, meta: dict[str, Any]
-) -> tuple[bool, str]:
+def check_response_slots(report: HtmlReport, meta: dict[str, Any]) -> tuple[bool, str]:
     """The unanswered-point slot is filled, or the header says none were given.
 
     With response memos, a sample whose memos leave a point unanswered must show
@@ -127,9 +125,11 @@ def check_response_slots(
         stated = _NONE_SUPPLIED.search(report.part1)
         return (
             stated is not None,
-            "Part 1 says no response memos were supplied"
-            if stated
-            else "Part 1 does not say that no response memos were supplied",
+            (
+                "Part 1 says no response memos were supplied"
+                if stated
+                else "Part 1 does not say that no response memos were supplied"
+            ),
         )
 
     if not meta.get("expects_unanswered_point"):
@@ -137,7 +137,9 @@ def check_response_slots(
     present = _NO_RESPONSE_SLOT in report.text
     return (
         present,
-        "unanswered point marked with the placeholder"
-        if present
-        else f"no {_NO_RESPONSE_SLOT!r} slot for the point the replies skip",
+        (
+            "unanswered point marked with the placeholder"
+            if present
+            else f"no {_NO_RESPONSE_SLOT!r} slot for the point the replies skip"
+        ),
     )

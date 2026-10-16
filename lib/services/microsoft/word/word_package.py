@@ -21,9 +21,10 @@ import base64
 import logging
 import shutil
 import tempfile
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Iterator, Optional
+from typing import Any
 from xml.sax.saxutils import escape
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -39,9 +40,7 @@ DRAFT_DETECTIVE = "Draft Detective"
 _CONTENT_TYPES_PART = "[Content_Types].xml"
 _DOCUMENT_ZIP_ENTRY = "word/document.xml"
 
-_RELATIONSHIP_CONTENT_TYPE = (
-    "application/vnd.openxmlformats-package.relationships+xml"
-)
+_RELATIONSHIP_CONTENT_TYPE = "application/vnd.openxmlformats-package.relationships+xml"
 _CONTENT_TYPES_NS = "http://schemas.openxmlformats.org/package/2006/content-types"
 
 # Word writes this ahead of the root and expects it back; without it the package
@@ -77,7 +76,7 @@ def _parts(markup: str) -> Iterator[tuple[str, str, bytes]]:
             yield name, content_type, base64.b64decode(binary.text)
 
 
-def _part_xml(xml_data: Any) -> Optional[bytes]:
+def _part_xml(xml_data: Any) -> bytes | None:
     """A part's XML, keeping anything that precedes its root element.
 
     SharePoint writes custom XML parts that open with a processing instruction, so
@@ -111,7 +110,7 @@ def _content_types_part(types: dict[str, str]) -> bytes:
         f'<Default Extension="rels" ContentType="{_RELATIONSHIP_CONTENT_TYPE}"/>'
         '<Default Extension="xml" ContentType="application/xml"/>'
         f"{overrides}</Types>"
-    ).encode("utf-8")
+    ).encode()
 
 
 def to_docx(markup: str, path: Path) -> None:
@@ -165,7 +164,7 @@ def _content_types(archive: ZipFile) -> tuple[dict[str, str], dict[str, str]]:
 
 def _content_type_of(
     name: str, by_extension: dict[str, str], by_name: dict[str, str]
-) -> Optional[str]:
+) -> str | None:
     """What this part declares itself to be, or None when it declares nothing.
 
     None means the part is not content: a .docx synced through OneDrive carries
@@ -201,7 +200,9 @@ def from_docx(path: Path) -> str:
                 logger.info("leaving out %s: the package declares no type for it", name)
                 continue
             payload = archive.read(name)
-            attributes = f'pkg:name="/{escape(name)}" pkg:contentType="{escape(content_type)}"'
+            attributes = (
+                f'pkg:name="/{escape(name)}" pkg:contentType="{escape(content_type)}"'
+            )
             if _is_xml(name, content_type):
                 body = payload.decode("utf-8")
                 # Flat OPC nests the part's root element directly; its own

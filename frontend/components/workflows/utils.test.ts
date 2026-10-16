@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WorkflowRunType, type WorkflowTypeDescription } from '@/lib/generated-api';
-import { startBlocker } from './utils';
+import { formatEstimatedDuration, startBlocker } from './utils';
 
 function workflowType(type: WorkflowRunType, needsWebSearch: boolean): WorkflowTypeDescription {
   return {
@@ -64,5 +64,24 @@ describe('startBlocker', () => {
   it('reports readiness before selection, and selection before consent', () => {
     expect(blocker({ selectedTypes: [], metadataPending: true })).toBe('metadata-pending');
     expect(blocker({ selectedTypes: [], webSearchConsent: false })).toBe('none-selected');
+  });
+});
+
+describe('formatEstimatedDuration', () => {
+  it('rounds to whole minutes under an hour, never below one', () => {
+    expect(formatEstimatedDuration(150)).toBe('~3 min');
+    expect(formatEstimatedDuration(10)).toBe('~1 min');
+  });
+
+  it('switches to hours from an hour up', () => {
+    expect(formatEstimatedDuration(90 * 60)).toBe('~1.5 hr');
+    expect(formatEstimatedDuration(12.4 * 3600)).toBe('~12 hr');
+  });
+
+  it('has nothing to say without a usable estimate', () => {
+    expect(formatEstimatedDuration(null)).toBeNull();
+    expect(formatEstimatedDuration(undefined)).toBeNull();
+    expect(formatEstimatedDuration(0)).toBeNull();
+    expect(formatEstimatedDuration(Number.NaN)).toBeNull();
   });
 });

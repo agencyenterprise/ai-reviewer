@@ -3,7 +3,6 @@
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from sqlalchemy import Column, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -48,12 +47,12 @@ class WorkflowProgress(SQLModel, table=True):
         default=0, description="Current step/item being processed"
     )
     total_steps: int = Field(default=0, description="Total steps/items to process")
-    started_at: Optional[datetime] = Field(
+    started_at: datetime | None = Field(
         sa_column=Column(DateTime(timezone=True), nullable=True),
         default=None,
         description="When this progress entry started",
     )
-    completed_at: Optional[datetime] = Field(
+    completed_at: datetime | None = Field(
         sa_column=Column(DateTime(timezone=True), nullable=True),
         default=None,
         description="When this progress entry completed",

@@ -1,8 +1,10 @@
 'use client';
 
-import { Thread } from '@/components/assistant-ui/thread';
+import { Thread, type ThreadComponents } from '@/components/assistant-ui/elements/thread.aui';
 import { ThreadList } from '@/components/assistant-ui/thread-list';
 import { DocumentAttachmentAdapter } from '@/components/chat/document-attachment-adapter';
+import { ReasoningSteps } from '@/components/assistant-ui/reasoning-steps';
+import { ChatWelcome } from '@/components/chat/chat-welcome';
 import { DocumentPanel } from '@/components/chat/document-panel';
 import { dbThreadListAdapter } from '@/components/chat/db-thread-list-adapter';
 import { DevToolsModal } from '@assistant-ui/react-devtools';
@@ -26,11 +28,14 @@ import {
   type AssistantRuntime,
 } from '@assistant-ui/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
 // Stateless; one shared instance is fine.
 const attachmentAdapter = new DocumentAttachmentAdapter();
+
+// Module scope, so Thread's message subtrees don't re-render with this component.
+const THREAD_COMPONENTS: ThreadComponents = { Welcome: ChatWelcome, ReasoningGroup: ReasoningSteps };
 
 export const threadMessagesQueryKey = (threadId: string | undefined) =>
   ['chat', 'thread', threadId, 'messages'] as const;
@@ -145,7 +150,9 @@ function useChatThreadRuntime(): AssistantRuntime {
     onCancel: async () => abortRef.current?.abort(),
     adapters: { attachments: attachmentAdapter },
   });
-  runtimeRef.current = runtime;
+  useLayoutEffect(() => {
+    runtimeRef.current = runtime;
+  });
   return runtime;
 }
 
@@ -165,7 +172,7 @@ export function ChatAssistant() {
           <ThreadList />
         </aside>
         <div className="min-w-0 flex-1">
-          <Thread />
+          <Thread components={THREAD_COMPONENTS} />
         </div>
         <aside className="hidden w-96 shrink-0 flex-col border-l lg:flex">
           <DocumentPanel />

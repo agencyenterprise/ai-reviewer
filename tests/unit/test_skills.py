@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
-from lib.api.mcp.serialization import WEB_SEARCH_CONSENT_QUESTION
 import lib.skills as skills_module
+from lib.api.mcp.serialization import WEB_SEARCH_CONSENT_QUESTION
 from lib.skills import (
     _SKILLS_DIR,
     INTERACTIVE_ONLY_END,
@@ -191,7 +191,9 @@ def test_list_skill_summaries_skips_what_it_cannot_describe(tmp_path, monkeypatc
     (good / "SKILL.md").write_text("---\nname: good\ndescription: Fine.\n---\nBody\n")
     broken = tmp_path / "broken"
     broken.mkdir()
-    (broken / "SKILL.md").write_text("---\nname: [unclosed\ndescription: x\n---\nBody\n")
+    (broken / "SKILL.md").write_text(
+        "---\nname: [unclosed\ndescription: x\n---\nBody\n"
+    )
     for name, body in {
         "no-frontmatter": "# Just a heading\n\nBody\n",
         "no-description": "---\nname: no-description\n---\nBody\n",
@@ -202,5 +204,7 @@ def test_list_skill_summaries_skips_what_it_cannot_describe(tmp_path, monkeypatc
     (tmp_path / "stray-file.md").write_text("not a skill directory")
     monkeypatch.setattr(skills_module, "_SKILLS_DIR", tmp_path)
 
-    assert [(s.name, s.description) for s in list_skill_summaries()] == [("good", "Fine.")]
+    assert [(s.name, s.description) for s in list_skill_summaries()] == [
+        ("good", "Fine.")
+    ]
     assert list_skill_summaries(exclude={"good"}) == []

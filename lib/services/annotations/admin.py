@@ -6,7 +6,7 @@ rows are loaded once and aggregated in Python rather than in SQL.
 
 import uuid
 from collections import defaultdict
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,7 +35,7 @@ def agrees_with_reference(
     answers: dict[str, str],
     reference: dict[str, str],
     questions: Sequence[AnnotationQuestion],
-) -> Optional[bool]:
+) -> bool | None:
     """True when every referenced question is answered the same way, False when
     any is answered differently, None when the user abstained on any of them."""
     abstain = {q.key: q.abstain_value for q in questions}

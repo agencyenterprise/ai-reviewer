@@ -12,9 +12,9 @@ namespace, where pytest finds it.
 """
 
 import uuid
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Sequence, Tuple
 
 import pytest
 from docx_editor import Document as EditorDocument
@@ -32,7 +32,6 @@ from lib.workflows.simple_deep_agent.edit_anchoring import (
     document_lines,
     normalize_whitespace,
 )
-
 from tests.unit.services.lean_docx import new_document
 
 # The document under test. A non-breaking space inside prose and a phrase
@@ -61,7 +60,7 @@ MARKDOWN = "\n".join(
 # The shape the line-range mapper really produces: a paragraph's range runs to
 # the line before the next paragraph starts, so it takes the blank separator
 # with it. Only the last paragraph's range stops on its own line.
-PARAGRAPH_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 2), 1: (3, 4), 2: (5, 5)}
+PARAGRAPH_LINE_RANGES: dict[int, tuple[int, int]] = {0: (1, 2), 1: (3, 4), 2: (5, 5)}
 
 
 # Why an edit was turned down: the line and the mapped paragraph are not the
@@ -86,7 +85,7 @@ def docx_path(tmp_path: Path) -> Path:
 
 def display_fields(
     original_text: str, replacement_text: str, line: str | None
-) -> Dict[str, object]:
+) -> dict[str, object]:
     """The rendered columns the reporter would have stored for this edit.
 
     Worked out the way `IssueReporter._resolve_edit` works them out: the quote
@@ -157,7 +156,7 @@ def make_edit(
 
 def make_candidates(
     edits: Sequence[IssueEdit], severities: Sequence[SeverityEnum] | None = None
-) -> List[EditCandidate]:
+) -> list[EditCandidate]:
     chosen = severities or [SeverityEnum.MEDIUM] * len(edits)
     return [
         EditCandidate(
@@ -174,7 +173,7 @@ async def plan_edits(
     path: Path,
     edits: Sequence[IssueEdit],
     severities: Sequence[SeverityEnum] | None = None,
-    paragraph_line_ranges: Dict[int, Tuple[int, int]] | None = None,
+    paragraph_line_ranges: dict[int, tuple[int, int]] | None = None,
     markdown: str | None = None,
 ):
     candidates = make_candidates(edits, severities)
@@ -206,7 +205,7 @@ async def plan_edits(
     return plan, decisions
 
 
-def statuses(outcomes: Sequence[EditOutcome]) -> Dict[uuid.UUID, str]:
+def statuses(outcomes: Sequence[EditOutcome]) -> dict[uuid.UUID, str]:
     return {outcome.edit_id: outcome.status for outcome in outcomes}
 
 

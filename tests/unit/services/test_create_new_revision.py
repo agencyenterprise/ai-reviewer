@@ -4,8 +4,8 @@ import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import HTTPException
 
-from lib.models.issue import IssueStatus
 from lib.models.project import AccessLevel, Project
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services.projects import create_new_revision
@@ -234,11 +234,11 @@ async def test_create_new_revision_excludes_workflows_opted_out_of_auto_rerun():
 @pytest.mark.asyncio
 async def test_create_new_revision_requires_write_access():
     """Should raise when user lacks WRITE access."""
-    from fastapi import HTTPException
-
     with patch(
         "lib.services.projects.get_project_access",
-        new=AsyncMock(side_effect=HTTPException(status_code=403, detail="Access denied")),
+        new=AsyncMock(
+            side_effect=HTTPException(status_code=403, detail="Access denied")
+        ),
     ):
         with pytest.raises(HTTPException) as exc_info:
             await create_new_revision("some-project-id", MagicMock())

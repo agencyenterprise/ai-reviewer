@@ -7,9 +7,8 @@ logger = logging.getLogger(__name__)
 
 
 class DocxPreprocessor:
-    """Converts DOCX files to PDF using LibreOffice headless mode"""
+    """Converts legacy DOC files to DOCX using LibreOffice headless mode"""
 
-    SUPPORTED_EXTENSIONS = {".docx", ".doc"}
     CONVERSION_TIMEOUT = 60
 
     def _find_libreoffice(self) -> str:
@@ -86,7 +85,7 @@ class DocxPreprocessor:
 
             return str(output_file)
 
-        except asyncio.TimeoutError as err:
+        except TimeoutError as err:
             process.kill()
             await process.wait()
             raise RuntimeError(
@@ -114,23 +113,6 @@ class DocxPreprocessor:
             output_format="docx",
             output_suffix=".docx",
             format_name="DOCX",
-            should_convert=should_convert,
-        )
-
-    async def convert_to_pdf(self, file_path: str) -> str:
-        """
-        Convert DOCX/DOC to PDF using LibreOffice headless
-
-        Returns the PDF path, or original path if not a DOCX file
-        """
-        file_path_obj = Path(file_path)
-        should_convert = file_path_obj.suffix.lower() in self.SUPPORTED_EXTENSIONS
-
-        return await self._convert_with_libreoffice(
-            file_path=file_path,
-            output_format="pdf",
-            output_suffix=".pdf",
-            format_name="PDF",
             should_convert=should_convert,
         )
 

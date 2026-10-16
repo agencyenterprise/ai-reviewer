@@ -1,12 +1,13 @@
 'use client';
 
 import type { Issue } from '@/lib/generated-api';
-import { SeverityEnum } from '@/lib/generated-api';
+import { severityRank } from '@/lib/severity';
 import { cn } from '@/lib/utils';
 import type { Element } from 'hast';
 import { DocumentImage, documentUrlTransform } from '@/components/document-image';
 import { SEVERITY } from '@/lib/severity-style';
 import { clearEditHighlight, editRanges, setEditHighlight } from './edit-highlight';
+import { issueLineRange, rangesOverlap } from './issue-lines';
 import { MarginLayer } from './margin-layer';
 import { issueEdits } from './proposed-edit';
 import { TableRow } from './table-row';
@@ -69,13 +70,6 @@ interface DocumentViewProps {
   margin?: { activeIssueId: string | null; readOnly: boolean; onSelect: (issue: Issue) => void };
 }
 
-const SEVERITY_RANK: Record<string, number> = {
-  [SeverityEnum.None]: 0,
-  [SeverityEnum.Low]: 1,
-  [SeverityEnum.Medium]: 2,
-  [SeverityEnum.High]: 3,
-};
-
 /** Resting mark on flagged text, as in the mock: the mark is on the text, not behind it. */
 const FLAGGED_CLASSES = ['underline', 'decoration-dotted', 'underline-offset-4', 'decoration-muted-foreground/50'];
 
@@ -86,26 +80,19 @@ const CLEARED_CLASSES = [
 ];
 
 function hasLineRange(issue: Issue): issue is IssueWithLines & { start_line: number; end_line: number } {
-  const start = (issue as IssueWithLines).start_line;
-  const end = (issue as IssueWithLines).end_line;
-  return typeof start === 'number' && typeof end === 'number';
+  return issueLineRange(issue) !== null;
 }
 
 function pickTopSeverityIssue(issues: IssueWithLines[], lineStart: number, lineEnd: number) {
   let best: IssueWithLines | null = null;
   for (const issue of issues) {
-    if (!hasLineRange(issue)) continue;
-    const overlaps = issue.start_line! <= lineEnd && issue.end_line! >= lineStart;
-    if (!overlaps) continue;
-    if (!best || SEVERITY_RANK[issue.severity] > SEVERITY_RANK[best.severity]) {
+    const lines = issueLineRange(issue);
+    if (!lines || !rangesOverlap(lines, [lineStart, lineEnd])) continue;
+    if (!best || severityRank(issue.severity) > severityRank(best.severity)) {
       best = issue;
     }
   }
   return best;
-}
-
-function rangesOverlap(a: [number, number], b: [number, number]): boolean {
-  return a[0] <= b[1] && a[1] >= b[0];
 }
 
 const SCROLL_RETRY_MS = 50;

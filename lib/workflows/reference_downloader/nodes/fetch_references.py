@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 from langchain_core.messages import BaseMessage
 from langgraph.runtime import Runtime
@@ -22,17 +21,18 @@ from lib.workflows.reference_downloader.agents.reference_fetcher import (
     ReferenceFetcherAgent,
     ReferenceFetcherAgentInput,
 )
+from lib.workflows.reference_downloader.fetch_logging import (
+    log_fetch_outcome,
+    log_run_summary,
+    short_reference,
+)
 from lib.workflows.reference_downloader.state import (
     ReferenceDownloaderInputItem,
     ReferenceDownloaderState,
     ReferenceFetchResult,
     ReferenceFetchStatus,
 )
-from lib.workflows.reference_downloader.fetch_logging import (
-    log_fetch_outcome,
-    log_run_summary,
-    short_reference,
-)
+from lib.workflows.reference_file_matching.state import MatchSource
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ async def initialize_references(
 
 async def _load_unmatched_references(
     file_artifacts_service: FileArtifactsServiceType,
-) -> List[ReferenceDownloaderInputItem]:
+) -> list[ReferenceDownloaderInputItem]:
     """Fetch every extracted reference that does not yet have a matched file."""
     references = await file_artifacts_service.get_references()
 
@@ -122,7 +122,7 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
     result = None
     error = None
     status = ReferenceFetchStatus.COMPLETED
-    messages: List[BaseMessage] = []
+    messages: list[BaseMessage] = []
 
     try:
         result, messages = await agent.ainvoke(
@@ -212,8 +212,8 @@ async def cleanup_failed_resources(
 
     candidate_files = await get_supporting_candidate_files(project_id)
 
-    files_to_delete: List[str] = []
-    files_to_promote: List[str] = []
+    files_to_delete: list[str] = []
+    files_to_promote: list[str] = []
 
     for f in candidate_files:
         file_id = str(f.id)
@@ -251,8 +251,7 @@ async def _update_reference_file_matching(
 ):
     """Update the reference file matching in the ReferenceExtraction workflow state."""
 
-    from lib.services.references import add_file_to_reference
-    from lib.workflows.reference_file_matching.state import MatchSource
+    from lib.services.references import add_file_to_reference  # noqa: PLC0415  circular: references -> registry -> this node
 
     await add_file_to_reference(
         project_id=project_id,

@@ -7,7 +7,7 @@ its full state. Reading `channel_values` directly returns an empty history for a
 thread that ran a turn since.
 """
 
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from deepagents.backends.protocol import FileData
 from deepagents.backends.utils import file_data_to_string
@@ -36,7 +36,7 @@ async def load_thread_messages(thread_id: str) -> list[BaseMessage]:
     return [m for m in values.get("messages") or [] if isinstance(m, BaseMessage)]
 
 
-async def read_thread_file(thread_id: str, path: str) -> Optional[str]:
+async def read_thread_file(thread_id: str, path: str) -> str | None:
     """A file from the thread's filesystem as text; None if absent."""
 
     values = await load_thread_values(thread_id)

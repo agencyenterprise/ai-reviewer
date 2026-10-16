@@ -7,8 +7,8 @@ is in the LangGraph checkpointer, keyed by the thread id (see
 """
 
 import uuid
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Optional, Sequence
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -30,7 +30,7 @@ async def list_threads(user: User) -> Sequence[ChatThread]:
         return list((await session.execute(stmt)).scalars().all())
 
 
-async def create_thread(user: User, title: Optional[str] = None) -> ChatThread:
+async def create_thread(user: User, title: str | None = None) -> ChatThread:
     async with get_async_db_session() as session:
         thread = ChatThread(user_id=user.id, title=title)
         session.add(thread)

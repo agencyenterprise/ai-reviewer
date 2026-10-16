@@ -31,10 +31,6 @@ export function EditableTitle({
   const isCancelingRef = React.useRef(false);
 
   React.useEffect(() => {
-    setEditedTitle(title);
-  }, [title]);
-
-  React.useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.select();

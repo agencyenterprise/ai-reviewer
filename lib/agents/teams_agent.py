@@ -35,7 +35,7 @@ when the asker opens the document.
 
 import logging
 from collections.abc import Sequence
-from typing import Any, Optional
+from typing import Any
 
 from langchain_core.messages import BaseMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
@@ -232,23 +232,23 @@ class QuestionAnswer(BaseModel):
     """What the caller gets back, including how it failed if it did."""
 
     text: str
-    model: Optional[str] = None
+    model: str | None = None
     steps: int = 0
     tools_used: list[str] = Field(default_factory=list)
     failed: bool = False
-    error: Optional[str] = None
+    error: str | None = None
 
 
 async def answer_question(
     question: str,
     graph_token: str,
     thread_id: str,
-    document_urls: Optional[Sequence[str]] = None,
+    document_urls: Sequence[str] | None = None,
     asked_by: str = "Someone",
     model: LLMModel = DEFAULT_MODEL,
-    api_key: Optional[str] = None,
-    user_id: Optional[str] = None,
-    reference: Optional[dict[str, Any]] = None,
+    api_key: str | None = None,
+    user_id: str | None = None,
+    reference: dict[str, Any] | None = None,
 ) -> QuestionAnswer:
     """Answer a question about a document the agent opens for itself.
 

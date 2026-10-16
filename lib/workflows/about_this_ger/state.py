@@ -1,11 +1,11 @@
 """State definitions for About This (GER) workflow."""
 
 from operator import add
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, Literal
 
-from langchain_core.messages import BaseMessage
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field
 
+from lib.workflows.agent_messages import AgentMessages
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 from lib.workflows.simple_deep_agent.agent_types import AgentCheckResult, IssueItem
 
@@ -22,14 +22,7 @@ class AgentConversation(BaseModel):
     """One validator agent's full conversation, system prompt included."""
 
     name: str = Field(description='Which validator ran it: "preface" or "authors".')
-    messages: List[BaseMessage] = Field(default_factory=list)
-
-    @field_serializer("messages")
-    @classmethod
-    def _serialize_messages(cls, messages: List[BaseMessage]) -> list[dict]:
-        # Checkpointer-hydrated states may contain raw dicts in `messages`
-        # because reducers can append items that bypass model construction.
-        return [m if isinstance(m, dict) else m.model_dump() for m in messages]
+    messages: AgentMessages = Field(default_factory=list)
 
 
 class AboutThisGerConfig(BaseWorkflowConfig):
@@ -48,16 +41,16 @@ class AboutThisGerState(BaseWorkflowState):
     )
     config: AboutThisGerConfig
 
-    preface_result: Optional[AgentCheckResult] = Field(
+    preface_result: AgentCheckResult | None = Field(
         default=None,
         description="Result from the preface validation deep agent",
     )
-    authors_result: Optional[AgentCheckResult] = Field(
+    authors_result: AgentCheckResult | None = Field(
         default=None,
         description="Result from the authors validation deep agent",
     )
     # The two validators run in parallel, so each appends its own conversation.
-    agent_conversations: Annotated[List[AgentConversation], add] = Field(
+    agent_conversations: Annotated[list[AgentConversation], add] = Field(
         default_factory=list,
         description="Each validator agent's conversation, for debugging and eval transcripts.",
     )

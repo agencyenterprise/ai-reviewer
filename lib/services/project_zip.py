@@ -4,7 +4,6 @@ import logging
 import os
 import uuid
 import zipfile
-from typing import List, Optional, Tuple
 
 from fastapi import HTTPException
 
@@ -51,8 +50,8 @@ def _compression_for(file_name: str) -> int:
 
 async def create_project_files_zip(
     project_id: uuid.UUID | str,
-    roles: Optional[List[FileRole]] = None,
-) -> Tuple[io.BytesIO, int]:
+    roles: list[FileRole] | None = None,
+) -> tuple[io.BytesIO, int]:
     """
     Create a ZIP archive containing all files for a project.
 
@@ -84,7 +83,7 @@ async def create_project_files_zip(
     return zip_buffer, files_added
 
 
-def _build_zip_archive(files: List[File]) -> Tuple[io.BytesIO, int]:
+def _build_zip_archive(files: list[File]) -> tuple[io.BytesIO, int]:
     """Build the ZIP archive synchronously (intended to run in a thread)."""
     zip_buffer = io.BytesIO()
     files_added = 0

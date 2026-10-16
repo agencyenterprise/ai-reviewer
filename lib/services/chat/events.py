@@ -28,7 +28,8 @@ two ever differ.
 """
 
 import uuid
-from typing import Any, AsyncIterator, Iterable, Optional
+from collections.abc import AsyncIterator, Iterable
+from typing import Any
 
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
@@ -63,7 +64,7 @@ def tool_event(call_id: str, name: str, args: Any) -> ChatEvent:
 
 
 def tool_result_event(
-    call_id: str, result: Any, is_error: bool = False, message_id: Optional[str] = None
+    call_id: str, result: Any, is_error: bool = False, message_id: str | None = None
 ) -> ChatEvent:
     event: ChatEvent = {"t": "tool_result", "id": call_id, "result": result}
     if is_error:
@@ -101,7 +102,9 @@ def new_messages(channel_value: Any) -> list[BaseMessage]:
     if isinstance(channel_value, BaseMessage):
         return [channel_value]
     if isinstance(channel_value, list):
-        return [message for message in channel_value if isinstance(message, BaseMessage)]
+        return [
+            message for message in channel_value if isinstance(message, BaseMessage)
+        ]
     return []
 
 
@@ -114,7 +117,7 @@ class GraphEventMapper:
 
     def __init__(self) -> None:
         self._announced: set[str] = set()
-        self._open_message_id: Optional[str] = None
+        self._open_message_id: str | None = None
         self._citations = CitationFilter()
 
     def map(self, mode: str, payload: Any) -> list[ChatEvent]:
@@ -160,9 +163,14 @@ class GraphEventMapper:
         for call in message.tool_calls:
             call_id = call.get("id")
             if call_id:
-                events.extend(self._announce(call_id, call["name"], call.get("args") or {}))
+                events.extend(
+                    self._announce(call_id, call["name"], call.get("args") or {})
+                )
         for block in content_blocks(message.content):
-            kind, call_id = block.get("type"), block.get("id") or block.get("tool_call_id")
+            kind, call_id = (
+                block.get("type"),
+                block.get("id") or block.get("tool_call_id"),
+            )
             if not call_id:
                 continue
             if kind == "server_tool_call":
@@ -185,7 +193,7 @@ class GraphEventMapper:
         self._open_message_id = None
         return events
 
-    def _open(self, message_id: Optional[str]) -> list[ChatEvent]:
+    def _open(self, message_id: str | None) -> list[ChatEvent]:
         """Announce an assistant message once, under the id it will be stored as."""
 
         if self._open_message_id is not None:

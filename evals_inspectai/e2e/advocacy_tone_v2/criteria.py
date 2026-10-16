@@ -17,7 +17,7 @@ rewrite may fairly restate a figure from elsewhere in it).
 
 import math
 import re
-from typing import Sequence
+from collections.abc import Sequence
 
 from evals_inspectai.common.issue_inventory import ResolvedInventory, normalize
 from evals_inspectai.common.issue_judge import JudgeCriterion
@@ -33,7 +33,13 @@ TITLES = tuple(SEVERITY_BY_TITLE)
 # The skill: "Do not flag matches inside sections whose heading contains `author`,
 # `reference`, `bibliography`, `appendix`, or `acknowledgment`." Matched as substrings,
 # as the skill words it, so "Authors" and "Acknowledgments" are skipped.
-SKIPPED_HEADING_WORDS = ("author", "reference", "bibliography", "appendix", "acknowledgment")
+SKIPPED_HEADING_WORDS = (
+    "author",
+    "reference",
+    "bibliography",
+    "appendix",
+    "acknowledgment",
+)
 
 _HEADING_RE = re.compile(r"^ {0,3}(#{1,6})\s+(.*)$")
 
@@ -61,7 +67,9 @@ def _share(passed: Sequence[bool]) -> float:
     return sum(passed) / len(passed) if passed else math.nan
 
 
-def tone_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> tuple[dict[str, float], str]:
+def tone_scores(
+    issues: Sequence[IssueItem], inventory: ResolvedInventory
+) -> tuple[dict[str, float], str]:
     """``known_titles``: share of reported issues titled exactly as one of the skill's
     three kinds. ``severity_follows_title``: of those, share with the severity the
     kind carries. ``one_line_range``: share of reported issues whose range is a single
@@ -71,21 +79,41 @@ def tone_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> tu
     by_title = {normalize(t): s for t, s in SEVERITY_BY_TITLE.items()}
     known = [i for i in issues if normalize(i.title) in by_title]
     odd = [i.title for i in issues if normalize(i.title) not in by_title]
-    wrong_severity = [f"{i.title!r} at {i.severity}" for i in known if i.severity != by_title[normalize(i.title)]]
-    wide = [f"{i.start_line}-{i.end_line}" for i in issues if i.start_line != i.end_line]
+    wrong_severity = [
+        f"{i.title!r} at {i.severity}"
+        for i in known
+        if i.severity != by_title[normalize(i.title)]
+    ]
+    wide = [
+        f"{i.start_line}-{i.end_line}" for i in issues if i.start_line != i.end_line
+    ]
     skipped = skipped_lines(inventory.document)
-    intruding = [f"{i.title!r} at {i.start_line}-{i.end_line}" for i in issues if skipped & set(range(i.start_line, i.end_line + 1))]
+    intruding = [
+        f"{i.title!r} at {i.start_line}-{i.end_line}"
+        for i in issues
+        if skipped & set(range(i.start_line, i.end_line + 1))
+    ]
     values = {
         "known_titles": _share([normalize(i.title) in by_title for i in issues]),
-        "severity_follows_title": _share([i.severity == by_title[normalize(i.title)] for i in known]),
+        "severity_follows_title": _share(
+            [i.severity == by_title[normalize(i.title)] for i in known]
+        ),
         "one_line_range": _share([i.start_line == i.end_line for i in issues]),
         "skipped_sections_untouched": float(not intruding) if skipped else math.nan,
     }
     notes = [f"titles outside the skill's set: {odd}"] if odd else []
-    notes += [f"severity does not follow the title: {wrong_severity}"] if wrong_severity else []
+    notes += (
+        [f"severity does not follow the title: {wrong_severity}"]
+        if wrong_severity
+        else []
+    )
     notes += [f"ranges wider than one line: {wide}"] if wide else []
     notes += [f"issues in a skipped section: {intruding}"] if intruding else []
-    return values, " | ".join(notes) if notes else "titles, severities, ranges and skipped sections all as the skill says"
+    return values, (
+        " | ".join(notes)
+        if notes
+        else "titles, severities, ranges and skipped sections all as the skill says"
+    )
 
 
 _FLAGGED = (
@@ -123,8 +151,18 @@ FAITHFUL_CRITERION = _FLAGGED + (
 )
 
 JUDGE_CRITERIA = [
-    JudgeCriterion(key="action_concrete", criterion=CONCRETE_CRITERION, scope="expected", passage="section"),
-    JudgeCriterion(key="action_faithful", criterion=FAITHFUL_CRITERION, scope="expected", passage="document"),
+    JudgeCriterion(
+        key="action_concrete",
+        criterion=CONCRETE_CRITERION,
+        scope="expected",
+        passage="section",
+    ),
+    JudgeCriterion(
+        key="action_faithful",
+        criterion=FAITHFUL_CRITERION,
+        scope="expected",
+        passage="document",
+    ),
 ]
 
 JUDGE_DESCRIPTIONS = {

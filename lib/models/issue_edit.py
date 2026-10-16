@@ -15,7 +15,6 @@ preserves the order the agent proposed them in.
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, Text
@@ -122,7 +121,7 @@ class IssueEdit(SQLModel, table=True):
         description="Whether the edit is still proposed, or was accepted or rejected",
     )
 
-    reviewed_by: Optional[uuid.UUID] = Field(
+    reviewed_by: uuid.UUID | None = Field(
         sa_column=Column(
             UUID(as_uuid=True),
             ForeignKey("users.id", ondelete="SET NULL"),
@@ -132,7 +131,7 @@ class IssueEdit(SQLModel, table=True):
         description="User who accepted or rejected this edit (null while proposed)",
     )
 
-    reviewed_at: Optional[datetime] = Field(
+    reviewed_at: datetime | None = Field(
         sa_column=Column(DateTime(timezone=True), nullable=True),
         default=None,
         description="When the edit was accepted or rejected",
@@ -176,5 +175,5 @@ class IssueEditRead(BaseModel):
     end_line: int
     rationale: str
     status: IssueEditStatus
-    reviewed_by: Optional[uuid.UUID] = None
-    reviewed_at: Optional[datetime] = None
+    reviewed_by: uuid.UUID | None = None
+    reviewed_at: datetime | None = None

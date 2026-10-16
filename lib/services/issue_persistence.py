@@ -7,8 +7,8 @@ and managing issue resolution.
 
 import logging
 import uuid
-from datetime import datetime, timezone
-from typing import List, Optional, Sequence
+from collections.abc import Sequence
+from datetime import UTC, datetime
 
 from sqlalchemy import select, update
 from sqlmodel import col
@@ -23,14 +23,14 @@ from lib.workflows.registry import available_workflow_type_values
 logger = logging.getLogger(__name__)
 
 
-def _strip_control_chars(text: Optional[str]) -> Optional[str]:
+def _strip_control_chars(text: str | None) -> str | None:
     """Remove C0/C1 control characters that PostgreSQL text columns reject."""
     if text is None:
         return None
     return strip_control_chars(text)
 
 
-def _edit_rows(edits: List[ProposedEdit]) -> List[IssueEdit]:
+def _edit_rows(edits: list[ProposedEdit]) -> list[IssueEdit]:
     """Build the `issue_edits` rows for one issue, in the proposed order.
 
     The quoted and replacement text comes from the document, which can carry
@@ -58,10 +58,10 @@ async def persist_workflow_issues(
     workflow_run_id: uuid.UUID,
     project_id: uuid.UUID,
     workflow_type: WorkflowRunType,
-    issues: List[DocumentIssue],
-    checkpoint_id: Optional[str] = None,
+    issues: list[DocumentIssue],
+    checkpoint_id: str | None = None,
     revision: int = 1,
-) -> List[Issue]:
+) -> list[Issue]:
     """
     Persist issues from a completed workflow.
 
@@ -84,7 +84,7 @@ async def persist_workflow_issues(
             .values(status=IssueStatus.ARCHIVED)
         )
 
-        created_issues: List[Issue] = []
+        created_issues: list[Issue] = []
         for doc_issue in issues:
             issue = Issue(
                 project_id=project_id,
@@ -124,7 +124,7 @@ async def get_project_issues(
     project_id: uuid.UUID,
     revision: int,
     include_archived: bool = False,
-    workflow_types: Optional[List[WorkflowRunType]] = None,
+    workflow_types: list[WorkflowRunType] | None = None,
 ) -> Sequence[Issue]:
     """Get issues for a project and revision."""
     async with get_async_db_session() as session:
@@ -160,7 +160,7 @@ async def get_project_issues(
         return result.scalars().all()
 
 
-async def get_issue_by_id(issue_id: uuid.UUID) -> Optional[Issue]:
+async def get_issue_by_id(issue_id: uuid.UUID) -> Issue | None:
     """Get a single issue by ID."""
     async with get_async_db_session() as session:
         stmt = select(Issue).where(col(Issue.id) == issue_id)
@@ -168,7 +168,7 @@ async def get_issue_by_id(issue_id: uuid.UUID) -> Optional[Issue]:
         return result.scalar_one_or_none()
 
 
-async def resolve_issue(issue_id: uuid.UUID, user_id: uuid.UUID) -> Optional[Issue]:
+async def resolve_issue(issue_id: uuid.UUID, user_id: uuid.UUID) -> Issue | None:
     """Mark an issue as resolved by a user."""
     async with get_async_db_session() as session:
         stmt = select(Issue).where(col(Issue.id) == issue_id)
@@ -183,7 +183,7 @@ async def resolve_issue(issue_id: uuid.UUID, user_id: uuid.UUID) -> Optional[Iss
             return issue
 
         issue.resolved_by = user_id
-        issue.resolved_at = datetime.now(timezone.utc)
+        issue.resolved_at = datetime.now(UTC)
         await session.commit()
         await session.refresh(issue)
 
@@ -191,7 +191,7 @@ async def resolve_issue(issue_id: uuid.UUID, user_id: uuid.UUID) -> Optional[Iss
         return issue
 
 
-async def unresolve_issue(issue_id: uuid.UUID) -> Optional[Issue]:
+async def unresolve_issue(issue_id: uuid.UUID) -> Issue | None:
     """Mark an issue as unresolved."""
     async with get_async_db_session() as session:
         stmt = select(Issue).where(col(Issue.id) == issue_id)

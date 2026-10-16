@@ -1,7 +1,5 @@
 """Reviewer 2 agent — rigorous peer review using deep agent with file tools."""
 
-from typing import List, Optional
-
 from deepagents.backends.utils import file_data_to_string
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
@@ -49,8 +47,8 @@ class Reviewer2Agent(LangChainAgent):
     reasoning = {"effort": "medium", "summary": "auto"}
 
     async def ainvoke(
-        self, prompt_kwargs: dict, config: Optional[RunnableConfig] = None
-    ) -> tuple[Reviewer2Output, List[BaseMessage]]:
+        self, prompt_kwargs: dict, config: RunnableConfig | None = None
+    ) -> tuple[Reviewer2Output, list[BaseMessage]]:
         """Return the review and the agent's full conversation, system prompt included."""
         document_markdown = prompt_kwargs["document_markdown"]
 

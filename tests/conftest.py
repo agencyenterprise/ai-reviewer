@@ -9,17 +9,20 @@ This module provides reusable utilities that work across all agent test suites:
 import os
 import shutil
 from pathlib import Path
-from typing import Optional
 
 from xxhash import xxh128
 
 from lib.config.env import config
 from lib.services.file import create_file_document_from_path
+from lib.services.file_artifacts_service.file_artifacts_service_type import (
+    FileArtifactsServiceType,
+)
 from lib.services.file_artifacts_service.mock import MockFileArtifactsService
-from lib.services.file_artifacts_service.file_artifacts_service_type import FileArtifactsServiceType
 from lib.services.vector_store import VectorStoreService
+from lib.workflows.context import ContextSchema
 
 TESTS_DIR = Path(__file__).parent
+
 
 def data_path(path: str) -> str:
     """
@@ -104,12 +107,12 @@ def extract_paragraph_from_chunk(full_document: str, chunk: str) -> str:
 
 
 def create_test_context(
-    file_artifacts_service: Optional[FileArtifactsServiceType] = None,
-    openai_api_key: Optional[str] = None,
-    vector_store: Optional[VectorStoreService] = None,
-    user_id: Optional[str] = None,
+    file_artifacts_service: FileArtifactsServiceType | None = None,
+    openai_api_key: str | None = None,
+    vector_store: VectorStoreService | None = None,
+    user_id: str | None = None,
     project_id: str = "test-project",
-    workflow_run_id: Optional[str] = None,
+    workflow_run_id: str | None = None,
 ):
     """
     Create a ContextSchema instance for testing agents.
@@ -117,9 +120,6 @@ def create_test_context(
     Returns:
         ContextSchema with test configuration (uses config.OPENAI_API_KEY, no vector_store)
     """
-    # Imported lazily to avoid circular imports between conftest and lib.workflows.context
-    from lib.workflows.context import ContextSchema
-
     return ContextSchema(
         openai_api_key=openai_api_key or config.OPENAI_API_KEY,
         vector_store=vector_store

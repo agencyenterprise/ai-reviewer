@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt as pyjwt
 from fastmcp.server.auth import AccessToken
@@ -69,7 +69,7 @@ def require_api_key(user: User) -> None:
 
 def mint_tus_bearer_token(user: User) -> tuple[str, int]:
     """Mint a short-lived JWT for TUS uploads. Returns (token, expires_in_seconds)."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     expires_in_seconds = 900
     payload = {
         "email": user.email,

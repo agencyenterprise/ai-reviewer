@@ -1,5 +1,5 @@
 # %%
-from typing import Optional, cast
+from typing import cast
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
@@ -42,8 +42,7 @@ class DocumentSummarizerResponse(BaseModel):
     )
 
 
-_document_summarizer_agent_prompt = ChatPromptTemplate.from_template(
-    """
+_document_summarizer_agent_prompt = ChatPromptTemplate.from_template("""
 # Task
 You are an expert research analyst and document summarizer. You are given a document and must produce a ~1000-word miniature version of it that focuses on the main argument and its essential support.
 
@@ -90,8 +89,7 @@ This summary should feel like a compressed research report focused on the argume
 
 {document}
 
-"""
-)
+""")
 
 
 class DocumentSummarizerAgent(LangChainAgent):
@@ -103,7 +101,7 @@ class DocumentSummarizerAgent(LangChainAgent):
     async def ainvoke(
         self,
         prompt_kwargs: dict,
-        config: Optional[RunnableConfig] = None,
+        config: RunnableConfig | None = None,
     ) -> DocumentSummarizerResponse:
         messages = _document_summarizer_agent_prompt.format_messages(**prompt_kwargs)
         return cast(
@@ -148,7 +146,7 @@ if __name__ == "__main__":
         print("-" * 80)
 
         # Run the agent
-        from lib.services.file_artifacts_service.mock import MockFileArtifactsService
+        from lib.services.file_artifacts_service.mock import MockFileArtifactsService  # noqa: PLC0415  circular: the mock imports this agent's state
 
         document_summarizer_agent = DocumentSummarizerAgent(
             ContextSchema(

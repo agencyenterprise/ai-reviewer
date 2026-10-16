@@ -10,7 +10,7 @@ call per detected issue of that kind (``issue_judge``'s protocol and default
 grader model).
 """
 
-from typing import Callable
+from collections.abc import Callable
 
 from evals_inspectai.common.issue_inventory import ResolvedIssue
 from evals_inspectai.common.issue_judge import JudgeCriterion
@@ -61,7 +61,22 @@ JUDGE_DESCRIPTIONS = {
 }
 
 JUDGE_CRITERIA = [
-    JudgeCriterion(key="action_concrete", criterion=ACTION_CRITERION, scope="expected", applies_to=_titled(NOT_ACTIONABLE_TITLE)),
-    JudgeCriterion(key="audience_asked", criterion=AUDIENCE_CRITERION, scope="expected", applies_to=_titled(AUDIENCE_TITLE)),
-    JudgeCriterion(key="pare_down_named", criterion=TOO_MANY_CRITERION, scope="expected", applies_to=_titled(TOO_MANY_TITLE)),
+    JudgeCriterion(
+        key="action_concrete",
+        criterion=ACTION_CRITERION,
+        scope="expected",
+        applies_to=_titled(NOT_ACTIONABLE_TITLE),
+    ),
+    JudgeCriterion(
+        key="audience_asked",
+        criterion=AUDIENCE_CRITERION,
+        scope="expected",
+        applies_to=_titled(AUDIENCE_TITLE),
+    ),
+    JudgeCriterion(
+        key="pare_down_named",
+        criterion=TOO_MANY_CRITERION,
+        scope="expected",
+        applies_to=_titled(TOO_MANY_TITLE),
+    ),
 ]

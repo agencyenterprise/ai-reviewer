@@ -20,7 +20,8 @@ Two things are particular to the chat:
   ``stream_mode="messages"``; see ``build_llm``.
 """
 
-from typing import Any, AsyncIterator, Optional, Sequence
+from collections.abc import AsyncIterator, Sequence
+from typing import Any
 
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
@@ -29,7 +30,12 @@ from langgraph.graph.state import CompiledStateGraph
 from pydantic import BaseModel
 
 from lib.agents.checkpointer import get_checkpointer
-from lib.agents.deep_agent_setup import RECURSION_LIMIT, build_deep_agent, build_llm, build_skill_files
+from lib.agents.deep_agent_setup import (
+    RECURSION_LIMIT,
+    build_deep_agent,
+    build_llm,
+    build_skill_files,
+)
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
 from lib.config.llm_models import (
@@ -165,14 +171,18 @@ with no preamble about what you are about to do.\
 
 def _manifest_for_skill(
     skill_name: str, manifests: dict[WorkflowRunType, WorkflowManifest]
-) -> Optional[WorkflowManifest]:
+) -> WorkflowManifest | None:
     """The workflow a skill backs: by the hand-written map, or, for a
     skill-declared workflow, by the skill its manifest was built from."""
     workflow_type = SKILL_WORKFLOWS.get(skill_name)
     if workflow_type is not None:
         return manifests.get(workflow_type)
     return next(
-        (m for m in manifests.values() if isinstance(m, SkillWorkflowManifest) and m.skill == skill_name),
+        (
+            m
+            for m in manifests.values()
+            if isinstance(m, SkillWorkflowManifest) and m.skill == skill_name
+        ),
         None,
     )
 
@@ -194,7 +204,7 @@ def chat_skill_catalogue() -> list[SkillSummary]:
     return catalogue
 
 
-def resolve_chat_model(model_id: Optional[str]) -> LLMModel:
+def resolve_chat_model(model_id: str | None) -> LLMModel:
     """The allowlisted model for an id, or the default for anything else.
 
     Falls back rather than failing so an old client, or a picker that still names
@@ -209,14 +219,12 @@ def resolve_chat_model(model_id: Optional[str]) -> LLMModel:
 
 
 def build_chat_agent(
-    model: LLMModel, api_key: Optional[str], checkpointer: BaseCheckpointSaver
+    model: LLMModel, api_key: str | None, checkpointer: BaseCheckpointSaver
 ) -> CompiledStateGraph:
     """A fresh agent for one turn over a durable thread: skills and web search bound."""
 
     return build_deep_agent(
-        model=build_llm(
-            model, api_key, reasoning=CHAT_REASONING, output_version="v1"
-        ),
+        model=build_llm(model, api_key, reasoning=CHAT_REASONING, output_version="v1"),
         tools=[web_search_tool(model)],
         skills=["/skills/"],
         system_prompt=SYSTEM_PROMPT,
@@ -232,7 +240,10 @@ def build_chat_input(message: HumanMessage, files: dict[str, Any]) -> dict[str, 
     """
 
     return {
-        "files": {**build_skill_files(interactive=True, exclude=EXCLUDED_CHAT_SKILLS), **files},
+        "files": {
+            **build_skill_files(interactive=True, exclude=EXCLUDED_CHAT_SKILLS),
+            **files,
+        },
         "messages": [message],
     }
 
@@ -258,10 +269,10 @@ async def run_chat_turn(
     thread_id: str,
     user_id: str,
     model: LLMModel,
-    api_key: Optional[str],
+    api_key: str | None,
     text: str,
     attachments: Sequence[ChatAttachment] = (),
-    message_id: Optional[str] = None,
+    message_id: str | None = None,
 ) -> AsyncIterator[ChatEvent]:
     """One turn of a thread, as the page's events, checkpointed as it goes."""
 

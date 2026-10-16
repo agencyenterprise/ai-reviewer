@@ -1,7 +1,6 @@
 """Graph nodes for Claim Reference Validation V2 workflow."""
 
 import logging
-from typing import List, Optional
 
 from langchain_core.messages import BaseMessage
 from langgraph.runtime import Runtime
@@ -13,10 +12,10 @@ from lib.agents.citation_validator import (
     PartialSectionValidationError,
 )
 from lib.models.file import FileRole
+from lib.services.document_sections import split_into_sections
 from lib.workflows.claim_reference_validation_v2.citation_mapping import (
     build_reference_file_map,
 )
-from lib.services.document_sections import split_into_sections
 from lib.workflows.claim_reference_validation_v2.state import (
     CitationIssueItem,
     ClaimReferenceValidationV2State,
@@ -100,13 +99,13 @@ async def validate_section(state: dict, runtime: Runtime[ContextSchema]):
     section_index: int = state["section_index"]
     start_line: int = state["start_line"]
     end_line: int = state["end_line"]
-    headings: List[str] = state.get("headings", [])
+    headings: list[str] = state.get("headings", [])
 
     file_artifacts_service = runtime.context.file_artifacts_service
     issues = []
-    messages: List[BaseMessage] = []
-    error: Optional[str] = None
-    error_details: Optional[ErrorDetails] = None
+    messages: list[BaseMessage] = []
+    error: str | None = None
+    error_details: ErrorDetails | None = None
     status = SectionVerificationStatus.COMPLETED
 
     try:
@@ -218,7 +217,7 @@ async def finalize_results(
 ):
     """Flatten section issues into the top-level citation_issues list."""
     all_issues = []
-    errors: List[WorkflowError] = []
+    errors: list[WorkflowError] = []
 
     # A failed section costs part of the document, not the run: the sections
     # that did complete still produced usable findings, so the run must not

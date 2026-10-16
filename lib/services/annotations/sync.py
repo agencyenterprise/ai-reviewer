@@ -12,7 +12,7 @@ dataset and catalog changes by itself. To run it by hand::
 
 import asyncio
 import uuid
-from typing import Sequence
+from collections.abc import Sequence
 
 from pydantic import BaseModel
 from sqlalchemy import func, select, update
@@ -22,11 +22,11 @@ from sqlmodel import col
 from lib.config.database import get_async_db_session
 from lib.models.annotation import AnnotationItem, AnnotationItemStatus, AnnotationSet
 from lib.services.annotations.catalog import ANNOTATION_SETS
-from lib.services.annotations.set_spec import AnnotationSetSpec
 from lib.services.annotations.eval_items import (
     AnnotationItemDraft,
     items_from_inventory,
 )
+from lib.services.annotations.set_spec import AnnotationSetSpec
 
 # Any constant works, as long as nothing else takes a Postgres advisory lock with it.
 SYNC_LOCK_KEY = 7_420_261_001

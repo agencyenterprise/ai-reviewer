@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/api-error';
@@ -27,6 +27,7 @@ import {
 } from '@/lib/generated-api';
 import { MAX_FILE_SIZE_BYTES } from '@/lib/constants';
 import { Loader2 } from 'lucide-react';
+import { projectQueryKeys } from '@/lib/hooks/use-project-data';
 
 const INITIAL_WORKFLOWS = [
   WorkflowRunType.DocumentProcessing,
@@ -69,19 +70,23 @@ export function ReplaceMainDocumentDialog({
   const queryClient = useQueryClient();
   const abortRef = useRef(false);
 
-  useEffect(() => {
+  // Start fresh each time the dialog opens, during render rather than in an
+  // effect so the first open frame never shows the previous run.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
     if (isOpen) {
       setSelectedFile(null);
       setRerunAnalyses(true);
       setStage('select');
       setUploadProgress(null);
-      abortRef.current = false;
     }
-  }, [isOpen]);
+  }
 
   const replaceMutation = useMutation({
     mutationFn: async () => {
       if (!selectedFile) throw new Error('No file selected');
+      abortRef.current = false;
 
       // Step 1: Create new revision
       setStage('creating-revision');
@@ -123,7 +128,7 @@ export function ReplaceMainDocumentDialog({
       setStage('complete');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
       // Follow the newly created revision so the view doesn't stay pinned to
       // the previous one.
       onRevisionCreated?.();

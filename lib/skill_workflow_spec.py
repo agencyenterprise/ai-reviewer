@@ -37,7 +37,7 @@ it, so the skill stays portable.
 
 import re
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -65,7 +65,7 @@ class SkillWorkflowSpec(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     title: str = Field(description="Display name in the assessment picker")
-    description: Optional[str] = Field(
+    description: str | None = Field(
         default=None,
         description=(
             "Picker description. Falls back to the skill's own description, "
@@ -76,7 +76,7 @@ class SkillWorkflowSpec(BaseModel):
     category: str = Field(
         description="Slug of a category in lib/workflows/categories.py"
     )
-    type: Optional[str] = Field(
+    type: str | None = Field(
         default=None,
         description=(
             "WorkflowRunType slug. Defaults to the skill name with dashes "
@@ -86,7 +86,7 @@ class SkillWorkflowSpec(BaseModel):
     experimental: bool = Field(
         default=True, description="Hidden unless the user opts into alpha checks"
     )
-    icon: Optional[str] = Field(
+    icon: str | None = Field(
         default=None, description="lucide icon name in kebab-case, e.g. pen-line"
     )
     view_images: bool = Field(
@@ -103,7 +103,7 @@ class SkillWorkflowSpec(BaseModel):
             "user's web-search consent, so the skill body must work without it."
         ),
     )
-    reasoning_effort: Optional[Literal["low", "medium", "high"]] = Field(
+    reasoning_effort: Literal["low", "medium", "high"] | None = Field(
         default=None,
         description="LLM reasoning effort for the run; None keeps the agent's default.",
     )
@@ -121,7 +121,9 @@ class SkillWorkflowSpec(BaseModel):
             "along with the rest of their set."
         ),
     )
-    required_dependencies: list[str] = Field(default_factory=lambda: ["document_processing"])
+    required_dependencies: list[str] = Field(
+        default_factory=lambda: ["document_processing"]
+    )
 
 
 class SkillWorkflowDeclaration(BaseModel):
@@ -144,7 +146,7 @@ class SkillWorkflowDeclaration(BaseModel):
 
 def read_skill_workflow_declaration(
     skill_file: Path,
-) -> Optional[SkillWorkflowDeclaration]:
+) -> SkillWorkflowDeclaration | None:
     """The workflow declaration of one skill file, or None when it has none.
 
     Raises ``pydantic.ValidationError`` when the block is present but malformed,
@@ -170,7 +172,7 @@ def read_skill_workflow_declaration(
 
 
 def read_all_skill_workflow_declarations(
-    skills_dir: Optional[Path] = None,
+    skills_dir: Path | None = None,
 ) -> list[SkillWorkflowDeclaration]:
     """Every skill on disk that declares a workflow, in skill-name order."""
     declarations = []

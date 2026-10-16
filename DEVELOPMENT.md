@@ -10,7 +10,7 @@ This guide covers everything you need to know to set up, run, and develop the Dr
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-- **Node.js 20+**: For the frontend development
+- **Node.js 22.22.2+**: For the frontend development (see `frontend/.nvmrc`)
 - **pnpm**: Fast, disk space efficient package manager for Node.js. Install via npm:
 
 ```bash
@@ -46,7 +46,6 @@ docker compose version
 
 This project requires **Python 3.13**. The version is pinned in:
 
-- `.python-version` file
 - `pyproject.toml` (`requires-python = ">=3.13"`)
 
 uv will automatically install Python 3.13 if it's not present on your system.
@@ -169,7 +168,7 @@ The project includes comprehensive Docker support with three services:
 ### Docker Files
 
 - **`Dockerfile`**: Backend container (Python 3.13 + FastAPI)
-- **`frontend/Dockerfile`**: Frontend container (Node.js 20 + Next.js)
+- **`frontend/Dockerfile`**: Frontend container (Node.js 22 + Next.js)
 - **`docker-compose.yml`**: Orchestrates all services
 
 ### Quick Start
@@ -265,6 +264,8 @@ uv run pytest tests/ -k "test_name"
 
 **Test Organization**: Standard tests live under `tests/unit/` and `tests/integration/`. Shared fixtures and helpers (e.g. `data_path`, `create_test_file_document_from_path`, `create_test_context`) are in `tests/conftest.py`.
 
+**Test database**: the suite never uses the `.env` database. `tests/integration_db.py` points it at the same database name with `_test` appended (`ai_reviewer_test` with the default `.env`), in the same Postgres; set `TEST_DATABASE_URL` to use another. The integration tests create and migrate it on their own, so Postgres only has to be running. It persists between runs (each test deletes its own rows); `uv run python -m tests.integration_db --reset` rebuilds it from empty.
+
 ### Evaluations (Inspect AI)
 
 LLM agent evaluations use [Inspect AI](https://inspect.ai-safety-institute.org.uk/) and live under `evals_inspectai/e2e/`. These are end-to-end evals that trigger each workflow through the running API server (backend must be running), mirroring the full pipeline that real users trigger.
@@ -293,14 +294,15 @@ uv run inspect view
 ### Code Quality
 
 ```bash
-# Format Python code
-uv run black .
+# Format and lint Python code
+uv run ruff format .
+uv run ruff check .
 
 # Lint frontend code
 cd frontend && pnpm lint
 
 # Type check frontend
-cd frontend && pnpm type-check
+cd frontend && pnpm exec tsc --noEmit
 ```
 
 ## Security Scanning
@@ -308,21 +310,3 @@ cd frontend && pnpm type-check
 Security scans run automatically on every PR using [Trivy](https://trivy.dev/) via the official [trivy-action](https://github.com/aquasecurity/trivy-action).
 
 > **Why Trivy?** While Docker Scout is excellent and integrates natively with Docker, we use Trivy for compliance and auditing purposes. Trivy is open-source, vendor-neutral, and widely accepted in enterprise security workflows.
-
-### Local Scanning (Optional)
-
-```bash
-# Install Trivy (macOS)
-brew install aquasecurity/trivy/trivy
-
-# Scan Docker images (build first with docker compose)
-docker compose build
-trivy image ai-reviewer-api
-trivy image ai-reviewer-frontend
-trivy image postgres:16-alpine
-
-# Scan for Docker/config misconfigurations
-trivy config .
-```
-
-**Note:** Trivy automatically uses `trivy.yaml` configuration (scans HIGH/CRITICAL only, outputs SARIF format).

@@ -38,7 +38,9 @@ async def store():
 
 @pytest.mark.asyncio
 async def test_round_trip(store, collection):
-    await store.put("k1", {"client_id": "abc", "scopes": ["a", "b"]}, collection=collection)
+    await store.put(
+        "k1", {"client_id": "abc", "scopes": ["a", "b"]}, collection=collection
+    )
     got = await store.get("k1", collection=collection)
     assert got == {"client_id": "abc", "scopes": ["a", "b"]}
 

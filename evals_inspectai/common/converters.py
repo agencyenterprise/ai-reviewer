@@ -1,5 +1,5 @@
 import json
-from typing import Literal, Union
+from typing import Literal
 
 from inspect_ai.model import (
     ChatMessage,
@@ -73,7 +73,7 @@ def _convert_message(msg: BaseMessage) -> ChatMessage:
 
 def _convert_content_blocks(
     msg: BaseMessage,
-) -> Union[str, list[Content]]:
+) -> str | list[Content]:
     blocks = msg.content_blocks
     if not blocks:
         return msg.text if isinstance(msg.content, str) else ""

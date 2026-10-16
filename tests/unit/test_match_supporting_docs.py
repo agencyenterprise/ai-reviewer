@@ -2,7 +2,6 @@
 
 import uuid
 from contextlib import contextmanager
-from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -62,7 +61,7 @@ def make_match(ref_idx: int, candidate: str, confidence: str = "high"):
 
 @contextmanager
 def mock_two_stage_matching(
-    candidates_per_ref: List, matches: List[SingleReferenceMatch]
+    candidates_per_ref: list, matches: list[SingleReferenceMatch]
 ):
     """Mock both embedding matcher and batched LLM matcher."""
     with (
@@ -82,7 +81,7 @@ def mock_two_stage_matching(
 
 
 @contextmanager
-def mock_two_stage_matching_error(candidates_per_ref: List, error: Exception):
+def mock_two_stage_matching_error(candidates_per_ref: list, error: Exception):
     """Mock embedding matcher success but batched LLM matcher failure."""
     with (
         patch(EMBEDDING_MATCHER_PATH) as MockEmbed,
@@ -164,7 +163,7 @@ def mock_state():
     return _create
 
 
-def make_extracted_refs(texts: List[str]) -> List[ExtractedReference]:
+def make_extracted_refs(texts: list[str]) -> list[ExtractedReference]:
     """Create ExtractedReference objects from text strings."""
     return [
         ExtractedReference(id=f"ref-{i}", text=text) for i, text in enumerate(texts)
@@ -348,7 +347,9 @@ class TestMatchSupportingDocsNode:
     async def test_skips_already_matched_references(self, mock_state, mock_runtime):
         """References already in state.matches must not be re-matched, and their matches must be preserved."""
         summaries = {0: make_summary("Paper B", "Jones", "2021", file_id="file-id-0")}
-        extracted_refs = make_extracted_refs(["Already matched ref", "New unmatched ref"])
+        extracted_refs = make_extracted_refs(
+            ["Already matched ref", "New unmatched ref"]
+        )
         existing_match = ReferenceFileMatch(
             reference_id="ref-0", file_id="file-id-0", source=MatchSource.MANUAL_UPLOAD
         )

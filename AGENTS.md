@@ -1,101 +1,105 @@
 # Project Instructions
 
-## Project Overview
+A Python backend (FastAPI + LangChain, under `lib/`) and a Next.js frontend (under `frontend/`). Rules marked **Always** or **Never** are strict. The rest are defaults to follow unless there's a reason not to.
 
-This is an AI-powered document review system with a Python backend (FastAPI + LangChain) and Next.js frontend. The system uses agent-based workflows to analyze documents for claims, citations, and references.
-
----
+Deeper docs, read when the task needs them: `DEVELOPMENT.md` (setup, Docker, environment variables, database), `frontend/README.md` (frontend setup and Node version) and `evals_inspectai/README.md` (the eval suites and how to choose the model they run).
 
 ## Quick Reference
 
-### Running Commands
-
 ```bash
-# Backend (always use uv)
-uv run dev.py                    # Start full dev environment
-uv run pytest                    # Run tests
-uv run pytest tests/ -k "test"   # Run specific tests
+# Backend (always uv)
+uv run dev.py                              # Start the full dev environment
+uv run pytest tests/unit                   # Unit tests
+uv run pytest tests/integration            # Integration tests (on the *_test database)
+uv run pytest tests/path/to/test.py -k "name"
+uv run ruff format .                       # Format (CI checks the whole repo)
+uv run ruff check .                        # Lint (CI blocks on errors; --fix applies safe fixes)
+uv run mypy .                              # Type check (CI blocks on errors)
 
-# Frontend (always use pnpm)
+# Frontend (always pnpm, from frontend/)
 cd frontend && pnpm install
 cd frontend && pnpm dev
-cd frontend && pnpm run openapi-generate  # Regenerate API types
+cd frontend && pnpm test                   # Vitest
+cd frontend && pnpm run lint
+cd frontend && pnpm run openapi-generate   # Regenerate API types
 ```
+
+## Before Handing Back Work
+
+Run the same checks CI runs for the side you touched. A red check here means a red PR.
+
+- **Python changes:** `uv run ruff format .`, `uv run ruff check .`, `uv run mypy .` and `uv run pytest tests/unit`. The tree is Ruff-clean, so run both Ruff commands on the whole repo. Also run the integration tests you touched (`uv run pytest tests/integration/...`); CI runs the whole integration suite.
+- **Frontend changes:** `pnpm run lint`, `pnpm test` and `pnpm run build`, from `frontend/`.
+- **Backend API changes:** regenerate the frontend types (see below), then run the frontend checks.
+
+If a check fails and you can't fix it, tell the user which one and why. Never hand the work back as finished.
 
 ---
 
 ## Python Backend Rules
 
-### Use `uv` for running Python scripts
+### Always use `uv`, never raw `python`, `pip` or `pytest`
 
-This project uses `uv` for Python dependency management and script execution. Always use `uv` instead of raw `python`, `pip`, or `pytest` commands.
+Dependencies are pinned in `uv.lock`. Calling `python` or `pip` directly can pick up a different interpreter or install outside the lockfile.
 
 ```bash
-# ✅ Correct - use uv run
+# ✅ Correct
 uv run python script.py
-uv run dev.py
 uv run pytest tests/ -k "test_name"
 uv add package-name
 
-# ❌ Incorrect - don't use raw python or pip
+# ❌ Incorrect
 python script.py
 .venv/bin/python script.py
 python -m pytest
 pip install package-name
 ```
 
-### Don't create `__init__.py` files unless a package needs one
+### Never create an `__init__.py` unless it has a job
 
-This codebase uses Python 3.3+ implicit namespace packages, so a new directory doesn't need an `__init__.py`. Add one only when it has a real job, such as re-exporting a package's members into its namespace (`lib/models/__init__.py` does this for the database models). An empty or marker `__init__.py` is never needed.
+The codebase uses implicit namespace packages, and pytest runs with `--import-mode=importlib` to match. Add an `__init__.py` only when it does real work, such as re-exporting members (`lib/models/__init__.py` does this for the database models). Never add an empty or marker one.
 
 ```bash
-# ✅ Correct - just create the module files
+# ✅ Correct
 lib/workflows/new_workflow/
 ├── state.py
 ├── graph.py
-├── manifest.py
 └── nodes/
     └── process.py
 
-# ❌ Incorrect - empty __init__.py files that do nothing
+# ❌ Incorrect
 lib/workflows/new_workflow/
 ├── __init__.py          # Don't create this
-├── state.py
 └── nodes/
-    ├── __init__.py      # Don't create this either
+    ├── __init__.py      # Or this
     └── process.py
 ```
 
-### Never use lazy imports inside methods
+### Never import inside a function
 
-Always place imports at the top of the file. Lazy imports (imports inside functions or methods) are forbidden except when required to break a circular import or when there is an absolute technical necessity. Any such exception must be explained with a comment.
+Always put imports at the top of the file. A lazy import hides a module's dependencies, and a broken import then fails only when that code path runs instead of at startup. The one exception is breaking a circular import, and it must carry a comment saying so.
 
 ```python
-# ✅ Correct - imports at the top of the file
+# ✅ Correct
 from lib.services.users import UserService
-from lib.models.document import Document
 
 def process(doc: Document) -> None:
     service = UserService()
-    ...
 
-# ❌ Incorrect - lazy import inside a function
-def process(doc):
-    from lib.services.users import UserService  # don't do this
+# ✅ Acceptable - a circular import, explained
+def process(doc: Document) -> None:
+    # Imported here to avoid a circular import between lib.services.users and lib.services.documents
+    from lib.services.users import UserService  # noqa: PLC0415  circular, see above
     service = UserService()
-    ...
-
-# ✅ Acceptable exception - circular import that cannot be resolved otherwise
-def process(doc):
-    # Imported here to avoid circular import between lib.services.users and lib.services.documents
-    from lib.services.users import UserService
-    service = UserService()
-    ...
 ```
 
-### Use Pydantic BaseModel, not dataclass
+Ruff enforces this (`PLC0415`). An import that must stay inside a function always carries `# noqa: PLC0415` followed by its reason, so the exception is visible where it happens.
 
-Always use Pydantic `BaseModel` for data models. Never use `@dataclass`.
+Never use `import *` either (Ruff flags it: `F403`, `F405`).
+
+### Always use Pydantic `BaseModel`, never `@dataclass`
+
+One modeling tool across the codebase, and every model gets validation and serialization the same way.
 
 ```python
 # ✅ Correct
@@ -104,395 +108,221 @@ from pydantic import BaseModel, Field
 class DocumentMetadata(BaseModel):
     title: str = Field(description="Document title")
     page_count: int
-
-# ❌ Incorrect
-from dataclasses import dataclass
-
-@dataclass
-class DocumentMetadata:
-    title: str
-    page_count: int
 ```
 
-### Use SQLAlchemy 2.0 style expressions
+### Always use SQLAlchemy 2.0 `select()` with `col()`
 
-Always use SQLAlchemy 2.0 style `select()` statements, not the legacy 1.x `query()` pattern.
-
-When referencing SQLModel columns in query expressions (`.where()`, `.filter()`, `.join()`, etc.), use the `col()` helper from SQLModel to ensure proper type checking.
+Never use the legacy `db.query()` style. Wrap SQLModel columns in `col()` inside `.where()`, `.join()` and similar calls: without it mypy reads `File.project_id == x` as a plain `bool` and reports an error.
 
 ```python
-# ✅ Correct - SQLAlchemy 2.0 style with col() for type safety
+# ✅ Correct
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 from sqlmodel import col
 
-def get_files(db: Session, project_id: uuid.UUID) -> Sequence[File]:
-    stmt = select(File).where(col(File.project_id) == project_id)
-    return db.execute(stmt).scalars().all()
-
-def get_files_by_ids(db: Session, file_ids: list[uuid.UUID]) -> Sequence[File]:
-    stmt = select(File).where(col(File.id).in_(file_ids))
-    return db.execute(stmt).scalars().all()
-
-# ❌ Incorrect - legacy 1.x style
-def get_files(db: Session, project_id: uuid.UUID):
-    return db.query(File).filter(File.project_id == project_id).all()
-
-# ❌ Incorrect - missing col() causes type errors
-def get_files(db: Session, project_id: uuid.UUID):
-    stmt = select(File).where(File.project_id == project_id)  # mypy error: bool
-    return db.execute(stmt).scalars().all()
-```
-
-### Database migrations - never run Alembic yourself
-
-When making changes to database models in `lib/models/`:
-
-- **Only modify the model file** - do not run migration commands
-- **Remind the user** to run Alembic to generate and apply migrations
-- The user will run: `uv run alembic revision --autogenerate -m "description"` and `uv run alembic upgrade head`
-
-### Type Safety
-
-```python
-# Always use type hints
-from typing import List, Optional, Union
-from pydantic import BaseModel
-
-def process_documents(files: List[File], config: Optional[ProcessingConfig] = None) -> DocumentResult:
-    pass
-
-# Use TypedDict for structured data (especially workflow state)
-from typing import TypedDict
-class WorkflowState(TypedDict, total=False):
-    documents: List[Document]
-    results: Optional[ProcessingResult]
-```
-
-### Verify with mypy before finishing any Python change
-
-**The baseline is zero mypy errors.** Any error mypy reports is new — introduced by the current work. The `backend.yml` CI workflow runs `uv run mypy .` on every PR and will block merges on failure, so catch it locally first.
-
-- **After any edit to a `.py` file (backend, tests, evals):** run `uv run mypy <file-or-package>` for the touched paths.
-- **Before concluding a task** that made Python changes — even for what looks like a trivial fix — run `uv run mypy .` once to catch knock-on effects in untouched files (union narrowing, SQLAlchemy `Select[...]` reassignments, and structured-output agent return types are common sources).
-- **Never hand back work with mypy errors.** "It works at runtime" isn't enough — if mypy is red, fix it or explain to the user why you can't before concluding.
-- **Narrow `# type: ignore` comments only.** Prefer `# type: ignore[specific-code]` over bare `# type: ignore`, and add a brief inline comment when the reason isn't obvious. Reach for an ignore only after trying to express the invariant in the type system (narrowing via `isinstance`, `cast()`, or a fixed annotation).
-- If mypy is slow or misbehaving, `rm -rf .mypy_cache` and retry before assuming a real error.
-
-```bash
-# ✅ Correct
-uv run mypy lib/services/projects.py         # after editing one file
-uv run mypy lib/services lib/workflows       # after editing a subsystem
-uv run mypy .                                # final check before handing back
+stmt = select(File).where(col(File.project_id) == project_id)
+stmt = select(File).where(col(File.id).in_(file_ids))
 
 # ❌ Incorrect
-# Handing back Python changes without running mypy
-# Adding bare `# type: ignore` to silence an error you didn't understand
+db.query(File).filter(File.project_id == project_id).all()   # legacy 1.x
+select(File).where(File.project_id == project_id)            # mypy error: bool
 ```
 
-### Async/Await Patterns
+### Never run Alembic
+
+When you change a model in `lib/models/`, change only the model file, then remind the user to generate and apply the migration. The user reviews migrations and applies them to their own database:
+
+```bash
+uv run alembic revision --autogenerate -m "description"
+uv run alembic upgrade head
+```
+
+The one exception is the test database: the integration tests migrate it themselves, and `uv run python -m tests.integration_db --reset` rebuilds it. Both only ever touch a database whose name ends in `_test`.
+
+### Type hints
+
+Always annotate function signatures. Always use built-in generics and `|` unions (we're on Python 3.13); Ruff's `UP` rules flag `typing.List`, `Optional` and `Union`.
 
 ```python
-# Prefer async/await for I/O operations
-async def process_with_llm(content: str) -> Result:
-    llm_response = await llm.ainvoke(content)
-    return Result(data=llm_response)
+# ✅ Correct
+def process_documents(files: list[File], config: ProcessingConfig | None = None) -> DocumentResult: ...
 
-# Use asyncio.gather for parallel operations
-results = await asyncio.gather(
-    process_chunk_1(chunk1),
-    process_chunk_2(chunk2)
-)
+# ❌ Incorrect
+from typing import List, Optional
+def process_documents(files: List[File], config: Optional[ProcessingConfig] = None) -> DocumentResult: ...
 ```
 
-### Error Handling
+Use `TypedDict` for workflow state.
 
-```python
-# Use specific exception types
-class DocumentProcessingError(Exception):
-    def __init__(self, message: str, document_id: str):
-        self.document_id = document_id
-        super().__init__(message)
+### Always keep mypy at zero errors
 
-# Handle errors at appropriate levels
-try:
-    result = await process_document(doc)
-except DocumentProcessingError as e:
-    logger.error(f"Failed to process document {e.document_id}: {e}")
-    raise HTTPException(status_code=422, detail=str(e))
-```
+The baseline is zero, so any error mypy reports came from the current work. The `backend.yml` CI workflow runs `uv run mypy .` and blocks the merge on failure.
 
-### Project Structure
-
-```
-lib/
-├── agents/          # Individual AI agents (reference_validator_v2, etc.)
-├── workflows/       # LangGraph workflow definitions
-├── services/        # Business logic services
-├── models/          # Database models
-├── config/          # Configuration modules
-└── api/             # FastAPI application
-```
+- After editing a `.py` file (backend, tests or evals), run `uv run mypy <touched paths>`.
+- Before finishing, run `uv run mypy .` once. Changes often break untouched files: union narrowing, SQLAlchemy `Select[...]` reassignments and structured-output agent return types are common sources.
+- Never use a bare `# type: ignore`. When nothing else works (narrowing with `isinstance`, `cast()`, a better annotation), use `# type: ignore[specific-code]` with a short comment if the reason isn't obvious.
+- If mypy misbehaves, `rm -rf .mypy_cache` and retry before assuming a real error.
 
 ---
 
 ## Frontend Rules
 
-### Use `pnpm` for frontend commands
+### Check Next.js APIs against the installed docs
 
-The frontend uses `pnpm` as the package manager. Run all frontend commands from the `frontend/` directory.
+We're on Next.js 16, which renamed and removed APIs your training data may still describe (`middleware.ts` is now `proxy.ts`, for one). Before using a Next.js API, config option or file convention you aren't sure of, read its guide in `frontend/node_modules/next/dist/docs/`, which matches the installed version. Heed its deprecation notices.
+
+### Always use `pnpm`, from `frontend/`
+
+Dependencies are pinned in `pnpm-lock.yaml`. `npm` and `yarn` ignore it.
+
+### Never edit `frontend/lib/generated-api/`
+
+The files are generated by Hey API (`@hey-api/openapi-ts`) from the backend's OpenAPI schema and are overwritten on every regeneration. Always run `pnpm run openapi-generate` from `frontend/` after any backend API change (endpoints, request or response types, schemas). It reads the schema from the backend on port 8000, so the backend must be running.
+
+When port 8000 belongs to another checkout's server, generate from a file instead. Importing the app builds the schema without a database or a port:
 
 ```bash
-# ✅ Correct
-cd frontend && pnpm install
-cd frontend && pnpm dev
-cd frontend && pnpm build
-
-# ❌ Incorrect
-npm install
-yarn dev
+uv run python -c "import json; from lib.api.main import app; json.dump(app.openapi(), open('/tmp/openapi.json','w'))"
+cd frontend
+pnpm exec openapi-ts -i /tmp/openapi.json
+git checkout lib/generated-api/client.gen.ts
 ```
 
-### TypeScript types are generated using Hey API (@hey-api/openapi-ts)
+A file input also rewrites the `baseUrl: 'http://localhost:8000' | (string & {});` line in `types.gen.ts`: restore that one line by hand, so `git diff` shows only your real changes.
 
-Whenever the backend API changes (endpoints, request/response types, schemas, etc.), you **must** run `pnpm run openapi-generate` from the `frontend/` directory to update the generated types.
+Never give a new response model the same name as an existing schema. Hey API then renames both to fully qualified names and breaks existing imports, so prefix the new one instead.
 
-- **Never manually edit** files in `frontend/lib/generated-api/` - they are auto-generated
-- **Always regenerate** after backend API changes to keep frontend types in sync
-- The backend server must be running for generation to succeed
+### Always convert generated `Date` fields with `new Date()`
 
-### Avoid useEffect in React
+Fields the generated types declare as `Date` arrive as ISO strings at runtime: the SDK never applies the generated response transformers. Calling `.toISOString()` or `.getUTCMonth()` on one throws at render time, and TypeScript can't catch it. Always wrap the value in `new Date(...)` before using it as a date (see `components/admin/dashboard/format.ts`).
 
-Avoid using `useEffect` whenever possible. Prefer alternatives that are more declarative and less error-prone:
+### Never use `useEffect` for derived state or data fetching
 
-- **Derived state**: Compute values during render instead of syncing with `useEffect`
-- **Event handlers**: Handle side effects in response to user actions, not in `useEffect`
-- **useMemo/useCallback**: For expensive computations or stable references
-- **React Query/SWR**: For data fetching instead of `useEffect` + `useState`
-- **Key prop**: Reset component state by changing the `key` instead of `useEffect`
+Effects that sync state cause extra renders and stale-value bugs. Use `useEffect` only to sync with something outside React (DOM APIs, subscriptions, timers). Instead:
+
+- **Derived state:** compute it during render (`useMemo` if it's expensive).
+- **Side effects of user actions:** do them in the event handler.
+- **Data fetching:** use React Query.
+- **Resetting state:** change the component's `key`.
 
 ```tsx
-// ❌ Avoid - useEffect for derived state
+// ❌ Incorrect
 const [fullName, setFullName] = useState("");
-useEffect(() => {
-  setFullName(`${firstName} ${lastName}`);
-}, [firstName, lastName]);
+useEffect(() => setFullName(`${firstName} ${lastName}`), [firstName, lastName]);
+useEffect(() => { fetchData().then(setData); }, [id]);
 
-// ✅ Correct - compute during render
+// ✅ Correct
 const fullName = `${firstName} ${lastName}`;
-
-// ❌ Avoid - useEffect for data fetching
-useEffect(() => {
-  fetchData().then(setData);
-}, [id]);
-
-// ✅ Correct - use React Query or similar
 const { data } = useQuery({ queryKey: ["data", id], queryFn: fetchData });
 ```
 
-### TypeScript Best Practices
+### Components and types
 
-```tsx
-// Use proper TypeScript interfaces
-interface WizardState {
-  currentStep: number;
-  mainDocument: File | null;
-  supportingDocuments: File[];
-  isProcessing: boolean;
-  analysisResults: AnalysisResult | null;
-}
-
-// Type component props explicitly
-interface FileUploadProps {
-  onUpload: (files: File[]) => void;
-  maxFiles?: number;
-  accept?: string[];
-}
-```
-
-### React Patterns
-
-```tsx
-// Use React 19 patterns - prefer function components
-function DocumentViewer({ document }: { document: Document }) {
-  const [isLoading, setIsLoading] = React.useState(false);
-  const { analysis, error, refresh } = useDocumentAnalysis(document.id);
-
-  if (error) return <ErrorDisplay error={error} />;
-  if (isLoading) return <LoadingSpinner />;
-
-  return <DocumentDisplay document={document} analysis={analysis} />;
-}
-
-// Use React Context for shared state
-const WizardContext = React.createContext<WizardContextType | undefined>(
-  undefined
-);
-
-export function useWizard() {
-  const context = React.useContext(WizardContext);
-  if (!context) {
-    throw new Error("useWizard must be used within WizardProvider");
-  }
-  return context;
-}
-```
-
-### UI/UX Guidelines
-
-- Use shadcn/ui components for consistency
-- Implement proper loading states and error boundaries
-- Ensure accessibility (ARIA labels, keyboard navigation)
-- Use Tailwind CSS utility classes, avoid custom CSS when possible
+- Always build UI from the shadcn/ui components in `frontend/components/ui/` and Tailwind utility classes. Write custom CSS only when Tailwind can't express it.
+- Never use `any`. Type component props explicitly.
 
 ---
 
-## Code Quality Standards
+## Code Size
 
-### File Organization & Size
-
-- **Target file size: ~100-200 lines**
-- **Maximum file size: 300 lines** (exceptions for configuration, migrations, complex workflows)
-- **Principle over rules**: Prioritize logical cohesion and single responsibility over strict line counts
-- Keep functions focused and testable (max 20 lines preferred)
-
-#### When to split files:
-
-- Multiple classes/functions with different responsibilities
-- Mixed concerns (business logic + configuration + utilities)
-- Difficulty understanding the file's purpose at a glance
-
-#### When larger files are acceptable:
-
-- Database models with many fields (SQLModel classes)
-- Configuration files with extensive settings
-- Complex workflow definitions that need to stay together
-- Single-purpose modules with high internal cohesion
-
-### SOLID Principles
-
-- **Single Responsibility**: Each class/function should have one reason to change
-- **Open/Closed**: Use composition and dependency injection over inheritance
-- **Liskov Substitution**: Ensure subtypes are substitutable for base types
-- **Interface Segregation**: Create focused, role-based interfaces
-- **Dependency Inversion**: Depend on abstractions, not concretions
+- Keep files around 100–200 lines, 300 at most. Database models, configuration and workflow definitions that need to stay together can run longer.
+- Split a file when it mixes responsibilities, not just because it's long.
+- Keep functions to about 20 lines. Split longer ones unless splitting would make the code harder to follow.
 
 ---
 
 ## Skill Files
 
-Skill files under `skills/` must be **environment-agnostic**. They are not only used by this repo's workflow agents — users can install them standalone (Claude apps, other agent runtimes), so a skill must work anywhere.
+Skill files under `skills/` must be **environment-agnostic**. Users install them standalone in Claude apps and other agent runtimes, not just in this repo's workflow agents.
 
-- **Never reference runtime-specific tool names** (e.g. a workflow agent's `view_image`), internal URL schemes, or file layouts specific to one runtime in a skill's instructions.
-- Phrase capabilities generically and conditionally: "when you have a way to view images…", "if you can search the document…".
-- Runtime-specific wiring (which tool to call, what a `draftdetective://` src means) belongs in the agent's **system prompt**, next to where the tool is bound — not in the skill.
+- Never reference runtime-specific tool names (e.g. a workflow agent's `view_image`), internal URL schemes or file layouts specific to one runtime.
+- Phrase capabilities conditionally: "when you have a way to view images…", "if you can search the document…".
+- Runtime-specific wiring (which tool to call, what a `draftdetective://` src means) belongs in the agent's system prompt, next to where the tool is bound.
 
 ---
 
 ## Testing
 
-### Unit / Integration Tests
+### Backend Tests (pytest)
 
 ```bash
-# Run all Python tests
-uv run pytest
-
-# Run specific test file or pattern
-uv run pytest tests/path/to/test.py -k "test_name"
+uv run pytest tests/unit                          # Unit tests
+uv run pytest tests/integration                   # Integration tests
+uv run pytest tests/path/to/test.py -k "name"     # One file or pattern
 ```
 
-```python
-# Use pytest with async support
-import pytest
+- `tests/unit/` has no external dependencies.
+- `tests/integration/` writes to and deletes from a real Postgres (start it with `docker compose up -d db`). The suite always runs against a separate database: the `.env` database's name with `_test` appended (`ai_reviewer_test` locally), or `TEST_DATABASE_URL` when set. The first integration test creates and migrates it, and rebuilds it when it holds a migration from another branch. The tests refuse any database whose name doesn't end in `_test`, so they never touch the dev data. CI runs the whole suite in its own job, against a Postgres service.
+- Integration tests share that database and run in parallel, so never assume an empty table: create rows with fresh `uuid4` ids and delete them in the fixture's teardown.
+- Shared fixtures and helpers (`data_path`, `create_test_file_document_from_path`, `create_test_context`) are in `tests/conftest.py`. Reuse them before writing new ones.
+- Never call a real LLM in a test. Use LangChain's `GenericFakeChatModel` (see `tests/unit/services/chat/test_thread_state.py`) or patch the call.
+- Mark async tests with `@pytest.mark.asyncio`.
 
-@pytest.mark.asyncio
-async def test_document_processing():
-    processor = DocumentProcessor()
-    result = await processor.process(mock_document)
-    assert result.chunks is not None
-    assert len(result.chunks) > 0
+### Frontend Tests (Vitest)
 
-# Mock external dependencies
-@pytest.fixture
-def mock_llm():
-    with patch('lib.agents.deep_agent_setup.init_chat_model') as mock:
-        mock.return_value.ainvoke.return_value = MockResponse()
-        yield mock
+Vitest runs in jsdom and needs Node 22.22.2 or newer (`frontend/.nvmrc`). CI runs it on every PR.
+
+```bash
+cd frontend && pnpm test                              # All tests
+cd frontend && pnpm test lib/workflow-state.test.ts   # One file
+cd frontend && pnpm test -t "name of the test"        # Tests matching a name
+```
+
+- Tests live next to the module they cover, as `*.test.ts`, or `*.test.tsx` when the test renders. `lib/test-render.tsx` has the helpers for mounting a component (`renderInto`, `testQueryClient`, `withQueryClient`).
+- Import `describe`/`it`/`expect`/`vi` from `vitest` explicitly; globals are off.
+- The `@/` path alias resolves as it does in the app.
+
+#### Test behaviour, not presentation
+
+Frontend tests protect **logic and business rules**: derivation and transformation, state transitions, validation, filtering and sorting, API response mapping, and the decisions a hook, store or component makes.
+
+- **Never test a component that has no logic.** A component that only turns props into markup needs no test. Never write one just to raise coverage.
+- **Prefer a plain function or hook when the logic already lives in one,** or when moving it out is small and makes the code clearer. Test that instead of rendering.
+- **Render when that's the honest way to reach the behaviour:** a flow driven by user events, effects, queries or a hook. Never restructure a component only to avoid rendering it.
+- **Assert on outcomes, never on looks.** A rendered test checks what the logic produced: the arguments a callback received, the requests made, the state reached, whether an action is allowed. Visible text or an attribute may serve as the handle for that outcome, but never assert on styling, layout, icons or wording for its own sake, and never use snapshots.
+
+```tsx
+// ✅ Rendered, asserting on behaviour: what the dialog asks to download
+await click('Link comments to Draft Detective');
+await click('Download');
+expect(onDownload).toHaveBeenCalledWith('comments-with-links', { includeEdits: true });
+
+// ❌ Rendered, asserting on presentation
+expect(container.querySelector('button')?.className).toContain('bg-muted');
+expect(container.textContent).toContain('A long sentence about what the assessment does.');
 ```
 
 ### Evaluations (Inspect AI)
 
-This project uses [Inspect AI](https://inspect.ai-safety-institute.org.uk/) for LLM agent evaluations. Eval tasks live under `evals_inspectai/e2e/` and run each workflow end-to-end against a running API server (backend must be running), mirroring the full pipeline that real users trigger.
-
-Each workflow has its own eval directory with a dataset file (`dataset.json` or `dataset.jsonl`) and a task definition module.
+[Inspect AI](https://inspect.ai-safety-institute.org.uk/) evals live under `evals_inspectai/e2e/`, one directory per workflow with a `dataset.yaml` and a task module. They run each workflow end to end against the API, the same way a user triggers it, so **the backend must be running** (`uv run dev.py`).
 
 ```bash
-# Run a full eval suite for a workflow
-uv run inspect eval evals_inspectai/e2e/reference_validation_v2/reference_validation_v2_e2e.py
-
-# Run a specific sample by ID (1-indexed)
-uv run inspect eval evals_inspectai/e2e/figures_tables_check/figures_tables_check_e2e.py --sample-id=1
-
-# Run a specific sample multiple times (useful for testing determinism)
-uv run inspect eval evals_inspectai/e2e/figures_tables_check/figures_tables_check_e2e.py --sample-id=1 --epochs=3
-
-# Run a range of samples
-uv run inspect eval evals_inspectai/e2e/reference_validation_v2/reference_validation_v2_e2e.py --limit=5-10
-
-# View eval results in the Inspect AI dashboard
-uv run inspect view
+uv run inspect eval evals_inspectai/e2e/figures_tables_check/figures_tables_check_e2e.py                 # Full suite
+uv run inspect eval evals_inspectai/e2e/figures_tables_check/figures_tables_check_e2e.py --sample-id=1   # One sample (1-indexed)
+uv run inspect view                                                                                      # Results dashboard
 ```
 
-**Important:** E2E evals require the backend server to be running (`uv run dev.py`).
+Add `--epochs=3` to repeat a sample (to check determinism) or `--limit=5-10` to run a range. `evals_inspectai/README.md` lists the suites and how to choose the workflow model.
 
----
-
-## Common Anti-patterns to Avoid
-
-### Python
-
-- Don't use `import *`
-- Don't use lazy imports inside methods — place all imports at the top of the file; exceptions (circular imports) must be explained in a comment
-- Avoid deeply nested callback functions
-- Don't mix sync/async code patterns
-- Avoid large functions (>20 lines)
-- Don't use mutable default arguments
-- Don't use `@dataclass` - always use Pydantic `BaseModel` instead
-- Don't create `__init__.py` files unless one has a real job (e.g. re-exporting members) - use implicit namespace packages
-
-### Frontend
-
-- Don't mutate props directly
-- Avoid using index as key in lists
-- Don't use nested ternary operators
-- Avoid large useEffect dependencies arrays
-- Don't bypass TypeScript with `any` type
+- **Always drive the API through the endpoints the frontend uses.** Never add an eval-only endpoint or shortcut: an eval on its own path stays green while the user's path is broken. Before adding or changing a helper in `evals_inspectai/common/api_client.py`, check what the frontend does for the same action and copy that sequence.
+- **Always keep fixtures as inspectable text.** Dataset inputs are markdown, with figures as PNG references (`![](files/figures/<name>.png)`) that `inline_local_images` in `evals_inspectai/common/loaders.py` inlines at upload. Never commit DOCX fixtures: nobody can review a binary in a diff. Draw new figures with `evals_inspectai/files/figures/charts.py`. Use a DOCX only when a sample needs Word-only behaviour, such as declared crops.
 
 ---
 
 ## Git Conventions
 
-### Commits and Pull Requests
+### Never commit or open a PR unless asked
 
-Never create commits or open pull requests unless the user explicitly asks. Finish the implementation, confirm it works, then wait for instruction before touching git.
+Finish the work, confirm it passes the checks above, then wait. The user reviews changes before they go into git.
 
-### Commit Messages
+### Commit messages
 
-Use [Conventional Commits](https://www.conventionalcommits.org/) for all commit messages. The format is:
-
-```
-<type>(<scope>): <description>
-```
-
-Common types: `feat`, `fix`, `chore`, `refactor`, `test`, `docs`, `style`, `perf`, `ci`, `build`.
+Always use [Conventional Commits](https://www.conventionalcommits.org/): `<type>(<scope>): <description>`. Common types: `feat`, `fix`, `chore`, `refactor`, `test`, `docs`, `style`, `perf`, `ci`, `build`.
 
 ```bash
 # ✅ Correct
 feat(revisions): add revision system for main document replacement
 fix(upload): validate single main file per revision
 test(revisions): add unit tests for create_new_revision
-chore(deps): update langchain to 0.3.x
-refactor(workflow-runs): make revision parameter required
 
 # ❌ Incorrect
 update files
@@ -500,10 +330,6 @@ fix bug
 WIP
 ```
 
----
+### Pull requests
 
-## Pull Request Descriptions
-
-When creating pull requests, **always target the `dev` branch** unless the user explicitly specifies a different base branch.
-
-When creating pull request descriptions, create the sections of "Summary," "Motivation," "What's Changed," and "Risks and Mitigations." Separate "What's Changed" into backend and frontend changes and list all the files that have changed and why these changes were made. Keep the PR description fairly short at no more than 1000 words.
+Always target `dev` unless the user names another base branch. Always fill in `.github/pull_request_template.md` for the description.

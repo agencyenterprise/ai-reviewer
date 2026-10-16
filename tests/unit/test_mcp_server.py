@@ -18,12 +18,12 @@ from mcp.server.auth.middleware.auth_context import auth_context_var
 from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
 from mcp.types import TextContent
 
-from lib.models.user import User, UserRole
-
 # Patch auth factory before importing the MCP module.
 # lib.api.mcp calls create_mcp_auth() at module level, which raises
 # RuntimeError in test environments without OAuth credentials.
 import lib.api.mcp_auth as _mcp_auth_mod
+from lib.models.user import User, UserRole
+from lib.workflows.models import WorkflowRunType
 
 _orig_create_mcp_auth = _mcp_auth_mod.create_mcp_auth
 _mcp_auth_mod.create_mcp_auth = lambda: None
@@ -36,8 +36,11 @@ _mcp_auth_mod.create_mcp_auth = _orig_create_mcp_auth
 def _text_of(result: CallToolResult) -> str:
     """Return the text payload of a tool-call result, asserting it is TextContent."""
     first = result.content[0]
-    assert isinstance(first, TextContent), f"expected TextContent, got {type(first).__name__}"
+    assert isinstance(first, TextContent), (
+        f"expected TextContent, got {type(first).__name__}"
+    )
     return first.text
+
 
 EXPECTED_TOOL_NAMES = {
     "list_workflow_types",
@@ -83,7 +86,9 @@ async def authed_mcp_client():
     # FastMCP falls back to the SDK's auth context when there is no HTTP request.
     token_reset = auth_context_var.set(AuthenticatedUser(fake_token))
     try:
-        with patch("lib.api.mcp.helpers.resolve_user", AsyncMock(return_value=mock_user)):
+        with patch(
+            "lib.api.mcp.helpers.resolve_user", AsyncMock(return_value=mock_user)
+        ):
             async with Client(transport=mcp) as client:
                 yield client
     finally:
@@ -190,7 +195,9 @@ async def test_export_project_docx_schema_has_optional_params(mcp_client: Client
 
 
 @pytest.mark.asyncio
-async def test_list_workflow_types_returns_workflow_types_and_categories(authed_mcp_client: Client):
+async def test_list_workflow_types_returns_workflow_types_and_categories(
+    authed_mcp_client: Client,
+):
     result = await authed_mcp_client.call_tool("list_workflow_types", {})
     text = _text_of(result)
     data = json.loads(text)
@@ -225,7 +232,9 @@ async def test_list_workflow_types_entry_has_expected_fields(authed_mcp_client: 
 
 
 @pytest.mark.asyncio
-async def test_list_workflow_types_category_entry_has_expected_fields(authed_mcp_client: Client):
+async def test_list_workflow_types_category_entry_has_expected_fields(
+    authed_mcp_client: Client,
+):
     result = await authed_mcp_client.call_tool("list_workflow_types", {})
     data = json.loads(_text_of(result))
 
@@ -238,8 +247,6 @@ async def test_list_workflow_types_category_entry_has_expected_fields(authed_mcp
 
 @pytest.mark.asyncio
 async def test_list_workflow_types_entries_have_valid_types(authed_mcp_client: Client):
-    from lib.workflows.models import WorkflowRunType
-
     result = await authed_mcp_client.call_tool("list_workflow_types", {})
     data = json.loads(_text_of(result))
 
@@ -251,9 +258,9 @@ async def test_list_workflow_types_entries_have_valid_types(authed_mcp_client: C
 
 
 @pytest.mark.asyncio
-async def test_list_workflow_types_category_workflows_are_valid_types(authed_mcp_client: Client):
-    from lib.workflows.models import WorkflowRunType
-
+async def test_list_workflow_types_category_workflows_are_valid_types(
+    authed_mcp_client: Client,
+):
     result = await authed_mcp_client.call_tool("list_workflow_types", {})
     data = json.loads(_text_of(result))
 

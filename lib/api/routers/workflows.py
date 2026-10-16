@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -18,8 +18,8 @@ from lib.api.services.workflow_runner import (
 )
 from lib.models.project import AccessLevel
 from lib.models.user import User
-from lib.services.projects import get_project_access
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
+from lib.services.projects import get_project_access
 from lib.services.workflow_runs import (
     WorkflowRunDetail,
     build_workflow_run_detail,
@@ -118,11 +118,11 @@ async def get_workflow_state(
             "`messages` each result item keeps."
         ),
     ),
-    share_token: Optional[str] = Query(
+    share_token: str | None = Query(
         default=None,
         description="Share token, for viewers reading the project through a share link.",
     ),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """Get one run with its state and cost."""
 
@@ -142,11 +142,11 @@ async def get_workflow_state(
 )
 async def get_workflow_raw_state(
     workflow_run_id: str,
-    share_token: Optional[str] = Query(
+    share_token: str | None = Query(
         default=None,
         description="Share token, for viewers reading the project through a share link.",
     ),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """The run's persisted state exactly as stored, bypassing the state model.
 

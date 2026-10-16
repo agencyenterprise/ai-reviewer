@@ -19,10 +19,14 @@ and supplies no credentials the report does not state.
 
 import math
 import re
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from evals_inspectai.common.issue_checks import hit_pairs
-from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue, normalize
+from evals_inspectai.common.issue_inventory import (
+    ResolvedInventory,
+    ResolvedIssue,
+    normalize,
+)
 from evals_inspectai.common.issue_judge import JudgeCriterion, section_text
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
 
@@ -47,7 +51,7 @@ _HONORIFIC_RE = re.compile(r"^(?:dr|prof|professor|mr|mrs|ms)\.?\s+")
 _NOT_FOUND = {normalize(NO_PREFACE), _AUTHORS_NOT_FOUND}
 
 
-def author_name(title: str) -> Optional[str]:
+def author_name(title: str) -> str | None:
     """The normalised author name an "Author Bio Issue: <name>" title carries, without a
     leading honorific (the skill substitutes the name as written, "Dr." or not); None for
     any other title."""
@@ -55,7 +59,7 @@ def author_name(title: str) -> Optional[str]:
     return _HONORIFIC_RE.sub("", match.group(1)) if match else None
 
 
-def validator_of(title: str) -> Optional[str]:
+def validator_of(title: str) -> str | None:
     """Which validator a title comes from, "preface" or "authors"; None for a title neither uses."""
     t = normalize(title)
     if t in _PREFACE_SET:
@@ -79,13 +83,22 @@ def _not_found_alone(issues: Sequence[IssueItem]) -> tuple[float, list[str]]:
     crowded = [
         i.title
         for i in missing
-        if any(o is not i and validator_of(o.title) == validator_of(i.title) for o in issues)
+        if any(
+            o is not i and validator_of(o.title) == validator_of(i.title)
+            for o in issues
+        )
     ]
     value = 1 - len(crowded) / len(missing) if missing else math.nan
-    return value, [f"reported with rule issues from the same validator: {crowded}"] if crowded else []
+    return value, (
+        [f"reported with rule issues from the same validator: {crowded}"]
+        if crowded
+        else []
+    )
 
 
-def _author_named(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> tuple[float, list[str]]:
+def _author_named(
+    issues: Sequence[IssueItem], inventory: ResolvedInventory
+) -> tuple[float, list[str]]:
     """Of the detected author issues, share whose title names someone in the anchored bio."""
     checked: list[float] = []
     notes: list[str] = []
@@ -97,11 +110,15 @@ def _author_named(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> 
         ok = name is not None and name in bio
         checked.append(float(ok))
         if not ok:
-            notes.append(f"{expected.id}: {issue.title!r} does not name the author of that bio")
+            notes.append(
+                f"{expected.id}: {issue.title!r} does not name the author of that bio"
+            )
     return (sum(checked) / len(checked) if checked else math.nan), notes
 
 
-def about_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> tuple[dict[str, float], str]:
+def about_scores(
+    issues: Sequence[IssueItem], inventory: ResolvedInventory
+) -> tuple[dict[str, float], str]:
     """``known_titles``, ``severity_medium`` and ``not_found_alone`` read every reported
     issue (NaN when there is none to read); ``author_named`` reads the detected author
     issues (NaN when none was detected)."""
@@ -118,7 +135,9 @@ def about_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> t
     notes = [f"titles outside the skills' sets: {odd}"] if odd else []
     notes += [f"severity not medium: {off}"] if off else []
     notes += alone_notes + named_notes
-    return values, " | ".join(notes) if notes else "titles known, severities medium, authors named"
+    return values, (
+        " | ".join(notes) if notes else "titles known, severities medium, authors named"
+    )
 
 
 PREFACE_CRITERION = (
@@ -133,7 +152,7 @@ PREFACE_CRITERION = (
     "the problem the report addresses; for missing literature, prior work the report names elsewhere or, where it "
     "names none, a request that the author situate the study, without naming works for them; for a missing "
     "preface, a preface covering the six elements for this report. Advice that could be pasted onto any report "
-    "(\"add a sentence identifying the intended audience\") is incorrect. An action that invents a citation, a "
+    '("add a sentence identifying the intended audience") is incorrect. An action that invents a citation, a '
     "funder, a finding or a fact the report does not contain is incorrect."
 )
 
@@ -154,8 +173,8 @@ BIO_CRITERION = (
     "without saying it must be a new sentence is fine. It must not supply a degree, "
     "institution, position or research area the report does not state; asking the author to supply it is "
     "correct. For a missing section, asking for a three-sentence biography per author with the four elements is "
-    "correct, naming authors only if the report names them. An action that only restates the rules (\"ensure the "
-    "bio meets the requirements\") is incorrect."
+    'correct, naming authors only if the report names them. An action that only restates the rules ("ensure the '
+    'bio meets the requirements") is incorrect.'
 )
 
 

@@ -1,8 +1,8 @@
 import asyncio
 import logging
-from enum import StrEnum
 from datetime import datetime
-from typing import Any, List, Optional, Type, TypeVar, cast
+from enum import StrEnum
+from typing import Any, TypeVar, cast
 
 from fastapi import HTTPException
 from pydantic import BaseModel
@@ -81,8 +81,8 @@ def _compute_cost_for_state(
 
 
 async def _compute_costs_for_states(
-    states: List[WorkflowState | None],
-) -> List[CostBreakdown | None]:
+    states: list[WorkflowState | None],
+) -> list[CostBreakdown | None]:
     """Cost for each state, off the event loop.
 
     Walking a state for usage and pricing it is pure CPU, and there is a lot of
@@ -154,7 +154,7 @@ def hydrate_workflow_run_state_with_status(
             f"(run {run.id}); returning no state for it."
         )
         return None, WorkflowStateStatus.ABSENT
-    state_type = cast(Type[WorkflowState], manifest.get_state_type())
+    state_type = cast(type[WorkflowState], manifest.get_state_type())
     try:
         return state_type(**run.state_json), WorkflowStateStatus.OK
     except Exception as e:
@@ -231,7 +231,7 @@ async def read_workflow_run_state(run: WorkflowRun) -> WorkflowState | None:
 
 
 async def get_workflow_run(
-    workflow_run_id: str, user: Optional[User] = None, include_state: bool = False
+    workflow_run_id: str, user: User | None = None, include_state: bool = False
 ) -> WorkflowRun:
     async with get_async_db_session() as session:
         stmt = (
@@ -262,7 +262,7 @@ async def create_workflow_run(
     type: WorkflowRunType,
     thread_id: str,
     revision: int = 1,
-    model: Optional[str] = None,
+    model: str | None = None,
 ) -> str:
     """Create a new workflow run record."""
     now = datetime.utcnow()
@@ -285,8 +285,8 @@ async def create_workflow_run(
 async def update_workflow_run_status(
     workflow_run_id: str,
     status: WorkflowRunStatus,
-    failure_reason: Optional[WorkflowRunFailureReason] = None,
-    failure_message: Optional[str] = None,
+    failure_reason: WorkflowRunFailureReason | None = None,
+    failure_message: str | None = None,
 ) -> None:
     """Update an existing workflow run's status. Never overwrites a terminal status.
 
@@ -377,7 +377,7 @@ async def fail_workflow_run(
     workflow_run_id: str,
     project_id: str,
     failure_reason: WorkflowRunFailureReason,
-    failure_message: Optional[str] = None,
+    failure_message: str | None = None,
 ) -> None:
     """Mark a workflow run as FAILED and cascade-cancel its active dependents.
 
@@ -426,7 +426,7 @@ async def get_project_workflow_run_by_type(
     type: WorkflowRunType,
     revision: int,
     include_state: bool = False,
-) -> Optional[WorkflowRun]:
+) -> WorkflowRun | None:
     """
     Get the most relevant workflow run for a project, type, and revision.
 
@@ -521,34 +521,6 @@ async def get_latest_workflow_run_state_by_type(
     return hydrate_workflow_run_state(run) if run is not None else None
 
 
-async def get_project_workflow_runs_by_type(
-    project_id: str,
-    workflow_type: WorkflowRunType,
-    revision: int,
-    include_state: bool = False,
-) -> List[WorkflowRun]:
-    """
-    Get all workflow runs of a specific type for a project and revision.
-
-    Returns all runs ordered by created_at descending (newest first).
-    """
-    async with get_async_db_session() as session:
-        stmt = (
-            select(WorkflowRun)
-            .where(
-                and_(
-                    col(WorkflowRun.project_id) == project_id,
-                    col(WorkflowRun.type) == workflow_type,
-                    col(WorkflowRun.revision) == revision,
-                )
-            )
-            .order_by(col(WorkflowRun.created_at).desc())
-        )
-        if include_state:
-            stmt = stmt.options(undefer(col(WorkflowRun.state_json)))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
-        return list((await session.execute(stmt)).scalars().all())
-
-
 def latest_run_per_type_stmt(
     project_id: str, revision: int
 ) -> Select[tuple[WorkflowRun]]:
@@ -577,7 +549,7 @@ def latest_run_per_type_stmt(
 
 async def get_project_run_summaries(
     project_id: str, revision: int
-) -> List[WorkflowRun]:
+) -> list[WorkflowRun]:
     """The most relevant run per workflow type for a revision, without states.
 
     A light read for status polling: no state_json, no hydration, no cost.
@@ -597,7 +569,7 @@ async def get_project_workflow_runs(
     project_id: str,
     revision: int,
     include_internal: bool = False,
-) -> List[WorkflowRunDetail]:
+) -> list[WorkflowRunDetail]:
     """
     Get the most relevant workflow run for each type in a project revision.
 

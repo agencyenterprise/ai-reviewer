@@ -16,7 +16,7 @@ Whether the summary gives each paragraph a plain alternative is graded in
 """
 
 import math
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from evals_inspectai.common.issue_inventory import (
     AnchoredIssue,
@@ -95,13 +95,15 @@ def unmatched(
 
 def technical_paragraphs(inventory: ResolvedInventory) -> list[AnchoredIssue]:
     """The expected paragraph-level technical-language issues, in document order."""
-    kept = [anchored(e) for e in inventory.expected_issues if e.title == PARAGRAPH_TITLE]
+    kept = [
+        anchored(e) for e in inventory.expected_issues if e.title == PARAGRAPH_TITLE
+    ]
     return sorted(kept, key=lambda e: e.line)
 
 
 def overflow_split(
     inventory: ResolvedInventory,
-) -> Optional[tuple[list[AnchoredIssue], list[AnchoredIssue]]]:
+) -> tuple[list[AnchoredIssue], list[AnchoredIssue]] | None:
     """The first ``CAP`` technical paragraphs and the rest; None unless the inventory expects more than ``CAP``."""
     expected = technical_paragraphs(inventory)
     return (expected[:CAP], expected[CAP:]) if len(expected) > CAP else None
@@ -118,7 +120,7 @@ def overflow_scores(
     """The four overflow keys; NaN unless the inventory expects more than ``CAP`` technical paragraphs."""
     split = overflow_split(inventory)
     if split is None:
-        return {key: math.nan for key in OVERFLOW_KEYS}, "not an overflow sample"
+        return dict.fromkeys(OVERFLOW_KEYS, math.nan), "not an overflow sample"
     first, rest = split
     singles = [i for i in issues if normalize(i.title) == normalize(PARAGRAPH_TITLE)]
     summaries = overflow_summaries(issues)

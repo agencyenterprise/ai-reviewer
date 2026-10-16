@@ -1,10 +1,12 @@
 """Every caller of `SimpleDeepAgent.ainvoke` reads the `DeepAgentRun` it returns.
 
 `ainvoke` used to hand back `(output, messages)` and now returns a single
-`DeepAgentRun`. Two subclasses outside the manifest inherit it -- the
+`DeepAgentRun`. Two subclasses outside the manifest inherited it -- the
 literature-review and live-reports nodes -- and both were still writing
 `result, messages = await agent.ainvoke({})`, which raises
 `ValueError: too many values to unpack` the moment either workflow runs.
+Those nodes are gone: both workflows now run through the shared manifest, which
+is the only call site left.
 
 Neither mypy nor the rest of the suite caught that. Pydantic models define
 `__iter__`, so mypy sees `DeepAgentRun` as an iterable of unknown length and
@@ -50,14 +52,18 @@ def _subclass_modules() -> list[Path]:
     return found
 
 
+_MANIFEST_BASE = _LIB / "workflows" / "simple_deep_agent" / "manifest_base.py"
+
+
 def test_the_subclasses_are_the_ones_we_think():
     """A new subclass should fail this and make its author read the file."""
-    names = sorted(p.name for p in _subclass_modules())
-    assert names == ["literature_review.py", "live_reports.py"]
+    assert _subclass_modules() == []
 
 
 @pytest.mark.parametrize(
-    "path", _subclass_modules(), ids=lambda p: p.name  # type: ignore[misc]
+    "path",
+    [_MANIFEST_BASE, *_subclass_modules()],
+    ids=lambda p: p.name,  # type: ignore[misc]
 )
 def test_no_call_site_unpacks_ainvoke(path: Path):
     """`x, y = await agent.ainvoke(...)` is the shape that breaks at runtime."""

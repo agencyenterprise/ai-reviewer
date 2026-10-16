@@ -1,9 +1,10 @@
 """Manifest for document summarization workflow."""
 
-from typing import List, Type
+import builtins
 
 from langgraph.graph import StateGraph
 
+from lib.services.files import get_main_file_id, get_processed_supporting_file_ids
 from lib.workflows.document_summarization.graph import (
     build_document_summarization_graph,
 )
@@ -14,7 +15,6 @@ from lib.workflows.document_summarization.state import (
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.workflow_types import WorkflowState
-from lib.services.files import get_main_file_id, get_processed_supporting_file_ids
 
 
 class DocumentSummarizationManifest(
@@ -28,11 +28,11 @@ class DocumentSummarizationManifest(
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
     always_run = True  # Always run document summarization to ensure new files are summarized. The workflow summarizes only new files in subsequent runs, reusing cached results from previous runs.
 
-    def get_state_type(self) -> Type[DocumentSummarizationState]:
+    def get_state_type(self) -> builtins.type[DocumentSummarizationState]:
         """Get the type of the workflow state."""
         return DocumentSummarizationState
 
-    def get_config_type(self) -> Type[DocumentSummarizationWorkflowConfig]:
+    def get_config_type(self) -> builtins.type[DocumentSummarizationWorkflowConfig]:
         """Get the type of the workflow config."""
         return DocumentSummarizationWorkflowConfig
 
@@ -43,7 +43,7 @@ class DocumentSummarizationManifest(
     async def create_initial_state(
         self,
         config: DocumentSummarizationWorkflowConfig,
-        existing_states: List[WorkflowState],
+        existing_states: list[WorkflowState],
         revision: int,
         prior_self_state: DocumentSummarizationState | None = None,
     ) -> DocumentSummarizationState:
@@ -66,7 +66,7 @@ class DocumentSummarizationManifest(
         )
 
     def convert_state_to_issues(
-        self, state: DocumentSummarizationState, other_states: List[WorkflowState]
-    ) -> List[DocumentIssue]:
+        self, state: DocumentSummarizationState, other_states: list[WorkflowState]
+    ) -> list[DocumentIssue]:
         # Document summarization doesn't produce issues
         return []

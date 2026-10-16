@@ -9,9 +9,9 @@ runs on -- every assessment on the RAND deployment reported no cost at all.
 
 import logging
 import re
+from collections.abc import Iterable, Iterator
 from decimal import Decimal
 from functools import lru_cache
-from typing import Iterable, Iterator, Optional
 
 from genai_prices import Usage, calc_price
 from genai_prices.types import PriceCalculation
@@ -45,7 +45,7 @@ _FALLBACK_PROVIDERS = ("openai", "anthropic", "google")
 _PROBE_USAGE = Usage(input_tokens=1)
 
 
-def _model_refs(model_name: str) -> Iterator[tuple[str, Optional[str]]]:
+def _model_refs(model_name: str) -> Iterator[tuple[str, str | None]]:
     """`(model_ref, provider_id)` pairs to try for `model_name`, best first."""
     aliases = [model_name]
     alias = _SNAPSHOT_SUFFIX.sub("", model_name, count=1)
@@ -60,7 +60,7 @@ def _model_refs(model_name: str) -> Iterator[tuple[str, Optional[str]]]:
 
 
 @lru_cache(maxsize=512)
-def _resolve(model_name: str) -> Optional[tuple[str, Optional[str]]]:
+def _resolve(model_name: str) -> tuple[str, str | None] | None:
     """The `(model_ref, provider_id)` pair `genai-prices` accepts for this name.
 
     Matching a name to a model does not depend on the token counts, so it is
@@ -88,7 +88,7 @@ def _resolve(model_name: str) -> Optional[tuple[str, Optional[str]]]:
     return None
 
 
-def _price(model_name: str, usage: Usage) -> Optional[PriceCalculation]:
+def _price(model_name: str, usage: Usage) -> PriceCalculation | None:
     """Price `usage` for `model_name`. None when no known model matches it."""
     resolved = _resolve(model_name)
     if resolved is None:

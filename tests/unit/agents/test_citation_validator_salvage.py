@@ -123,7 +123,9 @@ async def test_returns_the_structured_result_when_the_response_is_complete():
     )
     messages = [AIMessage(content="done")]
     graph = SimpleNamespace(
-        ainvoke=AsyncMock(return_value={"structured_response": expected, "messages": messages})
+        ainvoke=AsyncMock(
+            return_value={"structured_response": expected, "messages": messages}
+        )
     )
 
     with patch.object(citation_validator, "create_agent", return_value=graph):
@@ -143,7 +145,9 @@ async def test_salvages_the_assessments_written_before_the_cut():
     assert issues[0].evidence_alignment == "supported"
     assert issues[1].evidence_alignment == "partially_supported"
     # Nested evidence survives intact, not just the scalar fields.
-    assert issues[0].evidence_sources[0].file_id == "57ebc998-2286-4cc1-bbba-ec094039b27a"
+    assert (
+        issues[0].evidence_sources[0].file_id == "57ebc998-2286-4cc1-bbba-ec094039b27a"
+    )
 
 
 @pytest.mark.asyncio

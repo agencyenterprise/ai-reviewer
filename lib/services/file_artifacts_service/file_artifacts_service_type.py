@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any
 
 from lib.models.file import FileRole
 
@@ -39,4 +39,3 @@ class FileArtifactsServiceType(ABC):
         self,
         include_skills: bool = True,
     ) -> dict[str, Any]: ...
-

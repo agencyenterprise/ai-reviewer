@@ -36,25 +36,30 @@ a NaN key out of that metric's mean and counts the sample as unscored for it.
 import json
 import math
 import re
-from typing import Callable, Mapping, NamedTuple, Optional, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from typing import NamedTuple
 
 from inspect_ai.scorer import Score, Scorer, Target, mean, scorer, stderr
 from inspect_ai.solver import TaskState
 
-from evals_inspectai.common.simple_deep_agent_types import AgentCheckResult, IssueItem, ProposedEdit
 from evals_inspectai.common.issue_inventory import (
     Decoy,
-    ResolvedIssue,
     ResolvedInventory,
+    ResolvedIssue,
     ScoringPolicy,
     normalize,
     overlaps,
+)
+from evals_inspectai.common.simple_deep_agent_types import (
+    AgentCheckResult,
+    IssueItem,
+    ProposedEdit,
 )
 
 # A workflow-specific per-edit check: (edit) -> pass?  Reported as edit_<name>.
 # A workflow's own per-edit verdict: True or False, or None when the check has
 # nothing to assess on that edit, which leaves it out of the fraction.
-EditCheck = Callable[[ProposedEdit], Optional[bool]]
+EditCheck = Callable[[ProposedEdit], bool | None]
 
 DETECTION_KEYS: tuple[str, ...] = (
     "recall",
@@ -73,6 +78,7 @@ EDIT_KEYS: tuple[str, ...] = (
     "edit_keeps_numbers_and_markers",
     "edit_punctuation",
 )
+
 
 def issue_check_keys(policy: ScoringPolicy) -> tuple[str, ...]:
     """The keys ``issue_checks`` emits under ``policy``, for viewer columns and
@@ -132,6 +138,7 @@ def decoy_descriptions(reasons: Sequence[str]) -> dict[str, str]:
         for reason in reasons
     }
 
+
 # A number ends in a digit, so a sentence-final "Figure 1." yields "1", not "1.". A
 # percentage unit written as "%", "percent" or "per cent" is captured with it and
 # canonicalised to "%", so "7%" and "7 percent" are the same token while "7" is not.
@@ -142,12 +149,17 @@ _STRANDED_RE = re.compile(r",\s*[.;,]|\s[.,;]|\.\.(?!\.)|\s{2,}")
 
 
 def _issue_text(issue: IssueItem) -> str:
-    parts = [issue.title, issue.description, issue.long_description or "", issue.suggested_action or ""]
+    parts = [
+        issue.title,
+        issue.description,
+        issue.long_description or "",
+        issue.suggested_action or "",
+    ]
     parts += [edit.original_text for edit in issue.edits]
     return normalize(" ".join(parts))
 
 
-def _title_matches(issue: IssueItem, kind: Optional[str]) -> bool:
+def _title_matches(issue: IssueItem, kind: str | None) -> bool:
     """The expected title appears in the reported one as whole words, after
     normalisation; an expected issue with no title matches any. Whole words so
     that "supported" does not match "unsupported"."""
@@ -175,7 +187,9 @@ class HitRank(NamedTuple):
 
     def cost(self) -> int:
         """The rank as one number for the assignment solver, ordered exactly as the tuple."""
-        return (self.claimed_kind * _EVIDENCE_LEVELS + self.evidence) * 2 + self.off_line
+        return (
+            self.claimed_kind * _EVIDENCE_LEVELS + self.evidence
+        ) * 2 + self.off_line
 
 
 _EVIDENCE_LEVELS = 3
@@ -184,8 +198,11 @@ _MAX_HIT_COST = HitRank(True, _EVIDENCE_LEVELS - 1, True).cost()
 
 
 def hit_rank(
-    expected: ResolvedIssue, issue: IssueItem, claimed: Sequence[str] = (), on_location: bool = False
-) -> Optional[HitRank]:
+    expected: ResolvedIssue,
+    issue: IssueItem,
+    claimed: Sequence[str] = (),
+    on_location: bool = False,
+) -> HitRank | None:
     """How well ``issue`` reports ``expected`` (see ``HitRank``); None when it does not report it.
 
     Within one level of evidence, an issue whose line range brackets the expected
@@ -210,9 +227,16 @@ def hit_rank(
     if expected.anchor is None:
         return HitRank(False, 0, False) if same_title else None
     quoted = normalize(expected.anchor) in _issue_text(issue)
-    in_range = expected.line is not None and issue.start_line <= expected.line <= issue.end_line
+    in_range = (
+        expected.line is not None
+        and issue.start_line <= expected.line <= issue.end_line
+    )
     if on_location:
-        return HitRank(False, 0 if quoted else 1, not in_range) if quoted or in_range else None
+        return (
+            HitRank(False, 0 if quoted else 1, not in_range)
+            if quoted or in_range
+            else None
+        )
     if same_title and quoted:
         evidence = 0
     elif same_title and in_range:
@@ -221,12 +245,17 @@ def hit_rank(
         evidence = 2
     else:
         return None
-    claimed_kind = expected.title is None and any(_title_matches(issue, t) for t in claimed)
+    claimed_kind = expected.title is None and any(
+        _title_matches(issue, t) for t in claimed
+    )
     return HitRank(claimed_kind, evidence, not in_range)
 
 
 def ranked_hits(
-    expected: ResolvedIssue, issues: Sequence[IssueItem], claimed: Sequence[str] = (), on_location: bool = False
+    expected: ResolvedIssue,
+    issues: Sequence[IssueItem],
+    claimed: Sequence[str] = (),
+    on_location: bool = False,
 ) -> list[int]:
     """Indices of the issues that report ``expected``, strongest evidence first (ties in issue order)."""
     scored = []
@@ -238,8 +267,11 @@ def ranked_hits(
 
 
 def hit_issue(
-    expected: ResolvedIssue, issues: Sequence[IssueItem], claimed: Sequence[str] = (), on_location: bool = False
-) -> Optional[int]:
+    expected: ResolvedIssue,
+    issues: Sequence[IssueItem],
+    claimed: Sequence[str] = (),
+    on_location: bool = False,
+) -> int | None:
     """Index of the best-ranked issue that reports this expected, or None."""
     ranked = ranked_hits(expected, issues, claimed, on_location)
     return ranked[0] if ranked else None
@@ -249,16 +281,29 @@ def claimed_titles(inventory: ResolvedInventory) -> tuple[str, ...]:
     """The titles the dataset's expected issues name, in this record or any other
     (see ``hit_rank``): a kind that has no expected issue in this record is still
     a kind, and a report of it is not the free-form one."""
-    return tuple(sorted({*inventory.policy.named_titles, *(e.title for e in inventory.expected_issues if e.title)}))
+    return tuple(
+        sorted(
+            {
+                *inventory.policy.named_titles,
+                *(e.title for e in inventory.expected_issues if e.title),
+            }
+        )
+    )
 
 
-def reports_of(expected: ResolvedIssue, issues: Sequence[IssueItem], inventory: ResolvedInventory) -> list[IssueItem]:
+def reports_of(
+    expected: ResolvedIssue, issues: Sequence[IssueItem], inventory: ResolvedInventory
+) -> list[IssueItem]:
     """Every issue that reports ``expected``, strongest evidence first, paired as the inventory's policy says."""
-    ranked = ranked_hits(expected, issues, claimed_titles(inventory), inventory.policy.pair_on_location)
+    ranked = ranked_hits(
+        expected, issues, claimed_titles(inventory), inventory.policy.pair_on_location
+    )
     return [issues[i] for i in ranked]
 
 
-def decoy_hits(decoys: Sequence[Decoy], issues: Sequence[IssueItem], lines: Sequence[str] = ()) -> list[Decoy]:
+def decoy_hits(
+    decoys: Sequence[Decoy], issues: Sequence[IssueItem], lines: Sequence[str] = ()
+) -> list[Decoy]:
     """The decoys a run flagged. An untitled decoy is flagged by any issue that
     quotes it. A titled one only by an issue under that title that quotes it or
     brackets one of the ``lines`` it is on, since a correct run may report the
@@ -271,7 +316,9 @@ def decoy_hits(decoys: Sequence[Decoy], issues: Sequence[IssueItem], lines: Sequ
         if not _title_matches(issue, decoy.title):
             return False
         on = [n for n, line in enumerate(lines, 1) if anchor in normalize(line)]
-        return anchor in _issue_text(issue) or any(issue.start_line <= n <= issue.end_line for n in on)
+        return anchor in _issue_text(issue) or any(
+            issue.start_line <= n <= issue.end_line for n in on
+        )
 
     return [d for d in decoys if any(flags(d, issue) for issue in issues)]
 
@@ -290,7 +337,7 @@ def edits_for(expected: ResolvedIssue, issue: IssueItem) -> list[ProposedEdit]:
     return [e for e in issue.edits if overlaps(anchor, e.original_text)]
 
 
-def _line_text(lines: Sequence[str], line: Optional[int]) -> str:
+def _line_text(lines: Sequence[str], line: int | None) -> str:
     """The text of a 1-indexed line, or "" when there is no such line."""
     return lines[line - 1] if line is not None and 0 < line <= len(lines) else ""
 
@@ -300,7 +347,9 @@ def fraction(values: Sequence[float]) -> float:
 
 
 def _tokens(text: str) -> list[str]:
-    numbers = [value + ("%" if unit else "") for value, unit in _NUMBER_RE.findall(text)]
+    numbers = [
+        value + ("%" if unit else "") for value, unit in _NUMBER_RE.findall(text)
+    ]
     return sorted(numbers + _FOOTNOTE_RE.findall(text) + _CITATION_RE.findall(text))
 
 
@@ -309,15 +358,21 @@ def _tokens(text: str) -> list[str]:
 # "et al., 2024" do not split it and "planners.[[4]](#footnote-5) Categories" does; a
 # few abbreviations that take a capital after them ("et al. The", "e.g. The") are
 # excluded by name.
-_SENTENCE_BREAK_RE = re.compile(r"[.!?]+(?:\[\[\d+\]\]\(#footnote-\d+\))*(?=\s+[A-Z0-9\"“(\[])")
+_SENTENCE_BREAK_RE = re.compile(
+    r"[.!?]+(?:\[\[\d+\]\]\(#footnote-\d+\))*(?=\s+[A-Z0-9\"“(\[])"
+)
 _NOT_A_SENTENCE_END = ("al", "e.g", "i.e", "vs", "cf", "Fig", "No")
 
 
 def _sentence_spans(text: str) -> list[tuple[int, int]]:
     spans, start = [], 0
     for m in _SENTENCE_BREAK_RE.finditer(text):
-        before = text[:m.start()]
-        if any(before.endswith(abbr) and (len(before) == len(abbr) or not before[-len(abbr) - 1].isalpha()) for abbr in _NOT_A_SENTENCE_END):
+        before = text[: m.start()]
+        if any(
+            before.endswith(abbr)
+            and (len(before) == len(abbr) or not before[-len(abbr) - 1].isalpha())
+            for abbr in _NOT_A_SENTENCE_END
+        ):
             continue
         spans.append((start, m.end()))
         start = m.end()
@@ -332,7 +387,7 @@ def _soft(text: str) -> str:
     return re.sub(r"\s+", " ", text.replace("\xa0", " "))
 
 
-def _edited_sentences(line_text: str, edits: Sequence[ProposedEdit]) -> Optional[str]:
+def _edited_sentences(line_text: str, edits: Sequence[ProposedEdit]) -> str | None:
     """The sentence(s) of ``line_text`` that the edits produce, with every edit applied.
 
     Edits are applied in turn to the line, each replacement's position kept
@@ -352,8 +407,11 @@ def _edited_sentences(line_text: str, edits: Sequence[ProposedEdit]) -> Optional
             continue
         found = True
         shift = len(replacement) - len(original)
-        spans = [(s + shift, t + shift) if s >= at + len(original) else (s, t) for s, t in spans]
-        applied = applied[:at] + replacement + applied[at + len(original):]
+        spans = [
+            (s + shift, t + shift) if s >= at + len(original) else (s, t)
+            for s, t in spans
+        ]
+        applied = applied[:at] + replacement + applied[at + len(original) :]
         if replacement:
             spans.append((at, at + len(replacement)))
     if not found:
@@ -375,7 +433,7 @@ def edit_checks(
     expected: ResolvedIssue,
     issue: IssueItem,
     lines: Sequence[str],
-    extra: Optional[Mapping[str, EditCheck]] = None,
+    extra: Mapping[str, EditCheck] | None = None,
 ) -> dict[str, tuple[float, str]]:
     """The edit-layer verdicts for one hit expected, with the detail behind each.
 
@@ -405,8 +463,13 @@ def edit_checks(
             return lines[e.start_line - 1]
         return _line_text(lines, expected.line)
 
-    on_line = [float(normalize(e.original_text) in normalize(line_of(e))) for e in edits]
-    out["edit_quote_on_line"] = (fraction(on_line), f"{expected.id}: {int(sum(on_line))}/{len(edits)} quotes found verbatim on their line")
+    on_line = [
+        float(normalize(e.original_text) in normalize(line_of(e))) for e in edits
+    ]
+    out["edit_quote_on_line"] = (
+        fraction(on_line),
+        f"{expected.id}: {int(sum(on_line))}/{len(edits)} quotes found verbatim on their line",
+    )
 
     if expected.edit is not None:
         # Phrases are judged on the sentence the edits produce: each replacement plus the
@@ -421,16 +484,34 @@ def edit_checks(
             scope = normalize(edited) if edited is not None else None
             repl = normalize(e.replacement_text)
             seen = repl if scope is None else repl + " " + scope
-            missing = [p for p in expected.edit.must_include if normalize(p) not in seen]
-            forbidden = [p for p in expected.edit.must_not_include if normalize(p) in seen]
+            missing = [
+                p for p in expected.edit.must_include if normalize(p) not in seen
+            ]
+            forbidden = [
+                p for p in expected.edit.must_not_include if normalize(p) in seen
+            ]
             ok.append(float(not missing and not forbidden))
-        out["edit_expected_phrases"] = (fraction(ok), f"{expected.id}: {int(sum(ok))}/{len(edits)} replacements carry the expected phrasing")
+        out["edit_expected_phrases"] = (
+            fraction(ok),
+            f"{expected.id}: {int(sum(ok))}/{len(edits)} replacements carry the expected phrasing",
+        )
 
-    kept = [float(_tokens(e.original_text) == _tokens(e.replacement_text)) for e in edits]
-    out["edit_keeps_numbers_and_markers"] = (fraction(kept), f"{expected.id}: {int(sum(kept))}/{len(edits)} replacements keep every number, footnote marker and citation")
+    kept = [
+        float(_tokens(e.original_text) == _tokens(e.replacement_text)) for e in edits
+    ]
+    out["edit_keeps_numbers_and_markers"] = (
+        fraction(kept),
+        f"{expected.id}: {int(sum(kept))}/{len(edits)} replacements keep every number, footnote marker and citation",
+    )
 
-    clean = [float(not (_stranded(e.replacement_text) - _stranded(e.original_text))) for e in edits]
-    out["edit_punctuation"] = (fraction(clean), f"{expected.id}: {int(sum(clean))}/{len(edits)} replacements add no stranded punctuation")
+    clean = [
+        float(not (_stranded(e.replacement_text) - _stranded(e.original_text)))
+        for e in edits
+    ]
+    out["edit_punctuation"] = (
+        fraction(clean),
+        f"{expected.id}: {int(sum(clean))}/{len(edits)} replacements add no stranded punctuation",
+    )
 
     for name, check in (extra or {}).items():
         verdicts = [check(e) for e in edits]
@@ -439,13 +520,16 @@ def edit_checks(
             continue  # nothing this check could assess here; the key stays NaN
         skipped = len(verdicts) - len(results)
         detail = f"{expected.id}: {int(sum(results))}/{len(results)} replacements pass {name}"
-        out[f"edit_{name}"] = (fraction(results), detail + (f" ({skipped} not assessable)" if skipped else ""))
+        out[f"edit_{name}"] = (
+            fraction(results),
+            detail + (f" ({skipped} not assessable)" if skipped else ""),
+        )
     return out
 
 
 def hit_pairs(
     issues: Sequence[IssueItem], inventory: ResolvedInventory
-) -> tuple[dict[str, Optional[int]], list[tuple[ResolvedIssue, IssueItem]]]:
+) -> tuple[dict[str, int | None], list[tuple[ResolvedIssue, IssueItem]]]:
     """Which reported issue best covers each expected one, under the inventory's
     ``policy.pairing``. The single pairing every layer uses, deterministic and
     judged alike, so they never grade different reports for the same expected issue.
@@ -464,22 +548,40 @@ def hit_pairs(
     claimed = claimed_titles(inventory)
     on_location = inventory.policy.pair_on_location
     if inventory.policy.pairing == "one_to_one":
-        found = _one_to_one_hits(ordered, inventory.expected_issues, claimed, on_location)
+        found = _one_to_one_hits(
+            ordered, inventory.expected_issues, claimed, on_location
+        )
     else:
-        found = {e.id: hit_issue(e, ordered, claimed, on_location) for e in inventory.expected_issues}
+        found = {
+            e.id: hit_issue(e, ordered, claimed, on_location)
+            for e in inventory.expected_issues
+        }
     hits = {eid: (order[i] if i is not None else None) for eid, i in found.items()}
-    pairs = [(e, issues[i]) for e in inventory.expected_issues if (i := hits[e.id]) is not None]
+    pairs = [
+        (e, issues[i])
+        for e in inventory.expected_issues
+        if (i := hits[e.id]) is not None
+    ]
     return hits, pairs
 
 
-def covering_pairs(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> list[tuple[ResolvedIssue, IssueItem]]:
+def covering_pairs(
+    issues: Sequence[IssueItem], inventory: ResolvedInventory
+) -> list[tuple[ResolvedIssue, IssueItem]]:
     """Every (expected, reported) pair in which the issue reports the expected one, strongest
     evidence first within each expected: for a workflow that reports several issues per expected
-    issue (one per recommended source), where each is a report of that claim in its own right."""
-    return [(e, issue) for e in inventory.expected_issues for issue in reports_of(e, issues, inventory)]
+    issue (one per recommended source), where each is a report of that claim in its own right.
+    """
+    return [
+        (e, issue)
+        for e in inventory.expected_issues
+        for issue in reports_of(e, issues, inventory)
+    ]
 
 
-def graded_pairs(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> list[tuple[ResolvedIssue, IssueItem]]:
+def graded_pairs(
+    issues: Sequence[IssueItem], inventory: ResolvedInventory
+) -> list[tuple[ResolvedIssue, IssueItem]]:
     """The (expected, reported) pairs a per-report check grades: every covering report under
     ``several_per_expected`` (each recommendation must hold up, not only the best one), else
     the ``hit_pairs`` pairing."""
@@ -514,7 +616,7 @@ def _one_to_one_hits(
     expected_issues: Sequence[ResolvedIssue],
     claimed: Sequence[str] = (),
     on_location: bool = False,
-) -> dict[str, Optional[int]]:
+) -> dict[str, int | None]:
     """A one-to-one matching of expected issues to reported issues that covers
     as many expected issues as any pairing can and, among those, uses the
     strongest evidence (lowest total ``HitRank.cost``). Solved as an assignment
@@ -529,7 +631,10 @@ def _one_to_one_hits(
     if size == 0:
         return {}
     unmatched_optional = (_MAX_HIT_COST + 1) * size
-    unmatched = [2 * unmatched_optional if e.required else unmatched_optional for e in expected_issues]
+    unmatched = [
+        2 * unmatched_optional if e.required else unmatched_optional
+        for e in expected_issues
+    ]
     unmatched += [unmatched_optional] * (size - len(expected_issues))  # padding rows
     cost = [[unmatched[row]] * size for row in range(size)]
     for row, e in enumerate(expected_issues):
@@ -538,10 +643,14 @@ def _one_to_one_hits(
             if rank is not None:
                 cost[row][col] = rank.cost()
     assignment = _min_cost_assignment(cost)
-    hits: dict[str, Optional[int]] = {}
+    hits: dict[str, int | None] = {}
     for row, e in enumerate(expected_issues):
         matched = assignment.get(row)
-        hits[e.id] = matched if matched is not None and cost[row][matched] <= _MAX_HIT_COST else None
+        hits[e.id] = (
+            matched
+            if matched is not None and cost[row][matched] <= _MAX_HIT_COST
+            else None
+        )
     return hits
 
 
@@ -590,7 +699,9 @@ def _min_cost_assignment(cost: list[list[int]]) -> dict[int, int]:
     return {p[j] - 1: j - 1 for j in range(1, n + 1) if p[j]}
 
 
-def issue_detection_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> tuple[dict[str, float], str]:
+def issue_detection_scores(
+    issues: Sequence[IssueItem], inventory: ResolvedInventory
+) -> tuple[dict[str, float], str]:
     """Detection and, for a workflow that proposes edits, generic edit hygiene.
 
     Keys: ``issue_check_keys(inventory.policy)``, so a dataset's scores (and the log
@@ -602,7 +713,7 @@ def issue_detection_scores(issues: Sequence[IssueItem], inventory: ResolvedInven
     one_to_one = policy.pairing == "one_to_one"
     lines = inventory.document.split("\n")
     expected_issues = inventory.expected_issues
-    values: dict[str, float] = {key: NOT_APPLICABLE for key in issue_check_keys(policy)}
+    values: dict[str, float] = dict.fromkeys(issue_check_keys(policy), NOT_APPLICABLE)
     notes: list[str] = []
 
     hits, pairs = hit_pairs(issues, inventory)
@@ -615,31 +726,75 @@ def issue_detection_scores(issues: Sequence[IssueItem], inventory: ResolvedInven
 
     if expected_issues:
         recall = len(found_required) / len(required) if required else 1.0
-        precision = len(hit_indices) / len(issues) if issues else (1.0 if not required else 0.0)
+        precision = (
+            len(hit_indices) / len(issues) if issues else (1.0 if not required else 0.0)
+        )
         values["recall"] = recall
         values["precision"] = precision
-        values["f0_5"] = 1.25 * precision * recall / (0.25 * precision + recall) if (precision + recall) else 0.0
+        values["f0_5"] = (
+            1.25 * precision * recall / (0.25 * precision + recall)
+            if (precision + recall)
+            else 0.0
+        )
         missing = [e.id for e in required if hits[e.id] is None]
-        merged = [e.id for e in required if hits[e.id] is None and one_to_one and hit_issue(e, issues, on_location=policy.pair_on_location) is not None]
-        notes.append(f"recall {len(found_required)}/{len(required)}" + (f" (missing {', '.join(missing)})" if missing else ""))
+        merged = [
+            e.id
+            for e in required
+            if hits[e.id] is None
+            and one_to_one
+            and hit_issue(e, issues, on_location=policy.pair_on_location) is not None
+        ]
+        notes.append(
+            f"recall {len(found_required)}/{len(required)}"
+            + (f" (missing {', '.join(missing)})" if missing else "")
+        )
         if merged:
-            notes.append(f"merged into an issue that already covers another expected issue: {', '.join(merged)}")
-        notes.append(f"precision {len(hit_indices)}/{len(issues)} issues matched an expected issue")
+            notes.append(
+                f"merged into an issue that already covers another expected issue: {', '.join(merged)}"
+            )
+        notes.append(
+            f"precision {len(hit_indices)}/{len(issues)} issues matched an expected issue"
+        )
     else:
         values["clean_document_untouched"] = float(not issues)
-        notes.append("clean document: " + ("nothing reported" if not issues else f"{len(issues)} issue(s) reported"))
+        notes.append(
+            "clean document: "
+            + ("nothing reported" if not issues else f"{len(issues)} issue(s) reported")
+        )
 
     if pairs:
         if policy.titles and policy.anchors:
-            values["title_correct"] = fraction([float(_title_matches(i, e.title)) for e, i in pairs if e.title and e.anchor])
+            values["title_correct"] = fraction(
+                [
+                    float(_title_matches(i, e.title))
+                    for e, i in pairs
+                    if e.title and e.anchor
+                ]
+            )
         if policy.severities:
-            values["severity_correct"] = fraction([float(i.severity == e.severity) for e, i in pairs if e.severity])
+            values["severity_correct"] = fraction(
+                [float(i.severity == e.severity) for e, i in pairs if e.severity]
+            )
         located = [(e, i, e.line) for e, i in pairs if e.line is not None]
         if policy.anchors:
-            values["anchor_in_range"] = fraction([float(i.start_line <= line <= i.end_line) for _, i, line in located])
-        notes += [f"{e.id}: reported as {i.title!r}, not under {e.title!r}" for e, i in pairs if e.title and not _title_matches(i, e.title)]
-        notes += [f"{e.id}: severity {i.severity}, expected {e.severity}" for e, i in pairs if e.severity and i.severity != e.severity]
-        notes += [f"{e.id}: lines {i.start_line}-{i.end_line} do not bracket line {line}" for e, i, line in located if not i.start_line <= line <= i.end_line]
+            values["anchor_in_range"] = fraction(
+                [float(i.start_line <= line <= i.end_line) for _, i, line in located]
+            )
+        notes += [
+            f"{e.id}: reported as {i.title!r}, not under {e.title!r}"
+            for e, i in pairs
+            if e.title and not _title_matches(i, e.title)
+        ]
+        notes += [
+            f"{e.id}: severity {i.severity}, expected {e.severity}"
+            for e, i in pairs
+            if e.severity and i.severity != e.severity
+        ]
+        notes += [
+            f"{e.id}: lines {i.start_line}-{i.end_line} do not bracket line {line}"
+            for e, i, line in located
+            if not i.start_line <= line <= i.end_line
+        ]
     if pairs and policy.edits:
         collected: dict[str, list[float]] = {}
         for e, i in pairs:
@@ -654,7 +809,9 @@ def issue_detection_scores(issues: Sequence[IssueItem], inventory: ResolvedInven
 
 
 def extra_edit_scores(
-    issues: Sequence[IssueItem], inventory: ResolvedInventory, checks: Mapping[str, EditCheck]
+    issues: Sequence[IssueItem],
+    inventory: ResolvedInventory,
+    checks: Mapping[str, EditCheck],
 ) -> tuple[dict[str, float], str]:
     """A workflow's own per-edit checks, keyed ``edit_<name>``, over the edits of detected expected issues."""
     lines = inventory.document.split("\n")
@@ -675,7 +832,9 @@ def extra_edit_scores(
     return values, " | ".join(notes) if notes else "all checks passed"
 
 
-def decoy_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> tuple[dict[str, float], str]:
+def decoy_scores(
+    issues: Sequence[IssueItem], inventory: ResolvedInventory
+) -> tuple[dict[str, float], str]:
     """False positives by reason: ``no_fp_<reason>`` is 1 when no decoy of that
     reason was flagged, 0 when one was, NaN when the sample has no such decoy.
 
@@ -693,7 +852,9 @@ def decoy_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> t
         anchors = [d.anchor for d in hit if d.reason == reason]
         values[key] = float(not anchors)
         if anchors:
-            notes.append(f"false positive ({reason}): " + "; ".join(repr(a) for a in anchors))
+            notes.append(
+                f"false positive ({reason}): " + "; ".join(repr(a) for a in anchors)
+            )
     return values, " | ".join(notes) if notes else "no decoy flagged"
 
 
@@ -703,7 +864,9 @@ def decoy_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> t
 # own mean and standard error. A NaN value marks a sample as unscored for that key.
 PER_KEY_METRICS = {"*": [mean(), stderr()]}
 
-Scoring = Callable[[Sequence[IssueItem], ResolvedInventory], tuple[dict[str, float], str]]
+Scoring = Callable[
+    [Sequence[IssueItem], ResolvedInventory], tuple[dict[str, float], str]
+]
 
 
 # Where a single-agent workflow's state keeps its issues (``SimpleDeepAgentState.result``).
@@ -712,7 +875,7 @@ DEFAULT_RESULTS: tuple[str, ...] = ("result",)
 
 def issues_from_state(
     state: TaskState, results: Sequence[str] = DEFAULT_RESULTS
-) -> tuple[list[IssueItem], Optional[str]]:
+) -> tuple[list[IssueItem], str | None]:
     """The issues a workflow run reported, from the API state the solver captured.
 
     ``results`` names the state fields holding an ``AgentCheckResult``; a
@@ -724,8 +887,14 @@ def issues_from_state(
         if not isinstance(output, dict):
             raise ValueError(f"expected a JSON object, got {type(output).__name__}")
         # Only an absent or null field is skipped: any other value, even an empty one, must parse.
-        checks = [AgentCheckResult.model_validate(output[key]) for key in results if output.get(key) is not None]
-    except ValueError as e:  # JSONDecodeError and pydantic's ValidationError are both ValueErrors
+        checks = [
+            AgentCheckResult.model_validate(output[key])
+            for key in results
+            if output.get(key) is not None
+        ]
+    except (
+        ValueError
+    ) as e:  # JSONDecodeError and pydantic's ValidationError are both ValueErrors
         return [], f"could not parse the workflow state: {e}"
     return [issue for check in checks for issue in check.issues], None
 
@@ -734,7 +903,9 @@ def inventory_from_state(state: TaskState) -> ResolvedInventory:
     return ResolvedInventory.model_validate(state.metadata["inventory"])
 
 
-def deterministic_scorer(scoring: Scoring, results: Sequence[str] = DEFAULT_RESULTS) -> Scorer:
+def deterministic_scorer(
+    scoring: Scoring, results: Sequence[str] = DEFAULT_RESULTS
+) -> Scorer:
     """Wrap a ``(issues, inventory) -> (values, explanation)`` function as a scorer.
 
     ``results`` says which state fields hold the issues (see ``issues_from_state``).
@@ -746,7 +917,7 @@ def deterministic_scorer(scoring: Scoring, results: Sequence[str] = DEFAULT_RESU
         issues, error = issues_from_state(state, results)
         values, explanation = scoring(issues, inventory_from_state(state))
         if error:
-            return Score(value={key: 0.0 for key in values}, explanation=error)
+            return Score(value=dict.fromkeys(values, 0.0), explanation=error)
         return Score(value=values, explanation=explanation)
 
     return score

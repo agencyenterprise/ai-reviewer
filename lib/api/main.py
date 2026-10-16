@@ -17,13 +17,11 @@ from fastmcp.utilities.lifespan import combine_lifespans
 from lib.agents.checkpointer import close_checkpointer_pool
 from lib.api.mcp.server import mcp_app, mcp_auth
 from lib.api.mcp_middlewares import MCPTrailingSlashMiddleware
-from lib.api.tus_middleware import TusTerminationMiddleware
 from lib.api.routers import (
     about,
     admin_dashboard,
-    annotations,
     analysis,
-    app_configs,
+    annotations,
     chat,
     feedback,
     files,
@@ -40,6 +38,7 @@ from lib.api.routers import (
 )
 from lib.api.routers.microsoft import routes as microsoft_routes
 from lib.api.routers.tus_upload import tus_router
+from lib.api.tus_middleware import TusTerminationMiddleware
 from lib.config.logger import setup_logger
 from lib.services.workflow_reaper import run_reaper_loop
 
@@ -50,12 +49,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Seed default runtime configs on startup; stop the reaper on shutdown."""
-    # `seed_all_defaults` stays lazy to keep the import graph simple — it pulls
-    # in services that don't need to load on every test that imports main.py.
-    from lib.services.app_configs import seed_all_defaults
-
-    await seed_all_defaults()
+    """Run the workflow reaper; stop it and close the checkpointer pool on shutdown."""
     reaper_task = asyncio.create_task(run_reaper_loop(), name="workflow-reaper")
     try:
         yield
@@ -114,7 +108,6 @@ app.include_router(health.router)
 app.include_router(about.router)
 app.include_router(admin_dashboard.router)
 app.include_router(annotations.router)
-app.include_router(app_configs.router)
 app.include_router(chat.router)
 app.include_router(analysis.router)
 app.include_router(workflows.router)

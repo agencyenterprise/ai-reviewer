@@ -30,7 +30,9 @@ _REPO_ROOT = Path(__file__).parents[3]
 _SKILLS_DIR = _REPO_ROOT / "skills"
 
 
-def _write_skill(root: Path, name: str, declaration: str, body: str = "# Rules\n") -> Path:
+def _write_skill(
+    root: Path, name: str, declaration: str, body: str = "# Rules\n"
+) -> Path:
     """A skill file whose ``metadata.draft_detective`` block is ``declaration``
     (YAML lines indented by four spaces)."""
     skill_dir = root / name
@@ -94,9 +96,9 @@ def test_active_voice_lands_in_its_category_in_the_api():
     language = next(c for c in response.categories if c.slug == "language")
     assert active_voice in language.workflows
     # Appended after the hand-written members, not in front of them.
-    assert language.workflows.index(WorkflowRunType.ADVOCACY_TONE_V2) < language.workflows.index(
-        active_voice
-    )
+    assert language.workflows.index(
+        WorkflowRunType.ADVOCACY_TONE_V2
+    ) < language.workflows.index(active_voice)
 
     described = next(w for w in response.workflow_types if w.type == active_voice)
     assert described.category == "language"
@@ -145,7 +147,9 @@ def test_every_declaring_skill_on_disk_is_registered():
     """The bridge between skills/ and the registry has no gaps."""
     declared = {d.type_slug for d in read_all_skill_workflow_declarations(_SKILLS_DIR)}
     registered = {
-        m.type.value for m in get_all_manifests().values() if isinstance(m, SkillWorkflowManifest)
+        m.type.value
+        for m in get_all_manifests().values()
+        if isinstance(m, SkillWorkflowManifest)
     }
     assert declared == registered
     assert declared, "expected at least one skill-declared workflow"
@@ -180,14 +184,18 @@ def test_metadata_that_is_not_a_mapping_declares_no_workflow(tmp_path: Path):
     skill_dir = tmp_path / "noted"
     skill_dir.mkdir()
     skill_file = skill_dir / "SKILL.md"
-    skill_file.write_text("---\nname: noted\ndescription: A skill.\nmetadata: just a note\n---\n\n# Rules\n")
+    skill_file.write_text(
+        "---\nname: noted\ndescription: A skill.\nmetadata: just a note\n---\n\n# Rules\n"
+    )
 
     assert read_skill_workflow_declaration(skill_file) is None
     assert discover_skill_workflows(tmp_path) == []
 
 
 def test_type_slug_defaults_to_the_skill_name(tmp_path: Path):
-    skill_file = _write_skill(tmp_path, "active-voice", "    title: T\n    category: language\n")
+    skill_file = _write_skill(
+        tmp_path, "active-voice", "    title: T\n    category: language\n"
+    )
     declaration = read_skill_workflow_declaration(skill_file)
 
     assert declaration is not None
@@ -247,7 +255,9 @@ def test_valid_type_slugs_pass(slug: str):
     assert ensure_valid_type_slug(slug, "s") == slug
 
 
-@pytest.mark.parametrize("slug", ["Active_Voice", "active-voice", "_x", "x__y", "x_", "1x", ""])
+@pytest.mark.parametrize(
+    "slug", ["Active_Voice", "active-voice", "_x", "x__y", "x_", "1x", ""]
+)
 def test_invalid_type_slugs_are_rejected(slug: str):
     with pytest.raises(ValueError, match="type slug"):
         ensure_valid_type_slug(slug, "s")
@@ -272,7 +282,9 @@ def test_unknown_dependency_fails_loudly(tmp_path: Path):
 
 
 def test_malformed_block_fails_loudly(tmp_path: Path):
-    _write_skill(tmp_path, "active-voice", "    title: T\n    category: language\n    bogus: 1\n")
+    _write_skill(
+        tmp_path, "active-voice", "    title: T\n    category: language\n    bogus: 1\n"
+    )
 
     with pytest.raises(SkillWorkflowError, match="bogus"):
         discover_skill_workflows(tmp_path)

@@ -158,7 +158,7 @@ async def test_blocking_acquire_waits_for_refill(bucket_key):
     """
     limiter = PostgresRateLimiter(
         bucket_key=bucket_key,
-        requests_per_second=10,  # one refill every ~100ms
+        requests_per_second=2,  # one refill every ~500ms, slower than a CI round trip
         check_every_n_seconds=0.05,
         max_bucket_size=1,
     )

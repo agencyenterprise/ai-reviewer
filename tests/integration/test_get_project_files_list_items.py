@@ -24,7 +24,9 @@ async def project_with_revisions():
         role=UserRole.USER,
         show_experimental_features=False,
     )
-    project = Project(id=uuid.uuid4(), title="Revisions", user_id=user.id, current_revision=2)
+    project = Project(
+        id=uuid.uuid4(), title="Revisions", user_id=user.id, current_revision=2
+    )
 
     def _file(name: str, role: FileRole, revision: int | None) -> File:
         return File(
@@ -62,13 +64,19 @@ async def project_with_revisions():
 
     async with get_async_db_session() as session:
         for f in files:
-            obj = (await session.execute(select(File).where(col(File.id) == f.id))).scalar_one_or_none()
+            obj = (
+                await session.execute(select(File).where(col(File.id) == f.id))
+            ).scalar_one_or_none()
             if obj:
                 await session.delete(obj)
-        proj = (await session.execute(select(Project).where(col(Project.id) == project.id))).scalar_one_or_none()
+        proj = (
+            await session.execute(select(Project).where(col(Project.id) == project.id))
+        ).scalar_one_or_none()
         if proj:
             await session.delete(proj)
-        usr = (await session.execute(select(User).where(col(User.id) == user.id))).scalar_one_or_none()
+        usr = (
+            await session.execute(select(User).where(col(User.id) == user.id))
+        ).scalar_one_or_none()
         if usr:
             await session.delete(usr)
         await session.commit()

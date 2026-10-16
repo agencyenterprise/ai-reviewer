@@ -80,8 +80,7 @@ export function hasReferenceReviewRequirement(
 
 /**
  * Whether the project is waiting on the user's reference review: an assessment
- * gated on it is awaiting approval. Other gates would show up through
- * `needsApproval` in `lib/workflow-state`, not here.
+ * gated on it is awaiting approval.
  */
 export function needsReferenceReview(
   workflowRuns: { run: WorkflowRunPublic }[],

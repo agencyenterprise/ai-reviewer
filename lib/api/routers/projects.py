@@ -1,13 +1,13 @@
 import logging
-from typing import List, Literal, Optional
+from typing import Literal
 
-from fastapi import APIRouter, Depends
-from fastapi import HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from starlette.responses import FileResponse
 
 from lib.api.auth import get_current_user, get_current_user_optional
 from lib.api.models import (
+    CreateProjectRequest,
     CreateRevisionResponse,
     LinkReferenceFileRequest,
     LinkReferenceFileResponse,
@@ -17,18 +17,17 @@ from lib.api.models import (
 from lib.models.file import File, FileRole
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
+from lib.models.workflow_run import WorkflowRunType
 from lib.services.docx_workflow_service import DocxManipulatorType, generate_docx
 from lib.services.files import get_files_by_project_id
 from lib.services.project_zip import create_project_files_zip
-from lib.services.references import MatchSource, add_file_to_reference
-from lib.services.uuid_utils import ensure_uuid
 from lib.services.projects import (
     MAX_PROJECT_PAGE_SIZE,
     ProjectCreated,
     ProjectListPage,
     UpdateProjectRequest,
-    create_project,
     create_new_revision,
+    create_project,
     delete_project,
     delete_project_file_with_cleanup,
     get_project_access,
@@ -36,10 +35,10 @@ from lib.services.projects import (
     get_user_projects,
     update_user_project,
 )
+from lib.services.references import MatchSource, add_file_to_reference
+from lib.services.uuid_utils import ensure_uuid
 from lib.services.workflow_progress import get_project_workflow_progress
-from lib.models.workflow_run import WorkflowRunType
 from lib.workflows.models import SeverityEnum
-from lib.api.models import CreateProjectRequest
 
 router = APIRouter(tags=["projects"])
 logger = logging.getLogger(__name__)
@@ -66,12 +65,12 @@ async def create_project_endpoint(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create project",
-        )
+        ) from e
 
 
 @router.get("/api/projects", response_model=ProjectListPage)
 async def list_projects_endpoint(
-    search: Optional[str] = Query(
+    search: str | None = Query(
         default=None,
         description="Only projects whose title contains every whitespace-separated term",
     ),
@@ -114,15 +113,15 @@ async def delete_project_endpoint(
 @router.get("/api/projects/{project_id}/docx/download")
 async def download_project_docx(
     project_id: str,
-    share_token: Optional[str] = Query(
+    share_token: str | None = Query(
         default=None,
         description="Share token to include share links in comments",
     ),
-    severities: Optional[List[SeverityEnum]] = Query(
+    severities: list[SeverityEnum] | None = Query(
         default=None,
         description="Filter issues by severity levels",
     ),
-    workflow_types: Optional[List[WorkflowRunType]] = Query(
+    workflow_types: list[WorkflowRunType] | None = Query(
         default=None,
         description="Filter issues by workflow types",
     ),
@@ -142,14 +141,14 @@ async def download_project_docx(
             "edit is described in its issue's comment either way."
         ),
     ),
-    revision: Optional[int] = Query(
+    revision: int | None = Query(
         default=None,
         description=(
             "Which revision of the main document to export, with the issues of "
             "that revision. Defaults to the project's current revision."
         ),
     ),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """Download DOCX with AI comments. Always regenerates from scratch."""
 
@@ -169,13 +168,13 @@ async def download_project_docx(
     except ValueError as e:
         # A revision the project does not have: the caller's request, not ours.
         logger.warning("Rejected DOCX export for project %s: %s", project_id, e)
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error("Failed to generate DOCX: %s", e, exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Failed to generate DOCX: {str(e)}",
-        )
+        ) from e
 
     return FileResponse(
         path=file_path,
@@ -184,11 +183,11 @@ async def download_project_docx(
     )
 
 
-@router.get("/api/project/{project_id}/files", response_model=List[File])
+@router.get("/api/project/{project_id}/files", response_model=list[File])
 async def list_project_files_endpoint(
     project_id: str,
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    share_token: Optional[str] = Query(
+    current_user: User | None = Depends(get_current_user_optional),
+    share_token: str | None = Query(
         default=None,
         description="Share token for shared projects. If not provided, the current user must be the owner of the project.",
     ),
@@ -294,12 +293,12 @@ async def link_reference_file_endpoint(
 @router.get("/api/project/{project_id}/files/download-all")
 async def download_all_project_files(
     project_id: str,
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    share_token: Optional[str] = Query(
+    current_user: User | None = Depends(get_current_user_optional),
+    share_token: str | None = Query(
         default=None,
         description="Share token for shared projects. If not provided, the current user must be the owner of the project.",
     ),
-    roles: Optional[List[FileRole]] = Query(
+    roles: list[FileRole] | None = Query(
         default=[FileRole.MAIN, FileRole.SUPPORT],
         description="Filter files by role(s). If not provided, main and support files are included by default.",
     ),
@@ -334,16 +333,16 @@ async def download_all_project_files(
 
 @router.get(
     "/api/project/{project_id}/workflow-progress",
-    response_model=List[WorkflowProgressResponse],
+    response_model=list[WorkflowProgressResponse],
 )
 async def get_project_workflow_progress_endpoint(
     project_id: str,
-    revision: Optional[int] = Query(
+    revision: int | None = Query(
         default=None,
         description="Revision number. Defaults to the project's current revision.",
     ),
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    share_token: Optional[str] = Query(
+    current_user: User | None = Depends(get_current_user_optional),
+    share_token: str | None = Query(
         default=None,
         description="Share token for shared projects.",
     ),
@@ -383,12 +382,12 @@ async def create_revision_endpoint(
 
 @router.get(
     "/api/project/{project_id}/revisions",
-    response_model=List[RevisionListItem],
+    response_model=list[RevisionListItem],
 )
 async def list_revisions_endpoint(
     project_id: str,
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    share_token: Optional[str] = Query(
+    current_user: User | None = Depends(get_current_user_optional),
+    share_token: str | None = Query(
         default=None,
         description="Share token for shared projects.",
     ),

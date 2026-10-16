@@ -13,8 +13,13 @@ from evals_inspectai.common.issue_inventory import (
     load_inventory_records,
 )
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
-from evals_inspectai.e2e.narrative_synthesis.criteria import JUDGE_CRITERIA, rule_reference_scores
-from evals_inspectai.e2e.narrative_synthesis.narrative_synthesis_e2e import narrative_synthesis_e2e
+from evals_inspectai.e2e.narrative_synthesis.criteria import (
+    JUDGE_CRITERIA,
+    rule_reference_scores,
+)
+from evals_inspectai.e2e.narrative_synthesis.narrative_synthesis_e2e import (
+    narrative_synthesis_e2e,
+)
 
 DATASET = Path("evals_inspectai/e2e/narrative_synthesis/dataset.yaml")
 EMPTY = ResolvedInventory(document="", expected_issues=[], decoys=[])
@@ -58,13 +63,17 @@ def test_dataset_is_well_formed():
 def test_task_builds_without_edit_keys():
     task = narrative_synthesis_e2e()
     assert len(task.dataset) == 15
-    assert not any(key.startswith("edit_") for key in task.metadata["metrics"]["issue_checks"])
+    assert not any(
+        key.startswith("edit_") for key in task.metadata["metrics"]["issue_checks"]
+    )
 
 
 def test_takeaway_criterion_applies_only_to_data_dumps():
     within = next(c for c in JUDGE_CRITERIA if c.key == "takeaway_within_evidence")
     specific = next(c for c in JUDGE_CRITERIA if c.key == "action_specific")
-    assert within.applies_to is not None and within.applies_to(_expected("Data Without Synthesis"))
+    assert within.applies_to is not None and within.applies_to(
+        _expected("Data Without Synthesis")
+    )
     assert not within.applies_to(_expected("Restated Point"))
     assert specific.applies_to is None
     assert all(c.scope == "expected" and c.passage == "section" for c in JUDGE_CRITERIA)
@@ -82,7 +91,9 @@ def test_takeaway_criterion_applies_only_to_data_dumps():
     ],
 )
 def test_rule_reference_is_caught(text):
-    values, explanation = rule_reference_scores([IssueItem(title="Data Without Synthesis", description=text)], EMPTY)
+    values, explanation = rule_reference_scores(
+        [IssueItem(title="Data Without Synthesis", description=text)], EMPTY
+    )
     assert values == {"no_rule_reference": 0.0}
     assert "Data Without Synthesis" in explanation
 
@@ -97,14 +108,19 @@ def test_rule_reference_is_caught(text):
     ],
 )
 def test_plain_explanations_pass(text):
-    values, _ = rule_reference_scores([IssueItem(title="Data Without Synthesis", suggested_action=text)], EMPTY)
+    values, _ = rule_reference_scores(
+        [IssueItem(title="Data Without Synthesis", suggested_action=text)], EMPTY
+    )
     assert values == {"no_rule_reference": 1.0}
 
 
 def test_rule_reference_is_a_share_of_reported_issues():
     issues = [
         IssueItem(title="Restated Point", description="Repeats Chapter 2."),
-        IssueItem(title="Illogical Order", suggested_action="Per the guidelines, move Recommendations."),
+        IssueItem(
+            title="Illogical Order",
+            suggested_action="Per the guidelines, move Recommendations.",
+        ),
     ]
     values, _ = rule_reference_scores(issues, EMPTY)
     assert values == {"no_rule_reference": 0.5}

@@ -1,11 +1,12 @@
 """Integration tests for get_project_access — the central project permission gate."""
 
 import uuid
+from collections.abc import AsyncIterator
 
 import pytest
 import pytest_asyncio
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
@@ -14,19 +15,17 @@ from lib.models.share_link import ShareLink, generate_share_token
 from lib.models.user import User, UserRole
 from lib.services.projects import get_project_access
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
 
-@pytest_asyncio.fixture
-async def owner():
+async def _persisted_user(label: str, role: UserRole) -> AsyncIterator[User]:
     user = User(
         id=uuid.uuid4(),
-        email=f"owner-{uuid.uuid4()}@example.com",
-        name="Owner",
-        role=UserRole.USER,
+        email=f"{label}-{uuid.uuid4()}@example.com",
+        name=label.title(),
+        role=role,
         show_experimental_features=False,
     )
     async with get_async_db_session() as session:
@@ -34,50 +33,26 @@ async def owner():
         await session.commit()
     yield user
     async with get_async_db_session() as session:
-        u = (await session.execute(select(User).where(col(User.id) == user.id))).scalar_one_or_none()
-        if u:
-            await session.delete(u)
-            await session.commit()
+        await session.execute(delete(User).where(col(User.id) == user.id))
+        await session.commit()
 
 
 @pytest_asyncio.fixture
-async def admin():
-    user = User(
-        id=uuid.uuid4(),
-        email=f"admin-{uuid.uuid4()}@example.com",
-        name="Admin",
-        role=UserRole.ADMIN,
-        show_experimental_features=False,
-    )
-    async with get_async_db_session() as session:
-        session.add(user)
-        await session.commit()
-    yield user
-    async with get_async_db_session() as session:
-        u = (await session.execute(select(User).where(col(User.id) == user.id))).scalar_one_or_none()
-        if u:
-            await session.delete(u)
-            await session.commit()
+async def owner() -> AsyncIterator[User]:
+    async for user in _persisted_user("owner", UserRole.USER):
+        yield user
 
 
 @pytest_asyncio.fixture
-async def other_user():
-    user = User(
-        id=uuid.uuid4(),
-        email=f"other-{uuid.uuid4()}@example.com",
-        name="Other",
-        role=UserRole.USER,
-        show_experimental_features=False,
-    )
-    async with get_async_db_session() as session:
-        session.add(user)
-        await session.commit()
-    yield user
-    async with get_async_db_session() as session:
-        u = (await session.execute(select(User).where(col(User.id) == user.id))).scalar_one_or_none()
-        if u:
-            await session.delete(u)
-            await session.commit()
+async def admin() -> AsyncIterator[User]:
+    async for user in _persisted_user("admin", UserRole.ADMIN):
+        yield user
+
+
+@pytest_asyncio.fixture
+async def other_user() -> AsyncIterator[User]:
+    async for user in _persisted_user("other", UserRole.USER):
+        yield user
 
 
 async def _make_project(owner: User, visibility: FeedbackVisibility | None) -> Project:
@@ -95,7 +70,9 @@ async def _make_project(owner: User, visibility: FeedbackVisibility | None) -> P
 
 async def _delete_project(project: Project) -> None:
     async with get_async_db_session() as session:
-        p = (await session.execute(select(Project).where(col(Project.id) == project.id))).scalar_one_or_none()
+        p = (
+            await session.execute(select(Project).where(col(Project.id) == project.id))
+        ).scalar_one_or_none()
         if p:
             await session.delete(p)
             await session.commit()
@@ -118,7 +95,9 @@ async def _make_share_link(project: Project, owner: User) -> ShareLink:
 
 async def _delete_share_link(link: ShareLink) -> None:
     async with get_async_db_session() as session:
-        s = (await session.execute(select(ShareLink).where(col(ShareLink.id) == link.id))).scalar_one_or_none()
+        s = (
+            await session.execute(select(ShareLink).where(col(ShareLink.id) == link.id))
+        ).scalar_one_or_none()
         if s:
             await session.delete(s)
             await session.commit()
@@ -163,8 +142,12 @@ async def test_admin_with_full_project_visibility_gets_read_access(owner, admin)
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("visibility", [FeedbackVisibility.PRIVATE, FeedbackVisibility.ISSUE_ONLY])
-async def test_admin_without_full_project_visibility_is_denied(owner, admin, visibility):
+@pytest.mark.parametrize(
+    "visibility", [FeedbackVisibility.PRIVATE, FeedbackVisibility.ISSUE_ONLY]
+)
+async def test_admin_without_full_project_visibility_is_denied(
+    owner, admin, visibility
+):
     project = await _make_project(owner, visibility)
     try:
         with pytest.raises(HTTPException) as exc_info:
@@ -179,9 +162,27 @@ async def test_valid_share_token_grants_read_access(owner):
     project = await _make_project(owner, FeedbackVisibility.PRIVATE)
     link = await _make_share_link(project, owner)
     try:
-        result_project, level = await get_project_access(str(project.id), share_token=link.token)
+        result_project, level = await get_project_access(
+            str(project.id), share_token=link.token
+        )
         assert level == AccessLevel.READ
         assert result_project.id == project.id
+    finally:
+        await _delete_share_link(link)
+        await _delete_project(project)
+
+
+@pytest.mark.asyncio
+async def test_signed_in_stranger_with_share_token_gets_read_access(
+    owner: User, other_user: User
+) -> None:
+    project = await _make_project(owner, FeedbackVisibility.PRIVATE)
+    link = await _make_share_link(project, owner)
+    try:
+        _, level = await get_project_access(
+            str(project.id), user=other_user, share_token=link.token
+        )
+        assert level == AccessLevel.READ
     finally:
         await _delete_share_link(link)
         await _delete_project(project)
@@ -204,7 +205,11 @@ async def test_share_token_denied_when_write_required(owner):
     link = await _make_share_link(project, owner)
     try:
         with pytest.raises(HTTPException) as exc_info:
-            await get_project_access(str(project.id), share_token=link.token, required_level=AccessLevel.WRITE)
+            await get_project_access(
+                str(project.id),
+                share_token=link.token,
+                required_level=AccessLevel.WRITE,
+            )
         assert exc_info.value.status_code == 403
         assert "Write access required" in exc_info.value.detail
     finally:
@@ -217,7 +222,9 @@ async def test_admin_with_full_project_denied_when_write_required(owner, admin):
     project = await _make_project(owner, FeedbackVisibility.FULL_PROJECT)
     try:
         with pytest.raises(HTTPException) as exc_info:
-            await get_project_access(str(project.id), user=admin, required_level=AccessLevel.WRITE)
+            await get_project_access(
+                str(project.id), user=admin, required_level=AccessLevel.WRITE
+            )
         assert exc_info.value.status_code == 403
         assert "Write access required" in exc_info.value.detail
     finally:

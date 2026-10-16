@@ -18,7 +18,9 @@ def test_returns_none_when_no_key_stored():
 
 def test_returns_decrypted_key_when_stored():
     user = _make_user(encrypted_key="encrypted-blob")
-    with patch("lib.services.users.decrypt_value", return_value="sk-plaintext") as mock_decrypt:
+    with patch(
+        "lib.services.users.decrypt_value", return_value="sk-plaintext"
+    ) as mock_decrypt:
         result = get_user_decrypted_api_key(user)
 
     mock_decrypt.assert_called_once_with("encrypted-blob")

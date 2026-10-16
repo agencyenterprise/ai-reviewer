@@ -2,8 +2,6 @@
 User-related API endpoints.
 """
 
-from typing import List
-
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from lib.api.auth import get_current_user, require_admin
@@ -13,9 +11,9 @@ from lib.api.models import (
     UpdateUserRoleRequest,
     UserResponse,
 )
+from lib.models.user import User, UserRole
 from lib.services.preflight.models import PreflightRequest
 from lib.services.preflight.service import PreflightValidationService
-from lib.models.user import User, UserRole
 from lib.services.users import (
     delete_user_openai_api_key,
     get_all_users,
@@ -39,7 +37,7 @@ async def get_current_user_info(user: User = Depends(get_current_user)) -> UserR
     return _user_response(user)
 
 
-@router.get("", response_model=List[UserResponse])
+@router.get("", response_model=list[UserResponse])
 async def list_users(
     admin: User = Depends(require_admin),
     search: str | None = Query(
@@ -52,7 +50,7 @@ async def list_users(
     offset: int = Query(
         default=0, ge=0, description="Number of users to skip for pagination"
     ),
-) -> List[UserResponse]:
+) -> list[UserResponse]:
     """List users (admin only), optionally filtered by name, email, or role."""
     users = await get_all_users(search=search, role=role, limit=limit, offset=offset)
     return [_user_response(user) for user in users]
@@ -95,9 +93,7 @@ async def set_api_key(
         messages = [issue.message for issue in result.issues]
         raise HTTPException(status_code=422, detail="; ".join(messages))
 
-    updated_user = await set_user_openai_api_key(
-        str(user.id), request.openai_api_key
-    )
+    updated_user = await set_user_openai_api_key(str(user.id), request.openai_api_key)
     return _user_response(updated_user)
 
 

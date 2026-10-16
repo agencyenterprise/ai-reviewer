@@ -11,7 +11,6 @@ import pytest
 from lib.models.issue_edit import IssueEditStatus
 from lib.services.docx.edit_notes import build_edit_notes
 from lib.services.docx.tracked_changes import EditOutcome
-
 from tests.unit.services.tracked_changes_support import (
     make_edit as _edit,
 )
@@ -158,7 +157,7 @@ class TestEditNotes:
         )
 
         assert note.endswith(
-            "Not applied as a tracked change: text not found in paragraph " "P3#aaaa."
+            "Not applied as a tracked change: text not found in paragraph P3#aaaa."
         )
 
     def test_a_failed_write_without_a_detail_still_reads_as_a_failure(self):

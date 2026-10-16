@@ -49,7 +49,7 @@ Run (backend must be running)::
 """
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from inspect_ai import Task, task
 from inspect_ai.scorer import Score, Scorer, Target, scorer
@@ -83,10 +83,14 @@ GROUND_TRUTH = (
 OWN_METRICS = {"catalogue_checks": CATALOGUE_DESCRIPTIONS}
 
 
-def load_suite(path: Path = DATASET, name: Optional[str] = None) -> InventorySuite:
+def load_suite(path: Path = DATASET, name: str | None = None) -> InventorySuite:
     """The records of ``path``: one issue per abbreviation and rule, so matching is one-to-one."""
     return InventorySuite.load(
-        path, pairing="one_to_one", extra_fields=CATALOGUE_FIELDS, results=ISSUE_RESULTS, name=name
+        path,
+        pairing="one_to_one",
+        extra_fields=CATALOGUE_FIELDS,
+        results=ISSUE_RESULTS,
+        name=name,
     )
 
 
@@ -103,7 +107,10 @@ def catalogue_checks() -> Scorer:
         try:
             reported = ReportedCatalogue.model_validate_json(state.output.completion)
         except ValidationError as e:
-            return Score(value={key: 0.0 for key in CATALOGUE_KEYS}, explanation=f"could not parse the workflow state: {e}")
+            return Score(
+                value=dict.fromkeys(CATALOGUE_KEYS, 0.0),
+                explanation=f"could not parse the workflow state: {e}",
+            )
         values, explanation = catalogue_scores(reported, expected)
         return Score(value=values, explanation=explanation)
 
@@ -126,7 +133,11 @@ def build_task(suite: InventorySuite, timeout_s: float) -> Task:
         dataset=suite.dataset(_catalogue_metadata),
         metadata=suite.metadata(GROUND_TRUTH, OWN_METRICS),
         solver=api_workflow_agent(
-            WORKFLOW_TYPE, timeout_s=timeout_s, item_messages_key="chunks", item_label="chunk", include_issues=True
+            WORKFLOW_TYPE,
+            timeout_s=timeout_s,
+            item_messages_key="chunks",
+            item_label="chunk",
+            include_issues=True,
         ),
         scorer=[catalogue_checks(), *suite.scorers()],
         fail_on_error=0.2,

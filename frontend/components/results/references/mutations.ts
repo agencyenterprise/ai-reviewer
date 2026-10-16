@@ -12,11 +12,12 @@ import {
 import { getErrorMessage } from '@/lib/api-error';
 import { QueryClient, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { projectQueryKeys } from '@/lib/hooks/use-project-data';
 
 // Helper function builders for common callbacks
 function createOnSuccess(queryClient: QueryClient, projectId: string, message: string) {
   return () => {
-    queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+    queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
     toast.success(message);
   };
 }

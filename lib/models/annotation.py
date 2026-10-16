@@ -17,7 +17,6 @@ can be checked against people. One shape serves every eval:
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from sqlalchemy import (
     Boolean,
@@ -132,7 +131,7 @@ class AnnotationItem(SQLModel, table=True):
         sa_column=Column(JSONB, nullable=False),
         description="The eval dataset's answers, keyed by question",
     )
-    reference_explanation: Optional[str] = Field(
+    reference_explanation: str | None = Field(
         default=None,
         sa_column=Column(Text, nullable=True),
         description="Why the dataset answers that way, for the admin results view",
@@ -172,8 +171,8 @@ class Annotation(SQLModel, table=True):
         sa_column=Column(JSONB, nullable=False),
         description="Answers keyed by question, e.g. {should_flag: 'yes'}",
     )
-    comment: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
-    time_spent_ms: Optional[int] = Field(
+    comment: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
+    time_spent_ms: int | None = Field(
         default=None,
         sa_column=Column(Integer, nullable=True),
         description="Time from the item being shown to the first answer",

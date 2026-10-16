@@ -1,11 +1,16 @@
 import logging
+from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, cast, Callable, Awaitable, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from deepagents.backends.utils import create_file_data
 
+from lib.models.bibliography_item import BibliographyItem
 from lib.models.file import File, FileRole
 from lib.services.file import FileDocument
+from lib.services.file_artifacts_service.file_artifacts_service_type import (
+    FileArtifactsServiceType,
+)
 from lib.services.files import (
     get_file_by_id,
     get_files_by_project_id,
@@ -13,10 +18,12 @@ from lib.services.files import (
     update_file_artifacts,
 )
 from lib.services.markdown_conversion import convert_file_document_to_markdown
-from lib.services.file_artifacts_service.file_artifacts_service_type import (
-    FileArtifactsServiceType,
+from lib.services.workflow_runs import (
+    get_project_workflow_run_by_type,
+    read_workflow_run_state,
 )
 from lib.skills import strip_interactive_only
+from lib.workflows.document_summarization.state import FileSummary
 from lib.workflows.models import WorkflowRunType
 
 if TYPE_CHECKING:
@@ -62,7 +69,7 @@ class FileArtifactsService(FileArtifactsServiceType):
 
     async def _get_state_by_type(
         self, run_type: WorkflowRunType, raise_exception: bool = True
-    ) -> Optional["WorkflowState"]:
+    ) -> "WorkflowState | None":
         """Retrieve workflow state for a specific workflow run type.
 
         Args:
@@ -76,11 +83,6 @@ class FileArtifactsService(FileArtifactsServiceType):
             ValueError: If no workflow run or state is found for the given type
                 and project ID.
         """
-        from lib.services.workflow_runs import (
-            get_project_workflow_run_by_type,
-            read_workflow_run_state,
-        )
-
         workflow_run = await get_project_workflow_run_by_type(
             self.project_id, run_type, revision=self.revision, include_state=True
         )
@@ -284,8 +286,6 @@ class FileArtifactsService(FileArtifactsServiceType):
             ValueError: If no file summary with the given file ID is found
                 in the project's document summarization workflow state.
         """
-        from lib.workflows.document_summarization.state import FileSummary
-
         summary = await self._try_load(
             f"summary for file {file_id}",
             lambda: self._get_file_summary_from_db(file_id, FileSummary),
@@ -353,8 +353,6 @@ class FileArtifactsService(FileArtifactsServiceType):
             ValueError: If no reference extraction workflow run or state is found
                 for the project.
         """
-        from lib.models.bibliography_item import BibliographyItem
-
         # Get extracted references (required)
         extraction_state = cast(
             "ReferenceExtractionState",
@@ -367,7 +365,7 @@ class FileArtifactsService(FileArtifactsServiceType):
 
         # Try to get file matching state (optional)
         matching_state = cast(
-            Optional["ReferenceFileMatchingState"],
+            "ReferenceFileMatchingState | None",
             await self._get_state_by_type(
                 WorkflowRunType.REFERENCE_FILE_MATCHING, raise_exception=False
             ),

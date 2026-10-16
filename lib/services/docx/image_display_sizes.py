@@ -16,7 +16,6 @@ matches.
 
 import logging
 from collections import deque
-from typing import Optional
 
 from docx import Document
 from docx.oxml.ns import qn
@@ -74,7 +73,7 @@ class SourceRect(BaseModel):
             return False
         return self.left + self.right < 1.0 and self.top + self.bottom < 1.0
 
-    def crop_box(self, width: int, height: int) -> Optional[tuple[int, int, int, int]]:
+    def crop_box(self, width: int, height: int) -> tuple[int, int, int, int] | None:
         """The ``(left, top, right, bottom)`` pixel box to crop to.
 
         None when this region trims nothing at this resolution: either an
@@ -103,7 +102,7 @@ class ImagePlacement(BaseModel):
 
     width_px: int
     height_px: int
-    crop: Optional[SourceRect] = None
+    crop: SourceRect | None = None
 
 
 class DisplaySizes:
@@ -121,7 +120,7 @@ class DisplaySizes:
     def add(self, content_hash: str, placement: ImagePlacement) -> None:
         self._placements.setdefault(content_hash, deque()).append(placement)
 
-    def take(self, content_hash: str) -> Optional[ImagePlacement]:
+    def take(self, content_hash: str) -> ImagePlacement | None:
         """Pop the next placement for this content, or None when unknown."""
         queue = self._placements.get(content_hash)
         if not queue:
@@ -129,7 +128,7 @@ class DisplaySizes:
         return queue.popleft()
 
 
-def _crop_fraction(value: Optional[str]) -> Optional[float]:
+def _crop_fraction(value: str | None) -> float | None:
     """One ``a:srcRect`` edge as a signed fraction, or None if unparseable.
 
     A missing or empty attribute is simply an untrimmed edge. A *present*
@@ -155,7 +154,7 @@ def _crop_fraction(value: Optional[str]) -> Optional[float]:
         return None
 
 
-def _read_source_rect(blip) -> Optional[SourceRect]:
+def _read_source_rect(blip) -> SourceRect | None:
     """The crop declared alongside ``blip``, or None when it is uncropped.
 
     ``a:srcRect`` is a sibling of ``a:blip`` inside ``pic:blipFill``, so it is

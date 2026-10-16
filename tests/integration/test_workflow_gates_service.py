@@ -5,8 +5,8 @@ release of runs awaiting approval once every gate they need is approved.
 """
 
 import uuid
+from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Sequence
 
 import pytest
 import pytest_asyncio
@@ -18,8 +18,6 @@ from lib.models.project import Project
 from lib.models.user import User, UserRole
 from lib.models.workflow_gate_approval import WorkflowGateApproval
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
-from lib.services.workflow_reaper import PENDING_GRACE_SECONDS, _find_stuck_runs
-from lib.services.workflow_runs import update_workflow_run_status
 from lib.services.workflow_gates import (
     _gates_satisfied,
     approve_gate,
@@ -28,6 +26,8 @@ from lib.services.workflow_gates import (
     get_unsatisfied_gates,
     release_runs_awaiting_approval,
 )
+from lib.services.workflow_reaper import PENDING_GRACE_SECONDS, _find_stuck_runs
+from lib.services.workflow_runs import update_workflow_run_status
 from lib.workflows.models import WorkflowGate, WorkflowRunType
 
 

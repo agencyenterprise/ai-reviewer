@@ -23,9 +23,6 @@ const adminNavigation = [
   { name: 'Manage Users', href: '/users' },
   { name: 'User Feedback', href: '/feedbacks' },
   { name: 'Annotation Results', href: '/annotation-results' },
-  // App Settings (/settings) is hidden: the About page now reads from the
-  // committed ABOUT.md and workflow customisation moved to skill files, so
-  // there are no runtime configs left to manage in the UI.
   { name: 'Logs', href: '/logs' },
 ];
 

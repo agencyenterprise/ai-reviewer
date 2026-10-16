@@ -29,6 +29,12 @@ export function diffTokens(original: string, replacement: string): DiffToken[] {
   }));
 }
 
+/** The tokens an edit shows: a deletion strikes the whole quote as one run. */
+export function editTokens(edit: ProposedEdit): DiffToken[] {
+  if (isDeletion(edit)) return [{ kind: 'removed', value: edit.original_text }];
+  return diffTokens(edit.original_text, edit.replacement_text);
+}
+
 const TOKEN_CLASSES: Record<DiffTokenKind, string | undefined> = {
   same: undefined,
   removed:
@@ -57,15 +63,7 @@ function Token({ token }: { token: DiffToken }) {
  * or a heading escape into the note's layout.
  */
 function EditText({ edit }: { edit: ProposedEdit }) {
-  const tokens = useMemo(() => diffTokens(edit.original_text, edit.replacement_text), [edit]);
-
-  if (isDeletion(edit)) {
-    return (
-      <p className="text-[12px] leading-relaxed break-words whitespace-pre-wrap">
-        <del className={TOKEN_CLASSES.removed}>{edit.original_text}</del>
-      </p>
-    );
-  }
+  const tokens = useMemo(() => editTokens(edit), [edit]);
 
   return (
     <p className="text-[12px] leading-relaxed break-words whitespace-pre-wrap">

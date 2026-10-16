@@ -1,6 +1,7 @@
 'use client';
 
 import { AnnotatedItemRow } from '@/components/admin/annotated-item-row';
+import { annotationsExportFile, currentSetSlug } from '@/components/admin/annotation-results-derive';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -110,11 +111,7 @@ function ExportAllButton() {
 
   const download = () =>
     exportAll.mutate(undefined, {
-      onSuccess: (sets) =>
-        downloadFile({
-          filename: `annotations-${new Date().toISOString().slice(0, 10)}.json`,
-          blob: new Blob([JSON.stringify(sets, null, 2)], { type: 'application/json' }),
-        }),
+      onSuccess: (sets) => downloadFile(annotationsExportFile(sets, new Date())),
       onError: (error) => toast.error(getErrorMessage(error, 'Could not export the annotations')),
     });
 
@@ -130,7 +127,7 @@ function ExportAllButton() {
 export function AnnotationResults() {
   const { data: sets, isLoading, error } = useAnnotationSetStats();
   const [selected, setSelected] = useState<string | null>(null);
-  const current = selected ?? sets?.[0]?.slug ?? null;
+  const current = currentSetSlug(sets, selected);
 
   return (
     <div className="space-y-6">

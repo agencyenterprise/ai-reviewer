@@ -42,7 +42,9 @@ def _parse_workflow_types(workflow_types: list[str]) -> list[WorkflowRunType]:
             parsed.append(WorkflowRunType(wt))
         except ValueError:
             valid = [t.value for t in WorkflowRunType]
-            raise ValueError(f"Unknown workflow_type '{wt}'. Valid values: {valid}")
+            raise ValueError(
+                f"Unknown workflow_type '{wt}'. Valid values: {valid}"
+            ) from None
     return parsed
 
 

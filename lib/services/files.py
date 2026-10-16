@@ -1,9 +1,10 @@
 import logging
 import os
 import uuid
-from typing import List, Optional, Sequence
+from collections.abc import Sequence
 
 from fastapi import HTTPException
+from langchain_core.messages.utils import count_tokens_approximately
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +13,7 @@ from sqlmodel import col
 from lib.config.database import get_async_db_session
 from lib.models.file import File, FileListItem, FileRole
 from lib.models.project import Project
+from lib.models.share_link import ShareLink
 from lib.services.file import FileDocument, create_file_document_from_path
 from lib.services.text_sanitization import sanitize_for_postgres
 from lib.services.uuid_utils import ensure_uuid
@@ -28,8 +30,8 @@ async def create_file_record(
     content_hash: str,
     role: FileRole,
     uploaded_by: uuid.UUID,
-    original_file_path: Optional[str] = None,
-    description: Optional[str] = None,
+    original_file_path: str | None = None,
+    description: str | None = None,
     revision: int | None = None,
 ) -> File:
     """
@@ -110,7 +112,7 @@ async def get_file_by_id(file_id: uuid.UUID | str) -> File:
         return file
 
 
-async def get_cached_summary_for_file(file_id: uuid.UUID | str) -> Optional[dict]:
+async def get_cached_summary_for_file(file_id: uuid.UUID | str) -> dict | None:
     """Return a document summary already computed for an identical file in any
     project, or None.
 
@@ -149,10 +151,14 @@ async def assert_project_has_main_file(
     """Raise HTTPException 422 if the project has no MAIN file for the given revision."""
     project_id = ensure_uuid(project_id, "project ID")
     async with get_async_db_session() as session:
-        stmt = select(func.count()).select_from(File).where(
-            col(File.project_id) == project_id,
-            col(File.role) == FileRole.MAIN,
-            col(File.revision) == revision,
+        stmt = (
+            select(func.count())
+            .select_from(File)
+            .where(
+                col(File.project_id) == project_id,
+                col(File.role) == FileRole.MAIN,
+                col(File.revision) == revision,
+            )
         )
         count = (await session.execute(stmt)).scalar_one()
 
@@ -170,9 +176,9 @@ async def assert_project_has_main_file(
 
 async def get_files_by_project_id(
     project_id: uuid.UUID | str,
-    roles: List[FileRole],
+    roles: list[FileRole],
     revision: int | None = None,
-) -> List[File]:
+) -> list[File]:
     """
     Get a project's files with the given roles, optionally filtered by revision.
 
@@ -216,7 +222,7 @@ async def get_main_file_id(project_id: uuid.UUID | str, revision: int) -> str:
 
 async def get_processed_supporting_file_ids(
     project_id: uuid.UUID | str, revision: int
-) -> List[str]:
+) -> list[str]:
     """Ids of the revision's supporting files that have cached markdown.
 
     Supporting files are shared across revisions (revision IS NULL). A file
@@ -233,7 +239,7 @@ async def get_processed_supporting_file_ids(
 
 async def get_project_files_list_items(
     project_id: uuid.UUID | str,
-) -> List[FileListItem]:
+) -> list[FileListItem]:
     """
     Get files for a project as lightweight list items (excludes markdown and summary).
 
@@ -263,7 +269,7 @@ async def get_project_files_list_items(
         return [FileListItem.model_validate(f, from_attributes=True) for f in files]
 
 
-async def get_supporting_candidate_files(project_id: uuid.UUID | str) -> List[File]:
+async def get_supporting_candidate_files(project_id: uuid.UUID | str) -> list[File]:
     """
     Get all files with SUPPORTING_CANDIDATE role for a project.
 
@@ -354,8 +360,6 @@ async def load_file_document(
     Raises:
         FileNotFoundError: If the file doesn't exist on disk
     """
-    from langchain_core.messages.utils import count_tokens_approximately
-
     # Use cached artifacts if available and requested
     if use_cached_artifacts and file.markdown is not None:
         return FileDocument(
@@ -435,9 +439,6 @@ async def check_file_access_by_share_token(
     Raises:
         HTTPException: 400 for invalid file ID, 404 if file/share not found, 403 if access denied
     """
-    from lib.models.project import Project
-    from lib.models.share_link import ShareLink
-
     file_id = ensure_uuid(file_id, "file ID")
 
     async with get_async_db_session() as session:
@@ -535,9 +536,7 @@ async def delete_project_files(
     return deleted_count
 
 
-async def _is_path_shared(
-    session: AsyncSession, path: str, file_id: uuid.UUID
-) -> bool:
+async def _is_path_shared(session: AsyncSession, path: str, file_id: uuid.UUID) -> bool:
     """
     Check whether any other file row references the same disk path.
 

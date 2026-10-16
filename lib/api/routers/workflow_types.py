@@ -1,5 +1,3 @@
-from typing import Optional
-
 import aiotools
 from fastapi import APIRouter, Depends
 
@@ -60,7 +58,7 @@ async def get_recent_selection(user: User = Depends(get_current_user)):
 )
 async def get_duration_estimates(
     project_id: str,
-    user: Optional[User] = Depends(get_current_user_optional),
+    user: User | None = Depends(get_current_user_optional),
 ):
     """
     Estimated run duration for every workflow type, derived from past runs.

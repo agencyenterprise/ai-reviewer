@@ -30,11 +30,10 @@ and Word desktop keeps that lock for more than nine minutes after it quits (prob
 import base64
 import logging
 import re
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import quote, unquote, urlparse
 
 import httpx
-
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +47,7 @@ _SHARING_PREFIX = re.compile(r"^/:[a-z]:/(?P<form>[a-z])/", re.I)
 # path. ``s``, ``g``, ``p`` and ``u`` carry an opaque share id in its place. Anything
 # unrecognised is treated as opaque as well, so a form added later fails safe.
 _PATH_BEARING_FORM = "r"
+
 
 class GraphError(Exception):
     """Raised when Graph will not give us what we asked for."""
@@ -166,9 +166,7 @@ async def _resolve_item(client: httpx.AsyncClient, url: str) -> dict[str, Any]:
     shared = await client.get(f"{GRAPH}/shares/{_share_id(url)}/driveItem")
     if shared.status_code == 200:
         return dict(shared.json())
-    logger.info(
-        "/shares did not resolve %s (%s)", redacted(url), shared.status_code
-    )
+    logger.info("/shares did not resolve %s (%s)", redacted(url), shared.status_code)
 
     parsed = urlparse(url)
     # The sharing prefix has to go before the path is read as a path: "Copy link"
@@ -236,7 +234,9 @@ async def download(item: dict[str, Any], *, token: str) -> bytes:
         response = await client.get(url, follow_redirects=True)
 
     if response.status_code != 200:
-        raise GraphError(f"could not download {item.get('name')}: {response.status_code}")
+        raise GraphError(
+            f"could not download {item.get('name')}: {response.status_code}"
+        )
     return response.content
 
 
@@ -254,7 +254,7 @@ async def me(*, token: str) -> dict[str, Any]:
     return dict(response.json())
 
 
-async def library_url(drive_id: str, *, token: str) -> Optional[str]:
+async def library_url(drive_id: str, *, token: str) -> str | None:
     """The webUrl of a document library, or ``None`` if Graph will not say.
 
     A Word document's own webUrl is a viewer link; its path has to be rebuilt from the

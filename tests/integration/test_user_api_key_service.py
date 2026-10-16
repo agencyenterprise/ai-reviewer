@@ -4,6 +4,7 @@ import uuid
 
 import pytest
 import pytest_asyncio
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlmodel import col
 
@@ -85,8 +86,6 @@ async def test_delete_api_key_when_none_is_idempotent(db_user):
 
 @pytest.mark.asyncio
 async def test_set_api_key_raises_for_unknown_user():
-    from fastapi import HTTPException
-
     with pytest.raises(HTTPException) as exc_info:
         await set_user_openai_api_key(str(uuid.uuid4()), "sk-key")
 
@@ -95,8 +94,6 @@ async def test_set_api_key_raises_for_unknown_user():
 
 @pytest.mark.asyncio
 async def test_delete_api_key_raises_for_unknown_user():
-    from fastapi import HTTPException
-
     with pytest.raises(HTTPException) as exc_info:
         await delete_user_openai_api_key(str(uuid.uuid4()))
 

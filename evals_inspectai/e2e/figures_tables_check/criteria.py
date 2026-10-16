@@ -18,10 +18,14 @@ element's content and the body text around it.
 
 import math
 import re
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from evals_inspectai.common.issue_checks import fraction, hit_pairs
-from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue, normalize
+from evals_inspectai.common.issue_inventory import (
+    ResolvedInventory,
+    ResolvedIssue,
+    normalize,
+)
 from evals_inspectai.common.issue_judge import JudgeCriterion
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
 
@@ -38,7 +42,7 @@ ELEMENT_RULES = (MISSING_TITLE, UNREFERENCED, MISSING_ELEMENT)
 _LABEL_RE = re.compile(r"\b(fig(?:ure)?\.?|table)\s+([a-z]?\.?\d+(?:\.\d+)*)\b", re.I)
 
 
-def label(text: str) -> Optional[tuple[str, str]]:
+def label(text: str) -> tuple[str, str] | None:
     """The first figure or table label in ``text`` as (kind, number), or None.
 
     "Fig." and "Figure" are one kind, case is ignored, and a dot between a letter
@@ -51,7 +55,7 @@ def label(text: str) -> Optional[tuple[str, str]]:
     return kind, number
 
 
-def title_parts(title: str) -> Optional[tuple[str, str]]:
+def title_parts(title: str) -> tuple[str, str] | None:
     """The skill's rule prefix a title begins with and its placeholder, or None when
     the title does not begin with one of the four prefixes and a colon."""
     for prefix in TITLE_PREFIXES:
@@ -67,7 +71,7 @@ def _known(title: str) -> bool:
     return parts is not None and parts[1] != "" and not parts[1].startswith("[")
 
 
-def _element_label(expected: ResolvedIssue) -> Optional[tuple[str, str]]:
+def _element_label(expected: ResolvedIssue) -> tuple[str, str] | None:
     """The label an expected element issue is about, read from its anchor; None for a
     numbering issue, an unanchored issue or an anchor that carries no label."""
     if expected.title not in ELEMENT_RULES or expected.anchor is None:
@@ -75,7 +79,7 @@ def _element_label(expected: ResolvedIssue) -> Optional[tuple[str, str]]:
     return label(expected.anchor)
 
 
-def _label_check(expected: ResolvedIssue, issue: IssueItem) -> Optional[tuple[float, str]]:
+def _label_check(expected: ResolvedIssue, issue: IssueItem) -> tuple[float, str] | None:
     """Whether the reported title names the expected element's label; None when there is none to compare."""
     wanted = _element_label(expected)
     if wanted is None:
@@ -87,7 +91,9 @@ def _label_check(expected: ResolvedIssue, issue: IssueItem) -> Optional[tuple[fl
     return 0.0, f"{expected.id}: title {issue.title!r} does not name {' '.join(wanted)}"
 
 
-def title_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> tuple[dict[str, float], str]:
+def title_scores(
+    issues: Sequence[IssueItem], inventory: ResolvedInventory
+) -> tuple[dict[str, float], str]:
     """``known_titles``: share of reported issues whose title is one of the skill's four
     prefixes with the placeholder filled in; NaN when nothing was reported.
     ``title_names_element``: of the detected expected issues about one labelled
@@ -114,22 +120,22 @@ _CONTEXT = (
     "whether it is real is scored separately, and under the review's rules a mention of a figure or table inside "
     "another figure's or table's caption is not a body-text reference. Grade only the suggested action. Line "
     "numbers in the action refer to the report's lines, which are not shown: do not check them, but \"the "
-    "reference on line N\" still names that reference. "
+    'reference on line N" still names that reference. '
 )
 
 CONCRETE_CRITERION = _CONTEXT + (
     "The reporting conventions ask a suggested action to name the element, point to where the fix goes and "
     "state the change, in terms specific to this report; they leave new prose to the author. Grade whether the "
     "action does that: for a missing title, it says what the caption should identify, named from the element's "
-    "own content or the sentence introducing it (\"a caption identifying year-over-year growth rates by product "
-    "line\" is enough; exact caption wording is not required); for an unreferenced element, it names the section "
+    'own content or the sentence introducing it ("a caption identifying year-over-year growth rates by product '
+    'line" is enough; exact caption wording is not required); for an unreferenced element, it names the section '
     "or sentence where the callout belongs, one that discusses the element's content; for a missing element, it "
     "names the unresolved reference and says to supply the element or correct the reference; for numbering, it "
     "says which labels change to which numbers and, where a renumbered element is cited in the body, that those "
     "citations change too. Offering a choice between concrete fixes is correct. Advice that fits any report "
-    "(\"add a descriptive caption\", \"reference the table in the text\", \"fix the numbering\") is incorrect. An "
+    '("add a descriptive caption", "reference the table in the text", "fix the numbering") is incorrect. An '
     "action that is concrete about part of the fix and generic about the rest (a caption described only as "
-    "\"descriptive\", a renumbering that leaves the citing references unmentioned) is partially correct."
+    '"descriptive", a renumbering that leaves the citing references unmentioned) is partially correct.'
 )
 
 GROUNDED_CRITERION = _CONTEXT + (
@@ -145,8 +151,18 @@ GROUNDED_CRITERION = _CONTEXT + (
 )
 
 JUDGE_CRITERIA = [
-    JudgeCriterion(key="action_concrete", criterion=CONCRETE_CRITERION, scope="expected", passage="document"),
-    JudgeCriterion(key="action_grounded", criterion=GROUNDED_CRITERION, scope="expected", passage="document"),
+    JudgeCriterion(
+        key="action_concrete",
+        criterion=CONCRETE_CRITERION,
+        scope="expected",
+        passage="document",
+    ),
+    JudgeCriterion(
+        key="action_grounded",
+        criterion=GROUNDED_CRITERION,
+        scope="expected",
+        passage="document",
+    ),
 ]
 
 JUDGE_DESCRIPTIONS = {

@@ -1,6 +1,6 @@
 """Service layer for workflow types."""
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -10,15 +10,16 @@ from lib.config.database import get_async_db_session
 from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
-from lib.workflows.categories import WORKFLOW_DISPLAY_CONFIG, CategoryConfig
-from lib.workflows.presets import WORKFLOW_PRESETS, PresetConfig
 from lib.services.workflow_gates import get_effective_gates
+from lib.workflows.categories import WORKFLOW_DISPLAY_CONFIG, CategoryConfig
 from lib.workflows.models import WorkflowGate, WorkflowRunType
+from lib.workflows.presets import WORKFLOW_PRESETS, PresetConfig
 from lib.workflows.registry import get_all_manifests
 from lib.workflows.skill_workflows import SkillWorkflowManifest
 
 if TYPE_CHECKING:
     from lib.workflows.manifest import WorkflowManifest
+
 
 def _display_config() -> list[CategoryConfig]:
     """WORKFLOW_DISPLAY_CONFIG plus the skill-declared workflows.
@@ -47,6 +48,7 @@ _WORKFLOW_CATEGORY_MAP: dict[WorkflowRunType, str] = {
     for wf_type in category.workflows
 }
 
+
 def _preset_config() -> list[PresetConfig]:
     """WORKFLOW_PRESETS plus the skill-declared workflows that name them.
 
@@ -58,7 +60,10 @@ def _preset_config() -> list[PresetConfig]:
     """
     presets = [
         PresetConfig(
-            slug=p.slug, label=p.label, description=p.description, workflows=list(p.workflows)
+            slug=p.slug,
+            label=p.label,
+            description=p.description,
+            workflows=list(p.workflows),
         )
         for p in WORKFLOW_PRESETS
     ]
@@ -104,7 +109,7 @@ class WorkflowTypeDescription(BaseModel):
     gates: list[WorkflowGate]
     # lucide icon name (kebab-case) chosen by the workflow, or None to let the
     # frontend fall back to its own per-type map or default icon.
-    icon: Optional[str] = None
+    icon: str | None = None
     # Whether the workflow attaches proposed edits to its issues, shown
     # alongside the original text in the document view.
     proposes_edits: bool = False
@@ -133,7 +138,9 @@ class WorkflowPreset(BaseModel):
 
     slug: str = Field(description="Stable identifier of the preset")
     label: str = Field(description="Name shown on the preset's chip")
-    description: str = Field(description="One sentence on who the preset is for and what it runs")
+    description: str = Field(
+        description="One sentence on who the preset is for and what it runs"
+    )
     workflows: list[WorkflowRunType] = Field(
         description="The assessments the preset selects, in picker order"
     )

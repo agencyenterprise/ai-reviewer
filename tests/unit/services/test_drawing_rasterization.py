@@ -69,7 +69,7 @@ def _drawing_xml(graphic_data: str, with_extent: bool = True) -> str:
 
 def _paragraph_xml(*runs: str) -> str:
     body = "".join(f"<w:r>{run}</w:r>" for run in runs)
-    return f'<w:p {nsdecls("w", "wp", "a", "r", "c", "pic")}>{body}</w:p>'
+    return f"<w:p {nsdecls('w', 'wp', 'a', 'r', 'c', 'pic')}>{body}</w:p>"
 
 
 def _append_paragraph(document, *runs: str) -> None:
@@ -138,7 +138,7 @@ def test_two_drawings_in_one_paragraph_are_not_renderable():
 def test_chart_inside_a_table_is_not_renderable():
     document = Document()
     table_xml = (
-        f'<w:tbl {nsdecls("w")}><w:tr><w:tc>'
+        f"<w:tbl {nsdecls('w')}><w:tr><w:tc>"
         + _paragraph_xml(_drawing_xml(_chart_graphic_data()))
         + "</w:tc></w:tr></w:tbl>"
     )
@@ -183,9 +183,7 @@ def test_render_source_keeps_only_renderable_paragraphs(tmp_path):
 
     assert kept == 2
     rendered = Document(dst)
-    body_paragraphs = [
-        el for el in rendered.element.body if el.tag == qn("w:p")
-    ]
+    body_paragraphs = [el for el in rendered.element.body if el.tag == qn("w:p")]
     assert len(body_paragraphs) == 2
     assert "PARA" not in "\n".join(p.text for p in rendered.paragraphs)
     # Page breaks put each drawing on its own PDF page; the first needs none.
@@ -281,10 +279,7 @@ async def test_rasterize_replaces_drawings_with_rendered_images(tmp_path):
     assert out is not None
     try:
         rendered = Document(out)
-        uris = [
-            gd.get("uri")
-            for gd in rendered.element.body.iter(qn("a:graphicData"))
-        ]
+        uris = [gd.get("uri") for gd in rendered.element.body.iter(qn("a:graphicData"))]
         assert uris == [PICTURE_GRAPHIC_URI, PICTURE_GRAPHIC_URI]
         assert "PARA-0" in "\n".join(p.text for p in rendered.paragraphs)
         assert not os.path.exists(render_dir)
@@ -299,6 +294,7 @@ async def test_rasterize_swallows_failures(tmp_path):
         f.write(b"garbage")
 
     assert await rasterize_docx_drawings(broken) is None
+
 
 # --- render-target detection edge cases ---------------------------------------
 
@@ -419,15 +415,15 @@ async def test_render_bails_when_libreoffice_fails(tmp_path):
 async def test_render_bails_on_page_count_mismatch(tmp_path):
     def write_source_and_pdf(src_path, dst_path):
         # Stand in for LibreOffice: the "PDF" appears next to the source.
-        with open(os.path.join(os.path.dirname(dst_path), "render-source.pdf"), "wb") as f:
+        with open(
+            os.path.join(os.path.dirname(dst_path), "render-source.pdf"), "wb"
+        ) as f:
             f.write(b"%PDF-fake")
         return 1
 
     with (
         patch(f"{MODULE}.shutil.which", return_value="/usr/bin/soffice"),
-        patch(
-            f"{MODULE}._write_render_source_docx", side_effect=write_source_and_pdf
-        ),
+        patch(f"{MODULE}._write_render_source_docx", side_effect=write_source_and_pdf),
         patch(
             f"{MODULE}.asyncio.create_subprocess_exec",
             new=AsyncMock(return_value=_fake_process(returncode=0)),
@@ -488,7 +484,9 @@ def test_render_source_pins_drawings_to_page_origin(tmp_path):
 
     rendered = Document(dst)
     margins = rendered.element.body.find(qn("w:sectPr")).find(qn("w:pgMar"))
-    assert {margins.get(qn(f"w:{a}")) for a in ("top", "right", "bottom", "left")} == {"0"}
+    assert {margins.get(qn(f"w:{a}")) for a in ("top", "right", "bottom", "left")} == {
+        "0"
+    }
     paragraph = next(el for el in rendered.element.body if el.tag == qn("w:p"))
     pPr = paragraph.find(qn("w:pPr"))
     spacing = pPr.find(qn("w:spacing"))
@@ -541,7 +539,9 @@ def test_render_source_creates_page_margins_when_absent(tmp_path):
 
     assert _write_render_source_docx(src, dst) == 1
 
-    rendered_margins = Document(dst).element.body.find(qn("w:sectPr")).find(qn("w:pgMar"))
+    rendered_margins = (
+        Document(dst).element.body.find(qn("w:sectPr")).find(qn("w:pgMar"))
+    )
     assert rendered_margins.get(qn("w:top")) == "0"
 
 
@@ -593,9 +593,7 @@ async def test_rasterize_is_all_or_nothing_on_partial_splice_failure(tmp_path):
             f"{MODULE}._render_drawings_to_images",
             new=AsyncMock(return_value=(render_dir, renders)),
         ),
-        patch(
-            f"{MODULE}._replace_drawing_with_image", side_effect=[True, False]
-        ),
+        patch(f"{MODULE}._replace_drawing_with_image", side_effect=[True, False]),
     ):
         assert await rasterize_docx_drawings(src) is None
     assert not os.path.exists(render_dir)

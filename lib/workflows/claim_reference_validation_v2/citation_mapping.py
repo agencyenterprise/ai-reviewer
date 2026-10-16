@@ -1,14 +1,15 @@
 """Utility for building a bibliography-to-file mapping string for agent prompts."""
 
-from typing import List
-
-from lib.models.bibliography_item import BibliographyItem, get_associated_supporting_file
+from lib.models.bibliography_item import (
+    BibliographyItem,
+    get_associated_supporting_file,
+)
 from lib.services.file import FileDocument
 
 
 def build_reference_file_map(
-    references: List[BibliographyItem],
-    supporting_files: List[FileDocument],
+    references: list[BibliographyItem],
+    supporting_files: list[FileDocument],
 ) -> str:
     """Build a bibliography-to-file mapping for the agent prompt.
 

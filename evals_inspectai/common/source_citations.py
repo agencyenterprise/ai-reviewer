@@ -26,14 +26,18 @@ Bibliography or Works Cited.
 import json
 import math
 import re
+from collections.abc import Sequence
 from datetime import date
-from typing import Optional, Sequence
 
 from inspect_ai.scorer import Score, Scorer, Target, scorer
 from inspect_ai.solver import TaskState
 from pydantic import BaseModel
 
-from evals_inspectai.common.issue_checks import PER_KEY_METRICS, inventory_from_state, issues_from_state
+from evals_inspectai.common.issue_checks import (
+    PER_KEY_METRICS,
+    inventory_from_state,
+    issues_from_state,
+)
 from evals_inspectai.common.issue_inventory import ResolvedInventory
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
 
@@ -47,14 +51,16 @@ _LEAD_RE = re.compile(
 _NAME_WORD_RE = re.compile(r"[^\W\d_][\w'’-]*")
 # An initial or a run of initials, as in "Krueger, A. B." or "Iweala OI".
 _INITIALS_RE = re.compile(r"^(?:[A-Z]\.?){1,3}$")
-_REFERENCES_HEADING_RE = re.compile(r"^\s*#{1,6}\s*(?:\d+\.?\s*)?(references|bibliography|works cited)\b", re.I)
+_REFERENCES_HEADING_RE = re.compile(
+    r"^\s*#{1,6}\s*(?:\d+\.?\s*)?(references|bibliography|works cited)\b", re.I
+)
 _HEADING_RE = re.compile(r"^\s*#{1,6}\s")
 
 
 class Citation(BaseModel):
     text: str
-    year: Optional[int]
-    first_author: Optional[str]
+    year: int | None
+    first_author: str | None
 
 
 def parse_citation(line: str) -> Citation:
@@ -62,14 +68,22 @@ def parse_citation(line: str) -> Citation:
     text = line.strip()
     unlinked = _LINK_RE.sub(" ", text)
     match = _YEAR_RE.search(unlinked)
-    return Citation(text=text, year=int(match.group(1)) if match else None, first_author=_first_author(unlinked))
+    return Citation(
+        text=text,
+        year=int(match.group(1)) if match else None,
+        first_author=_first_author(unlinked),
+    )
 
 
-def _first_author(line: str) -> Optional[str]:
+def _first_author(line: str) -> str | None:
     body = _LEAD_RE.sub("", line, count=1)
     # The first name ends at a comma, a parenthesis, the year, or the "and" / "&" before the next author.
     head = re.split(r"[,(&]|\sand\s|" + _YEAR_RE.pattern, body, maxsplit=1)[0]
-    words = [w for w in _NAME_WORD_RE.findall(head) if w[0].isupper() and not _INITIALS_RE.match(w.rstrip("."))]
+    words = [
+        w
+        for w in _NAME_WORD_RE.findall(head)
+        if w[0].isupper() and not _INITIALS_RE.match(w.rstrip("."))
+    ]
     # The surname is the last capitalised word that is not an initial: "Stahlberg, F.",
     # "Alan B. Krueger (1999)", "de Bruin, A.", "Iweala OI, et al.".
     return words[-1] if words else None
@@ -78,7 +92,14 @@ def _first_author(line: str) -> Optional[str]:
 def issue_citations(issue: IssueItem) -> list[Citation]:
     """The reference entries an issue gives: every line of its description, long
     description or suggested action that carries a DOI or URL."""
-    text = "\n".join(part for part in (issue.description, issue.long_description or "", issue.suggested_action or ""))
+    text = "\n".join(
+        part
+        for part in (
+            issue.description,
+            issue.long_description or "",
+            issue.suggested_action or "",
+        )
+    )
     return [parse_citation(line) for line in text.split("\n") if _LINK_RE.search(line)]
 
 
@@ -86,7 +107,9 @@ def document_references(document: str) -> list[Citation]:
     """The entries of the document's own reference list, one per non-blank line
     under a References, Bibliography or Works Cited heading, up to the next heading."""
     lines = document.split("\n")
-    start = next((i for i, line in enumerate(lines) if _REFERENCES_HEADING_RE.match(line)), None)
+    start = next(
+        (i for i, line in enumerate(lines) if _REFERENCES_HEADING_RE.match(line)), None
+    )
     if start is None:
         return []
     entries: list[Citation] = []
@@ -108,11 +131,21 @@ def _same_source(a: Citation, b: Citation) -> bool:
     )
 
 
-def _named_own(issue: IssueItem, own: Sequence[Citation], linked: Sequence[Citation]) -> list[Citation]:
+def _named_own(
+    issue: IssueItem, own: Sequence[Citation], linked: Sequence[Citation]
+) -> list[Citation]:
     """The document's own references the issue names by first author and year and does not
     already give as a linked citation: a recommendation to cite an existing reference in a
     new place, whose full citation is in the document and may have no link to give."""
-    text = " ".join(part for part in (issue.title, issue.description, issue.long_description or "", issue.suggested_action or ""))
+    text = " ".join(
+        part
+        for part in (
+            issue.title,
+            issue.description,
+            issue.long_description or "",
+            issue.suggested_action or "",
+        )
+    )
     return [
         r
         for r in own
@@ -130,12 +163,20 @@ def _names(text: str, name: str) -> bool:
     return re.search(rf"(?<!\w){re.escape(name)}(?!\w)", text, re.I) is not None
 
 
-def _publication_year(inventory: ResolvedInventory) -> Optional[int]:
-    return date.fromisoformat(inventory.publication_date).year if inventory.publication_date else None
+def _publication_year(inventory: ResolvedInventory) -> int | None:
+    return (
+        date.fromisoformat(inventory.publication_date).year
+        if inventory.publication_date
+        else None
+    )
 
 
 def source_scores(
-    issues: Sequence[IssueItem], inventory: ResolvedInventory, report: str, after: bool, new_sources_only: bool
+    issues: Sequence[IssueItem],
+    inventory: ResolvedInventory,
+    report: str,
+    after: bool,
+    new_sources_only: bool,
 ) -> tuple[dict[str, float], str]:
     """``cites_source``: share of reported issues giving at least one dated, linked citation.
     A literature review may also recommend one of the document's own references for a new
@@ -151,7 +192,11 @@ def source_scores(
     year match no entry of the document's reference list. ``report_lists_sources``: share of
     cited sources the report names (see ``_listed``), since the skills ask the report to list
     the full citation of every recommended source. Each is NaN with nothing to judge."""
-    values: dict[str, float] = {"cites_source": math.nan, "sources_in_window": math.nan, "report_lists_sources": math.nan}
+    values: dict[str, float] = {
+        "cites_source": math.nan,
+        "sources_in_window": math.nan,
+        "report_lists_sources": math.nan,
+    }
     if new_sources_only:
         values["not_already_cited"] = math.nan
     if not issues:
@@ -160,40 +205,72 @@ def source_scores(
     own = document_references(inventory.document)
     per_issue = [(issue, issue_citations(issue)) for issue in issues]
     if not new_sources_only:
-        per_issue = [(issue, [*cites, *_named_own(issue, own, cites)]) for issue, cites in per_issue]
-    uncited = [issue.title for issue, cites in per_issue if not any(c.year for c in cites)]
+        per_issue = [
+            (issue, [*cites, *_named_own(issue, own, cites)])
+            for issue, cites in per_issue
+        ]
+    uncited = [
+        issue.title for issue, cites in per_issue if not any(c.year for c in cites)
+    ]
     values["cites_source"] = 1 - len(uncited) / len(issues)
     notes += [f"no dated, linked citation: {uncited}"] if uncited else []
 
     dated = [(c, c.year) for _, cites in per_issue for c in cites if c.year is not None]
     year = _publication_year(inventory)
     if year is not None and dated:
-        outside = [c for c, published in dated if (published < year if after else published > year)]
+        outside = [
+            c
+            for c, published in dated
+            if (published < year if after else published > year)
+        ]
         values["sources_in_window"] = 1 - len(outside) / len(dated)
         side = "before" if after else "after"
-        notes += [f"{len(outside)} source(s) {side} {year}: " + "; ".join(c.text[:90] for c in outside)] if outside else []
+        notes += (
+            [
+                f"{len(outside)} source(s) {side} {year}: "
+                + "; ".join(c.text[:90] for c in outside)
+            ]
+            if outside
+            else []
+        )
 
     cited = [c for _, cites in per_issue for c in cites]
     if cited:
         unlisted = [c for c in cited if not _listed(report, c)]
         values["report_lists_sources"] = 1 - len(unlisted) / len(cited)
-        notes += [f"report does not name: {sorted({_label(c) for c in unlisted})}"] if unlisted else []
+        notes += (
+            [f"report does not name: {sorted({_label(c) for c in unlisted})}"]
+            if unlisted
+            else []
+        )
     if new_sources_only and cited:
         repeated = [c for c in cited if any(_same_source(c, r) for r in own)]
         values["not_already_cited"] = 1 - len(repeated) / len(cited)
-        notes += ["already in the document's references: " + "; ".join(c.text[:90] for c in repeated)] if repeated else []
-    return values, " | ".join(notes) if notes else "every source cited in full and in its window"
+        notes += (
+            [
+                "already in the document's references: "
+                + "; ".join(c.text[:90] for c in repeated)
+            ]
+            if repeated
+            else []
+        )
+    return values, (
+        " | ".join(notes) if notes else "every source cited in full and in its window"
+    )
 
 
 def _label(citation: Citation) -> str:
     """How a source is named in a note: its first author, or its link when it has none."""
     link = _LINK_RE.search(citation.text)
-    return citation.first_author or (link.group(0).rstrip(".,;)") if link else citation.text[:60])
+    return citation.first_author or (
+        link.group(0).rstrip(".,;)") if link else citation.text[:60]
+    )
 
 
 def _listed(report: str, citation: Citation) -> bool:
     """Whether the report names the source: its first author as a whole word, or, for a
-    source with no parseable author (``RFC 9114 (2022). HTTP/3. https://...``), its link."""
+    source with no parseable author (``RFC 9114 (2022). HTTP/3. https://...``), its link.
+    """
     if citation.first_author:
         return _names(report, citation.first_author)
     return _label(citation).lower() in report.lower()
@@ -212,13 +289,16 @@ def _report(state: TaskState) -> str:
 @scorer(metrics=PER_KEY_METRICS)
 def source_checks(after: bool, new_sources_only: bool) -> Scorer:
     """``source_scores`` over a single-agent workflow's result: its issues and its report.
-    ``after`` says which side of the publication date sources must fall on (see there)."""
+    ``after`` says which side of the publication date sources must fall on (see there).
+    """
 
     async def score(state: TaskState, target: Target) -> Score:
         issues, error = issues_from_state(state)
-        values, explanation = source_scores(issues, inventory_from_state(state), _report(state), after, new_sources_only)
+        values, explanation = source_scores(
+            issues, inventory_from_state(state), _report(state), after, new_sources_only
+        )
         if error:
-            return Score(value={key: 0.0 for key in values}, explanation=error)
+            return Score(value=dict.fromkeys(values, 0.0), explanation=error)
         return Score(value=values, explanation=explanation)
 
     return score

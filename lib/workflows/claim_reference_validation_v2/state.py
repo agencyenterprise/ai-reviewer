@@ -1,13 +1,13 @@
 """State, config, and reducer for Claim Reference Validation V2 workflow."""
 
 from enum import Enum
-from typing import Annotated, List, Literal, Optional
+from typing import Annotated, Literal
 
-from langchain_core.messages import BaseMessage
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field
 
 from lib.agents.citation_validator import TruthfulnessLabel
 from lib.agents.claim_verifier import ClaimEvidenceSource, EvidenceAlignmentLevel
+from lib.workflows.agent_messages import AgentMessages
 from lib.workflows.models import (
     BaseWorkflowConfig,
     BaseWorkflowState,
@@ -30,14 +30,14 @@ class CitationIssueItem(BaseModel):
     quoted_text: str
     line_start: int
     line_end: int
-    evidence_alignment: Optional[EvidenceAlignmentLevel] = None
+    evidence_alignment: EvidenceAlignmentLevel | None = None
     # Deprecated: retained only so pre-migration persisted state still
     # deserializes. New runs never populate it.
-    truthfulness_label: Optional[TruthfulnessLabel] = None
+    truthfulness_label: TruthfulnessLabel | None = None
     rationale: str = ""
     feedback: str = ""
-    evidence_sources: List[ClaimEvidenceSource] = Field(default_factory=list)
-    citation_to_file_mapping: Optional[str] = None
+    evidence_sources: list[ClaimEvidenceSource] = Field(default_factory=list)
+    citation_to_file_mapping: str | None = None
 
 
 class ClaimReferenceValidationV2Config(BaseWorkflowConfig):
@@ -60,32 +60,25 @@ class SectionVerificationItem(BaseModel):
     section_index: int
     start_line: int = 1
     end_line: int = 1
-    headings: List[str] = Field(default_factory=list)
+    headings: list[str] = Field(default_factory=list)
     status: SectionVerificationStatus = SectionVerificationStatus.PENDING
     num_citations: int = 0
-    issues: List[CitationIssueItem] = Field(default_factory=list)
-    error: Optional[str] = None
-    error_details: Optional[ErrorDetails] = Field(
+    issues: list[CitationIssueItem] = Field(default_factory=list)
+    error: str | None = None
+    error_details: ErrorDetails | None = Field(
         default=None,
         description="Traceback, raw model output, and LLM metadata for a failed section.",
     )
-    messages: List[BaseMessage] = Field(
+    messages: AgentMessages = Field(
         default_factory=list,
         description="LLM conversation messages from the citation-validator agent invocation.",
     )
 
-    @field_serializer("messages")
-    @classmethod
-    def _serialize_messages(cls, messages: List[BaseMessage]) -> list[dict]:
-        # Checkpointer-hydrated states may contain raw dicts in `messages`
-        # because reducers can append items that bypass model construction.
-        return [m if isinstance(m, dict) else m.model_dump() for m in messages]
-
 
 def merge_section_verifications(
-    existing: List[SectionVerificationItem],
-    new: List[SectionVerificationItem],
-) -> List[SectionVerificationItem]:
+    existing: list[SectionVerificationItem],
+    new: list[SectionVerificationItem],
+) -> list[SectionVerificationItem]:
     """Reducer: merge by section_index, allowing PENDING → COMPLETED/ERROR transitions."""
     by_index = {item.section_index: item for item in existing}
     for item in new:
@@ -100,7 +93,7 @@ class ClaimReferenceValidationV2State(BaseWorkflowState):
     config: ClaimReferenceValidationV2Config
 
     section_verifications: Annotated[
-        List[SectionVerificationItem], merge_section_verifications
+        list[SectionVerificationItem], merge_section_verifications
     ] = Field(default_factory=list)
 
-    citation_issues: List[CitationIssueItem] = Field(default_factory=list)
+    citation_issues: list[CitationIssueItem] = Field(default_factory=list)

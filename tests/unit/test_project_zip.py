@@ -5,10 +5,10 @@ import os
 import tempfile
 import uuid
 import zipfile
-from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import HTTPException
 
 from lib.models.file import File, FileRole
 from lib.services.project_zip import (
@@ -101,7 +101,9 @@ class TestBuildZipArchive:
         mock_config.FILE_UPLOADS_MOUNT_PATH = MOUNT_PATH
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            f1 = make_file(file_name="report.pdf", file_path=f"{MOUNT_PATH}/a/report.pdf")
+            f1 = make_file(
+                file_name="report.pdf", file_path=f"{MOUNT_PATH}/a/report.pdf"
+            )
             f2 = make_file(file_name="notes.txt", file_path=f"{MOUNT_PATH}/b/notes.txt")
             self._create_temp_file(tmpdir, f1)
             self._create_temp_file(tmpdir, f2)
@@ -252,8 +254,6 @@ class TestCreateProjectFilesZip:
     async def test_raises_404_when_no_files(self, mock_get_files: AsyncMock):
         mock_get_files.return_value = []
 
-        from fastapi import HTTPException
-
         with pytest.raises(HTTPException) as exc_info:
             await create_project_files_zip(uuid.uuid4())
         assert exc_info.value.status_code == 404
@@ -268,8 +268,6 @@ class TestCreateProjectFilesZip:
         mock_config.FILE_UPLOADS_MOUNT_PATH = MOUNT_PATH
         f = make_file(file_path=f"{MOUNT_PATH}/missing/file.pdf")
         mock_get_files.return_value = [f]
-
-        from fastapi import HTTPException
 
         with pytest.raises(HTTPException) as exc_info:
             await create_project_files_zip(uuid.uuid4())

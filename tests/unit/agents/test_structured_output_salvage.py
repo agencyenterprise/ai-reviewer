@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
-
 from langchain_core.messages import AIMessage
 from pydantic import BaseModel
 
@@ -18,8 +16,8 @@ class _Assessment(BaseModel):
     quoted_text: str
     line_start: int
     rationale: str = ""
-    tags: List[str] = []
-    mapping: Optional[str] = None
+    tags: list[str] = []
+    mapping: str | None = None
 
 
 def test_recovers_complete_items_before_the_cut():

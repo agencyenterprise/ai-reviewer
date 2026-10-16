@@ -7,14 +7,13 @@ a signed-in owner. Project CRUD, files, revisions and exports stay in
 """
 
 import uuid
-from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
 
 from lib.api.auth import get_current_user_optional
 from lib.models.issue import Issue
-from lib.models.workflow_run import WorkflowRunType
 from lib.models.user import User
+from lib.models.workflow_run import WorkflowRunType
 from lib.services.issue_persistence import get_project_issues
 from lib.services.project_content import (
     ProjectDocument,
@@ -45,9 +44,9 @@ _SHARE_TOKEN_QUERY = Query(
 @router.get("/api/project/{project_id}/overview", response_model=ProjectOverview)
 async def get_project_overview_endpoint(
     project_id: str,
-    revision: Optional[int] = _REVISION_QUERY,
-    share_token: Optional[str] = _SHARE_TOKEN_QUERY,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    revision: int | None = _REVISION_QUERY,
+    share_token: str | None = _SHARE_TOKEN_QUERY,
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """The project with each run's status and errors, its files and counts. No run states."""
     project, access_level = await get_project_access(
@@ -59,9 +58,9 @@ async def get_project_overview_endpoint(
 @router.get("/api/project/{project_id}/document", response_model=ProjectDocument)
 async def get_project_document_endpoint(
     project_id: str,
-    revision: Optional[int] = _REVISION_QUERY,
-    share_token: Optional[str] = _SHARE_TOKEN_QUERY,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    revision: int | None = _REVISION_QUERY,
+    share_token: str | None = _SHARE_TOKEN_QUERY,
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """The main document's markdown, title and authors for a revision."""
     project, _ = await get_project_access(project_id, current_user, share_token)
@@ -69,12 +68,12 @@ async def get_project_document_endpoint(
     return await get_project_document(str(project.id), resolved_revision)
 
 
-@router.get("/api/project/{project_id}/issues", response_model=List[Issue])
+@router.get("/api/project/{project_id}/issues", response_model=list[Issue])
 async def get_project_issues_endpoint(
     project_id: str,
-    revision: Optional[int] = _REVISION_QUERY,
-    share_token: Optional[str] = _SHARE_TOKEN_QUERY,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    revision: int | None = _REVISION_QUERY,
+    share_token: str | None = _SHARE_TOKEN_QUERY,
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """The persisted issues of a project revision, archived ones excluded."""
     project, _ = await get_project_access(project_id, current_user, share_token)
@@ -87,9 +86,9 @@ async def get_project_issues_endpoint(
 @router.get("/api/project/{project_id}/references", response_model=ProjectReferences)
 async def get_project_references_endpoint(
     project_id: str,
-    revision: Optional[int] = _REVISION_QUERY,
-    share_token: Optional[str] = _SHARE_TOKEN_QUERY,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    revision: int | None = _REVISION_QUERY,
+    share_token: str | None = _SHARE_TOKEN_QUERY,
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """Extracted references, their file matches and web fetch outcomes."""
     project, _ = await get_project_access(project_id, current_user, share_token)
@@ -99,7 +98,7 @@ async def get_project_references_endpoint(
 
 @router.get(
     "/api/project/{project_id}/workflow-runs",
-    response_model=List[WorkflowRunSummary],
+    response_model=list[WorkflowRunSummary],
 )
 async def get_project_workflow_runs_by_type_endpoint(
     project_id: str,
@@ -107,9 +106,9 @@ async def get_project_workflow_runs_by_type_endpoint(
         ...,
         description="The workflow type to filter runs by",
     ),
-    revision: Optional[int] = _REVISION_QUERY,
-    share_token: Optional[str] = _SHARE_TOKEN_QUERY,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    revision: int | None = _REVISION_QUERY,
+    share_token: str | None = _SHARE_TOKEN_QUERY,
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """
     Get all workflow runs of a specific type for a project revision, newest first.

@@ -6,19 +6,19 @@ point of the mapping is that the two enumerate a document the same way.
 
 import copy
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 
 import pytest
 from docx import Document as PythonDocxDocument
 from docx.oxml.ns import qn
-from docx_editor import Document as EditorDocument, EditOperation, ParagraphInfo
+from docx_editor import Document as EditorDocument
+from docx_editor import EditOperation, ParagraphInfo
 from lxml import etree
 
 from lib.services.docx.paragraph_refs import (
     map_paragraph_refs,
     paragraph_ordinals,
 )
-
 from tests.unit.services.lean_docx import new_document
 
 # A body paragraph, a two-cell table, an empty paragraph, two paragraphs that
@@ -61,7 +61,7 @@ def _append_content_control(document: Any, text: str) -> None:
     content.append(paragraph)
 
 
-def _editor_paragraphs(path: Path) -> List[ParagraphInfo]:
+def _editor_paragraphs(path: Path) -> list[ParagraphInfo]:
     doc = EditorDocument.open(
         path, author="Reader", workspace_dir=str(path.parent / "read-ws")
     )

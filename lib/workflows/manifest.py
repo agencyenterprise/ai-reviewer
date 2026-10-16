@@ -1,5 +1,6 @@
+import builtins
 from abc import ABC, abstractmethod
-from typing import List, Type, TypeVar
+from typing import TypeVar
 
 from langgraph.graph import StateGraph
 
@@ -42,7 +43,7 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     # may run. A run started while any of these is unsatisfied is created in
     # AWAITING_APPROVAL and not scheduled; approving the gate releases it.
     # Workflows that required-depend on a gated workflow inherit its gates.
-    gates: List[WorkflowGate] = []
+    gates: list[WorkflowGate] = []
 
     # Whether creating a new revision may re-run this workflow automatically,
     # as part of "re-run previous assessments". Set False for workflows whose
@@ -68,21 +69,21 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     # List of workflow types that this workflow depends on.
     # Used to determine the order in which the workflows should be run.
     # In case a workflow is started and a required dependency is not completed, running or scheduled to run, the workflow will fail to start with an error.
-    required_dependencies: List[WorkflowRunType] = []
+    required_dependencies: list[WorkflowRunType] = []
 
     # List of workflow types that this workflow depends on optionally.
     # Used to determine the order in which the workflows should be run.
     # In case a workflow is started and an optional dependency is running or scheduled to run, the workflow will wait until it completes to start; otherwise, it will start immediately.
-    optional_dependencies: List[WorkflowRunType] = []
+    optional_dependencies: list[WorkflowRunType] = []
 
     @abstractmethod
-    def get_state_type(self) -> Type[WorkflowStateType]:
+    def get_state_type(self) -> builtins.type[WorkflowStateType]:
         """Get the type of the workflow state."""
 
         raise NotImplementedError()
 
     @abstractmethod
-    def get_config_type(self) -> Type[WorkflowConfigType]:
+    def get_config_type(self) -> builtins.type[WorkflowConfigType]:
         """Get the type of the workflow config."""
 
         raise NotImplementedError()
@@ -97,7 +98,7 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     async def create_initial_state(
         self,
         config: WorkflowConfigType,
-        existing_states: List[WorkflowState],
+        existing_states: list[WorkflowState],
         revision: int,
         prior_self_state: WorkflowStateType | None = None,
     ) -> WorkflowStateType:
@@ -114,8 +115,8 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
 
     @abstractmethod
     def convert_state_to_issues(
-        self, state: WorkflowStateType, other_states: List[WorkflowState]
-    ) -> List[DocumentIssue]:
+        self, state: WorkflowStateType, other_states: list[WorkflowState]
+    ) -> list[DocumentIssue]:
         """Get issues for a workflow state result."""
 
         raise NotImplementedError()

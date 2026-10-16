@@ -18,7 +18,9 @@ from evals_inspectai.e2e.inference_validation_v2.criteria import (
     inference_scores,
     key_sentence,
 )
-from evals_inspectai.e2e.inference_validation_v2.inference_validation_v2_e2e import inference_validation_v2_e2e
+from evals_inspectai.e2e.inference_validation_v2.inference_validation_v2_e2e import (
+    inference_validation_v2_e2e,
+)
 
 DATASET = Path("evals_inspectai/e2e/inference_validation_v2/dataset.yaml")
 DOC = "# Memo\n\nThree customers complained last week. Therefore, reliability is poor across the\nentire customer base.\n"
@@ -32,7 +34,9 @@ def test_dataset_is_well_formed():
     expected = [e for r in records for e in r.expected_issues]
     assert len(expected) == 26
     assert [e.id for e in expected if not e.required] == ["collapse_claim"]
-    assert all(e.title == TITLE and e.anchor and e.rationale for e in expected), "anchored, titled, with the labelled flaw"
+    assert all(e.title == TITLE and e.anchor and e.rationale for e in expected), (
+        "anchored, titled, with the labelled flaw"
+    )
     assert sum(1 for r in records if not r.expected_issues) == 9
     assert all(d.title in (TITLE, None) for r in records for d in r.decoys)
     assert expects_severities(records) is False and expects_edits(records) is False
@@ -45,7 +49,11 @@ def test_decoys_bracketing_an_expected_line_are_untitled():
         lines = record.document.split("\n")
         expected_lines = {e.line for e in record.expected_issues}
         for decoy in record.decoys:
-            on = next(n for n, line in enumerate(lines, 1) if decoy.anchor.lower() in line.lower())
+            on = next(
+                n
+                for n, line in enumerate(lines, 1)
+                if decoy.anchor.lower() in line.lower()
+            )
             assert decoy.title is None or on not in expected_lines, decoy.anchor
 
 
@@ -53,7 +61,11 @@ def test_task_scores_detection_without_severity_and_the_contract():
     t = inference_validation_v2_e2e()
     assert len(t.dataset) == 32 and len(t.scorer) == 4
     assert "severity_correct" not in t.metadata["metrics"]["issue_checks"]
-    assert set(t.metadata["metrics"]["inference_checks"]) == {"no_informational", "title_names_flaw", "key_sentence_quoted"}
+    assert set(t.metadata["metrics"]["inference_checks"]) == {
+        "no_informational",
+        "title_names_flaw",
+        "key_sentence_quoted",
+    }
 
 
 def test_the_flaw_criterion_reads_the_analysis_against_the_labelled_flaw():
@@ -63,18 +75,41 @@ def test_the_flaw_criterion_reads_the_analysis_against_the_labelled_flaw():
 
 
 def test_key_sentence_is_the_quote_under_its_heading():
-    assert key_sentence(LONG) == "Therefore, reliability is poor across the entire customer base."
+    assert (
+        key_sentence(LONG)
+        == "Therefore, reliability is poor across the entire customer base."
+    )
     assert key_sentence("## Detailed Analysis\n\n> not a key sentence") is None
     assert key_sentence("## Key Sentence\n\nNo blockquote here.") is None
 
 
 def test_contract_checks_read_every_reported_issue():
-    good = IssueItem(title="Invalid Inference: Hasty generalization", severity="high", long_description=LONG)
-    informational = IssueItem(title="Invalid Inference: Sound", severity="none", long_description=LONG)
-    unlabelled = IssueItem(title="Invalid Inference", severity="medium", long_description="## Key Sentence\n\n> Reliability is excellent.")
+    good = IssueItem(
+        title="Invalid Inference: Hasty generalization",
+        severity="high",
+        long_description=LONG,
+    )
+    informational = IssueItem(
+        title="Invalid Inference: Sound", severity="none", long_description=LONG
+    )
+    unlabelled = IssueItem(
+        title="Invalid Inference",
+        severity="medium",
+        long_description="## Key Sentence\n\n> Reliability is excellent.",
+    )
     values, note = inference_scores([good, informational, unlabelled], INVENTORY)
-    assert values == pytest.approx({"no_informational": 2 / 3, "title_names_flaw": 2 / 3, "key_sentence_quoted": 2 / 3})
-    assert "informational" in note and "without the flaw label" in note and "no verbatim key sentence" in note
+    assert values == pytest.approx(
+        {
+            "no_informational": 2 / 3,
+            "title_names_flaw": 2 / 3,
+            "key_sentence_quoted": 2 / 3,
+        }
+    )
+    assert (
+        "informational" in note
+        and "without the flaw label" in note
+        and "no verbatim key sentence" in note
+    )
 
 
 def test_contract_checks_are_nan_with_nothing_reported():

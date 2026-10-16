@@ -2,7 +2,6 @@
 
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -17,9 +16,7 @@ class AnnotationOption(BaseModel):
 
     value: str = Field(description="Stored in answers and compared with the reference")
     label: str
-    shortcut: Optional[str] = Field(
-        default=None, description="Keyboard key that picks it"
-    )
+    shortcut: str | None = Field(default=None, description="Keyboard key that picks it")
 
 
 class AnnotationQuestion(BaseModel):
@@ -28,7 +25,7 @@ class AnnotationQuestion(BaseModel):
     key: str
     prompt: str
     options: list[AnnotationOption]
-    abstain_value: Optional[str] = Field(
+    abstain_value: str | None = Field(
         default=None,
         description="The option meaning 'not sure'; it neither agrees nor disagrees with the reference",
     )
@@ -52,7 +49,7 @@ class AnnotationPassage(BaseModel):
 
     document: str = Field(description="The document as markdown")
     anchor: str = Field(description="Verbatim passage to highlight")
-    line: Optional[int] = Field(
+    line: int | None = Field(
         default=None, description="1-indexed line the passage is on"
     )
 
@@ -70,10 +67,10 @@ class AnnotationTask(BaseModel):
     """The next item to judge. It never carries the reference answers."""
 
     set: AnnotationTaskSet
-    item_id: Optional[uuid.UUID] = Field(
+    item_id: uuid.UUID | None = Field(
         default=None, description="None when the user has answered every item"
     )
-    passage: Optional[AnnotationPassage] = None
+    passage: AnnotationPassage | None = None
     item_count: int
     answered_by_me: int
 
@@ -82,12 +79,12 @@ class AnnotationSubmission(BaseModel):
     """A user's answers to one item. Submitting again replaces them."""
 
     answers: dict[str, str]
-    comment: Optional[str] = Field(default=None, max_length=4000)
-    time_spent_ms: Optional[int] = Field(default=None, ge=0)
+    comment: str | None = Field(default=None, max_length=4000)
+    time_spent_ms: int | None = Field(default=None, ge=0)
 
     @field_validator("time_spent_ms")
     @classmethod
-    def _fit_integer_column(cls, value: Optional[int]) -> Optional[int]:
+    def _fit_integer_column(cls, value: int | None) -> int | None:
         """Capped rather than rejected: the column is a 32-bit integer, and an
         item left open for weeks should not lose the answer given at the end."""
         return None if value is None else min(value, MAX_TIME_SPENT_MS)
@@ -123,9 +120,9 @@ class AnnotationRecord(BaseModel):
     user_name: str
     user_email: str
     answers: dict[str, str]
-    agrees: Optional[bool]
-    comment: Optional[str]
-    time_spent_ms: Optional[int]
+    agrees: bool | None
+    comment: str | None
+    time_spent_ms: int | None
     created_at: datetime
 
 
@@ -137,7 +134,7 @@ class AnnotatedItem(BaseModel):
     kind: AnnotationItemKind
     passage: AnnotationPassage
     reference_answers: dict[str, str]
-    reference_explanation: Optional[str]
+    reference_explanation: str | None
     annotations: list[AnnotationRecord]
     agreements: int
     disagreements: int

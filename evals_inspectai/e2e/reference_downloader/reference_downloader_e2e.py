@@ -85,7 +85,9 @@ def project_file_summary(record: DownloadRecord, listed: dict) -> dict:
 
 
 @solver
-def reference_downloader_solver(timeout_s: float = 600, poll_interval_s: float = 5) -> Solver:
+def reference_downloader_solver(
+    timeout_s: float = 600, poll_interval_s: float = 5
+) -> Solver:
     """Run the reference_downloader workflow via the API for one reference, then read the
     project's files back through the app's file listing and check them against the record.
     A solver rather than an agent, since the checks need the sample's record."""
@@ -114,11 +116,19 @@ def reference_downloader_solver(timeout_s: float = 600, poll_interval_s: float =
 
         workflow_state = run_detail.get("state") or {}
         _check_item_errors(workflow_state)
-        workflow_state["project_files"] = [project_file_summary(record, f) for f in await get_project_files(project_id)]
+        workflow_state["project_files"] = [
+            project_file_summary(record, f) for f in await get_project_files(project_id)
+        ]
         await surface_conversations(
-            state, workflow_state, "reference_downloader", item_messages_key="fetched_references", item_label="reference"
+            state,
+            workflow_state,
+            "reference_downloader",
+            item_messages_key="fetched_references",
+            item_label="reference",
         )
-        state.output = ModelOutput(completion=json.dumps(workflow_state), model=output_model_name(run_detail))
+        state.output = ModelOutput(
+            completion=json.dumps(workflow_state), model=output_model_name(run_detail)
+        )
         return state
 
     return solve
@@ -128,7 +138,9 @@ def _check_item_errors(workflow_state: dict) -> None:
     """Raise if any fetched reference has a per-item error."""
     for item in workflow_state.get("fetched_references", []):
         if isinstance(item, dict) and item.get("error"):
-            raise WorkflowCompletionError(f"Reference '{item.get('input_reference', '?')}' failed: {item['error']}")
+            raise WorkflowCompletionError(
+                f"Reference '{item.get('input_reference', '?')}' failed: {item['error']}"
+            )
 
 
 @scorer(metrics=PER_KEY_METRICS)
@@ -139,10 +151,15 @@ def download_checks() -> Scorer:
         try:
             output = DownloaderOutput.model_validate_json(state.output.completion)
         except ValueError as e:
-            return Score(value={k: 0.0 for k in KEYS}, explanation=f"could not parse the workflow state: {e}")
-        item = output.fetched_references[0].result if output.fetched_references else None
+            return Score(
+                value=dict.fromkeys(KEYS, 0.0),
+                explanation=f"could not parse the workflow state: {e}",
+            )
+        item = (
+            output.fetched_references[0].result if output.fetched_references else None
+        )
         if item is None:
-            return Score(value={k: 0.0 for k in KEYS}, explanation="no fetch result")
+            return Score(value=dict.fromkeys(KEYS, 0.0), explanation="no fetch result")
         record = DownloadRecord.model_validate(state.metadata["record"])
         values, explanation = download_scores(item, output.project_files, record)
         return Score(value=values, explanation=explanation)
@@ -171,5 +188,7 @@ def reference_downloader_e2e(timeout_s: float = 600) -> Task:
         solver=reference_downloader_solver(timeout_s=timeout_s),
         scorer=download_checks(),
         fail_on_error=0.2,
-        viewer=issue_viewer_config([("download_checks", k) for k in KEYS], SCORE_LABELS),
+        viewer=issue_viewer_config(
+            [("download_checks", k) for k in KEYS], SCORE_LABELS
+        ),
     )

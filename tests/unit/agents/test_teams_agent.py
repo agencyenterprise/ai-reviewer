@@ -15,13 +15,13 @@ deliberate, and it is why the agent is given ``check_document``: a kept copy may
 been edited since, and may have been opened for somebody else in the thread.
 """
 
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
-from lib.agents.teams_agent import answer_question, answer_text
+from lib.agents.teams_agent import SYSTEM_PROMPT, answer_question, answer_text
 from lib.agents.tools import sharepoint
 
 # Every run reads as somebody; the tests do not care who.
@@ -30,7 +30,7 @@ THREAD = "19:abc@thread.tacv2;messageid=1754"
 DOCUMENT_URL = "https://x.sharepoint.com/sites/X/a.docx"
 
 
-def agent_returning(answer: str, state: Optional[dict[str, Any]] = None) -> MagicMock:
+def agent_returning(answer: str, state: dict[str, Any] | None = None) -> MagicMock:
     """A deep agent whose last message is the answer.
 
     Returns the whole history the way a checkpointed run does -- the question and then
@@ -74,8 +74,9 @@ class TestWhatTheAgentIsGiven:
         """Documents arrive through the tool; only skills are mounted."""
 
         agent = agent_returning("an answer")
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.build_deep_agent", return_value=agent
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch("lib.agents.teams_agent.build_deep_agent", return_value=agent),
         ):
             await answer_question(
                 "does this overclaim?", graph_token=TOKEN, thread_id=THREAD
@@ -90,8 +91,9 @@ class TestWhatTheAgentIsGiven:
     @pytest.mark.asyncio
     async def test_the_asker_is_named_in_the_prompt(self) -> None:
         agent = agent_returning("an answer")
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.build_deep_agent", return_value=agent
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch("lib.agents.teams_agent.build_deep_agent", return_value=agent),
         ):
             await answer_question(
                 "hello?",
@@ -128,21 +130,26 @@ class TestReadingTheAnswerOutOfTheMessages:
 
         markdown = '## Findings\n\n1. **GDP** is undefined at "the total GDP" [70]\n'
 
-        assert answer_text([HumanMessage(content="?"), AIMessage(content=markdown)]) == (
-            markdown.strip()
-        )
+        assert answer_text(
+            [HumanMessage(content="?"), AIMessage(content=markdown)]
+        ) == (markdown.strip())
 
     def test_reasoning_blocks_are_not_part_of_the_answer(self) -> None:
         """Reasoning-model output arrives as blocks beside the text."""
 
         message = AIMessage(
             content=[
-                {"type": "reasoning", "summary": "let me think about the abbreviations"},
+                {
+                    "type": "reasoning",
+                    "summary": "let me think about the abbreviations",
+                },
                 {"type": "text", "text": "GDP is never defined."},
             ]
         )
 
-        assert answer_text([HumanMessage(content="?"), message]) == "GDP is never defined."
+        assert (
+            answer_text([HumanMessage(content="?"), message]) == "GDP is never defined."
+        )
 
     def test_a_turn_ending_in_a_tool_call_is_not_an_answer(self) -> None:
         """It reached the recursion limit mid-work, so there is nothing to post."""
@@ -181,9 +188,12 @@ class TestReadingTheAnswerOutOfTheMessages:
 class TestTheAnswer:
     @pytest.mark.asyncio
     async def test_a_normal_answer_comes_back(self) -> None:
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.build_deep_agent",
-            return_value=agent_returning("It overclaims in two places."),
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch(
+                "lib.agents.teams_agent.build_deep_agent",
+                return_value=agent_returning("It overclaims in two places."),
+            ),
         ):
             answer = await answer_question(
                 "does this overclaim?",
@@ -196,9 +206,12 @@ class TestTheAnswer:
 
     @pytest.mark.asyncio
     async def test_an_empty_answer_is_a_failure_rather_than_a_blank_post(self) -> None:
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.build_deep_agent",
-            return_value=agent_returning("   "),
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch(
+                "lib.agents.teams_agent.build_deep_agent",
+                return_value=agent_returning("   "),
+            ),
         ):
             answer = await answer_question(
                 "does this overclaim?",
@@ -214,8 +227,9 @@ class TestTheAnswer:
 
         broken = agent_returning("never gets this far")
         broken.ainvoke = AsyncMock(side_effect=RuntimeError("upstream timeout"))
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.build_deep_agent", return_value=broken
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch("lib.agents.teams_agent.build_deep_agent", return_value=broken),
         ):
             answer = await answer_question(
                 "does this overclaim?",
@@ -235,8 +249,9 @@ class TestContinuingAConversation:
         the same id it is stored under."""
 
         agent = agent_returning("an answer")
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.build_deep_agent", return_value=agent
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch("lib.agents.teams_agent.build_deep_agent", return_value=agent),
         ):
             await answer_question(
                 "and the second one?", graph_token=TOKEN, thread_id=THREAD
@@ -248,10 +263,13 @@ class TestContinuingAConversation:
 
     @pytest.mark.asyncio
     async def test_a_checkpointer_is_given_to_the_agent(self) -> None:
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.build_deep_agent",
-            return_value=agent_returning("an answer"),
-        ) as build:
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch(
+                "lib.agents.teams_agent.build_deep_agent",
+                return_value=agent_returning("an answer"),
+            ) as build,
+        ):
             await answer_question(
                 "and the second one?", graph_token=TOKEN, thread_id=THREAD
             )
@@ -274,9 +292,12 @@ class TestContinuingAConversation:
         """It would be checkpointed, and re-appended on every single turn."""
 
         agent = agent_returning("an answer")
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.build_deep_agent", return_value=agent
-        ) as build:
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch(
+                "lib.agents.teams_agent.build_deep_agent", return_value=agent
+            ) as build,
+        ):
             await answer_question(
                 "does this overclaim?", graph_token=TOKEN, thread_id=THREAD
             )
@@ -293,8 +314,9 @@ class TestTheLinksHandedOver:
     @pytest.mark.asyncio
     async def test_one_link_is_named_in_the_prompt(self) -> None:
         agent = agent_returning("an answer")
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.build_deep_agent", return_value=agent
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch("lib.agents.teams_agent.build_deep_agent", return_value=agent),
         ):
             await answer_question(
                 "is this right?",
@@ -309,12 +331,13 @@ class TestTheLinksHandedOver:
 
     @pytest.mark.asyncio
     async def test_several_links_are_all_offered(self) -> None:
-        """"Compare these two" is unanswerable if only the first survives."""
+        """ "Compare these two" is unanswerable if only the first survives."""
 
         second = "https://x.sharepoint.com/sites/X/b.docx"
         agent = agent_returning("an answer")
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.build_deep_agent", return_value=agent
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch("lib.agents.teams_agent.build_deep_agent", return_value=agent),
         ):
             await answer_question(
                 "compare these",
@@ -330,8 +353,9 @@ class TestTheLinksHandedOver:
     @pytest.mark.asyncio
     async def test_no_links_says_nothing_about_them(self) -> None:
         agent = agent_returning("an answer")
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.build_deep_agent", return_value=agent
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch("lib.agents.teams_agent.build_deep_agent", return_value=agent),
         ):
             await answer_question(
                 "what can you do?", graph_token=TOKEN, thread_id=THREAD
@@ -350,9 +374,11 @@ class TestTheLinksHandedOver:
 
         load = AsyncMock()
         agent = agent_returning("an answer")
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.build_deep_agent", return_value=agent
-        ), patch.object(sharepoint.documents, "load", load):
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch("lib.agents.teams_agent.build_deep_agent", return_value=agent),
+            patch.object(sharepoint.documents, "load", load),
+        ):
             await answer_question(
                 "what can you do?",
                 graph_token=TOKEN,
@@ -362,7 +388,9 @@ class TestTheLinksHandedOver:
 
         assert load.await_count == 0
         assert agent.ainvoke.call_args[0][0]["files"].keys() == {
-            path for path in agent.ainvoke.call_args[0][0]["files"] if "/skills/" in path
+            path
+            for path in agent.ainvoke.call_args[0][0]["files"]
+            if "/skills/" in path
         }, "skills only; documents arrive through the tool"
 
 
@@ -371,10 +399,13 @@ class TestTheToolsTheAgentGets:
     async def test_it_can_open_and_check_a_document(self) -> None:
         """Checking is what makes a kept copy safe to use in a later turn."""
 
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.build_deep_agent",
-            return_value=agent_returning("an answer"),
-        ) as build:
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch(
+                "lib.agents.teams_agent.build_deep_agent",
+                return_value=agent_returning("an answer"),
+            ) as build,
+        ):
             await answer_question("hello?", graph_token=TOKEN, thread_id=THREAD)
 
         assert {tool.name for tool in build.call_args.kwargs["tools"]} == {
@@ -396,10 +427,13 @@ class TestTheToolsTheAgentGets:
         load = AsyncMock(return_value=opened)
         resolve = AsyncMock(return_value={"name": "a.docx"})
 
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.build_deep_agent",
-            return_value=agent_returning("an answer"),
-        ) as build:
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch(
+                "lib.agents.teams_agent.build_deep_agent",
+                return_value=agent_returning("an answer"),
+            ) as build,
+        ):
             await answer_question("hello?", graph_token="carlos", thread_id=THREAD)
 
             tools = {tool.name: tool for tool in build.call_args.kwargs["tools"]}
@@ -420,38 +454,34 @@ class TestTheToolsTheAgentGets:
 
 class TestThePrompt:
     def test_it_forbids_answering_from_a_name_alone(self) -> None:
-        from lib.agents.teams_agent import SYSTEM_PROMPT
-
         assert "Open a document before answering" in SYSTEM_PROMPT
 
     def test_a_link_is_stated_as_the_only_way_to_reach_a_document(self) -> None:
         """The behaviour most likely to drift, since searching feels helpful."""
 
-        from lib.agents.teams_agent import SYSTEM_PROMPT
-
         assert "A link is the only way to reach a document" in SYSTEM_PROMPT
         assert "must not guess at a URL" in SYSTEM_PROMPT
 
     def test_it_requires_asking_for_the_link_when_only_a_name_is_given(self) -> None:
-        from lib.agents.teams_agent import SYSTEM_PROMPT
-
         assert "ask them to paste it" in SYSTEM_PROMPT
 
     def test_it_still_answers_questions_that_need_no_document(self) -> None:
         """Asking for a link to answer "what can you do?" would be a regression."""
-
-        from lib.agents.teams_agent import SYSTEM_PROMPT
-
         assert "Some questions need no document at all" in SYSTEM_PROMPT
 
 
 class TestOfferingChanges:
     @pytest.mark.asyncio
-    async def test_with_a_conversation_to_report_to_the_agent_can_offer_changes(self) -> None:
+    async def test_with_a_conversation_to_report_to_the_agent_can_offer_changes(
+        self,
+    ) -> None:
         agent = agent_returning("an answer")
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.build_deep_agent", return_value=agent
-        ) as build:
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch(
+                "lib.agents.teams_agent.build_deep_agent", return_value=agent
+            ) as build,
+        ):
             await answer_question(
                 "fix the typos", graph_token=TOKEN, thread_id=THREAD, reference={"x": 1}
             )
@@ -462,9 +492,12 @@ class TestOfferingChanges:
     @pytest.mark.asyncio
     async def test_without_one_it_cannot(self) -> None:
         agent = agent_returning("an answer")
-        with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.build_deep_agent", return_value=agent
-        ) as build:
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch(
+                "lib.agents.teams_agent.build_deep_agent", return_value=agent
+            ) as build,
+        ):
             await answer_question("fix the typos", graph_token=TOKEN, thread_id=THREAD)
 
         names = [tool.name for tool in build.call_args.kwargs["tools"]]

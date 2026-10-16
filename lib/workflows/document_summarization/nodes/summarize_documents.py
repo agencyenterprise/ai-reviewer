@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from langgraph.runtime import Runtime
 
@@ -8,6 +8,7 @@ from lib.agents.document_summarizer import DocumentSummarizerAgent
 from lib.models.file import FileRole
 from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
 from lib.services.file import FileDocument
+from lib.services.files import get_cached_summary_for_file, update_file_artifacts
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.document_summarization.state import (
@@ -24,7 +25,7 @@ SUPPORTING_DOC_HEADER_SIZE = 4000
 async def _summarize_document(
     document: FileDocument,
     agent: DocumentSummarizerAgent,
-    existing_summaries: List[FileSummary],
+    existing_summaries: list[FileSummary],
     role: FileRole,
     runtime: Runtime[ContextSchema],
 ) -> FileSummary:
@@ -35,10 +36,6 @@ async def _summarize_document(
     if existing:
         logger.info(f"Using existing summary for file {document.file_id}")
         return existing
-
-    # Imported here to match this node's convention of pulling service helpers
-    # in lazily (avoids a circular import at module load).
-    from lib.services.files import get_cached_summary_for_file
 
     # Cross-project DB cache: reuse a summary already computed for an identical
     # file (same content_hash) in a previous project.
@@ -67,7 +64,7 @@ async def _summarize_document(
         summary = FileSummary(file_id=document.file_id, **response.summary.model_dump())
 
     if role == FileRole.MAIN:
-        from lib.services.projects import update_project_title
+        from lib.services.projects import update_project_title  # noqa: PLC0415  circular: projects -> registry -> this node
 
         await update_project_title(
             project_id=runtime.context.project_id,
@@ -80,7 +77,7 @@ async def _summarize_document(
 @register_node("Summarize documents")
 async def summarize_documents(
     state: DocumentSummarizationState, runtime: Runtime[ContextSchema]
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     document_summarizer_agent = DocumentSummarizerAgent(runtime.context)
     file_artifacts_service = runtime.context.file_artifacts_service
 
@@ -123,7 +120,7 @@ async def summarize_documents(
 
     results, exceptions = await run_tasks(tasks, desc="Summarizing documents")
 
-    summaries: List[FileSummary] = [result for result in results if result is not None]
+    summaries: list[FileSummary] = [result for result in results if result is not None]
     errors = convert_exceptions_to_workflow_errors(
         "summarize_documents",
         exceptions,
@@ -136,15 +133,13 @@ async def summarize_documents(
     return {"summaries": summaries, "errors": errors}
 
 
-async def _persist_summary_artifacts(summaries: List[FileSummary]) -> None:
+async def _persist_summary_artifacts(summaries: list[FileSummary]) -> None:
     """
     Persist summary artifacts to the files table for all summarized documents.
 
     Args:
         summaries: List of FileSummary objects containing file_id and summary data
     """
-    from lib.services.files import update_file_artifacts
-
     for summary in summaries:
         await update_file_artifacts(
             file_id=summary.file_id,

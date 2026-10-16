@@ -1,13 +1,15 @@
 """Tests for reading SharePoint documents through Graph, as the person who asked."""
 
+import inspect
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
+from urllib.parse import unquote
 
 import httpx
 import pytest
 
 from lib.services.microsoft.graph import client
-from lib.services.microsoft.graph.client import redacted
+from lib.services.microsoft.graph.client import _site_relative_path, redacted
 
 
 class TestResolvingASharingLink:
@@ -30,9 +32,7 @@ class TestResolvingASharingLink:
 
     @pytest.mark.asyncio
     async def test_an_opaque_link_resolves(self) -> None:
-        graph = self.graph(
-            "https://contoso.sharepoint.com/sites/Reviews/Drafts/a.docx"
-        )
+        graph = self.graph("https://contoso.sharepoint.com/sites/Reviews/Drafts/a.docx")
         with patch("httpx.AsyncClient", return_value=graph):
             item = await client.resolve(self.SHARING_LINK, token="t")
 
@@ -48,9 +48,6 @@ class TestWhoseIdentityReads:
 
     def test_neither_call_can_be_made_without_saying_whose_it_is(self) -> None:
         """A keyword-only, non-defaulted token is the whole guard. Pin it."""
-
-        import inspect
-
         for function in (client.resolve, client.download):
             token = inspect.signature(function).parameters["token"]
             assert token.kind is inspect.Parameter.KEYWORD_ONLY, function.__name__
@@ -96,16 +93,20 @@ class TestRedactingALinkForLogs:
     def test_the_query_string_goes(self) -> None:
         """``?e=`` is the part that makes an anyone-with-the-link URL work."""
 
-        assert redacted(
-            "https://contoso.sharepoint.com/sites/Reviews/a.docx?d=w1&csf=1&e=SeCrEt"
-        ) == "https://contoso.sharepoint.com/sites/Reviews/a.docx"
+        assert (
+            redacted(
+                "https://contoso.sharepoint.com/sites/Reviews/a.docx?d=w1&csf=1&e=SeCrEt"
+            )
+            == "https://contoso.sharepoint.com/sites/Reviews/a.docx"
+        )
 
     def test_an_opaque_share_id_is_masked(self) -> None:
         """There is no path in this form -- the id *is* the credential."""
 
-        assert redacted(
-            "https://contoso.sharepoint.com/:w:/s/Reviews/EWabc123?e=xyz"
-        ) == "https://contoso.sharepoint.com/:w:/s/[redacted]"
+        assert (
+            redacted("https://contoso.sharepoint.com/:w:/s/Reviews/EWabc123?e=xyz")
+            == "https://contoso.sharepoint.com/:w:/s/[redacted]"
+        )
 
     def test_a_onedrive_share_id_is_masked_despite_looking_like_a_path(self) -> None:
         """The bug this file once asserted the opposite of.
@@ -115,9 +116,12 @@ class TestRedactingALinkForLogs:
         the credential straight back.
         """
 
-        assert redacted(
-            "https://contoso-my.sharepoint.com/:w:/g/personal/x/EWabc123?e=xyz"
-        ) == "https://contoso-my.sharepoint.com/:w:/g/[redacted]"
+        assert (
+            redacted(
+                "https://contoso-my.sharepoint.com/:w:/g/personal/x/EWabc123?e=xyz"
+            )
+            == "https://contoso-my.sharepoint.com/:w:/g/[redacted]"
+        )
 
     def test_an_ordinary_path_is_kept(self) -> None:
         """The diagnostically useful case, and it names no secret."""
@@ -131,9 +135,7 @@ class TestRedactingALinkForLogs:
     def test_nothing_recognisable_reveals_nothing(self) -> None:
         assert redacted("not a url") == "[unparseable url]"
 
-    @pytest.mark.parametrize(
-        "form", ["s", "g", "p", "u", "b", "f", "t", "v", "w", "z"]
-    )
+    @pytest.mark.parametrize("form", ["s", "g", "p", "u", "b", "f", "t", "v", "w", "z"])
     def test_no_share_id_survives_any_non_resource_form(self, form: str) -> None:
         """Every form but ``r``, including ones not yet seen, must mask.
 
@@ -176,16 +178,18 @@ class TestRedactingALinkForLogs:
         ).endswith("/personal/carlos/Documents/a.docx")
 
     def test_a_fragment_goes_too(self) -> None:
-        assert redacted(
-            "https://contoso.sharepoint.com/sites/Reviews/a.docx#EWsecret123"
-        ) == "https://contoso.sharepoint.com/sites/Reviews/a.docx"
+        assert (
+            redacted("https://contoso.sharepoint.com/sites/Reviews/a.docx#EWsecret123")
+            == "https://contoso.sharepoint.com/sites/Reviews/a.docx"
+        )
 
     def test_userinfo_is_dropped(self) -> None:
         """Cannot arrive from Teams, but a log is the last place for a stray password."""
 
-        assert redacted(
-            "https://user:pw@contoso.sharepoint.com/sites/Reviews/a.docx"
-        ) == "https://contoso.sharepoint.com/sites/Reviews/a.docx"
+        assert (
+            redacted("https://user:pw@contoso.sharepoint.com/sites/Reviews/a.docx")
+            == "https://contoso.sharepoint.com/sites/Reviews/a.docx"
+        )
 
     def test_a_url_with_no_query_is_unchanged(self) -> None:
         plain = "https://contoso.sharepoint.com/sites/Reviews/a.docx"
@@ -200,10 +204,6 @@ class TestTheFallbackResolver:
     """
 
     def parts_of(self, url: str) -> list[str]:
-        from urllib.parse import unquote
-
-        from lib.services.microsoft.graph.client import _site_relative_path
-
         return [unquote(p) for p in _site_relative_path(url).split("/") if p]
 
     def test_a_copy_link_url_yields_a_site_and_path(self) -> None:
@@ -375,7 +375,9 @@ def graph_answering(status: int, body: dict[str, Any]) -> Any:
 class TestWhoIsAsking:
     @pytest.mark.asyncio
     async def test_the_signed_in_user_is_read_with_their_token(self) -> None:
-        graph = graph_answering(200, {"userPrincipalName": "ana@contoso.com", "mail": None})
+        graph = graph_answering(
+            200, {"userPrincipalName": "ana@contoso.com", "mail": None}
+        )
         with patch("httpx.AsyncClient", return_value=graph):
             person = await client.me(token="t")
 
@@ -402,7 +404,11 @@ class TestTheLibrary:
         )
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("status,body", [(403, {}), (200, {})], ids=["refused", "no url"])
-    async def test_without_one_it_is_none(self, status: int, body: dict[str, Any]) -> None:
+    @pytest.mark.parametrize(
+        "status,body", [(403, {}), (200, {})], ids=["refused", "no url"]
+    )
+    async def test_without_one_it_is_none(
+        self, status: int, body: dict[str, Any]
+    ) -> None:
         with patch("httpx.AsyncClient", return_value=graph_answering(status, body)):
             assert await client.library_url("b!x", token="t") is None

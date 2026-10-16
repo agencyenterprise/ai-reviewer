@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import Any, List, Optional, Union
+from typing import Any
 
 from inspect_ai.agent import Agent, AgentState, agent
 from inspect_ai.model import ModelOutput
@@ -13,21 +13,29 @@ from evals_inspectai.common.api_client import (
     get_project_issues,
     poll_until_complete,
 )
+from evals_inspectai.common.errors import WorkflowCompletionError
+from evals_inspectai.common.loaders import inline_local_images
+from evals_inspectai.common.model_override import output_model_name
 from evals_inspectai.common.transcript_replay import (
     Conversation,
     messages_from_state,
     replay_conversations,
 )
-from evals_inspectai.common.loaders import inline_local_images
-from evals_inspectai.common.errors import WorkflowCompletionError
-from evals_inspectai.common.model_override import output_model_name
 
 logger = logging.getLogger(__name__)
 
 # The state key under which ``include_issues`` adds the run's persisted issues,
 # shaped like an ``AgentCheckResult`` so ``issue_checks(results=...)`` reads it.
 PERSISTED_ISSUES_KEY = "persisted_issues"
-_ISSUE_FIELDS = ("title", "description", "long_description", "suggested_action", "severity", "start_line", "end_line")
+_ISSUE_FIELDS = (
+    "title",
+    "description",
+    "long_description",
+    "suggested_action",
+    "severity",
+    "start_line",
+    "end_line",
+)
 
 
 @agent
@@ -35,8 +43,8 @@ def api_workflow_agent(
     workflow_type: str,
     timeout_s: float = 300,
     poll_interval_s: float = 5,
-    item_messages_key: Optional[str] = None,
-    item_label: Optional[str] = None,
+    item_messages_key: str | None = None,
+    item_label: str | None = None,
     include_issues: bool = False,
 ) -> Agent:
     """Run a full workflow via the API and capture its state as output.
@@ -65,7 +73,9 @@ def api_workflow_agent(
         # The sample's own input stays the readable, path-referencing markdown;
         # run_workflow embeds its figures for the upload.
         document = state.messages[0].text if state.messages else ""
-        workflow_state, model = await run_workflow(document, workflow_type, timeout_s, poll_interval_s, include_issues)
+        workflow_state, model = await run_workflow(
+            document, workflow_type, timeout_s, poll_interval_s, include_issues
+        )
         await surface_conversations(
             state, workflow_state, workflow_type, item_messages_key, item_label
         )
@@ -91,7 +101,11 @@ def api_workflow_solver(
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         publication_date = (state.metadata or {}).get("publication_date")
         workflow_state, model = await run_workflow(
-            state.input_text, workflow_type, timeout_s, poll_interval_s, publication_date=publication_date
+            state.input_text,
+            workflow_type,
+            timeout_s,
+            poll_interval_s,
+            publication_date=publication_date,
         )
         await surface_conversations(state, workflow_state, workflow_type)
         state.output = ModelOutput(completion=json.dumps(workflow_state), model=model)
@@ -106,7 +120,7 @@ async def run_workflow(
     timeout_s: float,
     poll_interval_s: float,
     include_issues: bool = False,
-    publication_date: Optional[str] = None,
+    publication_date: str | None = None,
 ) -> tuple[dict, str]:
     """Upload ``document`` as a new project, run ``workflow_type`` on it through the
     API, and return the run's state with the model name to record as its output.
@@ -140,7 +154,9 @@ async def run_workflow(
     return workflow_state, output_model_name(run_detail)
 
 
-def persisted_issues(issues: list[dict[str, Any]], workflow_run_id: Optional[str]) -> list[dict[str, Any]]:
+def persisted_issues(
+    issues: list[dict[str, Any]], workflow_run_id: str | None
+) -> list[dict[str, Any]]:
     """The persisted issues of one workflow run, reduced to the fields the issue
     checks read; a missing line becomes 0, as in an agent-reported issue."""
     return [
@@ -155,11 +171,11 @@ def persisted_issues(issues: list[dict[str, Any]], workflow_run_id: Optional[str
 
 
 async def surface_conversations(
-    state: Union[AgentState, TaskState],
+    state: AgentState | TaskState,
     workflow_state: dict,
     workflow_type: str,
-    item_messages_key: Optional[str] = None,
-    item_label: Optional[str] = None,
+    item_messages_key: str | None = None,
+    item_label: str | None = None,
 ) -> None:
     """Move the workflow's agent conversations from its state into the Inspect log.
 
@@ -178,16 +194,16 @@ async def surface_conversations(
 def pop_conversations(
     workflow_state: dict,
     workflow_type: str,
-    item_messages_key: Optional[str],
-    item_label: Optional[str] = None,
-) -> List[Conversation]:
+    item_messages_key: str | None,
+    item_label: str | None = None,
+) -> list[Conversation]:
     """Remove every agent conversation from the state, in run order.
 
     Messages are removed so the scored completion stays a compact JSON payload;
     they are surfaced in the Inspect transcript instead. The workflow's own
     top-level conversation comes first, then one per fan-out item that has one.
     """
-    conversations: List[Conversation] = []
+    conversations: list[Conversation] = []
     top_level = messages_from_state(workflow_state.pop("messages", None) or [])
     if top_level:
         conversations.append(Conversation(label=workflow_type, messages=top_level))
@@ -203,7 +219,8 @@ def pop_conversations(
         summary = _item_summary(index, item)
         conversations.append(
             Conversation(
-                label=item.get("name") or _item_label(item_label or item_messages_key, summary),
+                label=item.get("name")
+                or _item_label(item_label or item_messages_key, summary),
                 metadata={item_messages_key: summary},
                 messages=item_messages,
             )

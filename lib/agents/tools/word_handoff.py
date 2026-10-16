@@ -10,7 +10,7 @@ report back to are closed over, never parameters the model could change.
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 import jwt
 from langchain.tools import BaseTool, tool
@@ -52,7 +52,10 @@ def usable_items(
     seen: set[str] = set()
     for edit in edits:
         words = " ".join(edit.quote.split()).lower()
-        if len(words) < MIN_QUOTE_CHARS or edit.replacement.strip() == edit.quote.strip():
+        if (
+            len(words) < MIN_QUOTE_CHARS
+            or edit.replacement.strip() == edit.quote.strip()
+        ):
             continue
         if words in seen:
             continue
@@ -63,7 +66,7 @@ def usable_items(
     )
 
 
-def tenant_of(token: str) -> Optional[str]:
+def tenant_of(token: str) -> str | None:
     """The asker's home tenant, from their own Graph token.
 
     Taken from the same identity as the object id Graph ``/me`` gives, so the pair is
@@ -114,7 +117,9 @@ def offer_changes_for(token: str, reference: dict[str, Any]) -> BaseTool:
 
         items = usable_items(comments, edits)
         if not items.count:
-            return "Nothing was saved: none of those comments or edits could be applied."
+            return (
+                "Nothing was saved: none of those comments or edits could be applied."
+            )
 
         try:
             item = await client.resolve(url, token=token)

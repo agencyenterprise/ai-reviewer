@@ -52,7 +52,10 @@ GROUND_TRUTH = (
     "order problem, anchored where the skill anchors it, plus decoy sentences that must not be flagged. "
     "No edits are expected. A NaN metric value means the sample gave that check nothing to judge."
 )
-OWN_METRICS = {"narrative_checks": OWN_DESCRIPTIONS, "judged_criteria": JUDGE_DESCRIPTIONS}
+OWN_METRICS = {
+    "narrative_checks": OWN_DESCRIPTIONS,
+    "judged_criteria": JUDGE_DESCRIPTIONS,
+}
 
 
 @scorer(metrics=PER_KEY_METRICS)
@@ -74,7 +77,11 @@ def narrative_synthesis_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Tas
         dataset=suite.dataset(),
         metadata=suite.metadata(GROUND_TRUTH, OWN_METRICS),
         solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s),
-        scorer=[*suite.scorers(), narrative_checks(), suite.judged(JUDGE_CRITERIA, calls=judge_calls)],
+        scorer=[
+            *suite.scorers(),
+            narrative_checks(),
+            suite.judged(JUDGE_CRITERIA, calls=judge_calls),
+        ],
         fail_on_error=0.2,
         viewer=suite.viewer(OWN_METRICS, SCORE_LABELS),
     )

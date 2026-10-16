@@ -50,7 +50,11 @@ from inspect_ai import Task, task
 from evals_inspectai.common.api_solver import api_workflow_agent
 from evals_inspectai.common.inventory_suite import InventorySuite
 from evals_inspectai.common.scorers import tool_called
-from evals_inspectai.e2e.recommendation_check.criteria import JUDGE_CRITERIA, JUDGE_DESCRIPTIONS, SCORE_LABELS
+from evals_inspectai.e2e.recommendation_check.criteria import (
+    JUDGE_CRITERIA,
+    JUDGE_DESCRIPTIONS,
+    SCORE_LABELS,
+)
 
 WORKFLOW_TYPE = "recommendation_check"
 DATASET = Path(__file__).parent / "dataset.yaml"
@@ -61,7 +65,9 @@ GROUND_TRUTH = (
     "their fixed titles. A NaN metric value means the sample gave that check nothing to judge."
 )
 OWN_METRICS = {
-    "tool_called": {"tool_called": "On a sample whose document embeds a chart, whether the agent called view_image."},
+    "tool_called": {
+        "tool_called": "On a sample whose document embeds a chart, whether the agent called view_image."
+    },
     "judged_criteria": JUDGE_DESCRIPTIONS,
 }
 
@@ -79,7 +85,13 @@ def recommendation_check_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Ta
         dataset=suite.dataset(),
         metadata=suite.metadata(GROUND_TRUTH, OWN_METRICS),
         solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s),
-        scorer=[*suite.scorers(), tool_called("view_image"), suite.judged(JUDGE_CRITERIA, calls=judge_calls)],
+        scorer=[
+            *suite.scorers(),
+            tool_called("view_image"),
+            suite.judged(JUDGE_CRITERIA, calls=judge_calls),
+        ],
         fail_on_error=0.2,
-        viewer=suite.viewer(OWN_METRICS, {"tool_called": "Viewed image", **SCORE_LABELS}),
+        viewer=suite.viewer(
+            OWN_METRICS, {"tool_called": "Viewed image", **SCORE_LABELS}
+        ),
     )

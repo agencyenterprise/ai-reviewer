@@ -26,7 +26,7 @@ export type AbbreviationChunk = {
   /**
    * Skip Reason
    *
-   * Why a SKIPPED chunk was not sent to an agent: "abbreviations section" or "blank".
+   * Why a SKIPPED chunk was not sent to the model: "abbreviations section" or "blank".
    */
   skip_reason?: string | null;
   /**
@@ -41,7 +41,7 @@ export type AbbreviationChunk = {
   /**
    * Messages
    *
-   * The agent's full conversation for this chunk, system prompt included.
+   * The model call for this chunk: system prompt, user prompt and reply.
    */
   messages?: Array<{
     [key: string]: unknown;
@@ -937,46 +937,6 @@ export type AnnotationTaskSet = {
 };
 
 /**
- * AppConfigResponse
- */
-export type AppConfigResponse = {
-  /**
-   * Id
-   */
-  id: string;
-  /**
-   * Key
-   */
-  key: string;
-  /**
-   * Value
-   */
-  value: string;
-  /**
-   * Description
-   */
-  description: string;
-  /**
-   * Updated At
-   */
-  updated_at: Date;
-  /**
-   * Updated By
-   */
-  updated_by?: string | null;
-};
-
-/**
- * AppConfigValueResponse
- */
-export type AppConfigValueResponse = {
-  /**
-   * Value
-   */
-  value: string;
-};
-
-/**
  * AppliedEdit
  */
 export type AppliedEdit = {
@@ -1306,7 +1266,7 @@ export type ChatTurnMessage = {
 /**
  * ChunkOccurrence
  *
- * One abbreviation occurrence, as recorded by a chunk extraction agent.
+ * One abbreviation occurrence, as recorded by a chunk extraction call.
  */
 export type ChunkOccurrence = {
   /**
@@ -1324,7 +1284,7 @@ export type ChunkOccurrence = {
   /**
    * Line Start
    *
-   * 1-indexed line number in /main.md where the occurrence starts.
+   * The printed 1-indexed document line number where the occurrence starts.
    */
   line_start: number;
   /**
@@ -1987,10 +1947,7 @@ export type FeedbackRequest = {
    * Issue ID for issue-level feedback (preferred, derives workflow_run_id automatically)
    */
   issue_id?: string | null;
-  /**
-   * Feedback Type
-   */
-  feedback_type: string;
+  feedback_type: FeedbackType;
   /**
    * Feedback Text
    *
@@ -4371,20 +4328,6 @@ export type UpdateUserRoleRequest = {
 };
 
 /**
- * UpsertAppConfigRequest
- */
-export type UpsertAppConfigRequest = {
-  /**
-   * Value
-   */
-  value: string;
-  /**
-   * Description
-   */
-  description?: string | null;
-};
-
-/**
  * UserResponse
  *
  * Response model for user information
@@ -5660,121 +5603,6 @@ export type ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponses = {
 
 export type ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponse =
   ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponses[keyof ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponses];
-
-export type ListAppConfigsApiAppConfigsGetData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/api/app-configs';
-};
-
-export type ListAppConfigsApiAppConfigsGetResponses = {
-  /**
-   * Response List App Configs Api App Configs Get
-   *
-   * Successful Response
-   */
-  200: Array<AppConfigResponse>;
-};
-
-export type ListAppConfigsApiAppConfigsGetResponse =
-  ListAppConfigsApiAppConfigsGetResponses[keyof ListAppConfigsApiAppConfigsGetResponses];
-
-export type ResetAppConfigApiAppConfigsKeyDeleteData = {
-  body?: never;
-  path: {
-    /**
-     * Key
-     */
-    key: string;
-  };
-  query?: never;
-  url: '/api/app-configs/{key}';
-};
-
-export type ResetAppConfigApiAppConfigsKeyDeleteErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type ResetAppConfigApiAppConfigsKeyDeleteError =
-  ResetAppConfigApiAppConfigsKeyDeleteErrors[keyof ResetAppConfigApiAppConfigsKeyDeleteErrors];
-
-export type ResetAppConfigApiAppConfigsKeyDeleteResponses = {
-  /**
-   * Successful Response
-   */
-  204: void;
-};
-
-export type ResetAppConfigApiAppConfigsKeyDeleteResponse =
-  ResetAppConfigApiAppConfigsKeyDeleteResponses[keyof ResetAppConfigApiAppConfigsKeyDeleteResponses];
-
-export type GetAppConfigApiAppConfigsKeyGetData = {
-  body?: never;
-  path: {
-    /**
-     * Key
-     */
-    key: string;
-  };
-  query?: never;
-  url: '/api/app-configs/{key}';
-};
-
-export type GetAppConfigApiAppConfigsKeyGetErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type GetAppConfigApiAppConfigsKeyGetError =
-  GetAppConfigApiAppConfigsKeyGetErrors[keyof GetAppConfigApiAppConfigsKeyGetErrors];
-
-export type GetAppConfigApiAppConfigsKeyGetResponses = {
-  /**
-   * Successful Response
-   */
-  200: AppConfigValueResponse;
-};
-
-export type GetAppConfigApiAppConfigsKeyGetResponse =
-  GetAppConfigApiAppConfigsKeyGetResponses[keyof GetAppConfigApiAppConfigsKeyGetResponses];
-
-export type UpdateAppConfigApiAppConfigsKeyPutData = {
-  body: UpsertAppConfigRequest;
-  path: {
-    /**
-     * Key
-     */
-    key: string;
-  };
-  query?: never;
-  url: '/api/app-configs/{key}';
-};
-
-export type UpdateAppConfigApiAppConfigsKeyPutErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type UpdateAppConfigApiAppConfigsKeyPutError =
-  UpdateAppConfigApiAppConfigsKeyPutErrors[keyof UpdateAppConfigApiAppConfigsKeyPutErrors];
-
-export type UpdateAppConfigApiAppConfigsKeyPutResponses = {
-  /**
-   * Successful Response
-   */
-  200: AppConfigResponse;
-};
-
-export type UpdateAppConfigApiAppConfigsKeyPutResponse =
-  UpdateAppConfigApiAppConfigsKeyPutResponses[keyof UpdateAppConfigApiAppConfigsKeyPutResponses];
 
 export type ListThreadsApiChatThreadsGetData = {
   body?: never;

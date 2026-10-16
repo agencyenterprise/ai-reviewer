@@ -11,7 +11,7 @@ import base64
 import logging
 import uuid
 from collections.abc import Sequence
-from typing import Any, Union
+from typing import Any
 
 import aiofiles
 from fastapi import HTTPException
@@ -72,7 +72,7 @@ def _parse_image_file_id(image_reference: str) -> uuid.UUID | None:
 @tool()
 async def view_image(
     image_reference: str, runtime: ToolRuntime[ContextSchema]
-) -> Union[list[dict[str, Any]], str]:
+) -> list[dict[str, Any]] | str:
     """
     Look at an image embedded in a document. Images appear in the document
     markdown as `![alt](draftdetective://...)`; pass that `draftdetective://...`

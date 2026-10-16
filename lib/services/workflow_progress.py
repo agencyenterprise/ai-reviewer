@@ -5,7 +5,6 @@ import logging
 import uuid
 from datetime import datetime
 from functools import lru_cache
-from typing import List, Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -121,7 +120,7 @@ async def get_or_create_progress(
 
 async def _get_progress_by_id(
     session: AsyncSession, progress_id: uuid.UUID
-) -> Optional[WorkflowProgress]:
+) -> WorkflowProgress | None:
     """Get a progress entry by ID."""
     stmt = select(WorkflowProgress).where(col(WorkflowProgress.id) == progress_id)
     result = await session.execute(stmt)
@@ -130,8 +129,8 @@ async def _get_progress_by_id(
 
 async def update_progress(
     progress_id: uuid.UUID,
-    current_step: Optional[int] = None,
-    total_steps: Optional[int] = None,
+    current_step: int | None = None,
+    total_steps: int | None = None,
 ) -> None:
     """
     Update progress step counters.
@@ -232,7 +231,10 @@ async def cancel_workflow_progress(
     async with get_async_db_session() as session:
         stmt = (
             select(WorkflowProgress)
-            .join(WorkflowRun, col(WorkflowProgress.workflow_run_id) == col(WorkflowRun.id))
+            .join(
+                WorkflowRun,
+                col(WorkflowProgress.workflow_run_id) == col(WorkflowRun.id),
+            )
             .where(
                 col(WorkflowRun.project_id) == project_id,
                 col(WorkflowRun.type) == workflow_type,
@@ -252,7 +254,7 @@ async def cancel_workflow_progress(
 
 async def get_workflow_progress(
     workflow_run_id: uuid.UUID,
-) -> List[WorkflowProgress]:
+) -> list[WorkflowProgress]:
     """
     Get all progress entries for a workflow run.
 
@@ -276,7 +278,7 @@ async def get_workflow_progress(
 async def get_project_workflow_progress(
     project_id: uuid.UUID,
     revision: int,
-) -> List[WorkflowProgress]:
+) -> list[WorkflowProgress]:
     """
     Get all progress entries for workflow runs in a project revision.
     """

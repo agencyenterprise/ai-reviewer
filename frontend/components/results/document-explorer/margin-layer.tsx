@@ -3,6 +3,7 @@
 import { Issue } from '@/lib/generated-api';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { DocumentIssues } from './document-issues';
+import { issueStartLine } from './issue-lines';
 import { MarginNote } from './margin-note';
 import { Slot, stackNotes } from './margin-stack';
 
@@ -53,7 +54,7 @@ export function MarginLayer({ issues, documentIssues, activeIssueId, readOnly, o
     const anchored = issues
       .map((issue) => ({
         id: issue.id,
-        line: typeof issue.start_line === 'number' ? issue.start_line : null,
+        line: issueStartLine(issue),
         issue: issue as Issue,
       }))
       .sort((a, b) => (a.line ?? 0) - (b.line ?? 0));
@@ -68,7 +69,9 @@ export function MarginLayer({ issues, documentIssues, activeIssueId, readOnly, o
   // selection re-runs the layout (below) without rebuilding the observer that
   // watches every note for reflow.
   const activeRef = useRef(activeIssueId);
-  activeRef.current = activeIssueId;
+  useLayoutEffect(() => {
+    activeRef.current = activeIssueId;
+  });
 
   const layout = useCallback(() => {
     const body = layerRef.current?.parentElement;

@@ -4,27 +4,49 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from inspect_ai.event import ModelEvent
-from inspect_ai.model import ChatMessageAssistant, ChatMessageSystem, ChatMessageTool, ChatMessageUser
+from inspect_ai.model import (
+    ChatMessageAssistant,
+    ChatMessageSystem,
+    ChatMessageTool,
+    ChatMessageUser,
+)
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
 from evals_inspectai.common import transcript_replay
 from evals_inspectai.common.api_solver import persisted_issues, pop_conversations
 from evals_inspectai.common.simple_deep_agent_types import AgentCheckResult
-from evals_inspectai.common.transcript_replay import Conversation, replay_conversation, replay_conversations
+from evals_inspectai.common.transcript_replay import (
+    Conversation,
+    replay_conversation,
+    replay_conversations,
+)
 
 
 def _conversation(start: int, end: int) -> list:
     return [
         SystemMessage(content="skill + guidance"),
-        HumanMessage(content=f"Catalogue the abbreviations on lines {start}-{end} of /main.md"),
+        HumanMessage(
+            content=f"Catalogue the abbreviations on lines {start}-{end} of /main.md"
+        ),
         AIMessage(
             content="",
-            tool_calls=[{"id": "c1", "name": "read_file", "args": {"file_path": "/main.md"}}],
+            tool_calls=[
+                {"id": "c1", "name": "read_file", "args": {"file_path": "/main.md"}}
+            ],
             response_metadata={"model_name": "gpt-5.6-terra"},
-            usage_metadata={"input_tokens": 100, "output_tokens": 10, "total_tokens": 110},
+            usage_metadata={
+                "input_tokens": 100,
+                "output_tokens": 10,
+                "total_tokens": 110,
+            },
         ),
-        ToolMessage(content="     1\tThe NATO alliance.", tool_call_id="c1", name="read_file"),
-        AIMessage(content='{"occurrences": []}', response_metadata={"model_name": "gpt-5.6-terra"}),
+        ToolMessage(
+            content="     1\tThe NATO alliance.", tool_call_id="c1", name="read_file"
+        ),
+        AIMessage(
+            content='{"occurrences": []}',
+            response_metadata={"model_name": "gpt-5.6-terra"},
+        ),
     ]
 
 
@@ -65,17 +87,26 @@ def test_conversations_come_out_in_run_order_and_leave_the_state():
 
 
 def test_without_an_item_key_only_the_top_level_conversation_is_taken():
-    state = {"messages": [m.model_dump() for m in _conversation(1, 1)], "chunks": [_chunk(0, "completed", _conversation(1, 10))]}
+    state = {
+        "messages": [m.model_dump() for m in _conversation(1, 1)],
+        "chunks": [_chunk(0, "completed", _conversation(1, 10))],
+    }
     assert [c.label for c in pop_conversations(state, "wf", None)] == ["wf"]
     assert "messages" in state["chunks"][0]
 
 
 async def _replay(as_sub_agent: bool):
     recorder = MagicMock()
-    conversation = Conversation(label="chunks 0 · lines 1-10", metadata={"chunks": {"index": 0}}, messages=_conversation(1, 10))
+    conversation = Conversation(
+        label="chunks 0 · lines 1-10",
+        metadata={"chunks": {"index": 0}},
+        messages=_conversation(1, 10),
+    )
     with (
         patch.object(transcript_replay, "transcript", return_value=recorder),
-        patch.object(transcript_replay, "span", wraps=transcript_replay.span) as span_spy,
+        patch.object(
+            transcript_replay, "span", wraps=transcript_replay.span
+        ) as span_spy,
     ):
         messages = await replay_conversation(conversation, as_sub_agent=as_sub_agent)
     return messages, [c.args[0] for c in recorder._event.call_args_list], span_spy
@@ -87,13 +118,24 @@ async def test_replay_records_one_model_event_per_assistant_turn_with_its_full_i
 
     assert all(isinstance(e, ModelEvent) for e in events)
     assert [len(e.input) for e in events] == [2, 4]
-    assert isinstance(events[0].input[0], ChatMessageSystem)  # the system prompt is part of every call's input
+    assert isinstance(
+        events[0].input[0], ChatMessageSystem
+    )  # the system prompt is part of every call's input
     assert events[0].output.choices[0].stop_reason == "tool_calls"
     assert events[1].output.choices[0].stop_reason == "stop"
     assert events[0].model == "gpt-5.6-terra"
-    assert events[0].output.usage is not None and events[0].output.usage.total_tokens == 110
+    assert (
+        events[0].output.usage is not None
+        and events[0].output.usage.total_tokens == 110
+    )
 
-    assert [type(m) for m in messages] == [ChatMessageSystem, ChatMessageUser, ChatMessageAssistant, ChatMessageTool, ChatMessageAssistant]
+    assert [type(m) for m in messages] == [
+        ChatMessageSystem,
+        ChatMessageUser,
+        ChatMessageAssistant,
+        ChatMessageTool,
+        ChatMessageAssistant,
+    ]
     assert messages[0].metadata == {"chunks": {"index": 0}}
 
 
@@ -118,7 +160,9 @@ async def test_one_conversation_is_ungrouped_and_fills_the_messages_tab():
     conversation = Conversation(label="wf", messages=_conversation(1, 10))
     with (
         patch.object(transcript_replay, "transcript", return_value=MagicMock()),
-        patch.object(transcript_replay, "span", wraps=transcript_replay.span) as span_spy,
+        patch.object(
+            transcript_replay, "span", wraps=transcript_replay.span
+        ) as span_spy,
     ):
         messages = await replay_conversations([conversation])
     assert span_spy.call_count == 0
@@ -127,13 +171,22 @@ async def test_one_conversation_is_ungrouped_and_fills_the_messages_tab():
 
 @pytest.mark.asyncio
 async def test_several_conversations_are_all_grouped_alike_and_leave_the_messages_tab():
-    conversations = [Conversation(label=f"section {i}", messages=_conversation(1, 10)) for i in range(3)]
+    conversations = [
+        Conversation(label=f"section {i}", messages=_conversation(1, 10))
+        for i in range(3)
+    ]
     with (
         patch.object(transcript_replay, "transcript", return_value=MagicMock()),
-        patch.object(transcript_replay, "span", wraps=transcript_replay.span) as span_spy,
+        patch.object(
+            transcript_replay, "span", wraps=transcript_replay.span
+        ) as span_spy,
     ):
         messages = await replay_conversations(conversations)
-    assert [c.args[0] for c in span_spy.call_args_list] == ["section 0", "section 1", "section 2"]
+    assert [c.args[0] for c in span_spy.call_args_list] == [
+        "section 0",
+        "section 1",
+        "section 2",
+    ]
     assert messages == []
 
 
@@ -153,27 +206,58 @@ async def test_cache_reads_and_writes_both_reach_the_model_event():
         },
     )
     recorder = MagicMock()
-    conversation = Conversation(label="wf", messages=[HumanMessage(content="hi"), reply])
+    conversation = Conversation(
+        label="wf", messages=[HumanMessage(content="hi"), reply]
+    )
     with patch.object(transcript_replay, "transcript", return_value=recorder):
         await replay_conversation(conversation, as_sub_agent=False)
 
     [event] = [c.args[0] for c in recorder._event.call_args_list]
     usage = event.output.usage
     assert usage is not None
-    assert (usage.input_tokens_cache_read, usage.input_tokens_cache_write, usage.reasoning_tokens) == (800, 300, 12)
+    assert (
+        usage.input_tokens_cache_read,
+        usage.input_tokens_cache_write,
+        usage.reasoning_tokens,
+    ) == (800, 300, 12)
 
 
 def test_persisted_issues_keep_only_this_runs_issues_in_the_checked_shape():
     project_issues = [
-        {"workflow_run_id": "run-1", "title": "Ambiguous abbreviation", "description": "d", "severity": "medium",
-         "start_line": 4, "end_line": 4, "suggested_action": None, "long_description": None, "issue_hash": "h"},
-        {"workflow_run_id": "run-1", "title": "No Abbreviations section found", "description": "d",
-         "severity": "medium", "start_line": None, "end_line": None},
-        {"workflow_run_id": "run-2", "title": "Other workflow", "description": "d", "severity": "low"},
+        {
+            "workflow_run_id": "run-1",
+            "title": "Ambiguous abbreviation",
+            "description": "d",
+            "severity": "medium",
+            "start_line": 4,
+            "end_line": 4,
+            "suggested_action": None,
+            "long_description": None,
+            "issue_hash": "h",
+        },
+        {
+            "workflow_run_id": "run-1",
+            "title": "No Abbreviations section found",
+            "description": "d",
+            "severity": "medium",
+            "start_line": None,
+            "end_line": None,
+        },
+        {
+            "workflow_run_id": "run-2",
+            "title": "Other workflow",
+            "description": "d",
+            "severity": "low",
+        },
     ]
     issues = persisted_issues(project_issues, "run-1")
-    assert [i["title"] for i in issues] == ["Ambiguous abbreviation", "No Abbreviations section found"]
-    assert issues[1]["start_line"] == 0 and issues[1]["end_line"] == 0, "a missing line reads as 0"
+    assert [i["title"] for i in issues] == [
+        "Ambiguous abbreviation",
+        "No Abbreviations section found",
+    ]
+    assert issues[1]["start_line"] == 0 and issues[1]["end_line"] == 0, (
+        "a missing line reads as 0"
+    )
     assert "issue_hash" not in issues[0] and "workflow_run_id" not in issues[0]
     parsed = AgentCheckResult.model_validate({"issues": issues})
     assert parsed.issues[0].severity == "medium" and parsed.issues[0].start_line == 4

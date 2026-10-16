@@ -7,13 +7,11 @@ Provides RESTful API for managing user feedback on analysis results.
 import csv
 import io
 import json
-from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-
 from sqlalchemy import select
 from sqlmodel import col
 
@@ -32,7 +30,7 @@ router = APIRouter(tags=["feedback"])
 class FeedbackRequest(BaseModel):
     """Generic request model for any entity feedback"""
 
-    workflow_run_id: Optional[UUID] = Field(
+    workflow_run_id: UUID | None = Field(
         default=None,
         description="Workflow run ID (optional if issue_id is provided)",
     )
@@ -46,12 +44,12 @@ class FeedbackRequest(BaseModel):
             {},  # workflow-level or issue-level (when issue_id is set)
         ],
     )
-    issue_id: Optional[UUID] = Field(
+    issue_id: UUID | None = Field(
         default=None,
         description="Issue ID for issue-level feedback (preferred, derives workflow_run_id automatically)",
     )
-    feedback_type: str  # Accept as string, convert in endpoint
-    feedback_text: Optional[str] = Field(
+    feedback_type: FeedbackType
+    feedback_text: str | None = Field(
         default=None,
         description="Optional feedback text (typically used with thumbs down)",
     )
@@ -63,9 +61,9 @@ class FeedbackResponse(BaseModel):
     id: UUID
     workflow_run_id: UUID
     entity_path: dict
-    issue_id: Optional[UUID]
+    issue_id: UUID | None
     feedback_type: FeedbackType
-    feedback_text: Optional[str]
+    feedback_text: str | None
     created_at: str
     updated_at: str
 
@@ -91,7 +89,6 @@ async def submit_feedback(
 ) -> FeedbackResponse:
     """Submit or update feedback for any entity"""
     async with get_async_db_session() as session:
-        feedback_type = FeedbackType(request.feedback_type)
         workflow_run_id = request.workflow_run_id
 
         # If issue_id is provided, derive workflow_run_id from the issue
@@ -113,7 +110,7 @@ async def submit_feedback(
             session=session,
             workflow_run_id=workflow_run_id,
             entity_path=request.entity_path,
-            feedback_type=feedback_type,
+            feedback_type=request.feedback_type,
             user=current_user,
             feedback_text=request.feedback_text,
             issue_id=request.issue_id,
@@ -122,13 +119,13 @@ async def submit_feedback(
         return FeedbackResponse.from_model(feedback)
 
 
-@router.get("/api/feedback", response_model=Optional[FeedbackResponse])
+@router.get("/api/feedback", response_model=FeedbackResponse | None)
 async def get_feedback(
-    workflow_run_id: Optional[UUID] = None,
-    entity_path: Optional[str] = None,  # JSON string, we'll parse it
-    issue_id: Optional[UUID] = None,
+    workflow_run_id: UUID | None = None,
+    entity_path: str | None = None,  # JSON string, we'll parse it
+    issue_id: UUID | None = None,
     current_user: User = Depends(get_current_user),
-) -> Optional[FeedbackResponse]:
+) -> FeedbackResponse | None:
     """Get feedback for a specific entity or issue
 
     Examples:
@@ -195,7 +192,7 @@ class AdminFeedbackItem(BaseModel):
 
     id: UUID
     feedback_type: FeedbackType
-    feedback_text: Optional[str]
+    feedback_text: str | None
     created_at: str
     user_id: UUID
     user_name: str
@@ -210,16 +207,16 @@ class AdminFeedbackItem(BaseModel):
 
 @router.get("/api/admin/feedbacks", response_model=list[AdminFeedbackItem])
 async def get_admin_feedbacks(
-    user_id: Optional[UUID] = Query(
+    user_id: UUID | None = Query(
         default=None, description="Filter results to feedback submitted by this user."
     ),
-    workflow_type: Optional[WorkflowRunType] = Query(
+    workflow_type: WorkflowRunType | None = Query(
         default=None, description="Filter results to a specific analysis workflow type."
     ),
-    feedback_type: Optional[FeedbackType] = Query(
+    feedback_type: FeedbackType | None = Query(
         default=None, description="Filter results to thumbs-up or thumbs-down feedback."
     ),
-    search: Optional[str] = Query(
+    search: str | None = Query(
         default=None,
         description="Substring search across issue title/description, project title, user name/email, and feedback text. Multiple words are ANDed together.",
         max_length=200,
@@ -267,16 +264,16 @@ async def get_admin_feedbacks(
 
 @router.get("/api/admin/feedbacks/export")
 async def export_admin_feedbacks_csv(
-    user_id: Optional[UUID] = Query(
+    user_id: UUID | None = Query(
         default=None, description="Filter results to feedback submitted by this user."
     ),
-    workflow_type: Optional[WorkflowRunType] = Query(
+    workflow_type: WorkflowRunType | None = Query(
         default=None, description="Filter results to a specific analysis workflow type."
     ),
-    feedback_type: Optional[FeedbackType] = Query(
+    feedback_type: FeedbackType | None = Query(
         default=None, description="Filter results to thumbs-up or thumbs-down feedback."
     ),
-    search: Optional[str] = Query(
+    search: str | None = Query(
         default=None,
         description="Substring search across issue title/description, project title, user name/email, and feedback text. Multiple words are ANDed together.",
         max_length=200,

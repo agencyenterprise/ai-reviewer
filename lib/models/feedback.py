@@ -5,15 +5,15 @@ This module provides a self-contained feedback system that uses coordinate-based
 addressing to attach feedback to any entity.
 """
 
+import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional
-import uuid
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlmodel import Enum as SQLModelEnum
 from sqlmodel import Field as SQLField
-from sqlmodel import SQLModel, String, Enum as SQLModelEnum
+from sqlmodel import SQLModel, String
 
 
 class FeedbackType(str, Enum):
@@ -61,7 +61,7 @@ class Feedback(SQLModel, table=True):
         description="The user who created this feedback",
     )
 
-    issue_id: Optional[uuid.UUID] = SQLField(
+    issue_id: uuid.UUID | None = SQLField(
         sa_column=Column(
             UUID(as_uuid=True),
             ForeignKey("issues.id", ondelete="CASCADE", use_alter=True),
@@ -82,7 +82,7 @@ class Feedback(SQLModel, table=True):
         description="Type of feedback (thumbs up/down)",
     )
 
-    feedback_text: Optional[str] = SQLField(
+    feedback_text: str | None = SQLField(
         sa_column=Column(String, nullable=True),
         default=None,
         description="Optional feedback text",

@@ -1,12 +1,12 @@
-from typing import List, Type
+import builtins
 
 from langgraph.graph import StateGraph
 
+from lib.services.files import get_main_file_id
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.reviewer_2.graph import build_reviewer_2_graph
 from lib.workflows.reviewer_2.state import Reviewer2Config, Reviewer2State
-from lib.services.files import get_main_file_id
 from lib.workflows.workflow_types import WorkflowState
 
 
@@ -19,10 +19,10 @@ class Reviewer2Manifest(WorkflowManifest[Reviewer2State, Reviewer2Config]):
     is_experimental = True
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
 
-    def get_state_type(self) -> Type[Reviewer2State]:
+    def get_state_type(self) -> builtins.type[Reviewer2State]:
         return Reviewer2State
 
-    def get_config_type(self) -> Type[Reviewer2Config]:
+    def get_config_type(self) -> builtins.type[Reviewer2Config]:
         return Reviewer2Config
 
     def build_graph(self) -> StateGraph:
@@ -31,7 +31,7 @@ class Reviewer2Manifest(WorkflowManifest[Reviewer2State, Reviewer2Config]):
     async def create_initial_state(
         self,
         config: Reviewer2Config,
-        existing_states: List[WorkflowState],
+        existing_states: list[WorkflowState],
         revision: int,
         prior_self_state: Reviewer2State | None = None,
     ) -> Reviewer2State:
@@ -42,6 +42,6 @@ class Reviewer2Manifest(WorkflowManifest[Reviewer2State, Reviewer2Config]):
         )
 
     def convert_state_to_issues(
-        self, state: Reviewer2State, other_states: List[WorkflowState]
-    ) -> List[DocumentIssue]:
+        self, state: Reviewer2State, other_states: list[WorkflowState]
+    ) -> list[DocumentIssue]:
         return []

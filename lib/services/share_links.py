@@ -2,7 +2,6 @@
 
 import logging
 import uuid
-from typing import Optional
 
 from pydantic import BaseModel, Field
 from sqlalchemy import select, update
@@ -28,12 +27,12 @@ class ShareStatusResponse(BaseModel):
     """Response model for share status check."""
 
     enabled: bool = Field(description="Whether sharing is enabled")
-    share_link: Optional[ShareLinkResponse] = Field(
+    share_link: ShareLinkResponse | None = Field(
         default=None, description="Share link details if enabled"
     )
 
 
-def _build_share_url(token: str, anchor: Optional[str] = None) -> str:
+def _build_share_url(token: str, anchor: str | None = None) -> str:
     """Build the full shareable URL from a token with optional anchor."""
     base_url = config.FRONTEND_URL or "http://localhost:3000"
     url = f"{base_url}/share/{token}"
@@ -51,7 +50,7 @@ def _to_response(share_link: ShareLink) -> ShareLinkResponse:
 
 async def get_active_share_link(
     resource_type: str, resource_id: uuid.UUID
-) -> Optional[ShareLink]:
+) -> ShareLink | None:
     """Get the active share link for a resource if it exists."""
     async with get_async_db_session() as session:
         stmt = select(ShareLink).where(
@@ -63,7 +62,7 @@ async def get_active_share_link(
         return result.scalar_one_or_none()
 
 
-async def get_resource_by_token(token: str) -> Optional[ShareLink]:
+async def get_resource_by_token(token: str) -> ShareLink | None:
     """Get resource info by share token. Returns None if token is invalid or inactive."""
     async with get_async_db_session() as session:
         stmt = select(ShareLink).where(
@@ -135,16 +134,3 @@ async def get_share_status(
     if share_link:
         return ShareStatusResponse(enabled=True, share_link=_to_response(share_link))
     return ShareStatusResponse(enabled=False, share_link=None)
-
-
-async def is_project_shared(project_id: str) -> bool:
-    """Check if a project is shared."""
-
-    async with get_async_db_session() as session:
-        stmt = select(ShareLink).where(
-            col(ShareLink.resource_type) == "project",
-            col(ShareLink.resource_id) == project_id,
-            col(ShareLink.is_active).is_(True),
-        )
-        result = await session.execute(stmt)
-        return result.scalar_one_or_none() is not None

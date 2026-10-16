@@ -27,16 +27,26 @@ account.
 
 import math
 import re
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from evals_inspectai.common.issue_checks import hit_pairs
-from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue, quoted_verbatim
+from evals_inspectai.common.issue_inventory import (
+    ResolvedInventory,
+    ResolvedIssue,
+    quoted_verbatim,
+)
 from evals_inspectai.common.issue_judge import JudgeCriterion
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
 
 LEVELS = ("supported", "partially_supported", "unsupported", "unverifiable")
 # The severity the manifest gives each level's issue.
-SEVERITIES = {"supported": "none", "partially_supported": "medium", "unsupported": "high", "unverifiable": "medium"}
+SEVERITIES = {
+    "supported": "none",
+    "partially_supported": "medium",
+    "unsupported": "high",
+    "unverifiable": "medium",
+}
 
 
 def _level(record: Mapping[str, Any]) -> str:
@@ -64,7 +74,9 @@ def as_issues(citation_issues: Sequence[Mapping[str, Any]]) -> list[dict[str, An
     ]
 
 
-def label_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> tuple[dict[str, float], str]:
+def label_scores(
+    issues: Sequence[IssueItem], inventory: ResolvedInventory
+) -> tuple[dict[str, float], str]:
     """``label_<level>``: of the detected citations a correct run gives that level, the
     share the run gave it; NaN when the sample has none detected."""
     by_level: dict[str, list[float]] = {level: [] for level in LEVELS}
@@ -75,9 +87,16 @@ def label_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> t
         right = issue.title == expected.title
         by_level[expected.title].append(float(right))
         if not right:
-            notes.append(f"{expected.id}: {issue.title or 'no level'}, expected {expected.title}")
-    values = {f"label_{level}": (sum(v) / len(v) if v else math.nan) for level, v in by_level.items()}
-    return values, " | ".join(notes) if notes else "every detected citation got its level"
+            notes.append(
+                f"{expected.id}: {issue.title or 'no level'}, expected {expected.title}"
+            )
+    values = {
+        f"label_{level}": (sum(v) / len(v) if v else math.nan)
+        for level, v in by_level.items()
+    }
+    return values, (
+        " | ".join(notes) if notes else "every detected citation got its level"
+    )
 
 
 _HEADING_LINE_RE = re.compile(r"^\s{0,3}#{1,6}\s.*$", re.M)
@@ -100,17 +119,31 @@ def evidence_scores(
     texts = [_HEADING_LINE_RE.sub("", s["markdown"]) for s in sources]
     invented = [q for q in quotes if not any(quoted_verbatim(q, t) for t in texts)]
     value = 1 - len(invented) / len(quotes)
-    return {"evidence_verbatim": value}, (f"quotes not in any source: {invented}" if invented else "every quote is in a source")
+    return {"evidence_verbatim": value}, (
+        f"quotes not in any source: {invented}"
+        if invented
+        else "every quote is in a source"
+    )
 
 
-def quote_scores(citation_issues: Sequence[Mapping[str, Any]], document: str) -> tuple[dict[str, float], str]:
+def quote_scores(
+    citation_issues: Sequence[Mapping[str, Any]], document: str
+) -> tuple[dict[str, float], str]:
     """``cited_text_verbatim``: share of the citation records whose cited text occurs
     verbatim in the document; NaN when there are none."""
     if not citation_issues:
         return {"cited_text_verbatim": math.nan}, "no citation reported"
-    missing = [r.get("quoted_text") or "" for r in citation_issues if not quoted_verbatim(r.get("quoted_text") or "", document)]
+    missing = [
+        r.get("quoted_text") or ""
+        for r in citation_issues
+        if not quoted_verbatim(r.get("quoted_text") or "", document)
+    ]
     value = 1 - len(missing) / len(citation_issues)
-    return {"cited_text_verbatim": value}, (f"cited text not in the document: {missing}" if missing else "every cited text is in the document")
+    return {"cited_text_verbatim": value}, (
+        f"cited text not in the document: {missing}"
+        if missing
+        else "every cited text is in the document"
+    )
 
 
 RATIONALE_CRITERION = (
@@ -131,7 +164,7 @@ ACTION_CRITERION = (
     "(naming the scope), correct the figure or direction to the source's, cite a source that does back the claim "
     "or remove it, or supply the missing source. A correction that states a figure, scope or finding the "
     "labeller's account contradicts, or one the source does not contain, is incorrect. Advice that fits any "
-    "citation (\"verify the citation\", \"ensure claims are supported\") is incorrect."
+    'citation ("verify the citation", "ensure claims are supported") is incorrect.'
 )
 
 
@@ -140,7 +173,14 @@ def _not_supported(expected: ResolvedIssue) -> bool:
 
 
 JUDGE_CRITERIA = [
-    JudgeCriterion(key="rationale_matches_source", criterion=RATIONALE_CRITERION, scope="expected", passage="section", reads="analysis", reference=True),
+    JudgeCriterion(
+        key="rationale_matches_source",
+        criterion=RATIONALE_CRITERION,
+        scope="expected",
+        passage="section",
+        reads="analysis",
+        reference=True,
+    ),
     JudgeCriterion(
         key="action_fixes_citation",
         criterion=ACTION_CRITERION,

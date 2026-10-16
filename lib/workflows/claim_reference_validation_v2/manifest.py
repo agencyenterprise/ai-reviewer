@@ -1,6 +1,7 @@
 """Manifest for Claim Reference Validation V2 workflow."""
 
-from typing import List, Optional, Type, cast
+import builtins
+from typing import cast
 
 from langgraph.graph import StateGraph
 
@@ -57,8 +58,8 @@ _LEGACY_LABEL_TO_ALIGNMENT: dict[TruthfulnessLabel, EvidenceAlignmentLevel] = {
 
 
 def _get_file_by_id(
-    supporting_files: Optional[List[FileDocument]], file_id: str
-) -> Optional[FileDocument]:
+    supporting_files: list[FileDocument] | None, file_id: str
+) -> FileDocument | None:
     if not supporting_files:
         return None
     return next((f for f in supporting_files if f.file_id == file_id), None)
@@ -66,7 +67,7 @@ def _get_file_by_id(
 
 def _format_evidence_source(
     source,
-    supporting_files: Optional[List[FileDocument]],
+    supporting_files: list[FileDocument] | None,
 ) -> str:
     file = _get_file_by_id(supporting_files, source.file_id)
     label = file.file_name if file else "View file"
@@ -81,7 +82,7 @@ def _format_evidence_source(
     return f"- {file_link} - {source.location}\n\n\t> *{source.quote}*"
 
 
-def _resolve_alignment(item: CitationIssueItem) -> Optional[EvidenceAlignmentLevel]:
+def _resolve_alignment(item: CitationIssueItem) -> EvidenceAlignmentLevel | None:
     if item.evidence_alignment is not None:
         return item.evidence_alignment
     if item.truthfulness_label is not None:
@@ -91,9 +92,9 @@ def _resolve_alignment(item: CitationIssueItem) -> Optional[EvidenceAlignmentLev
 
 def _build_issue(
     item: CitationIssueItem,
-    supporting_files: Optional[List[FileDocument]],
+    supporting_files: list[FileDocument] | None,
     workflow_type: WorkflowRunType,
-) -> Optional[DocumentIssue]:
+) -> DocumentIssue | None:
     alignment = _resolve_alignment(item)
     if alignment is None or alignment not in _ISSUE_CONFIG:
         return None
@@ -152,10 +153,10 @@ class ClaimReferenceValidationV2Manifest(
         WorkflowRunType.REFERENCE_DOWNLOADER,
     ]
 
-    def get_state_type(self) -> Type[ClaimReferenceValidationV2State]:
+    def get_state_type(self) -> builtins.type[ClaimReferenceValidationV2State]:
         return ClaimReferenceValidationV2State
 
-    def get_config_type(self) -> Type[ClaimReferenceValidationV2Config]:
+    def get_config_type(self) -> builtins.type[ClaimReferenceValidationV2Config]:
         return ClaimReferenceValidationV2Config
 
     def build_graph(self) -> StateGraph:
@@ -177,7 +178,7 @@ class ClaimReferenceValidationV2Manifest(
     async def create_initial_state(
         self,
         config: ClaimReferenceValidationV2Config,
-        existing_states: List[WorkflowState],
+        existing_states: list[WorkflowState],
         revision: int,
         prior_self_state: ClaimReferenceValidationV2State | None = None,
     ) -> ClaimReferenceValidationV2State:
@@ -189,8 +190,8 @@ class ClaimReferenceValidationV2Manifest(
     def convert_state_to_issues(
         self,
         state: ClaimReferenceValidationV2State,
-        other_states: List[WorkflowState],
-    ) -> List[DocumentIssue]:
+        other_states: list[WorkflowState],
+    ) -> list[DocumentIssue]:
         doc_processing_state = get_state_by_type(
             WorkflowRunType.DOCUMENT_PROCESSING, other_states
         )

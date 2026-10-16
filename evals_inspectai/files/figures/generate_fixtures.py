@@ -11,8 +11,8 @@ what makes the right verdict reachable only by looking at it. Drawing is
 deterministic, so rerunning this rewrites identical bytes.
 """
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from evals_inspectai.files.figures import charts
 

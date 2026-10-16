@@ -12,7 +12,6 @@ the predicate selects exactly the right set.
 
 import uuid
 from datetime import datetime, timedelta
-from typing import Optional
 
 import pytest
 import pytest_asyncio
@@ -31,9 +30,9 @@ async def _insert_run(
     *,
     status: WorkflowRunStatus,
     created_at: datetime,
-    started_at: Optional[datetime] = None,
-    heartbeat_at: Optional[datetime] = None,
-    last_updated_at: Optional[datetime] = None,
+    started_at: datetime | None = None,
+    heartbeat_at: datetime | None = None,
+    last_updated_at: datetime | None = None,
 ) -> uuid.UUID:
     """Insert a run. A fresh row's last_updated_at equals its created_at, which
     is what a real insert produces; pass it explicitly to model a later write."""

@@ -8,7 +8,7 @@ turned down.
 """
 
 import uuid
-from typing import List, Mapping, Optional, Sequence
+from collections.abc import Mapping, Sequence
 
 from lib.models.issue_edit import IssueEdit
 from lib.services.docx.tracked_changes import EditOutcome
@@ -24,14 +24,14 @@ _UNMATCHED = (
 )
 
 
-def _unsupported_line(detail: Optional[str]) -> str:
+def _unsupported_line(detail: str | None) -> str:
     """Why a replacement has no redline of its own to offer."""
     reason = "the replacement cannot be represented in Word"
     aside = f" ({detail})" if detail else ""
     return f"Not applied as a tracked change: {reason}{aside}."
 
 
-def _conflict_line(outcome: EditOutcome, winner_name: Optional[str]) -> str:
+def _conflict_line(outcome: EditOutcome, winner_name: str | None) -> str:
     """Where the edit it lost to sits: its own line, or the Word paragraph.
 
     A conflict the pre-flight decided names the winning edit, so it is the
@@ -50,7 +50,7 @@ def _conflict_line(outcome: EditOutcome, winner_name: Optional[str]) -> str:
     )
 
 
-def _failed_line(detail: Optional[str]) -> str:
+def _failed_line(detail: str | None) -> str:
     """Why an edit that could be placed still has no redline.
 
     Distinct from the unmatched sentence on purpose: the quote was found, and
@@ -60,7 +60,7 @@ def _failed_line(detail: Optional[str]) -> str:
     return f"Not applied as a tracked change: {reason}."
 
 
-def _status_line(outcome: EditOutcome, winner_name: Optional[str]) -> str:
+def _status_line(outcome: EditOutcome, winner_name: str | None) -> str:
     if outcome.status == "applied":
         return _APPLIED
     if outcome.status == "conflict":
@@ -84,7 +84,7 @@ def build_edit_notes(
     edits: Sequence[IssueEdit],
     outcomes: Mapping[uuid.UUID, EditOutcome],
     conflict_winner_names: Mapping[uuid.UUID, str],
-) -> List[str]:
+) -> list[str]:
     """One comment block per edit of an issue, in the order proposed.
 
     `outcomes` is keyed by edit id; an edit with no outcome -- a rejected one,
@@ -92,7 +92,7 @@ def build_edit_notes(
     `conflict_winner_names` maps a losing edit's id to the display name of the
     workflow whose edit won, so the note can name what it lost to.
     """
-    notes: List[str] = []
+    notes: list[str] = []
     for edit in edits:
         outcome = outcomes.get(edit.id)
         if outcome is None:

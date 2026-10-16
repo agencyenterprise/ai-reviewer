@@ -35,6 +35,7 @@ from evals_inspectai.e2e.results_extraction.contract import (
 from evals_inspectai.e2e.results_extraction.matching import match_expected
 from evals_inspectai.e2e.results_extraction.parsing import label_of, table_row_count
 
+
 def _ground_truth_checks(
     issues: list[IssueItem],
     expected: list[dict[str, Any]],
@@ -51,20 +52,20 @@ def _ground_truth_checks(
             if not issues
             else f"document presents no results, but {len(issues)} were reported"
         )
-        return {
-            key: (verdict, note)
-            for key in ("completeness", "class_accuracy", "no_extras", "severity_ordering")
-        }
+        return dict.fromkeys(
+            ("completeness", "class_accuracy", "no_extras", "severity_ordering"),
+            (verdict, note),
+        )
     if not expected:
         # Every record is required to declare its inventory (`_load_dataset`
         # enforces it), so reaching here means the dataset is malformed. Failing
         # is the honest reading: scoring 1.0 would report four passes that were
         # never tested, and a sample with no ground truth cannot be checked.
         note = "no expected inventory declared -- this sample cannot be scored"
-        return {
-            key: (0.0, note)
-            for key in ("completeness", "class_accuracy", "no_extras", "severity_ordering")
-        }
+        return dict.fromkeys(
+            ("completeness", "class_accuracy", "no_extras", "severity_ordering"),
+            (0.0, note),
+        )
 
     matched = match_expected(issues, expected)
     by_id = {entry["id"]: entry for entry in expected}
@@ -75,11 +76,13 @@ def _ground_truth_checks(
     completeness = (
         len(found) / len(required) if required else 1.0,
         (
-            f"{len(found)}/{len(required)} required result(s) found"
-            + (f"; missing {', '.join(missing)}" if missing else "")
-        )
-        if required
-        else "no required results declared",
+            (
+                f"{len(found)}/{len(required)} required result(s) found"
+                + (f"; missing {', '.join(missing)}" if missing else "")
+            )
+            if required
+            else "no required results declared"
+        ),
     )
 
     wrong_class = []
@@ -94,11 +97,13 @@ def _ground_truth_checks(
     class_accuracy = (
         correct / len(matched) if matched else 0.0,
         (
-            f"{correct}/{len(matched)} classified correctly"
-            + (f"; {'; '.join(wrong_class)}" if wrong_class else "")
-        )
-        if matched
-        else "no expected result was found, so nothing to classify",
+            (
+                f"{correct}/{len(matched)} classified correctly"
+                + (f"; {'; '.join(wrong_class)}" if wrong_class else "")
+            )
+            if matched
+            else "no expected result was found, so nothing to classify"
+        ),
     )
 
     # Fractional, not binary: one defensible extra reading and a run that
@@ -145,9 +150,7 @@ def _ground_truth_checks(
         for b_imp, b_sev, b_id in ranked
         if a_imp > b_imp and a_sev < b_sev
     ]
-    comparable = any(
-        a_imp != b_imp for a_imp, _, _ in ranked for b_imp, _, _ in ranked
-    )
+    comparable = any(a_imp != b_imp for a_imp, _, _ in ranked for b_imp, _, _ in ranked)
     severity_ordering = (
         not inversions,
         (
@@ -273,11 +276,14 @@ def inventory_check_results(
     duplicates = {title: n for title, n in seen.items() if n > 1}
     checks["no_duplicates"] = (
         not duplicates,
-        "no repeated issue titles"
-        if not duplicates
-        else "; ".join(f"{title!r} reported {n} times" for title, n in duplicates.items()),
+        (
+            "no repeated issue titles"
+            if not duplicates
+            else "; ".join(
+                f"{title!r} reported {n} times" for title, n in duplicates.items()
+            )
+        ),
     )
 
     checks.update(_ground_truth_checks(issues, expected, labels, expects_none))
     return checks
-

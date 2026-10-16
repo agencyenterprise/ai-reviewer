@@ -77,7 +77,11 @@ def advocacy_tone_v2_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Task:
         dataset=suite.dataset(),
         metadata=suite.metadata(GROUND_TRUTH, OWN_METRICS),
         solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s),
-        scorer=[*suite.scorers(), tone_checks(), suite.judged(JUDGE_CRITERIA, calls=judge_calls)],
+        scorer=[
+            *suite.scorers(),
+            tone_checks(),
+            suite.judged(JUDGE_CRITERIA, calls=judge_calls),
+        ],
         fail_on_error=0.2,
         viewer=suite.viewer(OWN_METRICS, SCORE_LABELS),
     )

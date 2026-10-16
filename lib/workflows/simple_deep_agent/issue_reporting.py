@@ -14,7 +14,7 @@ context for workflows that do not use it.
 """
 
 from threading import Lock
-from typing import Any, List, Literal, Optional, Union
+from typing import Any, Literal
 
 from deepagents.backends.utils import file_data_to_string
 from langchain_core.tools import BaseTool, tool
@@ -60,8 +60,8 @@ class ProposedEditInput(BaseModel):
 class _EditResolution(BaseModel):
     """Outcome of checking an issue's proposed edits against the document."""
 
-    edits: List[ProposedEdit] = Field(default_factory=list)
-    rejection: Optional[str] = Field(
+    edits: list[ProposedEdit] = Field(default_factory=list)
+    rejection: str | None = Field(
         default=None,
         description="Set when the whole issue must be rejected so the agent can retry.",
     )
@@ -75,19 +75,19 @@ class IssueReporter:
     """
 
     def __init__(
-        self, propose_edits: bool = False, document_text: Optional[str] = None
+        self, propose_edits: bool = False, document_text: str | None = None
     ) -> None:
         if propose_edits and document_text is None:
             raise ValueError("Proposed edits need the document text to check against.")
-        self._lines: List[str] = document_lines(document_text or "")
-        self._issues: List[IssueItem] = []
+        self._lines: list[str] = document_lines(document_text or "")
+        self._issues: list[IssueItem] = []
         self._issue_ids: dict[str, str] = {}
         self._lock = Lock()
         build = self._build_edits_tool if propose_edits else self._build_report_tool
         self.tools = [build()]
 
     @property
-    def issues(self) -> List[IssueItem]:
+    def issues(self) -> list[IssueItem]:
         """Return a snapshot so callers cannot mutate the collector."""
         with self._lock:
             return list(self._issues)
@@ -99,9 +99,9 @@ class IssueReporter:
         severity: Literal["none", "low", "medium", "high"],
         start_line: int,
         end_line: int,
-        long_description: Optional[str],
-        suggested_action: Optional[str],
-        edits: Optional[List[ProposedEditInput]] = None,
+        long_description: str | None,
+        suggested_action: str | None,
+        edits: list[ProposedEditInput] | None = None,
     ) -> str:
         """Validate and record one issue; shared by both tool variants."""
         if not title.strip():
@@ -146,13 +146,13 @@ class IssueReporter:
             return f"Recorded {issue_id}: {issue.title}"
 
     def _resolve_edits(
-        self, edits: Optional[List[ProposedEditInput]], start_line: int, end_line: int
+        self, edits: list[ProposedEditInput] | None, start_line: int, end_line: int
     ) -> _EditResolution:
         """Locate every proposed edit in the document, or explain what is wrong."""
         if not edits:
             return _EditResolution()
 
-        resolved: List[ProposedEdit] = []
+        resolved: list[ProposedEdit] = []
         for position, edit in enumerate(edits, start=1):
             outcome = self._resolve_edit(edit, position, start_line, end_line)
             if isinstance(outcome, str):
@@ -166,7 +166,7 @@ class IssueReporter:
         position: int,
         start_line: int,
         end_line: int,
-    ) -> Union[ProposedEdit, str]:
+    ) -> ProposedEdit | str:
         """Turn one proposed edit into a located edit, or a corrective message."""
         lines = self._lines
         label = f"edit {position}"
@@ -257,8 +257,8 @@ class IssueReporter:
             severity: Literal["none", "low", "medium", "high"],
             start_line: int,
             end_line: int,
-            long_description: Optional[str] = None,
-            suggested_action: Optional[str] = None,
+            long_description: str | None = None,
+            suggested_action: str | None = None,
         ) -> str:
             """Report one verified issue in the document under review.
 
@@ -303,9 +303,9 @@ class IssueReporter:
             severity: Literal["none", "low", "medium", "high"],
             start_line: int,
             end_line: int,
-            long_description: Optional[str] = None,
-            suggested_action: Optional[str] = None,
-            edits: Optional[List[ProposedEditInput]] = None,
+            long_description: str | None = None,
+            suggested_action: str | None = None,
+            edits: list[ProposedEditInput] | None = None,
         ) -> str:
             """Report one verified issue in the document under review.
 
@@ -359,7 +359,7 @@ class IssueReporter:
 
 
 def collect_deep_agent_run(
-    result: dict[str, Any], issue_reporter: Optional[IssueReporter] = None
+    result: dict[str, Any], issue_reporter: IssueReporter | None = None
 ) -> DeepAgentRun:
     """Convert a raw DeepAgents result and optional collector into one run."""
     return DeepAgentRun(

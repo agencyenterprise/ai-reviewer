@@ -45,19 +45,22 @@ export async function applyHandoff(handoff: HandoffView, authorize: () => Promis
 
 function failed(work: ParagraphWork, detail: string, reason: FailureReason): AppliedItem[] {
   return [
-    ...work.edits.map(
-      ({ index, edit }): AppliedItem => ({ index, kind: 'edit', quote: edit.quote, applied: false, detail, reason }),
-    ),
-    ...work.comments.map(
-      ({ index, comment }): AppliedItem => ({
-        index,
-        kind: 'comment',
-        quote: comment.quote,
-        applied: false,
-        detail,
-        reason,
-      }),
-    ),
+    ...work.edits.map(({ index, edit }): AppliedItem => ({
+      index,
+      kind: 'edit',
+      quote: edit.quote,
+      applied: false,
+      detail,
+      reason,
+    })),
+    ...work.comments.map(({ index, comment }): AppliedItem => ({
+      index,
+      kind: 'comment',
+      quote: comment.quote,
+      applied: false,
+      detail,
+      reason,
+    })),
   ];
 }
 

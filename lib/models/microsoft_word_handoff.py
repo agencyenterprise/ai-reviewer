@@ -15,7 +15,7 @@ not.
 
 import uuid
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from sqlalchemy import Column, DateTime, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -35,7 +35,7 @@ class MicrosoftWordHandoff(SQLModel, table=True):
             "account to see the handoff."
         ),
     )
-    requested_by_tid: Optional[str] = Field(
+    requested_by_tid: str | None = Field(
         default=None,
         sa_column=Column(String, nullable=True),
         description="The asker's tenant, when Teams reported it; checked alongside the oid",
@@ -68,7 +68,7 @@ class MicrosoftWordHandoff(SQLModel, table=True):
         sa_column=Column(String, nullable=False, default="pending"),
         description="pending, applied or dismissed",
     )
-    outcome: Optional[dict[str, Any]] = Field(
+    outcome: dict[str, Any] | None = Field(
         default=None,
         sa_column=Column(JSONB, nullable=True),
         description="What the add-in reported: which items landed and which did not",
@@ -76,7 +76,7 @@ class MicrosoftWordHandoff(SQLModel, table=True):
     created_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), nullable=False, index=True),
     )
-    finished_at: Optional[datetime] = Field(
+    finished_at: datetime | None = Field(
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=True),
     )

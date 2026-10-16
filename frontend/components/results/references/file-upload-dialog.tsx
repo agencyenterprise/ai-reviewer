@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { getErrorMessage } from '@/lib/api-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +20,7 @@ import { useUpload } from '@/lib/hooks/upload';
 import { FileRole, startMultipleWorkflowsApiWorkflowsStartMultiplePost, WorkflowRunType } from '@/lib/generated-api';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { projectQueryKeys } from '@/lib/hooks/use-project-data';
 
 export interface FileUploadDialogProps {
   isOpen: boolean;
@@ -97,7 +98,6 @@ export function FileUploadDialog({
   const [selectedRevision, setSelectedRevision] = useState<number | undefined>(targetRevision);
   const [isStartingWorkflow, setIsStartingWorkflow] = useState(false);
   const queryClient = useQueryClient();
-  const resetRef = useRef<(() => void) | null>(null);
 
   const isMemoUpload = fileRole === FileRole.ReviewerMemo;
   // Reference matching only applies to supporting documents (that aren't
@@ -114,14 +114,14 @@ export function FileUploadDialog({
 
   const handleAllComplete = useCallback(async () => {
     if (referenceId) {
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
       toast.success('File uploaded and matched to reference.');
       onComplete?.();
       return;
     }
 
     if (skipMatching) {
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
       toast.success(successMessage);
       onComplete?.();
       return;
@@ -135,7 +135,7 @@ export function FileUploadDialog({
           workflow_types: [WorkflowRunType.ReferenceFileMatching],
         },
       });
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
       toast.success(successMessage);
     } catch (error) {
       toast.error(getErrorMessage(error, 'Failed to match the files to your references'));
@@ -153,18 +153,23 @@ export function FileUploadDialog({
     onAllComplete: handleAllComplete,
   });
 
-  // Store reset in ref to avoid effect dependency on uploadHook
-  resetRef.current = uploadHook.reset;
-
-  // Reset state when dialog opens
-  useEffect(() => {
+  // Start fresh each time the dialog opens, during render rather than in an
+  // effect so the first open frame never shows the previous selection.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
     if (isOpen) {
       setSelectedFiles([]);
       setSelectedRevision(targetRevision);
       setIsStartingWorkflow(false);
-      resetRef.current?.();
     }
-  }, [isOpen, targetRevision]);
+  }
+
+  // The upload hook owns an Uppy instance, so clearing it is a side effect.
+  const resetUploads = uploadHook.reset;
+  useEffect(() => {
+    if (isOpen) resetUploads();
+  }, [isOpen, resetUploads]);
 
   const handleFilesChange = (newFiles: File[]) => {
     setSelectedFiles(multiple ? newFiles : newFiles.slice(-1));

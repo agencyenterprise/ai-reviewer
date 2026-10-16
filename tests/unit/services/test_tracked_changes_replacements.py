@@ -5,23 +5,27 @@ cannot represent is reported instead of approximated.
 """
 
 from pathlib import Path
-from typing import Dict, Tuple
 
 import pytest
 
 from lib.models.issue_edit import IssueEdit
 from lib.services.docx.tracked_changes import apply_tracked_changes
-
 from tests.unit.services.lean_docx import new_document
 from tests.unit.services.tracked_changes_support import (
     make_edit as _edit,
+)
+from tests.unit.services.tracked_changes_support import (
     plan_edits as _plan,
+)
+from tests.unit.services.tracked_changes_support import (
     read_document as _read,
+)
+from tests.unit.services.tracked_changes_support import (
     statuses as _statuses,
 )
 
 _JOINED_MARKDOWN = "This is aword."
-_JOINED_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 1)}
+_JOINED_LINE_RANGES: dict[int, tuple[int, int]] = {0: (1, 1)}
 
 
 @pytest.fixture

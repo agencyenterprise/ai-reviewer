@@ -6,8 +6,8 @@ found ahead of terminal runs, and behind anything that is actually working.
 """
 
 import uuid
-from datetime import datetime, timedelta, timezone
-from typing import Sequence
+from collections.abc import Sequence
+from datetime import UTC, datetime, timedelta
 
 import pytest
 import pytest_asyncio
@@ -25,7 +25,7 @@ from lib.services.workflow_runs import (
 )
 
 CLAIM = WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2
-BASE_TIME = datetime(2026, 1, 1, tzinfo=timezone.utc)
+BASE_TIME = datetime(2026, 1, 1, tzinfo=UTC)
 
 
 class Seeder:
