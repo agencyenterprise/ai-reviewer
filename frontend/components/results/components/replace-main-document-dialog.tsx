@@ -27,6 +27,7 @@ import {
 } from '@/lib/generated-api';
 import { MAX_FILE_SIZE_BYTES } from '@/lib/constants';
 import { Loader2 } from 'lucide-react';
+import { projectQueryKeys } from '@/lib/hooks/use-project-data';
 
 const INITIAL_WORKFLOWS = [
   WorkflowRunType.DocumentProcessing,
@@ -127,7 +128,7 @@ export function ReplaceMainDocumentDialog({
       setStage('complete');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
       // Follow the newly created revision so the view doesn't stay pinned to
       // the previous one.
       onRevisionCreated?.();

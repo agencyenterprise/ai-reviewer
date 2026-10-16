@@ -2,8 +2,7 @@
 
 from typing import Annotated, Literal
 
-from langchain_core.messages import BaseMessage
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field
 
 from lib.workflows.abbreviation_scan_v2.chunk_models import (
     AbbreviationChunk,
@@ -11,6 +10,7 @@ from lib.workflows.abbreviation_scan_v2.chunk_models import (
     LineRange,
     merge_chunks,
 )
+from lib.workflows.agent_messages import AgentMessages
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
 
@@ -100,17 +100,10 @@ class AbbreviationScanV2State(BaseWorkflowState):
         default_factory=list,
         description="The line-range chunks the document was catalogued in, with per-chunk status.",
     )
-    messages: list[BaseMessage] = Field(
+    messages: AgentMessages = Field(
         default_factory=list,
         description=(
             "The Abbreviations-section agent's conversation, system prompt included. "
             "Each chunk's conversation is on the chunk itself."
         ),
     )
-
-    @field_serializer("messages")
-    @classmethod
-    def _serialize_messages(cls, messages: list[BaseMessage]) -> list[dict]:
-        # Checkpointer-hydrated states may contain raw dicts in `messages`
-        # because reducers can append items that bypass model construction.
-        return [m if isinstance(m, dict) else m.model_dump() for m in messages]

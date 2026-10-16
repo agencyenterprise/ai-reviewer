@@ -3,11 +3,11 @@
 from enum import Enum
 from typing import Annotated, Literal
 
-from langchain_core.messages import BaseMessage
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field
 
 from lib.agents.citation_validator import TruthfulnessLabel
 from lib.agents.claim_verifier import ClaimEvidenceSource, EvidenceAlignmentLevel
+from lib.workflows.agent_messages import AgentMessages
 from lib.workflows.models import (
     BaseWorkflowConfig,
     BaseWorkflowState,
@@ -69,17 +69,10 @@ class SectionVerificationItem(BaseModel):
         default=None,
         description="Traceback, raw model output, and LLM metadata for a failed section.",
     )
-    messages: list[BaseMessage] = Field(
+    messages: AgentMessages = Field(
         default_factory=list,
         description="LLM conversation messages from the citation-validator agent invocation.",
     )
-
-    @field_serializer("messages")
-    @classmethod
-    def _serialize_messages(cls, messages: list[BaseMessage]) -> list[dict]:
-        # Checkpointer-hydrated states may contain raw dicts in `messages`
-        # because reducers can append items that bypass model construction.
-        return [m if isinstance(m, dict) else m.model_dump() for m in messages]
 
 
 def merge_section_verifications(

@@ -12,7 +12,7 @@ import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/wor
 import { WorkflowRunCost } from '@/components/workflows/workflow-run-cost';
 import { getErrorMessage } from '@/lib/api-error';
 import { AccessLevel, ProjectOverview, startMultipleWorkflowsApiWorkflowsStartMultiplePost } from '@/lib/generated-api';
-import { useProjectIssues, useWorkflowRunDetail } from '@/lib/hooks/use-project-data';
+import { useProjectIssues, useWorkflowRunDetail, projectQueryKeys } from '@/lib/hooks/use-project-data';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { isPeerReviewWorkflowType } from '@/lib/peer-review';
 import { getDisplayStatus, isWorkflowAwaitingApproval } from '@/lib/workflow-state';
@@ -87,7 +87,7 @@ export function AssessmentsTab({
       }),
     onSuccess: () => {
       toast.success('Assessments started');
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
     },
     onError: (error) => toast.error(getErrorMessage(error, 'Failed to start assessments')),
   });

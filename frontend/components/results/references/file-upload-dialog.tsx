@@ -20,6 +20,7 @@ import { useUpload } from '@/lib/hooks/upload';
 import { FileRole, startMultipleWorkflowsApiWorkflowsStartMultiplePost, WorkflowRunType } from '@/lib/generated-api';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { projectQueryKeys } from '@/lib/hooks/use-project-data';
 
 export interface FileUploadDialogProps {
   isOpen: boolean;
@@ -113,14 +114,14 @@ export function FileUploadDialog({
 
   const handleAllComplete = useCallback(async () => {
     if (referenceId) {
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
       toast.success('File uploaded and matched to reference.');
       onComplete?.();
       return;
     }
 
     if (skipMatching) {
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
       toast.success(successMessage);
       onComplete?.();
       return;
@@ -134,7 +135,7 @@ export function FileUploadDialog({
           workflow_types: [WorkflowRunType.ReferenceFileMatching],
         },
       });
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
       toast.success(successMessage);
     } catch (error) {
       toast.error(getErrorMessage(error, 'Failed to match the files to your references'));

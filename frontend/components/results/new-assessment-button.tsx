@@ -9,6 +9,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { PlayIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { projectQueryKeys } from '@/lib/hooks/use-project-data';
 
 /**
  * Starts assessments from the project header, so it is reachable from every
@@ -37,7 +38,7 @@ export function NewAssessmentButton({
       }),
     onSuccess: () => {
       toast.success('Assessments started');
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
     },
     onError: (error) => toast.error(getErrorMessage(error, 'Failed to start assessments')),
   });

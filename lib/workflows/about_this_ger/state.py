@@ -3,9 +3,9 @@
 from operator import add
 from typing import Annotated, Literal
 
-from langchain_core.messages import BaseMessage
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field
 
+from lib.workflows.agent_messages import AgentMessages
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 from lib.workflows.simple_deep_agent.agent_types import AgentCheckResult, IssueItem
 
@@ -22,14 +22,7 @@ class AgentConversation(BaseModel):
     """One validator agent's full conversation, system prompt included."""
 
     name: str = Field(description='Which validator ran it: "preface" or "authors".')
-    messages: list[BaseMessage] = Field(default_factory=list)
-
-    @field_serializer("messages")
-    @classmethod
-    def _serialize_messages(cls, messages: list[BaseMessage]) -> list[dict]:
-        # Checkpointer-hydrated states may contain raw dicts in `messages`
-        # because reducers can append items that bypass model construction.
-        return [m if isinstance(m, dict) else m.model_dump() for m in messages]
+    messages: AgentMessages = Field(default_factory=list)
 
 
 class AboutThisGerConfig(BaseWorkflowConfig):
