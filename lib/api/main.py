@@ -41,6 +41,7 @@ from lib.api.routers.microsoft import routes as microsoft_routes
 from lib.api.routers.tus_upload import tus_router
 from lib.api.tus_middleware import TusTerminationMiddleware
 from lib.config.logger import setup_logger
+from lib.services.app_configs import seed_all_defaults
 from lib.services.workflow_reaper import run_reaper_loop
 
 setup_logger()
@@ -50,7 +51,8 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Run the workflow reaper; stop it and close the checkpointer pool on shutdown."""
+    """Seed default runtime configs on startup; stop the reaper on shutdown."""
+    await seed_all_defaults()
     reaper_task = asyncio.create_task(run_reaper_loop(), name="workflow-reaper")
     try:
         yield

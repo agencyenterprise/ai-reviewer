@@ -1,11 +1,23 @@
+import logging
 import uuid
 from datetime import datetime
 
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
 from lib.models.app_config import AppConfig
+
+logger = logging.getLogger(__name__)
+
+
+class DefaultConfig(BaseModel):
+    """Describes a config key that should exist in the database."""
+
+    key: str
+    default_value: str
+    description: str
 
 
 async def get_config(key: str) -> str | None:
@@ -65,3 +77,44 @@ async def delete_config(key: str) -> bool:
         await session.delete(row)
         await session.commit()
         return True
+
+
+async def ensure_defaults(defaults: list[DefaultConfig]) -> None:
+    """Ensure every declared config key exists in the database.
+
+    Only inserts missing keys -- never overwrites values that admins
+    have already customised.
+    """
+    async with get_async_db_session() as session:
+        stmt = select(col(AppConfig.key))
+        result = await session.execute(stmt)
+        existing_keys = set(result.scalars().all())
+
+        for cfg in defaults:
+            if cfg.key not in existing_keys:
+                session.add(
+                    AppConfig(
+                        key=cfg.key,
+                        value=cfg.default_value,
+                        description=cfg.description,
+                    )
+                )
+                logger.info("Seeded default config: %s", cfg.key)
+
+        await session.commit()
+
+
+def _collect_all_defaults() -> list[DefaultConfig]:
+    """Gather every DefaultConfig list registered across the codebase.
+
+    Currently empty: the About-page content moved to the committed ABOUT.md
+    file (served via /api/about), and workflow customisation moved to skill
+    files. The app_configs table/API remain available for future runtime
+    configs and for any values admins have set manually.
+    """
+    return []
+
+
+async def seed_all_defaults() -> None:
+    """Seed all registered default configs. Safe to call repeatedly."""
+    await ensure_defaults(_collect_all_defaults())
