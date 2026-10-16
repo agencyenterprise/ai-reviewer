@@ -32,7 +32,12 @@ from lib.services.docx.tracked_changes_models import (
     editor_workspace,
 )
 from lib.services.docx.tracked_changes_placement import plan_edit
-from lib.services.edit_conflicts import EditCandidate, EditDecision, pick_winner
+from lib.services.edit_conflicts import (
+    EditCandidate,
+    EditDecision,
+    overlap_groups,
+    pick_winner,
+)
 
 # Why nothing could be placed: python-docx and docx-editor disagreed on the
 # document's paragraphs, so not one ref could be trusted.
@@ -64,44 +69,32 @@ def _paragraph_map(
     return map_paragraph_refs(ordinals, total, editor_paragraphs)
 
 
-def _paragraph_overlap_groups(
-    planned: Sequence[PlannedEdit],
-) -> list[list[PlannedEdit]]:
-    """Group the redlines of one Word paragraph that cover the same characters.
-
-    Conflicts were resolved per markdown line, but one Word paragraph can cover
-    several lines (a list, a table row, a hard line break), so two edits from
-    different lines can still land on the same words. They must not both reach
-    docx-editor: an operation whose search text overlaps text an earlier
-    operation inserted corrupts the paragraph silently.
-
-    Overlap is transitive, the way it is within a line: walking a paragraph's
-    spans in start order closes a group as soon as a span starts at or after
-    the furthest end reached so far.
-    """
-    by_paragraph: dict[str, list[PlannedEdit]] = {}
-    for edit in planned:
-        by_paragraph.setdefault(edit.paragraph_ref, []).append(edit)
-
-    groups: list[list[PlannedEdit]] = []
-    for ref in sorted(by_paragraph):
-        ordered = sorted(
-            by_paragraph[ref], key=lambda edit: (edit.span, str(edit.edit_id))
+def _decided_outcomes(decisions: Sequence[EditDecision]) -> list[EditOutcome]:
+    """Outcomes for the edits the per-line resolution already ruled out."""
+    return [
+        EditOutcome(
+            edit_id=decision.edit_id,
+            status="conflict" if decision.outcome == "conflict" else "unlocatable",
         )
-        current: list[PlannedEdit] = []
-        reach = -1
-        for edit in ordered:
-            if current and edit.span[0] < reach:
-                current.append(edit)
-                reach = max(reach, edit.span[1])
-                continue
-            if current:
-                groups.append(current)
-            current = [edit]
-            reach = edit.span[1]
-        if current:
-            groups.append(current)
-    return groups
+        for decision in decisions
+        if decision.outcome in ("conflict", "unlocatable")
+    ]
+
+
+def unplaceable_outcomes(
+    decisions: Sequence[EditDecision], detail: str | None = None
+) -> list[EditOutcome]:
+    """Outcomes for when no edit can be tied to a Word paragraph at all.
+
+    Every edit that would otherwise apply is reported as ``not_found``, with
+    `detail` saying why; the rest keep the per-line resolution's verdict.
+    Rejected edits are left out, as everywhere else.
+    """
+    return _decided_outcomes(decisions) + [
+        EditOutcome(edit_id=decision.edit_id, status="not_found", detail=detail)
+        for decision in decisions
+        if decision.outcome == "apply"
+    ]
 
 
 def _resolve_paragraph_overlaps(
@@ -116,7 +109,18 @@ def _resolve_paragraph_overlaps(
     """
     kept: list[PlannedEdit] = []
     losses: list[EditOutcome] = []
-    for group in _paragraph_overlap_groups(planned):
+    # One Word paragraph can cover several markdown lines (a list, a table row,
+    # a hard line break), so two edits from different lines can still land on
+    # the same words. They must not both reach docx-editor: an operation whose
+    # search text overlaps text an earlier operation inserted corrupts the
+    # paragraph silently.
+    groups = overlap_groups(
+        planned,
+        key=lambda edit: edit.paragraph_ref,
+        span=lambda edit: edit.span,
+        item_id=lambda edit: str(edit.edit_id),
+    )
+    for group in groups:
         if len(group) == 1:
             kept.append(group[0])
             continue
@@ -147,14 +151,7 @@ def _plan_sync(
     workspace_root: str | None,
 ) -> TrackedChangesPlan:
     applicable = [d for d in decisions if d.outcome == "apply"]
-    outcomes: list[EditOutcome] = [
-        EditOutcome(
-            edit_id=decision.edit_id,
-            status="conflict" if decision.outcome == "conflict" else "unlocatable",
-        )
-        for decision in decisions
-        if decision.outcome in ("conflict", "unlocatable")
-    ]
+    outcomes = _decided_outcomes(decisions)
     if not applicable:
         return TrackedChangesPlan(planned=[], outcomes=outcomes)
 
@@ -164,15 +161,7 @@ def _plan_sync(
         # is trustworthy. Every edit is reported rather than written blind.
         return TrackedChangesPlan(
             planned=[],
-            outcomes=outcomes
-            + [
-                EditOutcome(
-                    edit_id=decision.edit_id,
-                    status="not_found",
-                    detail=_UNMAPPABLE_DOCUMENT,
-                )
-                for decision in applicable
-            ],
+            outcomes=unplaceable_outcomes(decisions, _UNMAPPABLE_DOCUMENT),
         )
 
     planned: list[PlannedEdit] = []
