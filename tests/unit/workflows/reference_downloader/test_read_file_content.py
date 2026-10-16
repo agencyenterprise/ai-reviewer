@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
+from sqlalchemy.exc import OperationalError
 
 from lib.models.file import File
 from lib.workflows.reference_downloader.tools import read_file_content as rfc
@@ -63,7 +64,6 @@ async def test_reads_a_pdf_that_pdfminer_cannot_parse(tmp_path: Path) -> None:
     ):
         content = await rfc._read_file_content_async(FILE_ID)
 
-    assert content is not None
     assert TITLE in content
 
 
@@ -77,7 +77,19 @@ async def test_an_unreadable_file_returns_the_reason(tmp_path: Path) -> None:
     ):
         content = await rfc._read_file_content_async(FILE_ID)
 
-    assert content is not None
+    assert content.startswith(f"Could not read file {FILE_ID}")
+
+
+@pytest.mark.asyncio
+async def test_a_pdf_without_text_returns_the_reason(tmp_path: Path) -> None:
+    path = tmp_path / "scan.pdf"
+    path.write_bytes(_pdf_with_empty_inline_image_filter(""))
+
+    with patch.object(
+        rfc, "get_file_by_id", AsyncMock(return_value=_file(path, "application/pdf"))
+    ):
+        content = await rfc._read_file_content_async(FILE_ID)
+
     assert content.startswith(f"Could not read file {FILE_ID}")
 
 
@@ -88,5 +100,17 @@ async def test_an_unknown_file_id_returns_the_reason() -> None:
     with patch.object(rfc, "get_file_by_id", AsyncMock(side_effect=missing)):
         content = await rfc._read_file_content_async(FILE_ID)
 
-    assert content is not None
     assert content.startswith(f"Could not read file {FILE_ID}")
+
+
+@pytest.mark.asyncio
+async def test_a_database_error_propagates() -> None:
+    # Left to the agent's retry and the reference's ERROR status, not read as
+    # an unreadable file the agent might conclude on.
+    outage = OperationalError("SELECT", {}, Exception("connection refused"))
+
+    with (
+        patch.object(rfc, "get_file_by_id", AsyncMock(side_effect=outage)),
+        pytest.raises(OperationalError),
+    ):
+        await rfc._read_file_content_async(FILE_ID)

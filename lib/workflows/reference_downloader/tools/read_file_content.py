@@ -1,6 +1,7 @@
 import logging
 
 import aiofiles
+from fastapi import HTTPException
 from langchain.tools import ToolRuntime, tool
 
 from lib.models.file import File
@@ -29,16 +30,25 @@ async def read_file_content(file_id: str, runtime: ToolRuntime[ContextSchema]):
     return await _read_file_content_async(file_id)
 
 
-async def _read_file_content_async(file_id: str) -> str | None:
+async def _read_file_content_async(file_id: str) -> str:
     # A file that cannot be read must not fail the whole reference: the agent
     # gets the reason back and can try another copy or conclude without it.
+    # Other lookup errors (the database) still propagate, so the agent's retry
+    # and the reference's ERROR status cover them.
     try:
         file = await get_file_by_id(file_id)
+    except HTTPException as exc:
+        logger.warning("read_file_content: no file %s: %s", file_id, exc.detail)
+        return f"Could not read file {file_id}: {exc.detail}"
+
+    try:
         content = await _file_to_markdown(file)
     except Exception as exc:
         logger.warning(
-            "read_file_content: could not read file %s: %s: %s",
+            "read_file_content: could not convert file %s (%s, %s): %s: %s",
             file_id,
+            file.file_type,
+            file.file_path,
             type(exc).__name__,
             exc,
             exc_info=True,
@@ -53,7 +63,10 @@ async def _read_file_content_async(file_id: str) -> str | None:
             file.file_type,
             file.file_path,
         )
-        return None
+        return (
+            f"Could not read file {file_id}: it has no extractable text "
+            "(it may be a scanned image)"
+        )
 
     logger.info(
         "read_file_content: file %s (%s) has %d chars, returning first %d",
