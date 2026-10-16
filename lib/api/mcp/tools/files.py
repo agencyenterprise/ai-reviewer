@@ -10,7 +10,7 @@ from lib.api.mcp import helpers
 from lib.api.mcp.instance import mcp
 from lib.models.file import FileRole
 from lib.models.project import AccessLevel
-from lib.services.docx_workflow_service import DocxManipulatorType, generate_docx
+from lib.services.docx.service import DocxManipulatorType, generate_docx
 from lib.services.files import (
     get_project_files_list_items,
 )

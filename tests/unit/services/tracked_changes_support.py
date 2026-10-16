@@ -20,8 +20,8 @@ import pytest
 from docx_editor import Document as EditorDocument
 
 from lib.models.issue_edit import IssueEdit, IssueEditStatus
+from lib.services.docx.edit_conflicts import EditCandidate, resolve_edit_conflicts
 from lib.services.docx.tracked_changes import EditOutcome, plan_tracked_changes
-from lib.services.edit_conflicts import EditCandidate, resolve_edit_conflicts
 from lib.services.markdown_text import (
     rendered_replacement_in_context,
     rendered_span,

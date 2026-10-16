@@ -17,10 +17,10 @@ from lib.services.docx.manipulator import (
     count_unanchorable_issues,
     issue_to_comment,
 )
-from lib.services.docx_workflow_service import _resolved_revision, generate_docx
+from lib.services.docx.service import _resolved_revision, generate_docx
 from lib.workflows.models import SeverityEnum, WorkflowRunType
 
-_SERVICE = "lib.services.docx_workflow_service"
+_SERVICE = "lib.services.docx.service"
 
 _FAKE_PROJECT_ID = uuid.uuid4()
 _FAKE_WORKFLOW_RUN_ID = uuid.uuid4()
