@@ -208,3 +208,41 @@ def test_comments_follow_the_text_not_the_order_they_were_made(tmp_path: Path) -
     markup = read_docx_review_markup(str(_package(tmp_path, body, comments)))
 
     assert [c.text for c in markup.comments] == ["First", "Second", "Loose"]
+
+
+def test_a_comment_keeps_its_line_breaks_and_tabs(tmp_path: Path) -> None:
+    body = (
+        '<w:p><w:commentRangeStart w:id="0"/><w:r><w:t>claim</w:t></w:r>'
+        '<w:commentRangeEnd w:id="0"/><w:r><w:commentReference w:id="0"/></w:r></w:p>'
+    )
+    comment = (
+        '<w:comment w:id="0" w:author="Rev"><w:p w14:paraId="A0"><w:r>'
+        "<w:t>Define X</w:t><w:br/><w:t>Give a citation</w:t><w:tab/><w:t>(p. 4)</w:t>"
+        "</w:r></w:p></w:comment>"
+    )
+
+    [parsed] = read_docx_review_markup(str(_package(tmp_path, body, comment))).comments
+
+    assert parsed.text == "Define X\nGive a citation\t(p. 4)"
+
+
+def test_moved_away_text_reads_as_deleted(tmp_path: Path) -> None:
+    body = (
+        '<w:p><w:r><w:t>Kept. </w:t></w:r><w:commentRangeStart w:id="0"/>'
+        '<w:moveFrom w:id="9" w:author="Rev"><w:r><w:t>moved words</w:t></w:r></w:moveFrom>'
+        '<w:commentRangeEnd w:id="0"/><w:r><w:commentReference w:id="0"/></w:r></w:p>'
+    )
+
+    markup = read_docx_review_markup(
+        str(_package(tmp_path, body, _comment(0, "A0", "Why move this?")))
+    )
+
+    [comment] = markup.comments
+    assert (comment.anchor, comment.anchor_deleted) == ("moved words", True)
+    assert comment.context == "Kept."
+    [change] = markup.tracked_changes
+    assert (change.kind, change.deleted, change.context) == (
+        "deletion",
+        "moved words",
+        "Kept.",
+    )

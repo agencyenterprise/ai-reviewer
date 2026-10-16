@@ -123,10 +123,19 @@ def _read_properties(package: zipfile.ZipFile) -> DocxProperties:
     )
 
 
+def _paragraph_text(paragraph: etree._Element) -> str:
+    """A comment paragraph's text, keeping its line breaks and tabs."""
+    parts: list[str] = []
+    for node in paragraph.iter(w("t"), w("br"), w("cr"), w("tab")):
+        if node.tag == w("t"):
+            parts.append(node.text or "")
+        else:
+            parts.append("\t" if node.tag == w("tab") else "\n")
+    return "".join(parts)
+
+
 def _comment_text(comment: etree._Element) -> str:
-    paragraphs = [
-        "".join(t.text or "" for t in p.iter(w("t"))) for p in comment.iter(w("p"))
-    ]
+    paragraphs = [_paragraph_text(p) for p in comment.iter(w("p"))]
     return "\n".join(p.strip() for p in paragraphs if p.strip())
 
 
@@ -221,7 +230,10 @@ def _segments(paragraph: etree._Element) -> Iterator[tuple[etree._Element, _Segm
             continue
         if node.tag in (w("t"), w("delText")):
             change = _change_of(node, paragraph)
-            deleted = node.tag == w("delText")
+            # Moved-away text keeps plain w:t inside its w:moveFrom wrapper.
+            deleted = node.tag == w("delText") or (
+                change is not None and change.tag in _DELETED
+            )
             yield node, _Segment(text=node.text or "", change=change, deleted=deleted)
         elif node.tag in (w("tab"), w("br")):
             yield node, _Segment(text=" ", change=_change_of(node, paragraph))

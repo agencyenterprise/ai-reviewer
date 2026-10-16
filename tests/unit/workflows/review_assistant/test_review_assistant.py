@@ -124,6 +124,29 @@ async def test_a_word_file_that_will_not_parse_keeps_its_text() -> None:
     folder = mounted.inputs[0].folder
     assert file_data_to_string(mounted.files[f"{folder}/document.md"]) == "still here"
     assert mounted.inputs[0].comment_count == 0
+    # Its feedback may have been only in the markup, so the loss is reported,
+    # to the agent and on the run, not taken for a file without comments.
+    [warning] = mounted.markup_warnings
+    assert "broken.docx" in warning
+    index = file_data_to_string(mounted.files[INPUTS_INDEX_PATH])
+    assert "Comments and tracked changes: not read" in index
+
+
+@pytest.mark.asyncio
+async def test_a_legacy_word_file_says_its_markup_was_not_read() -> None:
+    mounted = await mount_review_inputs(
+        [_document("old", "review.doc", markdown="text")]
+    )
+
+    [warning] = mounted.markup_warnings
+    assert "legacy Word (.doc)" in warning and "Save it as .docx" in warning
+
+
+@pytest.mark.asyncio
+async def test_a_file_with_no_markup_format_raises_no_warning() -> None:
+    mounted = await mount_review_inputs([_document("memo", "memo.md", markdown="text")])
+
+    assert mounted.markup_warnings == []
 
 
 def test_reports_come_back_in_the_order_asked_and_a_missing_one_is_left_out() -> None:

@@ -117,6 +117,20 @@ def unreadable_document_warning(
     )
 
 
+def markup_not_read_warning(reason: str, workflow_run_id: str | None) -> WorkflowError:
+    """A warning that a document's comments and tracked changes were not read.
+
+    Its text was, but a reviewer who marked up a copy may have left their
+    feedback only there, so the outputs may be missing it.
+    """
+    return WorkflowError(
+        task_name="read_documents",
+        error=f"{reason} Feedback left only as comments or tracked changes is missing.",
+        workflow_run_id=workflow_run_id,
+        severity=WorkflowErrorSeverity.WARNING,
+    )
+
+
 # The request endpoint requires both, so a run that lacks either was started
 # through the generic workflow start, which cannot name them.
 _NEEDS_A_REQUEST = (
@@ -178,6 +192,10 @@ class ReviewAssistantManifest(
                 }
 
             mounted = await mount_review_inputs(loaded.documents)
+            errors.extend(
+                markup_not_read_warning(reason, runtime.context.workflow_run_id)
+                for reason in mounted.markup_warnings
+            )
             agent = SimpleDeepAgent(
                 context=runtime.context,
                 system_prompt=build_system_prompt(state.config.outputs),
