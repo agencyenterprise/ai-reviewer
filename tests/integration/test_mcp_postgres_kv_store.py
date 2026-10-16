@@ -13,8 +13,8 @@ import pytest_asyncio
 from sqlalchemy import delete
 from sqlmodel import col
 
+from lib.api.mcp.postgres_kv_store import PostgresKeyValueStore
 from lib.config.database import get_async_db_session
-from lib.mcp.postgres_kv_store import PostgresKeyValueStore
 from lib.models.mcp_oauth_kv import MCPOAuthKV
 
 

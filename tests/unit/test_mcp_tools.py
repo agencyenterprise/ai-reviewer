@@ -10,7 +10,7 @@ import jwt as pyjwt
 import pytest
 from fastmcp.utilities.types import File
 
-import lib.api.mcp_auth as _mcp_auth_mod
+import lib.api.mcp.auth as _mcp_auth_mod
 from lib.api.mcp.serialization import build_gate_required_payload
 from lib.api.services.workflow_runner import WorkflowGateRequiredError
 from lib.workflows.models import SeverityEnum

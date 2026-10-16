@@ -1,4 +1,4 @@
-"""Unit tests for the protected-resource URL helpers in lib.api.mcp_discovery."""
+"""Unit tests for the protected-resource URL helpers in lib.api.mcp.discovery."""
 
 from collections.abc import Callable
 from typing import Any
@@ -12,7 +12,7 @@ from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 from starlette.testclient import TestClient
 
-from lib.api.mcp_discovery import slashless_resource_url, with_slash_resource_metadata
+from lib.api.mcp.discovery import slashless_resource_url, with_slash_resource_metadata
 
 PRM_PATH = "/.well-known/oauth-protected-resource/mcp"
 
