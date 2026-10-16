@@ -8,9 +8,9 @@ the whole document and are filled in afterwards, when the chunks are combined.
 
 from enum import Enum
 
-from langchain_core.messages import BaseMessage
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field
 
+from lib.workflows.agent_messages import AgentMessages
 from lib.workflows.models import ErrorDetails
 
 
@@ -100,7 +100,7 @@ class AbbreviationChunk(BaseModel):
     occurrences: list[ChunkOccurrence] = Field(default_factory=list)
     error: str | None = None
     error_details: ErrorDetails | None = None
-    messages: list[BaseMessage] = Field(
+    messages: AgentMessages = Field(
         default_factory=list,
         description="The model call for this chunk: system prompt, user prompt and reply.",
     )
@@ -108,13 +108,6 @@ class AbbreviationChunk(BaseModel):
     @property
     def produced_results(self) -> bool:
         return self.status in (ChunkStatus.COMPLETED, ChunkStatus.PARTIAL)
-
-    @field_serializer("messages")
-    @classmethod
-    def _serialize_messages(cls, messages: list[BaseMessage]) -> list[dict]:
-        # Checkpointer-hydrated states may contain raw dicts in `messages`
-        # because reducers can append items that bypass model construction.
-        return [m if isinstance(m, dict) else m.model_dump() for m in messages]
 
 
 def merge_chunks(

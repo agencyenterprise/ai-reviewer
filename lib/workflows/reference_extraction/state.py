@@ -2,9 +2,9 @@
 
 from typing import Literal
 
-from langchain_core.messages import BaseMessage
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field
 
+from lib.workflows.agent_messages import AgentMessages
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
 
@@ -48,14 +48,7 @@ class ReferenceExtractionState(BaseWorkflowState):
         default="",
         description="Step-by-step reasoning describing how references were found and extracted",
     )
-    messages: list[BaseMessage] = Field(
+    messages: AgentMessages = Field(
         default_factory=list,
         description="LLM conversation messages from the agent invocation.",
     )
-
-    @field_serializer("messages")
-    @classmethod
-    def _serialize_messages(cls, messages: list[BaseMessage]) -> list[dict]:
-        # Checkpointer-hydrated states may contain raw dicts in `messages`
-        # because reducers can append items that bypass model construction.
-        return [m if isinstance(m, dict) else m.model_dump() for m in messages]
