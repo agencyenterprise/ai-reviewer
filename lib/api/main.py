@@ -15,8 +15,8 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastmcp.utilities.lifespan import combine_lifespans
 
 from lib.agents.checkpointer import close_checkpointer_pool
+from lib.api.mcp.middlewares import MCPTrailingSlashMiddleware
 from lib.api.mcp.server import mcp_app, mcp_auth
-from lib.api.mcp_middlewares import MCPTrailingSlashMiddleware
 from lib.api.routers import (
     about,
     admin_dashboard,

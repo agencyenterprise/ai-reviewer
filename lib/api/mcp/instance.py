@@ -1,7 +1,7 @@
 from fastmcp import FastMCP
 from mcp.types import Icon
 
-from lib.api.mcp_auth import create_mcp_auth
+from lib.api.mcp.auth import create_mcp_auth
 from lib.config.env import config as env_config
 
 mcp_auth = create_mcp_auth()

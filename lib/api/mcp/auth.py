@@ -8,9 +8,9 @@ from key_value.aio.wrappers.encryption import FernetEncryptionWrapper
 from pydantic import AnyHttpUrl
 from starlette.routing import Route
 
-from lib.api.mcp_discovery import slashless_resource_url, with_slash_resource_metadata
+from lib.api.mcp.discovery import slashless_resource_url, with_slash_resource_metadata
+from lib.api.mcp.postgres_kv_store import PostgresKeyValueStore
 from lib.config.env import config
-from lib.mcp.postgres_kv_store import PostgresKeyValueStore
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ _MCP_STORAGE_SALT = "mcp-oauth-storage-v1"
 
 # Both providers advertise the MCP resource as ``…/mcp`` so clients configured
 # with either ``…/mcp`` or ``…/mcp/`` accept it (issue #774, see
-# lib.api.mcp_discovery). FastMCP reads the resource URL through
+# lib.api.mcp.discovery). FastMCP reads the resource URL through
 # ``_get_resource_url`` everywhere (protected-resource document,
 # WWW-Authenticate challenge, token audience), so that is the hook.
 
