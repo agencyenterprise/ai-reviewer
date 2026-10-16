@@ -154,8 +154,13 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
           });
           fileMapRef.current.set(uppyFileId, { file, state });
         } catch (err) {
+          // Uppy turned the file away before it started (a restriction, or a
+          // duplicate). Report it like a failed upload: no upload event follows.
+          const error = err instanceof Error ? err : new Error('Failed to add file');
           state.status = 'error';
-          state.error = err instanceof Error ? err.message : 'Failed to add file';
+          state.error = error.message;
+          callbackRefs.current.onError?.(error, file.name);
+          toast.error(`Failed to upload ${file.name}: ${error.message}`);
         }
       }
 
