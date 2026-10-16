@@ -42,10 +42,10 @@ cp ../.env.template .env
 # Edit .env with your OpenAI key, database password, etc.
 ```
 
-The template's defaults are for local development. Before you create the secret, change these in `.env`:
+The template's defaults are for local development. Before you create the secret, check these in `.env`:
 
 - `DATABASE_URL`: use the `db` Service as the host, with the same user, password and database name as `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB` (for example `postgresql://ai_reviewer_user:<password>@db:5432/ai_reviewer`).
-- `FRONTEND_URL` and `MCP_BASE_URL`: use the public Route or Ingress URLs, not `localhost` (`MCP_BASE_URL` keeps its `/mcp` path). The API builds share links and its OAuth base URL from them. On OpenShift the Routes get their hosts only when they are created, so set these two after deploying (see step 3).
+- `FRONTEND_URL` and `MCP_BASE_URL`: the API builds share links and its OAuth base URL from them. With the port-forward quick start below, keep the `localhost` defaults (MCP clients also need `kubectl port-forward -n ai-reviewer svc/api 8000:8000`). When you expose the app through Routes or an Ingress, use their public URLs instead (`MCP_BASE_URL` keeps its `/mcp` path). On OpenShift the Routes get their hosts only when they are created, so set these two after deploying (see step 3).
 
 ### 3. Deploy to Cluster
 
