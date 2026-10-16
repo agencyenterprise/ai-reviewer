@@ -140,7 +140,7 @@ class SavedFile(NamedTuple):
 
 
 async def _download_direct_url(url: str) -> SavedFile | None:
-    """Download content from URL. Returns SavedFile if successful, None otherwise.
+    """Download content from URL, saving a PDF directly and anything else via Jina.
 
     Any failure of the direct fetch falls back to Jina, which fetches from its own
     network. A blocked egress path usually drops the connection (connect error or
@@ -231,7 +231,7 @@ def is_rate_limited(exc: BaseException) -> bool:
     before_sleep=before_sleep_log(logger, logging.WARNING),
 )
 async def _download_with_jina_api(url: str) -> SavedFile | None:
-    """Download content using Jina API and save as markdown. Returns SavedFile if successful, None otherwise."""
+    """Download content using Jina API and save as markdown; raises on any fetch failure or empty content."""
 
     await jina_rate_limiter.aacquire()
     jina_url = f"https://r.jina.ai/{url}"

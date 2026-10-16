@@ -35,8 +35,8 @@ async def create_revision(
     that was already analyzed (e.g. after fixing issues found in a previous revision).
     This keeps all history in one project so the user can compare revisions.
 
-    This archives all active issues from the current revision, cancels any running
-    workflows, and increments the revision counter.
+    This cancels any running workflows of the current revision and increments the
+    revision counter; earlier revisions keep their issues.
 
     content_markdown: the updated document content as markdown. For small/medium
         documents, pass the content directly here and the revision is ready for

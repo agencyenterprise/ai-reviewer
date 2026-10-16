@@ -6,7 +6,6 @@ settings:
 
 overrides:
   js-yaml@>=4.0.0 <4.3.2: 4.3.2
-  postcss@>=8.0.0 <8.5.23: 8.5.23
 
 patchedDependencies:
   '@mohtasham/md-to-docx@4.0.1':

@@ -270,7 +270,7 @@ uv run pytest tests/ -k "test_name"
 
 LLM agent evaluations use [Inspect AI](https://inspect.ai-safety-institute.org.uk/) and live under `evals_inspectai/e2e/`. These are end-to-end evals that trigger each workflow through the running API server (backend must be running), mirroring the full pipeline that real users trigger.
 
-Each workflow has its own eval directory with a dataset file (`dataset.json` or `dataset.jsonl`) and a task definition module.
+Each workflow has its own eval directory with a `dataset.yaml` and a task definition module.
 
 ```bash
 # Run a full eval suite for a workflow

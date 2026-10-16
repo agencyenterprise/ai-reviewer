@@ -249,7 +249,7 @@ async def cleanup_failed_resources(
 async def _update_reference_file_matching(
     project_id: str, file_id: str, reference_id: str, revision: int
 ):
-    """Update the reference file matching in the ReferenceExtraction workflow state."""
+    """Link the fetched file to its reference in the ReferenceFileMatching workflow state."""
 
     from lib.services.references import add_file_to_reference  # noqa: PLC0415  circular: references -> registry -> this node
 

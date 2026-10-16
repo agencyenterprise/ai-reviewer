@@ -17,7 +17,8 @@ def create_workflow_config(
     """
     Create a workflow-specific config from the given parameters.
 
-    Handles workflow-specific fields (e.g., LiteratureReviewWorkflowConfig needs publication_date).
+    Fills the fields every config shares (project, API key, model, publication_date)
+    and validates them against the workflow's config type.
 
     Args:
         project: The project to create the config for

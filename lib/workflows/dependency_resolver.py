@@ -49,8 +49,8 @@ def resolve_workflow_dependencies(
     Returns workflows in dependency order (dependencies run first).
 
     Example:
-        Input: [REFERENCE_VALIDATION]
-        Output: [DOCUMENT_PROCESSING, REFERENCE_EXTRACTION, REFERENCE_VALIDATION]
+        Input: [REFERENCE_VALIDATION_V2]
+        Output: [DOCUMENT_PROCESSING, REFERENCE_EXTRACTION, REFERENCE_VALIDATION_V2]
 
     Args:
         workflow_types: List of workflow types requested by user
