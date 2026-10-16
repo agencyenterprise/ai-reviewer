@@ -6,6 +6,56 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.0.11] - 2026-10-16
+
+### Added
+- Added integration tests for share-link lifecycle and owner-only toggling.
+- Added integration tests for the workflow duration estimates service.
+- Added integration tests for the feedback write path (upsert, ownership gate, lookup by issue, and delete).
+- Added a shared `AgentMessages` type and unit tests covering agent-message serialization across nine workflow state models.
+- Added a shared severity ordering utility on the frontend and tests for severity helpers.
+- Added a sign-in redirect helper module and new Vitest coverage for callback URL handling and proxy matching.
+- Added a new helper for Markdown-to-DOCX conversion and a DOCX export test that asserts blockquote line breaks survive.
+- Added a new integration-test database setup (including a pytest plugin) and a CI job that runs the integration suite on every PR.
+- Added unit tests for reference state seeding, reference linking, and the reference embedding matcher.
+- Added Ruff as the Python formatter and linter, and updated CI to run Ruff formatting and lint checks.
+
+### Changed
+- Upgraded Next.js to 16.4.1 and moved `middleware.ts` to `proxy.ts`.
+- Upgraded ESLint to 10.12.0.
+- Moved the frontend lint setup to eslint-config-next 16 with a native flat config and fixed the reported React hooks issues.
+- Upgraded lucide-react to 1.57.0 and replaced the removed GitHub icon in the version badge with an inline SVG.
+- Upgraded Uppy to 6.x for `@uppy/core` and `@uppy/tus`.
+- Upgraded TypeScript to 6.0.3 and updated `tsconfig.json` to include the needed global types.
+- Upgraded `@mohtasham/md-to-docx` to 4.0.1 and ported the blockquote line-break patch.
+- Upgraded assistant-ui to 0.15.28 (and related packages) and removed the `@assistant-ui/store` override.
+- Moved the `/chat` page onto assistant-ui’s `Thread` and registry components, replacing older edited copies.
+- Refactored research workflows to run through the deep-agent manifest and consolidated severity ordering into a shared frontend module.
+- Refactored About This validator agents into a shared agent with thin subclasses and consolidated document-explorer line-range helpers.
+- Rewrote legacy Python typing aliases to Python 3.13 built-in generics and `|` unions across the repo.
+- Updated AGENTS.md and rewrote frontend tests to focus on logic rather than presentation.
+- Updated CI workflows so PR commits run once and superseded PR runs are cancelled.
+
+### Fixed
+- Fixed reference downloader PDF reading by switching to pypdfium and returning unreadable-file reasons as text so one unreadable file no longer fails the whole reference.
+- Fixed auth so sign-in returns to the originally requested page and the proxy skips static files.
+- Fixed a flaky rate-limiter integration test by slowing the refill rate in one test.
+- Fixed two feedback bugs: run-level feedback overwriting issue feedback (or causing a 500) and unknown `feedback_type` returning a 500 instead of a 422.
+- Fixed an admin dashboard ignore-list counting bug so rows without an owner survive the ignore list.
+- Fixed a Next.js upgrade regression where the browser tab title reverted after client-side navigation.
+- Fixed Alembic migrations for percent-encoded passwords by escaping `%` before passing the URL to Alembic’s config parser.
+
+### Security
+- Bumped Next.js to 15.5.28 to fix a critical RCE and a high-severity DoS advisory.
+- Reduced frontend `pnpm audit` advisories primarily by upgrading direct dependencies within their majors.
+
+### Removed
+- Removed the unused app configs feature (router, service, model, startup seeding, hidden admin `/settings` page, and generated API client) and added a migration that drops the `app_configs` table.
+- Removed unused OOXML namespace constants, the unused `tabulate` dependency, and deploy-time `POSTGRES_*` env vars that the API never reads.
+- Removed unread backend config keys, an unused LibreOffice PDF conversion method, and a test module that was always skipped.
+- Removed dead backend helpers, unused Pydantic models, orphaned frontend components/helpers, and unused dependencies including `nest-asyncio`, `lodash`, `uuid`, and related type packages.
+
+
 ## [v2.0.10] - 2026-10-13
 
 Changed
