@@ -14,7 +14,6 @@ from lib.services.app_configs import (
     delete_config,
     get_all_configs,
     get_config,
-    seed_all_defaults,
     upsert_config,
 )
 
@@ -102,4 +101,3 @@ async def reset_app_config(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Config key '{key}' not found",
         )
-    await seed_all_defaults()
