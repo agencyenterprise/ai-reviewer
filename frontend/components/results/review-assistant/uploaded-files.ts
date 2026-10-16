@@ -10,9 +10,11 @@ const couldBe = (row: FileListItem, file: File) => row.file_name === file.name &
  * but not the ids of the files it created. So the candidates are the review
  * documents that appeared since it started (which keeps out a file someone
  * else added meanwhile) with a finished file's name and size. When two staged
- * files share both, the server creates each row as that file's upload
- * completes, so the rows' creation order follows the finishing order, and the
- * n-th file to finish takes the n-th such row.
+ * files share both, the n-th file to finish takes the n-th such row by
+ * creation time. That almost always pairs them right: the server creates each
+ * row as that file's upload completes. Two uploads finishing within moments
+ * can still commit and answer in opposite orders and swap; only an id
+ * returned by the upload would rule that out.
  */
 export function matchUploads(
   finished: File[],
