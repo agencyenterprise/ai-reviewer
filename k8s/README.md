@@ -38,7 +38,7 @@ sed -i.bak "s|image: ai-reviewer-frontend:latest|image: $REGISTRY/ai-reviewer-fr
 
 ```bash
 # Copy template and edit with your API keys
-cp env.template .env
+cp ../.env.template .env
 # Edit .env with your OpenAI key, database password, etc.
 ```
 

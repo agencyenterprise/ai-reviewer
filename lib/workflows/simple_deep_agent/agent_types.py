@@ -1,8 +1,8 @@
 """Shared types for simple deep-agent workflows.
 
-Defines the canonical IssueItem and AgentCheckResult models used by all
-single-node deep-agent workflows, plus the helper that converts them into
-DocumentIssue objects.
+Defines IssueItem, the DeepAgentResult stored by single-node deep-agent
+workflows, AgentCheckResult (used by About This GER), and the helper that
+converts them into DocumentIssue objects.
 """
 
 from typing import Literal
