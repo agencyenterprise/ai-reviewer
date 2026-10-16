@@ -6,6 +6,137 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.0.11] - 2026-10-16
+
+### Added
+- Added integration tests for share-link lifecycle and owner-only toggling.
+- Added integration tests for the workflow duration estimates service.
+- Added integration tests for the feedback write path (upsert, ownership gate, lookup by issue, and delete).
+- Added a shared `AgentMessages` type and unit tests covering agent-message serialization across nine workflow state models.
+- Added a shared severity ordering utility on the frontend and tests for severity helpers.
+- Added a sign-in redirect helper module and new Vitest coverage for callback URL handling and proxy matching.
+- Added a new helper for Markdown-to-DOCX conversion and a DOCX export test that asserts blockquote line breaks survive.
+- Added a new integration-test database setup (including a pytest plugin) and a CI job that runs the integration suite on every PR.
+- Added unit tests for reference state seeding, reference linking, and the reference embedding matcher.
+- Added Ruff as the Python formatter and linter, and updated CI to run Ruff formatting and lint checks.
+
+### Changed
+- Upgraded Next.js to 16.4.1 and moved `middleware.ts` to `proxy.ts`.
+- Upgraded ESLint to 10.12.0.
+- Moved the frontend lint setup to eslint-config-next 16 with a native flat config and fixed the reported React hooks issues.
+- Upgraded lucide-react to 1.57.0 and replaced the removed GitHub icon in the version badge with an inline SVG.
+- Upgraded Uppy to 6.x for `@uppy/core` and `@uppy/tus`.
+- Upgraded TypeScript to 6.0.3 and updated `tsconfig.json` to include the needed global types.
+- Upgraded `@mohtasham/md-to-docx` to 4.0.1 and ported the blockquote line-break patch.
+- Upgraded assistant-ui to 0.15.28 (and related packages) and removed the `@assistant-ui/store` override.
+- Moved the `/chat` page onto assistant-ui’s `Thread` and registry components, replacing older edited copies.
+- Refactored research workflows to run through the deep-agent manifest and consolidated severity ordering into a shared frontend module.
+- Refactored About This validator agents into a shared agent with thin subclasses and consolidated document-explorer line-range helpers.
+- Rewrote legacy Python typing aliases to Python 3.13 built-in generics and `|` unions across the repo.
+- Updated AGENTS.md and rewrote frontend tests to focus on logic rather than presentation.
+- Updated CI workflows so PR commits run once and superseded PR runs are cancelled.
+
+### Fixed
+- Fixed reference downloader PDF reading by switching to pypdfium and returning unreadable-file reasons as text so one unreadable file no longer fails the whole reference.
+- Fixed auth so sign-in returns to the originally requested page and the proxy skips static files.
+- Fixed a flaky rate-limiter integration test by slowing the refill rate in one test.
+- Fixed two feedback bugs: run-level feedback overwriting issue feedback (or causing a 500) and unknown `feedback_type` returning a 500 instead of a 422.
+- Fixed an admin dashboard ignore-list counting bug so rows without an owner survive the ignore list.
+- Fixed a Next.js upgrade regression where the browser tab title reverted after client-side navigation.
+- Fixed Alembic migrations for percent-encoded passwords by escaping `%` before passing the URL to Alembic’s config parser.
+
+### Security
+- Bumped Next.js to 15.5.28 to fix a critical RCE and a high-severity DoS advisory.
+- Reduced frontend `pnpm audit` advisories primarily by upgrading direct dependencies within their majors.
+
+### Removed
+- Removed the unused app configs feature (router, service, model, startup seeding, hidden admin `/settings` page, and generated API client) and added a migration that drops the `app_configs` table.
+- Removed unused OOXML namespace constants, the unused `tabulate` dependency, and deploy-time `POSTGRES_*` env vars that the API never reads.
+- Removed unread backend config keys, an unused LibreOffice PDF conversion method, and a test module that was always skipped.
+- Removed dead backend helpers, unused Pydantic models, orphaned frontend components/helpers, and unused dependencies including `nest-asyncio`, `lodash`, `uuid`, and related type packages.
+
+
+## [v2.0.10] - 2026-10-13
+
+Changed
+- Bumped `openai` from 3.3.1 to 3.29.0 in `uv.lock` for inspect-ai 0.3.279.
+
+
+## [v2.0.9] - 2026-10-13
+
+### Added
+- Added annotation sets for Recommendation Check, Inference Validation, and Methodological Alignment to support labeling eval examples.
+- Added support for rendering figures in the annotation view, including inline raster images as data URIs.
+
+### Changed
+- Changed the abbreviations check to use single schema-constrained calls (one for section extraction and one per chunk) instead of two LLM agents, while keeping the workflow, chunking, catalogue assembly, and issue rules unchanged.
+- Changed annotation set specs so each set determines its own item answers, with support for single-issue-kind checks and appending dataset rationales to explanations when present.
+- Updated abbreviation-check-related docs and eval documentation to describe single-call behavior and to record new eval runs.
+
+### Fixed
+- Fixed abbreviation chunk extraction to salvage complete occurrences from cut-off mid-JSON OpenAI replies and raise a partial extraction error instead of losing the whole chunk.
+- Fixed the admin annotated item row “Test case” badge to display the expected answer rather than the item kind.
+
+
+## [v2.0.8] - 2026-10-13
+
+### Added
+- Added a Teams-to-Word “handoff” flow where Teams-requested comments and fixes are stored and later applied by the Word add-in as Draft Detective comments and tracked changes, with results posted back to the Teams thread.
+- Added Office single sign-on (with dialog fallback) for the Word add-in, including sign-in and sign-out support.
+- Added new Microsoft Word handoff storage, endpoints for annotating comments and applying suggestions, and handoff list/applied/dismissed endpoints.
+- Added new Writing Consistency capability to correct verbs whose tense does not fit their sentence, including long-document handling and updated evals/criteria.
+- Added new Writing Style Review improvements to catch buried passives and wordiness and to split long documents among sub-agents, with updated evals and tests.
+- Added Teams bot support for signing users in from channels and group chats via an Adaptive Card flow, and for reading documents only as the person who asked.
+
+### Changed
+- Renamed the “Editorial Review” assessment preset label to “Writing Style Review” in the workflow picker while keeping the existing slug.
+- Refactored the Teams bot to drop the Agents SDK `AgentApplication` layer and move the conversation flow out of the router into a service module, with behavior unchanged.
+- Updated dependencies: mako 1.3.12 → 1.4.2, fsspec 2025.9.0 → 2026.6.0, multidict 6.7.1 → 6.9.1, next 15.5.24 → 15.5.27 (frontend), and langgraph-sdk 0.4.2 → 0.4.4.
+
+### Fixed
+- Fixed reporting so withheld Word edits are reported as not applied.
+
+### Security
+- Updated Next.js to 15.5.27, which includes security fixes for multiple advisories and additional security hardening for `next/og`.
+
+### Removed
+- Removed the Word add-in’s old behavior, including in-document @mentions and the project-issues view.
+- Removed the Teams bot’s app-only Graph reading mode and the Graph host/site allowlists, requiring delegated reads as the asker.
+- Removed environment configuration for Azure client credentials and Graph allowlists that are no longer used.
+
+
+## [v2.0.7] - 2026-10-06
+
+### Added
+- Fan-out workflows (reference downloader, reference validation, claim reference validation, abbreviation scan) now show each item’s result as soon as it finishes.
+- The project header run activity indicator now shows a percentage when exactly one run with per-item progress is active.
+- Authors can now upload final response memos in the Peer Review tab, and the QA coverage report reads and quotes them under each reviewer point.
+- MCP adds `get_project_references` and `get_workflow_run` tools to return reference IDs and workflow run state details.
+
+### Changed
+- The project page now polls a light project overview endpoint and fetches tab data on demand instead of loading and re-sending a single full project payload.
+- MCP `get_project` and `run_workflow` now return a compact summary instead of full project details, with optional document inclusion.
+- `POST /api/projects` now returns `ProjectCreated` instead of `ProjectDetailed`.
+- DOMPurify was bumped from 3.4.13 to 3.4.16 in the frontend.
+- PyJWT was bumped from 2.13.0 to 2.15.0.
+- urllib3 was bumped from 2.7.0 to 2.8.0.
+- Agent instructions were renamed from `CLAUDE.md` to `AGENTS.md` with unchanged content.
+- `AGENTS.md` was updated to correct stale facts and generalize the `__init__.py` rule.
+
+### Fixed
+- Fan-out workflow state persistence now updates as each task finishes by streaming and applying per-task updates, restoring partial results behavior.
+
+### Security
+- urllib3 was bumped to 2.8.0, which includes fixes for multiple security issues.
+- PyJWT was bumped to 2.15.0, which includes a security-related change for deeply nested JWT payloads.
+
+### Removed
+- The legacy project page share endpoint `GET /api/projects/{id}/share` was removed.
+- `GET /api/project/{id}` was removed.
+- MCP `ProjectDetailed` and `get_project_detailed_from_project` were deleted.
+- Railway deploy workflows were dropped in favor of Railway auto-deploy.
+
+
 ## [v2.0.6] - 2026-09-30
 
 ### Added
