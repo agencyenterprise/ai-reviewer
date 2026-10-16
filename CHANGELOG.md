@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.0.12] - 2026-10-16
+
+### Added
+- Replaced the step-by-step Peer Review tab with an output-first Review Assistant that generates selected outputs from unlabeled documents in a single agent run.
+- Added a new Review Assistant backend workflow and supporting eval suites and documentation.
+- Added DOCX reviewer markup extraction for comments (including threaded replies) and tracked changes.
+- Added a Review Assistant Requests API to start requests and list requests across revisions.
+- Added a new file role `review_input` that is not tied to a revision.
+
+### Changed
+- Updated Review Assistant skills documentation to include input identification guidance, comments-only reviewers, missing inputs handling, and an “Inputs as read” list.
+- Updated multiple backend docstrings and documentation to match current behavior, including the `create_revision` MCP tool description and various workflow/tool docstrings.
+- Updated `k8s/README.md` deployment instructions and `DEVELOPMENT.md` eval dataset filename guidance.
+
+### Fixed
+- Corrected drifted docs and docstrings that no longer matched the code.
+- Adjusted download tool docstrings to state that functions raise on failure rather than returning `None`.
+
+### Removed
+- Removed the old Peer Review tab, its three workflows, and memo upload paths.
+- Removed the `revision_planning_summary`, `reviewer_response_memos`, and `reviewer_coverage_report` workflows.
+- Dropped a stale frontend `postcss` dependency override that no longer affected the dependency tree.
+- Removed the HTML-report variant of the deep-agent manifest and its precheck hook.
+
+
 ## [v2.0.11] - 2026-10-16
 
 ### Added
