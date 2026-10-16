@@ -3,8 +3,6 @@ kind: ConfigMap
 metadata:
   name: api-config
 data:
-  POSTGRES_HOST: "db"
-  POSTGRES_PORT: "5432"
   FILE_UPLOADS_MOUNT_PATH: "/app/uploads"
   LANGFUSE_HOST: "https://cloud.langfuse.com"
 
