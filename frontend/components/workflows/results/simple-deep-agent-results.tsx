@@ -1,11 +1,9 @@
 'use client';
 
-import { ReadonlyThread } from '@/components/assistant-ui/readonly-thread';
 import { Markdown } from '@/components/markdown';
-import { HtmlReportFrame, HtmlReportFrameHandle } from '@/components/results/components/html-report-frame';
+import { AgentTranscript } from '@/components/workflows/results/agent-transcript';
 import { WorkflowIssuesList } from '@/components/results/components/workflow-issues-list';
 import { MarkdownDownloadButton } from '@/components/results/components/markdown-download-button';
-import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -17,10 +15,8 @@ import {
   isWorkflowProcessing,
   WorkflowRunDetailTyped,
 } from '@/lib/workflow-state';
-import { AssistantRuntimeProvider, useExternalMessageConverter, useExternalStoreRuntime } from '@assistant-ui/react';
-import { convertLangChainMessages, LangChainMessage } from '@assistant-ui/react-langgraph';
-import { Ban, ClipboardList, Download, Loader2, MessageSquare, XCircle } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { Ban, ClipboardList, Loader2, MessageSquare, XCircle } from 'lucide-react';
+import { useMemo } from 'react';
 
 interface SimpleDeepAgentResultsProps {
   /** Every issue of the run's revision; the view picks the run's own. */
@@ -52,34 +48,11 @@ export function SimpleDeepAgentResults({
   workflowName,
   onNavigateToDocumentExplorer,
 }: SimpleDeepAgentResultsProps) {
-  const stateMessages = workflowDetail.state?.messages;
-  const messages = useMemo(() => (stateMessages ?? []) as unknown as LangChainMessage[], [stateMessages]);
-
   const workflowRunId = workflowDetail.run.id;
   const issues = useMemo(
     () => allIssues.filter((i) => i.workflow_run_id === workflowRunId),
     [allIssues, workflowRunId],
   );
-
-  // The converter joins each tool result into its tool call (so finished calls
-  // read as done) and merges consecutive steps into one assistant message.
-  const threadMessages = useExternalMessageConverter<LangChainMessage>({
-    callback: convertLangChainMessages,
-    messages,
-    isRunning: false,
-  });
-
-  const runtime = useExternalStoreRuntime({
-    messages: threadMessages,
-    isRunning: false,
-    onNew: async () => {},
-  });
-
-  // Declared above the early returns below, so the hook order stays stable.
-  // The tab is controlled because the Download PDF button sits in the tab row
-  // and only applies to the Results tab.
-  const [activeTab, setActiveTab] = useState('results');
-  const frameRef = useRef<HtmlReportFrameHandle>(null);
 
   if (isWorkflowProcessing(workflowDetail)) {
     return (
@@ -123,7 +96,7 @@ export function SimpleDeepAgentResults({
   const { result } = state;
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab}>
+    <Tabs defaultValue="results">
       <div className="flex items-center justify-between gap-2">
         <TabsList>
           {/* The tooltip hangs off a wrapper, not the trigger itself: Radix
@@ -156,39 +129,19 @@ export function SimpleDeepAgentResults({
             </TooltipContent>
           </Tooltip>
         </TabsList>
-        {/* Only on the Results tab: the other tab unmounts the frame, which
-            would leave this printing nothing. */}
-        {result.report_html && activeTab === 'results' && (
-          <Button variant="outline" size="sm" onClick={() => frameRef.current?.print()}>
-            <Download className="size-4" />
-            Download PDF
-          </Button>
-        )}
       </div>
 
       <TabsContent value="results" className="space-y-4">
-        {result.report_html ? (
-          // HTML-report workflows produce a document deliverable, not a checklist.
-          // No Card wrapper: the report renders in its own bordered frame already.
-          <HtmlReportFrame ref={frameRef} html={result.report_html} title="Report" />
-        ) : (
-          <>
-            {result.report_markdown && <ReportCard reportMarkdown={result.report_markdown} />}
-            <WorkflowIssuesList
-              issues={issues}
-              readOnly={!canEditIssues}
-              onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
-            />
-          </>
-        )}
+        {result.report_markdown && <ReportCard reportMarkdown={result.report_markdown} />}
+        <WorkflowIssuesList
+          issues={issues}
+          readOnly={!canEditIssues}
+          onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
+        />
       </TabsContent>
 
-      {/* No top margin: the Tabs root already spaces panels from the tab list,
-          and the thread's own viewport padding is dropped for the same reason. */}
       <TabsContent value="messages">
-        <AssistantRuntimeProvider runtime={runtime}>
-          <ReadonlyThread viewportClassName="pt-0" />
-        </AssistantRuntimeProvider>
+        <AgentTranscript messages={state.messages ?? []} />
       </TabsContent>
     </Tabs>
   );

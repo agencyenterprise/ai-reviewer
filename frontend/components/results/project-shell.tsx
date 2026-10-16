@@ -2,8 +2,8 @@
 
 import { AnalysisOptionsMenu } from '@/components/results/components/analysis-options-menu';
 import { assessmentHref as assessmentHrefUnder, TabType } from '@/components/results/constants';
-import { derivePeerReviewFacts, peerReviewNeedsAttention } from '@/components/results/peer-review/peer-review-derive';
 import { ProjectViewProvider } from '@/components/results/project-view-context';
+import { useReviewAssistantRequests } from '@/components/results/review-assistant/use-review-assistant';
 import { PageTitle } from '@/components/shared/page-title';
 import { Badge } from '@/components/ui/badge';
 import { EditableTitle } from '@/components/ui/editable-title';
@@ -13,6 +13,7 @@ import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context
 import { AccessLevel, ProjectOverview, UserRole, WorkflowRunType } from '@/lib/generated-api';
 import { useUserMe } from '@/lib/hooks/use-user-me';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
+import { isAssessmentRun } from '@/lib/review-assistant';
 import { isAnyWorkflowActive } from '@/lib/workflow-state';
 import { ReactNode, useMemo } from 'react';
 import { AppBar } from './app-bar';
@@ -73,8 +74,14 @@ export function ProjectShell({
   const runsActive = isAnyWorkflowActive(results);
 
   const { showExperimentalFeatures } = useExperimentalFeatures();
-  const peerReviewFacts = derivePeerReviewFacts(overview);
-  const peerReviewAttention = peerReviewNeedsAttention(peerReviewFacts, readOnly);
+  const { shareToken } = useShare();
+  // Alpha, so it only exists for users who opted in. Not on share links: its
+  // requests are read with the owner's sign-in.
+  const showReviewAssistant = showExperimentalFeatures && shareToken === null;
+  // Same query as the tab, so the count and the list stay in step.
+  const { data: reviewAssistantRequests } = useReviewAssistantRequests(overview.project.id, {
+    enabled: showReviewAssistant,
+  });
 
   const tabs: ProjectTab[] = [
     { id: 'document-explorer', label: 'Document Explorer' },
@@ -85,15 +92,17 @@ export function ProjectShell({
       attention: needsReferenceReview,
     },
     { id: 'files', label: 'Files', count: overview.files?.length ?? 0 },
-    { id: 'analyses', label: 'Assessments', count: results.filter((r) => isWorkflowTypeVisible(r.run.type)).length },
-    // Peer Review is still alpha, so it only exists for users who opted in.
-    ...(showExperimentalFeatures
+    {
+      id: 'analyses',
+      label: 'Assessments',
+      count: results.filter((r) => isWorkflowTypeVisible(r.run.type) && isAssessmentRun(r.run.type)).length,
+    },
+    ...(showReviewAssistant
       ? [
           {
-            id: 'peer-review' as const,
-            label: 'Peer Review',
-            count: peerReviewFacts.memos.length > 0 ? peerReviewFacts.memos.length : undefined,
-            attention: peerReviewAttention,
+            id: 'review-assistant' as const,
+            label: 'Review Assistant',
+            count: reviewAssistantRequests?.length || undefined,
           },
         ]
       : []),
@@ -121,7 +130,6 @@ export function ProjectShell({
   // recipient renders, and the recipient is whoever holds the link — the public endpoint
   // reports READ even to the owner for that reason. Keying off the account instead would
   // make an owner or admin previewing their own link see feedback nobody else does.
-  const { shareToken } = useShare();
   const { data: userMe } = useUserMe();
   const isOwner = overview.access_level === AccessLevel.Write;
   const canAccessFeedback = shareToken === null && (isOwner || userMe?.role === UserRole.Admin);

@@ -138,3 +138,49 @@
       the causal language in Finding 5, and the unaddressed selection into the sample of twelve
       programs. Part 1 must carry exactly those three as substantial work, and must not promote
       any of the nine smaller points alongside them.
+# The same memo, signed, plus a second reviewer who returned only a Word copy of
+# the draft with three comments and no memo. The byline matters: an unsigned
+# memo next to comments on the same topics could as well be the commenter's own,
+# and the skill then rightly keeps the comments secondary.
+- id: hiring_audits_comments_only_reviewer
+  draft: file://files/peer_review/hiring_audits/draft.md
+  memos:
+  - source: file://files/peer_review/hiring_audits/reviewer-memo.md
+    byline: 'Reviewer: Prof. Alan Ruiz'
+  marked_up:
+  - file_name: report DL.docx
+    marked_up_from: file://files/peer_review/hiring_audits/draft.md
+    author: Dana Lee
+    comments:
+    - anchor: Local Law 144 requires annual bias audits
+      text: Worth saying how the Local Law 144 audits have gone in practice. Is there any evidence
+        yet that they changed vendor behaviour?
+    - anchor: a complete audit has three layers
+      text: Why three? A sentence on what each layer catches that the others miss would justify
+        the structure.
+    - anchor: selection rates by demographic group
+      text: Cite a source for this convergence claim, or soften it.
+  expected_reviewers:
+  - A
+  - B
+  point_count_bands:
+    A:
+    - 8
+    - 14
+    B:
+    - 3
+    - 3
+  verbatim_probes:
+  - These two statements are in tension.
+  - A reader at an enforcement agency will stop here.
+  - Why three? A sentence on what each layer catches that the others miss would justify the
+    structure.
+  - Cite a source for this convergence claim, or soften it.
+  rubric:
+    scenario_trap: >-
+      Dana Lee wrote no memo: her three inline comments on a copy of the draft are her whole
+      review. She must appear as a reviewer of her own with a letter distinct from the memo's
+      reviewer, each of her three comments must be a point with its own ID, quoted verbatim
+      together with the text it is attached to, and each must carry a planning note like any
+      memo point. Treating her comments as optional or secondary notes, folding them into the
+      memo's reviewer, or leaving them out of the plan fails this.

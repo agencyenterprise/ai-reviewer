@@ -28,19 +28,12 @@ def test_blanks_every_converted_document():
     state = DocumentProcessingState(
         config=DocumentProcessingWorkflowConfig(project_id="project"),
         file=_document("main"),
-        supporting_files=[_document("source")],
-        reviewer_memo_files=[_document("reviewer")],
-        response_memo_files=[_document("response")],
+        supporting_files=[_document("source"), _document("other-source")],
     )
     # The stripping reads only `state`; the run metadata is irrelevant here.
     run = WorkflowRunDetail.model_construct(state=state)
 
     strip_converted_markdown([run])
 
-    documents = [
-        state.file,
-        *(state.supporting_files or []),
-        *(state.reviewer_memo_files or []),
-        *(state.response_memo_files or []),
-    ]
-    assert [d.markdown for d in documents] == [None, None, None, None]
+    documents = [state.file, *(state.supporting_files or [])]
+    assert [d.markdown for d in documents] == [None, None, None]

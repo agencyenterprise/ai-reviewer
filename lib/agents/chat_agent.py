@@ -84,7 +84,7 @@ EXCLUDED_CHAT_SKILLS = frozenset({"literature-review", "live-reports"})
 # without a workflow (helpers such as `issues` or `voice-and-tone`) keep the
 # description in their own SKILL.md. Curated rather than derived, because the
 # relation is not one-to-one: `about_this_ger` backs two skills, and the
-# `review-assistant` skill is a companion to three workflows rather than a check.
+# `review-assistant` skill produces three outputs rather than running a check.
 # Skill-declared workflows are not listed: theirs is one-to-one and read off the
 # manifest (see `_manifest_for_skill`).
 SKILL_WORKFLOWS: dict[str, WorkflowRunType] = {

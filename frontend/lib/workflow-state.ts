@@ -5,6 +5,7 @@ import {
   ReferenceDownloaderState,
   ReferenceExtractionState,
   ReferenceFileMatchingState,
+  ReviewAssistantState,
   Reviewer2State,
   SimpleDeepAgentState,
   WorkflowError,
@@ -37,9 +38,7 @@ type BespokeWorkflowStates = {
   [WorkflowRunType.RecommendationCheck]: SimpleDeepAgentState;
   [WorkflowRunType.LiteratureReviewV2]: SimpleDeepAgentState;
   [WorkflowRunType.LiveReportsV2]: SimpleDeepAgentState;
-  [WorkflowRunType.RevisionPlanningSummary]: SimpleDeepAgentState;
-  [WorkflowRunType.ReviewerResponseMemos]: SimpleDeepAgentState;
-  [WorkflowRunType.ReviewerCoverageReport]: SimpleDeepAgentState;
+  [WorkflowRunType.ReviewAssistant]: ReviewAssistantState;
 };
 
 /**

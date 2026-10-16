@@ -221,7 +221,7 @@ export function AnalysisOptionsMenu({
               <MenuItemWithTooltip
                 icon={Plus}
                 onClick={() => setIsReplaceDialogOpen(true)}
-                tooltip="Upload a new version of the main document as a new revision. Previous revisions, their reviewer memos, and results are kept."
+                tooltip="Upload a new version of the main document as a new revision. Previous revisions and their results are kept."
               >
                 Create new revision
               </MenuItemWithTooltip>

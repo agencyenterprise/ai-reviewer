@@ -34,7 +34,7 @@ Each check, called an **assessment**, answers one narrow question about the docu
 | Editorial and style review | Does the document meet structural and house-style requirements? | Figures & Tables Check, Abbreviation Scan, Headers & Skimmability |
 | Language | Is the prose neutral, direct and consistent? | Advocacy & Tone, Active Voice & Clear Actors, Concision & Precision |
 
-Beyond these, a peer-review workspace helps authors respond to reviewers: it turns reviewer memos into a revision plan, drafts a response memo per reviewer, and reports which points a revised draft addresses. A simulated reviewer (Reviewer 2) writes a whole-document critique with a devil's-advocate rebuttal.
+Beyond these, the Review Assistant helps authors respond to reviewers. From whatever documents they have (drafts, reviewer memos, Word copies with comments or tracked changes, response memos), unlabeled, it writes a revision plan, a response memo per reviewer, or a report on which points a revised draft addresses. A simulated reviewer (Reviewer 2) writes a whole-document critique with a devil's-advocate rebuttal.
 
 The set of assessments grows regularly, so this page does not list them all. The current list, with what each one measures, is in the app's **Run assessments** dialog, in the [`skills/`](https://github.com/agencyenterprise/draft-detective/tree/main/skills) folder, and in the [eval scores report](./eval-scores.md).
 
@@ -70,7 +70,7 @@ Severity is `high`, `medium`, `low`, or `none` for a check that passed and is wo
 
 [![Draft Detective architecture](./images/architecture.png)](./images/architecture.png)
 
-1. **A project** holds the draft under review, the full texts of its references, and any reviewer memos. Uploading a revised draft starts a new revision. The web app offers to re-run the earlier assessments on it, and does so by default; the peer-review reports are left for the author to start.
+1. **A project** holds the draft under review, the full texts of its references, and any documents handed to the Review Assistant. Uploading a revised draft starts a new revision. The web app offers to re-run the earlier assessments on it, and does so by default; Review Assistant requests are left for the author to start.
 2. **Pipeline steps** prepare what every assessment needs. The draft is converted to line-numbered Markdown (images and charts are kept so that checks able to read images can inspect them), its bibliography is extracted, and each reference is matched to an uploaded source file or fetched from the web.
 3. **Assessments** run in parallel, each one independent of the others. Most are a skill plus an agent built on [LangGraph](https://www.langchain.com/langgraph) and [deepagents](https://github.com/langchain-ai/deepagents). The agent reads the document through tools (read and search the document, view an image, search the web, retrieve passages from a cited source, hand work to a subagent) and reports each finding through a reporting tool that validates it on the spot. Some agents split the work: Internal Inference Validation runs three independent detection passes, then has a separate adjudicator judge every candidate before anything is reported. A few checks that need per-item structure, such as the Reference Error Checker, are hand-built LangGraph graphs instead.
 4. **Issues** are stored per revision. Some assessments also write a report, such as a methodology comparison or a peer review.

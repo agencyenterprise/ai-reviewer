@@ -34,6 +34,10 @@ from lib.workflows.reference_validation_v2.state import (
     ReferenceValidationV2State,
     ReferenceValidationV2WorkflowConfig,
 )
+from lib.workflows.review_assistant.state import (
+    ReviewAssistantConfig,
+    ReviewAssistantState,
+)
 from lib.workflows.reviewer_2.state import (
     Reviewer2Config,
     Reviewer2State,
@@ -54,6 +58,7 @@ WorkflowState = (
     | ReferenceDownloaderState
     | ReferenceValidationV2State
     | Reviewer2State
+    | ReviewAssistantState
     | SimpleDeepAgentState
 )
 
@@ -68,5 +73,6 @@ WorkflowConfig = (
     | ReferenceDownloaderWorkflowConfig
     | ReferenceValidationV2WorkflowConfig
     | Reviewer2Config
+    | ReviewAssistantConfig
     | SimpleDeepAgentConfig
 )

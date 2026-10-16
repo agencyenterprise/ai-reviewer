@@ -14,10 +14,15 @@ class FileRole(str, Enum):
     MAIN = "main"
     SUPPORT = "support"
     SUPPORTING_CANDIDATE = "supporting_candidate"
+    # Retired upload roles of the former Peer Review tab: a reviewer's memo on
+    # a draft, and the author's reply to it. Files that carry them still load,
+    # list, and can be handed to the Review Assistant; new uploads are rejected.
     REVIEWER_MEMO = "reviewer_memo"
-    # The author's final reply to the reviewers, attached to the revised draft
-    # it describes. Read by the coverage report alongside the draft diff.
     RESPONSE_MEMO = "response_memo"
+    # Any document the author hands the Review Assistant without saying what it
+    # is: a draft, a reviewer memo, a marked-up copy, a response memo. The agent
+    # works out which. Shared across revisions, like a supporting document.
+    REVIEW_INPUT = "review_input"
     # Derived artifact, not an upload: an image extracted from a document
     # during markdown conversion. Always has parent_file_id set. Readers must
     # opt in by role — file listings never include these implicitly.

@@ -118,16 +118,8 @@ def register_all_workflow_manifests():
         ReferenceValidationV2Manifest,
     )
     from lib.workflows.results_extraction.manifest import ResultsExtractionManifest  # noqa: PLC0415  circular, see above
+    from lib.workflows.review_assistant.manifest import ReviewAssistantManifest  # noqa: PLC0415  circular, see above
     from lib.workflows.reviewer_2.manifest import Reviewer2Manifest  # noqa: PLC0415  circular, see above
-    from lib.workflows.reviewer_coverage_report.manifest import (  # noqa: PLC0415  circular, see above
-        ReviewerCoverageReportManifest,
-    )
-    from lib.workflows.reviewer_response_memos.manifest import (  # noqa: PLC0415  circular, see above
-        ReviewerResponseMemosManifest,
-    )
-    from lib.workflows.revision_planning_summary.manifest import (  # noqa: PLC0415  circular, see above
-        RevisionPlanningSummaryManifest,
-    )
 
     manifests = [
         DocumentProcessingManifest(),
@@ -149,9 +141,7 @@ def register_all_workflow_manifests():
         DocumentStructureManifest(),
         FiguresTablesCheckManifest(),
         RecommendationCheckManifest(),
-        RevisionPlanningSummaryManifest(),
-        ReviewerResponseMemosManifest(),
-        ReviewerCoverageReportManifest(),
+        ReviewAssistantManifest(),
     ]
 
     for manifest in manifests:

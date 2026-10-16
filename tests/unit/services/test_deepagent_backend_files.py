@@ -44,18 +44,18 @@ def _document(file: File) -> FileDocument:
 
 
 @pytest.mark.asyncio
-async def test_memos_mount_under_their_revision_folder():
+async def test_every_revision_and_source_mounts_by_its_role():
     files = [
         _file(FileRole.MAIN, 1),
         _file(FileRole.MAIN, 2),
-        _file(FileRole.REVIEWER_MEMO, 1),
-        _file(FileRole.RESPONSE_MEMO, 2),
+        _file(FileRole.SUPPORT, None),
     ]
     main_doc = _document(files[1])
     service = FileArtifactsService(project_id=str(uuid.uuid4()), revision=2)
+    query = AsyncMock(return_value=files)
 
     with (
-        patch(f"{MODULE}.get_files_by_project_id", new=AsyncMock(return_value=files)),
+        patch(f"{MODULE}.get_files_by_project_id", new=query),
         patch.object(service, "get_main_file", new=AsyncMock(return_value=main_doc)),
         patch.object(
             service,
@@ -65,11 +65,46 @@ async def test_memos_mount_under_their_revision_folder():
     ):
         tree = await service.get_deepagent_backend_files(include_skills=False)
 
-    reviewer, response = files[2], files[3]
     assert set(tree) == {
         "/main.md",
         "/revisions/1/main.md",
         "/revisions/2/main.md",
-        f"/revisions/1/reviewer-memos/{reviewer.id}.md",
-        f"/revisions/2/response-memos/{response.id}.md",
+        f"/supporting/{files[2].id}.md",
     }
+    # Review Assistant documents are mounted by that workflow alone, from the
+    # files its request names, so the shared tree never asks for them.
+    assert query.call_args.kwargs["roles"] == [FileRole.MAIN, FileRole.SUPPORT]
+
+
+@pytest.mark.asyncio
+async def test_a_document_that_will_not_load_is_reported_not_raised():
+    good, bad = _file(FileRole.REVIEW_INPUT, None), _file(FileRole.REVIEW_INPUT, None)
+    service = FileArtifactsService(project_id=str(uuid.uuid4()), revision=1)
+
+    async def load(file: File) -> FileDocument:
+        if file is bad:
+            raise ValueError("not a zip file")
+        return _document(file)
+
+    with (
+        patch(
+            f"{MODULE}.get_files_by_project_id", new=AsyncMock(return_value=[good, bad])
+        ),
+        patch.object(
+            service,
+            "_load_file_document_with_markdown",
+            new=AsyncMock(side_effect=load),
+        ),
+    ):
+        loaded = await service.get_file_documents(
+            [str(bad.id), str(good.id), "not-in-project"]
+        )
+
+    assert [d.file_id for d in loaded.documents] == [str(good.id)]
+    broken, gone = loaded.unreadable
+    assert (broken.file_id, broken.reason) == (str(bad.id), "not a zip file")
+    # Named by the request but no longer in the project: deleted since it started.
+    assert (gone.file_id, gone.reason) == (
+        "not-in-project",
+        "it was deleted from the project.",
+    )

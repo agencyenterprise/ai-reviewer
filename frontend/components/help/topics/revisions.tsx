@@ -45,7 +45,7 @@ const STEPS: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: PlayCircle,
     title: 'The assessments that ran before run again',
-    body: 'On the new draft, unless you clear that option while uploading. Peer Review is the exception: you start it yourself, once the memos for the draft are in.',
+    body: 'On the new draft, unless you clear that option while uploading. Review Assistant requests are the exception: they read the documents you gave them, not the current draft, so you start a new one yourself.',
   },
 ];
 
@@ -127,12 +127,13 @@ export function RevisionsTopic({ onOpenTopic }: HelpTopicBodyProps) {
           </Fact>
           <Fact
             term={
-              <TopicLink to="peer-review" onOpenTopic={onOpenTopic}>
-                Reviewer memos
+              <TopicLink to="review-assistant" onOpenTopic={onOpenTopic}>
+                Review documents
               </TopicLink>
             }
           >
-            Belong to the revision they were written about, because that is the draft their author read.
+            Shared by every revision too. A Review Assistant request reads the documents it was given, whichever
+            revision is current, and any revision&apos;s main document can be one of them.
           </Fact>
         </ul>
       </section>

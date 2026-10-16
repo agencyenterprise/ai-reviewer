@@ -144,7 +144,7 @@
       an artifact. That single point must appear in the list of what needs another pass and
       must not be lost among the settled ones.
 # The two samples below reuse a scenario above and add the author's response
-# memos, uploaded to the revised draft. Kept as separate samples so the five
+# memos to the documents the request reads. Kept as separate samples so the five
 # above stay comparable run to run on the path without replies.
 - id: hiring_audits_with_responses
   draft: file://files/peer_review/hiring_audits/draft.md
