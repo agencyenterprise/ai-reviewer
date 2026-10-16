@@ -3,15 +3,6 @@ kind: ConfigMap
 metadata:
   name: api-config
 data:
-  # The backend no longer reads POSTGRES_HOST or POSTGRES_PORT: it connects
-  # through DATABASE_URL. Keep them anyway. RAND's deploy fork keeps its own
-  # edited copy of this file, with changes on the lines around these two.
-  # Deleting them here makes the fork's automatic main ->
-  # working_deployment_v1 merge conflict, and that stops the sync. Its
-  # lib/config/env.py also requires them until it picks up their removal from
-  # ours. Remove them only together with the fork.
-  POSTGRES_HOST: "db"
-  POSTGRES_PORT: "5432"
   FILE_UPLOADS_MOUNT_PATH: "/app/uploads"
   LANGFUSE_HOST: "https://cloud.langfuse.com"
 
