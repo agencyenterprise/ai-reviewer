@@ -45,7 +45,7 @@ cp ../.env.template .env
 The template's defaults are for local development. Before you create the secret, change these in `.env`:
 
 - `DATABASE_URL`: use the `db` Service as the host, with the same user, password and database name as `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB` (for example `postgresql://ai_reviewer_user:<password>@db:5432/ai_reviewer`).
-- `FRONTEND_URL` and `MCP_BASE_URL`: use the public Route or Ingress URLs, not `localhost` (`MCP_BASE_URL` keeps its `/mcp` path). The API builds share links and its OAuth base URL from them.
+- `FRONTEND_URL` and `MCP_BASE_URL`: use the public Route or Ingress URLs, not `localhost` (`MCP_BASE_URL` keeps its `/mcp` path). The API builds share links and its OAuth base URL from them. On OpenShift the Routes get their hosts only when they are created, so set these two after deploying (see step 3).
 
 ### 3. Deploy to Cluster
 
@@ -58,6 +58,10 @@ oc apply -f . -n ai-reviewer
 
 # Get the URL
 oc get routes -n ai-reviewer
+
+# Put the Route URLs in FRONTEND_URL and MCP_BASE_URL in .env, then update the secret and restart the API
+oc create secret generic app-secrets --from-env-file=.env -n ai-reviewer --dry-run=client -o yaml | oc apply -f -
+oc rollout restart deployment/api -n ai-reviewer
 ```
 
 **Vanilla Kubernetes:**
