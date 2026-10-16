@@ -15,7 +15,6 @@ import type {
   GetSharedResourceApiPublicShareTokenGetResponse,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponse,
   ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponse,
-  ListAppConfigsApiAppConfigsGetResponse,
   ListLogsApiAdminLogsGetResponse,
   ListPendingApiMicrosoftWordHandoffsGetResponse,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse,
@@ -24,7 +23,6 @@ import type {
   ListThreadsApiChatThreadsGetResponse,
   ResolveIssueEndpointApiIssuesIssueIdResolvePostResponse,
   UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostResponse,
-  UpdateAppConfigApiAppConfigsKeyPutResponse,
   UpdateProjectEndpointApiProjectProjectIdPatchResponse,
   UpdateThreadApiChatThreadsThreadIdPatchResponse,
 } from './types.gen';
@@ -80,25 +78,6 @@ export const listAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponseTransf
   data: any,
 ): Promise<ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponse> => {
   data = data.map((item: any) => annotatedItemSchemaResponseTransformer(item));
-  return data;
-};
-
-const appConfigResponseSchemaResponseTransformer = (data: any) => {
-  data.updated_at = new Date(data.updated_at);
-  return data;
-};
-
-export const listAppConfigsApiAppConfigsGetResponseTransformer = async (
-  data: any,
-): Promise<ListAppConfigsApiAppConfigsGetResponse> => {
-  data = data.map((item: any) => appConfigResponseSchemaResponseTransformer(item));
-  return data;
-};
-
-export const updateAppConfigApiAppConfigsKeyPutResponseTransformer = async (
-  data: any,
-): Promise<UpdateAppConfigApiAppConfigsKeyPutResponse> => {
-  data = appConfigResponseSchemaResponseTransformer(data);
   return data;
 };
 
