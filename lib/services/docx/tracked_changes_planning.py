@@ -18,6 +18,12 @@ from collections.abc import Mapping, Sequence
 from docx import Document as PythonDocxDocument
 from docx_editor import Document as EditorDocument
 
+from lib.services.docx.edit_conflicts import (
+    EditCandidate,
+    EditDecision,
+    overlap_groups,
+    pick_winner,
+)
 from lib.services.docx.paragraph_line_mapper import find_paragraph_by_line_range
 from lib.services.docx.paragraph_refs import (
     MappedParagraph,
@@ -32,12 +38,6 @@ from lib.services.docx.tracked_changes_models import (
     editor_workspace,
 )
 from lib.services.docx.tracked_changes_placement import plan_edit
-from lib.services.edit_conflicts import (
-    EditCandidate,
-    EditDecision,
-    overlap_groups,
-    pick_winner,
-)
 
 # Why nothing could be placed: python-docx and docx-editor disagreed on the
 # document's paragraphs, so not one ref could be trusted.

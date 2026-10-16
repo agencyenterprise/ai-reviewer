@@ -32,6 +32,11 @@ from pydantic import BaseModel, Field
 
 from lib.models.issue import Issue
 from lib.models.issue_edit import IssueEditStatus
+from lib.services.docx.edit_conflicts import (
+    EditCandidate,
+    EditDecision,
+    resolve_edit_conflicts,
+)
 from lib.services.docx.edit_notes import build_edit_notes
 from lib.services.docx.tracked_changes import (
     EditOutcome,
@@ -39,11 +44,6 @@ from lib.services.docx.tracked_changes import (
     apply_tracked_changes,
     plan_tracked_changes,
     unplaceable_outcomes,
-)
-from lib.services.edit_conflicts import (
-    EditCandidate,
-    EditDecision,
-    resolve_edit_conflicts,
 )
 from lib.workflows.registry import get_workflow_manifest
 from lib.workflows.simple_deep_agent.edit_anchoring import document_lines

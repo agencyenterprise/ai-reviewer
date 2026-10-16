@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from lib.models.issue_edit import IssueEdit, IssueEditStatus
-from lib.services.edit_conflicts import (
+from lib.services.docx.edit_conflicts import (
     EditCandidate,
     EditDecision,
     overlap_groups,
