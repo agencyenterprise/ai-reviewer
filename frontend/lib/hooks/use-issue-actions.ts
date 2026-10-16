@@ -6,7 +6,7 @@ import { getErrorMessage } from '@/lib/api-error';
 import { Issue, IssueResponse } from '@/lib/generated-api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { projectIssuesPrefix } from './use-project-data';
+import { projectQueryKeys } from './use-project-data';
 
 export function useIssueActions() {
   const queryClient = useQueryClient();
@@ -16,7 +16,7 @@ export function useIssueActions() {
   // A list still on its way, though, may have been read before this change and
   // would overwrite it when it lands, so those are cancelled and asked again.
   const applyResolution = async (updated: IssueResponse) => {
-    const filters = { queryKey: projectIssuesPrefix(updated.project_id) };
+    const filters = { queryKey: projectQueryKeys.allIssues(updated.project_id) };
     const inFlight = queryClient.getQueryCache().findAll({ ...filters, fetchStatus: 'fetching' });
     await queryClient.cancelQueries(filters);
     queryClient.setQueriesData(filters, (issues: Issue[] | undefined) =>

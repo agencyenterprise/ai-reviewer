@@ -12,6 +12,7 @@ import { FileRole } from '../../generated-api';
 import { UPLOAD_CONFIG, createTusOptions } from './config';
 import type { UseUploadOptions, UseUploadReturn, UploadFileState, UploadStatus } from './types';
 import { createProgress, isActiveStatus } from './types';
+import { projectQueryKeys } from '@/lib/hooks/use-project-data';
 
 export function useUpload(options: UseUploadOptions): UseUploadReturn {
   const {
@@ -105,7 +106,7 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
           progress: createProgress(file.size ?? 0, file.size ?? 0),
         });
         callbackRefs.current.onFileComplete?.(entry.file, file);
-        queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+        queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
       }
     });
 

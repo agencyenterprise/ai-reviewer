@@ -28,14 +28,21 @@ const AWAITING_APPROVAL_REFETCH_INTERVAL_MS = 15000;
  */
 export const projectQueryKeys = {
   all: (projectId: string) => ['project', projectId] as const,
-  overviews: (projectId: string) => ['project', projectId, 'overview'] as const,
+  overviews: (projectId: string) => [...projectQueryKeys.all(projectId), 'overview'] as const,
   overview: (projectId: string, revision: number | null | undefined) =>
-    ['project', projectId, 'overview', revision ?? 'latest'] as const,
-  issues: (projectId: string, revision: number) => ['project', projectId, 'issues', revision] as const,
+    [...projectQueryKeys.overviews(projectId), revision ?? 'latest'] as const,
+  /** Every cached issue list of a project, across revisions. */
+  allIssues: (projectId: string) => [...projectQueryKeys.all(projectId), 'issues'] as const,
+  issues: (projectId: string, revision: number) => [...projectQueryKeys.allIssues(projectId), revision] as const,
+  document: (projectId: string, revision: number, version: string) =>
+    [...projectQueryKeys.all(projectId), 'document', revision, version] as const,
+  references: (projectId: string, revision: number, version: string) =>
+    [...projectQueryKeys.all(projectId), 'references', revision, version] as const,
+  run: (projectId: string, runId: string | undefined, version: string) =>
+    [...projectQueryKeys.all(projectId), 'run', runId, version] as const,
+  runHistory: (projectId: string, workflowType: WorkflowRunType | null, revision: number, version: string) =>
+    [...projectQueryKeys.all(projectId), 'run-history', workflowType, revision, version] as const,
 };
-
-/** Every cached issue list of a project, across revisions. */
-export const projectIssuesPrefix = (projectId: string) => ['project', projectId, 'issues'] as const;
 
 /**
  * Keep showing the previous data while a newer version of the same thing
@@ -110,7 +117,7 @@ export function useProjectDocument(overview: ProjectOverview) {
     runStatusVersion(findRunByType(runs, WorkflowRunType.DocumentSummarization)),
   ].join('|');
 
-  const queryKey = ['project', projectId, 'document', overview.revision, version];
+  const queryKey = projectQueryKeys.document(projectId, overview.revision, version);
 
   return useQuery({
     queryKey,
@@ -157,7 +164,7 @@ export function useProjectReferences(overview: ProjectOverview) {
     .map((type) => runVersion(findRunByType(runs, type)?.run))
     .join('|');
 
-  const queryKey = ['project', projectId, 'references', overview.revision, version];
+  const queryKey = projectQueryKeys.references(projectId, overview.revision, version);
 
   return useQuery({
     queryKey,
@@ -176,7 +183,7 @@ export function useWorkflowRunDetail(projectId: string, summary: WorkflowRunSumm
   const { shareToken } = useShare();
   const runId = summary?.run.id;
 
-  const queryKey = ['project', projectId, 'run', runId, runVersion(summary?.run)];
+  const queryKey = projectQueryKeys.run(projectId, runId, runVersion(summary?.run));
 
   return useQuery({
     enabled: !!runId,
@@ -198,7 +205,7 @@ export function useWorkflowRunHistory(overview: ProjectOverview, workflowType: W
   // A new run, or one finishing, is what adds to or changes the history.
   const latest = workflowType ? findRunByType(overview.workflow_runs ?? [], workflowType) : undefined;
 
-  const queryKey = ['project', projectId, 'run-history', workflowType, overview.revision, runStatusVersion(latest)];
+  const queryKey = projectQueryKeys.runHistory(projectId, workflowType, overview.revision, runStatusVersion(latest));
 
   return useQuery({
     enabled: !!workflowType,

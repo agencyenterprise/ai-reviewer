@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/api-error';
 import { approveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePost, WorkflowGate } from '@/lib/generated-api';
+import { projectQueryKeys } from '@/lib/hooks/use-project-data';
 
 /**
  * Approves a gate for the project's current revision, which starts every
@@ -19,7 +20,7 @@ export function useApproveGate(projectId: string, gate: WorkflowGate) {
         path: { project_id: projectId, gate },
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
       toast.success('Analysis started!');
     },
     onError: (error) => {

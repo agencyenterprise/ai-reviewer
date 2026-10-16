@@ -23,6 +23,7 @@ import {
 import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { WorkflowConfigDialog, WorkflowConfigFormValues } from './workflow-config-dialog';
+import { projectQueryKeys } from '@/lib/hooks/use-project-data';
 
 export interface StartWorkflowButtonProps {
   type: WorkflowRunType;
@@ -60,7 +61,7 @@ export function StartWorkflowButton({
       setIsConfigDialogOpen(false);
       toast.success(`${workflowName} workflow started`);
       queryClient.invalidateQueries({
-        queryKey: ['project', projectId],
+        queryKey: projectQueryKeys.all(projectId),
       });
     },
     onError: (error) => {
@@ -76,7 +77,7 @@ export function StartWorkflowButton({
       }),
     onSuccess: () => {
       toast.success(`${workflowName} workflow cancelled`);
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
     },
     onError: (error) => {
       console.error(`Failed to cancel ${workflowName} workflow:`, error);
