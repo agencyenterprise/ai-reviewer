@@ -1,6 +1,6 @@
 """Tests for PostgreSQL sanitization utilities"""
 
-from lib.services.text_sanitization import sanitize_for_postgres
+from lib.services.text.sanitization import sanitize_for_postgres
 
 
 class TestSanitizeForPostgres:

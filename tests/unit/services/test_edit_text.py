@@ -1,8 +1,9 @@
 """Tests for what an edit's raw markdown says about whether Word can write it.
 
-The rendered form of an edit is settled in `lib.services.markdown_text` and
-checked there; what is asked here is only of the source: is the line a table
-row, and can Word take the replacement as an insertion at all.
+The rendered form of an edit is settled in
+`lib.services.text.markdown_rendering` and checked there; what is asked here
+is only of the source: is the line a table row, and can Word take the
+replacement as an insertion at all.
 """
 
 from lib.services.docx.edit_text import is_table_row, unsupported_replacement_reason

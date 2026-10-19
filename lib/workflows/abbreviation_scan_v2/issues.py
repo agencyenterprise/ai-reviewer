@@ -6,7 +6,7 @@ entries — but a reader does not need to be told the same abbreviation is missi
 from the Abbreviations section forty times, nor that the other forty passed.
 """
 
-from lib.services.text_matching import text_matches
+from lib.services.text.matching import text_matches
 from lib.workflows.abbreviation_scan_v2.state import (
     AbbreviationItem,
     AbbreviationScanV2State,

@@ -4,7 +4,15 @@ Every span handed back indexes the raw text, so the caller can search the
 document for exactly those characters -- non-breaking spaces and all.
 """
 
-from lib.services.text_location import all_offsets, locate_in_paragraph
+from lib.services.text.location import (
+    all_offsets,
+    locate_in_paragraph,
+    normalize_whitespace,
+)
+
+
+def test_normalize_whitespace_collapses_runs_and_trims():
+    assert normalize_whitespace("  a \n\t b\xa0\xa0c  ") == "a b c"
 
 
 class TestAllOffsets:

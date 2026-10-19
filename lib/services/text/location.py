@@ -12,8 +12,15 @@ Pure functions only, and nothing here knows about markdown.
 
 import re
 
+_WHITESPACE_RUN = re.compile(r"\s+")
+
 # The same class `normalize_whitespace` collapses, one character at a time.
 _WHITESPACE = re.compile(r"\s")
+
+
+def normalize_whitespace(text: str) -> str:
+    """Collapse every run of whitespace (non-breaking spaces included) to one space."""
+    return _WHITESPACE_RUN.sub(" ", text).strip()
 
 
 def all_offsets(haystack: str, needle: str) -> list[int]:
