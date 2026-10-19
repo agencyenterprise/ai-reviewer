@@ -24,11 +24,18 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Create release bot token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Bump version and push tag
         uses: phips28/gh-action-bump-version@master
@@ -40,5 +47,5 @@ jobs:
           patch-wording: "patch"
           commit-message: "chore: bump version to {{version}}"
         env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           PACKAGEJSON_DIR: "frontend"
