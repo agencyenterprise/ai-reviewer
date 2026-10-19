@@ -536,30 +536,6 @@ export type AgentConversation = {
 };
 
 /**
- * AnnotateRequest
- */
-export type AnnotateRequest = {
-  /**
-   * Ooxml
-   *
-   * Flat OPC markup for the range the comment belongs on: the paragraph, or the whole outermost table when it is inside one. Write the result back at the same scope it was read at.
-   */
-  ooxml: string;
-  /**
-   * Quote
-   *
-   * Optionally the phrase within this paragraph to highlight, verbatim. Omitted, or not found, anchors the comment to the whole paragraph.
-   */
-  quote?: string | null;
-  /**
-   * Comment
-   *
-   * What to say about it
-   */
-  comment: string;
-};
-
-/**
  * AnnotatedItem
  *
  * An item with every annotation it has received.
@@ -937,46 +913,6 @@ export type AnnotationTaskSet = {
 };
 
 /**
- * AppliedEdit
- */
-export type AppliedEdit = {
-  /**
-   * Applied
-   */
-  applied: boolean;
-  /**
-   * Quote
-   */
-  quote: string;
-  /**
-   * Detail
-   */
-  detail?: string;
-  /**
-   * Revision Ids
-   */
-  revision_ids?: Array<number>;
-};
-
-/**
- * ApplySuggestionsRequest
- */
-export type ApplySuggestionsRequest = {
-  /**
-   * Ooxml
-   *
-   * Flat OPC markup for the range to change: the paragraph, or the whole outermost table when it is inside one. Write the result back at the same scope it was read at.
-   */
-  ooxml: string;
-  /**
-   * Edits
-   *
-   * Every change for this one paragraph, applied in one pass, so the caller reads and writes the paragraph once however many there are.
-   */
-  edits: Array<EditToApply>;
-};
-
-/**
  * ApproveGateResponse
  *
  * Response for approving a workflow gate on a project's current revision.
@@ -1128,6 +1064,42 @@ export type BodyExtractAttachmentTextApiChatExtractPost = {
 };
 
 /**
+ * Body_stream_turn_api_microsoft_word_chat_thread_stream_post
+ */
+export type BodyStreamTurnApiMicrosoftWordChatThreadStreamPost = {
+  /**
+   * Url
+   *
+   * The document URL Word reports; empty when unsaved
+   */
+  url: string;
+  /**
+   * Message
+   *
+   * What they typed
+   */
+  message: string;
+  /**
+   * Message Id
+   *
+   * The id the pane already shows the message under
+   */
+  message_id?: string | null;
+  /**
+   * Selection
+   *
+   * The text selected in Word, if any
+   */
+  selection?: string | null;
+  /**
+   * Document
+   *
+   * The .docx, when it changed since it was last sent in this thread. Left out, the agent keeps the copy it has.
+   */
+  document?: Blob | File | null;
+};
+
+/**
  * CancelWorkflowResponse
  *
  * Response for workflow cancellation.
@@ -1219,6 +1191,48 @@ export type ChatStreamRequest = {
    * A model id from GET /api/chat/models.
    */
   model?: string | null;
+};
+
+/**
+ * ChatSuggestion
+ *
+ * One set of suggestions from the chat, as its card shows it.
+ */
+export type ChatSuggestion = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Chat Thread Id
+   */
+  chat_thread_id?: string | null;
+  /**
+   * Status
+   */
+  status: 'pending' | 'applying' | 'applied' | 'dismissed';
+  /**
+   * Document Name
+   */
+  document_name: string;
+  /**
+   * Document Url
+   */
+  document_url: string;
+  items: HandoffItems;
+  outcome?: HandoffOutcome | null;
+  /**
+   * Created At
+   */
+  created_at: Date;
+  /**
+   * Finished At
+   */
+  finished_at?: Date | null;
+  /**
+   * Heard At
+   */
+  heard_at?: Date | null;
 };
 
 /**
@@ -1438,30 +1452,6 @@ export type ClaimReferenceValidationV2State = {
    * Citation Issues
    */
   citation_issues?: Array<CitationIssueItem>;
-};
-
-/**
- * CommentPlacement
- */
-export type CommentPlacement = {
-  /**
-   * Anchored
-   */
-  anchored: boolean;
-  /**
-   * Ooxml
-   *
-   * The markup to put back, when we anchored
-   */
-  ooxml?: string | null;
-  /**
-   * Comment Id
-   */
-  comment_id?: string | null;
-  /**
-   * Detail
-   */
-  detail?: string;
 };
 
 /**
@@ -1761,56 +1751,6 @@ export const DocxManipulatorType = { Comments: 'comments', CommentsWithLinks: 'c
 export type DocxManipulatorType = (typeof DocxManipulatorType)[keyof typeof DocxManipulatorType];
 
 /**
- * EditToApply
- */
-export type EditToApply = {
-  /**
-   * Quote
-   *
-   * The exact words to change, verbatim
-   */
-  quote: string;
-  /**
-   * Replacement
-   *
-   * What they become. Empty removes them.
-   */
-  replacement: string;
-};
-
-/**
- * EditsWritten
- */
-export type EditsWritten = {
-  /**
-   * Applied
-   *
-   * How many changes were written
-   */
-  applied: number;
-  /**
-   * Ooxml
-   *
-   * The markup to put back, when anything was written
-   */
-  ooxml?: string | null;
-  /**
-   * Edits
-   */
-  edits?: Array<AppliedEdit>;
-  /**
-   * Detail
-   */
-  detail?: string;
-  /**
-   * Warnings
-   *
-   * Why a change was withheld, when it was
-   */
-  warnings?: Array<string>;
-};
-
-/**
  * ErrorDetails
  *
  * Diagnostic payload captured from a caught exception.
@@ -2052,9 +1992,15 @@ export type File = {
   /**
    * Project Id
    *
-   * The project this file belongs to
+   * The project this file belongs to; None for a conversation's
    */
-  project_id: string;
+  project_id?: string | null;
+  /**
+   * Conversation Id
+   *
+   * The conversation this file belongs to, if not a project's
+   */
+  conversation_id?: string | null;
   /**
    * File Name
    *
@@ -2100,7 +2046,7 @@ export type File = {
    *
    * The user who uploaded the file
    */
-  uploaded_by: string;
+  uploaded_by?: string | null;
   /**
    * Description
    *
@@ -2380,6 +2326,16 @@ export type HandoffItems = {
    * Edits
    */
   edits?: Array<HandoffEdit>;
+};
+
+/**
+ * HandoffOutcome
+ */
+export type HandoffOutcome = {
+  /**
+   * Items
+   */
+  items?: Array<ItemOutcome>;
 };
 
 /**
@@ -2786,6 +2742,28 @@ export const IssueStatus = { Active: 'active', Archived: 'archived' } as const;
 export type IssueStatus = (typeof IssueStatus)[keyof typeof IssueStatus];
 
 /**
+ * ItemOutcome
+ */
+export type ItemOutcome = {
+  /**
+   * Kind
+   */
+  kind: 'comment' | 'edit';
+  /**
+   * Quote
+   */
+  quote: string;
+  /**
+   * Applied
+   */
+  applied: boolean;
+  /**
+   * Detail
+   */
+  detail?: string;
+};
+
+/**
  * ItemResult
  *
  * What happened to one stored item, named by its position in the handoff.
@@ -2947,6 +2925,28 @@ export type ModelCostBreakdown = {
    * Request Count
    */
   request_count?: number;
+};
+
+/**
+ * PaneCheck
+ */
+export type PaneCheck = {
+  /**
+   * Skill
+   */
+  skill: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Description
+   */
+  description: string;
+  /**
+   * Experimental
+   */
+  experimental?: boolean;
 };
 
 /**
@@ -4635,6 +4635,56 @@ export const ValidationSeverity = { Error: 'error', Warning: 'warning' } as cons
  * Severity level of a validation issue.
  */
 export type ValidationSeverity = (typeof ValidationSeverity)[keyof typeof ValidationSeverity];
+
+/**
+ * WordChatClearRequest
+ */
+export type WordChatClearRequest = {
+  /**
+   * Url
+   *
+   * The document URL Word reports; empty when unsaved
+   */
+  url: string;
+};
+
+/**
+ * WordChatHistory
+ */
+export type WordChatHistory = {
+  /**
+   * Thread Id
+   *
+   * None until the first message to this document
+   */
+  thread_id?: string | null;
+  /**
+   * Messages
+   *
+   * In the shape the /chat page renders
+   */
+  messages?: Array<{
+    [key: string]: unknown;
+  }>;
+  /**
+   * Pending Suggestion Id
+   *
+   * The card the conversation is paused on, waiting for it to be applied or dismissed; the turn carries on through POST /thread/resume
+   */
+  pending_suggestion_id?: string | null;
+};
+
+/**
+ * WordChatResumeRequest
+ */
+export type WordChatResumeRequest = {
+  /**
+   * Url
+   *
+   * The document URL Word reports; empty when unsaved
+   */
+  url: string;
+};
 
 /**
  * WorkflowCategoryOrder
@@ -8193,59 +8243,165 @@ export type SetApiKeyApiUsersMeApiKeyPutResponses = {
 export type SetApiKeyApiUsersMeApiKeyPutResponse =
   SetApiKeyApiUsersMeApiKeyPutResponses[keyof SetApiKeyApiUsersMeApiKeyPutResponses];
 
-export type AnnotateApiMicrosoftWordCommentsAnnotatePostData = {
-  body: AnnotateRequest;
+export type GetThreadApiMicrosoftWordChatThreadGetData = {
+  body?: never;
   path?: never;
-  query?: never;
-  url: '/api/microsoft/word/comments/annotate';
+  query: {
+    /**
+     * Url
+     *
+     * The document URL Word reports
+     */
+    url: string;
+  };
+  url: '/api/microsoft/word/chat/thread';
 };
 
-export type AnnotateApiMicrosoftWordCommentsAnnotatePostErrors = {
+export type GetThreadApiMicrosoftWordChatThreadGetErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type AnnotateApiMicrosoftWordCommentsAnnotatePostError =
-  AnnotateApiMicrosoftWordCommentsAnnotatePostErrors[keyof AnnotateApiMicrosoftWordCommentsAnnotatePostErrors];
+export type GetThreadApiMicrosoftWordChatThreadGetError =
+  GetThreadApiMicrosoftWordChatThreadGetErrors[keyof GetThreadApiMicrosoftWordChatThreadGetErrors];
 
-export type AnnotateApiMicrosoftWordCommentsAnnotatePostResponses = {
+export type GetThreadApiMicrosoftWordChatThreadGetResponses = {
   /**
    * Successful Response
    */
-  200: CommentPlacement;
+  200: WordChatHistory;
 };
 
-export type AnnotateApiMicrosoftWordCommentsAnnotatePostResponse =
-  AnnotateApiMicrosoftWordCommentsAnnotatePostResponses[keyof AnnotateApiMicrosoftWordCommentsAnnotatePostResponses];
+export type GetThreadApiMicrosoftWordChatThreadGetResponse =
+  GetThreadApiMicrosoftWordChatThreadGetResponses[keyof GetThreadApiMicrosoftWordChatThreadGetResponses];
 
-export type ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostData = {
-  body: ApplySuggestionsRequest;
+export type StreamTurnApiMicrosoftWordChatThreadStreamPostData = {
+  body: BodyStreamTurnApiMicrosoftWordChatThreadStreamPost;
   path?: never;
   query?: never;
-  url: '/api/microsoft/word/suggestions/apply';
+  url: '/api/microsoft/word/chat/thread/stream';
 };
 
-export type ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostErrors = {
+export type StreamTurnApiMicrosoftWordChatThreadStreamPostErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostError =
-  ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostErrors[keyof ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostErrors];
+export type StreamTurnApiMicrosoftWordChatThreadStreamPostError =
+  StreamTurnApiMicrosoftWordChatThreadStreamPostErrors[keyof StreamTurnApiMicrosoftWordChatThreadStreamPostErrors];
 
-export type ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostResponses = {
+export type StreamTurnApiMicrosoftWordChatThreadStreamPostResponses = {
   /**
    * Successful Response
    */
-  200: EditsWritten;
+  200: unknown;
 };
 
-export type ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostResponse =
-  ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostResponses[keyof ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostResponses];
+export type ResumeTurnApiMicrosoftWordChatThreadResumePostData = {
+  body: WordChatResumeRequest;
+  path?: never;
+  query?: never;
+  url: '/api/microsoft/word/chat/thread/resume';
+};
+
+export type ResumeTurnApiMicrosoftWordChatThreadResumePostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ResumeTurnApiMicrosoftWordChatThreadResumePostError =
+  ResumeTurnApiMicrosoftWordChatThreadResumePostErrors[keyof ResumeTurnApiMicrosoftWordChatThreadResumePostErrors];
+
+export type ResumeTurnApiMicrosoftWordChatThreadResumePostResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type ClearThreadApiMicrosoftWordChatThreadClearPostData = {
+  body: WordChatClearRequest;
+  path?: never;
+  query?: never;
+  url: '/api/microsoft/word/chat/thread/clear';
+};
+
+export type ClearThreadApiMicrosoftWordChatThreadClearPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ClearThreadApiMicrosoftWordChatThreadClearPostError =
+  ClearThreadApiMicrosoftWordChatThreadClearPostErrors[keyof ClearThreadApiMicrosoftWordChatThreadClearPostErrors];
+
+export type ClearThreadApiMicrosoftWordChatThreadClearPostResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type ClearThreadApiMicrosoftWordChatThreadClearPostResponse =
+  ClearThreadApiMicrosoftWordChatThreadClearPostResponses[keyof ClearThreadApiMicrosoftWordChatThreadClearPostResponses];
+
+export type GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetData = {
+  body?: never;
+  path: {
+    /**
+     * Suggestion Id
+     */
+    suggestion_id: string;
+  };
+  query?: never;
+  url: '/api/microsoft/word/chat/suggestions/{suggestion_id}';
+};
+
+export type GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetError =
+  GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetErrors[keyof GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetErrors];
+
+export type GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: ChatSuggestion;
+};
+
+export type GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetResponse =
+  GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetResponses[keyof GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetResponses];
+
+export type ListChecksApiMicrosoftWordChatChecksGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/microsoft/word/chat/checks';
+};
+
+export type ListChecksApiMicrosoftWordChatChecksGetResponses = {
+  /**
+   * Response List Checks Api Microsoft Word Chat Checks Get
+   *
+   * Successful Response
+   */
+  200: Array<PaneCheck>;
+};
+
+export type ListChecksApiMicrosoftWordChatChecksGetResponse =
+  ListChecksApiMicrosoftWordChatChecksGetResponses[keyof ListChecksApiMicrosoftWordChatChecksGetResponses];
 
 export type ListPendingApiMicrosoftWordHandoffsGetData = {
   body?: never;

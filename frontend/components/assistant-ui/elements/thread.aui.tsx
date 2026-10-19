@@ -92,6 +92,15 @@ export type ThreadComponents = {
   ToolGroup?: ComponentType<PropsWithChildren<{ group: ThreadGroupPart }>> | undefined;
   ReasoningGroup?: ComponentType<PropsWithChildren<{ group: ThreadGroupPart }>> | undefined;
   TaskGroup?: ComponentType<{ group: ThreadGroupPart }> | undefined;
+  // Draft Detective: the composer's own additions, so a surface other than /chat (the Word
+  // add-in's pane) can bring its own. Defaults are /chat's: attach and the model picker on
+  // the left, the `/` skill menu, and its placeholder.
+  ComposerTools?: ComponentType | undefined;
+  SlashPopover?: ComponentType | undefined;
+  composerPlaceholder?: string | undefined;
+  // Draft Detective: classes added to the thread's root, so a narrower surface can size its
+  // text (the Word add-in's pane, `PANE_THREAD_CLASS`). /chat passes none.
+  className?: string | undefined;
 };
 
 const messageGroupBy = groupPartByType({
@@ -168,11 +177,11 @@ export const Thread: FC<ThreadProps> = ({ components = EMPTY_COMPONENTS, autoFoc
 };
 
 const ThreadRoot: FC<{ isEmpty: boolean; autoFocus: boolean }> = ({ isEmpty, autoFocus }) => {
-  const { Welcome = ThreadWelcome } = useContext(ThreadComponentsContext);
+  const { Welcome = ThreadWelcome, className } = useContext(ThreadComponentsContext);
 
   return (
     <ThreadPrimitive.Root
-      className="aui-root aui-thread-root bg-background @container flex h-full flex-col"
+      className={cn('aui-root aui-thread-root bg-background @container flex h-full flex-col', className)}
       style={{
         // Draft Detective: wider than upstream's 44rem, for review output.
         ['--thread-max-width' as string]: '56rem',
@@ -438,7 +447,17 @@ const ThreadSuggestionItem: FC = () => {
   );
 };
 
+// Draft Detective: /chat's composer additions, the defaults for the slots above.
+const ChatComposerTools: FC = () => (
+  <>
+    <ComposerAddAttachment />
+    <ChatModelSelector />
+  </>
+);
+
 const Composer: FC<{ autoFocus: boolean }> = ({ autoFocus }) => {
+  const { SlashPopover = SkillSlashPopover, composerPlaceholder = 'Ask about your draft, or type / for skills' } =
+    useContext(ThreadComponentsContext);
   return (
     // Draft Detective: the trigger root hosts the `/` skill menu.
     <ComposerPrimitive.Unstable_TriggerPopoverRoot>
@@ -451,15 +470,15 @@ const Composer: FC<{ autoFocus: boolean }> = ({ autoFocus }) => {
             <ComposerAttachments />
             <ComposerPrimitive.Input
               // Draft Detective: our placeholder.
-              placeholder="Ask about your draft, or type / for skills"
+              placeholder={composerPlaceholder}
               className="aui-composer-input caret-primary placeholder:text-muted-foreground/60 max-h-48 min-h-10 w-full resize-none bg-transparent px-2.5 py-1 text-base leading-6 outline-none"
               rows={1}
               autoFocus={autoFocus}
               enterKeyHint="send"
               aria-label="Message input"
             />
-            {/* Draft Detective: the `/` skill menu. */}
-            <SkillSlashPopover />
+            {/* Draft Detective: the `/` menu. */}
+            <SlashPopover />
             <ComposerAction />
           </div>
         </ComposerPrimitive.AttachmentDropzone>
@@ -469,6 +488,7 @@ const Composer: FC<{ autoFocus: boolean }> = ({ autoFocus }) => {
 };
 
 const ComposerAction: FC = () => {
+  const { ComposerTools = ChatComposerTools } = useContext(ThreadComponentsContext);
   // The stop control only cancels the send while no run it could stop is going.
   const isSending = useAuiState(
     (s) => s.composer.submission !== undefined && !(s.thread.isRunning && s.thread.capabilities.cancel),
@@ -478,8 +498,7 @@ const ComposerAction: FC = () => {
     <div className="aui-composer-action-wrapper relative flex items-center justify-between">
       {/* Draft Detective: the model picker sits beside the attach button. */}
       <div className="flex items-center gap-1">
-        <ComposerAddAttachment />
-        <ChatModelSelector />
+        <ComposerTools />
       </div>
       <div className="flex items-center gap-1.5">
         <AuiIf condition={(s) => s.thread.capabilities.dictation}>

@@ -10,7 +10,9 @@ person asking may be allowed to read. A link is something they already had.
 
 Both tools are built per run, bound to one identity, by the factories below. That is
 deliberate: the token belongs to the person who asked, so a run cannot read anything they
-could not. The model never sees the token -- it is closed over, not a parameter.
+could not. The model never sees the token -- it is closed over, not a parameter. The
+conversation is closed over the same way: a document's images are stored as that
+conversation's, for ``view_image`` in it.
 
 ``open_document`` mounts the document rather than returning its text, because a tool
 result over roughly 80,000 characters is evicted by the filesystem middleware to
@@ -27,14 +29,16 @@ may have been edited since, and may have been loaded for somebody else in the th
 
 import logging
 import re
+import uuid
 from typing import Any
 
-from deepagents.backends.utils import create_file_data
+from deepagents.backends.utils import create_file_data, file_data_to_string
 from deepagents.middleware.filesystem import FilesystemState
 from langchain.tools import BaseTool, ToolRuntime, tool
 from langchain_core.messages import ToolMessage
 from langgraph.types import Command
 
+from lib.services.files import images as file_images
 from lib.services.microsoft.graph import client, documents
 from lib.services.microsoft.graph.client import GraphError, redacted
 
@@ -83,8 +87,12 @@ def comments_path(path: str) -> str:
     return f"{path.removesuffix('.md')}.comments.md"
 
 
-def open_document_for(token: str) -> BaseTool:
-    """The document-opening tool, reading as whoever ``token`` belongs to."""
+def open_document_for(token: str, conversation_id: uuid.UUID) -> BaseTool:
+    """The document-opening tool, reading as whoever ``token`` belongs to.
+
+    The document's images are kept for ``conversation_id``, the run's conversation,
+    which is what ``view_image`` in the same run may read.
+    """
 
     @tool()
     async def open_document(
@@ -132,6 +140,12 @@ def open_document_for(token: str) -> BaseTool:
             return f"I could not open that document: {error}"
 
         logger.info("opened %s at %s", redacted(url), destination)
+        # Before the markdown is mounted, so every image it names can be opened.
+        await file_images.add_conversation_images(conversation_id, document.images)
+        await file_images.drop_conversation_images(
+            conversation_id,
+            superseded(runtime.state.get("files") or {}, destination, document),
+        )
 
         # A Command is how a tool writes into the agent's filesystem; the built-in
         # write_file does the same. The files key merges, so this adds rather than
@@ -191,6 +205,24 @@ def check_document_for(token: str) -> BaseTool:
         return f"'{name}' was last modified {modified}."
 
     return check_document
+
+
+def superseded(
+    files: dict[str, Any], path: str, document: documents.LoadedDocument
+) -> set[uuid.UUID]:
+    """The images only the copy at ``path`` names, which ``document`` replaces.
+
+    Only that copy's: two documents opened at once each see the other's images missing
+    from the files, so nothing beyond the copy being replaced is ever dropped.
+    """
+
+    def named(data: Any) -> set[uuid.UUID]:
+        if not isinstance(data, dict):
+            return set()
+        return file_images.referenced_images(file_data_to_string(data))  # type: ignore[arg-type]  # FileData is a TypedDict
+
+    others = set().union(*(named(data) for at, data in files.items() if at != path))
+    return named(files.get(path)) - others - {image.id for image in document.images}
 
 
 def document_files(document: documents.LoadedDocument, path: str) -> dict[str, Any]:

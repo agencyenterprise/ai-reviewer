@@ -59,7 +59,7 @@ def _converter_for(file_path: str, role: FileRole) -> str:
     return "markitdown"
 
 
-async def _convert_docx(
+async def convert_docx(
     docx_path: str, keep_data_uris: bool
 ) -> tuple[str, DisplaySizes | None]:
     """Convert a docx via markitdown; returns (markdown, display sizes).
@@ -123,16 +123,16 @@ async def convert_file_document_to_markdown(
     if is_legacy_doc_mime:
         docx_file_path = await docx_preprocessor.convert_doc_to_docx(file_path)
         logger.info(f"Converted {file_path} to DOCX: {docx_file_path}")
-        markdown, display_sizes = await _convert_docx(docx_file_path, keep_data_uris)
+        markdown, display_sizes = await convert_docx(docx_file_path, keep_data_uris)
         os.remove(docx_file_path)
     elif is_legacy_doc_extension:
         docx_file_path = f"{stem}.docx"
         shutil.copy(file_path, docx_file_path)
         logger.info(f"Copied {file_path} to {docx_file_path}")
-        markdown, display_sizes = await _convert_docx(docx_file_path, keep_data_uris)
+        markdown, display_sizes = await convert_docx(docx_file_path, keep_data_uris)
         os.remove(docx_file_path)
     elif extension == ".docx":
-        markdown, display_sizes = await _convert_docx(file_path, keep_data_uris)
+        markdown, display_sizes = await convert_docx(file_path, keep_data_uris)
     else:
         markdown = await convert_to_markdown_fn(
             file_path,

@@ -13,6 +13,7 @@ from lib.agents.tools.view_image import (
     _parse_image_file_id,
     redact_image_blocks,
     view_image,
+    view_image_for_conversation,
 )
 from lib.models.file import FileRole
 
@@ -33,6 +34,7 @@ def _image_file(tmp_path, **overrides) -> MagicMock:
     file = MagicMock()
     file.id = IMAGE_ID
     file.project_id = PROJECT_ID
+    file.conversation_id = None
     file.role = FileRole.EXTRACTED_IMAGE
     file.file_type = "image/png"
     file.file_size = len(PNG_BYTES)
@@ -234,3 +236,47 @@ class TestRedactImageBlocks:
         assert out[1] is text_result
         assert out[2].content[0] == {"type": "text", "text": "kept"}
         assert out[2].content[1]["type"] == "text"
+
+
+CONVERSATION_ID = uuid.uuid4()
+
+
+class TestOwnership:
+    """A run reads only the images its owner holds: a project, or a conversation."""
+
+    @pytest.mark.asyncio
+    async def test_a_project_run_cannot_read_a_conversations_image(self, tmp_path):
+        image = _image_file(tmp_path, project_id=None, conversation_id=CONVERSATION_ID)
+        with _patched_lookup(image):
+            result = await view_image.coroutine(str(IMAGE_ID), _runtime())
+
+        assert isinstance(result, str) and result.startswith("Error: no document image")
+
+    @pytest.mark.asyncio
+    async def test_a_conversation_reads_its_own_image(self, tmp_path):
+        image = _image_file(tmp_path, project_id=None, conversation_id=CONVERSATION_ID)
+        tool = view_image_for_conversation(CONVERSATION_ID)
+        with _patched_lookup(image):
+            result = await tool.coroutine(f"draftdetective://{IMAGE_ID}?w=4&h=3")
+
+        assert tool.name == "view_image"
+        assert result[0]["data"] == base64.b64encode(PNG_BYTES).decode()
+
+    @pytest.mark.parametrize(
+        "owner",
+        [
+            {"project_id": None, "conversation_id": uuid.uuid4()},
+            {"project_id": PROJECT_ID, "conversation_id": None},
+        ],
+        ids=["another conversation's", "a project's"],
+    )
+    @pytest.mark.asyncio
+    async def test_a_conversation_cannot_read_an_image_it_does_not_own(
+        self, tmp_path, owner
+    ):
+        with _patched_lookup(_image_file(tmp_path, **owner)):
+            result = await view_image_for_conversation(CONVERSATION_ID).coroutine(
+                str(IMAGE_ID)
+            )
+
+        assert isinstance(result, str) and result.startswith("Error: no document image")

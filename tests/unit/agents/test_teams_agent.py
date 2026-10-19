@@ -15,14 +15,22 @@ deliberate, and it is why the agent is given ``check_document``: a kept copy may
 been edited since, and may have been opened for somebody else in the thread.
 """
 
+import uuid
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import jwt
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
-from lib.agents.teams_agent import SYSTEM_PROMPT, answer_question, answer_text
+from lib.agents.teams_agent import (
+    SYSTEM_PROMPT,
+    answer_question,
+    answer_text,
+    asker,
+)
 from lib.agents.tools import sharepoint
+from lib.services.microsoft.graph.client import GraphError
 
 # Every run reads as somebody; the tests do not care who.
 TOKEN = "a-user-token"
@@ -66,6 +74,20 @@ def checkpointer() -> Any:
         "lib.agents.teams_agent.get_checkpointer", MagicMock(return_value=context)
     ) as opened:
         yield opened
+
+
+CONVERSATION_ID = uuid.uuid4()
+
+
+@pytest.fixture(autouse=True)
+def conversation() -> Any:
+    """The Teams conversation's row, which every run looks up (or starts) first."""
+
+    with patch(
+        "lib.agents.teams_agent.conversations.for_teams",
+        AsyncMock(return_value=CONVERSATION_ID),
+    ) as found:
+        yield found
 
 
 class TestWhatTheAgentIsGiven:
@@ -396,8 +418,9 @@ class TestTheLinksHandedOver:
 
 class TestTheToolsTheAgentGets:
     @pytest.mark.asyncio
-    async def test_it_can_open_and_check_a_document(self) -> None:
-        """Checking is what makes a kept copy safe to use in a later turn."""
+    async def test_it_can_open_check_and_look_at_a_document(self) -> None:
+        """Checking is what makes a kept copy safe to use in a later turn, and looking
+        is how a figure is judged by what it shows rather than its caption."""
 
         with (
             patch("lib.agents.teams_agent.build_llm"),
@@ -411,7 +434,29 @@ class TestTheToolsTheAgentGets:
         assert {tool.name for tool in build.call_args.kwargs["tools"]} == {
             "open_document",
             "check_document",
+            "view_image",
         }
+        assert "draftdetective://" in build.call_args.kwargs["system_prompt"]
+
+    @pytest.mark.asyncio
+    async def test_images_belong_to_the_teams_conversations_row(
+        self, conversation: AsyncMock
+    ) -> None:
+        """The row is found by the Teams id, which still keys the agent's history."""
+
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch(
+                "lib.agents.teams_agent.build_deep_agent",
+                return_value=agent_returning("an answer"),
+            ),
+            patch("lib.agents.teams_agent.view_image_for_conversation") as viewing,
+        ):
+            await answer_question("hello?", graph_token=TOKEN, thread_id=THREAD)
+
+        assert conversation.await_args is not None
+        assert conversation.await_args.args[0] == THREAD
+        viewing.assert_called_once_with(CONVERSATION_ID)
 
     @pytest.mark.asyncio
     async def test_both_tools_read_as_the_asker(self) -> None:
@@ -437,7 +482,12 @@ class TestTheToolsTheAgentGets:
             await answer_question("hello?", graph_token="carlos", thread_id=THREAD)
 
             tools = {tool.name: tool for tool in build.call_args.kwargs["tools"]}
-            with patch.object(sharepoint.documents, "load", load):
+            with (
+                patch.object(sharepoint.documents, "load", load),
+                patch.object(
+                    sharepoint.file_images, "add_conversation_images", AsyncMock()
+                ),
+            ):
                 await tools["open_document"].coroutine(
                     "https://x/a.docx",
                     "/documents/a.md",
@@ -502,3 +552,33 @@ class TestOfferingChanges:
 
         names = [tool.name for tool in build.call_args.kwargs["tools"]]
         assert "offer_changes" not in names
+
+
+class TestWhoAsked:
+    """The user a Teams conversation is listed under: the asker, by their mail address."""
+
+    @pytest.mark.asyncio
+    async def test_their_mail_and_tenant_are_given_for_linking(self) -> None:
+        token = jwt.encode({"tid": "tenant-a"}, "k", algorithm="HS256")
+        user_id = uuid.uuid4()
+        with (
+            patch(
+                "lib.agents.teams_agent.graph_client.me",
+                AsyncMock(return_value={"mail": "ana@contoso.com"}),
+            ),
+            patch(
+                "lib.agents.teams_agent.linked_users.user_for",
+                AsyncMock(return_value=user_id),
+            ) as link,
+        ):
+            assert await asker(token, "Ana") == user_id
+
+        link.assert_awaited_once_with("ana@contoso.com", "Ana", "tenant-a")
+
+    @pytest.mark.asyncio
+    async def test_a_lookup_that_fails_leaves_it_unlisted(self) -> None:
+        with patch(
+            "lib.agents.teams_agent.graph_client.me",
+            AsyncMock(side_effect=GraphError("refused")),
+        ):
+            assert await asker(TOKEN, "Ana") is None

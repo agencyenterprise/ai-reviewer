@@ -11,13 +11,16 @@ in with the same Microsoft account -- the same Entra object id, in the same tena
 which is what makes storing document text here acceptable: nobody can read it back who
 did not write the request. Rows are swept a week after they were created, applied or
 not.
+
+The add-in's own chat stores its suggestions here too (``chat_thread_id`` set, no Teams
+``reference``), so both are applied, claimed and reported the same way.
 """
 
 import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Column, DateTime, String
+from sqlalchemy import Column, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlmodel import Field, SQLModel
 
@@ -60,9 +63,28 @@ class MicrosoftWordHandoff(SQLModel, table=True):
         sa_column=Column(JSONB, nullable=False),
         description="The comments and edits to apply, as ``HandoffItems``",
     )
-    reference: dict[str, Any] = Field(
-        sa_column=Column(JSONB, nullable=False),
-        description="Where in Teams to report back once it has been applied",
+    reference: dict[str, Any] | None = Field(
+        default=None,
+        # None is stored as SQL NULL, not JSON null, so `IS NULL` finds chat suggestions.
+        sa_column=Column(JSONB(none_as_null=True), nullable=True),
+        description=(
+            "Where in Teams to report back once it has been applied. None for "
+            "suggestions made in the add-in's own chat, which report to the chat."
+        ),
+    )
+    chat_thread_id: uuid.UUID | None = Field(
+        default=None,
+        sa_column=Column(
+            UUID(as_uuid=True),
+            ForeignKey("microsoft_word_chat_threads.id", ondelete="CASCADE"),
+            nullable=True,
+            index=True,
+        ),
+        description=(
+            "The add-in chat thread that suggested it, for suggestions made there. "
+            "They are shown in that chat rather than among the ones from Teams, and "
+            "go with it."
+        ),
     )
     status: str = Field(
         sa_column=Column(String, nullable=False, default="pending"),
@@ -79,4 +101,12 @@ class MicrosoftWordHandoff(SQLModel, table=True):
     finished_at: datetime | None = Field(
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
+    heard_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+        description=(
+            "For the chat's: when the agent was told how it ended, by ``ask_to_apply`` "
+            "or as news at the start of a message, so it is told once"
+        ),
     )

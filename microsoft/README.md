@@ -6,7 +6,7 @@ file exists to say which one you want before you open it.
 
 | Directory                        | Surface           | Can it change a document? |
 | -------------------------------- | ----------------- | ------------------------- |
-| [`word-addin/`](word-addin/)     | Word task pane    | Yes                       |
+| [`word-addin/`](word-addin/)     | Word task pane (chat, and changes from Teams) | Yes |
 | [`teams-app/`](teams-app/)       | Teams bot         | Only through the add-in   |
 
 ## What decides the split
@@ -46,11 +46,24 @@ as their home account. That fails closed, never open. Routes live under
 ## Word add-in
 
 The task pane, loaded from the frontend at `/addin`. It writes Draft Detective's
-comments, and tracked changes the author accepts or rejects, into the open document;
-today those are the changes asked for in Teams (above).
+comments, and tracked changes the author accepts or rejects, into the open document with
+Word's own API: the changes asked for in Teams (above), and the ones suggested in its own
+chat. Word records them under the name of whoever applies them, so each comment starts
+with "Draft Detective:".
 
-The add-in hands the backend the document's markup, because it is the only party that
-can see a document mid-edit. Backend routes live under `/api/microsoft/word`.
+**The chat** (the pane's first tab) talks to a Draft Detective agent about the open
+document, with every skill the /chat page has and no web search, as in Teams
+(`lib/agents/word_chat_agent.py`). The pane sends the document's .docx with a message
+whenever it changed, so the agent reads what the author is looking at, unsaved edits
+included. Asked for changes, the agent stores them as a handoff tied to the chat, and the
+chat shows them as a card: **Apply** writes them in exactly as a handoff from Teams is
+written, and the next message tells the agent what landed. One conversation per document
+and Microsoft account; **New chat** sets it aside for good. Routes live under
+`/api/microsoft/word/chat`.
+
+The add-in hands the backend the document itself, because it is the only party that
+can see a document mid-edit: SharePoint's copy, which Graph serves, was measured lagging a
+fresh edit by most of a minute. Backend routes live under `/api/microsoft/word`.
 
 See [`word-addin/README.md`](word-addin/README.md) for local development: tunnelling,
 and manifest sideloading.
@@ -72,9 +85,22 @@ delegated token for them, obtained through the OAuth connection named by
 in once, from wherever they first ask — the bot replies with a sign-in card that works in
 channels too. One click, once, and never again.
 
+The document is converted as the web app converts a project's main document: charts and
+metafile pictures are rendered to images, and every image is kept as a `files` row owned
+by the conversation (`conversation_id`, no project). The bot opens them with
+`view_image`, bound to that conversation, so it judges a figure by what it shows rather
+than by its caption.
+
 Worth knowing that gating the read does not gate the audience: the answer goes into the
 channel the question came from, visible to everyone there regardless of who can open
-the document.
+the document. The same goes for a document's images, which anyone asking later in the
+same reply chain can have the bot describe, as they can its text.
+
+Every conversation, on any surface (the web app's /chat, the Word add-in's chat, Teams),
+has a row in `conversations`, which is what its images belong to; each surface keeps what
+it knows about its conversations in its own table, linked one-to-one by id. Teams'
+(`microsoft_teams_conversations`) is created on a conversation's first question and holds
+the Teams conversation id, which still keys the agent's history.
 
 See [`teams-app/build_package.py`](teams-app/build_package.py) for the manifest and
 how the installable package is built. Backend routes live under
@@ -161,7 +187,8 @@ On the backend, these also make the MCP server sign people in with Microsoft whe
 ### 5. Database and network
 
 - Run `uv run alembic upgrade head`. It creates the tables both integrations use
-  (`microsoft_teams_signin_state`, `microsoft_word_handoffs`).
+  (`microsoft_teams_signin_state`, `microsoft_word_handoffs`,
+  `microsoft_word_chat_threads`).
 - The backend must accept inbound HTTPS from the Bot Framework on
   `/api/microsoft/teams/messages`, and reach `login.microsoftonline.com` (token signing
   keys), `graph.microsoft.com`, `api.botframework.com` / `token.botframework.com`, and
@@ -174,5 +201,7 @@ On the backend, these also make the MCP server sign people in with Microsoft whe
 2. Ask it for comments or fixes on a document. It replies that they will be applied in
    Word.
 3. Open that document in Word with the add-in. The pane signs you in (usually without a
-   click), shows the suggestions, and **Apply** writes them in as Draft Detective.
+   click), shows the suggestions, and **Apply** writes them in as tracked changes and comments.
 4. The Teams thread gets an "Applied to … in Word" message.
+5. In the pane's **Chat** tab, ask about the document, then ask for comments on it. A card
+   with **Apply** appears under the answer, and applying it writes them in.

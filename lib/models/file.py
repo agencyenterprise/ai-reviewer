@@ -3,7 +3,17 @@ from datetime import datetime
 from enum import Enum
 
 from pydantic import BaseModel
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text, text
+from sqlalchemy import (
+    CheckConstraint,
+    Column,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlmodel import Field, SQLModel
 
@@ -24,8 +34,10 @@ class FileRole(str, Enum):
     # works out which. Shared across revisions, like a supporting document.
     REVIEW_INPUT = "review_input"
     # Derived artifact, not an upload: an image extracted from a document
-    # during markdown conversion. Always has parent_file_id set. Readers must
-    # opt in by role — file listings never include these implicitly.
+    # during markdown conversion. Has parent_file_id set when the document is a
+    # project's file; an image from a document read in the Word add-in's chat or
+    # in Teams has no parent file, only its conversation (conversation_id). Readers must opt in by role —
+    # file listings never include these implicitly.
     EXTRACTED_IMAGE = "extracted_image"
 
 
@@ -43,20 +55,38 @@ class File(SQLModel, table=True):
             unique=True,
             postgresql_where=text("role = 'main'"),
         ),
+        # Every file has exactly one owner: a project, or a conversation (an image of
+        # a document read in the Word add-in's chat or in Teams). Whatever reads a
+        # file checks it against that owner.
+        CheckConstraint(
+            "num_nonnulls(project_id, conversation_id) = 1",
+            name="ck_files_one_owner",
+        ),
     )
 
     id: uuid.UUID = Field(
         sa_column=Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
         description="The unique identifier for the file",
     )
-    project_id: uuid.UUID = Field(
+    project_id: uuid.UUID | None = Field(
         sa_column=Column(
             UUID(as_uuid=True),
             ForeignKey("projects.id", ondelete="CASCADE"),
-            nullable=False,
+            nullable=True,
             index=True,
         ),
-        description="The project this file belongs to",
+        default=None,
+        description="The project this file belongs to; None for a conversation's",
+    )
+    conversation_id: uuid.UUID | None = Field(
+        sa_column=Column(
+            UUID(as_uuid=True),
+            ForeignKey("conversations.id", ondelete="CASCADE"),
+            nullable=True,
+            index=True,
+        ),
+        default=None,
+        description="The conversation this file belongs to, if not a project's",
     )
     file_name: str = Field(
         sa_column=Column(String, nullable=False),
@@ -87,12 +117,13 @@ class File(SQLModel, table=True):
         sa_column=Column(String, nullable=False),
         description="The role of the file in the workflow (main, support, etc.)",
     )
-    uploaded_by: uuid.UUID = Field(
+    uploaded_by: uuid.UUID | None = Field(
         sa_column=Column(
             UUID(as_uuid=True),
             ForeignKey("users.id", ondelete="SET NULL"),
             nullable=True,
         ),
+        default=None,
         description="The user who uploaded the file",
     )
     description: str | None = Field(

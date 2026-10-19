@@ -9,10 +9,7 @@ import {
 } from '@assistant-ui/react';
 import { useMemo, type FC } from 'react';
 
-/**
- * The composer's `/` menu: one command per skill. Render it inside
- * `ComposerPrimitive.Unstable_TriggerPopoverRoot`, next to the composer input.
- */
+/** The /chat composer's `/` menu: one command per skill. */
 export const SkillSlashPopover: FC = () => {
   const aui = useAui();
 
@@ -35,6 +32,14 @@ export const SkillSlashPopover: FC = () => {
     [aui, skillCommands],
   );
 
+  return <SlashCommandPopover commands={commands} />;
+};
+
+/**
+ * A composer's `/` menu over any commands. Render it inside
+ * `ComposerPrimitive.Unstable_TriggerPopoverRoot`, next to the composer input.
+ */
+export const SlashCommandPopover: FC<{ commands: Unstable_SlashCommand[] }> = ({ commands }) => {
   const slash = unstable_useSlashCommandAdapter({ commands, removeOnExecute: true });
 
   return (

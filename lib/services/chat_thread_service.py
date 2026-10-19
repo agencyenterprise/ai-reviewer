@@ -17,7 +17,9 @@ from sqlmodel import col
 
 from lib.config.database import get_async_db_session
 from lib.models.chat_thread import ChatThread
+from lib.models.conversation import ConversationKind
 from lib.models.user import User
+from lib.services import conversations
 
 
 async def list_threads(user: User) -> Sequence[ChatThread]:
@@ -32,7 +34,8 @@ async def list_threads(user: User) -> Sequence[ChatThread]:
 
 async def create_thread(user: User, title: str | None = None) -> ChatThread:
     async with get_async_db_session() as session:
-        thread = ChatThread(user_id=user.id, title=title)
+        thread_id = await conversations.start(session, ConversationKind.WEB, user.id)
+        thread = ChatThread(id=thread_id, user_id=user.id, title=title)
         session.add(thread)
         await session.commit()
         await session.refresh(thread)
@@ -93,5 +96,6 @@ async def touch_thread(thread_id: uuid.UUID, user: User) -> ChatThread:
 async def delete_thread(thread_id: uuid.UUID, user: User) -> None:
     async with get_async_db_session() as session:
         thread = await _get_owned_thread(session, thread_id, user)
-        await session.delete(thread)
+        # The shared row; the thread's row here goes with it.
+        await conversations.remove(session, thread.id)
         await session.commit()

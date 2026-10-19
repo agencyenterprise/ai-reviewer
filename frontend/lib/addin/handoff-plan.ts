@@ -26,8 +26,6 @@ export type AppliedItem = {
 };
 
 export type ParagraphWork = {
-  /** Every quote in this group, to find the paragraph again at write time. */
-  quotes: string[];
   comments: { index: number; comment: HandoffComment }[];
   edits: { index: number; edit: HandoffEdit }[];
 };
@@ -40,18 +38,32 @@ export type HandoffPlan = {
 
 export const NOT_FOUND = 'the words are no longer in the document';
 export const AMBIGUOUS = 'the words appear in more than one paragraph';
-export const CHANGED = 'the paragraph was edited while the change was being written';
+export const OVERLAPS = 'it overlaps another edit, which would change its words first';
 
+/**
+ * Text as quotes are compared: curly quotes, dashes and runs of space evened out. Kept
+ * the same as `normalize` in `lib/services/microsoft/word/quote_check.py`, which checks
+ * the chat agent's quotes before they are offered.
+ */
 export function normalize(text: string): string {
-  return text.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, ' ').trim();
+  return text
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[‐‑‒–—―−]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-/** The one paragraph containing `quote`, or why there is not one. */
+/** The one paragraph containing `quote`, once, or why there is not one. */
 export function locate(paragraphs: string[], quote: string): number | typeof NOT_FOUND | typeof AMBIGUOUS {
   const wanted = normalize(quote);
+  // Each occurrence, not each paragraph: twice in one paragraph is as ambiguous as
+  // once in each of two, since a write would land on the first.
   const hits: number[] = [];
   paragraphs.forEach((text, index) => {
-    if (wanted && normalize(text).includes(wanted)) hits.push(index);
+    if (!wanted) return;
+    const found = occurrences(normalize(text), wanted);
+    for (let i = 0; i < found; i++) hits.push(index);
   });
   if (hits.length === 0) return NOT_FOUND;
   if (hits.length > 1) return AMBIGUOUS;
@@ -61,14 +73,14 @@ export function locate(paragraphs: string[], quote: string): number | typeof NOT
 function workFor(plan: HandoffPlan, paragraph: number): ParagraphWork {
   let work = plan.paragraphs.get(paragraph);
   if (!work) {
-    work = { quotes: [], comments: [], edits: [] };
+    work = { comments: [], edits: [] };
     plan.paragraphs.set(paragraph, work);
   }
   return work;
 }
 
 function unplaced(index: number, kind: AppliedItem['kind'], quote: string, where: string): AppliedItem {
-  const reason: FailureReason = where === AMBIGUOUS ? 'ambiguous' : 'not_found';
+  const reason: FailureReason = where === AMBIGUOUS ? 'ambiguous' : where === OVERLAPS ? 'withheld' : 'not_found';
   return { index, kind, quote, applied: false, detail: where, reason };
 }
 
@@ -82,7 +94,6 @@ export function planHandoff(paragraphs: string[], comments: HandoffComment[], ed
     }
     const work = workFor(plan, where);
     work.comments.push({ index: position, comment });
-    work.quotes.push(comment.quote);
   });
   edits.forEach((edit, position) => {
     const index = comments.length + position;
@@ -92,23 +103,30 @@ export function planHandoff(paragraphs: string[], comments: HandoffComment[], ed
       return;
     }
     const work = workFor(plan, where);
+    // Every range is found before anything is written, so an edit whose words another
+    // edit replaces first would land on that edit's text.
+    if (work.edits.some((other) => overlap(paragraphs[where], other.edit.quote, edit.quote))) {
+      plan.unplaced.push(unplaced(index, 'edit', edit.quote, OVERLAPS));
+      return;
+    }
     work.edits.push({ index, edit });
-    work.quotes.push(edit.quote);
   });
   return plan;
 }
 
-/**
- * The paragraph a group belongs to now. Earlier writes can change a paragraph's text
- * (a tracked deletion still reads as text), so it is found again by any of its quotes
- * rather than trusted to keep its position.
- */
-export function relocate(paragraphs: string[], work: ParagraphWork): number | null {
-  for (const quote of work.quotes) {
-    const where = locate(paragraphs, quote);
-    if (typeof where === 'number') return where;
-  }
-  return null;
+/** Whether two quotes, each once in `paragraph`, share any of its words. */
+function overlap(paragraph: string, first: string, second: string): boolean {
+  const text = normalize(paragraph);
+  const [a, b] = [normalize(first), normalize(second)];
+  const [startA, startB] = [text.indexOf(a), text.indexOf(b)];
+  return startA < startB + b.length && startB < startA + a.length;
+}
+
+/** How many times `wanted` starts in `text`, overlapping ones included: `ana` is twice in `banana`. */
+export function occurrences(text: string, wanted: string): number {
+  let count = 0;
+  for (let at = text.indexOf(wanted); at !== -1; at = text.indexOf(wanted, at + 1)) count++;
+  return count;
 }
 
 /** What the server is told: each item's position, whether it landed, and why not. */

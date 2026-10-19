@@ -17,25 +17,42 @@ token is what makes the bot no more privileged than the asker, so losing it is a
 regression rather than a bug in a feature.
 """
 
+import uuid
+from collections.abc import Iterator
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from deepagents.backends.utils import file_data_to_string
+from deepagents.backends.utils import create_file_data, file_data_to_string
 from langgraph.types import Command
 
 from lib.agents.tools import sharepoint
+from lib.services.image_extraction import ExtractedImage
 from lib.services.microsoft.graph.client import GraphError
 from lib.services.microsoft.graph.documents import LoadedDocument
 
 TOKEN = "a-user-token"
+CONVERSATION = uuid.uuid4()
 PATH = "/documents/v2-cern-for-ai.md"
 
 
-def opener(token: str = TOKEN) -> Any:
-    """The tool as a run gets it: built for one identity."""
+@pytest.fixture(autouse=True)
+def stored_images() -> Iterator[AsyncMock]:
+    """Where a document's images go: the conversation's files rows, not a database here."""
 
-    return sharepoint.open_document_for(token)
+    with (
+        patch.object(
+            sharepoint.file_images, "add_conversation_images", AsyncMock()
+        ) as add,
+        patch.object(sharepoint.file_images, "drop_conversation_images", AsyncMock()),
+    ):
+        yield add
+
+
+def opener(token: str = TOKEN) -> Any:
+    """The tool as a run gets it: built for one identity, in one conversation."""
+
+    return sharepoint.open_document_for(token, CONVERSATION)
 
 
 def checker(token: str = TOKEN) -> Any:
@@ -82,6 +99,7 @@ def runtime() -> MagicMock:
 
     fake = MagicMock()
     fake.tool_call_id = "call_abc123"
+    fake.state = {}
     return fake
 
 
@@ -114,6 +132,41 @@ def loading(document_or_error: Any) -> Any:
 
 
 class TestOpeningADocument:
+    @pytest.mark.asyncio
+    async def test_its_images_are_kept_for_this_conversation(
+        self, stored_images: AsyncMock
+    ) -> None:
+        """So ``view_image`` in this conversation, and only this one, can open them."""
+
+        image = ExtractedImage(
+            image_path="/uploads/extracted_images/a.png",
+            mime_type="image/png",
+            file_size=3,
+            content_hash="a",
+            line_number=1,
+        )
+        opened = document().model_copy(update={"images": [image]})
+        with loading(opened):
+            await call(opener(), "https://x/a.docx", PATH, runtime())
+
+        stored_images.assert_awaited_once_with(CONVERSATION, [image])
+
+    def test_reopening_at_a_path_drops_only_the_images_the_old_copy_alone_named(
+        self,
+    ) -> None:
+        old, shared, other = (uuid.uuid4() for _ in range(3))
+
+        def ref(*ids: uuid.UUID) -> Any:
+            return create_file_data(" ".join(f"![](draftdetective://{i})" for i in ids))
+
+        # The image both copies show stays for the other one.
+        files = {PATH: ref(old, shared), "/documents/v1.md": ref(shared, other)}
+        reopened = document()
+
+        assert sharepoint.superseded(files, PATH, reopened) == {old}
+        # A path opened for the first time replaces nothing.
+        assert sharepoint.superseded(files, "/documents/v3.md", reopened) == set()
+
     @pytest.mark.asyncio
     async def test_the_document_is_mounted_where_the_agent_asked(self) -> None:
         with loading(document()):

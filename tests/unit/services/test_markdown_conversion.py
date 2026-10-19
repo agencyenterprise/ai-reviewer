@@ -306,7 +306,7 @@ async def test_uppercase_extension_path_is_opened_as_stored():
 async def test_uppercase_docx_extension_takes_the_docx_path_as_stored():
     doc = _file_document(file_path="/uploads/ABC.DOCX")
     with patch(
-        f"{MODULE}._convert_docx", new=AsyncMock(return_value=("# Reply", None))
+        f"{MODULE}.convert_docx", new=AsyncMock(return_value=("# Reply", None))
     ) as docx_mock:
         await convert_file_document_to_markdown(doc, role=FileRole.REVIEWER_MEMO)
 
@@ -322,7 +322,7 @@ async def test_uppercase_doc_extension_is_copied_beside_itself_as_docx():
     with (
         patch(f"{MODULE}.shutil.copy") as copy_mock,
         patch(f"{MODULE}.os.remove"),
-        patch(f"{MODULE}._convert_docx", new=AsyncMock(return_value=("# Reply", None))),
+        patch(f"{MODULE}.convert_docx", new=AsyncMock(return_value=("# Reply", None))),
     ):
         await convert_file_document_to_markdown(doc, role=FileRole.REVIEWER_MEMO)
 
