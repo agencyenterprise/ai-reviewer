@@ -12,7 +12,7 @@ from lib.agents.citation_validator import (
     PartialSectionValidationError,
 )
 from lib.models.file import FileRole
-from lib.services.document_sections import split_into_sections
+from lib.services.text.sections import split_into_sections
 from lib.workflows.claim_reference_validation_v2.citation_mapping import (
     build_reference_file_map,
 )

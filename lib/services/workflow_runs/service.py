@@ -23,7 +23,7 @@ from lib.models.workflow_run import (
     WorkflowRunStatus,
     WorkflowRunType,
 )
-from lib.services.text_sanitization import sanitize_for_postgres
+from lib.services.text.sanitization import sanitize_for_postgres
 from lib.services.workflow_runs.cost.breakdown import CostBreakdown
 from lib.services.workflow_runs.cost.extractor import walk_state_for_usage
 from lib.services.workflow_runs.cost.pricing import compute_cost

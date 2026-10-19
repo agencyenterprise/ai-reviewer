@@ -11,8 +11,8 @@ from collections.abc import Sequence
 from difflib import SequenceMatcher
 
 from lib.models.issue_edit import IssueEdit
-from lib.services.markdown_text import render_line_text
-from lib.workflows.simple_deep_agent.edit_anchoring import normalize_whitespace
+from lib.services.text.location import normalize_whitespace
+from lib.services.text.markdown_rendering import render_line_text
 
 # A footnote reference as the markdown carries it, before any syntax is
 # stripped: MarkItDown writes a DOCX footnote as a link into the footnotes

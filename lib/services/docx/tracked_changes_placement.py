@@ -33,8 +33,8 @@ from lib.services.docx.tracked_changes_models import (
     EditOutcomeStatus,
     PlannedEdit,
 )
-from lib.services.markdown_text import link_destinations
-from lib.services.text_location import all_offsets, locate_in_paragraph
+from lib.services.text.location import all_offsets, locate_in_paragraph
+from lib.services.text.markdown_rendering import link_destinations
 
 # Word cannot show a C0 control character as a reviewable redline, and
 # docx-editor refuses one outright. Anything carrying one is reported instead.

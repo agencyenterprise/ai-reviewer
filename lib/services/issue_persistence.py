@@ -16,7 +16,7 @@ from sqlmodel import col
 from lib.config.database import get_async_db_session
 from lib.models.issue import Issue, IssueStatus
 from lib.models.issue_edit import IssueEdit
-from lib.services.text_sanitization import strip_control_chars
+from lib.services.text.sanitization import strip_control_chars
 from lib.workflows.models import DocumentIssue, ProposedEdit, WorkflowRunType
 from lib.workflows.registry import available_workflow_type_values
 

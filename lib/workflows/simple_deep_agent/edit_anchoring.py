@@ -16,10 +16,9 @@ Pure functions only: no document loading and no tool plumbing, so the matching
 rules can be unit-tested on plain strings.
 """
 
-import re
 from collections.abc import Sequence
 
-_WHITESPACE_RUN = re.compile(r"\s+")
+from lib.services.text.location import normalize_whitespace
 
 # How much of the issue's line range to quote back when a lookup fails. Enough
 # for the agent to re-quote from, short enough not to flood the tool result.
@@ -36,11 +35,6 @@ def document_lines(document_text: str) -> list[str]:
     and reject quotes that are correctly placed.
     """
     return document_text.split("\n")
-
-
-def normalize_whitespace(text: str) -> str:
-    """Collapse every run of whitespace (non-breaking spaces included) to one space."""
-    return _WHITESPACE_RUN.sub(" ", text).strip()
 
 
 def _clamped_range(

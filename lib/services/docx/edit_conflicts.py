@@ -19,9 +19,8 @@ from typing import Literal
 from pydantic import BaseModel
 
 from lib.models.issue_edit import IssueEdit, IssueEditStatus
-from lib.services.text_location import locate_in_paragraph
+from lib.services.text.location import locate_in_paragraph, normalize_whitespace
 from lib.workflows.models import SeverityEnum
-from lib.workflows.simple_deep_agent.edit_anchoring import normalize_whitespace
 
 EditOutcomeName = Literal["apply", "conflict", "unlocatable", "rejected"]
 

@@ -4,7 +4,7 @@ One CommonMark parser settles what the in-app highlight paints and what the
 DOCX export searches for, so these cases are the contract both of them rest on.
 """
 
-from lib.services.markdown_text import (
+from lib.services.text.markdown_rendering import (
     link_destinations,
     render_line_text,
     rendered_replacement_in_context,

@@ -8,7 +8,6 @@ document and the quote (non-breaking and doubled spaces) and ambiguity.
 from lib.workflows.simple_deep_agent.edit_anchoring import (
     document_lines,
     find_quote_lines,
-    normalize_whitespace,
     range_excerpt,
 )
 
@@ -26,10 +25,6 @@ _DOCUMENT = "\n".join(
 
 def _lines() -> list[str]:
     return document_lines(_DOCUMENT)
-
-
-def test_normalize_whitespace_collapses_runs_and_trims():
-    assert normalize_whitespace("  a \n\t b\xa0\xa0c  ") == "a b c"
 
 
 def test_document_lines_splits_on_newline_only():

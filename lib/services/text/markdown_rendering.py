@@ -29,8 +29,7 @@ import unicodedata
 from markdown_it import MarkdownIt
 from pydantic import BaseModel, Field
 
-from lib.services.text_location import all_offsets
-from lib.workflows.simple_deep_agent.edit_anchoring import normalize_whitespace
+from lib.services.text.location import all_offsets, normalize_whitespace
 
 # CommonMark plus the two GFM extensions the converted documents use. No
 # typographer and no linkify: both invent text the document does not carry.
