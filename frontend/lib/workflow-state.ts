@@ -1,53 +1,10 @@
 import {
-  AbbreviationScanV2State,
-  DocumentProcessingState,
-  DocumentSummarizationState,
-  ReferenceDownloaderState,
-  ReferenceExtractionState,
-  ReferenceFileMatchingState,
-  ReviewAssistantState,
-  Reviewer2State,
-  SimpleDeepAgentState,
   WorkflowError,
   WorkflowErrorSeverity,
-  WorkflowRunDetail,
   WorkflowRunPublic,
   WorkflowRunStatus,
   WorkflowRunType,
 } from './generated-api';
-
-/**
- * Workflow types with a state model of their own. Every other member of
- * WorkflowRunType (including skill-declared workflows, which add no code here)
- * runs on the shared SimpleDeepAgentState; see WorkflowTypeToDetail.
- */
-type BespokeWorkflowStates = {
-  [WorkflowRunType.DocumentProcessing]: DocumentProcessingState;
-  [WorkflowRunType.DocumentSummarization]: DocumentSummarizationState;
-  [WorkflowRunType.ReferenceExtraction]: ReferenceExtractionState;
-  [WorkflowRunType.ReferenceFileMatching]: ReferenceFileMatchingState;
-  [WorkflowRunType.MethodologicalAlignment]: SimpleDeepAgentState;
-  [WorkflowRunType.ReferenceDownloader]: ReferenceDownloaderState;
-  [WorkflowRunType.ResultsExtraction]: SimpleDeepAgentState;
-  [WorkflowRunType.AbbreviationScanV2]: AbbreviationScanV2State;
-  [WorkflowRunType.Reviewer2]: Reviewer2State;
-  [WorkflowRunType.DocumentStructure]: SimpleDeepAgentState;
-  [WorkflowRunType.FiguresTablesCheck]: SimpleDeepAgentState;
-  [WorkflowRunType.InferenceValidationV2]: SimpleDeepAgentState;
-  [WorkflowRunType.AdvocacyToneV2]: SimpleDeepAgentState;
-  [WorkflowRunType.RecommendationCheck]: SimpleDeepAgentState;
-  [WorkflowRunType.LiteratureReviewV2]: SimpleDeepAgentState;
-  [WorkflowRunType.LiveReportsV2]: SimpleDeepAgentState;
-  [WorkflowRunType.ReviewAssistant]: ReviewAssistantState;
-};
-
-/**
- * Type mapping for workflow types to their corresponding workflow detail types.
- * Types not listed in BespokeWorkflowStates fall back to SimpleDeepAgentState.
- */
-type WorkflowTypeToDetail = BespokeWorkflowStates & {
-  [K in Exclude<WorkflowRunType, keyof BespokeWorkflowStates>]: SimpleDeepAgentState;
-};
 
 export interface WorkflowRunDetailTyped<T> {
   run: WorkflowRunPublic;
@@ -70,22 +27,6 @@ type RunLike = { run: WorkflowRunPublic };
 /** The run of one type among the overview's runs or any other run list. */
 export function findRunByType<T extends RunLike>(runs: T[], type: WorkflowRunType): T | undefined {
   return runs.find((workflowRun) => workflowRun.run.type === type);
-}
-
-/**
- * Get a workflow run by type with type-safe return
- *
- * @param workflowRuns - The workflow runs to search through
- * @param type - The type of workflow run to get
- * @returns The workflow run if found, otherwise undefined
- */
-export function getWorkflowRunByType<T extends keyof WorkflowTypeToDetail>(
-  workflowRuns: WorkflowRunDetail[],
-  type: T,
-): WorkflowRunDetailTyped<WorkflowTypeToDetail[T]> | undefined {
-  return workflowRuns.find(
-    (workflowRun): workflowRun is WorkflowRunDetailTyped<WorkflowTypeToDetail[T]> => workflowRun.run.type === type,
-  );
 }
 
 /**
@@ -150,7 +91,7 @@ export function getDisplayStatus(workflowRun: RunWithErrors): DisplayStatus {
   return workflowRun.run.status;
 }
 
-export function getWorkflowErrors(workflowRuns: RunWithErrors[]): WorkflowError[] {
+function getWorkflowErrors(workflowRuns: RunWithErrors[]): WorkflowError[] {
   return workflowRuns
     .flatMap(getCurrentRunErrors)
     .filter((error) => error.chunk_index === null || error.chunk_index === undefined);
@@ -188,17 +129,10 @@ export function isWorkflowFailed(workflowRun: RunLike | undefined): boolean {
   return workflowRun.run.status === WorkflowRunStatus.Failed;
 }
 
-export function isAnyWorkflowProcessing(workflowRuns: RunLike[]): boolean {
-  return workflowRuns.some((workflowRun) => isWorkflowProcessing(workflowRun));
-}
-
 /**
  * Whether assessments are actively working, as opposed to waiting on the user.
- *
- * A run in AwaitingApproval is not processing, so this is the same question as
- * `isAnyWorkflowProcessing`; it stays as a named entry point for the places
- * that ask "is the pipeline busy" rather than "is this run busy".
+ * A run in AwaitingApproval is not processing, so it doesn't count.
  */
 export function isAnyWorkflowActive(workflowRuns: RunLike[]): boolean {
-  return isAnyWorkflowProcessing(workflowRuns);
+  return workflowRuns.some((workflowRun) => isWorkflowProcessing(workflowRun));
 }

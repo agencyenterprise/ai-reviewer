@@ -76,7 +76,7 @@ async function errorDetail(response: Response): Promise<string> {
 }
 
 /** Parse an SSE body into events, ignoring heartbeats and blank lines. */
-export async function* parseEventStream(body: ReadableStream<Uint8Array>): AsyncGenerator<ChatStreamEvent> {
+async function* parseEventStream(body: ReadableStream<Uint8Array>): AsyncGenerator<ChatStreamEvent> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';

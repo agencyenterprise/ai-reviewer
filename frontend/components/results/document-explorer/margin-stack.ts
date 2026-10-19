@@ -1,5 +1,5 @@
 /** Breathing room between two notes once one has been pushed against another. */
-export const GAP = 6;
+const GAP = 6;
 
 export interface Slot {
   /** The top the note would sit at if nothing else were in the margin, or null for "no preference". */
