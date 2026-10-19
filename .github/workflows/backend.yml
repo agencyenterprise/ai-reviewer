@@ -106,7 +106,6 @@ jobs:
         run: uv python install 3.13
 
       - name: Install dependencies
-        id: deps
         run: uv sync
         env:
           # Compile every package to bytecode once, in parallel, at install
@@ -114,14 +113,21 @@ jobs:
           # first run, which costs about a minute before any test starts.
           UV_COMPILE_BYTECODE: "1"
 
-      - name: Run unit tests
+      - name: Run tests
+        # Both suites in one session, so the xdist workers start once and
+        # integration tests fill in wherever unit tests run out.
         # `-n logical` sizes the worker pool to the runner's vCPUs (4) instead of
         # the 10 workers pyproject.toml sets for local runs. `-n auto` counts
         # physical cores and starts only 2.
-        run: uv run pytest tests/unit -n logical --tb=short --cov --cov-branch --cov-report=xml
+        run: uv run pytest tests/unit tests/integration -n logical --tb=short --cov --cov-branch --cov-report=xml
         env:
-          # Database config (test environment)
-          DATABASE_URL: postgresql://test:test@localhost:5432/test_db
+          # The integration tests create and migrate ai_reviewer_test, derived
+          # from this, on their own. Unit tests never open it.
+          DATABASE_URL: postgresql://ai_reviewer_user:ai_reviewer_password@localhost:5432/ai_reviewer
+          # lib.api.mcp builds its auth provider at import and refuses to without a
+          # login provider; nothing in the tests signs in, so placeholders do.
+          AUTH_GOOGLE_ID: ci-placeholder
+          AUTH_GOOGLE_SECRET: ci-placeholder
           # Optional - use secrets if available for LLM tests
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           # Optional Langfuse tracing
@@ -133,15 +139,3 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-
-      # Runs even when the unit tests failed, so one push reports both suites.
-      - name: Run integration tests
-        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
-        run: uv run pytest tests/integration -n logical --tb=short
-        env:
-          # The tests create and migrate ai_reviewer_test, derived from this, on their own.
-          DATABASE_URL: postgresql://ai_reviewer_user:ai_reviewer_password@localhost:5432/ai_reviewer
-          # lib.api.mcp builds its auth provider at import and refuses to without a
-          # login provider; nothing in the tests signs in, so placeholders do.
-          AUTH_GOOGLE_ID: ci-placeholder
-          AUTH_GOOGLE_SECRET: ci-placeholder
