@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.0.13] - 2026-10-19
+
+### Changed
+- Mint GitHub App tokens in `bump-version.yml` and `release-changelog.yml` for version bump and changelog pushes instead of using the `PAT_TOKEN` secret.
+- Merge short CI jobs so a PR uses fewer runners by combining `ruff` + `mypy`, unit + integration `pytest`, and Trivy scans into fewer jobs.
+- Move MCP auth, discovery, middleware, and storage modules into `lib/api/mcp/` with import-path updates only and no behavior change.
+- Move the DOCX export entry point and edit-conflicts modules into `lib/services/docx/` with import-path updates only and no behavior change.
+- Gather file-related service modules into `lib/services/files/` with import-path updates only and no behavior change.
+- Gather workflow-run lifecycle modules into `lib/services/workflow_runs/` with import-path updates only and no behavior change.
+- Move text and markdown helpers into a `lib/services/text/` package and relocate `normalize_whitespace` there with import-path updates only and no behavior change.
+- Refactor edit-export logic to share overlap grouping and unplaceable outcomes without changing behavior.
+
+### Fixed
+- Report a failure when the reference downloader cannot save a downloaded file instead of reporting success with `file_id=None`.
+- Break an import cycle involving `review_assistant`’s manifest that caused `ImportError` when certain modules were imported first.
+- Ensure a cancelled abbreviation scan marks unfinished chunks as cancelled.
+
+### Removed
+- Remove dead frontend workflow-state lookup code and unused exports, including deleting a test that only covered the removed function.
+
+### Security
+- Bump `aiohttp` from 3.14.3 to 3.14.4.
+
+### Added
+- Add tests for MCP tool access levels, including an integration access matrix and a regression test guarding import order.
+- Add unit tests covering shared workflow reducers and manifest cancel behavior.
+
+
 ## [v2.0.12] - 2026-10-16
 
 ### Added
