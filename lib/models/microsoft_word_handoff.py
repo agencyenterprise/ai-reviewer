@@ -65,7 +65,8 @@ class MicrosoftWordHandoff(SQLModel, table=True):
     )
     reference: dict[str, Any] | None = Field(
         default=None,
-        sa_column=Column(JSONB, nullable=True),
+        # None is stored as SQL NULL, not JSON null, so `IS NULL` finds chat suggestions.
+        sa_column=Column(JSONB(none_as_null=True), nullable=True),
         description=(
             "Where in Teams to report back once it has been applied. None for "
             "suggestions made in the add-in's own chat, which report to the chat."

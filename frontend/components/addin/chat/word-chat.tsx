@@ -27,12 +27,15 @@ export function WordChat({ session }: { session: AddinSession }) {
     if (now !== documentUrl) setDocumentUrl(now);
     return now;
   };
-  const { runtime, clear, resume, resuming, pendingSuggestionId, historyError } = useWordChatRuntime(
+  const { runtime, clear, resume, resuming, resumedCard, pendingSuggestionId, historyError } = useWordChatRuntime(
     session,
     documentUrl,
     currentDocumentUrl,
   );
-  const paused = useMemo(() => ({ pendingSuggestionId, resume, resuming }), [pendingSuggestionId, resume, resuming]);
+  const paused = useMemo(
+    () => ({ pendingSuggestionId, resume, resuming, resumedCard }),
+    [pendingSuggestionId, resume, resuming, resumedCard],
+  );
 
   return (
     <AddinSessionContext.Provider value={session}>

@@ -1,10 +1,17 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { expiresAt, openSignOutDialog, signInInteractively, SignInMessage, ssoSignIn } from '@/lib/addin/sign-in';
+import {
+  accountOf,
+  expiresAt,
+  openSignOutDialog,
+  signInInteractively,
+  SignInMessage,
+  ssoSignIn,
+} from '@/lib/addin/sign-in';
 import { getErrorMessage } from '@/lib/api-error';
 import { QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ReactNode, useState } from 'react';
+import { Fragment, ReactNode, useState } from 'react';
 
 /** What the signed-in parts of the pane get: who, and a header for the next call. */
 export type AddinSession = {
@@ -31,9 +38,13 @@ const RENEW_BEFORE_MS = 2 * 60 * 1000;
 class TokenCache {
   private token: string | null = null;
 
-  /** The cached token, or ``fallback``, while it has more than a couple of minutes left. */
+  /**
+   * The cached token, or ``fallback``, while it has more than a couple of minutes left.
+   * A cached token for another account than ``fallback``'s is never handed out.
+   */
   fresh(fallback: string): string | null {
-    const current = this.token ?? fallback;
+    const cached = this.token && accountOf(this.token) === accountOf(fallback) ? this.token : null;
+    const current = cached ?? fallback;
     const expiry = expiresAt(current);
     return expiry !== null && expiry - Date.now() > RENEW_BEFORE_MS ? current : null;
   }
@@ -95,6 +106,13 @@ export function AddinSignIn({ prompt, children }: AddinSignInProps) {
       // offers to sign in again instead of failing every call.
       expire();
       throw error;
+    }
+    if (accountOf(renewed) !== accountOf(auth.accessToken)) {
+      // Office switched accounts under the pane: nothing of the previous one may show
+      // under the new token, so start over from signing in.
+      forgetAccount(queryClient);
+      expire();
+      throw new Error('Office is signed in to another account now: sign in again.');
     }
     tokens.set(renewed);
     return `Bearer ${renewed}`;
@@ -169,7 +187,10 @@ export function AddinSignIn({ prompt, children }: AddinSignInProps) {
           {signOut.isPending ? 'Signing out…' : 'Sign out'}
         </Button>
       </div>
-      {children({ email: auth.email, authorize, expire })}
+      {/* Keyed by account, so nothing mounted for one account carries over to another. */}
+      <Fragment key={accountOf(auth.accessToken) ?? auth.email}>
+        {children({ email: auth.email, authorize, expire })}
+      </Fragment>
     </>
   );
 }

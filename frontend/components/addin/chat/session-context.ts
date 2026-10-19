@@ -19,12 +19,15 @@ export type PausedAnswer = {
   resume: () => Promise<void>;
   /** The answer is carrying on after its card: the card stays in view meanwhile. */
   resuming: boolean;
+  /** The card the answer carrying on had waited on: the one card of it shown meanwhile. */
+  resumedCard: string | null;
 };
 
 export const PausedAnswerContext = createContext<PausedAnswer>({
   pendingSuggestionId: null,
   resume: async () => {},
   resuming: false,
+  resumedCard: null,
 });
 
 export function usePausedAnswer(): PausedAnswer {

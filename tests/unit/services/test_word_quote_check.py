@@ -12,7 +12,12 @@ import pytest
 from docx import Document as DocxDocument
 
 from lib.services.converters.base import convert_to_markdown
-from lib.services.microsoft.word.quote_check import normalize, paragraph_texts, place
+from lib.services.microsoft.word.quote_check import (
+    normalize,
+    overlapping,
+    paragraph_texts,
+    place,
+)
 
 MARKDOWN = """\
 # Energy *Considerations*
@@ -59,6 +64,21 @@ def test_a_quote_twice_in_one_paragraph_is_ambiguous() -> None:
     """The add-in would change the first, whichever one was meant."""
 
     assert place("the rate", ["the rate rose, and the rate fell"]) == "ambiguous"
+
+
+def test_overlapping_occurrences_are_ambiguous() -> None:
+    # `str.count` finds "ana" once in "banana"; it starts twice.
+    assert place("ana", ["A banana."]) == "ambiguous"
+
+
+def test_edits_sharing_words_are_reported() -> None:
+    paragraphs = ["The quick brown fox jumps.", "A brown fox again here."]
+
+    assert overlapping(["quick brown", "brown fox jumps", "jumps"], paragraphs) == [
+        "brown fox jumps"
+    ]
+    # In other paragraphs, or apart in one, they do not clash.
+    assert overlapping(["fox again", "quick brown"], paragraphs) == []
 
 
 def test_a_quote_that_is_not_there_is_not_found() -> None:

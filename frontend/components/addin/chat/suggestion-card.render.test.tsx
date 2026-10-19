@@ -57,7 +57,9 @@ async function render(waitingOn: string | null = null): Promise<HTMLElement> {
     withQueryClient(
       client,
       <AddinSessionContext.Provider value={session}>
-        <PausedAnswerContext.Provider value={{ pendingSuggestionId: waitingOn, resume, resuming: false }}>
+        <PausedAnswerContext.Provider
+          value={{ pendingSuggestionId: waitingOn, resume, resuming: false, resumedCard: null }}
+        >
           <SuggestionCard id={ID} />
         </PausedAnswerContext.Provider>
       </AddinSessionContext.Provider>,
@@ -97,6 +99,16 @@ describe('cardToShow', () => {
 
   it('shows nothing while the answer is still being written', () => {
     expect(cardToShow(opened, true)).toBeNull();
+  });
+
+  it('while an answer carries on, shows only the card it waited on, not cards it opens again', () => {
+    const retry = JSON.stringify({ saved: true, suggestion_id: 'retry-card', card: 'new' });
+    const retryAdded = JSON.stringify({ saved: true, suggestion_id: 'retry-card', card: 'added' });
+    expect(cardToShow(opened, true, ID)).toBe(ID);
+    expect(cardToShow(retry, true, ID)).toBeNull();
+    expect(cardToShow(retryAdded, true, ID)).toBeNull();
+    // Once the answer has finished, the new card shows, with every batch on it.
+    expect(cardToShow(retry, false, null)).toBe('retry-card');
   });
 
   it('shows nothing for a call that stored nothing', () => {

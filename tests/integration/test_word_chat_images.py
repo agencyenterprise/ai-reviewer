@@ -3,7 +3,8 @@
 Every conversation, on any surface, has a row in ``conversations``; images of a document
 read in the Word add-in's chat or in Teams are ``files`` rows owned by it instead of a
 project. What is pinned, on real Postgres: every file has exactly one owner, a Word
-chat's and a Teams conversation's images accumulate per document read,
+chat's images are kept for the copies of its document it holds, a Teams
+conversation's accumulate per document read,
 both go with their conversation, a Teams conversation is started once however many
 questions race to start it, and the download route, which serves a file only through
 its project, never serves a conversation's.
@@ -31,6 +32,7 @@ from lib.models.user import User
 from lib.services import conversations
 from lib.services.files.images import (
     add_conversation_images,
+    prune_conversation_images,
 )
 from lib.services.files.service import check_file_access
 from lib.services.image_extraction import ExtractedImage
@@ -103,6 +105,12 @@ async def test_a_word_chats_images_accumulate_and_go_with_the_conversation(
     rows = await owned_by(word_chat)
     assert {row.id for row in rows} == {first.id, second.id}
     assert all(row.project_id is None for row in rows)
+
+    # Once a newer copy is stored, the images no copy names go; the others stay.
+    third = image(tmp_path, "third")
+    await prune_conversation_images(word_chat, keep={second.id})
+    await add_conversation_images(word_chat, [third])
+    assert {row.id for row in await owned_by(word_chat)} == {second.id, third.id}
 
     await remove(word_chat)
     assert await owned_by(word_chat) == []

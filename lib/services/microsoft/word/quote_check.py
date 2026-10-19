@@ -129,7 +129,45 @@ def place(quote: str, paragraphs: list[str]) -> Placement:
     wanted = normalize(quote)
     if not wanted:
         return "not_found"
-    hits = sum(text.count(wanted) for text in paragraphs)
+    hits = sum(occurrences(text, wanted) for text in paragraphs)
     if hits == 0:
         return "not_found"
     return "found" if hits == 1 else "ambiguous"
+
+
+def occurrences(text: str, wanted: str) -> int:
+    """How many times ``wanted`` starts in ``text``, overlapping ones included.
+
+    ``str.count`` skips overlaps: it finds ``ana`` once in ``banana``, where it starts
+    twice.
+    """
+
+    count, at = 0, text.find(wanted)
+    while at != -1:
+        count += 1
+        at = text.find(wanted, at + 1)
+    return count
+
+
+def overlapping(quotes: list[str], paragraphs: list[str]) -> list[str]:
+    """The quotes whose words an earlier quote in the list covers too.
+
+    The add-in finds every edit before writing any, so an edit over words another edit
+    replaces would land on that edit's text: it refuses the later one
+    (``handoff-plan.ts``). Quotes not found once are left to ``place``.
+    """
+
+    taken: list[tuple[int, int, int]] = []
+    clashing: list[str] = []
+    for quote in quotes:
+        wanted = normalize(quote)
+        where = [(i, t.find(wanted)) for i, t in enumerate(paragraphs) if wanted in t]
+        if not wanted or len(where) != 1:
+            continue
+        paragraph, start = where[0]
+        end = start + len(wanted)
+        if any(p == paragraph and s < end and start < e for p, s, e in taken):
+            clashing.append(quote)
+        else:
+            taken.append((paragraph, start, end))
+    return clashing

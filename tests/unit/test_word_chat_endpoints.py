@@ -151,6 +151,7 @@ class TestATurn:
         read = LoadedDocument(
             name="Draft.docx", url=URL, markdown="# Draft", images=[image]
         )
+        kept = uuid.uuid4()
         with (
             patch.object(
                 word_chat.chat_threads,
@@ -168,6 +169,14 @@ class TestATurn:
             patch.object(
                 word_chat.file_images, "add_conversation_images", AsyncMock()
             ) as store,
+            patch.object(
+                word_chat,
+                "read_thread_file",
+                AsyncMock(return_value=f"![](draftdetective://{kept}?w=1&h=1)"),
+            ),
+            patch.object(
+                word_chat.file_images, "prune_conversation_images", AsyncMock()
+            ) as prune,
             patch.object(word_chat, "run_word_chat_turn") as run,
         ):
             await word_chat.stream_turn(
@@ -177,6 +186,8 @@ class TestATurn:
                 caller=caller(),
             )
 
+        # The stored copy's images stay, in case this turn fails before replacing it.
+        prune.assert_awaited_once_with(thread.id, keep={kept})
         store.assert_awaited_once_with(thread.id, [image])
         turn, _target = run.call_args.args
         assert turn.document == read

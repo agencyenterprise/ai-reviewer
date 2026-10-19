@@ -38,6 +38,7 @@ export type HandoffPlan = {
 
 export const NOT_FOUND = 'the words are no longer in the document';
 export const AMBIGUOUS = 'the words appear in more than one paragraph';
+export const OVERLAPS = 'it overlaps another edit, which would change its words first';
 
 /**
  * Text as quotes are compared: curly quotes, dashes and runs of space evened out. Kept
@@ -61,8 +62,8 @@ export function locate(paragraphs: string[], quote: string): number | typeof NOT
   const hits: number[] = [];
   paragraphs.forEach((text, index) => {
     if (!wanted) return;
-    const occurrences = normalize(text).split(wanted).length - 1;
-    for (let i = 0; i < occurrences; i++) hits.push(index);
+    const found = occurrences(normalize(text), wanted);
+    for (let i = 0; i < found; i++) hits.push(index);
   });
   if (hits.length === 0) return NOT_FOUND;
   if (hits.length > 1) return AMBIGUOUS;
@@ -79,7 +80,7 @@ function workFor(plan: HandoffPlan, paragraph: number): ParagraphWork {
 }
 
 function unplaced(index: number, kind: AppliedItem['kind'], quote: string, where: string): AppliedItem {
-  const reason: FailureReason = where === AMBIGUOUS ? 'ambiguous' : 'not_found';
+  const reason: FailureReason = where === AMBIGUOUS ? 'ambiguous' : where === OVERLAPS ? 'withheld' : 'not_found';
   return { index, kind, quote, applied: false, detail: where, reason };
 }
 
@@ -102,9 +103,30 @@ export function planHandoff(paragraphs: string[], comments: HandoffComment[], ed
       return;
     }
     const work = workFor(plan, where);
+    // Every range is found before anything is written, so an edit whose words another
+    // edit replaces first would land on that edit's text.
+    if (work.edits.some((other) => overlap(paragraphs[where], other.edit.quote, edit.quote))) {
+      plan.unplaced.push(unplaced(index, 'edit', edit.quote, OVERLAPS));
+      return;
+    }
     work.edits.push({ index, edit });
   });
   return plan;
+}
+
+/** Whether two quotes, each once in `paragraph`, share any of its words. */
+function overlap(paragraph: string, first: string, second: string): boolean {
+  const text = normalize(paragraph);
+  const [a, b] = [normalize(first), normalize(second)];
+  const [startA, startB] = [text.indexOf(a), text.indexOf(b)];
+  return startA < startB + b.length && startB < startA + a.length;
+}
+
+/** How many times `wanted` starts in `text`, overlapping ones included: `ana` is twice in `banana`. */
+export function occurrences(text: string, wanted: string): number {
+  let count = 0;
+  for (let at = text.indexOf(wanted); at !== -1; at = text.indexOf(wanted, at + 1)) count++;
+  return count;
 }
 
 /** What the server is told: each item's position, whether it landed, and why not. */

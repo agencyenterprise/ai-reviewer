@@ -28,6 +28,8 @@ vi.mock('@/lib/addin/sign-in', () => ({
   openSignOutDialog: vi.fn(),
   // The test tokens are not JWTs, so their expiry cannot be read: renewed every call.
   expiresAt: vi.fn(() => null),
+  // One account, unless a test hands out a token for another.
+  accountOf: vi.fn((token: string) => (token.startsWith('other') ? 'tid/other' : 'tid/ana')),
 }));
 
 const list = vi.mocked(listPendingApiMicrosoftWordHandoffsGet);
@@ -172,6 +174,14 @@ describe('HandoffPanel', () => {
 
     expect(list).not.toHaveBeenCalled();
     expect(container.textContent).toContain('Your sign-in expired');
+  });
+
+  it('a token renewed for another account asks them to sign in, before any call', async () => {
+    silent.mockResolvedValueOnce(SIGNED_IN).mockResolvedValue({ ...SIGNED_IN, accessToken: 'other-account' });
+    const container = await render();
+
+    expect(list).not.toHaveBeenCalled();
+    expect(container.textContent).toContain('Sign in with Microsoft');
   });
 
   it('signing in again after a refusal asks again', async () => {

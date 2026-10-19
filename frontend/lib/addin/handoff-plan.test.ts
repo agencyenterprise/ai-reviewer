@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AMBIGUOUS, NOT_FOUND, locate, planHandoff } from './handoff-plan';
+import { AMBIGUOUS, NOT_FOUND, OVERLAPS, locate, planHandoff } from './handoff-plan';
 
 const paragraphs = [
   'Introduction',
@@ -33,6 +33,10 @@ describe('locate', () => {
   it('refuses to choose between two places in one paragraph', () => {
     expect(locate(['Then the rate rose, and the rate fell.'], 'the rate')).toBe(AMBIGUOUS);
   });
+
+  it('counts occurrences that overlap', () => {
+    expect(locate(['A banana.'], 'ana')).toBe(AMBIGUOUS);
+  });
 });
 
 describe('planHandoff', () => {
@@ -52,6 +56,23 @@ describe('planHandoff', () => {
     expect(plan.paragraphs.get(2)?.edits.map(({ index }) => index)).toEqual([2]);
     expect(plan.unplaced).toEqual([
       { index: 1, kind: 'comment', quote: 'vanished text', applied: false, detail: NOT_FOUND, reason: 'not_found' },
+    ]);
+  });
+
+  it('withholds an edit over words an earlier edit changes', () => {
+    const plan = planHandoff(
+      ['The quick brown fox jumps.'],
+      [],
+      [
+        { quote: 'quick brown', replacement: 'slow brown' },
+        { quote: 'brown fox', replacement: 'red fox' },
+        { quote: 'jumps', replacement: 'leaps' },
+      ],
+    );
+
+    expect(plan.paragraphs.get(0)?.edits.map(({ index }) => index)).toEqual([0, 2]);
+    expect(plan.unplaced).toEqual([
+      { index: 1, kind: 'edit', quote: 'brown fox', applied: false, detail: OVERLAPS, reason: 'withheld' },
     ]);
   });
 });

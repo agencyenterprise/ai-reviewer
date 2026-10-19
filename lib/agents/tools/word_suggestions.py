@@ -41,7 +41,11 @@ from lib.services.microsoft.word.handoffs import (
     HandoffItems,
     Requester,
 )
-from lib.services.microsoft.word.quote_check import paragraph_texts, place
+from lib.services.microsoft.word.quote_check import (
+    overlapping,
+    paragraph_texts,
+    place,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +61,7 @@ PROBLEMS = {
     "not_found": "not in the document as quoted: copy the words exactly as they appear",
     "ambiguous": "appears in more than one paragraph: quote more words around it",
 }
+OVERLAPS = "shares words with another edit: make them one edit"
 
 
 class SuggestionTarget(BaseModel):
@@ -212,6 +217,9 @@ def misplaced(items: HandoffItems, files: dict[str, Any]) -> list[str]:
         f"{kind} on “{quote}”: {PROBLEMS[where]}"
         for kind, quote in quoted
         if (where := place(quote, paragraphs)) != "found"
+    ] + [
+        f"edit on “{quote}”: {OVERLAPS}"
+        for quote in overlapping([e.quote for e in items.edits], paragraphs)
     ]
 
 

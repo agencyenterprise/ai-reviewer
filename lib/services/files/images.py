@@ -12,9 +12,10 @@ project.
 """
 
 import os
+import re
 import uuid
 
-from sqlalchemy import ColumnElement, delete, select
+from sqlalchemy import ColumnElement, and_, delete, select
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
@@ -24,7 +25,12 @@ from lib.services.files.service import (
     _is_path_shared,
     get_file_by_id,
 )
-from lib.services.image_extraction import ExtractedImage
+from lib.services.image_extraction import IMAGE_REFERENCE_SCHEME, ExtractedImage
+
+_REFERENCE = re.compile(
+    re.escape(IMAGE_REFERENCE_SCHEME)
+    + r"([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})"
+)
 
 
 async def replace_extracted_images(
@@ -70,13 +76,39 @@ async def add_conversation_images(
     sends its document again whenever it changes, and markdown already stored (a turn
     that failed before the new document was) must still find the images it names.
     Re-reading a document adds its images again under new ids; the disk files are
-    shared, being content-addressed, and the rows go with the conversation.
+    shared, being content-addressed, and the rows go with the conversation. The Word
+    chat drops the ones no document it holds names (``prune_conversation_images``).
     """
 
     async with get_async_db_session() as session:
         for row in _conversation_rows(conversation_id, images):
             session.add(row)
         await session.commit()
+
+
+def referenced_images(markdown: str) -> set[uuid.UUID]:
+    """The ids of the images ``markdown`` names by their ``draftdetective://`` src."""
+
+    return {uuid.UUID(match) for match in _REFERENCE.findall(markdown)}
+
+
+async def prune_conversation_images(
+    conversation_id: uuid.UUID, keep: set[uuid.UUID]
+) -> None:
+    """Drop the conversation's images ``keep`` does not name, files included once unused.
+
+    For a conversation about one document that it sends again as it changes, the Word
+    chat's: each copy adds its images under new ids, and only the copy the conversation
+    holds now names any of them.
+    """
+
+    await _replace(
+        and_(
+            col(File.conversation_id) == conversation_id,
+            col(File.id).not_in(keep),
+        ),
+        [],
+    )
 
 
 def _conversation_rows(

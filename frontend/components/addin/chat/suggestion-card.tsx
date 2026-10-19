@@ -27,13 +27,14 @@ export function suggestionResult(result: unknown): ToolResult | null {
  *
  * One answer has one card (`lib/agents/tools/word_suggestions.py`): the call that opened
  * it shows it, and later calls that only added to it show nothing. Nothing either while
- * the answer is still being written, since calls may still be adding to it; and nothing
- * for a call that stored nothing, whose reply is for the agent (fix these quotes, try
- * again).
+ * the answer is still being written, since calls may still be adding to it, except the
+ * card it waited on before carrying on (`keep`), which is settled; and nothing for a call
+ * that stored nothing, whose reply is for the agent (fix these quotes, try again).
  */
-export function cardToShow(result: unknown, answerInProgress: boolean): string | null {
+export function cardToShow(result: unknown, answerInProgress: boolean, keep: string | null = null): string | null {
   const parsed = suggestionResult(result);
-  if (answerInProgress || !parsed?.saved || !parsed.suggestion_id || parsed.card === 'added') return null;
+  if (!parsed?.saved || !parsed.suggestion_id || parsed.card === 'added') return null;
+  if (answerInProgress && parsed.suggestion_id !== keep) return null;
   return parsed.suggestion_id;
 }
 
@@ -49,8 +50,8 @@ function inAnswerInProgress(state: AssistantState): boolean {
 /** What the agent's `suggest_changes` call shows in the chat: the answer's card, once. */
 export const SuggestChangesPart: ToolCallMessagePartComponent = ({ result }) => {
   const inProgress = useAuiState(inAnswerInProgress);
-  const { resuming } = usePausedAnswer();
-  const id = cardToShow(result, inProgress && !resuming);
+  const { resumedCard } = usePausedAnswer();
+  const id = cardToShow(result, inProgress, resumedCard);
   return id ? <SuggestionCard id={id} /> : null;
 };
 

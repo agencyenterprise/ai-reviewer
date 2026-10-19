@@ -89,8 +89,12 @@ def downgrade() -> None:
     op.drop_constraint('microsoft_word_handoffs_chat_thread_id_fkey', 'microsoft_word_handoffs', type_='foreignkey')
     op.drop_index(op.f('ix_microsoft_word_handoffs_chat_thread_id'), table_name='microsoft_word_handoffs')
     # Suggestions from the add-in's chat have no Teams reference, so they cannot survive
-    # the column becoming NOT NULL again.
-    op.execute('DELETE FROM microsoft_word_handoffs WHERE reference IS NULL')
+    # the column becoming NOT NULL again. Older rows may hold a JSON null rather than SQL
+    # NULL, so they are matched by their chat thread too.
+    op.execute(
+        "DELETE FROM microsoft_word_handoffs WHERE chat_thread_id IS NOT NULL "
+        "OR reference IS NULL OR reference = 'null'::jsonb"
+    )
     op.alter_column('microsoft_word_handoffs', 'reference',
                existing_type=postgresql.JSONB(astext_type=sa.Text()),
                nullable=False)

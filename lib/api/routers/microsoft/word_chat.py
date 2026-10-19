@@ -170,9 +170,7 @@ async def stream_turn(
     token = await _claim(thread.id)
     try:
         if loaded is not None:
-            # Added, not swapped: markdown already stored, if this turn fails before the
-            # new document is, keeps naming images that still exist.
-            await file_images.add_conversation_images(thread.id, loaded.images)
+            await _swap_images(thread.id, loaded)
         await chat_threads.begin_turn(thread.id)
         suggestions = await chat_suggestions.for_thread(thread.id)
         unheard = [s.id for s in chat_suggestions.unheard(suggestions)]
@@ -232,6 +230,20 @@ async def _released(
             yield event
     finally:
         await chat_threads.release(thread_id, token)
+
+
+async def _swap_images(thread_id: UUID, loaded: LoadedDocument) -> None:
+    """Keep the images of the document stored now and of the one coming in, no others.
+
+    The stored document's stay: if this turn fails before the new one is stored, the
+    conversation still reads the old one, and its images must still exist.
+    """
+
+    stored = await read_thread_file(str(thread_id), DOCUMENT_PATH)
+    await file_images.prune_conversation_images(
+        thread_id, keep=file_images.referenced_images(stored or "")
+    )
+    await file_images.add_conversation_images(thread_id, loaded.images)
 
 
 async def _has_document(thread_id: UUID) -> bool:

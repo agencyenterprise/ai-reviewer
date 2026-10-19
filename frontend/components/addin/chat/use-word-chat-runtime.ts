@@ -93,7 +93,8 @@ export function useWordChatRuntime(
   const history = useQuery({ queryKey, queryFn: () => fetchHistory(), staleTime: Infinity, retry: false });
   const [inflight, setInflight] = useState<ChatMessage[]>([]);
   const [isRunning, setIsRunning] = useState(false);
-  const [resuming, setResuming] = useState(false);
+  // The card the answer was paused on while it carries on, null when it is not.
+  const [resumedCard, setResumedCard] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const sentRef = useRef<string | null>(null);
 
@@ -179,7 +180,7 @@ export function useWordChatRuntime(
   const resume = async () => {
     // The question is already stored; only the agent's side of the rest is shown.
     const placeholder = userMessage('', []);
-    setResuming(true);
+    setResumedCard(history.data?.pendingSuggestionId ?? '');
     try {
       await run(
         new TurnAccumulator(placeholder),
@@ -187,7 +188,7 @@ export function useWordChatRuntime(
         (turn) => turn.assistantMessages,
       );
     } finally {
-      setResuming(false);
+      setResumedCard(null);
     }
   };
 
@@ -218,7 +219,8 @@ export function useWordChatRuntime(
     runtime,
     clear,
     resume,
-    resuming,
+    resuming: resumedCard !== null,
+    resumedCard: resumedCard || null,
     pendingSuggestionId: isRunning ? null : (history.data?.pendingSuggestionId ?? null),
     historyError: history.error,
   };

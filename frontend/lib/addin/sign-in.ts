@@ -34,6 +34,16 @@ export function expiresAt(token: string): number | null {
   }
 }
 
+/** The Microsoft account a token is for, as tenant and object id; null if unreadable. */
+export function accountOf(token: string): string | null {
+  try {
+    const { tid, oid } = claimsOf(token);
+    return typeof oid === 'string' ? `${String(tid)}/${oid}` : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * A token from Office single sign-on. With `interactive` false it never shows anything,
  * which is what the pane tries on load; true lets Office prompt to sign in or consent.
