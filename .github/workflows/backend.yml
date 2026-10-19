@@ -13,8 +13,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ruff and mypy share one runner: together they take well under the unit
+  # tests, so splitting them buys no wall time and costs a slot from the
+  # org's shared pool of concurrent jobs.
   lint:
-    name: ruff
+    name: ruff + mypy
     runs-on: ubuntu-latest
 
     steps:
@@ -29,37 +32,24 @@ jobs:
         run: uv python install 3.13
 
       - name: Install dependencies
+        id: deps
         run: uv sync
 
       - name: Check formatting
         run: uv run ruff format --check --diff .
 
+      # Each check below runs even when an earlier one failed, so one push
+      # reports every problem.
       - name: Lint
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: uv run ruff check --output-format=github .
-
-  typecheck:
-    name: mypy
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-
-      - name: Set up Python
-        run: uv python install 3.13
-
-      - name: Install dependencies
-        run: uv sync
 
       # mypy validates every cached entry against the source and its own
       # version, so a stale cache only costs re-checking what changed. Keyed per
       # commit so each run saves a fresh copy; PRs restore the latest one from
       # their own branch or from dev.
       - name: Cache mypy
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         uses: actions/cache@v4
         with:
           path: .mypy_cache
@@ -69,11 +59,40 @@ jobs:
             mypy-${{ runner.os }}-
 
       - name: Run mypy
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: uv run mypy .
 
+  # Both suites share one runner, so each PR takes one slot from the org's
+  # shared pool of concurrent jobs instead of two. Paying for one setup costs
+  # less than a second job: the integration suite and its Postgres container
+  # add about 40s.
   test:
-    name: pytest (unit)
+    name: pytest
     runs-on: ubuntu-latest
+    # The suites take about two minutes; a stuck lock wait gives up after 5.
+    timeout-minutes: 20
+
+    services:
+      # The image docker-compose.yml runs locally, so pgvector is available to the migrations.
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: ai_reviewer
+          POSTGRES_USER: ai_reviewer_user
+          POSTGRES_PASSWORD: ai_reviewer_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ai_reviewer_user -d ai_reviewer"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      AUTH_SECRET: test-secret-key-for-ci
+      # File uploads (temporary directory for tests)
+      FILE_UPLOADS_MOUNT_PATH: /tmp/test-uploads
 
     steps:
       - uses: actions/checkout@v4
@@ -95,19 +114,20 @@ jobs:
           UV_COMPILE_BYTECODE: "1"
 
       - name: Run tests
-        # Unit tests only; the integration job below runs tests/integration against Postgres.
+        # Both suites in one session, so the xdist workers start once and
+        # integration tests fill in wherever unit tests run out.
         # `-n logical` sizes the worker pool to the runner's vCPUs (4) instead of
         # the 10 workers pyproject.toml sets for local runs. `-n auto` counts
         # physical cores and starts only 2.
-        run: uv run pytest tests/unit -n logical --tb=short --cov --cov-branch --cov-report=xml
+        run: uv run pytest tests/unit tests/integration -n logical --tb=short --cov --cov-branch --cov-report=xml
         env:
-          PYTHONPATH: ${{ github.workspace }}
-          # Database config (test environment)
-          DATABASE_URL: postgresql://test:test@localhost:5432/test_db
-          # Auth config
-          AUTH_SECRET: test-secret-key-for-ci
-          # File uploads (temporary directory for tests)
-          FILE_UPLOADS_MOUNT_PATH: /tmp/test-uploads
+          # The integration tests create and migrate ai_reviewer_test, derived
+          # from this, on their own. Unit tests never open it.
+          DATABASE_URL: postgresql://ai_reviewer_user:ai_reviewer_password@localhost:5432/ai_reviewer
+          # lib.api.mcp builds its auth provider at import and refuses to without a
+          # login provider; nothing in the tests signs in, so placeholders do.
+          AUTH_GOOGLE_ID: ci-placeholder
+          AUTH_GOOGLE_SECRET: ci-placeholder
           # Optional - use secrets if available for LLM tests
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           # Optional Langfuse tracing
@@ -119,55 +139,3 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-
-  integration:
-    name: pytest (integration)
-    runs-on: ubuntu-latest
-    # The suite takes about a minute; a stuck lock wait gives up after 5.
-    timeout-minutes: 15
-
-    services:
-      # The image docker-compose.yml runs locally, so pgvector is available to the migrations.
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_DB: ai_reviewer
-          POSTGRES_USER: ai_reviewer_user
-          POSTGRES_PASSWORD: ai_reviewer_password
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U ai_reviewer_user -d ai_reviewer"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
-    env:
-      PYTHONPATH: ${{ github.workspace }}
-      # The tests create and migrate ai_reviewer_test, derived from this, on their own.
-      DATABASE_URL: postgresql://ai_reviewer_user:ai_reviewer_password@localhost:5432/ai_reviewer
-      AUTH_SECRET: test-secret-key-for-ci
-      # lib.api.mcp builds its auth provider at import and refuses to without a
-      # login provider; nothing in the tests signs in, so placeholders do.
-      AUTH_GOOGLE_ID: ci-placeholder
-      AUTH_GOOGLE_SECRET: ci-placeholder
-      FILE_UPLOADS_MOUNT_PATH: /tmp/test-uploads
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-
-      - name: Set up Python
-        run: uv python install 3.13
-
-      - name: Install dependencies
-        run: uv sync
-        env:
-          UV_COMPILE_BYTECODE: "1"
-
-      - name: Run integration tests
-        run: uv run pytest tests/integration -n logical --tb=short
