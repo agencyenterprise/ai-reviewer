@@ -37,6 +37,7 @@ from lib.agents.deep_agent_setup import (
     build_skill_files,
     general_purpose_subagent,
 )
+from lib.agents.seen_image_redaction import SeenImageRedactionMiddleware
 from lib.agents.tools.sharepoint import comments_path, document_files
 from lib.agents.tools.view_image import VIEW_IMAGE_PROMPT, view_image_for_conversation
 from lib.agents.tools.word_suggestions import (
@@ -91,6 +92,7 @@ def build_word_chat_agent(
         subagents=[{**general_purpose_subagent(skills=["/skills/"]), "tools": viewing}],
         skills=["/skills/"],
         system_prompt=SYSTEM_PROMPT + VIEW_IMAGE_PROMPT,
+        middleware=[SeenImageRedactionMiddleware()],
         checkpointer=checkpointer,
     )
 

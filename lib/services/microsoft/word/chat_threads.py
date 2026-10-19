@@ -136,11 +136,12 @@ async def current_or_new(
 STALE_CLAIM = timedelta(minutes=30)
 
 
-async def claim(thread_id: uuid.UUID) -> bool:
-    """Take the thread for one turn; False while another turn holds it.
+async def claim(thread_id: uuid.UUID) -> datetime | None:
+    """Take the thread for one turn: the claim's token, or None while another holds it.
 
     Two panes on one document, or a message and a resume, would otherwise run the agent
-    on the same LangGraph thread at once, one checkpoint overwriting the other.
+    on the same LangGraph thread at once, one checkpoint overwriting the other. The
+    token is what ``release`` checks, so a turn can only let go of its own claim.
     """
 
     now = datetime.now(UTC)
@@ -155,20 +156,25 @@ async def claim(thread_id: uuid.UUID) -> bool:
                 )
             )
             .values(running_since=now)
-            .returning(col(MicrosoftWordChatThread.id))
+            .returning(col(MicrosoftWordChatThread.running_since))
         )
-        taken = claimed.first() is not None
+        token = claimed.scalar_one_or_none()
         await session.commit()
-    return taken
+    return token
 
 
-async def release(thread_id: uuid.UUID) -> None:
-    """Let the next turn run. Called however the turn ended."""
+async def release(thread_id: uuid.UUID, token: datetime) -> None:
+    """Let the next turn run, if this turn still holds the claim.
+
+    A turn that stalled past ``STALE_CLAIM`` may have had its claim taken by another:
+    releasing that one would let a third run alongside it.
+    """
 
     async with get_async_db_session() as session:
         await session.execute(
             update(MicrosoftWordChatThread)
             .where(col(MicrosoftWordChatThread.id) == thread_id)
+            .where(col(MicrosoftWordChatThread.running_since) == token)
             .values(running_since=None)
         )
         await session.commit()

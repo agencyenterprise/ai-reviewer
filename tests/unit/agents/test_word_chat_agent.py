@@ -6,13 +6,15 @@ sends it and kept when it does not, the notes reach the agent but not the chat, 
 suggestion comes out of the stream with the id its card is found by.
 """
 
+import base64
 import json
 import uuid
 from collections.abc import Iterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from deepagents.backends.utils import file_data_to_string
@@ -32,6 +34,7 @@ from lib.agents.word_chat_agent import (
     turn_input,
     turn_message,
 )
+from lib.models.file import FileRole
 from lib.services.chat import thread_state
 from lib.services.chat.history import to_ui_messages
 from lib.services.microsoft.graph.documents import LoadedDocument
@@ -492,6 +495,9 @@ class TestAskingToApply:
                 word_suggestions.handoffs, "create", AsyncMock(return_value=card)
             ),
             patch.object(word_suggestions.chat_suggestions, "suggestion_for", lookups),
+            patch.object(
+                word_suggestions.chat_suggestions, "mark_heard", AsyncMock()
+            ) as heard,
         ):
             first = await run(turn("Fix it", document=DOCUMENT))
             waiting = await word_chat_agent.pending_suggestion(THREAD)
@@ -507,6 +513,8 @@ class TestAskingToApply:
         assert told and "1 of 1" in told[0]
         assert not any(e["t"] == "interrupt" for e in rest)
         assert await word_chat_agent.pending_suggestion(THREAD) is None
+        # Told now, so the next message does not report it again as news.
+        heard.assert_awaited_once_with([card])
 
     @pytest.mark.asyncio
     async def test_a_card_of_another_conversation_is_not_asked_about(
@@ -559,3 +567,47 @@ class TestAskingToApply:
 
 def results_text(events: list[dict[str, Any]]) -> str:
     return " ".join(str(e["result"]) for e in events if e["t"] == "tool_result")
+
+
+class TestViewingAnImage:
+    @pytest.mark.asyncio
+    async def test_the_stored_conversation_keeps_a_note_not_the_image(
+        self, saver: InMemorySaver, tmp_path: Path
+    ) -> None:
+        """Seen once, an image would otherwise sit in the checkpoint for good, megabytes
+        each, and go back to the model on every later turn."""
+
+        picture = tmp_path / "figure.png"
+        picture.write_bytes(b"\x89PNG\r\n\x1a\n" + b"x" * 4000)
+        image_id = uuid.uuid4()
+        row = MagicMock(
+            id=image_id,
+            conversation_id=THREAD,
+            project_id=None,
+            role=FileRole.EXTRACTED_IMAGE,
+            file_type="image/png",
+            file_size=picture.stat().st_size,
+            file_path=str(picture),
+        )
+        look = {
+            "name": "view_image",
+            "id": "c1",
+            "args": {"image_reference": f"draftdetective://{image_id}"},
+        }
+        with (
+            scripted(
+                AIMessage(content="", tool_calls=[look]),
+                AIMessage(content="A radar chart."),
+            ),
+            patch(
+                "lib.agents.tools.view_image.get_file_by_id",
+                AsyncMock(return_value=row),
+            ),
+        ):
+            await run(turn("What does Figure 3 show?", document=DOCUMENT))
+
+        agent = word_chat_agent.build_word_chat_agent(saver, None, api_key="unused")
+        snapshot = await agent.aget_state({"configurable": {"thread_id": str(THREAD)}})
+        stored = str(snapshot.values["messages"])
+        assert "bytes omitted" in stored
+        assert base64.b64encode(picture.read_bytes()).decode() not in stored

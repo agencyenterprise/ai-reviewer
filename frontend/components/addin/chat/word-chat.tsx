@@ -15,11 +15,22 @@ import { useWordChatRuntime } from './use-word-chat-runtime';
  * The pane's chat with Draft Detective about the open document: one continuing
  * conversation per document, which "New chat" sets aside to start again.
  */
+function readDocumentKey(): string {
+  return chatDocumentKey(typeof Office !== 'undefined' ? (Office.context.document?.url ?? '') : '');
+}
+
 export function WordChat({ session }: { session: AddinSession }) {
-  const documentUrl = chatDocumentKey(typeof Office !== 'undefined' ? (Office.context.document?.url ?? '') : '');
+  const [documentUrl, setDocumentUrl] = useState(readDocumentKey);
+  // Read as each message is sent: a first save or Save As changes it with no event.
+  const currentDocumentUrl = () => {
+    const now = readDocumentKey();
+    if (now !== documentUrl) setDocumentUrl(now);
+    return now;
+  };
   const { runtime, clear, resume, resuming, pendingSuggestionId, historyError } = useWordChatRuntime(
     session,
     documentUrl,
+    currentDocumentUrl,
   );
   const paused = useMemo(() => ({ pendingSuggestionId, resume, resuming }), [pendingSuggestionId, resume, resuming]);
 

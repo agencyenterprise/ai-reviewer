@@ -36,7 +36,7 @@ def free_conversation() -> Iterator[AsyncMock]:
 
     with (
         patch.object(
-            word_chat.chat_threads, "claim", AsyncMock(return_value=True)
+            word_chat.chat_threads, "claim", AsyncMock(return_value=NOW)
         ) as claim,
         patch.object(word_chat.chat_threads, "release", AsyncMock()),
         patch.object(word_chat.chat_suggestions, "mark_heard", AsyncMock()),
@@ -86,6 +86,7 @@ class TestHistory:
             patch.object(
                 word_chat, "load_thread_messages", AsyncMock(return_value=[])
             ) as load,
+            patch.object(word_chat, "pending_suggestion", AsyncMock(return_value=None)),
         ):
             history = await word_chat.get_thread(url=URL, caller=caller())
 
@@ -341,7 +342,7 @@ class TestOneTurnAtATime:
     async def test_a_message_while_another_turn_runs_is_refused(
         self, free_conversation: AsyncMock
     ) -> None:
-        free_conversation.return_value = False
+        free_conversation.return_value = None
         with (
             patch.object(
                 word_chat.chat_threads,
@@ -369,7 +370,35 @@ class TestOneTurnAtATime:
         thread_id = uuid.uuid4()
         with patch.object(word_chat.chat_threads, "release", AsyncMock()) as release:
             with pytest.raises(RuntimeError):
-                async for _ in word_chat._released(failing(), thread_id):
+                async for _ in word_chat._released(failing(), thread_id, NOW):
                     pass
 
-        release.assert_awaited_once_with(thread_id)
+        # Only its own claim: a newer turn's is left alone.
+        release.assert_awaited_once_with(thread_id, NOW)
+
+    @pytest.mark.asyncio
+    async def test_news_counts_as_heard_only_once_the_turn_has_started(self) -> None:
+        """A turn that fails before it stores its input has not told the agent."""
+
+        async def never_starts() -> AsyncIterator[dict]:
+            raise RuntimeError("the model was unreachable")
+            yield {}
+
+        async def starts() -> AsyncIterator[dict]:
+            yield {"t": "message", "id": "m"}
+
+        heard = AsyncMock()
+        thread_id = uuid.uuid4()
+        with patch.object(word_chat.chat_threads, "release", AsyncMock()):
+            with pytest.raises(RuntimeError):
+                async for _ in word_chat._released(
+                    never_starts(), thread_id, NOW, on_start=heard
+                ):
+                    pass
+            heard.assert_not_awaited()
+
+            async for _ in word_chat._released(
+                starts(), thread_id, NOW, on_start=heard
+            ):
+                pass
+            heard.assert_awaited_once()

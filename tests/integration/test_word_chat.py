@@ -13,10 +13,11 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import delete, update
+from sqlalchemy import delete, select, update
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
+from lib.models.conversation import Conversation
 from lib.models.microsoft_word_chat_thread import MicrosoftWordChatThread
 from lib.models.microsoft_word_handoff import MicrosoftWordHandoff
 from lib.services.microsoft.word import chat_suggestions, chat_threads, handoffs
@@ -47,10 +48,13 @@ async def accounts() -> AsyncIterator[tuple[Account, Account]]:
                 col(MicrosoftWordHandoff.requested_by_oid).in_(oids)
             )
         )
+        # The shared rows: each takes its thread with it, where deleting the thread
+        # would leave its conversation behind.
+        threads = select(col(MicrosoftWordChatThread.id)).where(
+            col(MicrosoftWordChatThread.owner_oid).in_(oids)
+        )
         await session.execute(
-            delete(MicrosoftWordChatThread).where(
-                col(MicrosoftWordChatThread.owner_oid).in_(oids)
-            )
+            delete(Conversation).where(col(Conversation.id).in_(threads))
         )
         await session.commit()
 
@@ -195,10 +199,11 @@ async def test_one_turn_at_a_time_and_a_dead_ones_claim_runs_out(
     ana, _ = accounts
     thread = await chat_threads.current_or_new(ana, PATH_URL)
 
-    assert await chat_threads.claim(thread.id)
-    assert not await chat_threads.claim(thread.id)
-    await chat_threads.release(thread.id)
-    assert await chat_threads.claim(thread.id)
+    token = await chat_threads.claim(thread.id)
+    assert token is not None
+    assert await chat_threads.claim(thread.id) is None
+    await chat_threads.release(thread.id, token)
+    assert await chat_threads.claim(thread.id) is not None
 
     # A worker that died mid-turn never releases: its claim runs out.
     async with get_async_db_session() as session:
@@ -212,4 +217,9 @@ async def test_one_turn_at_a_time_and_a_dead_ones_claim_runs_out(
             )
         )
         await session.commit()
-    assert await chat_threads.claim(thread.id)
+    taken = await chat_threads.claim(thread.id)
+    assert taken is not None
+
+    # The stalled turn coming back must not let go of the claim that replaced its own.
+    await chat_threads.release(thread.id, token)
+    assert await chat_threads.claim(thread.id) is None

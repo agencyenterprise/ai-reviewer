@@ -50,8 +50,11 @@ type Harness = ReturnType<typeof useWordChatRuntime>;
 const seen: { current?: Harness } = {};
 let rendered: Rendered | null = null;
 
+// What the pane reads as the document's key when a message is sent.
+let keyNow = URL;
+
 function Probe({ seenRef }: { seenRef: { current?: Harness } }) {
-  const runtime = useWordChatRuntime(session, URL);
+  const runtime = useWordChatRuntime(session, URL, () => keyNow);
   useLayoutEffect(() => {
     seenRef.current = runtime;
   });
@@ -157,6 +160,36 @@ describe('useWordChatRuntime', () => {
     await send('hello');
 
     expect(sentDocuments()).toEqual([undefined]);
+  });
+
+  it('inside Word a failed read stops the message rather than send it without the document', async () => {
+    vi.stubGlobal('Office', { context: { document: {} } });
+    try {
+      file.mockRejectedValue(new Error('the file is busy'));
+      await send('hello');
+
+      // Sent without it, the agent would answer from an older copy.
+      expect(stream).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('sends to the document as it is now named, with the document again', async () => {
+    await send('first');
+    keyNow = 'https://contoso.sharepoint.com/Saved as.docx';
+    try {
+      await send('after Save As');
+    } finally {
+      keyNow = URL;
+    }
+
+    expect(stream.mock.calls.map(([options]) => options.url)).toEqual([
+      URL,
+      'https://contoso.sharepoint.com/Saved as.docx',
+    ]);
+    // Another key is another conversation: it has not been sent this document.
+    expect(sentDocuments()).toEqual(['v1', 'v1']);
   });
 
   it('names the card a paused answer waits on, and carries the answer on through resume', async () => {

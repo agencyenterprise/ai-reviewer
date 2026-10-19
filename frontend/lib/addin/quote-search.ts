@@ -35,18 +35,21 @@ export type Lookup =
 export function rawSpan(text: string, quote: string): { start: number; end: number } | null {
   const wanted = normalize(quote);
   if (!wanted) return null;
+  // `flat` is searched with `indexOf`, which counts UTF-16 units, so `origin` holds an
+  // entry per unit: an emoji is two. Each entry is the code point it came from, which
+  // is what `lookup` slices the paragraph by.
   let flat = '';
   const origin: number[] = [];
+  const add = (piece: string, from: number) => {
+    flat += piece;
+    for (let unit = 0; unit < piece.length; unit++) origin.push(from);
+  };
   for (const [i, char] of Array.from(text).entries()) {
     if (/\s/.test(char)) {
-      if (flat && !flat.endsWith(' ')) {
-        flat += ' ';
-        origin.push(i);
-      }
+      if (flat && !flat.endsWith(' ')) add(' ', i);
       continue;
     }
-    flat += normalize(char);
-    origin.push(i);
+    add(normalize(char), i);
   }
   const at = flat.indexOf(wanted);
   if (at < 0) return null;

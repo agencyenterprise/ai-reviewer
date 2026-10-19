@@ -118,9 +118,10 @@ def paragraph_texts(markdown: str) -> list[str]:
 
 
 def place(quote: str, paragraphs: list[str]) -> Placement:
-    """Whether ``quote`` falls within exactly one paragraph, as the add-in requires.
+    """Whether ``quote`` occurs exactly once, within one paragraph, as the add-in requires.
 
-    The quote is compared as plain text, which is what the agent is told to send and
+    Twice in one paragraph is as ambiguous as once in each of two: the add-in would
+    change the first, whichever was meant. The quote is compared as plain text, which is what the agent is told to send and
     what the add-in looks for: markdown in it is not stripped, since it would not be
     found in Word either.
     """
@@ -128,7 +129,7 @@ def place(quote: str, paragraphs: list[str]) -> Placement:
     wanted = normalize(quote)
     if not wanted:
         return "not_found"
-    hits = sum(1 for text in paragraphs if wanted in text)
+    hits = sum(text.count(wanted) for text in paragraphs)
     if hits == 0:
         return "not_found"
     return "found" if hits == 1 else "ambiguous"

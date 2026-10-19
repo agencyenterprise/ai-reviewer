@@ -55,6 +55,12 @@ def test_a_quote_in_two_paragraphs_is_ambiguous() -> None:
     assert place("Inadequate for large scale development", paragraphs) == "ambiguous"
 
 
+def test_a_quote_twice_in_one_paragraph_is_ambiguous() -> None:
+    """The add-in would change the first, whichever one was meant."""
+
+    assert place("the rate", ["the rate rose, and the rate fell"]) == "ambiguous"
+
+
 def test_a_quote_that_is_not_there_is_not_found() -> None:
     assert place("a figure nobody wrote", paragraph_texts(MARKDOWN)) == "not_found"
     assert place("   ", paragraph_texts(MARKDOWN)) == "not_found"

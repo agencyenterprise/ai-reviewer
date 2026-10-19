@@ -87,7 +87,15 @@ export function AddinSignIn({ prompt, children }: AddinSignInProps) {
     if (auth.via !== 'sso') return `Bearer ${auth.accessToken}`;
     const current = tokens.fresh(auth.accessToken);
     if (current) return `Bearer ${current}`;
-    const renewed = (await ssoSignIn(false)).accessToken;
+    let renewed: string;
+    try {
+      renewed = (await ssoSignIn(false)).accessToken;
+    } catch (error) {
+      // No HTTP call was made, so no 401 will end the session: end it here, so the pane
+      // offers to sign in again instead of failing every call.
+      expire();
+      throw error;
+    }
     tokens.set(renewed);
     return `Bearer ${renewed}`;
   };

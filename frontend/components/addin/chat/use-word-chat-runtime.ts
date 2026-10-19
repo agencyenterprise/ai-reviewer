@@ -24,14 +24,20 @@ export type PaneHistory = { messages: ChatMessage[]; pendingSuggestionId: string
 
 const EMPTY: PaneHistory = { messages: [], pendingSuggestionId: null };
 
-/** The document and selection to send with a message. Outside Word there are neither. */
+const inWord = () => typeof Office !== 'undefined' && !!Office.context?.document;
+
+/**
+ * The document and selection to send with a message. Outside Word there are neither.
+ * Inside Word a failed read stops the message: sending without the document would let
+ * the agent answer from an older copy, as if nothing had been edited.
+ */
 async function readPane(): Promise<{ document: PaneDocument | null; selection: string }> {
   try {
     const file = await documentFile();
     const selection = await selectedText().catch(() => '');
     return { document: { file, fingerprint: await fingerprint(file) }, selection };
   } catch (error) {
-    console.error('Could not read the document', error);
+    if (inWord()) throw new Error('Could not read the document from Word. Try again.', { cause: error });
     return { document: null, selection: '' };
   }
 }
@@ -56,15 +62,22 @@ function messageText(message: AppendMessage): string {
  * `interrupt`, the history names the card it waits on, and `resume` carries the answer
  * on once the card is applied or dismissed.
  */
-export function useWordChatRuntime(session: AddinSession, documentUrl: string) {
+export function useWordChatRuntime(
+  session: AddinSession,
+  documentUrl: string,
+  // The key as it is now: a first save or Save As changes it while the pane is open,
+  // and nothing re-renders the pane when it does, so a message reads it as it is sent.
+  currentDocumentUrl: () => string = () => documentUrl,
+) {
   const { email, authorize, expire } = session;
   const queryClient = useQueryClient();
+  const keyFor = (url: string) => ['addin-chat', email, url] as const;
   const queryKey = useMemo(() => ['addin-chat', email, documentUrl] as const, [email, documentUrl]);
 
-  const fetchHistory = async (): Promise<PaneHistory> => {
+  const fetchHistory = async (url: string = documentUrl): Promise<PaneHistory> => {
     try {
       const history = await getThreadApiMicrosoftWordChatThreadGet({
-        query: { url: documentUrl },
+        query: { url },
         headers: { Authorization: await authorize() },
       });
       return {
@@ -77,7 +90,7 @@ export function useWordChatRuntime(session: AddinSession, documentUrl: string) {
     }
   };
 
-  const history = useQuery({ queryKey, queryFn: fetchHistory, staleTime: Infinity, retry: false });
+  const history = useQuery({ queryKey, queryFn: () => fetchHistory(), staleTime: Infinity, retry: false });
   const [inflight, setInflight] = useState<ChatMessage[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [resuming, setResuming] = useState(false);
@@ -95,6 +108,7 @@ export function useWordChatRuntime(session: AddinSession, documentUrl: string) {
     turn: TurnAccumulator,
     open: (signal: AbortSignal) => Promise<AsyncGenerator<ChatStreamEvent>>,
     shown: (turn: TurnAccumulator) => ChatMessage[],
+    url: string = documentUrl,
   ) => {
     const controller = new AbortController();
     abortRef.current = controller;
@@ -117,8 +131,8 @@ export function useWordChatRuntime(session: AddinSession, documentUrl: string) {
     } finally {
       // As on /chat: the stored turn replaces the local one in a single render, and
       // after a failure only the assistant side, with its status, stays local.
-      const stored = await fetchHistory().catch(() => null);
-      if (stored) queryClient.setQueryData(queryKey, stored);
+      const stored = await fetchHistory(url).catch(() => null);
+      if (stored) queryClient.setQueryData(keyFor(url), stored);
       setInflight(completed && stored ? [] : stored ? turn.assistantMessages : shown(turn));
       setIsRunning(false);
     }
@@ -127,6 +141,9 @@ export function useWordChatRuntime(session: AddinSession, documentUrl: string) {
   const onNew = async (message: AppendMessage) => {
     const text = messageText(message);
     const user = userMessage(text, []);
+    const url = currentDocumentUrl();
+    // Another key is another conversation, which has not been sent this document.
+    if (url !== documentUrl) sentRef.current = null;
     await run(
       new TurnAccumulator(user),
       async (signal) => {
@@ -136,7 +153,7 @@ export function useWordChatRuntime(session: AddinSession, documentUrl: string) {
         const open = (withDocument: boolean) =>
           streamWordChatTurn({
             authorization,
-            url: documentUrl,
+            url,
             message: text,
             messageId: user.id,
             document: withDocument ? document?.file : undefined,
@@ -146,6 +163,7 @@ export function useWordChatRuntime(session: AddinSession, documentUrl: string) {
         return markSent(withDocumentOnRequest(open, changed, !!document), document);
       },
       (turn) => turn.messages,
+      url,
     );
   };
 

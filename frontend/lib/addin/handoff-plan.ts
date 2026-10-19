@@ -53,12 +53,16 @@ export function normalize(text: string): string {
     .trim();
 }
 
-/** The one paragraph containing `quote`, or why there is not one. */
+/** The one paragraph containing `quote`, once, or why there is not one. */
 export function locate(paragraphs: string[], quote: string): number | typeof NOT_FOUND | typeof AMBIGUOUS {
   const wanted = normalize(quote);
+  // Each occurrence, not each paragraph: twice in one paragraph is as ambiguous as
+  // once in each of two, since a write would land on the first.
   const hits: number[] = [];
   paragraphs.forEach((text, index) => {
-    if (wanted && normalize(text).includes(wanted)) hits.push(index);
+    if (!wanted) return;
+    const occurrences = normalize(text).split(wanted).length - 1;
+    for (let i = 0; i < occurrences; i++) hits.push(index);
   });
   if (hits.length === 0) return NOT_FOUND;
   if (hits.length > 1) return AMBIGUOUS;

@@ -53,6 +53,7 @@ from lib.agents.deep_agent_setup import (
     build_skill_files,
     tool_names,
 )
+from lib.agents.seen_image_redaction import SeenImageRedactionMiddleware
 from lib.agents.tools.sharepoint import check_document_for, open_document_for
 from lib.agents.tools.view_image import VIEW_IMAGE_PROMPT, view_image_for_conversation
 from lib.agents.tools.word_handoff import offer_changes_for, tenant_of
@@ -333,6 +334,7 @@ async def answer_question(
                 ],
                 skills=["/skills/"],
                 system_prompt=SYSTEM_PROMPT + VIEW_IMAGE_PROMPT,
+                middleware=[SeenImageRedactionMiddleware()],
                 checkpointer=saver,
             )
 

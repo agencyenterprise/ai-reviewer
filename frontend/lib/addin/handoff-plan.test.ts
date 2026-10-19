@@ -29,6 +29,10 @@ describe('locate', () => {
   it('refuses to choose between two paragraphs', () => {
     expect(locate(paragraphs, 'unding')).toBe(AMBIGUOUS);
   });
+
+  it('refuses to choose between two places in one paragraph', () => {
+    expect(locate(['Then the rate rose, and the rate fell.'], 'the rate')).toBe(AMBIGUOUS);
+  });
 });
 
 describe('planHandoff', () => {

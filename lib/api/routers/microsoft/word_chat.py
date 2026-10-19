@@ -15,7 +15,8 @@ Scoped like every add-in route, to the Microsoft account the pane signs in as
 """
 
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
+from datetime import datetime
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -166,7 +167,7 @@ async def stream_turn(
         url,
         lambda: linked_users.user_for(caller.email_claim, caller.name, caller.tid),
     )
-    await _claim(thread.id)
+    token = await _claim(thread.id)
     try:
         if loaded is not None:
             # Added, not swapped: markdown already stored, if this turn fails before the
@@ -174,21 +175,24 @@ async def stream_turn(
             await file_images.add_conversation_images(thread.id, loaded.images)
         await chat_threads.begin_turn(thread.id)
         suggestions = await chat_suggestions.for_thread(thread.id)
-        news = chat_suggestions.news(suggestions)
-        await chat_suggestions.mark_heard(
-            [s.id for s in chat_suggestions.unheard(suggestions)]
-        )
+        unheard = [s.id for s in chat_suggestions.unheard(suggestions)]
         turn = WordChatTurn(
             thread_id=thread.id,
             text=message,
             message_id=message_id,
             document=loaded,
             selection=selection,
-            suggestion_news=news,
+            suggestion_news=chat_suggestions.news(suggestions),
         )
-        events = _released(run_word_chat_turn(turn, _target(caller, thread)), thread.id)
+        events = _released(
+            run_word_chat_turn(turn, _target(caller, thread)),
+            thread.id,
+            token,
+            # Once the turn's first event arrives its input, news included, is stored.
+            on_start=lambda: chat_suggestions.mark_heard(unheard),
+        )
     except BaseException:
-        await chat_threads.release(thread.id)
+        await chat_threads.release(thread.id, token)
         raise
     return StreamingResponse(
         sse_stream(events),
@@ -201,21 +205,33 @@ async def stream_turn(
 STILL_ANSWERING = "Draft Detective is still answering in this conversation."
 
 
-async def _claim(thread_id: UUID) -> None:
-    if not await chat_threads.claim(thread_id):
+async def _claim(thread_id: UUID) -> datetime:
+    token = await chat_threads.claim(thread_id)
+    if token is None:
         raise HTTPException(status_code=status.HTTP_423_LOCKED, detail=STILL_ANSWERING)
+    return token
 
 
 async def _released(
-    events: AsyncIterator[ChatEvent], thread_id: UUID
+    events: AsyncIterator[ChatEvent],
+    thread_id: UUID,
+    token: datetime,
+    on_start: Callable[[], Awaitable[None]] | None = None,
 ) -> AsyncIterator[ChatEvent]:
-    """The turn's events, letting the conversation go however the stream ends."""
+    """The turn's events, letting the conversation go however the stream ends.
+
+    ``on_start`` runs once the first event arrives: by then the turn's input is stored.
+    """
 
     try:
+        started = False
         async for event in events:
+            if not started and on_start is not None:
+                started = True
+                await on_start()
             yield event
     finally:
-        await chat_threads.release(thread_id)
+        await chat_threads.release(thread_id, token)
 
 
 async def _has_document(thread_id: UUID) -> bool:
@@ -292,9 +308,9 @@ async def resume_turn(
             status_code=status.HTTP_409_CONFLICT,
             detail="The card has not been applied or dismissed yet.",
         )
-    await _claim(thread.id)
+    token = await _claim(thread.id)
     events = _released(
-        run_word_chat_resume(thread.id, _target(caller, thread)), thread.id
+        run_word_chat_resume(thread.id, _target(caller, thread)), thread.id, token
     )
     return StreamingResponse(
         sse_stream(events),
