@@ -13,8 +13,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ruff and mypy share one runner: together they take well under the unit
+  # tests, so splitting them buys no wall time and costs a slot from the
+  # org's shared pool of concurrent jobs.
   lint:
-    name: ruff
+    name: ruff + mypy
     runs-on: ubuntu-latest
 
     steps:
@@ -29,37 +32,24 @@ jobs:
         run: uv python install 3.13
 
       - name: Install dependencies
+        id: deps
         run: uv sync
 
       - name: Check formatting
         run: uv run ruff format --check --diff .
 
+      # Each check below runs even when an earlier one failed, so one push
+      # reports every problem.
       - name: Lint
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: uv run ruff check --output-format=github .
-
-  typecheck:
-    name: mypy
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-
-      - name: Set up Python
-        run: uv python install 3.13
-
-      - name: Install dependencies
-        run: uv sync
 
       # mypy validates every cached entry against the source and its own
       # version, so a stale cache only costs re-checking what changed. Keyed per
       # commit so each run saves a fresh copy; PRs restore the latest one from
       # their own branch or from dev.
       - name: Cache mypy
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         uses: actions/cache@v4
         with:
           path: .mypy_cache
@@ -69,6 +59,7 @@ jobs:
             mypy-${{ runner.os }}-
 
       - name: Run mypy
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: uv run mypy .
 
   test:

@@ -10,8 +10,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  scan-backend:
-    name: Trivy Security Scan - Backend
+  # One runner scans all three images: the scans take a few minutes in total,
+  # about what the backend tests take, so splitting them buys no wall time and
+  # costs two slots from the org's shared pool of concurrent jobs. Trivy reuses
+  # the vulnerability database it downloads for the first scan.
+  scan:
+    name: Trivy Security Scan
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -21,6 +25,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Login to Docker Hub
+        id: login
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -37,26 +42,14 @@ jobs:
           exit-code: 0
           scanners: vuln
 
-  scan-frontend:
-    name: Trivy Security Scan - Frontend
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # The scans below don't need the backend image, so a failed build still
+      # lets them run.
 
       # Scanned in two parts instead of building the image, whose `next build`
       # alone took over two minutes: the npm dependencies from the lockfile,
       # and the OS packages from the base image the Dockerfile starts from.
       - name: Scan Frontend Dependencies
+        if: ${{ !cancelled() && steps.login.outcome == 'success' }}
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
@@ -67,9 +60,11 @@ jobs:
 
       - name: Read Frontend Base Image
         id: base-image
+        if: ${{ !cancelled() && steps.login.outcome == 'success' }}
         run: echo "ref=$(awk 'toupper($1) == "FROM" { print $2; exit }' frontend/Dockerfile)" >> "$GITHUB_OUTPUT"
 
       - name: Scan Frontend Base Image
+        if: ${{ !cancelled() && steps.base-image.outcome == 'success' }}
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ steps.base-image.outputs.ref }}
@@ -77,23 +72,8 @@ jobs:
           exit-code: 0
           scanners: vuln
 
-  scan-postgres:
-    name: Trivy Security Scan - Postgres
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Scan PostgreSQL Image
+        if: ${{ !cancelled() && steps.login.outcome == 'success' }}
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: pgvector/pgvector:pg16
