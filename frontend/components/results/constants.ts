@@ -5,7 +5,7 @@ export const TABS = ['document-explorer', 'references', 'files', 'analyses', 're
 export type TabType = (typeof TABS)[number];
 
 /** The tab shown at a base route, which therefore has no path segment of its own. */
-export const ROOT_TAB: TabType = 'document-explorer';
+const ROOT_TAB: TabType = 'document-explorer';
 
 /**
  * Route for a tab under a base path (`/projects/[projectId]` or `/share/[token]`).

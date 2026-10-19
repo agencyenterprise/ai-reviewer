@@ -112,7 +112,7 @@ export function ProjectFeedbackProvider({
   );
 }
 
-export function useProjectFeedbackContext() {
+function useProjectFeedbackContext() {
   const context = useContext(ProjectFeedbackContext);
   if (!context) {
     // Return a no-op context for components outside the provider (e.g., readOnly mode)

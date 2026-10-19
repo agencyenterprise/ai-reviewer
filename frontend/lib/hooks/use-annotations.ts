@@ -9,7 +9,7 @@ import {
 } from '@/lib/generated-api';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-export const ANNOTATION_SETS_QUERY_KEY = ['annotations', 'sets'] as const;
+const ANNOTATION_SETS_QUERY_KEY = ['annotations', 'sets'] as const;
 
 /** The sets a user can annotate, with their progress in each. */
 export function useAnnotationSets() {
