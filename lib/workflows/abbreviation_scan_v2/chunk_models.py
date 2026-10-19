@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from lib.workflows.agent_messages import AgentMessages
 from lib.workflows.models import ErrorDetails
+from lib.workflows.reducers import Reducer, upsert_by
 
 
 class ChunkOccurrence(BaseModel):
@@ -110,11 +111,8 @@ class AbbreviationChunk(BaseModel):
         return self.status in (ChunkStatus.COMPLETED, ChunkStatus.PARTIAL)
 
 
-def merge_chunks(
-    existing: list[AbbreviationChunk], new: list[AbbreviationChunk]
-) -> list[AbbreviationChunk]:
-    """Reducer: merge by chunk_index so each fan-out result replaces its PENDING row."""
-    by_index = {chunk.chunk_index: chunk for chunk in existing}
-    for chunk in new:
-        by_index[chunk.chunk_index] = chunk
-    return sorted(by_index.values(), key=lambda chunk: chunk.chunk_index)
+# Merges by chunk_index so each fan-out result replaces its PENDING row; kept in
+# chunk order.
+merge_chunks: Reducer[AbbreviationChunk] = upsert_by(
+    lambda chunk: chunk.chunk_index, sort=True
+)

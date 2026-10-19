@@ -25,6 +25,7 @@ from lib.workflows.models import (
     WorkflowGate,
     WorkflowRunType,
 )
+from lib.workflows.reducers import cancel_pending
 from lib.workflows.util import get_state_by_type
 from lib.workflows.workflow_types import WorkflowState
 
@@ -165,14 +166,11 @@ class ClaimReferenceValidationV2Manifest(
     async def on_cancel(
         self, state: ClaimReferenceValidationV2State
     ) -> ClaimReferenceValidationV2State:
-        updated = [
-            (
-                item.model_copy(update={"status": SectionVerificationStatus.CANCELLED})
-                if item.status == SectionVerificationStatus.PENDING
-                else item
-            )
-            for item in state.section_verifications
-        ]
+        updated = cancel_pending(
+            state.section_verifications,
+            SectionVerificationStatus.PENDING,
+            SectionVerificationStatus.CANCELLED,
+        )
         return state.model_copy(update={"section_verifications": updated})
 
     async def create_initial_state(
