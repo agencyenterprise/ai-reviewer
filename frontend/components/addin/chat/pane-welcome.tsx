@@ -18,7 +18,7 @@ const STARTERS = [
 export const PaneWelcome: FC = () => (
   <div className="aui-thread-welcome-root mb-6 flex flex-col gap-4 px-2">
     <div>
-      <h1 className="fade-in slide-in-from-bottom-1 animate-in fill-mode-both font-semibold text-lg duration-200">
+      <h1 className="fade-in slide-in-from-bottom-1 animate-in fill-mode-both font-semibold text-base duration-200">
         Ask Draft Detective about this document.
       </h1>
       <p className="fade-in slide-in-from-bottom-1 animate-in fill-mode-both text-muted-foreground text-sm delay-75 duration-200">

@@ -98,6 +98,9 @@ export type ThreadComponents = {
   ComposerTools?: ComponentType | undefined;
   SlashPopover?: ComponentType | undefined;
   composerPlaceholder?: string | undefined;
+  // Draft Detective: classes added to the thread's root, so a narrower surface can size its
+  // text (the Word add-in's pane, `PANE_THREAD_CLASS`). /chat passes none.
+  className?: string | undefined;
 };
 
 const messageGroupBy = groupPartByType({
@@ -174,11 +177,11 @@ export const Thread: FC<ThreadProps> = ({ components = EMPTY_COMPONENTS, autoFoc
 };
 
 const ThreadRoot: FC<{ isEmpty: boolean; autoFocus: boolean }> = ({ isEmpty, autoFocus }) => {
-  const { Welcome = ThreadWelcome } = useContext(ThreadComponentsContext);
+  const { Welcome = ThreadWelcome, className } = useContext(ThreadComponentsContext);
 
   return (
     <ThreadPrimitive.Root
-      className="aui-root aui-thread-root bg-background @container flex h-full flex-col"
+      className={cn('aui-root aui-thread-root bg-background @container flex h-full flex-col', className)}
       style={{
         // Draft Detective: wider than upstream's 44rem, for review output.
         ['--thread-max-width' as string]: '56rem',
