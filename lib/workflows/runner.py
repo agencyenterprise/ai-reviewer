@@ -378,7 +378,7 @@ async def _persist_issues_from_state(
 
     Uses the workflow manifest to convert state to issues.
     Loads all existing workflow states for the project so manifests that
-    depend on other workflow states (e.g. reference_validation reading
+    depend on other workflow states (e.g. reference_validation_v2 reading
     reference_extraction) can resolve their data correctly.
     """
     manifest = get_workflow_manifest(workflow_type, raise_exception=False)
