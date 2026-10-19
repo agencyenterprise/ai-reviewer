@@ -14,6 +14,7 @@ from lib.workflows.models import (
     ErrorDetails,
     WorkflowRunType,
 )
+from lib.workflows.reducers import Reducer, upsert_by
 
 
 class CitationIssueItem(BaseModel):
@@ -75,15 +76,10 @@ class SectionVerificationItem(BaseModel):
     )
 
 
-def merge_section_verifications(
-    existing: list[SectionVerificationItem],
-    new: list[SectionVerificationItem],
-) -> list[SectionVerificationItem]:
-    """Reducer: merge by section_index, allowing PENDING → COMPLETED/ERROR transitions."""
-    by_index = {item.section_index: item for item in existing}
-    for item in new:
-        by_index[item.section_index] = item
-    return list(by_index.values())
+# Merges by section_index so each verified section replaces its PENDING row.
+merge_section_verifications: Reducer[SectionVerificationItem] = upsert_by(
+    lambda s: s.section_index
+)
 
 
 class ClaimReferenceValidationV2State(BaseWorkflowState):
