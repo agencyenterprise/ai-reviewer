@@ -116,6 +116,9 @@ class TestATurn:
             ) as news,
             patch.object(word_chat, "run_word_chat_turn") as run,
             patch.object(word_chat, "_has_document", AsyncMock(return_value=True)),
+            patch.object(
+                word_chat.chat_threads, "current", AsyncMock(return_value=thread)
+            ),
         ):
             await word_chat.stream_turn(
                 url=URL,
@@ -178,15 +181,22 @@ class TestATurn:
         assert turn.document == read
 
     @pytest.mark.asyncio
-    async def test_a_conversation_without_the_document_asks_for_it(self) -> None:
+    @pytest.mark.parametrize(
+        "existing", [None, "a thread without the document"], ids=["no thread", "none"]
+    )
+    async def test_a_conversation_without_the_document_asks_for_it(
+        self, existing: str | None
+    ) -> None:
         # A document just saved, another account, or a chat cleared in another pane:
-        # the pane did not send the document, and this conversation has none.
+        # the pane did not send the document, and this conversation has none. Nothing is
+        # created for a request that cannot run: no thread, conversation or user.
         with (
             patch.object(
                 word_chat.chat_threads,
-                "current_or_new",
-                AsyncMock(return_value=a_thread()),
+                "current",
+                AsyncMock(return_value=a_thread() if existing else None),
             ),
+            patch.object(word_chat.chat_threads, "current_or_new") as start,
             patch.object(word_chat, "_has_document", AsyncMock(return_value=False)),
             patch.object(word_chat.chat_threads, "begin_turn") as begin,
             patch.object(word_chat, "run_word_chat_turn") as run,
@@ -198,6 +208,7 @@ class TestATurn:
 
         assert raised.value.status_code == 409
         assert raised.value.detail == word_chat.DOCUMENT_NEEDED
+        start.assert_not_called()
         begin.assert_not_called()
         run.assert_not_called()
 
@@ -338,6 +349,9 @@ class TestOneTurnAtATime:
                 AsyncMock(return_value=a_thread()),
             ),
             patch.object(word_chat, "_has_document", AsyncMock(return_value=True)),
+            patch.object(
+                word_chat.chat_threads, "current", AsyncMock(return_value=a_thread())
+            ),
             patch.object(word_chat, "run_word_chat_turn") as run,
         ):
             with pytest.raises(HTTPException) as raised:

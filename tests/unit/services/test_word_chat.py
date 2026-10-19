@@ -87,6 +87,13 @@ class TestRecognisingTheDocument:
         assert chat_threads.document_name(PATH_URL) == "Draft.docx"
         assert chat_threads.document_name("") == "this document"
 
+    def test_a_doc_aspx_link_is_named_by_its_file_not_its_page(self) -> None:
+        url = (
+            "https://contoso-my.sharepoint.com/:w:/r/personal/ana/_layouts/15/Doc.aspx"
+            "?sourcedoc=%7B97126C1E%7D&file=v3%20CERN%20for%20AI.docx&action=default"
+        )
+        assert chat_threads.document_name(url) == "v3 CERN for AI.docx"
+
 
 class TestFindingTheCurrentThread:
     @pytest.mark.asyncio

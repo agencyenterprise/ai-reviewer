@@ -152,16 +152,20 @@ async def stream_turn(
 
     loaded = await _read_document(url, document)
     account = _account(caller)
+    if loaded is None:
+        # Refused before anything is created: no thread, conversation or user for a
+        # request that cannot run.
+        existing = await chat_threads.current(account, url)
+        if existing is None or not await _has_document(existing.id):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=DOCUMENT_NEEDED,
+            )
     thread = await chat_threads.current_or_new(
         account,
         url,
         lambda: linked_users.user_for(caller.email_claim, caller.name, caller.tid),
     )
-    if loaded is None and not await _has_document(thread.id):
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=DOCUMENT_NEEDED,
-        )
     await _claim(thread.id)
     try:
         if loaded is not None:

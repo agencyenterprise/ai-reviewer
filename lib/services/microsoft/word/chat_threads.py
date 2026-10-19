@@ -13,7 +13,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import PurePosixPath
 from typing import Any
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,11 +43,18 @@ def thread_keys(url: str) -> list[str]:
 
 
 def document_name(url: str) -> str:
-    """A name for the document, from its URL. Word gives the pane nothing better."""
+    """A name for the document, from its URL. Word gives the pane nothing better.
+
+    A ``…/_layouts/15/Doc.aspx?sourcedoc=…&file=Draft.docx`` link names the page in its
+    path and the document in ``file``, so that wins when present.
+    """
 
     if url.startswith(PANE_KEY_PREFIX):
         return "this document"
-    name = PurePosixPath(unquote(urlparse(url).path)).name
+    parsed = urlparse(url)
+    if named := parse_qs(parsed.query).get("file"):
+        return named[0]
+    name = PurePosixPath(unquote(parsed.path)).name
     return name or "this document"
 
 

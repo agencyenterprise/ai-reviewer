@@ -42,3 +42,13 @@ def test_stable_checks_come_before_experimental_ones() -> None:
     flags = [check.experimental for check in pane_checks()]
 
     assert flags == sorted(flags)
+
+
+def test_the_two_about_this_checks_each_say_what_they_check() -> None:
+    """They share one workflow, whose description covers both."""
+
+    checks = {check.skill: check for check in pane_checks()}
+    authors, preface = checks["about-this-authors"], checks["about-this-preface"]
+
+    assert authors.description != preface.description
+    assert "bio" in authors.description and "preface" in preface.description

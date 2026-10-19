@@ -20,7 +20,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Column, DateTime, String
+from sqlalchemy import Column, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlmodel import Field, SQLModel
 
@@ -73,10 +73,16 @@ class MicrosoftWordHandoff(SQLModel, table=True):
     )
     chat_thread_id: uuid.UUID | None = Field(
         default=None,
-        sa_column=Column(UUID(as_uuid=True), nullable=True, index=True),
+        sa_column=Column(
+            UUID(as_uuid=True),
+            ForeignKey("microsoft_word_chat_threads.id", ondelete="CASCADE"),
+            nullable=True,
+            index=True,
+        ),
         description=(
             "The add-in chat thread that suggested it, for suggestions made there. "
-            "They are shown in that chat rather than among the ones from Teams."
+            "They are shown in that chat rather than among the ones from Teams, and "
+            "go with it."
         ),
     )
     status: str = Field(

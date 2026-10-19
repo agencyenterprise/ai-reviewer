@@ -26,6 +26,7 @@ from lib.models.conversation import Conversation, ConversationKind
 from lib.models.file import File, FileRole
 from lib.models.microsoft_teams_conversation import MicrosoftTeamsConversation
 from lib.models.microsoft_word_chat_thread import MicrosoftWordChatThread
+from lib.models.microsoft_word_handoff import MicrosoftWordHandoff
 from lib.models.user import User
 from lib.services import conversations
 from lib.services.files.images import (
@@ -33,8 +34,13 @@ from lib.services.files.images import (
 )
 from lib.services.files.service import check_file_access
 from lib.services.image_extraction import ExtractedImage
-from lib.services.microsoft.word import chat_threads
-from lib.services.microsoft.word.handoffs import Account
+from lib.services.microsoft.word import chat_threads, handoffs
+from lib.services.microsoft.word.handoffs import (
+    Account,
+    HandoffComment,
+    HandoffItems,
+    Requester,
+)
 from lib.services.users import get_or_create_user_by_email
 
 URL = "https://contoso.sharepoint.com/sites/Policy/Shared%20Documents/Draft.docx"
@@ -243,3 +249,20 @@ async def test_a_teams_conversation_is_listed_under_whoever_asked_first(
         assert await listed_under(conversation_id) == user_id
     finally:
         await remove(conversation_id)
+
+
+@pytest.mark.asyncio
+async def test_a_conversations_cards_go_with_it(word_chat: uuid.UUID) -> None:
+    card = await handoffs.create(
+        requester=Requester(oid="oid-x", tid="tid-contoso", upn="x@contoso.com"),
+        document_name="Draft.docx",
+        document_url=URL,
+        keys=chat_threads.thread_keys(URL),
+        items=HandoffItems(comments=[HandoffComment(quote="q", comment="c")]),
+        chat_thread_id=word_chat,
+    )
+
+    await remove(word_chat)
+
+    async with get_async_db_session() as session:
+        assert await session.get(MicrosoftWordHandoff, card) is None
