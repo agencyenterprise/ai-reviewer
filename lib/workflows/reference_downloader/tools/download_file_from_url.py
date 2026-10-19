@@ -118,6 +118,12 @@ async def _download_file_from_url_async(
         project_id=context.project_id,
         user_id=uuid.UUID(context.user_id) if context.user_id else None,
     )
+    if file_id is None:
+        return DownloadFileFromUrlResponse(
+            file_id=None,
+            message=f"Downloaded content from {url} but could not save it as a project file",
+            success=False,
+        )
 
     return DownloadFileFromUrlResponse(
         file_id=file_id,
