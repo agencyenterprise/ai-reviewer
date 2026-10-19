@@ -33,9 +33,12 @@ async def _create_user() -> User:
 
 
 async def _delete_user(user_id: uuid.UUID) -> None:
-    # user_id on chat_threads is ON DELETE CASCADE, so removing the user cleans
-    # up all of its threads.
+    # Each thread's conversation row goes first, which takes the thread with it: the
+    # user's going would only unlink the conversation (ON DELETE SET NULL).
     async with get_async_db_session() as session:
+        await session.execute(
+            delete(Conversation).where(col(Conversation.user_id) == user_id)
+        )
         await session.execute(delete(User).where(col(User.id) == user_id))
         await session.commit()
 

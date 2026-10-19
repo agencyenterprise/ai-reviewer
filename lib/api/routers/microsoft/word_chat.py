@@ -33,6 +33,7 @@ from fastapi import (
 )
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
+from starlette.types import Receive, Scope, Send
 
 from lib.agents.tools.word_suggestions import DOCUMENT_PATH, SuggestionTarget
 from lib.agents.word_chat_agent import (
@@ -192,11 +193,7 @@ async def stream_turn(
     except BaseException:
         await chat_threads.release(thread.id, token)
         raise
-    return StreamingResponse(
-        sse_stream(events),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-    )
+    return _ClaimedStream(events, thread.id, token)
 
 
 # Sent with a 423 while another turn runs in the conversation (``chat_threads.claim``).
@@ -236,14 +233,39 @@ async def _swap_images(thread_id: UUID, loaded: LoadedDocument) -> None:
     """Keep the images of the document stored now and of the one coming in, no others.
 
     The stored document's stay: if this turn fails before the new one is stored, the
-    conversation still reads the old one, and its images must still exist.
+    conversation still reads the old one, and its images must still exist. The new ones
+    are added first, so a file they share with a pruned row is still in use.
     """
 
     stored = await read_thread_file(str(thread_id), DOCUMENT_PATH)
-    await file_images.prune_conversation_images(
-        thread_id, keep=file_images.referenced_images(stored or "")
-    )
     await file_images.add_conversation_images(thread_id, loaded.images)
+    keep = file_images.referenced_images(stored or "") | {i.id for i in loaded.images}
+    await file_images.prune_conversation_images(thread_id, keep=keep)
+
+
+class _ClaimedStream(StreamingResponse):
+    """A turn's events as server-sent events, letting the conversation go once sent.
+
+    ``_released`` lets it go when the events end, but a client gone before the body
+    starts never runs them: without this the claim would hold until ``STALE_CLAIM``.
+    """
+
+    def __init__(
+        self, events: AsyncIterator[ChatEvent], thread_id: UUID, token: datetime
+    ) -> None:
+        super().__init__(
+            sse_stream(events),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+        self._claim = (thread_id, token)
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        try:
+            await super().__call__(scope, receive, send)
+        finally:
+            # A second release of the same claim changes nothing.
+            await chat_threads.release(*self._claim)
 
 
 async def _has_document(thread_id: UUID) -> bool:
@@ -324,11 +346,7 @@ async def resume_turn(
     events = _released(
         run_word_chat_resume(thread.id, _target(caller, thread)), thread.id, token
     )
-    return StreamingResponse(
-        sse_stream(events),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-    )
+    return _ClaimedStream(events, thread.id, token)
 
 
 @router.post("/thread/clear", status_code=status.HTTP_204_NO_CONTENT)

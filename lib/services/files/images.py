@@ -77,7 +77,8 @@ async def add_conversation_images(
     that failed before the new document was) must still find the images it names.
     Re-reading a document adds its images again under new ids; the disk files are
     shared, being content-addressed, and the rows go with the conversation. The Word
-    chat drops the ones no document it holds names (``prune_conversation_images``).
+    chat drops the ones no document it holds names (``prune_conversation_images``), and
+    Teams the ones of a copy it replaces (``drop_conversation_images``).
     """
 
     async with get_async_db_session() as session:
@@ -109,6 +110,21 @@ async def prune_conversation_images(
         ),
         [],
     )
+
+
+async def drop_conversation_images(
+    conversation_id: uuid.UUID, ids: set[uuid.UUID]
+) -> None:
+    """Drop these images of the conversation, files included once unused."""
+
+    if ids:
+        await _replace(
+            and_(
+                col(File.conversation_id) == conversation_id,
+                col(File.id).in_(ids),
+            ),
+            [],
+        )
 
 
 def _conversation_rows(

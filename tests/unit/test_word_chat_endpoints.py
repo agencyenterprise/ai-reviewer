@@ -6,13 +6,15 @@ a turn hears about earlier suggestions.
 """
 
 import uuid
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Iterator, MutableMapping
 from datetime import UTC, datetime
 from io import BytesIO
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException, UploadFile
+from starlette.requests import ClientDisconnect
 
 from lib.api.addin_auth import AddinIdentity
 from lib.api.routers.microsoft import word_chat
@@ -186,8 +188,9 @@ class TestATurn:
                 caller=caller(),
             )
 
-        # The stored copy's images stay, in case this turn fails before replacing it.
-        prune.assert_awaited_once_with(thread.id, keep={kept})
+        # The stored copy's images stay, in case this turn fails before replacing it,
+        # and so do the new copy's.
+        prune.assert_awaited_once_with(thread.id, keep={kept, image.id})
         store.assert_awaited_once_with(thread.id, [image])
         turn, _target = run.call_args.args
         assert turn.document == read
@@ -386,6 +389,36 @@ class TestOneTurnAtATime:
 
         # Only its own claim: a newer turn's is left alone.
         release.assert_awaited_once_with(thread_id, NOW)
+
+    @pytest.mark.asyncio
+    async def test_the_conversation_is_let_go_when_the_body_is_never_sent(
+        self,
+    ) -> None:
+        started = False
+
+        async def events() -> AsyncIterator[dict]:
+            nonlocal started
+            started = True
+            yield {"t": "message", "id": "m"}
+
+        async def gone(_message: MutableMapping[str, Any]) -> None:
+            raise OSError("the client went away")
+
+        async def receive() -> dict:
+            return {"type": "http.disconnect"}
+
+        thread_id = uuid.uuid4()
+        response = word_chat._ClaimedStream(
+            word_chat._released(events(), thread_id, NOW), thread_id, NOW
+        )
+        with patch.object(word_chat.chat_threads, "release", AsyncMock()) as release:
+            with pytest.raises(ClientDisconnect):
+                await response(
+                    {"type": "http", "asgi": {"spec_version": "2.4"}}, receive, gone
+                )
+
+        assert not started
+        release.assert_awaited_with(thread_id, NOW)
 
     @pytest.mark.asyncio
     async def test_news_counts_as_heard_only_once_the_turn_has_started(self) -> None:

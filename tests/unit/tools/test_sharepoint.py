@@ -23,7 +23,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from deepagents.backends.utils import file_data_to_string
+from deepagents.backends.utils import create_file_data, file_data_to_string
 from langgraph.types import Command
 
 from lib.agents.tools import sharepoint
@@ -40,9 +40,12 @@ PATH = "/documents/v2-cern-for-ai.md"
 def stored_images() -> Iterator[AsyncMock]:
     """Where a document's images go: the conversation's files rows, not a database here."""
 
-    with patch.object(
-        sharepoint.file_images, "add_conversation_images", AsyncMock()
-    ) as add:
+    with (
+        patch.object(
+            sharepoint.file_images, "add_conversation_images", AsyncMock()
+        ) as add,
+        patch.object(sharepoint.file_images, "drop_conversation_images", AsyncMock()),
+    ):
         yield add
 
 
@@ -96,6 +99,7 @@ def runtime() -> MagicMock:
 
     fake = MagicMock()
     fake.tool_call_id = "call_abc123"
+    fake.state = {}
     return fake
 
 
@@ -146,6 +150,22 @@ class TestOpeningADocument:
             await call(opener(), "https://x/a.docx", PATH, runtime())
 
         stored_images.assert_awaited_once_with(CONVERSATION, [image])
+
+    def test_reopening_at_a_path_drops_only_the_images_the_old_copy_alone_named(
+        self,
+    ) -> None:
+        old, shared, other = (uuid.uuid4() for _ in range(3))
+
+        def ref(*ids: uuid.UUID) -> Any:
+            return create_file_data(" ".join(f"![](draftdetective://{i})" for i in ids))
+
+        # The image both copies show stays for the other one.
+        files = {PATH: ref(old, shared), "/documents/v1.md": ref(shared, other)}
+        reopened = document()
+
+        assert sharepoint.superseded(files, PATH, reopened) == {old}
+        # A path opened for the first time replaces nothing.
+        assert sharepoint.superseded(files, "/documents/v3.md", reopened) == set()
 
     @pytest.mark.asyncio
     async def test_the_document_is_mounted_where_the_agent_asked(self) -> None:

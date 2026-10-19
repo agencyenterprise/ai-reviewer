@@ -160,6 +160,13 @@ class TestUpdates:
             {"t": "tool", "id": "c1", "name": "read_file", "args": {"file_path": "/a"}}
         ]
 
+    def test_a_tool_message_a_middleware_rewrites_is_not_a_new_result(self) -> None:
+        # SeenImageRedactionMiddleware replaces a seen image result under the same id.
+        mapper = GraphEventMapper()
+        redacted = ToolMessage(content="[image seen]", tool_call_id="c1", id="t1")
+        update = {"SeenImageRedactionMiddleware.after_model": {"messages": [redacted]}}
+        assert mapper.map("updates", update) == []
+
     def test_a_tool_message_is_a_result_carrying_its_stored_id(self) -> None:
         mapper = GraphEventMapper()
         ok = ToolMessage(content="contents", tool_call_id="c1", id="t1")

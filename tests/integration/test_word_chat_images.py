@@ -119,6 +119,26 @@ async def test_a_word_chats_images_accumulate_and_go_with_the_conversation(
 
 
 @pytest.mark.asyncio
+async def test_a_figure_changed_and_changed_back_keeps_its_file(
+    word_chat: uuid.UUID, tmp_path: Path
+) -> None:
+    # Content-addressed: the figure restored is the first copy's file again.
+    a_first, b = image(tmp_path, "a"), image(tmp_path, "b")
+    await add_conversation_images(word_chat, [a_first])
+    await add_conversation_images(word_chat, [b])
+    await prune_conversation_images(word_chat, keep={a_first.id, b.id})
+    a_again = a_first.model_copy(update={"id": uuid.uuid4()})
+
+    # As the route does it: the new copy's rows first, then everything else but the
+    # stored copy's (B) and the new copy's (A again).
+    await add_conversation_images(word_chat, [a_again])
+    await prune_conversation_images(word_chat, keep={b.id, a_again.id})
+
+    assert {row.id for row in await owned_by(word_chat)} == {b.id, a_again.id}
+    assert Path(a_again.image_path).exists()
+
+
+@pytest.mark.asyncio
 async def test_a_teams_conversation_is_started_once_and_keeps_every_documents_images(
     tmp_path: Path,
 ) -> None:

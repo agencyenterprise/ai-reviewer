@@ -32,7 +32,7 @@ import re
 import uuid
 from typing import Any
 
-from deepagents.backends.utils import create_file_data
+from deepagents.backends.utils import create_file_data, file_data_to_string
 from deepagents.middleware.filesystem import FilesystemState
 from langchain.tools import BaseTool, ToolRuntime, tool
 from langchain_core.messages import ToolMessage
@@ -142,6 +142,10 @@ def open_document_for(token: str, conversation_id: uuid.UUID) -> BaseTool:
         logger.info("opened %s at %s", redacted(url), destination)
         # Before the markdown is mounted, so every image it names can be opened.
         await file_images.add_conversation_images(conversation_id, document.images)
+        await file_images.drop_conversation_images(
+            conversation_id,
+            superseded(runtime.state.get("files") or {}, destination, document),
+        )
 
         # A Command is how a tool writes into the agent's filesystem; the built-in
         # write_file does the same. The files key merges, so this adds rather than
@@ -201,6 +205,24 @@ def check_document_for(token: str) -> BaseTool:
         return f"'{name}' was last modified {modified}."
 
     return check_document
+
+
+def superseded(
+    files: dict[str, Any], path: str, document: documents.LoadedDocument
+) -> set[uuid.UUID]:
+    """The images only the copy at ``path`` names, which ``document`` replaces.
+
+    Only that copy's: two documents opened at once each see the other's images missing
+    from the files, so nothing beyond the copy being replaced is ever dropped.
+    """
+
+    def named(data: Any) -> set[uuid.UUID]:
+        if not isinstance(data, dict):
+            return set()
+        return file_images.referenced_images(file_data_to_string(data))  # type: ignore[arg-type]  # FileData is a TypedDict
+
+    others = set().union(*(named(data) for at, data in files.items() if at != path))
+    return named(files.get(path)) - others - {image.id for image in document.images}
 
 
 def document_files(document: documents.LoadedDocument, path: str) -> dict[str, Any]:

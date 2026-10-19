@@ -52,6 +52,10 @@ ChatEvent = dict[str, Any]
 STREAM_MODES: list[StreamMode] = ["messages", "updates"]
 
 
+# The node of a LangChain agent that runs its tools.
+TOOLS_NODE = "tools"
+
+
 def message_event(message_id: str) -> ChatEvent:
     return {"t": "message", "id": message_id}
 
@@ -188,13 +192,15 @@ class GraphEventMapper:
         # the page is told what it is waiting for, and the run resumes in a later call.
         if paused := payload.get("__interrupt__"):
             events.append(interrupt_event([item.value for item in paused]))
-        for channels in payload.values():
+        for node, channels in payload.items():
             if not isinstance(channels, dict):
                 continue
             for message in new_messages(channels.get("messages")):
                 if isinstance(message, AIMessage):
                     events.extend(self._from_ai_message(message))
-                elif isinstance(message, ToolMessage):
+                # Only the tools node's are new results: a middleware rewriting one in
+                # place (``SeenImageRedactionMiddleware``) would show it twice.
+                elif isinstance(message, ToolMessage) and node == TOOLS_NODE:
                     events.append(self._from_tool_message(message))
         return events
 
