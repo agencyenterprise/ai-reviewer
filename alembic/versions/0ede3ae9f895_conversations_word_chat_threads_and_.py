@@ -34,7 +34,7 @@ def upgrade() -> None:
     sa.Column('kind', sa.String(), nullable=False),
     sa.Column('user_id', sa.UUID(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_conversations_kind'), 'conversations', ['kind'], unique=False)
@@ -55,6 +55,7 @@ def upgrade() -> None:
     sa.Column('document_keys', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('last_turn_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('running_since', sa.DateTime(timezone=True), nullable=True),
     sa.Column('cleared_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['id'], ['conversations.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
@@ -74,6 +75,7 @@ def upgrade() -> None:
         'ck_files_one_owner', 'files', 'num_nonnulls(project_id, conversation_id) = 1'
     )
     op.add_column('microsoft_word_handoffs', sa.Column('chat_thread_id', sa.UUID(), nullable=True))
+    op.add_column('microsoft_word_handoffs', sa.Column('heard_at', sa.DateTime(timezone=True), nullable=True))
     op.alter_column('microsoft_word_handoffs', 'reference',
                existing_type=postgresql.JSONB(astext_type=sa.Text()),
                nullable=True)
@@ -90,6 +92,7 @@ def downgrade() -> None:
     op.alter_column('microsoft_word_handoffs', 'reference',
                existing_type=postgresql.JSONB(astext_type=sa.Text()),
                nullable=False)
+    op.drop_column('microsoft_word_handoffs', 'heard_at')
     op.drop_column('microsoft_word_handoffs', 'chat_thread_id')
     op.drop_constraint('ck_files_one_owner', 'files', type_='check')
     # A conversation's files have no project, which project_id will require again.

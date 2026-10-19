@@ -3,7 +3,7 @@
 Every conversation, on any surface, has a row in ``conversations``; images of a document
 read in the Word add-in's chat or in Teams are ``files`` rows owned by it instead of a
 project. What is pinned, on real Postgres: every file has exactly one owner, a Word
-chat's images are replaced wholesale, a Teams conversation's accumulate per document,
+chat's and a Teams conversation's images accumulate per document read,
 both go with their conversation, a Teams conversation is started once however many
 questions race to start it, and the download route, which serves a file only through
 its project, never serves a conversation's.
@@ -30,7 +30,6 @@ from lib.models.user import User
 from lib.services import conversations
 from lib.services.files.images import (
     add_conversation_images,
-    replace_conversation_images,
 )
 from lib.services.files.service import check_file_access
 from lib.services.image_extraction import ExtractedImage
@@ -86,18 +85,18 @@ async def test_a_word_chat_is_a_conversation_under_its_own_id(
 
 
 @pytest.mark.asyncio
-async def test_a_word_chats_images_are_replaced_and_go_with_the_conversation(
+async def test_a_word_chats_images_accumulate_and_go_with_the_conversation(
     word_chat: uuid.UUID, tmp_path: Path
 ) -> None:
     first = image(tmp_path, "first")
-    await replace_conversation_images(word_chat, [first])
+    await add_conversation_images(word_chat, [first])
     second = image(tmp_path, "second")
-    await replace_conversation_images(word_chat, [second])
+    await add_conversation_images(word_chat, [second])
 
-    (row,) = await owned_by(word_chat)
-    assert row.id == second.id and row.project_id is None
-    # The replaced image's file goes too: no other row points at it.
-    assert not Path(first.image_path).exists()
+    # The earlier copy's images stay: markdown already stored may still name them.
+    rows = await owned_by(word_chat)
+    assert {row.id for row in rows} == {first.id, second.id}
+    assert all(row.project_id is None for row in rows)
 
     await remove(word_chat)
     assert await owned_by(word_chat) == []
@@ -158,7 +157,7 @@ async def test_the_download_route_never_serves_a_conversations_image(
     word_chat: uuid.UUID, tmp_path: Path
 ) -> None:
     stored = image(tmp_path, "figure")
-    await replace_conversation_images(word_chat, [stored])
+    await add_conversation_images(word_chat, [stored])
 
     with pytest.raises(HTTPException) as refused:
         await check_file_access(stored.id, uuid.uuid4())
@@ -195,7 +194,7 @@ async def listed_under(conversation_id: uuid.UUID) -> uuid.UUID | None:
 
 
 @pytest.mark.asyncio
-async def test_a_new_word_chat_is_listed_under_its_user_and_goes_with_them(
+async def test_a_new_word_chat_is_listed_under_its_user_and_outlives_them(
     user_id: uuid.UUID,
 ) -> None:
     account = Account(oid=f"oid-{uuid.uuid4()}", tid="tid-contoso")
@@ -208,17 +207,22 @@ async def test_a_new_word_chat_is_listed_under_its_user_and_goes_with_them(
 
     thread = await chat_threads.current_or_new(account, URL, starter)
     again = await chat_threads.current_or_new(account, URL, starter)
+    try:
+        assert again.id == thread.id
+        # Asked once, when the conversation started; not on every message.
+        assert asked == 1
+        assert await listed_under(thread.id) == user_id
 
-    assert again.id == thread.id
-    # Asked once, when the conversation started; not on every message.
-    assert asked == 1
-    assert await listed_under(thread.id) == user_id
-
-    async with get_async_db_session() as session:
-        await session.execute(delete(User).where(col(User.id) == user_id))
-        await session.commit()
-    async with get_async_db_session() as session:
-        assert await session.get(MicrosoftWordChatThread, thread.id) is None
+        # Listing only: deleting the user unlists the conversation, and the account
+        # that owns it keeps it.
+        async with get_async_db_session() as session:
+            await session.execute(delete(User).where(col(User.id) == user_id))
+            await session.commit()
+        assert await listed_under(thread.id) is None
+        async with get_async_db_session() as session:
+            assert await session.get(MicrosoftWordChatThread, thread.id) is not None
+    finally:
+        await remove(thread.id)
 
 
 @pytest.mark.asyncio

@@ -10,12 +10,13 @@ a new thread, and the old conversation stays in the checkpointer, out of the pan
 """
 
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import PurePosixPath
 from typing import Any
 from urllib.parse import unquote, urlparse
 
-from sqlalchemy import and_, or_, select, update
+from sqlalchemy import and_, func, or_, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
@@ -63,19 +64,25 @@ def _owned_by(account: Account) -> Any:
     )
 
 
+async def _current(
+    session: AsyncSession, account: Account, url: str
+) -> MicrosoftWordChatThread | None:
+    wanted = set(thread_keys(url))
+    rows = await session.execute(
+        select(MicrosoftWordChatThread)
+        .where(_owned_by(account))
+        .where(col(MicrosoftWordChatThread.cleared_at).is_(None))
+        .order_by(col(MicrosoftWordChatThread.last_turn_at).desc())
+    )
+    threads = list(rows.scalars().all())
+    return next((t for t in threads if wanted & set(t.document_keys)), None)
+
+
 async def current(account: Account, url: str) -> MicrosoftWordChatThread | None:
     """The account's uncleared thread for this document, the newest if several."""
 
-    wanted = set(thread_keys(url))
     async with get_async_db_session() as session:
-        rows = await session.execute(
-            select(MicrosoftWordChatThread)
-            .where(_owned_by(account))
-            .where(col(MicrosoftWordChatThread.cleared_at).is_(None))
-            .order_by(col(MicrosoftWordChatThread.last_turn_at).desc())
-        )
-        threads = list(rows.scalars().all())
-    return next((t for t in threads if wanted & set(t.document_keys)), None)
+        return await _current(session, account, url)
 
 
 async def current_or_new(
@@ -91,6 +98,16 @@ async def current_or_new(
     user_id = await starter() if starter else None
     now = datetime.now(UTC)
     async with get_async_db_session() as session:
+        # Two first messages at once (two panes, a retry) would otherwise each start a
+        # thread: the lock makes the second wait, then find the first one's. Per account,
+        # since one document has several URL forms; held until the commit.
+        await session.execute(
+            select(
+                func.pg_advisory_xact_lock(func.hashtext(f"word-chat:{account.oid}"))
+            )
+        )
+        if (thread := await _current(session, account, url)) is not None:
+            return thread
         thread = MicrosoftWordChatThread(
             id=await conversations.start(session, ConversationKind.WORD, user_id),
             owner_oid=account.oid,
@@ -105,6 +122,49 @@ async def current_or_new(
         await session.commit()
         await session.refresh(thread)
     return thread
+
+
+# A claim older than this is a turn that died without releasing it (a worker restart).
+# Longer than any real turn: a long check runs for minutes.
+STALE_CLAIM = timedelta(minutes=30)
+
+
+async def claim(thread_id: uuid.UUID) -> bool:
+    """Take the thread for one turn; False while another turn holds it.
+
+    Two panes on one document, or a message and a resume, would otherwise run the agent
+    on the same LangGraph thread at once, one checkpoint overwriting the other.
+    """
+
+    now = datetime.now(UTC)
+    async with get_async_db_session() as session:
+        claimed = await session.execute(
+            update(MicrosoftWordChatThread)
+            .where(col(MicrosoftWordChatThread.id) == thread_id)
+            .where(
+                or_(
+                    col(MicrosoftWordChatThread.running_since).is_(None),
+                    col(MicrosoftWordChatThread.running_since) < now - STALE_CLAIM,
+                )
+            )
+            .values(running_since=now)
+            .returning(col(MicrosoftWordChatThread.id))
+        )
+        taken = claimed.first() is not None
+        await session.commit()
+    return taken
+
+
+async def release(thread_id: uuid.UUID) -> None:
+    """Let the next turn run. Called however the turn ended."""
+
+    async with get_async_db_session() as session:
+        await session.execute(
+            update(MicrosoftWordChatThread)
+            .where(col(MicrosoftWordChatThread.id) == thread_id)
+            .values(running_since=None)
+        )
+        await session.commit()
 
 
 async def begin_turn(thread_id: uuid.UUID) -> datetime | None:

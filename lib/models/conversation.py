@@ -46,7 +46,9 @@ class Conversation(SQLModel, table=True):
         default=None,
         sa_column=Column(
             UUID(as_uuid=True),
-            ForeignKey("users.id", ondelete="CASCADE"),
+            # Listing only, so deleting the user unlists the conversation rather than
+            # deleting it: a Teams conversation belongs to everyone in it.
+            ForeignKey("users.id", ondelete="SET NULL"),
             nullable=True,
             index=True,
         ),

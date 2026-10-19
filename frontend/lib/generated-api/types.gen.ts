@@ -1229,6 +1229,10 @@ export type ChatSuggestion = {
    * Finished At
    */
   finished_at?: Date | null;
+  /**
+   * Heard At
+   */
+  heard_at?: Date | null;
 };
 
 /**

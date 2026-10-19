@@ -276,6 +276,8 @@ def ask_to_apply_for(target: SuggestionTarget) -> BaseTool:
             card = await chat_suggestions.suggestion_for(card_id, target.requester)
             if card is None or card.status in WAITING:
                 return "The card is still waiting for them to apply or dismiss it."
+        # Told now, so the next message does not report it again as news.
+        await chat_suggestions.mark_heard([card.id])
         return chat_suggestions.settled_summary(card)
 
     return ask_to_apply

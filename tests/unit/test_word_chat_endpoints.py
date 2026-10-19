@@ -6,6 +6,7 @@ a turn hears about earlier suggestions.
 """
 
 import uuid
+from collections.abc import AsyncIterator, Iterator
 from datetime import UTC, datetime
 from io import BytesIO
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -27,6 +28,20 @@ from lib.services.microsoft.word.handoffs import Account
 ANA = Account(oid="oid-ana", tid="tid-contoso")
 URL = "https://contoso.sharepoint.com/sites/Policy/Shared%20Documents/Draft.docx"
 NOW = datetime.now(UTC)
+
+
+@pytest.fixture(autouse=True)
+def free_conversation() -> Iterator[AsyncMock]:
+    """No other turn holds the conversation, and telling the agent news is recorded."""
+
+    with (
+        patch.object(
+            word_chat.chat_threads, "claim", AsyncMock(return_value=True)
+        ) as claim,
+        patch.object(word_chat.chat_threads, "release", AsyncMock()),
+        patch.object(word_chat.chat_suggestions, "mark_heard", AsyncMock()),
+    ):
+        yield claim
 
 
 def upload(payload: bytes) -> UploadFile:
@@ -97,7 +112,7 @@ class TestATurn:
                 word_chat.chat_suggestions, "for_thread", AsyncMock(return_value=[])
             ),
             patch.object(
-                word_chat.chat_suggestions, "news_since", return_value="[news]"
+                word_chat.chat_suggestions, "news", return_value="[news]"
             ) as news,
             patch.object(word_chat, "run_word_chat_turn") as run,
             patch.object(word_chat, "_has_document", AsyncMock(return_value=True)),
@@ -111,7 +126,7 @@ class TestATurn:
 
         assert start.await_args is not None
         assert start.await_args.args[:2] == (ANA, URL)
-        news.assert_called_once_with([], NOW)
+        news.assert_called_once_with([])
         turn, target = run.call_args.args
         assert turn.thread_id == thread.id and turn.suggestion_news == "[news]"
         assert turn.document is None and turn.selection == "the words"
@@ -142,12 +157,12 @@ class TestATurn:
             patch.object(
                 word_chat.chat_suggestions, "for_thread", AsyncMock(return_value=[])
             ),
-            patch.object(word_chat.chat_suggestions, "news_since", return_value=""),
+            patch.object(word_chat.chat_suggestions, "news", return_value=""),
             patch.object(
                 word_chat.pane_document, "from_docx", AsyncMock(return_value=read)
             ),
             patch.object(
-                word_chat.file_images, "replace_conversation_images", AsyncMock()
+                word_chat.file_images, "add_conversation_images", AsyncMock()
             ) as store,
             patch.object(word_chat, "run_word_chat_turn") as run,
         ):
@@ -304,6 +319,43 @@ class TestResuming:
             await word_chat.resume_turn(WordChatResumeRequest(url=URL), caller=caller())
 
         lookup.assert_awaited_once_with(card_id, ANA)
-        begin.assert_awaited_once_with(thread.id)
+        # Not a new turn: cards that settled meanwhile are still news on the next one.
+        begin.assert_not_awaited()
         thread_id, target = run.call_args.args
         assert thread_id == thread.id and target.requester.oid == ANA.oid
+
+
+class TestOneTurnAtATime:
+    @pytest.mark.asyncio
+    async def test_a_message_while_another_turn_runs_is_refused(
+        self, free_conversation: AsyncMock
+    ) -> None:
+        free_conversation.return_value = False
+        with (
+            patch.object(
+                word_chat.chat_threads,
+                "current_or_new",
+                AsyncMock(return_value=a_thread()),
+            ),
+            patch.object(word_chat, "_has_document", AsyncMock(return_value=True)),
+            patch.object(word_chat, "run_word_chat_turn") as run,
+        ):
+            with pytest.raises(HTTPException) as raised:
+                await word_chat.stream_turn(url=URL, message="Hi", caller=caller())
+
+        assert raised.value.status_code == 423
+        run.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_the_conversation_is_let_go_however_the_stream_ends(self) -> None:
+        async def failing() -> AsyncIterator[dict]:
+            yield {"t": "message", "id": "m"}
+            raise RuntimeError("the model went away")
+
+        thread_id = uuid.uuid4()
+        with patch.object(word_chat.chat_threads, "release", AsyncMock()) as release:
+            with pytest.raises(RuntimeError):
+                async for _ in word_chat._released(failing(), thread_id):
+                    pass
+
+        release.assert_awaited_once_with(thread_id)

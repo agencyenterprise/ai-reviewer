@@ -38,7 +38,8 @@ export async function documentFile(): Promise<Blob> {
     for (let i = 0; i < file.sliceCount; i++) slices.push(new Uint8Array(await readSlice(file, i)));
     return new Blob(slices, { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
   } finally {
-    file.closeAsync();
+    // Awaited: a second read before the close lands would be refused.
+    await new Promise<void>((resolve) => file.closeAsync(() => resolve()));
   }
 }
 

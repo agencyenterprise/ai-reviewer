@@ -14,7 +14,7 @@ project.
 import os
 import uuid
 
-from sqlalchemy import ColumnElement, and_, delete, select
+from sqlalchemy import ColumnElement, delete, select
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
@@ -60,35 +60,17 @@ async def replace_extracted_images(
     await _replace(col(File.parent_file_id) == parent.id, rows)
 
 
-async def replace_conversation_images(
-    conversation_id: uuid.UUID, images: list[ExtractedImage]
-) -> None:
-    """Replace the images of the document a Word add-in conversation holds.
-
-    The pane sends the whole document again whenever it changes, and the new
-    markdown references only the new ids, so the rows go wholesale here too.
-    The conversation is the rows' owner: ``view_image`` in that conversation
-    reads them, nothing else does.
-    """
-
-    await _replace(
-        and_(
-            col(File.conversation_id) == conversation_id,
-            col(File.role) == FileRole.EXTRACTED_IMAGE,
-        ),
-        _conversation_rows(conversation_id, images),
-    )
-
-
 async def add_conversation_images(
     conversation_id: uuid.UUID, images: list[ExtractedImage]
 ) -> None:
-    """Keep the images of a document the Teams bot opened, for its conversation.
+    """Keep the images of a document read in a conversation, the Word chat's or Teams'.
 
-    Added rather than replaced: one conversation can hold several documents (two
-    revisions, two files), each with its own images, and opening one must not
-    unlink the other's. Re-opening a document adds its images again under new ids;
-    the disk files are shared, being content-addressed.
+    Added rather than replaced. A Teams conversation can hold several documents (two
+    revisions, two files), and opening one must not unlink the other's. The Word chat
+    sends its document again whenever it changes, and markdown already stored (a turn
+    that failed before the new document was) must still find the images it names.
+    Re-reading a document adds its images again under new ids; the disk files are
+    shared, being content-addressed, and the rows go with the conversation.
     """
 
     async with get_async_db_session() as session:

@@ -95,3 +95,11 @@ class MicrosoftWordHandoff(SQLModel, table=True):
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=True),
     )
+    heard_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+        description=(
+            "For the chat's: when the agent was told how it ended, by ``ask_to_apply`` "
+            "or as news at the start of a message, so it is told once"
+        ),
+    )

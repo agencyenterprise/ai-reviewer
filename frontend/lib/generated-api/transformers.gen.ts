@@ -384,6 +384,9 @@ const chatSuggestionSchemaResponseTransformer = (data: any) => {
   if (data.finished_at) {
     data.finished_at = new Date(data.finished_at);
   }
+  if (data.heard_at) {
+    data.heard_at = new Date(data.heard_at);
+  }
   return data;
 };
 

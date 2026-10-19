@@ -14,7 +14,7 @@ import pytest
 
 from lib.models.microsoft_word_chat_thread import MicrosoftWordChatThread
 from lib.services.microsoft.word import chat_suggestions, chat_threads, handoffs
-from lib.services.microsoft.word.chat_suggestions import ChatSuggestion, news_since
+from lib.services.microsoft.word.chat_suggestions import ChatSuggestion, news
 from lib.services.microsoft.word.handoffs import (
     Account,
     HandoffComment,
@@ -112,6 +112,7 @@ def suggestion(
     status: str,
     finished: datetime | None = None,
     outcome: HandoffOutcome | None = None,
+    heard: datetime | None = None,
 ) -> ChatSuggestion:
     return ChatSuggestion(
         id=uuid.uuid4(),
@@ -122,6 +123,7 @@ def suggestion(
         outcome=outcome,
         created_at=NOW - timedelta(hours=1),
         finished_at=finished,
+        heard_at=heard,
     )
 
 
@@ -138,30 +140,37 @@ class TestWhatTheAgentHears:
                 ),
             ]
         )
-        since = NOW - timedelta(minutes=5)
-
-        said = news_since([suggestion("applied", NOW, outcome)], since)
+        said = news([suggestion("applied", NOW, outcome)])
 
         assert "1 of 2" in said
         assert "recieve" in said and handoffs.REASONS["not_found"] in said
 
     def test_a_dismissal_is_described(self) -> None:
-        said = news_since([suggestion("dismissed", NOW)], NOW - timedelta(minutes=5))
+        said = news([suggestion("dismissed", NOW)])
 
         assert "dismissed" in said and "none were applied" in said
 
-    def test_what_was_told_before_is_not_told_again(self) -> None:
-        earlier = NOW - timedelta(minutes=10)
+    def test_what_it_was_told_is_not_told_again(self) -> None:
+        """By ``ask_to_apply`` while it waited, or as news before: once is enough.
 
-        assert news_since([suggestion("applied", earlier)], NOW) == ""
+        Told by when it heard, not by when the last turn began, so a card that settled
+        while the answer waited on another one is still news.
+        """
+
+        heard = suggestion("applied", NOW - timedelta(minutes=10), heard=NOW)
+        not_yet = suggestion("dismissed", NOW - timedelta(minutes=10))
+
+        said = news([heard, not_yet])
+
+        assert "dismissed" in said and "1 of" not in said
 
     def test_ones_still_waiting_are_mentioned(self) -> None:
-        said = news_since([suggestion("pending")], NOW)
+        said = news([suggestion("pending")])
 
         assert "1 set(s)" in said and "still waiting" in said
 
     def test_nothing_to_say_says_nothing(self) -> None:
-        assert news_since([], None) == ""
+        assert news([]) == ""
 
 
 class TestReplacingACardsItems:

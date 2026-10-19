@@ -33,8 +33,15 @@ import uuid
 from collections.abc import AsyncIterator, Iterable
 from typing import Any
 
-from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, ToolMessage
+from langchain_core.messages import (
+    AIMessage,
+    AIMessageChunk,
+    BaseMessage,
+    RemoveMessage,
+    ToolMessage,
+)
 from langchain_core.runnables import RunnableConfig
+from langgraph.graph.message import REMOVE_ALL_MESSAGES
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Command, Overwrite, StreamMode
 
@@ -110,12 +117,14 @@ def new_messages(channel_value: Any) -> list[BaseMessage]:
     """The messages a node appended, from whatever it wrote to the channel.
 
     A node may write one message or a list. deepagents' ``PatchToolCallsMiddleware``
-    instead writes an ``Overwrite`` of the whole history before the first model
-    call; that is a rewrite of what the client already sent, not new output, so it
-    is skipped rather than re-announced.
+    instead rewrites the whole history before the first model call, when a tool call
+    was left without a result (an answer paused on a card, then a new message): an
+    ``Overwrite``, or, in deepagents 0.7, a list that starts by removing every
+    message. Either is a rewrite of what the client already has, not new output, so
+    it is skipped rather than re-announced.
     """
 
-    if isinstance(channel_value, Overwrite):
+    if isinstance(channel_value, Overwrite) or _rewrites_history(channel_value):
         return []
     if isinstance(channel_value, BaseMessage):
         return [channel_value]
@@ -124,6 +133,15 @@ def new_messages(channel_value: Any) -> list[BaseMessage]:
             message for message in channel_value if isinstance(message, BaseMessage)
         ]
     return []
+
+
+def _rewrites_history(channel_value: Any) -> bool:
+    return (
+        isinstance(channel_value, list)
+        and bool(channel_value)
+        and isinstance(channel_value[0], RemoveMessage)
+        and channel_value[0].id == REMOVE_ALL_MESSAGES
+    )
 
 
 class GraphEventMapper:

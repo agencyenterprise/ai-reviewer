@@ -6,7 +6,14 @@ reasoning content blocks in the token stream, ``tool_call_chunk`` blocks that
 are deliberately ignored there, and completed messages in ``updates``.
 """
 
-from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, ToolMessage
+from langchain_core.messages import (
+    AIMessage,
+    AIMessageChunk,
+    HumanMessage,
+    RemoveMessage,
+    ToolMessage,
+)
+from langgraph.graph.message import REMOVE_ALL_MESSAGES
 from langgraph.types import Interrupt, Overwrite
 
 from lib.services.chat.events import GraphEventMapper, content_blocks
@@ -225,6 +232,20 @@ class TestUpdates:
                 ),
             ]
         )
+        payload = {"PatchToolCallsMiddleware.before_agent": {"messages": rewritten}}
+        assert mapper.map("updates", payload) == []
+
+    def test_a_history_rewrite_by_removal_is_not_new_output(self) -> None:
+        """deepagents 0.7 rewrites it as "remove every message, then these", when a
+        tool call was left without a result: a message sent while an answer waited on
+        a card. Announcing it would replay the whole conversation's tool calls."""
+        mapper = GraphEventMapper()
+        rewritten = [
+            RemoveMessage(id=REMOVE_ALL_MESSAGES),
+            HumanMessage(content="hi"),
+            AIMessage(content="", tool_calls=[{"id": "old", "name": "ls", "args": {}}]),
+            ToolMessage(content="ok", tool_call_id="old", id="t-old"),
+        ]
         payload = {"PatchToolCallsMiddleware.before_agent": {"messages": rewritten}}
         assert mapper.map("updates", payload) == []
 

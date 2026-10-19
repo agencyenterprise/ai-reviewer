@@ -16,7 +16,7 @@ reported exactly like the ones from Teams. Two things are particular to the chat
 """
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Literal
 
 from pydantic import BaseModel
@@ -51,6 +51,7 @@ class ChatSuggestion(BaseModel):
     outcome: HandoffOutcome | None = None
     created_at: datetime
     finished_at: datetime | None = None
+    heard_at: datetime | None = None
 
 
 def _view(row: MicrosoftWordHandoff) -> ChatSuggestion:
@@ -64,6 +65,7 @@ def _view(row: MicrosoftWordHandoff) -> ChatSuggestion:
         outcome=HandoffOutcome.model_validate(row.outcome) if row.outcome else None,
         created_at=row.created_at,
         finished_at=row.finished_at,
+        heard_at=row.heard_at,
     )
 
 
@@ -124,20 +126,16 @@ async def replace_items(
     return row is not None
 
 
-def news_since(suggestions: list[ChatSuggestion], since: datetime | None) -> str:
+def news(suggestions: list[ChatSuggestion]) -> str:
     """What the agent should hear about its suggestions at the start of a turn.
 
-    Each one settled since the last turn began is described once, worded from what was
-    stored, never from client text. Ones still waiting are mentioned so they are not
-    offered again. Empty when there is nothing to say.
+    Each one that settled and that it has not been told about is described once, worded
+    from what was stored, never from client text: a card it waited on was told by
+    ``ask_to_apply``, so only the others are news. Ones still waiting are mentioned so
+    they are not offered again. Empty when there is nothing to say.
     """
 
-    lines = [
-        settled_summary(suggestion)
-        for suggestion in suggestions
-        if suggestion.finished_at is not None
-        and (since is None or suggestion.finished_at > since)
-    ]
+    lines = [settled_summary(suggestion) for suggestion in unheard(suggestions)]
     waiting = sum(1 for suggestion in suggestions if suggestion.status in OPEN)
     if waiting:
         lines.append(
@@ -147,6 +145,27 @@ def news_since(suggestions: list[ChatSuggestion], since: datetime | None) -> str
     if not lines:
         return ""
     return "[About your earlier suggestions:\n" + "\n".join(lines) + "]"
+
+
+def unheard(suggestions: list[ChatSuggestion]) -> list[ChatSuggestion]:
+    """The settled ones the agent has not been told about."""
+
+    return [s for s in suggestions if s.finished_at is not None and s.heard_at is None]
+
+
+async def mark_heard(ids: list[uuid.UUID]) -> None:
+    """Record that the agent has been told how these ended, so it is told once."""
+
+    if not ids:
+        return
+    async with get_async_db_session() as session:
+        await session.execute(
+            update(MicrosoftWordHandoff)
+            .where(col(MicrosoftWordHandoff.id).in_(ids))
+            .where(col(MicrosoftWordHandoff.heard_at).is_(None))
+            .values(heard_at=datetime.now(UTC))
+        )
+        await session.commit()
 
 
 def settled_summary(suggestion: ChatSuggestion) -> str:

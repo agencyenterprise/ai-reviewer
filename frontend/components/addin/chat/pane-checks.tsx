@@ -24,17 +24,22 @@ function useRunCheck(): (check: PaneCheck) => void {
 export const CheckSlashPopover: FC = () => {
   const checks = usePaneChecks();
   const run = useRunCheck();
+  // None while an answer is running: picking one would start a second turn at once, as
+  // the list button's being disabled prevents.
+  const isRunning = useAuiState((s) => s.thread.isRunning);
   const commands = useMemo<Unstable_SlashCommand[]>(
     () =>
-      checks.map((check) => ({
-        id: check.skill,
-        label: check.name,
-        description: check.description,
-        execute: () => run(check),
-      })),
+      isRunning
+        ? []
+        : checks.map((check) => ({
+            id: check.skill,
+            label: check.name,
+            description: check.description,
+            execute: () => run(check),
+          })),
     // `run` is rebuilt every render and only closes over the runtime, which is stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [checks],
+    [checks, isRunning],
   );
   return <SlashCommandPopover commands={commands} />;
 };

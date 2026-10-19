@@ -6,13 +6,14 @@ URL form Word reports and only for its owner, clearing starts afresh, and the ch
 suggestions are handoffs that the Teams list never shows and the agent hears about.
 """
 
+import asyncio
 import uuid
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import delete
+from sqlalchemy import delete, update
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
@@ -134,17 +135,15 @@ async def test_applying_one_is_stored_and_heard_on_the_next_turn(
     ana, _ = accounts
     thread = await chat_threads.current_or_new(ana, PATH_URL)
     suggestion_id = await suggest(ana, thread.id)
-    since = await chat_threads.begin_turn(thread.id)
     assert await handoffs.start(suggestion_id, ana)
 
     reported = await handoffs.report_applied(
         suggestion_id, ana, [ItemResult(index=0, applied=True)]
     )
     settled = await chat_suggestions.for_thread(thread.id)
-    news = chat_suggestions.news_since(settled, since)
-    told_again = chat_suggestions.news_since(
-        settled, datetime.now(UTC) + timedelta(seconds=1)
-    )
+    news = chat_suggestions.news(settled)
+    await chat_suggestions.mark_heard([s.id for s in chat_suggestions.unheard(settled)])
+    told_again = chat_suggestions.news(await chat_suggestions.for_thread(thread.id))
 
     assert reported is True
     assert settled[0].status == "applied"
@@ -173,3 +172,44 @@ async def test_a_card_grows_only_while_it_is_pending_and_only_for_its_owner(
     assert await chat_suggestions.replace_items(card, ana, ITEMS) is False
     applying = await chat_suggestions.suggestion_for(card, ana)
     assert applying is not None and len(applying.items.comments) == 2
+
+
+@pytest.mark.asyncio
+async def test_two_first_messages_at_once_start_one_thread(
+    accounts: tuple[Account, Account],
+) -> None:
+    ana, _ = accounts
+
+    first, second = await asyncio.gather(
+        chat_threads.current_or_new(ana, PATH_URL),
+        chat_threads.current_or_new(ana, PATH_URL),
+    )
+
+    assert first.id == second.id
+
+
+@pytest.mark.asyncio
+async def test_one_turn_at_a_time_and_a_dead_ones_claim_runs_out(
+    accounts: tuple[Account, Account],
+) -> None:
+    ana, _ = accounts
+    thread = await chat_threads.current_or_new(ana, PATH_URL)
+
+    assert await chat_threads.claim(thread.id)
+    assert not await chat_threads.claim(thread.id)
+    await chat_threads.release(thread.id)
+    assert await chat_threads.claim(thread.id)
+
+    # A worker that died mid-turn never releases: its claim runs out.
+    async with get_async_db_session() as session:
+        await session.execute(
+            update(MicrosoftWordChatThread)
+            .where(col(MicrosoftWordChatThread.id) == thread.id)
+            .values(
+                running_since=datetime.now(UTC)
+                - chat_threads.STALE_CLAIM
+                - timedelta(minutes=1)
+            )
+        )
+        await session.commit()
+    assert await chat_threads.claim(thread.id)

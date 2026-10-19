@@ -60,6 +60,14 @@ class MicrosoftWordChatThread(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), nullable=False),
         description="When the last message was sent; suggestions settled after it are news",
     )
+    running_since: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+        description=(
+            "When the turn running now began, if one is: a second one waits for it "
+            "(``chat_threads.claim``)"
+        ),
+    )
     cleared_at: datetime | None = Field(
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=True),

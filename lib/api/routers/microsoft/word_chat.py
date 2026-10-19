@@ -15,6 +15,7 @@ Scoped like every add-in route, to the Microsoft account the pane signs in as
 """
 
 import logging
+from collections.abc import AsyncIterator
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -42,6 +43,7 @@ from lib.agents.word_chat_agent import (
 from lib.agents.word_chat_checks import PaneCheck, pane_checks
 from lib.api.addin_auth import AddinIdentity, get_addin_identity
 from lib.models.microsoft_word_chat_thread import MicrosoftWordChatThread
+from lib.services.chat.events import ChatEvent
 from lib.services.chat.history import to_ui_messages
 from lib.services.chat.sse import sse_stream
 from lib.services.chat.thread_state import load_thread_messages, read_thread_file
@@ -155,32 +157,61 @@ async def stream_turn(
         url,
         lambda: linked_users.user_for(caller.email_claim, caller.name, caller.tid),
     )
-    if loaded is not None:
-        # Before the turn, so the agent can open every image its markdown names.
-        await file_images.replace_conversation_images(thread.id, loaded.images)
-    elif not await _has_document(thread.id):
+    if loaded is None and not await _has_document(thread.id):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=DOCUMENT_NEEDED,
         )
-    previous = await chat_threads.begin_turn(thread.id)
-    news = chat_suggestions.news_since(
-        await chat_suggestions.for_thread(thread.id), previous
-    )
-    turn = WordChatTurn(
-        thread_id=thread.id,
-        text=message,
-        message_id=message_id,
-        document=loaded,
-        selection=selection,
-        suggestion_news=news,
-    )
-    events = run_word_chat_turn(turn, _target(caller, thread))
+    await _claim(thread.id)
+    try:
+        if loaded is not None:
+            # Added, not swapped: markdown already stored, if this turn fails before the
+            # new document is, keeps naming images that still exist.
+            await file_images.add_conversation_images(thread.id, loaded.images)
+        await chat_threads.begin_turn(thread.id)
+        suggestions = await chat_suggestions.for_thread(thread.id)
+        news = chat_suggestions.news(suggestions)
+        await chat_suggestions.mark_heard(
+            [s.id for s in chat_suggestions.unheard(suggestions)]
+        )
+        turn = WordChatTurn(
+            thread_id=thread.id,
+            text=message,
+            message_id=message_id,
+            document=loaded,
+            selection=selection,
+            suggestion_news=news,
+        )
+        events = _released(run_word_chat_turn(turn, _target(caller, thread)), thread.id)
+    except BaseException:
+        await chat_threads.release(thread.id)
+        raise
     return StreamingResponse(
         sse_stream(events),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+# Sent with a 423 while another turn runs in the conversation (``chat_threads.claim``).
+STILL_ANSWERING = "Draft Detective is still answering in this conversation."
+
+
+async def _claim(thread_id: UUID) -> None:
+    if not await chat_threads.claim(thread_id):
+        raise HTTPException(status_code=status.HTTP_423_LOCKED, detail=STILL_ANSWERING)
+
+
+async def _released(
+    events: AsyncIterator[ChatEvent], thread_id: UUID
+) -> AsyncIterator[ChatEvent]:
+    """The turn's events, letting the conversation go however the stream ends."""
+
+    try:
+        async for event in events:
+            yield event
+    finally:
+        await chat_threads.release(thread_id)
 
 
 async def _has_document(thread_id: UUID) -> bool:
@@ -257,9 +288,10 @@ async def resume_turn(
             status_code=status.HTTP_409_CONFLICT,
             detail="The card has not been applied or dismissed yet.",
         )
-    # The agent hears the outcome now, so the next message must not repeat it as news.
-    await chat_threads.begin_turn(thread.id)
-    events = run_word_chat_resume(thread.id, _target(caller, thread))
+    await _claim(thread.id)
+    events = _released(
+        run_word_chat_resume(thread.id, _target(caller, thread)), thread.id
+    )
     return StreamingResponse(
         sse_stream(events),
         media_type="text/event-stream",

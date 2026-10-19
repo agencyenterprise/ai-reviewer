@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { AppliedSummary, HandoffCard } from '@/components/addin/handoff-card';
 import { describeItems } from '@/lib/addin/item-counts';
 import { isApiError } from '@/lib/api-error';
@@ -60,7 +61,7 @@ export const SuggestChangesPart: ToolCallMessagePartComponent = ({ result }) => 
  */
 export function SuggestionCard({ id }: { id: string }) {
   const { email, authorize, expire } = useAddinSession();
-  const { pendingSuggestionId, resume } = usePausedAnswer();
+  const { pendingSuggestionId, resume, resuming } = usePausedAnswer();
   const suggestion = useQuery({
     queryKey: ['addin-suggestion', email, id],
     queryFn: async () => {
@@ -87,11 +88,13 @@ export function SuggestionCard({ id }: { id: string }) {
   if (suggestion.error || !suggestion.data) return <Frame>Could not load these suggestions.</Frame>;
 
   const data = suggestion.data;
+  const waitedOn = pendingSuggestionId === id;
   // Settled: show what became of it, and if the answer was waiting on this card, let the
-  // agent carry on with the outcome.
+  // agent carry on with the outcome. Only once the server has it settled: a card another
+  // pane is still applying would be refused.
   const settle = async () => {
-    await suggestion.refetch();
-    if (pendingSuggestionId === id) await resume();
+    const fresh = await suggestion.refetch();
+    if (waitedOn && fresh.data && !isOpen(fresh.data.status)) await resume();
   };
   const refetch = () => void settle();
   const { status } = data;
@@ -109,7 +112,22 @@ export function SuggestionCard({ id }: { id: string }) {
       </Frame>
     );
   }
-  return <Frame>{settled(data)}</Frame>;
+  return (
+    <Frame>
+      {settled(data)}
+      {/* The answer still waits on this card: a resume that failed (the network, a
+          sign-in that expired, a reload) can be tried again from here. */}
+      {waitedOn && (
+        <Button size="sm" className="mt-2" onClick={() => void resume()} disabled={resuming}>
+          {resuming ? 'Continuing…' : 'Continue'}
+        </Button>
+      )}
+    </Frame>
+  );
+}
+
+function isOpen(status: ChatSuggestion['status']): boolean {
+  return status === 'pending' || status === 'applying';
 }
 
 function settled(data: ChatSuggestion) {
