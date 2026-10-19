@@ -18,8 +18,10 @@ import logging
 import re
 from collections.abc import Collection
 from pathlib import Path
+from typing import Any
 
 import yaml
+from deepagents.backends.utils import create_file_data
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -84,6 +86,22 @@ def strip_interactive_markers(content: str) -> str:
     if INTERACTIVE_ONLY_START not in content and INTERACTIVE_ONLY_END not in content:
         return content
     return _INTERACTIVE_MARKER_RE.sub("", content)
+
+
+def skill_backend_files() -> dict[str, Any]:
+    """Every skill under ``skills/``, keyed by its path on the agent filesystem."""
+    project_root = _SKILLS_DIR.parent
+    files: dict[str, Any] = {}
+    for skill_file in sorted(_SKILLS_DIR.rglob("*")):
+        if skill_file.is_file():
+            virtual_path = "/" + skill_file.relative_to(project_root).as_posix()
+            # Interactive-only sections (e.g. asking the user for web-search
+            # consent) are for agents driven by a user; a backend run has its
+            # consent already and nobody to ask.
+            files[virtual_path] = create_file_data(
+                strip_interactive_only(skill_file.read_text())
+            )
+    return files
 
 
 def iter_skill_files(skills_dir: Path | None = None) -> list[Path]:
