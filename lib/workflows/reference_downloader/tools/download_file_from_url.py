@@ -121,7 +121,11 @@ async def _download_file_from_url_async(
     if file_id is None:
         return DownloadFileFromUrlResponse(
             file_id=None,
-            message=f"Downloaded content from {url} but could not save it as a project file",
+            message=(
+                f"Downloaded content from {url} but could not save it as a project "
+                "file. This is an internal error, not a problem with the URL; "
+                "retrying the same URL is unlikely to help."
+            ),
             success=False,
         )
 
