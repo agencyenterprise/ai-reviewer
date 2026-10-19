@@ -6,6 +6,7 @@ from langgraph.graph import StateGraph
 from lib.agents.reference_validator_v2 import ReferenceValidationFinalResultV2
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
+from lib.workflows.reducers import cancel_pending
 from lib.workflows.reference_extraction.state import ReferenceExtractionState
 from lib.workflows.reference_validation_v2.graph import (
     build_reference_validation_v2_graph,
@@ -56,16 +57,11 @@ class ReferenceValidationV2Manifest(
         self, state: ReferenceValidationV2State
     ) -> ReferenceValidationV2State:
         """Mark any pending validation items as cancelled so they don't show as in-progress."""
-        updated = [
-            (
-                item.model_copy(
-                    update={"status": ReferenceValidationV2Status.CANCELLED}
-                )
-                if item.status == ReferenceValidationV2Status.PENDING
-                else item
-            )
-            for item in state.reference_validations
-        ]
+        updated = cancel_pending(
+            state.reference_validations,
+            ReferenceValidationV2Status.PENDING,
+            ReferenceValidationV2Status.CANCELLED,
+        )
         return state.model_copy(update={"reference_validations": updated})
 
     async def create_initial_state(

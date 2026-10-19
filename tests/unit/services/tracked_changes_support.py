@@ -20,18 +20,15 @@ import pytest
 from docx_editor import Document as EditorDocument
 
 from lib.models.issue_edit import IssueEdit, IssueEditStatus
+from lib.services.docx.edit_conflicts import EditCandidate, resolve_edit_conflicts
 from lib.services.docx.tracked_changes import EditOutcome, plan_tracked_changes
-from lib.services.edit_conflicts import EditCandidate, resolve_edit_conflicts
-from lib.services.markdown_text import (
+from lib.services.text.location import locate_in_paragraph, normalize_whitespace
+from lib.services.text.markdown_rendering import (
     rendered_replacement_in_context,
     rendered_span,
 )
-from lib.services.text_location import locate_in_paragraph
 from lib.workflows.models import SeverityEnum
-from lib.workflows.simple_deep_agent.edit_anchoring import (
-    document_lines,
-    normalize_whitespace,
-)
+from lib.workflows.simple_deep_agent.edit_anchoring import document_lines
 from tests.unit.services.lean_docx import new_document
 
 # The document under test. A non-breaking space inside prose and a phrase

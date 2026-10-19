@@ -32,17 +32,18 @@ from pydantic import BaseModel, Field
 
 from lib.models.issue import Issue
 from lib.models.issue_edit import IssueEditStatus
+from lib.services.docx.edit_conflicts import (
+    EditCandidate,
+    EditDecision,
+    resolve_edit_conflicts,
+)
 from lib.services.docx.edit_notes import build_edit_notes
 from lib.services.docx.tracked_changes import (
     EditOutcome,
     PlannedEdit,
     apply_tracked_changes,
     plan_tracked_changes,
-)
-from lib.services.edit_conflicts import (
-    EditCandidate,
-    EditDecision,
-    resolve_edit_conflicts,
+    unplaceable_outcomes,
 )
 from lib.workflows.registry import get_workflow_manifest
 from lib.workflows.simple_deep_agent.edit_anchoring import document_lines
@@ -77,24 +78,6 @@ def _candidates(issues: Sequence[Issue]) -> list[EditCandidate]:
         for issue in issues
         for row in issue.edit_rows
     ]
-
-
-def _unplaceable_outcomes(decisions: Sequence[EditDecision]) -> list[EditOutcome]:
-    """Outcomes for the case where no paragraph mapping exists at all.
-
-    The line-range mapper returns an empty map when the document converts
-    differently than it did at ingestion. Nothing can be anchored then, so
-    every edit that would otherwise apply is reported as unmatched.
-    """
-    outcomes: list[EditOutcome] = []
-    for decision in decisions:
-        if decision.outcome == "apply":
-            outcomes.append(EditOutcome(edit_id=decision.edit_id, status="not_found"))
-        elif decision.outcome == "conflict":
-            outcomes.append(EditOutcome(edit_id=decision.edit_id, status="conflict"))
-        elif decision.outcome == "unlocatable":
-            outcomes.append(EditOutcome(edit_id=decision.edit_id, status="unlocatable"))
-    return outcomes
 
 
 def _notes(
@@ -235,7 +218,9 @@ async def plan_edit_export(
     decisions = resolve_edit_conflicts(candidates, lines)
 
     if not paragraph_line_ranges:
-        outcomes = {o.edit_id: o for o in _unplaceable_outcomes(decisions)}
+        # The line-range mapper returns an empty map when the document converts
+        # differently than it did at ingestion, so nothing can be anchored.
+        outcomes = {o.edit_id: o for o in unplaceable_outcomes(decisions)}
         return EditExport(
             outcomes=outcomes, notes_by_issue=_notes(issues, decisions, outcomes)
         )

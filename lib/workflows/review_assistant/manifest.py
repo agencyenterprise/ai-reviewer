@@ -20,13 +20,10 @@ from typing import TYPE_CHECKING
 from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
 
-from lib.services.file_artifacts_service.file_artifacts_service import (
-    skill_backend_files,
-)
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     UnreadableDocument,
 )
-from lib.skills import load_skill_prompt
+from lib.skills import load_skill_prompt, skill_backend_files
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.manifest import WorkflowManifest

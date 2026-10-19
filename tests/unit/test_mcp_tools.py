@@ -10,7 +10,7 @@ import jwt as pyjwt
 import pytest
 from fastmcp.utilities.types import File
 
-import lib.api.mcp_auth as _mcp_auth_mod
+import lib.api.mcp.auth as _mcp_auth_mod
 from lib.api.mcp.serialization import build_gate_required_payload
 from lib.api.services.workflow_runner import WorkflowGateRequiredError
 from lib.workflows.models import SeverityEnum
@@ -327,32 +327,7 @@ async def test_create_project_returns_ids_and_url():
     data = json.loads(raw)
     assert data["project_id"] == str(project.id)
     assert data["file_id"] == str(file_record.id)
-    assert "/projects/" in data["project_url"]
-
-
-@pytest.mark.asyncio
-async def test_create_project_returns_project_url():
-    user = _make_user()
-    project = MagicMock()
-    project.id = uuid4()
-
-    with (
-        patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
-        patch(
-            "lib.api.mcp.tools.projects.create_project_record",
-            new=AsyncMock(return_value=project),
-        ),
-        patch(
-            "lib.api.mcp.tools.projects.finalize_file",
-            new=AsyncMock(return_value=MagicMock(id=uuid4())),
-        ),
-    ):
-        result = await create_project(
-            title="T", content_markdown="md", ctx=AsyncMock(), token=_make_token()
-        )
-
-    data = json.loads(result)
-    assert str(project.id) in data["project_url"]
+    assert data["project_url"].endswith(f"/projects/{project.id}")
 
 
 # --- run_workflow ---
@@ -1139,7 +1114,19 @@ async def test_get_tus_upload_credentials_returns_required_fields():
 
 
 @pytest.mark.asyncio
-async def test_get_tus_upload_credentials_includes_reference_id():
+@pytest.mark.parametrize(
+    ("role", "stored_role", "keeps_reference"),
+    [
+        ("support", "support", True),
+        # A main document is never linked to a reference.
+        ("main", "main", False),
+        # An unknown role uploads a supporting file rather than failing.
+        ("figure", "support", True),
+    ],
+)
+async def test_get_tus_upload_credentials_resolves_role_and_reference(
+    role: str, stored_role: str, keeps_reference: bool
+):
     user = _make_user()
     project = MagicMock()
     ref_id = str(uuid4())
@@ -1155,15 +1142,16 @@ async def test_get_tus_upload_credentials_includes_reference_id():
         mock_cfg.MCP_BASE_URL = "https://app.example.com/mcp"
         mock_cfg.AUTH_SECRET = "test-secret"
         raw = await get_tus_upload_credentials(
-            project_id=str(uuid4()), reference_id=ref_id, token=_make_token()
+            project_id=str(uuid4()), role=role, reference_id=ref_id, token=_make_token()
         )
 
-    data = json.loads(raw)
-    assert data["required_metadata"]["reference_id"] == ref_id
+    metadata = json.loads(raw)["required_metadata"]
+    assert metadata["role"] == stored_role
+    assert metadata["reference_id"] == (ref_id if keeps_reference else None)
 
 
 @pytest.mark.asyncio
-async def test_get_tus_upload_credentials_bearer_token_expires_in_one_hour():
+async def test_get_tus_upload_credentials_bearer_token_expires_in_fifteen_minutes():
     user = _make_user()
 
     with (
@@ -1243,7 +1231,7 @@ async def test_create_revision_with_content_returns_file_id():
         patch(
             "lib.api.mcp.tools.revisions.finalize_file",
             new=AsyncMock(return_value=file_record),
-        ),
+        ) as mock_finalize,
     ):
         raw = await create_revision(
             project_id=str(uuid4()),
@@ -1255,6 +1243,10 @@ async def test_create_revision_with_content_returns_file_id():
     assert data["revision"] == 2
     assert data["file_id"] == str(file_record.id)
     assert data["previous_workflow_types"] == ["recommendation_check"]
+    # The document lands as the main file of the new revision, not of the old one.
+    saved = mock_finalize.await_args.kwargs
+    assert (saved["role"], saved["revision"]) == (FileRole.MAIN, 2)
+    assert saved["content"] == b"# Updated doc"
 
 
 @pytest.mark.asyncio

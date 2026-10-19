@@ -5,8 +5,8 @@ from unittest.mock import ANY, MagicMock, patch
 import pytest
 from key_value.aio.wrappers.encryption import FernetEncryptionWrapper
 
-from lib.api.mcp_auth import _build_client_storage, _root_url, create_mcp_auth
-from lib.mcp.postgres_kv_store import PostgresKeyValueStore
+from lib.api.mcp.auth import _build_client_storage, _root_url, create_mcp_auth
+from lib.api.mcp.postgres_kv_store import PostgresKeyValueStore
 
 
 def _base_mock_config() -> MagicMock:
@@ -49,7 +49,7 @@ def test_root_url_handles_root_url():
 def test_create_mcp_auth_raises_without_credentials():
     mock_config = _base_mock_config()
 
-    with patch("lib.api.mcp_auth.config", mock_config):
+    with patch("lib.api.mcp.auth.config", mock_config):
         with pytest.raises(RuntimeError, match="MCP auth requires either Google"):
             create_mcp_auth()
 
@@ -61,8 +61,8 @@ def test_create_mcp_auth_with_google_credentials():
     mock_config.MCP_BASE_URL = "https://api.example.com/mcp"
 
     with (
-        patch("lib.api.mcp_auth.config", mock_config),
-        patch("lib.api.mcp_auth.SlashTolerantGoogleProvider") as MockProvider,
+        patch("lib.api.mcp.auth.config", mock_config),
+        patch("lib.api.mcp.auth.SlashTolerantGoogleProvider") as MockProvider,
     ):
         create_mcp_auth()
 
@@ -90,8 +90,8 @@ def test_create_mcp_auth_with_entra_id_credentials():
     mock_config.MCP_BASE_URL = "https://api.example.com/mcp"
 
     with (
-        patch("lib.api.mcp_auth.config", mock_config),
-        patch("lib.api.mcp_auth.SlashTolerantAzureProvider") as MockProvider,
+        patch("lib.api.mcp.auth.config", mock_config),
+        patch("lib.api.mcp.auth.SlashTolerantAzureProvider") as MockProvider,
     ):
         create_mcp_auth()
 
@@ -119,9 +119,9 @@ def test_create_mcp_auth_google_takes_priority():
     )
 
     with (
-        patch("lib.api.mcp_auth.config", mock_config),
-        patch("lib.api.mcp_auth.SlashTolerantGoogleProvider") as MockGoogle,
-        patch("lib.api.mcp_auth.SlashTolerantAzureProvider") as MockAzure,
+        patch("lib.api.mcp.auth.config", mock_config),
+        patch("lib.api.mcp.auth.SlashTolerantGoogleProvider") as MockGoogle,
+        patch("lib.api.mcp.auth.SlashTolerantAzureProvider") as MockAzure,
     ):
         create_mcp_auth()
 
@@ -140,8 +140,8 @@ def test_create_mcp_auth_extracts_tenant_from_issuer():
     mock_config.MCP_BASE_URL = "http://localhost/mcp"
 
     with (
-        patch("lib.api.mcp_auth.config", mock_config),
-        patch("lib.api.mcp_auth.SlashTolerantAzureProvider") as MockProvider,
+        patch("lib.api.mcp.auth.config", mock_config),
+        patch("lib.api.mcp.auth.SlashTolerantAzureProvider") as MockProvider,
     ):
         create_mcp_auth()
 
@@ -158,8 +158,8 @@ def test_create_mcp_auth_cimd_enabled_google():
     mock_config.MCP_CIMD_ENABLED = True
 
     with (
-        patch("lib.api.mcp_auth.config", mock_config),
-        patch("lib.api.mcp_auth.SlashTolerantGoogleProvider") as MockProvider,
+        patch("lib.api.mcp.auth.config", mock_config),
+        patch("lib.api.mcp.auth.SlashTolerantGoogleProvider") as MockProvider,
     ):
         create_mcp_auth()
 
@@ -180,8 +180,8 @@ def test_create_mcp_auth_cimd_enabled_entra_id():
     mock_config.MCP_CIMD_ENABLED = True
 
     with (
-        patch("lib.api.mcp_auth.config", mock_config),
-        patch("lib.api.mcp_auth.SlashTolerantAzureProvider") as MockProvider,
+        patch("lib.api.mcp.auth.config", mock_config),
+        patch("lib.api.mcp.auth.SlashTolerantAzureProvider") as MockProvider,
     ):
         create_mcp_auth()
 
@@ -194,7 +194,7 @@ def test_client_storage_wraps_postgres_in_fernet_derived_from_auth_secret():
     """Storage is a FernetEncryptionWrapper over Postgres, keyed off AUTH_SECRET."""
     mock_config = _base_mock_config()
 
-    with patch("lib.api.mcp_auth.config", mock_config):
+    with patch("lib.api.mcp.auth.config", mock_config):
         storage = _build_client_storage()
 
     assert isinstance(storage, FernetEncryptionWrapper)

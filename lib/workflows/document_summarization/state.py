@@ -6,6 +6,7 @@ from pydantic import Field
 
 from lib.agents.document_summarizer import DocumentSummary
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
+from lib.workflows.reducers import Reducer, upsert_by
 
 
 class DocumentSummarizationWorkflowConfig(BaseWorkflowConfig):
@@ -22,22 +23,8 @@ class FileSummary(DocumentSummary):
     file_id: str = Field(description="The ID of the file")
 
 
-def merge_summaries(
-    existing: list[FileSummary],
-    new: list[FileSummary],
-) -> list[FileSummary]:
-    """Reducer to upsert summaries by file_id.
-
-    This reducer function is used by LangGraph to handle incremental updates
-    from parallel summarization operations. Each update overwrites the entry
-    with the same file_id, allowing updates to existing summaries.
-    """
-    summaries_by_file_id = {s.file_id: s for s in existing}
-
-    for item in new:
-        summaries_by_file_id[item.file_id] = item
-
-    return list(summaries_by_file_id.values())
+# Upserts by file_id so each parallel summarization replaces that file's summary.
+merge_summaries: Reducer[FileSummary] = upsert_by(lambda s: s.file_id)
 
 
 class DocumentSummarizationState(BaseWorkflowState):

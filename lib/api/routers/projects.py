@@ -18,8 +18,8 @@ from lib.models.file import File, FileRole
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunType
-from lib.services.docx_workflow_service import DocxManipulatorType, generate_docx
-from lib.services.files import get_files_by_project_id
+from lib.services.docx.service import DocxManipulatorType, generate_docx
+from lib.services.files.service import get_files_by_project_id
 from lib.services.project_zip import create_project_files_zip
 from lib.services.projects import (
     MAX_PROJECT_PAGE_SIZE,
@@ -37,7 +37,7 @@ from lib.services.projects import (
 )
 from lib.services.references import MatchSource, add_file_to_reference
 from lib.services.uuid_utils import ensure_uuid
-from lib.services.workflow_progress import get_project_workflow_progress
+from lib.services.workflow_runs.progress import get_project_workflow_progress
 from lib.workflows.models import SeverityEnum
 
 router = APIRouter(tags=["projects"])

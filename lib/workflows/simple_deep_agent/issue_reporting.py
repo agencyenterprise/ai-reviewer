@@ -21,17 +21,16 @@ from langchain_core.tools import BaseTool, tool
 from pydantic import BaseModel, Field
 
 from lib.agents.tools.view_image import redact_image_blocks
-from lib.services.markdown_text import (
+from lib.services.text.location import locate_in_paragraph, normalize_whitespace
+from lib.services.text.markdown_rendering import (
     rendered_replacement_in_context,
     rendered_span,
 )
-from lib.services.text_location import locate_in_paragraph
 from lib.workflows.models import ProposedEdit
 from lib.workflows.simple_deep_agent.agent_types import DeepAgentRun, IssueItem
 from lib.workflows.simple_deep_agent.edit_anchoring import (
     document_lines,
     find_quote_lines,
-    normalize_whitespace,
     range_excerpt,
 )
 

@@ -1,11 +1,11 @@
 """What a proposed edit's markdown says about whether Word can redline it.
 
 The rendered form of an edit -- the characters the page and the DOCX actually
-show -- is settled once at report time by `lib.services.markdown_text` and
-stored on the row. What is left here reads the *raw* markdown for the few
-questions only the source can answer: whether the edit sits in a table, and
-whether its replacement carries a character Word cannot take as a tracked
-insertion.
+show -- is settled once at report time by
+`lib.services.text.markdown_rendering` and stored on the row. What is left
+here reads the *raw* markdown for the few questions only the source can
+answer: whether the edit sits in a table, and whether its replacement carries
+a character Word cannot take as a tracked insertion.
 
 Pure functions only -- no document loading -- so the rules can be unit-tested
 on plain strings.

@@ -5,9 +5,10 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from lib.models.issue_edit import IssueEdit, IssueEditStatus
-from lib.services.edit_conflicts import (
+from lib.services.docx.edit_conflicts import (
     EditCandidate,
     EditDecision,
+    overlap_groups,
     pick_winner,
     resolve_edit_conflicts,
     winner_sort_key,
@@ -53,6 +54,39 @@ def _candidate(
 
 def _by_id(decisions: list[EditDecision]) -> dict[uuid.UUID, EditDecision]:
     return {decision.edit_id: decision for decision in decisions}
+
+
+def _groups(spans: list[tuple[str, int, int]]) -> list[list[str]]:
+    """Group `(key, start, end)` triples, returned as `key:start-end` names."""
+    named = [(f"{key}:{start}-{end}", key, (start, end)) for key, start, end in spans]
+    groups = overlap_groups(
+        named, key=lambda n: n[1], span=lambda n: n[2], item_id=lambda n: n[0]
+    )
+    return [[n[0] for n in group] for group in groups]
+
+
+class TestOverlapGroups:
+    """The grouping both the per-line and the per-paragraph pass run."""
+
+    def test_spans_that_only_touch_stay_apart(self):
+        assert _groups([("p", 0, 5), ("p", 5, 9)]) == [["p:0-5"], ["p:5-9"]]
+
+    def test_a_long_span_holds_a_later_one_in_its_group(self):
+        assert _groups([("p", 0, 20), ("p", 2, 4), ("p", 10, 12)]) == [
+            ["p:0-20", "p:2-4", "p:10-12"]
+        ]
+
+    def test_overlap_never_crosses_keys(self):
+        assert _groups([("b", 0, 5), ("a", 0, 5)]) == [["a:0-5"], ["b:0-5"]]
+
+    def test_the_groups_do_not_depend_on_the_input_order(self):
+        spans = [("p", 0, 4), ("p", 3, 8), ("p", 3, 8), ("q", 1, 2), ("p", 9, 10)]
+        expected = _groups(spans)
+        shuffler = random.Random(3)
+        for _ in range(10):
+            shuffled = list(spans)
+            shuffler.shuffle(shuffled)
+            assert _groups(shuffled) == expected
 
 
 class TestTheWinnerPolicy:

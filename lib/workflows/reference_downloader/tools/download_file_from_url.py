@@ -21,7 +21,7 @@ from xxhash import xxh128
 
 from lib.config.env import config
 from lib.models.file import FileRole
-from lib.services.files import create_file_record
+from lib.services.files.service import create_file_record
 from lib.services.postgres_rate_limiter import PostgresRateLimiter
 from lib.workflows.context import ContextSchema
 
@@ -112,20 +112,22 @@ async def _download_file_from_url_async(
         )
         raise
 
-    if saved_file is None:
-        logger.warning("Download of %s produced no file", url)
-        return DownloadFileFromUrlResponse(
-            file_id=None,
-            message=f"Failed to download content from {url}: no file produced",
-            success=False,
-        )
-
     file_id = await _persist_file_record(
         saved_file=saved_file,
         reference_details=reference,
         project_id=context.project_id,
         user_id=uuid.UUID(context.user_id) if context.user_id else None,
     )
+    if file_id is None:
+        return DownloadFileFromUrlResponse(
+            file_id=None,
+            message=(
+                f"Downloaded content from {url} but could not save it as a project "
+                "file. This is an internal error, not a problem with the URL; "
+                "retrying the same URL is unlikely to help."
+            ),
+            success=False,
+        )
 
     return DownloadFileFromUrlResponse(
         file_id=file_id,
@@ -139,7 +141,7 @@ class SavedFile(NamedTuple):
     content_type: str
 
 
-async def _download_direct_url(url: str) -> SavedFile | None:
+async def _download_direct_url(url: str) -> SavedFile:
     """Download content from URL, saving a PDF directly and anything else via Jina.
 
     Any failure of the direct fetch falls back to Jina, which fetches from its own
@@ -230,7 +232,7 @@ def is_rate_limited(exc: BaseException) -> bool:
     wait=wait_exponential(multiplier=30, min=30, max=360),
     before_sleep=before_sleep_log(logger, logging.WARNING),
 )
-async def _download_with_jina_api(url: str) -> SavedFile | None:
+async def _download_with_jina_api(url: str) -> SavedFile:
     """Download content using Jina API and save as markdown; raises on any fetch failure or empty content."""
 
     await jina_rate_limiter.aacquire()

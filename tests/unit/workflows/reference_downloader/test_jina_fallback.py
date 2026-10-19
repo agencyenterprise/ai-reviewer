@@ -1,5 +1,6 @@
 """Any direct-fetch failure falls back to Jina, and Jina is called at most once."""
 
+import uuid
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
@@ -146,3 +147,19 @@ async def test_tool_reports_failure_when_direct_and_jina_are_both_blocked(
     assert response.success is False
     assert response.file_id is None
     assert (web.direct_calls, web.jina_calls) == (1, 1)
+
+
+@pytest.mark.asyncio
+async def test_tool_reports_failure_when_the_file_record_cannot_be_saved(
+    install: Callable[[FakeWeb], FakeWeb],
+) -> None:
+    install(FakeWeb(direct=_respond(200, PDF_BYTES, "application/pdf"), jina=JINA_OK))
+    context = MagicMock(project_id=str(uuid.uuid4()), user_id=str(uuid.uuid4()))
+
+    with patch.object(dl, "create_file_record", AsyncMock(side_effect=RuntimeError)):
+        response = await dl._download_file_from_url_async(
+            URL, "Some reference", context
+        )
+
+    assert response.success is False
+    assert response.file_id is None

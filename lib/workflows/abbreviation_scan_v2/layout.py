@@ -6,7 +6,7 @@ each. Plain text processing; no model is involved.
 
 import re
 
-from lib.services.document_sections import split_into_sections
+from lib.services.text.sections import split_into_sections
 from lib.workflows.abbreviation_scan_v2.chunk_models import (
     AbbreviationChunk,
     ChunkStatus,

@@ -1,31 +1,30 @@
 import logging
 import uuid
 from collections.abc import Awaitable, Callable
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from deepagents.backends.utils import create_file_data
 
 from lib.models.bibliography_item import BibliographyItem
 from lib.models.file import File, FileRole
-from lib.services.file import FileDocument
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     FileArtifactsServiceType,
     LoadedDocuments,
     UnreadableDocument,
 )
-from lib.services.files import (
+from lib.services.files.document import FileDocument
+from lib.services.files.service import (
     get_file_by_id,
     get_files_by_project_id,
     load_file_document,
     update_file_artifacts,
 )
 from lib.services.markdown_conversion import convert_file_document_to_markdown
-from lib.services.workflow_runs import (
+from lib.services.workflow_runs.service import (
     get_project_workflow_run_by_type,
     read_workflow_run_state,
 )
-from lib.skills import strip_interactive_only
+from lib.skills import skill_backend_files
 from lib.workflows.document_summarization.state import FileSummary
 from lib.workflows.models import WorkflowRunType
 
@@ -65,22 +64,6 @@ def _as_uuids(file_ids: list[str]) -> list[uuid.UUID]:
         except ValueError:
             continue
     return parsed
-
-
-def skill_backend_files() -> dict[str, Any]:
-    """Every skill under ``skills/``, keyed by its path on the agent filesystem."""
-    project_root = Path(__file__).parents[3]
-    files: dict[str, Any] = {}
-    for skill_file in sorted((project_root / "skills").rglob("*")):
-        if skill_file.is_file():
-            virtual_path = "/" + skill_file.relative_to(project_root).as_posix()
-            # Interactive-only sections (e.g. asking the user for web-search
-            # consent) are for agents driven by a user; a backend run has its
-            # consent already and nobody to ask.
-            files[virtual_path] = create_file_data(
-                strip_interactive_only(skill_file.read_text())
-            )
-    return files
 
 
 class FileArtifactsService(FileArtifactsServiceType):

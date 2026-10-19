@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from lib.agents.reference_validator_v2 import BibliographyItemValidationV2
 from lib.workflows.agent_messages import AgentMessages
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
+from lib.workflows.reducers import Reducer, upsert_by
 
 
 class ReferenceValidationV2Status(str, Enum):
@@ -48,17 +49,10 @@ class ReferenceValidationV2Item(BaseModel):
     )
 
 
-def merge_validation_results(
-    existing: list[ReferenceValidationV2Item],
-    new: list[ReferenceValidationV2Item],
-) -> list[ReferenceValidationV2Item]:
-    """Reducer to merge results by reference_id, preserving order."""
-    results_by_id = {r.reference_id: r for r in existing}
-
-    for item in new:
-        results_by_id[item.reference_id] = item
-
-    return list(results_by_id.values())
+# Merges by reference_id so each validation result replaces its PENDING row.
+merge_validation_results: Reducer[ReferenceValidationV2Item] = upsert_by(
+    lambda r: r.reference_id
+)
 
 
 class ReferenceValidationV2State(BaseWorkflowState):

@@ -21,7 +21,7 @@ from mcp.types import TextContent
 # Patch auth factory before importing the MCP module.
 # lib.api.mcp calls create_mcp_auth() at module level, which raises
 # RuntimeError in test environments without OAuth credentials.
-import lib.api.mcp_auth as _mcp_auth_mod
+import lib.api.mcp.auth as _mcp_auth_mod
 from lib.models.user import User, UserRole
 from lib.workflows.models import WorkflowRunType
 

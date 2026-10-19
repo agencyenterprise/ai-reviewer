@@ -24,8 +24,8 @@ from lib.services.file_artifacts_service.file_artifacts_service import (
 from lib.services.issue_persistence import persist_workflow_issues
 from lib.services.users import get_user_decrypted_api_key
 from lib.services.vector_store import VectorStoreService
-from lib.services.workflow_orchestration import wait_for_dependencies
-from lib.services.workflow_runs import (
+from lib.services.workflow_runs.orchestration import wait_for_dependencies
+from lib.services.workflow_runs.service import (
     fail_workflow_run,
     get_latest_workflow_run_state_by_type,
     get_project_workflow_runs,
@@ -378,7 +378,7 @@ async def _persist_issues_from_state(
 
     Uses the workflow manifest to convert state to issues.
     Loads all existing workflow states for the project so manifests that
-    depend on other workflow states (e.g. reference_validation reading
+    depend on other workflow states (e.g. reference_validation_v2 reading
     reference_extraction) can resolve their data correctly.
     """
     manifest = get_workflow_manifest(workflow_type, raise_exception=False)

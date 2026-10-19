@@ -12,16 +12,15 @@ document, the same edit wins, whatever order the rows arrive in.
 """
 
 import uuid
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
 from typing import Literal
 
 from pydantic import BaseModel
 
 from lib.models.issue_edit import IssueEdit, IssueEditStatus
-from lib.services.text_location import locate_in_paragraph
+from lib.services.text.location import locate_in_paragraph, normalize_whitespace
 from lib.workflows.models import SeverityEnum
-from lib.workflows.simple_deep_agent.edit_anchoring import normalize_whitespace
 
 EditOutcomeName = Literal["apply", "conflict", "unlocatable", "rejected"]
 
@@ -92,34 +91,41 @@ def pick_winner(candidates: Sequence[EditCandidate]) -> EditCandidate:
     return min(candidates, key=winner_sort_key)
 
 
-def _overlap_groups(
-    located: Sequence[tuple[EditCandidate, tuple[int, int]]],
-) -> list[list[EditCandidate]]:
-    """Group edits that overlap, transitively, within one line.
+def overlap_groups[T, K: (int, str)](
+    items: Sequence[T],
+    key: Callable[[T], K],
+    span: Callable[[T], tuple[int, int]],
+    item_id: Callable[[T], str],
+) -> list[list[T]]:
+    """Group items whose spans overlap, transitively, within each `key`.
 
-    Walking the spans in start order is enough: a group is closed as soon as a
-    span starts at or after the furthest end reached so far.
+    Both places two edits compete use this: the markdown lines here, and the
+    Word paragraphs the export maps those lines to. Walking a key's spans in
+    start order is enough: a group is closed as soon as a span starts at or
+    after the furthest end reached so far. Ties sort by `item_id`, so the
+    groups do not depend on the order the items arrive in.
     """
-    by_line: dict[int, list[tuple[EditCandidate, tuple[int, int]]]] = {}
-    for candidate, span in located:
-        by_line.setdefault(candidate.edit.start_line, []).append((candidate, span))
+    by_key: dict[K, list[T]] = {}
+    for item in items:
+        by_key.setdefault(key(item), []).append(item)
 
-    groups: list[list[EditCandidate]] = []
-    for line in sorted(by_line):
+    groups: list[list[T]] = []
+    for group_key in sorted(by_key):
         ordered = sorted(
-            by_line[line], key=lambda pair: (pair[1], str(pair[0].edit.id))
+            by_key[group_key], key=lambda item: (span(item), item_id(item))
         )
-        current: list[EditCandidate] = []
+        current: list[T] = []
         reach = -1
-        for candidate, span in ordered:
-            if current and span[0] < reach:
-                current.append(candidate)
-                reach = max(reach, span[1])
+        for item in ordered:
+            start, end = span(item)
+            if current and start < reach:
+                current.append(item)
+                reach = max(reach, end)
                 continue
             if current:
                 groups.append(current)
-            current = [candidate]
-            reach = span[1]
+            current = [item]
+            reach = end
         if current:
             groups.append(current)
     return groups
@@ -139,7 +145,7 @@ def resolve_edit_conflicts(
     the order the rows came in.
     """
     decisions: list[EditDecision] = []
-    located: list[tuple[EditCandidate, tuple[int, int]]] = []
+    located: list[EditCandidate] = []
     spans: dict[uuid.UUID, tuple[int, int]] = {}
 
     for candidate in candidates:
@@ -163,9 +169,15 @@ def resolve_edit_conflicts(
             )
             continue
         spans[edit.id] = span
-        located.append((candidate, span))
+        located.append(candidate)
 
-    for group in _overlap_groups(located):
+    groups = overlap_groups(
+        located,
+        key=lambda candidate: candidate.edit.start_line,
+        span=lambda candidate: spans[candidate.edit.id],
+        item_id=lambda candidate: str(candidate.edit.id),
+    )
+    for group in groups:
         winner = pick_winner(group)
         for member in group:
             is_winner = member.edit.id == winner.edit.id

@@ -21,8 +21,8 @@ from starlette.applications import Starlette
 from starlette.routing import Mount
 from starlette.testclient import TestClient
 
-from lib.api.mcp_auth import create_mcp_auth
-from lib.api.mcp_middlewares import MCPTrailingSlashMiddleware
+from lib.api.mcp.auth import create_mcp_auth
+from lib.api.mcp.middlewares import MCPTrailingSlashMiddleware
 
 ORIGIN = "https://app.example.com"
 BASE_URL = f"{ORIGIN}/mcp"
@@ -103,7 +103,7 @@ def provider_name(request: pytest.FixtureRequest) -> str:
 
 @pytest.fixture(params=[False, True], ids=["dcr", "cimd"])
 def client(provider_name: str, request: pytest.FixtureRequest) -> TestClient:
-    with patch("lib.api.mcp_auth.config", _config(provider_name, cimd=request.param)):
+    with patch("lib.api.mcp.auth.config", _config(provider_name, cimd=request.param)):
         auth = create_mcp_auth()
     assert isinstance(auth, OAuthProvider)
     return _client(auth)

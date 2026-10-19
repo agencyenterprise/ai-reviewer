@@ -4,6 +4,7 @@ from langgraph.graph import StateGraph
 
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
+from lib.workflows.reducers import cancel_pending
 from lib.workflows.reference_downloader.graph import build_reference_downloader_graph
 from lib.workflows.reference_downloader.state import (
     ReferenceDownloaderState,
@@ -46,14 +47,11 @@ class ReferenceDownloaderManifest(
         self, state: ReferenceDownloaderState
     ) -> ReferenceDownloaderState:
         """Mark any pending reference fetches as cancelled so they don't show as in-progress."""
-        updated = [
-            (
-                item.model_copy(update={"status": ReferenceFetchStatus.CANCELLED})
-                if item.status == ReferenceFetchStatus.PENDING
-                else item
-            )
-            for item in state.fetched_references
-        ]
+        updated = cancel_pending(
+            state.fetched_references,
+            ReferenceFetchStatus.PENDING,
+            ReferenceFetchStatus.CANCELLED,
+        )
         return state.model_copy(update={"fetched_references": updated})
 
     async def create_initial_state(

@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from lib.workflows.agent_messages import AgentMessages
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
+from lib.workflows.reducers import Reducer, upsert_by
 from lib.workflows.reference_downloader.agents.reference_fetcher import (
     ReferenceFetchItem,
 )
@@ -40,23 +41,8 @@ class ReferenceFetchResult(BaseModel):
     )
 
 
-def merge_fetch_results(
-    existing: list[ReferenceFetchResult],
-    new: list[ReferenceFetchResult],
-) -> list[ReferenceFetchResult]:
-    """Reducer to merge results by reference_id, preserving order.
-
-    This reducer function is used by LangGraph to handle incremental updates
-    from parallel fetch operations. Each update overwrites the entry with the
-    same reference_id, allowing status transitions from PENDING to COMPLETED/ERROR.
-    """
-    results_by_id = {r.reference_id: r for r in existing}
-
-    for item in new:
-        results_by_id[item.reference_id] = item
-
-    # Return in insertion order (dict preserves order in Python 3.7+)
-    return list(results_by_id.values())
+# Merges by reference_id so each fetch result replaces its PENDING row.
+merge_fetch_results: Reducer[ReferenceFetchResult] = upsert_by(lambda r: r.reference_id)
 
 
 class ReferenceDownloaderInputItem(BaseModel):
