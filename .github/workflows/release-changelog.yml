@@ -14,11 +14,18 @@ jobs:
       pull-requests: read
     
     steps:
+      - name: Create release bot token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Need full history for git log
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
       
       - name: Detect test mode
         id: mode
@@ -51,8 +58,8 @@ jobs:
         run: |
           echo "Validating required secrets for production mode..."
           
-          if [ -z "${{ secrets.PAT_TOKEN }}" ]; then
-            echo "ERROR: PAT_TOKEN secret is required for production mode. This token is needed to: checkout repository with full access, push changelog commits to main branch, and create GitHub releases. Please configure PAT_TOKEN in repository secrets."
+          if [ -z "${{ secrets.RELEASE_APP_ID }}" ] || [ -z "${{ secrets.RELEASE_APP_PRIVATE_KEY }}" ]; then
+            echo "ERROR: RELEASE_APP_ID and RELEASE_APP_PRIVATE_KEY secrets are required for production mode. They are used to mint the release bot token that checks out the repository with full access, pushes changelog commits to main and creates GitHub releases."
             exit 1
           fi
           
@@ -162,7 +169,7 @@ jobs:
       - name: Create or simulate GitHub Release
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.PAT_TOKEN }}
+          github-token: ${{ steps.app-token.outputs.token }}
           script: |
             const fs = require('fs');
             const changelogContent = fs.readFileSync('.github/scripts/changelog-entry.md', 'utf8');
