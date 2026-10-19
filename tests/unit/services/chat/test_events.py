@@ -7,7 +7,7 @@ are deliberately ignored there, and completed messages in ``updates``.
 """
 
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, ToolMessage
-from langgraph.types import Overwrite
+from langgraph.types import Interrupt, Overwrite
 
 from lib.services.chat.events import GraphEventMapper, content_blocks
 
@@ -251,3 +251,34 @@ def test_content_blocks_normalises_every_shape() -> None:
         {"type": "text", "text": "a"}
     ]
     assert content_blocks(None) == []
+
+
+class TestAPauseForThePerson:
+    def test_an_interrupt_becomes_an_event_with_what_was_asked(self) -> None:
+        mapper = GraphEventMapper()
+        paused = (Interrupt(value={"suggestion_id": "card-1"}, id="i-1"),)
+
+        events = mapper.map("updates", {"__interrupt__": paused})
+
+        assert events == [{"t": "interrupt", "v": [{"suggestion_id": "card-1"}]}]
+
+
+class TestAToolResultNamesItsTool:
+    def test_the_name_travels_with_the_result(self) -> None:
+        """A resumed run's first result answers a call made before it paused, which the
+        page has only in the stored history: without the name it cannot match them."""
+
+        mapper = GraphEventMapper()
+        message = ToolMessage(
+            content="Applied 7 of 8.", tool_call_id="c9", name="ask_to_apply", id="t9"
+        )
+
+        events = mapper.map("updates", {"tools": {"messages": [message]}})
+
+        assert events[-1] == {
+            "t": "tool_result",
+            "id": "c9",
+            "result": "Applied 7 of 8.",
+            "mid": "t9",
+            "name": "ask_to_apply",
+        }

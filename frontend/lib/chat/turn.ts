@@ -94,7 +94,9 @@ export class TurnAccumulator {
         break;
       }
       case 'tool_result': {
-        const name = this.callName(event.id);
+        // The call may have been made before this stream began (a resumed answer), so the
+        // name the backend sends wins over looking the call up among this turn's own.
+        const name = event.name ?? this.callName(event.id);
         this.close();
         this.settled = [
           ...this.settled,

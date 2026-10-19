@@ -10,15 +10,16 @@ content block, which the model reads directly from the tool result.
 import base64
 import logging
 import uuid
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Any
 
 import aiofiles
 from fastapi import HTTPException
 from langchain.tools import ToolRuntime, tool
 from langchain_core.messages import BaseMessage, ToolMessage
+from langchain_core.tools import BaseTool
 
-from lib.models.file import FileRole
+from lib.models.file import File, FileRole
 from lib.services.files.service import get_file_by_id
 from lib.services.image_extraction import IMAGE_REFERENCE_SCHEME
 from lib.workflows.context import ContextSchema
@@ -34,7 +35,7 @@ VIEWABLE_MIME_TYPES = frozenset({"image/png", "image/jpeg", "image/gif", "image/
 MAX_IMAGE_BYTES = 15 * 1024 * 1024
 
 _NOT_FOUND = (
-    "Error: no document image exists for this reference in the current project."
+    "Error: no document image exists for this reference in the current document."
 )
 
 # Appended to the system prompt of every agent that binds `view_image`, so the
@@ -69,23 +70,62 @@ def _parse_image_file_id(image_reference: str) -> uuid.UUID | None:
         return None
 
 
-@tool()
+DESCRIPTION = """Look at an image embedded in a document. Images appear in the document \
+markdown as `![alt](draftdetective://...)`; pass that `draftdetective://...` src (query \
+parameters and all) to see the image itself.
+
+Args:
+    image_reference: The image src from the document markdown, e.g.
+        `draftdetective://123e4567-e89b-12d3-a456-426614174000?w=400&h=300`.
+
+Returns:
+    The image as visual content, or an error message when the reference does not \
+resolve to a viewable image."""
+
+
+@tool(description=DESCRIPTION)
 async def view_image(
     image_reference: str, runtime: ToolRuntime[ContextSchema]
 ) -> list[dict[str, Any]] | str:
-    """
-    Look at an image embedded in a document. Images appear in the document
-    markdown as `![alt](draftdetective://...)`; pass that `draftdetective://...`
-    src (query parameters and all) to see the image itself.
+    # Scoped to the running project's extracted images: the id comes from model
+    # output, so it must not be able to read arbitrary files by guessing ids.
+    # A row of no project (a chat's) never matches, even a run without one.
+    project_id = runtime.context.project_id
+    return await _view(
+        image_reference,
+        lambda file: (
+            file.project_id is not None
+            and project_id is not None
+            and str(file.project_id) == str(project_id)
+        ),
+    )
 
-    Args:
-        image_reference: The image src from the document markdown, e.g.
-            `draftdetective://123e4567-e89b-12d3-a456-426614174000?w=400&h=300`.
 
-    Returns:
-        The image as visual content, or an error message when the reference
-        does not resolve to a viewable image.
+def view_image_for_conversation(conversation_id: uuid.UUID) -> BaseTool:
+    """``view_image`` for one conversation, bound when its turn is built.
+
+    The conversation is fixed here, by the server, never taken from the model: the
+    images it may read are the rows that conversation owns (``files.conversation_id``),
+    the same guarantee the project check gives a workflow. Used by the Word add-in's
+    chat and the Teams bot.
     """
+
+    @tool("view_image", description=DESCRIPTION)
+    async def view_conversation_image(
+        image_reference: str,
+    ) -> list[dict[str, Any]] | str:
+        return await _view(
+            image_reference, lambda file: file.conversation_id == conversation_id
+        )
+
+    return view_conversation_image
+
+
+async def _view(
+    image_reference: str, owned: Callable[[File], bool]
+) -> list[dict[str, Any]] | str:
+    """The image a reference names, if ``owned`` says this run may read it."""
+
     file_id = _parse_image_file_id(image_reference)
     if file_id is None:
         return (
@@ -104,14 +144,12 @@ async def view_image(
         logger.warning("Could not look up document image %s", file_id, exc_info=True)
         return _NOT_FOUND
 
-    # Scope to the running project's extracted images: the id comes from model
-    # output, so it must not be able to read arbitrary files by guessing ids.
-    if (
-        str(file.project_id) != str(runtime.context.project_id)
-        or file.role != FileRole.EXTRACTED_IMAGE
-    ):
+    if not owned(file) or file.role != FileRole.EXTRACTED_IMAGE:
         return _NOT_FOUND
+    return await _content(file)
 
+
+async def _content(file: File) -> list[dict[str, Any]] | str:
     if file.file_type not in VIEWABLE_MIME_TYPES:
         return (
             f"This image is stored as {file.file_type}, which cannot be displayed. "

@@ -10,7 +10,9 @@ person asking may be allowed to read. A link is something they already had.
 
 Both tools are built per run, bound to one identity, by the factories below. That is
 deliberate: the token belongs to the person who asked, so a run cannot read anything they
-could not. The model never sees the token -- it is closed over, not a parameter.
+could not. The model never sees the token -- it is closed over, not a parameter. The
+conversation is closed over the same way: a document's images are stored as that
+conversation's, for ``view_image`` in it.
 
 ``open_document`` mounts the document rather than returning its text, because a tool
 result over roughly 80,000 characters is evicted by the filesystem middleware to
@@ -27,6 +29,7 @@ may have been edited since, and may have been loaded for somebody else in the th
 
 import logging
 import re
+import uuid
 from typing import Any
 
 from deepagents.backends.utils import create_file_data
@@ -35,6 +38,7 @@ from langchain.tools import BaseTool, ToolRuntime, tool
 from langchain_core.messages import ToolMessage
 from langgraph.types import Command
 
+from lib.services.files import images as file_images
 from lib.services.microsoft.graph import client, documents
 from lib.services.microsoft.graph.client import GraphError, redacted
 
@@ -83,8 +87,12 @@ def comments_path(path: str) -> str:
     return f"{path.removesuffix('.md')}.comments.md"
 
 
-def open_document_for(token: str) -> BaseTool:
-    """The document-opening tool, reading as whoever ``token`` belongs to."""
+def open_document_for(token: str, conversation_id: uuid.UUID) -> BaseTool:
+    """The document-opening tool, reading as whoever ``token`` belongs to.
+
+    The document's images are kept for ``conversation_id``, the run's conversation,
+    which is what ``view_image`` in the same run may read.
+    """
 
     @tool()
     async def open_document(
@@ -132,6 +140,8 @@ def open_document_for(token: str) -> BaseTool:
             return f"I could not open that document: {error}"
 
         logger.info("opened %s at %s", redacted(url), destination)
+        # Before the markdown is mounted, so every image it names can be opened.
+        await file_images.add_conversation_images(conversation_id, document.images)
 
         # A Command is how a tool writes into the agent's filesystem; the built-in
         # write_file does the same. The files key merges, so this adds rather than

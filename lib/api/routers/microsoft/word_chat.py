@@ -1,0 +1,300 @@
+"""The Word add-in's chat with Draft Detective.
+
+One continuing conversation per signed-in Microsoft account and document
+(``lib/services/microsoft/word/chat_threads.py``), streamed the way the /chat page's
+is: server-sent events of the same shape, from ``lib/services/chat``. The pane sends
+the document's .docx along with a message whenever it changed, because only the pane
+can read the document mid-edit (``lib/services/microsoft/word/pane_document.py``).
+
+The agent's comments and tracked changes are suggestions until the person applies
+them: stored as handoffs, read back here for the card, and applied, claimed and
+reported through the same ``/word/handoffs`` routes as the ones from Teams.
+
+Scoped like every add-in route, to the Microsoft account the pane signs in as
+(``lib/api/addin_auth.py``), never to a Draft Detective user.
+"""
+
+import logging
+from typing import Annotated, Any
+from uuid import UUID
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Response,
+    UploadFile,
+    status,
+)
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
+
+from lib.agents.tools.word_suggestions import DOCUMENT_PATH, SuggestionTarget
+from lib.agents.word_chat_agent import (
+    WordChatTurn,
+    pending_suggestion,
+    run_word_chat_resume,
+    run_word_chat_turn,
+)
+from lib.agents.word_chat_checks import PaneCheck, pane_checks
+from lib.api.addin_auth import AddinIdentity, get_addin_identity
+from lib.models.microsoft_word_chat_thread import MicrosoftWordChatThread
+from lib.services.chat.history import to_ui_messages
+from lib.services.chat.sse import sse_stream
+from lib.services.chat.thread_state import load_thread_messages, read_thread_file
+from lib.services.files import images as file_images
+from lib.services.microsoft import linked_users
+from lib.services.microsoft.graph.documents import LoadedDocument
+from lib.services.microsoft.word import chat_suggestions, chat_threads, pane_document
+from lib.services.microsoft.word.chat_suggestions import ChatSuggestion
+from lib.services.microsoft.word.handoffs import Account, Requester
+from lib.services.microsoft.word.pane_document import NotADocument
+
+logger = logging.getLogger(__name__)
+
+# Mounted under the /word router (``word.py``), which every add-in route shares.
+router = APIRouter(prefix="/chat", tags=["microsoft", "word"])
+
+# Sent with a 409 when the conversation needs the document; the pane matches on it.
+DOCUMENT_NEEDED = (
+    "This conversation does not have the document yet: send it with the message."
+)
+
+# A whole .docx, images included.
+MAX_DOCUMENT_BYTES = 50 * 1024 * 1024
+
+
+def _account(caller: AddinIdentity) -> Account:
+    return Account(oid=caller.oid, tid=caller.tid)
+
+
+class WordChatHistory(BaseModel):
+    thread_id: UUID | None = Field(
+        default=None, description="None until the first message to this document"
+    )
+    messages: list[dict[str, Any]] = Field(
+        default_factory=list, description="In the shape the /chat page renders"
+    )
+    pending_suggestion_id: UUID | None = Field(
+        default=None,
+        description=(
+            "The card the conversation is paused on, waiting for it to be applied or "
+            "dismissed; the turn carries on through POST /thread/resume"
+        ),
+    )
+
+
+class WordChatClearRequest(BaseModel):
+    url: str = Field(description="The document URL Word reports; empty when unsaved")
+
+
+@router.get("/thread", response_model=WordChatHistory)
+async def get_thread(
+    url: str = Query(description="The document URL Word reports"),
+    caller: AddinIdentity = Depends(get_addin_identity),
+) -> WordChatHistory:
+    """The current conversation about this document, if there is one."""
+
+    thread = await chat_threads.current(_account(caller), url)
+    if thread is None:
+        return WordChatHistory()
+    messages = to_ui_messages(await load_thread_messages(str(thread.id)))
+    return WordChatHistory(
+        thread_id=thread.id,
+        messages=messages,
+        pending_suggestion_id=await pending_suggestion(thread.id),
+    )
+
+
+@router.post(
+    "/thread/stream",
+    response_class=StreamingResponse,
+    responses={200: {"content": {"text/event-stream": {}}}},
+)
+async def stream_turn(
+    url: Annotated[
+        str, Form(description="The document URL Word reports; empty when unsaved")
+    ],
+    message: Annotated[str, Form(min_length=1, description="What they typed")],
+    message_id: Annotated[
+        str | None,
+        Form(description="The id the pane already shows the message under"),
+    ] = None,
+    selection: Annotated[
+        str | None, Form(description="The text selected in Word, if any")
+    ] = None,
+    document: Annotated[
+        UploadFile | None,
+        File(
+            description=(
+                "The .docx, when it changed since it was last sent in this thread. "
+                "Left out, the agent keeps the copy it has."
+            )
+        ),
+    ] = None,
+    caller: AddinIdentity = Depends(get_addin_identity),
+) -> StreamingResponse:
+    """Answer a message about the open document, streamed as server-sent events.
+
+    Starts the conversation if there is none. Events are those of
+    ``POST /api/chat/threads/{id}/stream``.
+
+    Refused with 409 when the message comes without the document and the conversation
+    has none: the pane only knows what it sent, not which conversation the message
+    lands in (a document just saved gets a new one, and so does another account or a
+    chat cleared in another pane). It sends again with the document.
+    """
+
+    loaded = await _read_document(url, document)
+    account = _account(caller)
+    thread = await chat_threads.current_or_new(
+        account,
+        url,
+        lambda: linked_users.user_for(caller.email_claim, caller.name, caller.tid),
+    )
+    if loaded is not None:
+        # Before the turn, so the agent can open every image its markdown names.
+        await file_images.replace_conversation_images(thread.id, loaded.images)
+    elif not await _has_document(thread.id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=DOCUMENT_NEEDED,
+        )
+    previous = await chat_threads.begin_turn(thread.id)
+    news = chat_suggestions.news_since(
+        await chat_suggestions.for_thread(thread.id), previous
+    )
+    turn = WordChatTurn(
+        thread_id=thread.id,
+        text=message,
+        message_id=message_id,
+        document=loaded,
+        selection=selection,
+        suggestion_news=news,
+    )
+    events = run_word_chat_turn(turn, _target(caller, thread))
+    return StreamingResponse(
+        sse_stream(events),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+async def _has_document(thread_id: UUID) -> bool:
+    return await read_thread_file(str(thread_id), DOCUMENT_PATH) is not None
+
+
+async def _read_document(
+    url: str, document: UploadFile | None
+) -> LoadedDocument | None:
+    if document is None:
+        return None
+    # The upload is already received by now (Starlette spools a file part to disk,
+    # with no size cap of its own), so this bounds what is read and converted, not
+    # what was sent. A cap on what can be sent belongs to the proxy in front.
+    payload = await document.read(MAX_DOCUMENT_BYTES + 1)
+    if len(payload) > MAX_DOCUMENT_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=f"The document exceeds {MAX_DOCUMENT_BYTES // (1024 * 1024)} MB",
+        )
+    try:
+        return await pane_document.from_docx(
+            payload,
+            name=chat_threads.document_name(url),
+            url=url,
+        )
+    except NotADocument as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"The document could not be read: {error}",
+        ) from error
+
+
+def _target(caller: AddinIdentity, thread: MicrosoftWordChatThread) -> SuggestionTarget:
+    return SuggestionTarget(
+        requester=Requester(oid=caller.oid, tid=caller.tid, upn=caller.email or ""),
+        chat_thread_id=thread.id,
+        document_name=thread.document_name,
+        document_url=thread.document_url,
+        document_keys=thread.document_keys,
+    )
+
+
+class WordChatResumeRequest(BaseModel):
+    url: str = Field(description="The document URL Word reports; empty when unsaved")
+
+
+@router.post(
+    "/thread/resume",
+    response_class=StreamingResponse,
+    responses={200: {"content": {"text/event-stream": {}}}},
+)
+async def resume_turn(
+    request: WordChatResumeRequest,
+    caller: AddinIdentity = Depends(get_addin_identity),
+) -> StreamingResponse:
+    """Carry on the answer that paused on its card, once the card is applied or dismissed.
+
+    Streamed as ``POST /thread/stream`` is. The agent reads the outcome from the card
+    itself; nothing the pane sends is taken as the outcome. 409 when nothing is paused,
+    or when the card is still waiting.
+    """
+
+    thread = await chat_threads.current(_account(caller), request.url)
+    waiting_on = await pending_suggestion(thread.id) if thread else None
+    if thread is None or waiting_on is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This conversation is not waiting on a card.",
+        )
+    card = await chat_suggestions.suggestion_for(waiting_on, _account(caller))
+    if card is not None and card.status in ("pending", "applying"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="The card has not been applied or dismissed yet.",
+        )
+    # The agent hears the outcome now, so the next message must not repeat it as news.
+    await chat_threads.begin_turn(thread.id)
+    events = run_word_chat_resume(thread.id, _target(caller, thread))
+    return StreamingResponse(
+        sse_stream(events),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.post("/thread/clear", status_code=status.HTTP_204_NO_CONTENT)
+async def clear_thread(
+    request: WordChatClearRequest,
+    caller: AddinIdentity = Depends(get_addin_identity),
+) -> Response:
+    """Set this document's conversation aside; the next message starts a new one."""
+
+    await chat_threads.clear(_account(caller), request.url)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/suggestions/{suggestion_id}", response_model=ChatSuggestion)
+async def get_suggestion(
+    suggestion_id: UUID,
+    caller: AddinIdentity = Depends(get_addin_identity),
+) -> ChatSuggestion:
+    """One set of the chat's suggestions, for its card: open, applied or dismissed."""
+
+    suggestion = await chat_suggestions.suggestion_for(suggestion_id, _account(caller))
+    if suggestion is None:
+        raise HTTPException(status_code=404, detail="No suggestions with that id")
+    return suggestion
+
+
+@router.get("/checks", response_model=list[PaneCheck])
+async def list_checks(
+    _caller: AddinIdentity = Depends(get_addin_identity),
+) -> list[PaneCheck]:
+    """The checks the chat offers to run from its list, without the internet."""
+
+    return pane_checks()

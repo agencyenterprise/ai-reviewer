@@ -11,12 +11,6 @@ import {
 } from './client';
 import { client } from './client.gen';
 import type {
-  AnnotateApiMicrosoftWordCommentsAnnotatePostData,
-  AnnotateApiMicrosoftWordCommentsAnnotatePostErrors,
-  AnnotateApiMicrosoftWordCommentsAnnotatePostResponses,
-  ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostData,
-  ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostErrors,
-  ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostResponses,
   ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostData,
   ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostErrors,
   ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostResponses,
@@ -29,6 +23,9 @@ import type {
   CheckPreflightApiPreflightPostData,
   CheckPreflightApiPreflightPostErrors,
   CheckPreflightApiPreflightPostResponses,
+  ClearThreadApiMicrosoftWordChatThreadClearPostData,
+  ClearThreadApiMicrosoftWordChatThreadClearPostErrors,
+  ClearThreadApiMicrosoftWordChatThreadClearPostResponses,
   CoreHeadRouteTusUuidHeadData,
   CoreHeadRouteTusUuidHeadErrors,
   CoreHeadRouteTusUuidHeadResponses,
@@ -150,6 +147,12 @@ import type {
   GetSharedResourceApiPublicShareTokenGetData,
   GetSharedResourceApiPublicShareTokenGetErrors,
   GetSharedResourceApiPublicShareTokenGetResponses,
+  GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetData,
+  GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetErrors,
+  GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetResponses,
+  GetThreadApiMicrosoftWordChatThreadGetData,
+  GetThreadApiMicrosoftWordChatThreadGetErrors,
+  GetThreadApiMicrosoftWordChatThreadGetResponses,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetData,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetErrors,
   GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses,
@@ -175,6 +178,8 @@ import type {
   ListChatModelsApiChatModelsGetResponses,
   ListChatSkillsApiChatSkillsGetData,
   ListChatSkillsApiChatSkillsGetResponses,
+  ListChecksApiMicrosoftWordChatChecksGetData,
+  ListChecksApiMicrosoftWordChatChecksGetResponses,
   ListLogsApiAdminLogsGetData,
   ListLogsApiAdminLogsGetResponses,
   ListMessagesApiChatThreadsThreadIdMessagesGetData,
@@ -215,6 +220,9 @@ import type {
   ResolveIssueEndpointApiIssuesIssueIdResolvePostData,
   ResolveIssueEndpointApiIssuesIssueIdResolvePostErrors,
   ResolveIssueEndpointApiIssuesIssueIdResolvePostResponses,
+  ResumeTurnApiMicrosoftWordChatThreadResumePostData,
+  ResumeTurnApiMicrosoftWordChatThreadResumePostErrors,
+  ResumeTurnApiMicrosoftWordChatThreadResumePostResponses,
   SetApiKeyApiUsersMeApiKeyPutData,
   SetApiKeyApiUsersMeApiKeyPutErrors,
   SetApiKeyApiUsersMeApiKeyPutResponses,
@@ -233,6 +241,9 @@ import type {
   StreamChatTurnApiChatThreadsThreadIdStreamPostData,
   StreamChatTurnApiChatThreadsThreadIdStreamPostErrors,
   StreamChatTurnApiChatThreadsThreadIdStreamPostResponses,
+  StreamTurnApiMicrosoftWordChatThreadStreamPostData,
+  StreamTurnApiMicrosoftWordChatThreadStreamPostErrors,
+  StreamTurnApiMicrosoftWordChatThreadStreamPostResponses,
   SubmitAnnotationApiAnnotationsItemsItemIdPutData,
   SubmitAnnotationApiAnnotationsItemsItemIdPutErrors,
   SubmitAnnotationApiAnnotationsItemsItemIdPutResponses,
@@ -2209,27 +2220,84 @@ export const setApiKeyApiUsersMeApiKeyPut = <ThrowOnError extends boolean = true
   });
 
 /**
- * Annotate
+ * Get Thread
  *
- * Write one Draft Detective comment into this paragraph's markup.
+ * The current conversation about this document, if there is one.
  */
-export const annotateApiMicrosoftWordCommentsAnnotatePost = <ThrowOnError extends boolean = true>(
-  options: Options<AnnotateApiMicrosoftWordCommentsAnnotatePostData, ThrowOnError>,
+export const getThreadApiMicrosoftWordChatThreadGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetThreadApiMicrosoftWordChatThreadGetData, ThrowOnError>,
 ): RequestResult<
-  AnnotateApiMicrosoftWordCommentsAnnotatePostResponses,
-  AnnotateApiMicrosoftWordCommentsAnnotatePostErrors,
+  GetThreadApiMicrosoftWordChatThreadGetResponses,
+  GetThreadApiMicrosoftWordChatThreadGetErrors,
   ThrowOnError,
   'data'
 > =>
-  (options.client ?? client).post<
-    AnnotateApiMicrosoftWordCommentsAnnotatePostResponses,
-    AnnotateApiMicrosoftWordCommentsAnnotatePostErrors,
+  (options.client ?? client).get<
+    GetThreadApiMicrosoftWordChatThreadGetResponses,
+    GetThreadApiMicrosoftWordChatThreadGetErrors,
     ThrowOnError,
     'data'
   >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/microsoft/word/comments/annotate',
+    url: '/api/microsoft/word/chat/thread',
+    ...options,
+  });
+
+/**
+ * Stream Turn
+ *
+ * Answer a message about the open document, streamed as server-sent events.
+ *
+ * Starts the conversation if there is none. Events are those of
+ * ``POST /api/chat/threads/{id}/stream``.
+ *
+ * Refused with 409 when the message comes without the document and the conversation
+ * has none: the pane only knows what it sent, not which conversation the message
+ * lands in (a document just saved gets a new one, and so does another account or a
+ * chat cleared in another pane). It sends again with the document.
+ */
+export const streamTurnApiMicrosoftWordChatThreadStreamPost = <ThrowOnError extends boolean = true>(
+  options: Options<StreamTurnApiMicrosoftWordChatThreadStreamPostData, ThrowOnError, unknown>,
+): Promise<ServerSentEventsResult<StreamTurnApiMicrosoftWordChatThreadStreamPostResponses>> =>
+  (options.client ?? client).sse.post<
+    StreamTurnApiMicrosoftWordChatThreadStreamPostResponses,
+    StreamTurnApiMicrosoftWordChatThreadStreamPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    ...formDataBodySerializer,
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/microsoft/word/chat/thread/stream',
+    ...options,
+    headers: {
+      'Content-Type': null,
+      ...options.headers,
+    },
+  });
+
+/**
+ * Resume Turn
+ *
+ * Carry on the answer that paused on its card, once the card is applied or dismissed.
+ *
+ * Streamed as ``POST /thread/stream`` is. The agent reads the outcome from the card
+ * itself; nothing the pane sends is taken as the outcome. 409 when nothing is paused,
+ * or when the card is still waiting.
+ */
+export const resumeTurnApiMicrosoftWordChatThreadResumePost = <ThrowOnError extends boolean = true>(
+  options: Options<ResumeTurnApiMicrosoftWordChatThreadResumePostData, ThrowOnError, unknown>,
+): Promise<ServerSentEventsResult<ResumeTurnApiMicrosoftWordChatThreadResumePostResponses>> =>
+  (options.client ?? client).sse.post<
+    ResumeTurnApiMicrosoftWordChatThreadResumePostResponses,
+    ResumeTurnApiMicrosoftWordChatThreadResumePostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/microsoft/word/chat/thread/resume',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -2238,32 +2306,72 @@ export const annotateApiMicrosoftWordCommentsAnnotatePost = <ThrowOnError extend
   });
 
 /**
- * Apply Suggestions
+ * Clear Thread
  *
- * Write Draft Detective's proposed changes into this paragraph as tracked changes.
+ * Set this document's conversation aside; the next message starts a new one.
  */
-export const applySuggestionsApiMicrosoftWordSuggestionsApplyPost = <ThrowOnError extends boolean = true>(
-  options: Options<ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostData, ThrowOnError>,
+export const clearThreadApiMicrosoftWordChatThreadClearPost = <ThrowOnError extends boolean = true>(
+  options: Options<ClearThreadApiMicrosoftWordChatThreadClearPostData, ThrowOnError>,
 ): RequestResult<
-  ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostResponses,
-  ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostErrors,
+  ClearThreadApiMicrosoftWordChatThreadClearPostResponses,
+  ClearThreadApiMicrosoftWordChatThreadClearPostErrors,
   ThrowOnError,
   'data'
 > =>
   (options.client ?? client).post<
-    ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostResponses,
-    ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostErrors,
+    ClearThreadApiMicrosoftWordChatThreadClearPostResponses,
+    ClearThreadApiMicrosoftWordChatThreadClearPostErrors,
     ThrowOnError,
     'data'
   >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/microsoft/word/suggestions/apply',
+    url: '/api/microsoft/word/chat/thread/clear',
     ...options,
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * Get Suggestion
+ *
+ * One set of the chat's suggestions, for its card: open, applied or dismissed.
+ */
+export const getSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetData, ThrowOnError>,
+): RequestResult<
+  GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetResponses,
+  GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).get<
+    GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetResponses,
+    GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/microsoft/word/chat/suggestions/{suggestion_id}',
+    ...options,
+  });
+
+/**
+ * List Checks
+ *
+ * The checks the chat offers to run from its list, without the internet.
+ */
+export const listChecksApiMicrosoftWordChatChecksGet = <ThrowOnError extends boolean = true>(
+  options?: Options<ListChecksApiMicrosoftWordChatChecksGetData, ThrowOnError>,
+): RequestResult<ListChecksApiMicrosoftWordChatChecksGetResponses, unknown, ThrowOnError, 'data'> =>
+  (options?.client ?? client).get<ListChecksApiMicrosoftWordChatChecksGetResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/microsoft/word/chat/checks',
+    ...options,
   });
 
 /**

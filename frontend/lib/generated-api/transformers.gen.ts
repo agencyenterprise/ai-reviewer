@@ -13,6 +13,7 @@ import type {
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponse,
   GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse,
   GetSharedResourceApiPublicShareTokenGetResponse,
+  GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetResponse,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponse,
   ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponse,
   ListLogsApiAdminLogsGetResponse,
@@ -375,6 +376,21 @@ export const getSharedResourceApiPublicShareTokenGetResponseTransformer = async 
   data: any,
 ): Promise<GetSharedResourceApiPublicShareTokenGetResponse> => {
   data = projectOverviewSchemaResponseTransformer(data);
+  return data;
+};
+
+const chatSuggestionSchemaResponseTransformer = (data: any) => {
+  data.created_at = new Date(data.created_at);
+  if (data.finished_at) {
+    data.finished_at = new Date(data.finished_at);
+  }
+  return data;
+};
+
+export const getSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetResponseTransformer = async (
+  data: any,
+): Promise<GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetResponse> => {
+  data = chatSuggestionSchemaResponseTransformer(data);
   return data;
 };
 

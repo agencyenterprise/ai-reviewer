@@ -91,6 +91,19 @@ class TestOfficeSingleSignOn:
         assert identity.email == "ana@contoso.com"
 
     @pytest.mark.asyncio
+    async def test_only_the_email_claim_links_the_account_to_a_user(self) -> None:
+        """The UPN is shown, but linking uses the claim the web app's sign-in reads."""
+
+        upn_only = await addin_auth.identify(entra_token())
+        with_email = await addin_auth.identify(
+            entra_token(email="ana@mail.contoso.com")
+        )
+
+        assert upn_only is not None and upn_only.email_claim is None
+        assert with_email is not None
+        assert with_email.email_claim == "ana@mail.contoso.com"
+
+    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "overrides",
         [
@@ -202,6 +215,7 @@ class TestTheDialogFallback:
 
         assert identity is not None
         assert (identity.oid, identity.tid) == ("oid-ana", TENANT)
+        assert identity.email_claim == "ana@contoso.com"
 
     @pytest.mark.asyncio
     async def test_a_google_sign_in_is_nobody_even_with_the_same_email(self) -> None:

@@ -144,10 +144,14 @@ class HandoffOutcome(BaseModel):
 
 class FinishedHandoff(BaseModel):
     document_name: str
-    reference: dict[str, Any]
+    reference: dict[str, Any] | None = None
     items: HandoffItems = Field(default_factory=HandoffItems)
 
-    def conversation_reference(self) -> ConversationReference:
+    def conversation_reference(self) -> ConversationReference | None:
+        """Where in Teams to report it. None when it came from the add-in's chat."""
+
+        if not self.reference:
+            return None
         return ConversationReference.model_validate(self.reference)
 
 
@@ -198,7 +202,7 @@ def document_keys(item: dict[str, Any], library_url: str | None) -> list[str]:
     return sorted(keys)
 
 
-def _owned_by(account: Account) -> Any:
+def owned_by(account: Account) -> Any:
     same_account = col(MicrosoftWordHandoff.requested_by_oid) == account.oid
     if not account.tid:
         return same_account
@@ -213,7 +217,7 @@ def _owned_by(account: Account) -> Any:
     )
 
 
-def _fresh() -> Any:
+def fresh() -> Any:
     return col(MicrosoftWordHandoff.created_at) >= datetime.now(UTC) - KEPT_FOR
 
 
@@ -224,7 +228,7 @@ async def _sweep(session: AsyncSession) -> None:
     not kept for want of new handoffs; the reads also skip expired rows on their own.
     """
 
-    await session.execute(delete(MicrosoftWordHandoff).where(not_(_fresh())))
+    await session.execute(delete(MicrosoftWordHandoff).where(not_(fresh())))
 
 
 async def create(
@@ -234,9 +238,14 @@ async def create(
     document_url: str,
     keys: list[str],
     items: HandoffItems,
-    reference: dict[str, Any],
+    reference: dict[str, Any] | None = None,
+    chat_thread_id: uuid.UUID | None = None,
 ) -> uuid.UUID:
-    """Store a handoff, and sweep the ones past their time in the same transaction."""
+    """Store a handoff, and sweep the ones past their time in the same transaction.
+
+    From Teams it carries the conversation to report back to (``reference``); from the
+    add-in's chat it carries that chat's thread instead.
+    """
 
     handoff_id = uuid.uuid4()
     now = datetime.now(UTC)
@@ -252,6 +261,7 @@ async def create(
                 document_keys=keys,
                 items=items.model_dump(mode="json"),
                 reference=reference,
+                chat_thread_id=chat_thread_id,
                 status="pending",
                 created_at=now,
             )
@@ -263,16 +273,20 @@ async def create(
 
 
 async def pending_for(account: Account) -> list[MicrosoftWordHandoff]:
-    """Every open handoff of this person's, newest first."""
+    """Every open handoff of this person's from Teams, newest first.
+
+    Suggestions from the add-in's own chat are left out: they are shown in that chat.
+    """
 
     async with get_async_db_session() as session:
         await _sweep(session)
         await session.commit()
         rows = await session.execute(
             select(MicrosoftWordHandoff)
-            .where(_owned_by(account))
+            .where(owned_by(account))
+            .where(col(MicrosoftWordHandoff.chat_thread_id).is_(None))
             .where(col(MicrosoftWordHandoff.status).in_(OPEN))
-            .where(_fresh())
+            .where(fresh())
             .order_by(col(MicrosoftWordHandoff.created_at).desc())
         )
         return list(rows.scalars().all())
@@ -320,9 +334,9 @@ async def finish(
             await session.execute(
                 update(MicrosoftWordHandoff)
                 .where(col(MicrosoftWordHandoff.id) == handoff_id)
-                .where(_owned_by(account))
+                .where(owned_by(account))
                 .where(col(MicrosoftWordHandoff.status).in_(OPEN))
-                .where(_fresh())
+                .where(fresh())
                 .values(
                     status=status,
                     outcome=outcome.model_dump(mode="json") if outcome else None,
@@ -358,9 +372,9 @@ async def start(handoff_id: uuid.UUID, account: Account) -> bool:
             await session.execute(
                 update(MicrosoftWordHandoff)
                 .where(col(MicrosoftWordHandoff.id) == handoff_id)
-                .where(_owned_by(account))
+                .where(owned_by(account))
                 .where(col(MicrosoftWordHandoff.status) == "pending")
-                .where(_fresh())
+                .where(fresh())
                 .values(status="applying")
                 .returning(col(MicrosoftWordHandoff.id))
             )
@@ -375,9 +389,9 @@ async def _open_items(handoff_id: uuid.UUID, account: Account) -> HandoffItems |
             await session.execute(
                 select(col(MicrosoftWordHandoff.items))
                 .where(col(MicrosoftWordHandoff.id) == handoff_id)
-                .where(_owned_by(account))
+                .where(owned_by(account))
                 .where(col(MicrosoftWordHandoff.status).in_(OPEN))
-                .where(_fresh())
+                .where(fresh())
             )
         ).scalar_one_or_none()
     return HandoffItems.model_validate(value) if value is not None else None
@@ -421,7 +435,8 @@ async def report_applied(
     """Close a handoff the add-in has written, and say how it went in Teams.
 
     False if it is not theirs or already closed, in which case nothing is posted. The
-    message is built from the stored items (see ``outcome_from``).
+    message is built from the stored items (see ``outcome_from``). A handoff from the
+    add-in's chat posts nothing: the outcome is stored, and the chat reads it there.
     """
 
     items = await _open_items(handoff_id, account)
@@ -431,7 +446,8 @@ async def report_applied(
     finished = await finish(handoff_id, account, "applied", outcome)
     if finished is None:
         return False
-    await bot.post_later(finished.conversation_reference(), report(finished, outcome))
+    if (reference := finished.conversation_reference()) is not None:
+        await bot.post_later(reference, report(finished, outcome))
     return True
 
 

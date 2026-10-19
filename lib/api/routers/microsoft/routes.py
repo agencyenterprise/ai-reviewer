@@ -4,6 +4,8 @@ Two surfaces, split by what they can do rather than by product:
 
 - ``/word`` serves the add-in, which is the only client that can write into a
   document while someone has it open, including the changes asked for in Teams.
+  ``/word/chat`` is the add-in's own chat with Draft Detective about that document,
+  mounted by the ``/word`` router.
 - ``/teams`` answers questions about a document the service loads itself, and
   writes nothing, because a server-side write is refused with 423 while the
   document is open.

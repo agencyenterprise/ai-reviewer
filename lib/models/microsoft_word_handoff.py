@@ -11,6 +11,9 @@ in with the same Microsoft account -- the same Entra object id, in the same tena
 which is what makes storing document text here acceptable: nobody can read it back who
 did not write the request. Rows are swept a week after they were created, applied or
 not.
+
+The add-in's own chat stores its suggestions here too (``chat_thread_id`` set, no Teams
+``reference``), so both are applied, claimed and reported the same way.
 """
 
 import uuid
@@ -60,9 +63,21 @@ class MicrosoftWordHandoff(SQLModel, table=True):
         sa_column=Column(JSONB, nullable=False),
         description="The comments and edits to apply, as ``HandoffItems``",
     )
-    reference: dict[str, Any] = Field(
-        sa_column=Column(JSONB, nullable=False),
-        description="Where in Teams to report back once it has been applied",
+    reference: dict[str, Any] | None = Field(
+        default=None,
+        sa_column=Column(JSONB, nullable=True),
+        description=(
+            "Where in Teams to report back once it has been applied. None for "
+            "suggestions made in the add-in's own chat, which report to the chat."
+        ),
+    )
+    chat_thread_id: uuid.UUID | None = Field(
+        default=None,
+        sa_column=Column(UUID(as_uuid=True), nullable=True, index=True),
+        description=(
+            "The add-in chat thread that suggested it, for suggestions made there. "
+            "They are shown in that chat rather than among the ones from Teams."
+        ),
     )
     status: str = Field(
         sa_column=Column(String, nullable=False, default="pending"),

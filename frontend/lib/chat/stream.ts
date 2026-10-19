@@ -14,8 +14,11 @@ export type ChatStreamEvent =
   | { t: 'reasoning'; v: string }
   | { t: 'tool'; id: string; name: string; args?: Record<string, unknown> }
   /** `mid` is the stored id of the tool message carrying the result. */
-  | { t: 'tool_result'; id: string; result: unknown; isError?: boolean; mid?: string }
-  | { t: 'error'; v: string };
+  /** `name` is the tool's: the call it answers may be in the stored history, not this stream. */
+  | { t: 'tool_result'; id: string; result: unknown; isError?: boolean; mid?: string; name?: string }
+  | { t: 'error'; v: string }
+  /** The run paused to ask the person something; each value is what a tool asked. */
+  | { t: 'interrupt'; v: unknown[] };
 
 interface StreamChatTurnOptions {
   threadId: string;
@@ -63,7 +66,7 @@ export async function* streamChatTurn({
   yield* parseEventStream(response.body);
 }
 
-async function errorDetail(response: Response): Promise<string> {
+export async function errorDetail(response: Response): Promise<string> {
   const fallback = `Chat request failed with status ${response.status}`;
   const text = await response.text().catch(() => '');
   if (!text) return fallback;
@@ -76,7 +79,7 @@ async function errorDetail(response: Response): Promise<string> {
 }
 
 /** Parse an SSE body into events, ignoring heartbeats and blank lines. */
-async function* parseEventStream(body: ReadableStream<Uint8Array>): AsyncGenerator<ChatStreamEvent> {
+export async function* parseEventStream(body: ReadableStream<Uint8Array>): AsyncGenerator<ChatStreamEvent> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';

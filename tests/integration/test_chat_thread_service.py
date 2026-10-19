@@ -15,6 +15,7 @@ from sqlalchemy import delete
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
+from lib.models.conversation import Conversation, ConversationKind
 from lib.models.user import User
 from lib.services import chat_thread_service as svc
 
@@ -111,12 +112,19 @@ async def test_rename_cross_user_raises_404(user, other_user):
 @pytest.mark.asyncio
 async def test_delete_thread_removes_it(user):
     thread = await svc.create_thread(user)
+    async with get_async_db_session() as session:
+        shared = await session.get(Conversation, thread.id)
+    assert shared is not None and shared.kind == ConversationKind.WEB
+    assert shared.user_id == user.id
 
     await svc.delete_thread(thread.id, user)
 
     with pytest.raises(HTTPException) as exc:
         await svc.get_thread(thread.id, user)
     assert exc.value.status_code == 404
+    # The shared row goes too, and with it anything the conversation owned.
+    async with get_async_db_session() as session:
+        assert await session.get(Conversation, thread.id) is None
 
 
 @pytest.mark.asyncio

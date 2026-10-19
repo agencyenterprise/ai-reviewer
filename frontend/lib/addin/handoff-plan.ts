@@ -26,8 +26,6 @@ export type AppliedItem = {
 };
 
 export type ParagraphWork = {
-  /** Every quote in this group, to find the paragraph again at write time. */
-  quotes: string[];
   comments: { index: number; comment: HandoffComment }[];
   edits: { index: number; edit: HandoffEdit }[];
 };
@@ -40,10 +38,19 @@ export type HandoffPlan = {
 
 export const NOT_FOUND = 'the words are no longer in the document';
 export const AMBIGUOUS = 'the words appear in more than one paragraph';
-export const CHANGED = 'the paragraph was edited while the change was being written';
 
+/**
+ * Text as quotes are compared: curly quotes, dashes and runs of space evened out. Kept
+ * the same as `normalize` in `lib/services/microsoft/word/quote_check.py`, which checks
+ * the chat agent's quotes before they are offered.
+ */
 export function normalize(text: string): string {
-  return text.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, ' ').trim();
+  return text
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[‐‑‒–—―−]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /** The one paragraph containing `quote`, or why there is not one. */
@@ -61,7 +68,7 @@ export function locate(paragraphs: string[], quote: string): number | typeof NOT
 function workFor(plan: HandoffPlan, paragraph: number): ParagraphWork {
   let work = plan.paragraphs.get(paragraph);
   if (!work) {
-    work = { quotes: [], comments: [], edits: [] };
+    work = { comments: [], edits: [] };
     plan.paragraphs.set(paragraph, work);
   }
   return work;
@@ -82,7 +89,6 @@ export function planHandoff(paragraphs: string[], comments: HandoffComment[], ed
     }
     const work = workFor(plan, where);
     work.comments.push({ index: position, comment });
-    work.quotes.push(comment.quote);
   });
   edits.forEach((edit, position) => {
     const index = comments.length + position;
@@ -93,22 +99,8 @@ export function planHandoff(paragraphs: string[], comments: HandoffComment[], ed
     }
     const work = workFor(plan, where);
     work.edits.push({ index, edit });
-    work.quotes.push(edit.quote);
   });
   return plan;
-}
-
-/**
- * The paragraph a group belongs to now. Earlier writes can change a paragraph's text
- * (a tracked deletion still reads as text), so it is found again by any of its quotes
- * rather than trusted to keep its position.
- */
-export function relocate(paragraphs: string[], work: ParagraphWork): number | null {
-  for (const quote of work.quotes) {
-    const where = locate(paragraphs, quote);
-    if (typeof where === 'number') return where;
-  }
-  return null;
 }
 
 /** What the server is told: each item's position, whether it landed, and why not. */

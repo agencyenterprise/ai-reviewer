@@ -10,7 +10,7 @@ import {
   type PendingHandoffs,
 } from '@/lib/generated-api';
 import { applyHandoff } from '@/lib/addin/apply-handoff';
-import { openSignOutDialog, signInInteractively, ssoSignIn } from '@/lib/addin/sign-in';
+import { expiresAt, openSignOutDialog, signInInteractively, ssoSignIn } from '@/lib/addin/sign-in';
 import { flush, renderInto, Rendered, testQueryClient, withQueryClient } from '@/lib/test-render';
 import { HandoffPanel } from './handoff-panel';
 
@@ -26,6 +26,8 @@ vi.mock('@/lib/addin/sign-in', () => ({
   ssoSignIn: vi.fn(),
   signInInteractively: vi.fn(),
   openSignOutDialog: vi.fn(),
+  // The test tokens are not JWTs, so their expiry cannot be read: renewed every call.
+  expiresAt: vi.fn(() => null),
 }));
 
 const list = vi.mocked(listPendingApiMicrosoftWordHandoffsGet);
@@ -87,6 +89,7 @@ afterEach(async () => {
   rendered = null;
   vi.unstubAllGlobals();
   vi.resetAllMocks();
+  vi.mocked(expiresAt).mockReturnValue(null);
 });
 
 describe('HandoffPanel', () => {
@@ -139,6 +142,24 @@ describe('HandoffPanel', () => {
   });
 
   it('a single sign-on token is renewed before each call, so it never expires under the pane', async () => {
+    silent.mockResolvedValueOnce(SIGNED_IN).mockResolvedValue({ ...SIGNED_IN, accessToken: 'renewed' });
+    await render();
+
+    expect(list).toHaveBeenCalledWith(expect.objectContaining({ headers: { Authorization: 'Bearer renewed' } }));
+  });
+
+  it('a single sign-on token still valid for a while is reused, without asking Office again', async () => {
+    vi.mocked(expiresAt).mockReturnValue(Date.now() + 60 * 60 * 1000);
+    silent.mockResolvedValue(SIGNED_IN);
+    await render();
+
+    // Once to sign in; the call to the API reuses that token.
+    expect(silent).toHaveBeenCalledTimes(1);
+    expect(list).toHaveBeenCalledWith(expect.objectContaining({ headers: { Authorization: 'Bearer tok' } }));
+  });
+
+  it('a single sign-on token about to expire is renewed before the call', async () => {
+    vi.mocked(expiresAt).mockReturnValue(Date.now() + 30 * 1000);
     silent.mockResolvedValueOnce(SIGNED_IN).mockResolvedValue({ ...SIGNED_IN, accessToken: 'renewed' });
     await render();
 
@@ -223,7 +244,7 @@ describe('HandoffPanel', () => {
 
     expect(start).toHaveBeenCalledWith({ path: { handoff_id: 'h1' }, headers: { Authorization: 'Bearer tok' } });
     expect(start.mock.invocationCallOrder[0]).toBeLessThan(apply.mock.invocationCallOrder[0]);
-    expect(apply).toHaveBeenCalledWith(pending, expect.any(Function));
+    expect(apply).toHaveBeenCalledWith(pending);
     expect(report).toHaveBeenCalledWith({
       path: { handoff_id: 'h1' },
       body: {

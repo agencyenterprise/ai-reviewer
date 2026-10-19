@@ -12,14 +12,21 @@ class ChatThread(SQLModel, table=True):
     What was said lives in the LangGraph checkpointer, keyed by this row's id
     (see ``lib/services/chat/history.py``). This table holds what the
     checkpointer cannot: who owns the thread, its title, and whether it is
-    archived.
+    archived. Its id is its row's in ``conversations``
+    (``lib/models/conversation.py``); deleting the thread deletes that row, and
+    this one with it.
     """
 
     __tablename__ = "chat_threads"
     __table_args__ = (Index("ix_chat_threads_user_id", "user_id"),)
 
     id: uuid.UUID = Field(
-        sa_column=Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
+        sa_column=Column(
+            UUID(as_uuid=True),
+            ForeignKey("conversations.id", ondelete="CASCADE"),
+            primary_key=True,
+            default=uuid.uuid4,
+        ),
         description="The unique identifier for the chat thread",
     )
     user_id: uuid.UUID = Field(

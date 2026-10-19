@@ -8,7 +8,11 @@ import pytest
 from sqlalchemy.sql.dml import Delete
 
 from lib.models.file import FileRole
-from lib.services.files.images import replace_extracted_images
+from lib.services.files.images import (
+    add_conversation_images,
+    replace_conversation_images,
+    replace_extracted_images,
+)
 from lib.services.image_extraction import ExtractedImage
 
 MODULE = "lib.services.files.images"
@@ -225,3 +229,36 @@ async def test_no_disk_cleanup_when_commit_fails():
         await replace_extracted_images(parent.id, [_extracted()])
 
     disk_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_a_word_chats_images_are_replaced_for_its_conversation_alone():
+    conversation_id = uuid.uuid4()
+    session = _FakeSession()
+
+    with patch(f"{MODULE}.get_async_db_session", return_value=session):
+        await replace_conversation_images(conversation_id, [_extracted(alt="Figure 1")])
+
+    # Only this conversation's images are replaced.
+    (removed,) = [s for s in session.executed if isinstance(s, Delete)]
+    assert "conversation_id" in str(removed) and "parent_file_id" not in str(removed)
+    (row,) = session.added
+    assert row.conversation_id == conversation_id
+    assert row.project_id is None and row.parent_file_id is None
+    assert row.role == FileRole.EXTRACTED_IMAGE and row.description == "Figure 1"
+    assert session.committed
+
+
+@pytest.mark.asyncio
+async def test_a_teams_conversation_adds_images_and_unlinks_none():
+    """One conversation can hold two documents: opening one keeps the other's images."""
+
+    conversation_id = uuid.uuid4()
+    session = _FakeSession()
+    with patch(f"{MODULE}.get_async_db_session", return_value=session):
+        await add_conversation_images(conversation_id, [_extracted()])
+
+    assert not [s for s in session.executed if isinstance(s, Delete)]
+    (row,) = session.added
+    assert row.conversation_id == conversation_id and row.project_id is None
+    assert session.committed

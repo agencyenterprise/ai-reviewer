@@ -86,7 +86,7 @@ EXCLUDED_CHAT_SKILLS = frozenset({"literature-review", "live-reports"})
 # relation is not one-to-one: `about_this_ger` backs two skills, and the
 # `review-assistant` skill produces three outputs rather than running a check.
 # Skill-declared workflows are not listed: theirs is one-to-one and read off the
-# manifest (see `_manifest_for_skill`).
+# manifest (see `manifest_for_skill`).
 SKILL_WORKFLOWS: dict[str, WorkflowRunType] = {
     "abbreviation-scan": WorkflowRunType.ABBREVIATION_SCAN_V2,
     "about-this-authors": WorkflowRunType.ABOUT_THIS_GER,
@@ -169,7 +169,7 @@ with no preamble about what you are about to do.\
 """
 
 
-def _manifest_for_skill(
+def manifest_for_skill(
     skill_name: str, manifests: dict[WorkflowRunType, WorkflowManifest]
 ) -> WorkflowManifest | None:
     """The workflow a skill backs: by the hand-written map, or, for a
@@ -198,7 +198,7 @@ def chat_skill_catalogue() -> list[SkillSummary]:
     manifests = get_all_manifests()
     catalogue: list[SkillSummary] = []
     for skill in list_skill_summaries(exclude=EXCLUDED_CHAT_SKILLS):
-        manifest = _manifest_for_skill(skill.name, manifests)
+        manifest = manifest_for_skill(skill.name, manifests)
         description = manifest.description if manifest else skill.description
         catalogue.append(SkillSummary(name=skill.name, description=description))
     return catalogue
