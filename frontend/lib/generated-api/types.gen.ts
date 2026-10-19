@@ -1304,6 +1304,7 @@ export const ChunkStatus = {
   Partial: 'partial',
   Error: 'error',
   Skipped: 'skipped',
+  Cancelled: 'cancelled',
 } as const;
 
 /**

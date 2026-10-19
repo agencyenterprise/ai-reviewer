@@ -85,6 +85,8 @@ class ChunkStatus(str, Enum):
     ERROR = "error"
     # Blank, or inside the Abbreviations section (which is never catalogued).
     SKIPPED = "skipped"
+    # Still pending when the run was cancelled or timed out.
+    CANCELLED = "cancelled"
 
 
 class AbbreviationChunk(BaseModel):
