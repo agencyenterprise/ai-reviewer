@@ -62,60 +62,15 @@ jobs:
         if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: uv run mypy .
 
+  # Both suites share one runner, so each PR takes one slot from the org's
+  # shared pool of concurrent jobs instead of two. Paying for one setup costs
+  # less than a second job: the integration suite and its Postgres container
+  # add about 40s.
   test:
-    name: pytest (unit)
+    name: pytest
     runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-
-      - name: Set up Python
-        run: uv python install 3.13
-
-      - name: Install dependencies
-        run: uv sync
-        env:
-          # Compile every package to bytecode once, in parallel, at install
-          # time. Otherwise each xdist worker compiles the same imports on its
-          # first run, which costs about a minute before any test starts.
-          UV_COMPILE_BYTECODE: "1"
-
-      - name: Run tests
-        # Unit tests only; the integration job below runs tests/integration against Postgres.
-        # `-n logical` sizes the worker pool to the runner's vCPUs (4) instead of
-        # the 10 workers pyproject.toml sets for local runs. `-n auto` counts
-        # physical cores and starts only 2.
-        run: uv run pytest tests/unit -n logical --tb=short --cov --cov-branch --cov-report=xml
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-          # Database config (test environment)
-          DATABASE_URL: postgresql://test:test@localhost:5432/test_db
-          # Auth config
-          AUTH_SECRET: test-secret-key-for-ci
-          # File uploads (temporary directory for tests)
-          FILE_UPLOADS_MOUNT_PATH: /tmp/test-uploads
-          # Optional - use secrets if available for LLM tests
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          # Optional Langfuse tracing
-          LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
-          LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
-          LANGFUSE_HOST: ${{ secrets.LANGFUSE_HOST }}
-
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-  integration:
-    name: pytest (integration)
-    runs-on: ubuntu-latest
-    # The suite takes about a minute; a stuck lock wait gives up after 5.
-    timeout-minutes: 15
+    # The suites take about two minutes; a stuck lock wait gives up after 5.
+    timeout-minutes: 20
 
     services:
       # The image docker-compose.yml runs locally, so pgvector is available to the migrations.
@@ -135,13 +90,8 @@ jobs:
 
     env:
       PYTHONPATH: ${{ github.workspace }}
-      # The tests create and migrate ai_reviewer_test, derived from this, on their own.
-      DATABASE_URL: postgresql://ai_reviewer_user:ai_reviewer_password@localhost:5432/ai_reviewer
       AUTH_SECRET: test-secret-key-for-ci
-      # lib.api.mcp builds its auth provider at import and refuses to without a
-      # login provider; nothing in the tests signs in, so placeholders do.
-      AUTH_GOOGLE_ID: ci-placeholder
-      AUTH_GOOGLE_SECRET: ci-placeholder
+      # File uploads (temporary directory for tests)
       FILE_UPLOADS_MOUNT_PATH: /tmp/test-uploads
 
     steps:
@@ -156,9 +106,42 @@ jobs:
         run: uv python install 3.13
 
       - name: Install dependencies
+        id: deps
         run: uv sync
         env:
+          # Compile every package to bytecode once, in parallel, at install
+          # time. Otherwise each xdist worker compiles the same imports on its
+          # first run, which costs about a minute before any test starts.
           UV_COMPILE_BYTECODE: "1"
 
+      - name: Run unit tests
+        # `-n logical` sizes the worker pool to the runner's vCPUs (4) instead of
+        # the 10 workers pyproject.toml sets for local runs. `-n auto` counts
+        # physical cores and starts only 2.
+        run: uv run pytest tests/unit -n logical --tb=short --cov --cov-branch --cov-report=xml
+        env:
+          # Database config (test environment)
+          DATABASE_URL: postgresql://test:test@localhost:5432/test_db
+          # Optional - use secrets if available for LLM tests
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # Optional Langfuse tracing
+          LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+          LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+          LANGFUSE_HOST: ${{ secrets.LANGFUSE_HOST }}
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      # Runs even when the unit tests failed, so one push reports both suites.
       - name: Run integration tests
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: uv run pytest tests/integration -n logical --tb=short
+        env:
+          # The tests create and migrate ai_reviewer_test, derived from this, on their own.
+          DATABASE_URL: postgresql://ai_reviewer_user:ai_reviewer_password@localhost:5432/ai_reviewer
+          # lib.api.mcp builds its auth provider at import and refuses to without a
+          # login provider; nothing in the tests signs in, so placeholders do.
+          AUTH_GOOGLE_ID: ci-placeholder
+          AUTH_GOOGLE_SECRET: ci-placeholder
