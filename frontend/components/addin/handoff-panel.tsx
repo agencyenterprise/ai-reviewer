@@ -3,6 +3,7 @@
 import { AddinSession, AddinSignIn, Section } from '@/components/addin/addin-sign-in';
 import { HandoffCard } from '@/components/addin/handoff-card';
 import { Button } from '@/components/ui/button';
+import { waitingDocuments } from '@/lib/addin/other-documents';
 import { isApiError } from '@/lib/api-error';
 import { listPendingApiMicrosoftWordHandoffsGet } from '@/lib/generated-api';
 import { useQuery } from '@tanstack/react-query';
@@ -72,11 +73,12 @@ export function HandoffList({ session }: { session: AddinSession }) {
         <div className="text-xs text-muted-foreground">
           Suggestions are waiting for other documents:
           <ul className="list-disc pl-4">
-            {elsewhere.map((handoff) => (
-              <li key={handoff.id}>
-                <a className="underline" href={handoff.document_url} target="_blank" rel="noreferrer">
-                  {handoff.document_name}
+            {waitingDocuments(elsewhere).map((document) => (
+              <li key={document.url}>
+                <a className="underline" href={document.url} target="_blank" rel="noreferrer">
+                  {document.name}
                 </a>
+                {document.count > 1 && ` (${document.count} sets)`}
               </li>
             ))}
           </ul>

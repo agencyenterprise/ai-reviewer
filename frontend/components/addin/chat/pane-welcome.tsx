@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { ThreadPrimitive } from '@assistant-ui/react';
 import type { FC } from 'react';
 
+// One per thing the pane does that a plain chat can't: tracked changes, comments, and
+// reading the document's figures.
 const STARTERS = [
-  'What would a reviewer criticise first in this document?',
-  'Check the selected text for unsupported claims.',
-  'Suggest edits to make the selected paragraph clearer.',
+  'Tighten the selected paragraph and suggest the edits as tracked changes.',
+  'Add comments where a claim needs a source or more evidence.',
+  'Do the figures match what the text says about them?',
 ];
 
 /**
