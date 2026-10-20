@@ -8,6 +8,7 @@ sleeping past a short TTL, so the expiry tests don't depend on timing.
 """
 
 import uuid
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
@@ -16,16 +17,17 @@ import pytest_asyncio
 from key_value.aio.errors import DecryptionError
 from key_value.aio.protocols.key_value import AsyncKeyValue
 from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
 from lib.api.mcp.auth import _build_client_storage
 from lib.api.mcp.postgres_kv_store import PostgresKeyValueStore
-from lib.config.database import get_async_db_session
+from lib.config.database import async_engine, get_async_db_session
 from lib.models.mcp_oauth_kv import MCPOAuthKV
 
 
 @pytest_asyncio.fixture
-async def collection():
+async def collection() -> AsyncIterator[str]:
     """Unique collection per test so parallel runs don't interfere."""
     name = f"test-{uuid.uuid4().hex[:12]}"
     yield name
@@ -38,7 +40,7 @@ async def collection():
 
 
 @pytest_asyncio.fixture
-async def store():
+async def store() -> PostgresKeyValueStore:
     return PostgresKeyValueStore()
 
 
@@ -71,7 +73,7 @@ async def _stored_row(collection: str, key: str) -> MCPOAuthKV | None:
 
 
 @pytest.mark.asyncio
-async def test_round_trip(store, collection):
+async def test_round_trip(store: PostgresKeyValueStore, collection: str) -> None:
     await store.put(
         "k1", {"client_id": "abc", "scopes": ["a", "b"]}, collection=collection
     )
@@ -80,12 +82,16 @@ async def test_round_trip(store, collection):
 
 
 @pytest.mark.asyncio
-async def test_get_missing_returns_none(store, collection):
+async def test_get_missing_returns_none(
+    store: PostgresKeyValueStore, collection: str
+) -> None:
     assert await store.get("nope", collection=collection) is None
 
 
 @pytest.mark.asyncio
-async def test_delete_returns_true_only_when_row_existed(store, collection):
+async def test_delete_returns_true_only_when_row_existed(
+    store: PostgresKeyValueStore, collection: str
+) -> None:
     await store.put("k", {"v": 1}, collection=collection)
     assert await store.delete("k", collection=collection) is True
     assert await store.delete("k", collection=collection) is False
@@ -93,7 +99,9 @@ async def test_delete_returns_true_only_when_row_existed(store, collection):
 
 
 @pytest.mark.asyncio
-async def test_upsert_overwrites_value_and_ttl(store, collection):
+async def test_upsert_overwrites_value_and_ttl(
+    store: PostgresKeyValueStore, collection: str
+) -> None:
     await store.put("k", {"v": 1}, collection=collection, ttl=60)
     await store.put("k", {"v": 2}, collection=collection)  # no TTL this time
     value, ttl = await store.ttl("k", collection=collection)
@@ -102,7 +110,9 @@ async def test_upsert_overwrites_value_and_ttl(store, collection):
 
 
 @pytest.mark.asyncio
-async def test_put_with_ttl_stores_its_expiry(store, collection):
+async def test_put_with_ttl_stores_its_expiry(
+    store: PostgresKeyValueStore, collection: str
+) -> None:
     await store.put("k", {"v": 1}, collection=collection, ttl=60)
 
     value, ttl = await store.ttl("k", collection=collection)
@@ -111,7 +121,9 @@ async def test_put_with_ttl_stores_its_expiry(store, collection):
 
 
 @pytest.mark.asyncio
-async def test_ttl_expiry_returns_none_and_cleans_up(store, collection):
+async def test_ttl_expiry_returns_none_and_cleans_up(
+    store: PostgresKeyValueStore, collection: str
+) -> None:
     await _insert_expired(collection, "k", {"v": "expired"})
 
     # Expired read returns None and lazily deletes the row.
@@ -120,7 +132,9 @@ async def test_ttl_expiry_returns_none_and_cleans_up(store, collection):
 
 
 @pytest.mark.asyncio
-async def test_ttl_of_expired_entry_is_none_and_cleans_up(store, collection):
+async def test_ttl_of_expired_entry_is_none_and_cleans_up(
+    store: PostgresKeyValueStore, collection: str
+) -> None:
     await _insert_expired(collection, "k", {"v": "expired"})
 
     assert await store.ttl("k", collection=collection) == (None, None)
@@ -128,7 +142,9 @@ async def test_ttl_of_expired_entry_is_none_and_cleans_up(store, collection):
 
 
 @pytest.mark.asyncio
-async def test_put_replaces_an_expired_entry(store, collection):
+async def test_put_replaces_an_expired_entry(
+    store: PostgresKeyValueStore, collection: str
+) -> None:
     """A client re-registering under an expired key gets a live entry back."""
     await _insert_expired(collection, "k", {"v": "old"})
 
@@ -138,7 +154,7 @@ async def test_put_replaces_an_expired_entry(store, collection):
 
 
 @pytest.mark.asyncio
-async def test_collection_isolation(store):
+async def test_collection_isolation(store: PostgresKeyValueStore) -> None:
     col_a = f"a-{uuid.uuid4().hex[:8]}"
     col_b = f"b-{uuid.uuid4().hex[:8]}"
     try:
@@ -156,7 +172,9 @@ async def test_collection_isolation(store):
 
 
 @pytest.mark.asyncio
-async def test_batch_put_get_delete(store, collection):
+async def test_batch_put_get_delete(
+    store: PostgresKeyValueStore, collection: str
+) -> None:
     keys = ["a", "b", "c"]
     values = [{"v": 1}, {"v": 2}, {"v": 3}]
 
@@ -173,7 +191,9 @@ async def test_batch_put_get_delete(store, collection):
 
 
 @pytest.mark.asyncio
-async def test_batch_put_with_ttl_stores_expiry_on_every_row(store, collection):
+async def test_batch_put_with_ttl_stores_expiry_on_every_row(
+    store: PostgresKeyValueStore, collection: str
+) -> None:
     await store.put_many(
         ["a", "b"], [{"v": 1}, {"v": 2}], collection=collection, ttl=60
     )
@@ -184,7 +204,9 @@ async def test_batch_put_with_ttl_stores_expiry_on_every_row(store, collection):
 
 
 @pytest.mark.asyncio
-async def test_batch_get_skips_expired_rows_and_deletes_only_those(store, collection):
+async def test_batch_get_skips_expired_rows_and_deletes_only_those(
+    store: PostgresKeyValueStore, collection: str
+) -> None:
     await store.put("live", {"v": "live"}, collection=collection)
     await _insert_expired(collection, "stale", {"v": "stale"})
 
@@ -196,7 +218,9 @@ async def test_batch_get_skips_expired_rows_and_deletes_only_those(store, collec
 
 
 @pytest.mark.asyncio
-async def test_batch_ops_with_no_keys_are_no_ops(store, collection):
+async def test_batch_ops_with_no_keys_are_no_ops(
+    store: PostgresKeyValueStore, collection: str
+) -> None:
     await store.put("k", {"v": 1}, collection=collection)
 
     await store.put_many([], [], collection=collection)
@@ -207,17 +231,37 @@ async def test_batch_ops_with_no_keys_are_no_ops(store, collection):
 
 
 @pytest.mark.asyncio
-async def test_cull_removes_expired_rows(store, collection):
+async def test_cull_removes_expired_rows(
+    store: PostgresKeyValueStore, collection: str
+) -> None:
     await store.put("fresh", {"v": 1}, collection=collection, ttl=60)
     await store.put("forever", {"v": 2}, collection=collection)
     await _insert_expired(collection, "stale", {"v": 3})
 
-    await store.cull()
-
-    assert await store.get("fresh", collection=collection) == {"v": 1}
-    assert await store.get("forever", collection=collection) == {"v": 2}
-    # Read the table directly: a store read would delete the row itself.
-    assert await _stored_row(collection, "stale") is None
+    # cull() deletes expired rows in every collection. Run it in a transaction
+    # that's rolled back, so the expired rows other tests insert in parallel
+    # are still there for the code paths those tests exercise.
+    async with async_engine.connect() as connection:
+        transaction = await connection.begin()
+        session = AsyncSession(
+            bind=connection,
+            join_transaction_mode="create_savepoint",
+            expire_on_commit=False,
+        )
+        with patch(
+            "lib.api.mcp.postgres_kv_store.AsyncSessionLocal", return_value=session
+        ):
+            await store.cull()
+        # Read the table directly: a store read would delete the row itself.
+        remaining = (
+            await connection.execute(
+                select(col(MCPOAuthKV.key)).where(
+                    col(MCPOAuthKV.collection) == collection
+                )
+            )
+        ).scalars()
+        assert set(remaining) == {"fresh", "forever"}
+        await transaction.rollback()
 
 
 # --- The encrypted client storage the MCP OAuth providers use ---
@@ -231,7 +275,7 @@ def _client_storage(auth_secret: str) -> AsyncKeyValue:
 
 
 @pytest.mark.asyncio
-async def test_client_storage_encrypts_values_at_rest(collection):
+async def test_client_storage_encrypts_values_at_rest(collection: str) -> None:
     storage = _client_storage("test-auth-secret-for-kdf")
 
     await storage.put("client", {"client_secret": "s3cret"}, collection=collection)
@@ -257,8 +301,8 @@ async def test_client_storage_encrypts_values_at_rest(collection):
     ),
 )
 async def test_client_storage_reads_entries_from_a_rotated_secret_as_missing(
-    collection,
-):
+    collection: str,
+) -> None:
     old = _client_storage("test-auth-secret-before-rotation")
     new = _client_storage("test-auth-secret-after-rotation")
     await old.put("client", {"client_id": "abc"}, collection=collection)
