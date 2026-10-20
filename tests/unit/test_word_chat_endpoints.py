@@ -23,7 +23,7 @@ from lib.api.routers.microsoft.word_chat import (
     WordChatResumeRequest,
 )
 from lib.models.microsoft_word_chat_thread import MicrosoftWordChatThread
-from lib.services.image_extraction import ExtractedImage
+from lib.services.files.image_extraction import ExtractedImage
 from lib.services.microsoft.graph.documents import LoadedDocument
 from lib.services.microsoft.word.handoffs import Account
 

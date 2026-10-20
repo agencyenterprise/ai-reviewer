@@ -4,9 +4,9 @@ from langgraph.runtime import Runtime
 
 from lib.models.file import FileRole
 from lib.run_utils import run_tasks
+from lib.services.files.conversion import convert_file_document_to_markdown
 from lib.services.files.document import FileDocument
 from lib.services.files.service import update_file_artifacts
-from lib.services.markdown_conversion import convert_file_document_to_markdown
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.document_processing.state import DocumentProcessingState

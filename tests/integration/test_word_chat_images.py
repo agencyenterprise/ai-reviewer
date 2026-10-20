@@ -30,12 +30,12 @@ from lib.models.microsoft_word_chat_thread import MicrosoftWordChatThread
 from lib.models.microsoft_word_handoff import MicrosoftWordHandoff
 from lib.models.user import User
 from lib.services import conversations
+from lib.services.files.image_extraction import ExtractedImage
 from lib.services.files.images import (
     add_conversation_images,
     prune_conversation_images,
 )
 from lib.services.files.service import check_file_access
-from lib.services.image_extraction import ExtractedImage
 from lib.services.microsoft.word import chat_threads, handoffs
 from lib.services.microsoft.word.handoffs import (
     Account,
