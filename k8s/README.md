@@ -27,7 +27,8 @@ docker build -t $REGISTRY/ai-reviewer-api:latest -f Dockerfile .
 # has no effect). With http://localhost:8000 (also the default) and the port-forward
 # quick start, only the browser reaches the API: file downloads, the admin pages and
 # the About page call it from inside the pod and fail. Behind Routes or an Ingress,
-# pass the API's public URL, which both sides can reach, and rebuild once you know it.
+# pass the API's public URL and rebuild once you know it. The frontend pod must be able
+# to reach that URL too (see "Optional: Network Security").
 docker build -t $REGISTRY/ai-reviewer-frontend:latest -f frontend/Dockerfile frontend/ \
   --build-arg NEXT_PUBLIC_API_URL=http://localhost:8000
 
@@ -111,7 +112,7 @@ sed -i 's|# storageClassName: ""|storageClassName: "standard"|' database.yaml ap
 
 ### Vanilla Kubernetes with Ingress
 
-Save this as `ingress.yaml` and apply separately:
+Save this as `ingress.yaml` and apply separately. It gives the API and the frontend a host each, as the OpenShift Routes do. One host split by path doesn't work: the API also serves `/tus`, `/mcp` and `/.well-known`, and the frontend serves its own `/api/auth` and `/api/files` routes.
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -121,18 +122,23 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: ai-reviewer.yourdomain.com
+    - host: api.ai-reviewer.yourdomain.com
       http:
         paths:
-          - path: /api
+          - path: /
             pathType: Prefix
             backend:
               service: { name: api, port: { number: 8000 } }
+    - host: ai-reviewer.yourdomain.com
+      http:
+        paths:
           - path: /
             pathType: Prefix
             backend:
               service: { name: frontend, port: { number: 3000 } }
 ```
+
+Then build the frontend with `NEXT_PUBLIC_API_URL=https://api.ai-reviewer.yourdomain.com`, and set `MCP_BASE_URL` to that host plus `/mcp` and `FRONTEND_URL` to the frontend's host.
 
 ## Common Operations
 
@@ -174,7 +180,9 @@ kubectl apply -f network-policy.yaml -n ai-reviewer
 ```
 
 **Note:** Requires a CNI plugin that supports NetworkPolicy (Calico, Cilium, Weave).
-OpenShift has this by default.
+OpenShift has this by default, and `oc apply -f .` applies these policies too.
+
+The frontend policy lets the frontend reach only the API pod and DNS. Its server code calls the API at the public URL it was built with (see step 1), so when that URL goes through a Route or an Ingress, add an egress rule for it (usually TCP 443 to your router or ingress controller). Otherwise file downloads, the admin pages and the About page fail.
 
 ## Troubleshooting
 
