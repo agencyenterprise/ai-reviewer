@@ -12,7 +12,6 @@ the files named in the run's config, and Word comments and tracked changes are
 mounted beside each document's text (see ``inputs.py``).
 """
 
-import builtins
 import json
 import logging
 from typing import TYPE_CHECKING
@@ -162,12 +161,6 @@ class ReviewAssistantManifest(
     independent_runs = True
     # Up to three long deliverables from one agent.
     max_duration_seconds = 2 * 60 * 60
-
-    def get_state_type(self) -> builtins.type[ReviewAssistantState]:
-        return ReviewAssistantState
-
-    def get_config_type(self) -> builtins.type[ReviewAssistantConfig]:
-        return ReviewAssistantConfig
 
     def build_graph(self) -> StateGraph:
         async def run_agent(
