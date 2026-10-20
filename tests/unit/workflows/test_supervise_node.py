@@ -22,9 +22,17 @@ async def test_supervise_bumps_heartbeat_while_node_runs():
     workflow_run_id = "run-1"
     interval = 0.01
 
-    # A node that lives long enough for several supervisor ticks.
+    two_heartbeats = asyncio.Event()
+
+    async def heartbeat(_: str) -> None:
+        if heartbeat_mock.await_count >= 2:
+            two_heartbeats.set()
+
+    # A node that runs until the supervisor has ticked twice. Waiting on the
+    # ticks rather than sleeping a few intervals keeps the test from failing
+    # when a loaded event loop delays the supervisor's wake-ups.
     async def slow_node():
-        await asyncio.sleep(interval * 4)
+        await asyncio.wait_for(two_heartbeats.wait(), timeout=5)
         return "ok"
 
     node_task = asyncio.ensure_future(slow_node())
@@ -36,15 +44,13 @@ async def test_supervise_bumps_heartbeat_while_node_runs():
         ),
         patch(
             "lib.services.workflow_runs.service.update_workflow_run_heartbeat",
-            new=AsyncMock(),
+            new=AsyncMock(side_effect=heartbeat),
         ) as heartbeat_mock,
     ):
         await asyncio.gather(
             node_task, _supervise_node(workflow_run_id, node_task, interval)
         )
 
-    # At least two heartbeats over four intervals — exact count varies with
-    # event-loop scheduling, but zero would mean the loop never ticked.
     assert heartbeat_mock.await_count >= 2
     for call in heartbeat_mock.await_args_list:
         assert call.args == (workflow_run_id,)
