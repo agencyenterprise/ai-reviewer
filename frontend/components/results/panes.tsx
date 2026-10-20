@@ -111,7 +111,6 @@ interface SidePaneProps {
   label: string;
   /** Shown in the column while nothing is selected. Never in the sheet. */
   empty?: ReactNode;
-  className?: string;
   children: ReactNode;
 }
 
@@ -121,7 +120,7 @@ interface SidePaneProps {
  * appears once the reader asks for it, by selecting a row or pressing the
  * control that opens it.
  */
-export function SidePane({ open, onClose, label, empty, className, children }: SidePaneProps) {
+export function SidePane({ open, onClose, label, empty, children }: SidePaneProps) {
   const isWide = useMediaQuery(WIDE_ENOUGH_FOR_PANE);
 
   if (isWide) {
@@ -131,9 +130,7 @@ export function SidePane({ open, onClose, label, empty, className, children }: S
     if (!open && !empty) return null;
 
     return (
-      <aside className={cn('hidden w-[24rem] shrink-0 border-l lg:block xl:w-[26rem]', className)}>
-        {open ? children : empty}
-      </aside>
+      <aside className="hidden w-[24rem] shrink-0 border-l lg:block xl:w-[26rem]">{open ? children : empty}</aside>
     );
   }
 

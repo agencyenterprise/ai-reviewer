@@ -286,15 +286,14 @@ interface MenuItemWithTooltipProps {
   icon: React.ComponentType<{ className?: string }>;
   onClick: () => void;
   tooltip: string;
-  disabled?: boolean;
   children: React.ReactNode;
 }
 
-function MenuItemWithTooltip({ icon: Icon, onClick, tooltip, disabled, children }: MenuItemWithTooltipProps) {
+function MenuItemWithTooltip({ icon: Icon, onClick, tooltip, children }: MenuItemWithTooltipProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <DropdownMenuItem onClick={onClick} disabled={disabled}>
+        <DropdownMenuItem onClick={onClick}>
           <Icon />
           {children}
         </DropdownMenuItem>

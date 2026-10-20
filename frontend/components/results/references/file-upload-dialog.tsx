@@ -26,7 +26,6 @@ export interface FileUploadDialogProps {
   title: string;
   description: string;
   multiple?: boolean;
-  submitLabel?: string;
   projectId: string;
   /** When set, force-matches the uploaded file to this reference instead of triggering the matching workflow. */
   referenceId?: string;
@@ -39,7 +38,6 @@ export function FileUploadDialog({
   title,
   description,
   multiple = false,
-  submitLabel,
   projectId,
   referenceId,
   onCancel,
@@ -121,7 +119,6 @@ export function FileUploadDialog({
   const canSubmit = selectedFiles.length > 0;
 
   const getSubmitLabel = () => {
-    if (submitLabel) return submitLabel;
     if (multiple) {
       return `Upload ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}`;
     }

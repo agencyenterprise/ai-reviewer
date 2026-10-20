@@ -5,23 +5,23 @@ import { AlertTriangleIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 
+const MAX_COUNT = 3;
+
 export interface ErrorsCardProps {
   errors: WorkflowError[];
-  maxCount?: number;
 }
 
 interface MessageGroupProps {
   messages: WorkflowError[];
   title: string;
   className: string;
-  maxCount: number;
   onInspect: (message: WorkflowError) => void;
 }
 
-function MessageGroup({ messages, title, className, maxCount, onInspect }: MessageGroupProps) {
+function MessageGroup({ messages, title, className, onInspect }: MessageGroupProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const visible = isExpanded ? messages : messages.slice(0, maxCount);
-  const hasMore = messages.length > maxCount;
+  const visible = isExpanded ? messages : messages.slice(0, MAX_COUNT);
+  const hasMore = messages.length > MAX_COUNT;
 
   return (
     <div className={`${className} p-4 rounded-lg text-sm`}>
@@ -44,7 +44,7 @@ function MessageGroup({ messages, title, className, maxCount, onInspect }: Messa
       {hasMore && (
         <div className="flex items-center justify-center">
           <Button variant="ghost" size="sm" onClick={() => setIsExpanded(!isExpanded)} className="mt-2 text-xs">
-            {isExpanded ? 'Show less' : `Show more (${messages.length - maxCount} more)`}
+            {isExpanded ? 'Show less' : `Show more (${messages.length - MAX_COUNT} more)`}
           </Button>
         </div>
       )}
@@ -57,7 +57,7 @@ function MessageGroup({ messages, title, className, maxCount, onInspect }: Messa
  * workflow recovered from — the run still completed — so they are shown apart
  * from errors that cost the run output.
  */
-export function ErrorsCard({ errors, maxCount = 3 }: ErrorsCardProps) {
+export function ErrorsCard({ errors }: ErrorsCardProps) {
   const [inspected, setInspected] = useState<WorkflowError | null>(null);
   const blocking = errors.filter(isBlockingError);
   const warnings = errors.filter((error) => !isBlockingError(error));
@@ -69,7 +69,6 @@ export function ErrorsCard({ errors, maxCount = 3 }: ErrorsCardProps) {
           messages={blocking}
           title="Unexpected processing errors occurred while processing this chunk / document"
           className="bg-red-200/40"
-          maxCount={maxCount}
           onInspect={setInspected}
         />
       )}
@@ -78,7 +77,6 @@ export function ErrorsCard({ errors, maxCount = 3 }: ErrorsCardProps) {
           messages={warnings}
           title="This analysis completed, but some parts returned incomplete results"
           className="bg-amber-200/40"
-          maxCount={maxCount}
           onInspect={setInspected}
         />
       )}
