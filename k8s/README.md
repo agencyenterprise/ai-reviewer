@@ -84,7 +84,8 @@ oc rollout restart deployment/frontend -n ai-reviewer
 kubectl create namespace ai-reviewer
 kubectl create secret generic app-secrets --from-env-file=.env -n ai-reviewer
 
-# Apply all manifests (OpenShift Routes will be ignored)
+# Apply all manifests. kubectl applies everything else, then reports the two OpenShift
+# Routes ("no matches for kind Route") and exits 1: that's expected here.
 kubectl apply -f configmap.yaml -f database.yaml -f api.yaml -f frontend.yaml -n ai-reviewer
 
 # Access via port-forward (the browser calls the API on localhost:8000)
@@ -189,6 +190,8 @@ kubectl apply -f network-policy.yaml -n ai-reviewer
 OpenShift has this by default, and `oc apply -f .` applies these policies too.
 
 The frontend policy lets the frontend reach only the API pod and DNS. Its server code calls the API at the public URL it was built with (see step 1), so when that URL goes through a Route or an Ingress, add an egress rule for it (usually TCP 443 to your router or ingress controller). Otherwise file downloads, the admin pages and the About page fail.
+
+On vanilla Kubernetes, the api and frontend policies also admit traffic only from OpenShift's router namespace, so an Ingress controller can't reach either pod. Add your controller's namespace (for example `ingress-nginx`) to their `ingress` rules before applying them.
 
 ## Troubleshooting
 
