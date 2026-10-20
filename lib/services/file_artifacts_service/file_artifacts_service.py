@@ -12,6 +12,7 @@ from lib.services.file_artifacts_service.file_artifacts_service_type import (
     LoadedDocuments,
     UnreadableDocument,
 )
+from lib.services.files.conversion import convert_file_document_to_markdown
 from lib.services.files.document import FileDocument
 from lib.services.files.service import (
     get_file_by_id,
@@ -19,7 +20,6 @@ from lib.services.files.service import (
     load_file_document,
     update_file_artifacts,
 )
-from lib.services.markdown_conversion import convert_file_document_to_markdown
 from lib.services.workflow_runs.service import (
     get_project_workflow_run_by_type,
     read_workflow_run_state,

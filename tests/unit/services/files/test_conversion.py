@@ -1,4 +1,4 @@
-"""Unit tests for `lib.services.markdown_conversion`.
+"""Unit tests for `lib.services.files.conversion`.
 
 DB and converter dependencies are mocked; the file under test is just a thin
 orchestrator over them, so the value is in pinning down its branching:
@@ -14,14 +14,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from lib.models.file import FileRole
-from lib.services.files.document import FileDocument
-from lib.services.markdown_conversion import (
+from lib.services.files.conversion import (
     _converter_for,
     convert_and_cache_file_markdown,
     convert_file_document_to_markdown,
 )
+from lib.services.files.document import FileDocument
 
-MODULE = "lib.services.markdown_conversion"
+MODULE = "lib.services.files.conversion"
 DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
 

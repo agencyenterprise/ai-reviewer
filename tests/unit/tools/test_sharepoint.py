@@ -27,7 +27,7 @@ from deepagents.backends.utils import create_file_data, file_data_to_string
 from langgraph.types import Command
 
 from lib.agents.tools import sharepoint
-from lib.services.image_extraction import ExtractedImage
+from lib.services.files.image_extraction import ExtractedImage
 from lib.services.microsoft.graph.client import GraphError
 from lib.services.microsoft.graph.documents import LoadedDocument
 

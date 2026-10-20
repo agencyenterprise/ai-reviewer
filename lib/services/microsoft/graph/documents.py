@@ -25,8 +25,8 @@ from pathlib import Path
 from docx_editor import Document
 from pydantic import BaseModel, Field
 
-from lib.services.image_extraction import ExtractedImage, extract_data_uri_images
-from lib.services.markdown_conversion import convert_docx
+from lib.services.files.conversion import convert_docx
+from lib.services.files.image_extraction import ExtractedImage, extract_data_uri_images
 from lib.services.microsoft.graph import client
 
 logger = logging.getLogger(__name__)

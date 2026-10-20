@@ -1,7 +1,7 @@
 """Tool that lets a deep agent look at an image extracted from a document.
 
 Persisted markdown references extracted images by a storage-agnostic
-``draftdetective://{file-id}`` src (see ``lib/services/image_extraction``).
+``draftdetective://{file-id}`` src (see ``lib/services/files/image_extraction``).
 The document viewers resolve that scheme to the download endpoint; agents
 resolve it here — the tool returns the image bytes as a standard image
 content block, which the model reads directly from the tool result.
@@ -20,8 +20,8 @@ from langchain_core.messages import BaseMessage, ToolMessage
 from langchain_core.tools import BaseTool
 
 from lib.models.file import File, FileRole
+from lib.services.files.image_extraction import IMAGE_REFERENCE_SCHEME
 from lib.services.files.service import get_file_by_id
-from lib.services.image_extraction import IMAGE_REFERENCE_SCHEME
 from lib.workflows.context import ContextSchema
 
 logger = logging.getLogger(__name__)

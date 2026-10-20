@@ -1,4 +1,4 @@
-"""Unit tests for `lib.services.image_extraction`.
+"""Unit tests for `lib.services.files.image_extraction`.
 
 The invariant that matters most is line preservation: extraction rewrites each
 image src in place, and issue anchors, `#L` links and the DOCX comment export
@@ -19,13 +19,13 @@ import pytest
 from PIL import Image, ImageCms
 from xxhash import xxh128
 
-from lib.services import image_extraction
 from lib.services.docx.image_display_sizes import (
     DisplaySizes,
     ImagePlacement,
     SourceRect,
 )
-from lib.services.image_extraction import (
+from lib.services.files import image_extraction
+from lib.services.files.image_extraction import (
     EXTRACTED_IMAGES_DIRNAME,
     extract_data_uri_images,
     image_reference,
@@ -39,7 +39,8 @@ PNG_B64 = base64.b64encode(PNG_BYTES).decode()
 
 def _uploads_patch(tmp_path):
     return patch(
-        "lib.services.image_extraction.config.FILE_UPLOADS_MOUNT_PATH", str(tmp_path)
+        "lib.services.files.image_extraction.config.FILE_UPLOADS_MOUNT_PATH",
+        str(tmp_path),
     )
 
 
@@ -197,7 +198,9 @@ async def test_existing_image_file_is_not_rewritten(tmp_path):
     with _uploads_patch(tmp_path):
         first = await extract_data_uri_images(markdown)
 
-        with mock_patch("lib.services.image_extraction.os.replace") as replace_mock:
+        with mock_patch(
+            "lib.services.files.image_extraction.os.replace"
+        ) as replace_mock:
             second = await extract_data_uri_images(markdown)
 
     replace_mock.assert_not_called()
@@ -452,7 +455,7 @@ async def test_oversized_image_is_not_decoded_for_a_crop(tmp_path):
 
     with (
         _uploads_patch(tmp_path),
-        patch("lib.services.image_extraction._MAX_CROP_PIXELS", 64 * 64 - 1),
+        patch("lib.services.files.image_extraction._MAX_CROP_PIXELS", 64 * 64 - 1),
     ):
         result = await extract_data_uri_images(
             _markdown_for(png), _sizes_for(png, placement)

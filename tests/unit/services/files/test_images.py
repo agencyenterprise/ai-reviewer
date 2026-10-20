@@ -8,11 +8,11 @@ import pytest
 from sqlalchemy.sql.dml import Delete
 
 from lib.models.file import FileRole
+from lib.services.files.image_extraction import ExtractedImage
 from lib.services.files.images import (
     add_conversation_images,
     replace_extracted_images,
 )
-from lib.services.image_extraction import ExtractedImage
 
 MODULE = "lib.services.files.images"
 
