@@ -1,6 +1,7 @@
 import builtins
+import types
 from abc import ABC, abstractmethod
-from typing import TypeVar
+from typing import cast, get_args, get_origin
 
 from langgraph.graph import StateGraph
 
@@ -14,11 +15,11 @@ from lib.workflows.models import (
 )
 from lib.workflows.workflow_types import WorkflowState
 
-WorkflowStateType = TypeVar("WorkflowStateType", bound=BaseWorkflowState)
-WorkflowConfigType = TypeVar("WorkflowConfigType", bound=BaseWorkflowConfig)
 
-
-class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
+class WorkflowManifest[
+    WorkflowStateType: BaseWorkflowState,
+    WorkflowConfigType: BaseWorkflowConfig,
+](ABC):
     """Base class for workflow manifests."""
 
     # Type of the workflow
@@ -82,17 +83,35 @@ class WorkflowManifest[WorkflowStateType, WorkflowConfigType](ABC):
     # In case a workflow is started and an optional dependency is running or scheduled to run, the workflow will wait until it completes to start; otherwise, it will start immediately.
     optional_dependencies: list[WorkflowRunType] = []
 
-    @abstractmethod
+    # The state and config classes named in the subclass's
+    # WorkflowManifest[State, Config] base, filled in by __init_subclass__.
+    _state_type: builtins.type[BaseWorkflowState] | None = None
+    _config_type: builtins.type[BaseWorkflowConfig] | None = None
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        super().__init_subclass__(**kwargs)
+        for base in types.get_original_bases(cls):
+            if get_origin(base) is not WorkflowManifest:
+                continue
+            state_type, config_type = get_args(base)
+            # A subclass that stays generic passes type parameters, not classes.
+            if isinstance(state_type, type) and isinstance(config_type, type):
+                cls._state_type = state_type
+                cls._config_type = config_type
+
     def get_state_type(self) -> builtins.type[WorkflowStateType]:
         """Get the type of the workflow state."""
 
-        raise NotImplementedError()
+        if self._state_type is None:
+            raise TypeError(f"{type(self).__name__} does not name its state type")
+        return cast(builtins.type[WorkflowStateType], self._state_type)
 
-    @abstractmethod
     def get_config_type(self) -> builtins.type[WorkflowConfigType]:
         """Get the type of the workflow config."""
 
-        raise NotImplementedError()
+        if self._config_type is None:
+            raise TypeError(f"{type(self).__name__} does not name its config type")
+        return cast(builtins.type[WorkflowConfigType], self._config_type)
 
     @abstractmethod
     def build_graph(self) -> StateGraph:

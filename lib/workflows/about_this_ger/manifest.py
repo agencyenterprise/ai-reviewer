@@ -1,7 +1,5 @@
 """Manifest for About This (GER) workflow."""
 
-import builtins
-
 from langgraph.graph import StateGraph
 
 from lib.workflows.about_this_ger.graph import build_about_this_ger_graph
@@ -23,12 +21,6 @@ class AboutThisGerManifest(WorkflowManifest[AboutThisGerState, AboutThisGerConfi
     needs_web_search = False
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
     is_experimental = False
-
-    def get_state_type(self) -> builtins.type[AboutThisGerState]:
-        return AboutThisGerState
-
-    def get_config_type(self) -> builtins.type[AboutThisGerConfig]:
-        return AboutThisGerConfig
 
     def build_graph(self) -> StateGraph:
         return build_about_this_ger_graph()

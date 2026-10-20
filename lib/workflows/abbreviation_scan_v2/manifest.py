@@ -1,7 +1,5 @@
 """Manifest for abbreviation scan v2 workflow."""
 
-import builtins
-
 from langgraph.graph import StateGraph
 
 from lib.workflows.abbreviation_scan_v2.chunk_models import ChunkStatus
@@ -27,12 +25,6 @@ class AbbreviationScanV2Manifest(
     is_internal = False
     is_experimental = False
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
-
-    def get_state_type(self) -> builtins.type[AbbreviationScanV2State]:
-        return AbbreviationScanV2State
-
-    def get_config_type(self) -> builtins.type[AbbreviationScanV2Config]:
-        return AbbreviationScanV2Config
 
     def build_graph(self) -> StateGraph:
         return build_abbreviation_scan_v2_graph()

@@ -1,4 +1,3 @@
-import builtins
 from typing import cast
 
 from langgraph.graph import StateGraph
@@ -43,12 +42,6 @@ class ReferenceValidationV2Manifest(
     # Each reference fans out a gpt-5.5 + web_search deep agent; cap how many
     # run in parallel so large bibliographies don't trip provider 429s.
     max_concurrency = 20
-
-    def get_state_type(self) -> builtins.type[ReferenceValidationV2State]:
-        return ReferenceValidationV2State
-
-    def get_config_type(self) -> builtins.type[ReferenceValidationV2WorkflowConfig]:
-        return ReferenceValidationV2WorkflowConfig
 
     def build_graph(self) -> StateGraph:
         return build_reference_validation_v2_graph()
