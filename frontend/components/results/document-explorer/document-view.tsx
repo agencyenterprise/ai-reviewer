@@ -19,11 +19,6 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import type { PluggableList } from 'unified';
 
-interface IssueWithLines extends Issue {
-  start_line?: number | null;
-  end_line?: number | null;
-}
-
 /** The reader's place: a block, and where in the pane its top was sitting. */
 export interface ScrollAnchor {
   line: number;
@@ -79,12 +74,12 @@ const CLEARED_CLASSES = [
   'cursor-pointer',
 ];
 
-function hasLineRange(issue: Issue): issue is IssueWithLines & { start_line: number; end_line: number } {
+function hasLineRange(issue: Issue): issue is Issue & { start_line: number; end_line: number } {
   return issueLineRange(issue) !== null;
 }
 
-function pickTopSeverityIssue(issues: IssueWithLines[], lineStart: number, lineEnd: number) {
-  let best: IssueWithLines | null = null;
+function pickTopSeverityIssue(issues: Issue[], lineStart: number, lineEnd: number) {
+  let best: Issue | null = null;
   for (const issue of issues) {
     const lines = issueLineRange(issue);
     if (!lines || !rangesOverlap(lines, [lineStart, lineEnd])) continue;
@@ -154,7 +149,7 @@ const WIDTH_WITH_MARGIN = 'xl:max-w-[calc(3rem_+_46rem_+_26rem_+_1px)]';
 const NestedContext = createContext(false);
 
 interface MarginState {
-  issues: IssueWithLines[];
+  issues: Issue[];
   activeIssueId: string | null;
   readOnly: boolean;
   onSelect: (issue: Issue) => void;
@@ -329,7 +324,7 @@ export function DocumentView({
     scrollToAnchor: ({ line, offset }: ScrollAnchor) => scrollToRange([line, line], { at: 'top', offset }, 'auto'),
   }));
 
-  const lineIssues = useMemo(() => issues.filter(hasLineRange) as IssueWithLines[], [issues]);
+  const lineIssues = useMemo(() => issues.filter(hasLineRange), [issues]);
   // The rest: findings about the document rather than a place in it, like a
   // missing Abbreviations section. Nothing anchors them, so the margin would
   // drop them entirely and the header would count issues that are not on screen.

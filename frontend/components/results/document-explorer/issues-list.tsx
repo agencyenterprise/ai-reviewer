@@ -3,7 +3,7 @@
 import { Issue, SeverityEnum } from '@/lib/generated-api';
 import { SEVERITIES_WORST_FIRST } from '@/lib/severity';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ReactNode, Ref, useImperativeHandle, useMemo } from 'react';
+import { Ref, useImperativeHandle, useMemo } from 'react';
 import { GroupHeader, IssueRow } from './issue-row';
 
 type Row = { kind: 'header'; severity: SeverityEnum; count: number } | { kind: 'issue'; issue: Issue };
@@ -19,8 +19,6 @@ interface IssuesListProps {
   activeIssueId: string | null;
   readOnly: boolean;
   onSelect: (issue: Issue) => void;
-  /** The open row's way out of the issue; see {@link IssueBody}. Defaults to its assessment's report. */
-  crossLink?: (issue: Issue) => ReactNode;
 }
 
 /**
@@ -28,15 +26,7 @@ interface IssuesListProps {
  * place into the same body the margin note shows. Virtualised, because turning
  * passing checks on can push this past six hundred rows.
  */
-export function IssuesList({
-  ref,
-  issues,
-  scrollElement,
-  activeIssueId,
-  readOnly,
-  onSelect,
-  crossLink,
-}: IssuesListProps) {
+export function IssuesList({ ref, issues, scrollElement, activeIssueId, readOnly, onSelect }: IssuesListProps) {
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = [];
     for (const severity of SEVERITIES_WORST_FIRST) {
@@ -98,7 +88,6 @@ export function IssuesList({
                 active={activeIssueId === row.issue.id}
                 readOnly={readOnly}
                 onSelect={onSelect}
-                crossLink={crossLink?.(row.issue)}
               />
             )}
           </div>
