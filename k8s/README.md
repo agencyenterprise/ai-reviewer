@@ -70,6 +70,12 @@ oc get routes -n ai-reviewer
 # Put the Route URLs in FRONTEND_URL and MCP_BASE_URL in .env, then update the secret and restart the API
 oc create secret generic app-secrets --from-env-file=.env -n ai-reviewer --dry-run=client -o yaml | oc apply -f -
 oc rollout restart deployment/api -n ai-reviewer
+
+# Rebuild the frontend with the API Route's URL (see step 1), push it, and restart the frontend
+docker build -t $REGISTRY/ai-reviewer-frontend:latest -f ../frontend/Dockerfile ../frontend/ \
+  --build-arg NEXT_PUBLIC_API_URL=https://<api route host>
+docker push $REGISTRY/ai-reviewer-frontend:latest
+oc rollout restart deployment/frontend -n ai-reviewer
 ```
 
 **Vanilla Kubernetes:**
