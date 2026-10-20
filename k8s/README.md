@@ -22,7 +22,15 @@ export REGISTRY=quay.io/your-org  # or docker.io/your-username, ghcr.io/your-org
 
 # Build images
 docker build -t $REGISTRY/ai-reviewer-api:latest -f Dockerfile .
-docker build -t $REGISTRY/ai-reviewer-frontend:latest -f frontend/Dockerfile frontend/
+# The frontend calls the API at NEXT_PUBLIC_API_URL, from the browser and from its own
+# server code. The value is fixed when the image is built (setting it in frontend-config
+# has no effect). With http://localhost:8000 (also the default) and the port-forward
+# quick start, only the browser reaches the API: file downloads, the admin pages and
+# the About page call it from inside the pod and fail. Behind Routes or an Ingress,
+# pass the API's public URL and rebuild once you know it. The frontend pod must be able
+# to reach that URL too (see "Optional: Network Security").
+docker build -t $REGISTRY/ai-reviewer-frontend:latest -f frontend/Dockerfile frontend/ \
+  --build-arg NEXT_PUBLIC_API_URL=http://localhost:8000
 
 # Push to registry
 docker push $REGISTRY/ai-reviewer-api:latest
@@ -46,6 +54,8 @@ The template's defaults are for local development. Before you create the secret,
 
 - `DATABASE_URL`: use the `db` Service as the host, with the same user, password and database name as `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB` (for example `postgresql://ai_reviewer_user:<password>@db:5432/ai_reviewer`).
 - `FRONTEND_URL` and `MCP_BASE_URL`: the API builds share links and its OAuth base URL from them. With the port-forward quick start below, keep the `localhost` defaults (MCP clients also need `kubectl port-forward -n ai-reviewer svc/api 8000:8000`). When you expose the app through Routes or an Ingress, use their public URLs instead (`MCP_BASE_URL` keeps its `/mcp` path). On OpenShift the Routes get their hosts only when they are created, so set these two after deploying (see step 3).
+- `AUTH_SECRET` and at least one sign-in provider (`AUTH_GOOGLE_*` or `AUTH_MICROSOFT_ENTRA_ID_*`): the frontend reads these keys and `AUTH_URL` from the same secret, and no others (`frontend.yaml` lists them). Register `<frontend URL>/api/auth/callback/<provider>` as a redirect URI with the provider (`google` or `microsoft-entra-id`).
+- Add `AUTH_URL` set to the frontend's URL (`http://localhost:3000` for the port-forward quick start, otherwise its public URL; on OpenShift set it with `FRONTEND_URL` after deploying). In production, Auth.js refuses requests from a host it doesn't trust, and builds its OAuth callback from this URL. `AUTH_TRUST_HOST=true` alone isn't enough: behind a port-forward the callback comes out as `http://0.0.0.0:3000/...`.
 
 ### 3. Deploy to Cluster
 
@@ -59,9 +69,15 @@ oc apply -f . -n ai-reviewer
 # Get the URL
 oc get routes -n ai-reviewer
 
-# Put the Route URLs in FRONTEND_URL and MCP_BASE_URL in .env, then update the secret and restart the API
+# Put the Route URLs in FRONTEND_URL, AUTH_URL and MCP_BASE_URL in .env, then update the secret and restart the API
 oc create secret generic app-secrets --from-env-file=.env -n ai-reviewer --dry-run=client -o yaml | oc apply -f -
 oc rollout restart deployment/api -n ai-reviewer
+
+# Rebuild the frontend with the API Route's URL (see step 1), push it, and restart the frontend
+docker build -t $REGISTRY/ai-reviewer-frontend:latest -f ../frontend/Dockerfile ../frontend/ \
+  --build-arg NEXT_PUBLIC_API_URL=https://<api route host>
+docker push $REGISTRY/ai-reviewer-frontend:latest
+oc rollout restart deployment/frontend -n ai-reviewer
 ```
 
 **Vanilla Kubernetes:**
@@ -70,11 +86,13 @@ oc rollout restart deployment/api -n ai-reviewer
 kubectl create namespace ai-reviewer
 kubectl create secret generic app-secrets --from-env-file=.env -n ai-reviewer
 
-# Apply all manifests (OpenShift Routes will be ignored)
+# Apply all manifests. kubectl applies everything else, then reports the two OpenShift
+# Routes ("no matches for kind Route") and exits 1: that's expected here.
 kubectl apply -f configmap.yaml -f database.yaml -f api.yaml -f frontend.yaml -n ai-reviewer
 
-# Access via port-forward
-kubectl port-forward -n ai-reviewer svc/frontend 3000:3000
+# Access via port-forward (the browser calls the API on localhost:8000)
+kubectl port-forward -n ai-reviewer svc/frontend 3000:3000 &
+kubectl port-forward -n ai-reviewer svc/api 8000:8000
 # Visit http://localhost:3000
 ```
 
@@ -103,7 +121,7 @@ sed -i 's|# storageClassName: ""|storageClassName: "standard"|' database.yaml ap
 
 ### Vanilla Kubernetes with Ingress
 
-Save this as `ingress.yaml` and apply separately:
+Save this as `ingress.yaml` and apply separately. It gives the API and the frontend a host each, as the OpenShift Routes do. One host split by path doesn't work: the API also serves `/tus`, `/mcp` and `/.well-known`, and the frontend serves its own `/api/auth` and `/api/files` routes.
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -112,19 +130,27 @@ metadata:
   name: ai-reviewer
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts: [api.ai-reviewer.yourdomain.com, ai-reviewer.yourdomain.com]
+      secretName: ai-reviewer-tls
   rules:
-    - host: ai-reviewer.yourdomain.com
+    - host: api.ai-reviewer.yourdomain.com
       http:
         paths:
-          - path: /api
+          - path: /
             pathType: Prefix
             backend:
               service: { name: api, port: { number: 8000 } }
+    - host: ai-reviewer.yourdomain.com
+      http:
+        paths:
           - path: /
             pathType: Prefix
             backend:
               service: { name: frontend, port: { number: 3000 } }
 ```
+
+The `tls` block needs a certificate for both hosts in the `ai-reviewer-tls` secret: create it with `kubectl create secret tls ai-reviewer-tls --cert=<file> --key=<file> -n ai-reviewer`, or let cert-manager issue it. Then build the frontend with `NEXT_PUBLIC_API_URL=https://api.ai-reviewer.yourdomain.com`, set `MCP_BASE_URL` to that URL plus `/mcp`, and set `FRONTEND_URL` and `AUTH_URL` to `https://ai-reviewer.yourdomain.com`. Without TLS, drop the `tls` block and use `http://` in all four.
 
 ## Common Operations
 
@@ -147,7 +173,7 @@ kubectl get all -n ai-reviewer
 ```bash
 kubectl create secret generic app-secrets --from-env-file=.env \
   --dry-run=client -o yaml -n ai-reviewer | kubectl apply -f -
-kubectl rollout restart deployment/api -n ai-reviewer
+kubectl rollout restart deployment/api deployment/frontend -n ai-reviewer
 ```
 
 **Database backup:**
@@ -166,7 +192,23 @@ kubectl apply -f network-policy.yaml -n ai-reviewer
 ```
 
 **Note:** Requires a CNI plugin that supports NetworkPolicy (Calico, Cilium, Weave).
-OpenShift has this by default.
+OpenShift has this by default, and `oc apply -f .` applies these policies too.
+
+The frontend policy lets the frontend reach only the API pod and DNS, which isn't enough for two things its server code does:
+
+- **Sign-in:** after the provider redirects back, Auth.js exchanges the code for tokens and fetches the provider's OIDC metadata from the frontend pod, over HTTPS to Google (`oauth2.googleapis.com`, `accounts.google.com`, `www.googleapis.com`) or Microsoft (`login.microsoftonline.com`). With the policy as shipped, sign-in fails at the callback.
+- **API calls at the public URL** it was built with (see step 1), when that URL goes through a Route or an Ingress. Otherwise file downloads, the admin pages and the About page fail.
+
+Add an egress rule for TCP 443 to the frontend policy before applying it, the way the api policy already allows external HTTPS. Use a broad port-443 rule unless your CNI can filter by domain:
+
+```yaml
+# under frontend-network-policy's spec.egress
+- ports:
+    - protocol: TCP
+      port: 443
+```
+
+On vanilla Kubernetes, the api and frontend policies also admit traffic only from OpenShift's router namespace, so an Ingress controller can't reach either pod. Add your controller's namespace (for example `ingress-nginx`) to their `ingress` rules before applying them.
 
 ## Troubleshooting
 
