@@ -8,19 +8,17 @@
 
 <!-- Why it's needed: the problem, bug or request behind it. -->
 
-## What's Changed
+## What Changed
 
-### Backend
-
-<!-- Every changed file and why. Write "None." if nothing changed. -->
-
-### Frontend
-
-<!-- Every changed file and why. Write "None." if nothing changed. -->
+<!-- The changes that matter, grouped by what they do rather than by file or by backend/frontend. Where it makes sense, describe them as design changes: new or changed abstractions, database tables and columns, endpoints and API contracts, and how responsibilities moved between modules. Point to where to start reviewing, and name the parts a reviewer can skim: generated code, renames, moved files, mechanical updates. -->
 
 ## How It Was Verified
 
-<!-- The commands you ran and their results (tests, lint, type checks, evals), and any manual checks: what you clicked through or ran end to end, and what you saw. Say what you did not verify and why. -->
+<!-- What CI can't show: evals, manual checks (what you clicked through or ran end to end, and what you saw) and tests you added or ran beyond the usual suite. Say what you did not verify and why. -->
+
+## Open Questions
+
+<!-- Anything you're unsure of, or a decision the reviewer should make. Write "None." if there are none. -->
 
 ## Risks and Mitigations
 
