@@ -22,7 +22,14 @@ export REGISTRY=quay.io/your-org  # or docker.io/your-username, ghcr.io/your-org
 
 # Build images
 docker build -t $REGISTRY/ai-reviewer-api:latest -f Dockerfile .
-docker build -t $REGISTRY/ai-reviewer-frontend:latest -f frontend/Dockerfile frontend/
+# The frontend calls the API at NEXT_PUBLIC_API_URL, from the browser and from its own
+# server code. The value is fixed when the image is built (setting it in frontend-config
+# has no effect). With http://localhost:8000 (also the default) and the port-forward
+# quick start, only the browser reaches the API: file downloads, the admin pages and
+# the About page call it from inside the pod and fail. Behind Routes or an Ingress,
+# pass the API's public URL, which both sides can reach, and rebuild once you know it.
+docker build -t $REGISTRY/ai-reviewer-frontend:latest -f frontend/Dockerfile frontend/ \
+  --build-arg NEXT_PUBLIC_API_URL=http://localhost:8000
 
 # Push to registry
 docker push $REGISTRY/ai-reviewer-api:latest
@@ -73,8 +80,9 @@ kubectl create secret generic app-secrets --from-env-file=.env -n ai-reviewer
 # Apply all manifests (OpenShift Routes will be ignored)
 kubectl apply -f configmap.yaml -f database.yaml -f api.yaml -f frontend.yaml -n ai-reviewer
 
-# Access via port-forward
-kubectl port-forward -n ai-reviewer svc/frontend 3000:3000
+# Access via port-forward (the browser calls the API on localhost:8000)
+kubectl port-forward -n ai-reviewer svc/frontend 3000:3000 &
+kubectl port-forward -n ai-reviewer svc/api 8000:8000
 # Visit http://localhost:3000
 ```
 
