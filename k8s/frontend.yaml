@@ -23,11 +23,53 @@ spec:
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
+        # Only the sign-in keys from app-secrets: the rest (database, LLM keys) stays
+        # with the API.
+        env:
+        - name: AUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: AUTH_SECRET
+        - name: AUTH_URL
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: AUTH_URL
+              optional: true
+        - name: AUTH_GOOGLE_ID
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: AUTH_GOOGLE_ID
+              optional: true
+        - name: AUTH_GOOGLE_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: AUTH_GOOGLE_SECRET
+              optional: true
+        - name: AUTH_MICROSOFT_ENTRA_ID_ID
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: AUTH_MICROSOFT_ENTRA_ID_ID
+              optional: true
+        - name: AUTH_MICROSOFT_ENTRA_ID_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: AUTH_MICROSOFT_ENTRA_ID_SECRET
+              optional: true
+        - name: AUTH_MICROSOFT_ENTRA_ID_ISSUER
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: AUTH_MICROSOFT_ENTRA_ID_ISSUER
+              optional: true
         envFrom:
         - configMapRef:
             name: frontend-config
-        - secretRef:
-            name: app-secrets
         resources:
           requests:
             memory: 256Mi
