@@ -54,6 +54,8 @@ The template's defaults are for local development. Before you create the secret,
 
 - `DATABASE_URL`: use the `db` Service as the host, with the same user, password and database name as `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB` (for example `postgresql://ai_reviewer_user:<password>@db:5432/ai_reviewer`).
 - `FRONTEND_URL` and `MCP_BASE_URL`: the API builds share links and its OAuth base URL from them. With the port-forward quick start below, keep the `localhost` defaults (MCP clients also need `kubectl port-forward -n ai-reviewer svc/api 8000:8000`). When you expose the app through Routes or an Ingress, use their public URLs instead (`MCP_BASE_URL` keeps its `/mcp` path). On OpenShift the Routes get their hosts only when they are created, so set these two after deploying (see step 3).
+- `AUTH_SECRET` and at least one sign-in provider (`AUTH_GOOGLE_*` or `AUTH_MICROSOFT_ENTRA_ID_*`): the frontend reads them from the same secret. Register `<frontend URL>/api/auth/callback/<provider>` as a redirect URI with the provider (`google` or `microsoft-entra-id`).
+- Add `AUTH_URL` set to the frontend's URL (`http://localhost:3000` for the port-forward quick start, otherwise its public URL; on OpenShift set it with `FRONTEND_URL` after deploying). In production, Auth.js refuses requests from a host it doesn't trust, and builds its OAuth callback from this URL. `AUTH_TRUST_HOST=true` alone isn't enough: behind a port-forward the callback comes out as `http://0.0.0.0:3000/...`.
 
 ### 3. Deploy to Cluster
 
@@ -67,7 +69,7 @@ oc apply -f . -n ai-reviewer
 # Get the URL
 oc get routes -n ai-reviewer
 
-# Put the Route URLs in FRONTEND_URL and MCP_BASE_URL in .env, then update the secret and restart the API
+# Put the Route URLs in FRONTEND_URL, AUTH_URL and MCP_BASE_URL in .env, then update the secret and restart the API
 oc create secret generic app-secrets --from-env-file=.env -n ai-reviewer --dry-run=client -o yaml | oc apply -f -
 oc rollout restart deployment/api -n ai-reviewer
 
@@ -168,7 +170,7 @@ kubectl get all -n ai-reviewer
 ```bash
 kubectl create secret generic app-secrets --from-env-file=.env \
   --dry-run=client -o yaml -n ai-reviewer | kubectl apply -f -
-kubectl rollout restart deployment/api -n ai-reviewer
+kubectl rollout restart deployment/api deployment/frontend -n ai-reviewer
 ```
 
 **Database backup:**

@@ -26,6 +26,8 @@ spec:
         envFrom:
         - configMapRef:
             name: frontend-config
+        - secretRef:
+            name: app-secrets
         resources:
           requests:
             memory: 256Mi
