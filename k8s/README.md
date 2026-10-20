@@ -130,6 +130,9 @@ metadata:
   name: ai-reviewer
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts: [api.ai-reviewer.yourdomain.com, ai-reviewer.yourdomain.com]
+      secretName: ai-reviewer-tls
   rules:
     - host: api.ai-reviewer.yourdomain.com
       http:
@@ -147,7 +150,7 @@ spec:
               service: { name: frontend, port: { number: 3000 } }
 ```
 
-Then build the frontend with `NEXT_PUBLIC_API_URL=https://api.ai-reviewer.yourdomain.com`, and set `MCP_BASE_URL` to that host plus `/mcp` and `FRONTEND_URL` to the frontend's host.
+The `tls` block needs a certificate for both hosts in the `ai-reviewer-tls` secret: create it with `kubectl create secret tls ai-reviewer-tls --cert=<file> --key=<file> -n ai-reviewer`, or let cert-manager issue it. Then build the frontend with `NEXT_PUBLIC_API_URL=https://api.ai-reviewer.yourdomain.com`, set `MCP_BASE_URL` to that URL plus `/mcp`, and set `FRONTEND_URL` and `AUTH_URL` to `https://ai-reviewer.yourdomain.com`. Without TLS, drop the `tls` block and use `http://` in all four.
 
 ## Common Operations
 
