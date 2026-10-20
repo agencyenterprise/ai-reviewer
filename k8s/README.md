@@ -194,7 +194,19 @@ kubectl apply -f network-policy.yaml -n ai-reviewer
 **Note:** Requires a CNI plugin that supports NetworkPolicy (Calico, Cilium, Weave).
 OpenShift has this by default, and `oc apply -f .` applies these policies too.
 
-The frontend policy lets the frontend reach only the API pod and DNS. Its server code calls the API at the public URL it was built with (see step 1), so when that URL goes through a Route or an Ingress, add an egress rule for it (usually TCP 443 to your router or ingress controller). Otherwise file downloads, the admin pages and the About page fail.
+The frontend policy lets the frontend reach only the API pod and DNS, which isn't enough for two things its server code does:
+
+- **Sign-in:** after the provider redirects back, Auth.js exchanges the code for tokens and fetches the provider's OIDC metadata from the frontend pod, over HTTPS to Google (`oauth2.googleapis.com`, `accounts.google.com`, `www.googleapis.com`) or Microsoft (`login.microsoftonline.com`). With the policy as shipped, sign-in fails at the callback.
+- **API calls at the public URL** it was built with (see step 1), when that URL goes through a Route or an Ingress. Otherwise file downloads, the admin pages and the About page fail.
+
+Add an egress rule for TCP 443 to the frontend policy before applying it, the way the api policy already allows external HTTPS. Use a broad port-443 rule unless your CNI can filter by domain:
+
+```yaml
+# under frontend-network-policy's spec.egress
+- ports:
+    - protocol: TCP
+      port: 443
+```
 
 On vanilla Kubernetes, the api and frontend policies also admit traffic only from OpenShift's router namespace, so an Ingress controller can't reach either pod. Add your controller's namespace (for example `ingress-nginx`) to their `ingress` rules before applying them.
 
