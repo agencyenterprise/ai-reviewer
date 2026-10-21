@@ -90,7 +90,7 @@ Field-specific notes:
 `final_result` is mechanical given the per-field `problem_type`s from Step 5. Apply in order:
 
 1. No candidate found, OR candidate is a different work (per Step 4) → `final_result = "incorrect_fields"`. A reference that cannot be located online is treated as a substantive (red) issue. Set `updated_reference = null`.
-2. Same work and at least one field has `problem_type = INCORRECT` → `final_result = "incorrect_fields"`. Populate `updated_reference` with the corrections applied, preserving the reference's original citation style.
+2. Same work and at least one field has `problem_type = INCORRECT` → `final_result = "incorrect_fields"`. Populate `updated_reference` with the corrections applied, preserving the reference's original citation style (see the `updated_reference` note under Output).
 3. Same work, no INCORRECT fields, and at least one field has `problem_type = MISSING` → `final_result = "missing_fields"`. Populate `updated_reference` if there is a useful correction to suggest; otherwise set it to `null`.
 4. Same work and every field has `problem_type = CORRECT` → `final_result = "correct"`. Set `updated_reference = null`.
 
@@ -110,10 +110,12 @@ For each validated reference, report the following structure (JSON or a clearly-
   * `current_value` — the value as it appears in the reference.
   * `suggested_value` — the authoritative value.
   * `problem_type` — `correct` / `missing` / `incorrect` / `other`. (Use `correct` when the only differences are capitalization or minor punctuation.)
+- `summary` — one or two plain sentences telling the author what is wrong: each incorrect or missing field, with the cited value and what the source says ("The third author's surname is spelled Eliahou, not Elliahou."). Leave out the fields that are correct, how you searched, and the reference as a whole. For a reference you could not find, say that in one sentence. Empty when `correct`.
 - `url` — the URL identifying the cited work (from the reference, identifier resolution, or your search). Empty string when no candidate was found.
 - `reasoning` — a brief step-by-step summary of how you validated.
 - `suggested_action` — one sentence describing what to fix; `"No changes needed"` when `correct`.
 - `updated_reference` — corrected citation in the reference's original format when there are corrections to suggest (typically `missing_fields` or `incorrect_fields` for a found work); otherwise `null`.
+  Change only the fields you marked `incorrect` or `missing`, and copy every other character of the reference exactly as written, including the capitalization, punctuation and URL of fields you marked `correct`. Someone may apply the difference between the two as a tracked change, so any other edit turns into a change the author did not need.
 
 ## Response hygiene
 

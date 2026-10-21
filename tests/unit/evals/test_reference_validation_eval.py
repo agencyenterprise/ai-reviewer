@@ -8,7 +8,9 @@ import pytest
 from evals_inspectai.e2e.reference_validation_v2.criteria import (
     KEYS,
     FieldValidation,
+    ProposedEdit,
     ValidationResult,
+    edit_scores,
     mechanical_result,
     reasoning_prompt,
     validation_scores,
@@ -81,8 +83,28 @@ def test_a_correctly_flagged_reference_passes_every_check():
         updated="Patel, Dylan, and Jeremie Eliahou Ontiveros ...",
         author="incorrect",
     )
-    values, note = validation_scores(result, MISSPELLED)
+    edits = [ProposedEdit(original_text="Elliahou", replacement_text="Eliahou")]
+    values, note = validation_scores(result, MISSPELLED, edits)
     assert all(v == 1.0 for v in values.values() if not math.isnan(v)), note
+
+
+def test_edits_are_checked_against_the_records_corrections():
+    wrong = [ProposedEdit(original_text="Patel", replacement_text="Patil")]
+    values, _ = edit_scores(wrong, MISSPELLED)
+    assert values["edit_given"] == 1.0 and values["edits_carry_corrections"] == 0.0
+    values, note = edit_scores([], MISSPELLED)
+    assert values["edit_given"] == 0.0
+    assert note == ["no edit for a correctable reference"]
+
+
+def test_an_edit_on_a_correct_reference_is_not_due():
+    correct = ReferenceRecord.model_validate(
+        {"id": "ok", "reference": "Smith, A Study, 2020."}
+    )
+    edits = [ProposedEdit(original_text="2020", replacement_text="2021")]
+    values, _ = edit_scores(edits, correct)
+    assert values["edits_only_when_due"] == 0.0
+    assert math.isnan(values["edit_given"])
 
 
 def test_the_wrong_field_flagged_fails_the_field_checks_but_not_the_result():
