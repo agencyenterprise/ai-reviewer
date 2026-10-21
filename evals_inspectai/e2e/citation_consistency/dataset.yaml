@@ -382,6 +382,39 @@
   notes: The fix adds only the comma; the refinement, the page and the footnote callout after the
     parenthesis must survive. The suite skips edit_keeps_numbers_and_markers, so these must_include
     phrases carry that guarantee for a citation with a callout.
+- input: |
+    # Rural Hospital Closures
+
+    ## Findings
+
+    Closures cluster in states that did not expand Medicaid.[^1]
+
+    Travel times to emergency care rose by a third after a closure.[^2]
+
+    Obstetric units closed first in most of the hospitals studied.[^3]
+
+    [^1]: Okada and Brenner, *Closing the Doors*.
+    [^2]: Lindahl, "Distance to Care After Rural Closures."
+    [^3]: Mwangi, *Maternity Deserts*.
+
+    ## References
+
+    Lindahl, Sara, "Distance to Care After Rural Closures," *Health Affairs*, Vol. 40, No. 2, 2021.
+
+    Okada, Ren, and Paul Brenner, *Closing the Doors: Rural Hospitals in Decline*, RAND Corporation, RR-A5101-1, 2019.
+  expected_issues:
+  - id: author_title_missing
+    title: Citation Not in Reference List
+    anchor: Mwangi, *Maternity Deserts*.
+    severity: high
+    edit_expected: false
+  decoys:
+  - anchor: Okada and Brenner, *Closing the Doors*.
+    reason: author_title_match
+  - anchor: Lindahl, "Distance to Care After Rural Closures."
+    reason: author_title_match
+  notes: An author-title document throughout. Its citations carry no year, so they match on surnames and
+    main title (the subtitle is left out); Mwangi's title is in no entry.
 - input: file://e2e/citation_consistency/files/long_report.md
   expected_issues:
   - id: long_ampersand
@@ -416,6 +449,7 @@
   - id: long_missing_okafor
     title: Citation Not in Reference List
     anchor: (Okafor, 2021)
+    line: 89
     severity: high
     edit_expected: false
   - id: long_page_word
@@ -467,10 +501,12 @@
     reason: cross_reference
   - anchor: Paragraph 150 of the review
     reason: correct_citation
-  notes: A 471-line author-date report with a 50-entry References list and about 300 correct citations,
+  notes: A 473-line author-date report with a 50-entry References list and about 300 correct citations,
     long enough for the skill's sub-agent path. The planted errors sit in their own paragraphs from
     Chapter 3 on (11 faulty citations), weighted to the back half, where a single pass gives the text less attention.
-    Generated once from a seeded script and committed as plain markdown; Novak and Moreau are listed
+    Okafor 2021, absent from the list, is cited in Chapter 2 and again in Chapter 7, which land in different
+    sub-agent parts, and a correct run reports it once, on its first citation. Generated once from a seeded
+    script and committed as plain markdown; Novak and Moreau are listed
     but never cited, and the two Davis and Patel 2022 entries are reached only by the ambiguous citation.
     In an author-date document the replacement for an ibid. note is the author's wording, so no edit
     is expected for it.

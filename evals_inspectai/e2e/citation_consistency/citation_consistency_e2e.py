@@ -18,7 +18,7 @@ design (a year fixed, *et al.* expanded). The samples' ``must_include`` phrases
 carry its guarantee instead: a page number, a *see* and a footnote callout next
 to a fixed citation must survive the edit.
 
-The last sample is a 471-line report (``files/long_report.md``), long enough
+The last sample is a 473-line report (``files/long_report.md``), long enough
 for the skill's sub-agent path; it takes about two minutes, against well under
 one for the others.
 

@@ -86,6 +86,8 @@ Participants who switch occupations gain more than those who stay in their prior
 
 We interviewed program directors in six states.[^1]
 
+Remote supervision of apprentices has been piloted in two states (Okafor, 2021).
+
 ## Chapter 3. Who Enrolls
 
 Regional demand for the trained occupation predicts placement better than program design does (Mbeki, 2012). The evidence here comes mostly from quasi-experimental designs (Iqbal, Ortiz, and Lowe, 2022). Paragraph 41 of the review records this evidence for the training vouchers strand.
