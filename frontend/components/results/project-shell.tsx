@@ -21,7 +21,6 @@ import { NewAssessmentButton } from './new-assessment-button';
 import { OldRevisionBanner } from './old-revision-banner';
 import { ProjectTab, ProjectTabs } from './project-tabs';
 import { ReferenceReviewBanner } from './reference-review-banner';
-import { RunActivityIndicator } from './run-activity/run-activity-indicator';
 import { RunActivityLine } from './run-activity/run-activity-line';
 
 interface ProjectShellProps {
@@ -172,10 +171,10 @@ export function ProjectShell({
                   Read-only view
                 </Badge>
               )}
-              {/* What is running sits next to what starts a run, so the answer to
-                  "did that go?" is where the question was asked. */}
-              <RunActivityIndicator projectId={overview.project.id} workflowDetails={results} />
-              {!readOnly && <NewAssessmentButton projectId={overview.project.id} />}
+              {/* The button that starts a run also says what is running, so the
+                  answer to "did that go?" is where the question was asked. A
+                  read-only view gets the status alone. */}
+              <NewAssessmentButton projectId={overview.project.id} />
               <AnalysisOptionsMenu
                 overview={overview}
                 readOnly={readOnly}

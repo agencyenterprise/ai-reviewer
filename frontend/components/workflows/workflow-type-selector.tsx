@@ -18,6 +18,8 @@ interface WorkflowTypeSelectorProps {
   onSelectionChange: (types: WorkflowRunType[]) => void;
   disabled?: boolean;
   disabledTypes?: WorkflowRunType[];
+  /** Already running or queued: shown as running, unticked and not selectable. */
+  runningTypes?: WorkflowRunType[];
   showHeader?: boolean;
   headerDescription?: string;
   error?: string;
@@ -30,6 +32,7 @@ export function WorkflowTypeSelector({
   onSelectionChange,
   disabled = false,
   disabledTypes = [],
+  runningTypes = [],
   showHeader = true,
   headerDescription,
   error,
@@ -61,7 +64,8 @@ export function WorkflowTypeSelector({
   );
 
   const visibleCount = renderedTypes.length;
-  const selectedVisibleCount = renderedTypes.filter((type) => selectedTypes.includes(type)).length;
+  const isSelected = (type: WorkflowRunType) => selectedTypes.includes(type) && !runningTypes.includes(type);
+  const selectedVisibleCount = renderedTypes.filter(isSelected).length;
 
   const handleCheckedChange = (type: WorkflowRunType, checked: boolean) => {
     if (checked) {
@@ -75,8 +79,8 @@ export function WorkflowTypeSelector({
   // Anything else already in `selectedTypes` is left alone, so a caller that
   // seeds the selection with a type this list does not offer keeps it.
   const bulkSelectableTypes = useMemo(
-    () => renderedTypes.filter((type) => !disabledTypes.includes(type)),
-    [renderedTypes, disabledTypes],
+    () => renderedTypes.filter((type) => !disabledTypes.includes(type) && !runningTypes.includes(type)),
+    [renderedTypes, disabledTypes, runningTypes],
   );
 
   const selectedBulkCount = bulkSelectableTypes.filter((type) => selectedTypes.includes(type)).length;
@@ -93,9 +97,12 @@ export function WorkflowTypeSelector({
     <WorkflowTypeCheckbox
       key={workflowType.type}
       workflowType={workflowType}
-      checked={selectedTypes.includes(workflowType.type)}
+      checked={isSelected(workflowType.type)}
       onCheckedChange={(checked) => handleCheckedChange(workflowType.type, checked === true)}
-      disabled={controlsDisabled || disabledTypes.includes(workflowType.type)}
+      running={runningTypes.includes(workflowType.type)}
+      disabled={
+        controlsDisabled || disabledTypes.includes(workflowType.type) || runningTypes.includes(workflowType.type)
+      }
       estimatedSeconds={getEstimatedSeconds(workflowType.type)}
     />
   );
