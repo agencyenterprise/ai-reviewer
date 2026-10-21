@@ -1,5 +1,3 @@
-import builtins
-
 from langgraph.graph import StateGraph
 
 from lib.services.files.service import get_main_file_id
@@ -18,12 +16,6 @@ class Reviewer2Manifest(WorkflowManifest[Reviewer2State, Reviewer2Config]):
     needs_web_search = False
     is_experimental = True
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
-
-    def get_state_type(self) -> builtins.type[Reviewer2State]:
-        return Reviewer2State
-
-    def get_config_type(self) -> builtins.type[Reviewer2Config]:
-        return Reviewer2Config
 
     def build_graph(self) -> StateGraph:
         return build_reviewer_2_graph()

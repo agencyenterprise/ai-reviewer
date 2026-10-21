@@ -1,8 +1,5 @@
 """Manifest for reference file matching workflow."""
 
-import builtins
-from typing import cast
-
 from langgraph.graph import StateGraph
 
 from lib.services.files.service import (
@@ -40,14 +37,6 @@ class ReferenceFileMatchingManifest(
     ]
     always_run = True  # Always run reference file matching to ensure new files are matched. The workflow matches only new files in subsequent runs, reusing cached results from previous runs.
 
-    def get_state_type(self) -> builtins.type[ReferenceFileMatchingState]:
-        """Get the type of the workflow state."""
-        return ReferenceFileMatchingState
-
-    def get_config_type(self) -> builtins.type[ReferenceFileMatchingConfig]:
-        """Get the type of the workflow config."""
-        return ReferenceFileMatchingConfig
-
     def build_graph(self) -> StateGraph:
         """Build and return the graph of the workflow."""
         return build_reference_file_matching_graph()
@@ -67,10 +56,12 @@ class ReferenceFileMatchingManifest(
         matching state so already-matched references are not re-processed.
         """
         existing_matching_state = get_state_by_type(
-            WorkflowRunType.REFERENCE_FILE_MATCHING, existing_states
+            WorkflowRunType.REFERENCE_FILE_MATCHING,
+            ReferenceFileMatchingState,
+            existing_states,
         )
         existing_matches = (
-            cast(ReferenceFileMatchingState, existing_matching_state).matches
+            existing_matching_state.matches
             if existing_matching_state is not None
             else []
         )
