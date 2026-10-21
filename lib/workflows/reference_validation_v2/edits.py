@@ -124,7 +124,7 @@ def build_reference_edits(
     spans = [span for f in incorrect if (span := _field_span(f, original, taken))]
     quotes = [
         quote
-        for change in changes
+        for change in (_anchored(c, original, spans) for c in changes)
         if _inside(_touched(change, original), original, spans)
         and (quote := _unique_quote(change, original, lines, start_line, end_line))
     ]
@@ -225,6 +225,33 @@ def _unique_exact_span(
         if words and norm[i : i + len(words)] == words
     ]
     return (found[0], found[0] + len(words)) if len(found) == 1 else None
+
+
+def _anchored(
+    change: _WordChange, original: list[str], spans: list[tuple[int, int]]
+) -> _WordChange:
+    """An insertion, as a replacement of the neighbour it is inserted beside.
+
+    The neighbour is the one inside an incorrect field, so a word added at the
+    start of an incorrect title that follows a correct author ("Smith. Study."
+    to "Smith. A Study.") is anchored on the title, not on the author.
+    """
+    if change.start < change.end:
+        return change
+    at = change.start
+
+    def inside(i: int) -> bool:
+        return any(start <= i < end for start, end in spans)
+
+    if at > 0 and (inside(at - 1) or at == len(original)):
+        return _WordChange(
+            start=at - 1, end=at, replacement=[original[at - 1], *change.replacement]
+        )
+    if at < len(original):
+        return _WordChange(
+            start=at, end=at + 1, replacement=[*change.replacement, original[at]]
+        )
+    return change
 
 
 def _touched(change: _WordChange, original: list[str]) -> range:

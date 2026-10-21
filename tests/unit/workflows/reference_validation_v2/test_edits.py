@@ -281,3 +281,16 @@ def test_a_missing_value_of_several_words_is_caught_before_the_run_is_split():
     )
 
     assert build_reference_edits(result, reference, [reference], 1, 1) == []
+
+
+def test_a_word_added_at_the_start_of_an_incorrect_field_is_anchored_on_it():
+    reference = "Smith. Study. Example Press, 2020."
+    author = _field(FieldCategoryV2.AUTHOR, FieldProblemTypeV2.CORRECT, "Smith")
+    title = _field(FieldCategoryV2.TITLE, FieldProblemTypeV2.INCORRECT, "Study")
+    result = _result("Smith. A Study. Example Press, 2020.", author, title)
+
+    edits = build_reference_edits(result, reference, [reference], 1, 1)
+
+    assert [(e.original_text, e.replacement_text) for e in edits] == [
+        ("Study.", "A Study.")
+    ]
