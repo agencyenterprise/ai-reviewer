@@ -195,7 +195,7 @@ def test_overflow_fails_a_single_issue_on_a_paragraph_past_the_cap():
     assert rest[0].id in explanation
 
 
-def test_overflow_fails_a_summary_with_the_wrong_title_severity_or_range():
+def test_overflow_fails_a_summary_with_the_wrong_title_or_range():
     inventory = _overflow_inventory()
     paragraphs = technical_paragraphs(inventory)
     first, rest = paragraphs[:CAP], paragraphs[CAP:]
@@ -205,12 +205,11 @@ def test_overflow_fails_a_summary_with_the_wrong_title_severity_or_range():
         inventory,
     )
     assert wrong_title["overflow_summary_title"] == 0.0
-    wrong_severity, _ = overflow_scores(
+    any_severity, _ = overflow_scores(
         [_single(e) for e in first] + [_summary(rest, severity="medium")], inventory
     )
-    assert (
-        wrong_severity["overflow_summary_title"] == 0.0
-        and wrong_severity["overflow_summary_covers_rest"] == 1.0
+    assert any_severity["overflow_summary_title"] == 1.0, (
+        "the agent judges the summary's severity"
     )
     short = _summary(rest)
     short.end_line = rest[0].line

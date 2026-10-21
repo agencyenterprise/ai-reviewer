@@ -9,7 +9,7 @@ issues. These checks score it directly, on a sample whose inventory expects
 more than ``CAP`` technical paragraphs; every other sample is NaN. They ask
 for at most ``CAP`` issues titled exactly ``Technical Language``, one of them
 for each of the first ``CAP`` technical paragraphs in document order and none
-for a paragraph past the cap, exactly one summary at ``low`` severity, and a
+for a paragraph past the cap, exactly one summary, and a
 summary that spans every remaining paragraph and quotes each one's term.
 Whether the summary gives each paragraph a plain alternative is graded in
 ``overflow_judge``.
@@ -29,7 +29,6 @@ from evals_inspectai.common.simple_deep_agent_types import IssueItem
 CAP = 15
 PARAGRAPH_TITLE = "Technical Language"
 SUMMARY_TITLE = "Technical Language: Further Paragraphs"
-SUMMARY_SEVERITY = "low"
 
 OVERFLOW_KEYS = (
     "overflow_cap",
@@ -40,7 +39,7 @@ OVERFLOW_KEYS = (
 OVERFLOW_DESCRIPTIONS = {
     "overflow_cap": f"On a sample with more than {CAP} technical paragraphs: at most {CAP} issues titled exactly '{PARAGRAPH_TITLE}'.",
     "overflow_first_in_order": f"On that sample: each of the first {CAP} technical paragraphs in document order has its own '{PARAGRAPH_TITLE}' issue (matched one-to-one), and no such issue covers a paragraph past the cap.",
-    "overflow_summary_title": f"On that sample: exactly one issue titled '{SUMMARY_TITLE}', with severity {SUMMARY_SEVERITY}.",
+    "overflow_summary_title": f"On that sample: exactly one issue titled '{SUMMARY_TITLE}'.",
     "overflow_summary_covers_rest": "On that sample: the summary spans every remaining technical paragraph and quotes each one's term.",
 }
 OVERFLOW_LABELS = {
@@ -139,9 +138,7 @@ def overflow_scores(
     values = {
         "overflow_cap": float(len(singles) <= CAP),
         "overflow_first_in_order": float(not missing and not strays),
-        "overflow_summary_title": float(
-            summary is not None and summary.severity == SUMMARY_SEVERITY
-        ),
+        "overflow_summary_title": float(summary is not None),
         "overflow_summary_covers_rest": float(not uncovered),
     }
     notes = [f"{len(singles)} single issues, {len(summaries)} summaries"]

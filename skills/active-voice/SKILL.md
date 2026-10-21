@@ -75,8 +75,10 @@ When the document has more than 300 lines and you can hand work to sub-agents, s
 
 Report issues following the conventions defined in the `issues` skill. Do not emit issues for sentences that pass.
 
-- **Passive voice** → one issue per paragraph that contains reportable passive sentences, title `"Passive Voice"`, **severity: low**. In the `description`, quote each reported sentence from that paragraph. In `suggested_action`, give the active rewrite for each quoted sentence, including the rewrite with a verb of aim for a passive that states a purpose, or, where the actor is unknown and no such rewrite applies, the words *"Name who [verb phrase]; the text does not say."* Bracket the paragraph with `start_line` and `end_line`.
-- **Ambiguous actor** → one issue per sentence, title `"Ambiguous Actor"`, **severity: medium**. Quote the sentence, name the candidate parties the document mentions, and in `suggested_action` propose the rewrite if one party is clearly meant, or ask the author to name the responsible party if not.
+Choose each issue's severity by the severity criteria in the `issues` skill, judged by what the problem costs the reader: `medium` when it makes a passage harder to follow, leaves its meaning or what it refers to unclear, or undercuts the document's neutrality; `low` when the passage already reads clearly and neutrally and the change only polishes it; `high` only for a problem that undermines the document as a whole.
+
+- **Passive voice** → one issue per paragraph that contains reportable passive sentences, title `"Passive Voice"`. In the `description`, quote each reported sentence from that paragraph. In `suggested_action`, give the active rewrite for each quoted sentence, including the rewrite with a verb of aim for a passive that states a purpose, or, where the actor is unknown and no such rewrite applies, the words *"Name who [verb phrase]; the text does not say."* Bracket the paragraph with `start_line` and `end_line`.
+- **Ambiguous actor** → one issue per sentence, title `"Ambiguous Actor"`. Quote the sentence, name the candidate parties the document mentions, and in `suggested_action` propose the rewrite if one party is clearly meant, or ask the author to name the responsible party if not.
 
 ### Proposed edits
 
@@ -84,7 +86,7 @@ When you can attach proposed edits to an issue, attach one edit per sentence who
 
 ### Volume and coverage
 
-Report every qualifying paragraph up to 40 `"Passive Voice"` issues; when a long document is split into parts, the limit applies to each part. If there are more, report the remainder one issue per section, titled `"Passive Voice: Section Summary"`, **severity: low**, anchored to the section's first reportable paragraph and spanning the section: quote each reported sentence with its rewrite or request, and attach edits as above. The document's every section is covered either way; nothing is left to a summary that names sections without sentences. Ambiguous-actor issues are never consolidated.
+Report every qualifying paragraph up to 40 `"Passive Voice"` issues; when a long document is split into parts, the limit applies to each part. If there are more, report the remainder one issue per section, titled `"Passive Voice: Section Summary"`, anchored to the section's first reportable paragraph and spanning the section: quote each reported sentence with its rewrite or request, and attach edits as above. The document's every section is covered either way; nothing is left to a summary that names sections without sentences. Ambiguous-actor issues are never consolidated.
 
 ## Report
 

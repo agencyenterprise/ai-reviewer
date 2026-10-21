@@ -17,7 +17,6 @@ from evals_inspectai.e2e.advocacy_tone_v2.advocacy_tone_v2_e2e import (
 )
 from evals_inspectai.e2e.advocacy_tone_v2.criteria import (
     JUDGE_CRITERIA,
-    SEVERITY_BY_TITLE,
     skipped_lines,
     tone_scores,
 )
@@ -75,11 +74,8 @@ def test_dataset_is_well_formed():
         "Subjective Tone Detected": 5,
     }
     assert sum(1 for r in records for e in r.expected_issues if not e.required) == 7
-    assert all(
-        e.severity == SEVERITY_BY_TITLE[e.title]
-        for r in records
-        for e in r.expected_issues
-        if e.title
+    assert all(e.severity is None for r in records for e in r.expected_issues), (
+        "the agent judges severity, so the dataset declares none"
     )
     assert sum(1 for r in records if not r.expected_issues) == 9
     assert (
@@ -150,7 +146,6 @@ def test_task_composes_the_inventory_scorers_own_checks_and_judge():
         "f0_5",
         "clean_document_untouched",
         "title_correct",
-        "severity_correct",
         "anchor_in_range",
     ]
     assert t.viewer is not None
@@ -176,7 +171,7 @@ def test_skipped_lines_cover_subsections_and_stop_at_the_next_section():
     assert not {1, 3, 4, 12, 13} & skipped
 
 
-def test_titles_and_severities_are_checked_over_every_reported_issue():
+def test_titles_are_checked_over_every_reported_issue():
     issues = [
         IssueItem(
             title="Trigger Words Detected", severity="low", start_line=4, end_line=4
@@ -191,10 +186,8 @@ def test_titles_and_severities_are_checked_over_every_reported_issue():
     ]
     values, note = tone_scores(issues, INVENTORY)
     assert values["known_titles"] == 2 / 3
-    assert values["severity_follows_title"] == 0.5
-    assert (
-        "Certainty Language" in note and "'Advocacy Language Detected' at low" in note
-    )
+    assert "severity_follows_title" not in values
+    assert "Certainty Language" in note
 
 
 def test_a_range_wider_than_one_line_is_counted():
@@ -233,7 +226,6 @@ def test_an_issue_reaching_into_a_skipped_section_fails_the_sample():
 def test_tone_checks_are_nan_with_nothing_to_judge():
     values, _ = tone_scores([], INVENTORY)
     assert math.isnan(values["known_titles"]) and math.isnan(values["one_line_range"])
-    assert math.isnan(values["severity_follows_title"])
     assert values["skipped_sections_untouched"] == 1.0, (
         "a document with skipped sections left alone passes"
     )

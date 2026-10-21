@@ -1,10 +1,10 @@
 """What Advocacy & Tone is judged on, beyond the generic layers.
 
-The skill fixes three things about every issue it reports, so they are checked
+The skill fixes two things about every issue it reports, so they are checked
 deterministically over all reported issues, not only the ones matched to an
-expected issue: the title is one of its three, the severity is the one that
-title carries (trigger words low, advocacy and subjective tone medium), and the
-issue brackets a single sentence, which in these documents is a single line.
+expected issue: the title is one of its three, and the issue brackets a single
+sentence, which in these documents is a single line. Severity is the agent's
+judgment, so it is not scored.
 It also names the sections to skip; no reported issue may sit in one.
 
 The workflow proposes no edits, so its fix lives in the suggested action. Two
@@ -23,12 +23,11 @@ from evals_inspectai.common.issue_inventory import ResolvedInventory, normalize
 from evals_inspectai.common.issue_judge import JudgeCriterion
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
 
-SEVERITY_BY_TITLE = {
-    "Trigger Words Detected": "low",
-    "Advocacy Language Detected": "medium",
-    "Subjective Tone Detected": "medium",
-}
-TITLES = tuple(SEVERITY_BY_TITLE)
+TITLES = (
+    "Trigger Words Detected",
+    "Advocacy Language Detected",
+    "Subjective Tone Detected",
+)
 
 # The skill: "Do not flag matches inside sections whose heading contains `author`,
 # `reference`, `bibliography`, `appendix`, or `acknowledgment`." Matched as substrings,
@@ -71,19 +70,12 @@ def tone_scores(
     issues: Sequence[IssueItem], inventory: ResolvedInventory
 ) -> tuple[dict[str, float], str]:
     """``known_titles``: share of reported issues titled exactly as one of the skill's
-    three kinds. ``severity_follows_title``: of those, share with the severity the
-    kind carries. ``one_line_range``: share of reported issues whose range is a single
+    three kinds. ``one_line_range``: share of reported issues whose range is a single
     line. ``skipped_sections_untouched``: 1 when no reported issue's range reaches into
-    a skipped section, 0 otherwise, NaN when the document has none. The first three are
-    NaN when nothing (or, for severity, nothing with a known title) was reported."""
-    by_title = {normalize(t): s for t, s in SEVERITY_BY_TITLE.items()}
-    known = [i for i in issues if normalize(i.title) in by_title]
-    odd = [i.title for i in issues if normalize(i.title) not in by_title]
-    wrong_severity = [
-        f"{i.title!r} at {i.severity}"
-        for i in known
-        if i.severity != by_title[normalize(i.title)]
-    ]
+    a skipped section, 0 otherwise, NaN when the document has none. The first two are
+    NaN when nothing was reported."""
+    known_titles = {normalize(t) for t in TITLES}
+    odd = [i.title for i in issues if normalize(i.title) not in known_titles]
     wide = [
         f"{i.start_line}-{i.end_line}" for i in issues if i.start_line != i.end_line
     ]
@@ -94,25 +86,17 @@ def tone_scores(
         if skipped & set(range(i.start_line, i.end_line + 1))
     ]
     values = {
-        "known_titles": _share([normalize(i.title) in by_title for i in issues]),
-        "severity_follows_title": _share(
-            [i.severity == by_title[normalize(i.title)] for i in known]
-        ),
+        "known_titles": _share([normalize(i.title) in known_titles for i in issues]),
         "one_line_range": _share([i.start_line == i.end_line for i in issues]),
         "skipped_sections_untouched": float(not intruding) if skipped else math.nan,
     }
     notes = [f"titles outside the skill's set: {odd}"] if odd else []
-    notes += (
-        [f"severity does not follow the title: {wrong_severity}"]
-        if wrong_severity
-        else []
-    )
     notes += [f"ranges wider than one line: {wide}"] if wide else []
     notes += [f"issues in a skipped section: {intruding}"] if intruding else []
     return values, (
         " | ".join(notes)
         if notes
-        else "titles, severities, ranges and skipped sections all as the skill says"
+        else "titles, ranges and skipped sections all as the skill says"
     )
 
 
@@ -171,14 +155,12 @@ JUDGE_DESCRIPTIONS = {
 }
 OWN_DESCRIPTIONS = {
     "known_titles": "Share of reported issues titled exactly as one of the skill's three kinds; NaN when nothing was reported.",
-    "severity_follows_title": "Of the reported issues with a known title, share with that kind's severity (trigger words low, advocacy and subjective tone medium); covers unmatched issues too, unlike severity_correct. NaN when none.",
     "one_line_range": "Share of reported issues whose line range is a single line: the skill brackets the offending sentence, and every paragraph here is one line. NaN when nothing was reported.",
     "skipped_sections_untouched": "1 when no reported issue reaches into a section whose heading contains author, reference, bibliography, appendix or acknowledgment (subsections included); NaN when the document has none.",
 }
 
 SCORE_LABELS = {
     "known_titles": "Known titles",
-    "severity_follows_title": "Severity by title",
     "one_line_range": "One-line range",
     "skipped_sections_untouched": "Skipped sections",
     "action_concrete": "Concrete action",

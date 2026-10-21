@@ -21,7 +21,6 @@
     title: Inconsistent Term
     anchor: Respondents rated scheduling as their main concern
     edit_expected: true
-    severity: medium
     edit:
       must_include: ["Participants rated"]
   notes: One group, two names across chapters. The majority form is participants (3 to 2).
@@ -57,7 +56,6 @@
     title: Inconsistent Spelling
     anchor: The organisation expected costs to keep rising
     edit_expected: true
-    severity: low
     edit:
       must_include: ["The organization expected"]
   decoys:
@@ -78,7 +76,6 @@
     title: Inconsistent Spelling
     anchor: In 2024 the department shortened the schedule
     edit_expected: true
-    severity: low
     edit:
       must_include: ["the Department shortened"]
   decoys:
@@ -101,7 +98,6 @@
     title: Inconsistent Hyphenation
     anchor: The next generation models also cost more to run
     edit_expected: true
-    severity: low
     edit:
       must_include: ["next-generation models"]
   decoys:
@@ -122,7 +118,6 @@
     title: Inconsistent Hyphenation
     anchor: The lab funds cutting edge research in three fields
     edit_expected: true
-    severity: low
     edit:
       must_include: ["cutting-edge research"]
   notes: Before a noun the hyphenated form is correct even though the open form is the majority (3 to 1), so the edit hyphenates rather than following the majority.
@@ -148,7 +143,6 @@
     title: Inconsistent Number Style
     anchor: Retention rose 7% in the same period
     edit_expected: true
-    severity: low
     edit:
       must_include: ["7 percent"]
   decoys:
@@ -167,7 +161,6 @@
     title: Inconsistent Tense
     anchor: Principals report that recruiting was easier
     edit_expected: true
-    severity: medium
     edit:
       must_include: ["Principals reported"]
   decoys:
@@ -188,7 +181,6 @@
     title: Verb Tense
     anchor: Last year, the agency has cut the review period
     edit_expected: true
-    severity: low
     edit:
       must_include: ["the agency cut the review period"]
   decoys:
@@ -206,7 +198,6 @@
     title: Verb Tense
     anchor: teachers in these studies described tutoring
     edit_expected: true
-    severity: low
     edit:
       must_include: ["have described"]
   decoys:
@@ -224,7 +215,6 @@
     title: Tense
     anchor: Over its two years, the pilot has reduced wait times
     edit_expected: true
-    severity: low
     edit:
       must_include: ["the pilot reduced wait times"]
   decoys:
@@ -253,42 +243,36 @@
     title: Verb Tense
     anchor: Before the program launched, the county has relied on hospital social workers
     edit_expected: true
-    severity: low
     edit:
       must_not_include: ["has relied"]
   - id: in_2023_present_perfect
     title: Verb Tense
     anchor: In 2023, the program has added a second clinic
     edit_expected: true
-    severity: low
     edit:
       must_include: ["the program added"]
   - id: at_baseline_present_perfect
     title: Verb Tense
     anchor: At baseline, most enrolled patients have missed at least one clinic appointment
     edit_expected: true
-    severity: low
     edit:
       must_include: ["had missed"]
   - id: since_simple_past
     title: Verb Tense
     anchor: Since the program began in 2021, community health workers completed more than 3,000 home visits
     edit_expected: true
-    severity: low
     edit:
       must_include: ["have completed"]
   - id: pilot_phase_present_perfect
     title: Tense
     anchor: During the pilot phase, the program has strengthened referrals
     edit_expected: true
-    severity: low
     edit:
       must_include: ["the program strengthened"]
   - id: literature_reported
     title: Verb Tense
     anchor: patients with diabetes reported fewer missed doses
     edit_expected: true
-    severity: low
     edit:
       must_include: ["have reported"]
   decoys:
@@ -319,63 +303,54 @@
     title: Verb Tense
     anchor: people interviewed in these studies described the first month
     edit_expected: true
-    severity: low
     edit:
       must_include: ["have described"]
   - id: long_left_in_june_2023
     title: Verb Tense
     anchor: The founding director has left the Office of Reentry Services in June 2023
     edit_expected: true
-    severity: low
     edit:
       must_not_include: ["has left"]
   - id: long_approved_in_february_2025
     title: Verb Tense
     anchor: it has been reviewed and approved by the county's research review committee in February 2025
     edit_expected: true
-    severity: low
     edit:
       must_not_include: ["has been reviewed"]
   - id: long_referred_between
     title: Tense
     anchor: a total of 1,034 people have been referred to Pathways
     edit_expected: true
-    severity: low
     edit:
       must_include: ["people were referred"]
   - id: long_first_year_sent
     title: Tense
     anchor: During the first year, referrals from the jail and from probation have been sent
     edit_expected: true
-    severity: low
     edit:
       must_not_include: ["have been sent"]
   - id: long_before_launch_built
     title: Verb Tense
     anchor: Before the program launched, a county contractor has built
     edit_expected: true
-    severity: low
     edit:
       must_not_include: ["has built"]
   - id: long_improved_between_years
     title: Tense
     anchor: they have improved a great deal between the first and second years
     edit_expected: true
-    severity: low
     edit:
       must_include: ["they improved"]
   - id: long_research_summary_recommendations
     title: Verb Tense
     anchor: people returning from incarceration emphasized the value
     edit_expected: true
-    severity: low
     edit:
       must_include: ["have emphasized"]
   - id: long_since_opened_enrolled
     title: Verb Tense
     anchor: it enrolled 612 people
     edit_expected: true
-    severity: low
     edit:
       must_include: ["has enrolled"]
   - id: long_remained_through_end
@@ -451,7 +426,6 @@
     title: Inconsistent Tone
     anchor: The authors caution that the second year
     edit_expected: false
-    severity: medium
   decoys:
   - anchor: We would keep it if the state kept paying
     reason: quoted
@@ -468,7 +442,6 @@
     title: House Style
     anchor: The council's decision-making followed the bylaws
     edit_expected: true
-    severity: low
     edit:
       must_include: ["decisionmaking"]
   notes: A single occurrence still counts for the house-style compound.
@@ -526,40 +499,34 @@
     title: House Style
     anchor: decision-making by the agency
     edit_expected: true
-    severity: low
     edit:
       must_include: ["decisionmaking"]
   - id: per_cent
     title: Inconsistent
     anchor: about 9 per cent of the grant
     edit_expected: true
-    severity: low
     edit:
       must_include: ["9 percent"]
   - id: principals_report_present
     title: Inconsistent Tense
     anchor: Principals report that the tutors were easy to recruit
     edit_expected: true
-    severity: medium
     edit:
       must_include: ["Principals reported"]
   - id: the_authors_caution
     title: Inconsistent Tone
     anchor: The authors caution that the second year
     edit_expected: false
-    severity: medium
   - id: students_pupils
     title: Inconsistent Term
     anchor: The pupils who gained most were those who had missed more than 20 days
     edit_expected: true
-    severity: medium
     edit:
       must_include: ["students who gained most"]
   - id: initiative_program
     title: Inconsistent Term
     anchor: they would keep the program only with continued state funding
     edit_expected: true
-    severity: medium
     edit:
       must_include: ["keep the initiative"]
   decoys:
