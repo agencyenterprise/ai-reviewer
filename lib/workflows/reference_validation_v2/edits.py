@@ -98,19 +98,34 @@ def build_reference_edits(
     runs = [op for op in matcher.get_opcodes() if op[0] != "equal"]
     if len(runs) > _MAX_EDITS:
         return []
+    # Missing values are looked for in the whole run, before it is split: split
+    # word by word, a value of several words would pass one word at a time.
+    missing = _missing_values(result)
     changes = [
         change
         for _, i1, i2, j1, j2 in runs
+        if not _adds_missing(
+            _WordChange(start=i1, end=i2, replacement=corrected[j1:j2]),
+            original,
+            missing,
+        )
         for change in _split(original[i1:i2], corrected[j1:j2], i1)
     ]
 
-    spans = [span for f in incorrect if (span := _field_span(f, original))]
-    missing = _missing_values(result)
+    # The other fields' places come first, so an incorrect field restated in
+    # another order cannot be placed across one of them. Only a place that is
+    # certain counts: a value found once, word for word. A year can also sit
+    # inside a title, and claiming the title's copy would block its fix.
+    taken = [
+        span
+        for f in result.bibliography_field_validations
+        if f not in incorrect and (span := _unique_exact_span(f, original))
+    ]
+    spans = [span for f in incorrect if (span := _field_span(f, original, taken))]
     quotes = [
         quote
         for change in changes
         if _inside(_touched(change, original), original, spans)
-        and not _adds_missing(change, original, missing)
         and (quote := _unique_quote(change, original, lines, start_line, end_line))
     ]
     return [
@@ -163,32 +178,53 @@ def _normalized(word: str) -> str:
 
 
 def _field_span(
-    field: BibliographyFieldValidationV2, original: list[str]
+    field: BibliographyFieldValidationV2,
+    original: list[str],
+    taken: Sequence[tuple[int, int]] = (),
 ) -> tuple[int, int] | None:
     """Where a field's cited value sits in the reference, as word indices.
 
     The validator usually copies the value as cited, but it may restate it in
     another order ("Dylan Patel" for "Patel, Dylan"). Then the span is the
     densest run of the value's longer words, so a short word such as "and"
-    elsewhere in the reference cannot place the field there.
+    elsewhere in the reference cannot place the field there. Neither way may
+    the span reach into `taken`, the places of the other fields.
     """
     words = [w for w in map(_normalized, field.current_value.split()) if w]
     norm = [_normalized(w) for w in original]
     if not words:
         return None
+
+    def free(start: int, end: int) -> bool:
+        return all(end <= a or start >= b for a, b in taken)
+
     for i in range(len(norm) - len(words) + 1):
-        if norm[i : i + len(words)] == words:
+        if norm[i : i + len(words)] == words and free(i, i + len(words)):
             return i, i + len(words)
     distinctive = {w for w in words if len(w) > _SHORT_WORD}
-    hits = [i for i, w in enumerate(norm) if w in distinctive]
+    hits = [i for i, w in enumerate(norm) if w in distinctive and free(i, i + 1)]
     runs: list[list[int]] = []
     for i in hits:
-        if runs and i - runs[-1][-1] <= _RUN_GAP:
+        if runs and i - runs[-1][-1] <= _RUN_GAP and free(runs[-1][0], i + 1):
             runs[-1].append(i)
         else:
             runs.append([i])
     best = max(runs, key=len, default=None)
     return (best[0], best[-1] + 1) if best else None
+
+
+def _unique_exact_span(
+    field: BibliographyFieldValidationV2, original: list[str]
+) -> tuple[int, int] | None:
+    """Where a field's value appears word for word, if it appears exactly once."""
+    words = [w for w in map(_normalized, field.current_value.split()) if w]
+    norm = [_normalized(w) for w in original]
+    found = [
+        i
+        for i in range(len(norm) - len(words) + 1)
+        if words and norm[i : i + len(words)] == words
+    ]
+    return (found[0], found[0] + len(words)) if len(found) == 1 else None
 
 
 def _touched(change: _WordChange, original: list[str]) -> range:

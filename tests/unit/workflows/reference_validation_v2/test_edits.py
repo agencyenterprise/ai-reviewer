@@ -252,3 +252,32 @@ def test_a_restyle_of_a_correct_title_sharing_the_authors_surname_is_dropped():
     assert [(e.original_text, e.replacement_text) for e in edits] == [
         ("John.", "Joan.")
     ]
+
+
+def test_a_field_restated_in_another_order_is_not_placed_across_a_correct_field():
+    reference = "Brown, John. Brown Energy. Example Press, 2020."
+    author = _field(FieldCategoryV2.AUTHOR, FieldProblemTypeV2.INCORRECT, "John Brown")
+    title = _field(FieldCategoryV2.TITLE, FieldProblemTypeV2.CORRECT, "Brown Energy")
+    result = _result("Brown, Joan. BROWN Energy. Example Press, 2020.", author, title)
+
+    edits = build_reference_edits(result, reference, [reference], 1, 1)
+
+    assert [(e.original_text, e.replacement_text) for e in edits] == [
+        ("John.", "Joan.")
+    ]
+
+
+def test_a_missing_value_of_several_words_is_caught_before_the_run_is_split():
+    reference = "Doe, Jane, and Smith. A Study of Energy Policy, 2020."
+    author = _field(
+        FieldCategoryV2.AUTHOR, FieldProblemTypeV2.INCORRECT, "Doe, Jane, and Smith"
+    )
+    publisher = _field(FieldCategoryV2.PUBLISHER, FieldProblemTypeV2.MISSING, "")
+    publisher.suggested_value = "RAND Corporation"
+    result = _result(
+        "Jones, Ann. RAND Corporation. A Study of Energy Policy, 2020.",
+        author,
+        publisher,
+    )
+
+    assert build_reference_edits(result, reference, [reference], 1, 1) == []

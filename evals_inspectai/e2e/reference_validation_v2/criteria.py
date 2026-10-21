@@ -129,12 +129,19 @@ def _updated_reference_expected(record: ReferenceRecord) -> bool | None:
 
 
 def _edited(reference: str, edits: Sequence[ProposedEdit]) -> str:
-    """The reference with its edits applied, whitespace normalized as the anchoring is."""
+    """The reference with its edits applied, whitespace normalized as the anchoring is.
+
+    Every edit is placed on the original text and applied back to front, as the
+    export does, so a later edit never rewrites an earlier one's output."""
     text = " ".join(reference.split())
+    placed = []
     for edit in edits:
-        text = text.replace(
-            " ".join(edit.original_text.split()), edit.replacement_text, 1
-        )
+        quote = " ".join(edit.original_text.split())
+        position = text.find(quote)
+        if position >= 0:
+            placed.append((position, position + len(quote), edit.replacement_text))
+    for start, end, replacement in sorted(placed, reverse=True):
+        text = text[:start] + replacement + text[end:]
     return text
 
 
@@ -149,9 +156,12 @@ def edit_scores(
     allowed = not record.not_found and "incorrect_fields" in record.result
     due = not record.not_found and record.result == ["incorrect_fields"]
     edited = normalize(_edited(record.reference, edits))
+    # Missing fields are never edited (their place in the citation is a guess),
+    # so only the corrections of fields labelled incorrect are expected here.
     carried = [
         any(normalize(p) in edited for p in phrases)
-        for phrases in record.corrections.values()
+        for field, phrases in record.corrections.items()
+        if "missing" not in record.accepted(field)
     ]
     values = {
         "edits_only_when_due": float(allowed or not edits),
@@ -295,7 +305,7 @@ DESCRIPTIONS = {
     "url_when_found": "1 if a URL is given for a reference that exists. NaN for a fabricated one.",
     "edits_only_when_due": "1 unless tracked-change edits are given for a reference whose record does not accept incorrect_fields (correct, only missing fields) or that is fabricated.",
     "edit_given": "1 if a found work with an incorrect field and labelled corrections gets at least one edit. NaN otherwise.",
-    "edits_carry_corrections": "Share of the record's corrections present in the reference once its edits are applied. NaN when there are no edits.",
+    "edits_carry_corrections": "Share of the record's corrections to fields labelled incorrect present in the reference once its edits are applied (missing fields are never edited). NaN when there are no edits or no such corrections.",
 }
 JUDGE_DESCRIPTIONS = {
     "reasoning_matches": "Graded per record with a labeller's rationale: the reasoning and suggested action reach the labeller's account of the reference (C=1, P=0.5, I=0).",

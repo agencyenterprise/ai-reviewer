@@ -112,6 +112,39 @@ def test_an_edit_is_allowed_but_not_required_when_incorrect_fields_is_one_accept
     assert math.isnan(values["edit_given"])
 
 
+def test_corrections_to_missing_fields_are_not_expected_from_edits():
+    record = ReferenceRecord.model_validate(
+        {
+            "id": "author_and_year",
+            "reference": "Herzig and Berant. A Study.",
+            "result": "incorrect_fields",
+            "fields": {"author": "incorrect", "year": "missing"},
+            "corrections": {"author": "Shaw", "year": "2021"},
+        }
+    )
+    edits = [ProposedEdit(original_text="Berant.", replacement_text="Shaw.")]
+    values, _ = edit_scores(edits, record)
+    assert values["edits_carry_corrections"] == 1.0
+
+
+def test_edits_are_applied_on_the_original_reference_not_one_after_another():
+    record = ReferenceRecord.model_validate(
+        {
+            "id": "swap",
+            "reference": "Smyth, Ann and Smith, Bob. A Study. 2020.",
+            "result": "incorrect_fields",
+            "fields": {"author": "incorrect"},
+            "corrections": {"author": "Smith, Ann and Jones, Bob"},
+        }
+    )
+    edits = [
+        ProposedEdit(original_text="Smyth,", replacement_text="Smith,"),
+        ProposedEdit(original_text="Smith,", replacement_text="Jones,"),
+    ]
+    values, _ = edit_scores(edits, record)
+    assert values["edits_carry_corrections"] == 1.0
+
+
 def test_an_edit_on_a_correct_reference_is_not_due():
     correct = ReferenceRecord.model_validate(
         {"id": "ok", "reference": "Smith, A Study, 2020."}
