@@ -97,6 +97,21 @@ def test_edits_are_checked_against_the_records_corrections():
     assert note == ["no edit for a correctable reference"]
 
 
+def test_an_edit_is_allowed_but_not_required_when_incorrect_fields_is_one_accepted_result():
+    either = ReferenceRecord.model_validate(
+        {
+            "id": "either",
+            "reference": "Smith, A Study, 2020.",
+            "result": ["correct", "incorrect_fields"],
+        }
+    )
+    edits = [ProposedEdit(original_text="2020", replacement_text="2021")]
+    values, _ = edit_scores(edits, either)
+    assert values["edits_only_when_due"] == 1.0
+    values, _ = edit_scores([], either)
+    assert math.isnan(values["edit_given"])
+
+
 def test_an_edit_on_a_correct_reference_is_not_due():
     correct = ReferenceRecord.model_validate(
         {"id": "ok", "reference": "Smith, A Study, 2020."}

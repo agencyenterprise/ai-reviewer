@@ -9,8 +9,9 @@ wrong.
 An edit is proposed only where the fix is not in doubt:
 
 - the reference was found and has at least one field marked incorrect, with a
-  source URL behind it (a field that is only missing would need an insertion
-  whose place in the citation style is a guess, so it stays a suggested action);
+  source URL behind it. A missing field would need an insertion whose place in
+  the citation style is a guess, so it stays a suggested action, also when the
+  validator writes it into a change next to an incorrect field;
 - the corrected reference keeps most of the original's words, since a rewrite
   of most of a citation is a judgment call for the author, not a redline;
 - every word a change touches lies where a field marked incorrect sits in the
@@ -94,25 +95,44 @@ def build_reference_edits(
     if not original or kept / len(original) < _MIN_WORDS_KEPT:
         return []
 
-    changes = [
-        _WordChange(start=i1, end=i2, replacement=corrected[j1:j2])
-        for tag, i1, i2, j1, j2 in matcher.get_opcodes()
-        if tag != "equal"
-    ]
-    if len(changes) > _MAX_EDITS:
+    runs = [op for op in matcher.get_opcodes() if op[0] != "equal"]
+    if len(runs) > _MAX_EDITS:
         return []
+    changes = [
+        change
+        for _, i1, i2, j1, j2 in runs
+        for change in _split(original[i1:i2], corrected[j1:j2], i1)
+    ]
 
     spans = [span for f in incorrect if (span := _field_span(f, original))]
+    missing = _missing_values(result)
     quotes = [
         quote
         for change in changes
         if _inside(_touched(change, original), original, spans)
+        and not _adds_missing(change, original, missing)
         and (quote := _unique_quote(change, original, lines, start_line, end_line))
     ]
     return [
         edit
         for quote in _merged(quotes)
         if (edit := _edit(quote, original, lines, start_line, end_line))
+    ]
+
+
+def _split(old: list[str], new: list[str], start: int) -> list[_WordChange]:
+    """One run of changed words, split word for word when both sides are as long.
+
+    The diff joins neighbouring changes into one run ("John. Brown" to "Joan.
+    BROWN"), which may span a field marked incorrect and one marked correct.
+    Split, each word is judged by the field it sits in.
+    """
+    if len(old) != len(new):
+        return [_WordChange(start=start, end=start + len(old), replacement=new)]
+    return [
+        _WordChange(start=start + i, end=start + i + 1, replacement=[b])
+        for i, (a, b) in enumerate(zip(old, new, strict=True))
+        if a != b
     ]
 
 
@@ -186,6 +206,30 @@ def _inside(indices: range, original: list[str], spans: list[tuple[int, int]]) -
         for i in indices
         if _normalized(original[i])
     )
+
+
+def _missing_values(result: BibliographyItemValidationV2) -> list[set[str]]:
+    """The words of each missing field's value, as the source gives it."""
+    return [
+        words
+        for field in result.bibliography_field_validations
+        if field.problem_type == FieldProblemTypeV2.MISSING
+        and (words := {w for w in map(_normalized, field.suggested_value.split()) if w})
+    ]
+
+
+def _adds_missing(
+    change: _WordChange, original: list[str], missing: list[set[str]]
+) -> bool:
+    """Whether a change also inserts a missing field's value.
+
+    A replacement next to an incorrect field can carry a missing field in with
+    it ("WrongVenue." to "CorrectVenue. 2024."), and where a missing field
+    goes is a guess.
+    """
+    replaced = {_normalized(w) for w in original[change.start : change.end]}
+    added = {_normalized(w) for w in change.replacement} - replaced
+    return any(words <= added for words in missing)
 
 
 def _unique_quote(

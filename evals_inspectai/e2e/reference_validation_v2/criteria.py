@@ -142,7 +142,11 @@ def edit_scores(
     edits: Sequence[ProposedEdit], record: ReferenceRecord
 ) -> tuple[dict[str, float], list[str]]:
     """The tracked-change checks: edits only for a found work with an incorrect field,
-    one given for such a work, and applying them carries the record's corrections."""
+    one given for such a work, and applying them carries the record's corrections.
+
+    Edits are allowed whenever the record accepts ``incorrect_fields``, and required
+    only when it accepts nothing else."""
+    allowed = not record.not_found and "incorrect_fields" in record.result
     due = not record.not_found and record.result == ["incorrect_fields"]
     edited = normalize(_edited(record.reference, edits))
     carried = [
@@ -150,7 +154,7 @@ def edit_scores(
         for phrases in record.corrections.values()
     ]
     values = {
-        "edits_only_when_due": float(due or not edits),
+        "edits_only_when_due": float(allowed or not edits),
         "edit_given": float(bool(edits)) if due and record.corrections else math.nan,
         "edits_carry_corrections": _share(carried) if edits else math.nan,
     }
@@ -289,7 +293,7 @@ DESCRIPTIONS = {
     "updated_reference_as_specified": "1 if an updated reference is given exactly when the skill requires one: for an incorrect found work or a bare URL, and never for a correct or fabricated reference. NaN when the skill leaves it open.",
     "all_fields_reported": "Share of the five fields the run reports an entry for.",
     "url_when_found": "1 if a URL is given for a reference that exists. NaN for a fabricated one.",
-    "edits_only_when_due": "1 unless tracked-change edits are given for a reference that is correct, only missing fields, or fabricated.",
+    "edits_only_when_due": "1 unless tracked-change edits are given for a reference whose record does not accept incorrect_fields (correct, only missing fields) or that is fabricated.",
     "edit_given": "1 if a found work with an incorrect field and labelled corrections gets at least one edit. NaN otherwise.",
     "edits_carry_corrections": "Share of the record's corrections present in the reference once its edits are applied. NaN when there are no edits.",
 }

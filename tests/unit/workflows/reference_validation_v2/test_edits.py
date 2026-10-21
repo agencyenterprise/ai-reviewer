@@ -213,3 +213,42 @@ def test_an_author_field_restated_in_another_order_still_holds_its_fix():
     edits = build_reference_edits(result, REFERENCE, LINES, 3, 3)
 
     assert [e.replacement_text for e in edits] == ["Eliahou"]
+
+
+def test_a_missing_field_carried_in_by_an_incorrect_one_is_not_proposed():
+    reference = "Doe, Jane. A Study. WrongVenue."
+    venue = _field(
+        FieldCategoryV2.PUBLISHER, FieldProblemTypeV2.INCORRECT, "WrongVenue"
+    )
+    year = _field(FieldCategoryV2.YEAR, FieldProblemTypeV2.MISSING, "")
+    year.suggested_value = "2024"
+    result = _result("Doe, Jane. A Study. CorrectVenue. 2024.", venue, year)
+
+    assert build_reference_edits(result, reference, [reference], 1, 1) == []
+
+
+def test_two_corrections_whose_quotes_would_share_a_word_become_one_edit():
+    reference = "Doe, Jon and Jon Smith. A Study. 2020."
+    authors = _field(
+        FieldCategoryV2.AUTHOR, FieldProblemTypeV2.INCORRECT, "Doe, Jon and Jon Smith"
+    )
+    updated = "Doe, Jan and Jan Smith. A Study. 2020."
+    result = _result(updated, authors)
+
+    edits = build_reference_edits(result, reference, [reference], 1, 1)
+
+    assert len(edits) == 1
+    assert applies_full_correction(reference, updated, edits)
+
+
+def test_a_restyle_of_a_correct_title_sharing_the_authors_surname_is_dropped():
+    reference = "Brown, John. Brown Energy. Example Press, 2020."
+    author = _field(FieldCategoryV2.AUTHOR, FieldProblemTypeV2.INCORRECT, "Brown, John")
+    title = _field(FieldCategoryV2.TITLE, FieldProblemTypeV2.CORRECT, "Brown Energy")
+    result = _result("Brown, Joan. BROWN Energy. Example Press, 2020.", author, title)
+
+    edits = build_reference_edits(result, reference, [reference], 1, 1)
+
+    assert [(e.original_text, e.replacement_text) for e in edits] == [
+        ("John.", "Joan.")
+    ]
