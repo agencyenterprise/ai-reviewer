@@ -97,6 +97,11 @@ export function IssuesTopic({ onOpenTopic }: HelpTopicBodyProps) {
           Severity is the assessment&apos;s judgement, not a verdict on your draft. Read the ones that matter to you and
           ignore the rest.
         </p>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          If the levels get in the way, turn off <span className="font-medium">Group issues by severity</span> when you
+          create a project, or later from <span className="font-medium">Edit project details</span> in the project menu.
+          Every issue is then listed with equal weight, here, in shared links and in the Word export.
+        </p>
       </section>
 
       <section>
@@ -118,7 +123,7 @@ export function IssuesTopic({ onOpenTopic }: HelpTopicBodyProps) {
           </Fact>
           <Fact term="Narrow the list">
             The filters take the explorer down to one severity or one assessment, which is how a few hundred issues
-            become a session&apos;s worth of work.
+            become a session&apos;s worth of work. With severity grouping off, only the assessment filter is offered.
           </Fact>
         </ul>
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
