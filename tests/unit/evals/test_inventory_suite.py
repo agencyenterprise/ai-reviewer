@@ -159,3 +159,64 @@ def test_extra_fields_are_split_off_and_mapped_to_sample_metadata(tmp_path):
     assert suite.extras == [{"sources": [{"file_name": "a.md"}]}, {}]
     samples = suite.dataset(lambda extra: {"n_sources": len(extra.get("sources", []))})
     assert [(s.metadata or {})["n_sources"] for s in samples] == [1, 0]
+
+
+def _edited(tmp_path: Path) -> Path:
+    return _write(
+        tmp_path,
+        [
+            {
+                "input": "# Title\n\nCosts rose (Marchetti, 2020).\n",
+                "expected_issues": [
+                    {
+                        "title": "Citation Does Not Match Reference",
+                        "anchor": "(Marchetti, 2020)",
+                        "edit_expected": True,
+                    }
+                ],
+            }
+        ],
+    )
+
+
+# A citation fix changes the citation, which edit_keeps_numbers_and_markers guards.
+YEAR_FIX = {
+    "title": "Citation Does Not Match Reference",
+    "description": "“(Marchetti, 2020)” cites the 2022 entry.",
+    "start_line": 3,
+    "end_line": 3,
+    "edits": [
+        {
+            "original_text": "(Marchetti, 2020)",
+            "replacement_text": "(Marchetti, 2022)",
+            "start_line": 3,
+            "end_line": 3,
+        }
+    ],
+}
+
+
+@pytest.mark.asyncio
+async def test_a_skipped_edit_check_is_left_out_of_scores_and_columns(tmp_path):
+    kept = InventorySuite.load(_edited(tmp_path))
+    score = await kept.scorers()[0](_state(kept, [YEAR_FIX]), Target(""))
+    assert score.value["edit_keeps_numbers_and_markers"] == 0.0
+
+    skipped = InventorySuite.load(
+        _edited(tmp_path), skip_checks=("edit_keeps_numbers_and_markers",)
+    )
+    assert all(
+        r.policy.skipped_checks == ["edit_keeps_numbers_and_markers"]
+        for r in skipped.records
+    )
+    score = await skipped.scorers()[0](_state(skipped, [YEAR_FIX]), Target(""))
+    assert "edit_keeps_numbers_and_markers" not in score.value
+    assert score.value["edit_present_when_expected"] == 1.0
+    assert (
+        "edit_keeps_numbers_and_markers" not in skipped.descriptions()["issue_checks"]
+    )
+
+
+def test_only_edit_checks_can_be_skipped(tmp_path):
+    with pytest.raises(ValueError, match="recall"):
+        InventorySuite.load(_edited(tmp_path), skip_checks=("recall",))

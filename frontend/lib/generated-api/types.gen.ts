@@ -5198,6 +5198,7 @@ export const WorkflowRunType = {
   ReviewAssistant: 'review_assistant',
   ActiveVoice: 'active_voice',
   AudienceFit: 'audience_fit',
+  CitationConsistency: 'citation_consistency',
   ConcisionPrecision: 'concision_precision',
   HeadersSkimmability: 'headers_skimmability',
   NarrativeSynthesis: 'narrative_synthesis',

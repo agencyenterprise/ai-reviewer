@@ -86,15 +86,16 @@ def issue_check_keys(policy: ScoringPolicy) -> tuple[str, ...]:
     no titles or anchors no issue (an issue without an anchor is matched on its title,
     so that title is right by construction), without ``anchor_in_range`` when it
     anchors no issue and without ``severity_correct`` when it declares no severity,
-    plus the edit-hygiene keys when the workflow proposes edits."""
+    plus the edit-hygiene keys when the workflow proposes edits, less any key the
+    workflow opts out of."""
     keep = {
         "title_correct": policy.titles and policy.anchors,
         "anchor_in_range": policy.anchors,
         "severity_correct": policy.severities,
     }
-    dropped = {k for k, kept in keep.items() if not kept}
-    detection = tuple(k for k in DETECTION_KEYS if k not in dropped)
-    return detection + EDIT_KEYS if policy.edits else detection
+    dropped = {k for k, kept in keep.items() if not kept} | set(policy.skipped_checks)
+    keys = DETECTION_KEYS + EDIT_KEYS if policy.edits else DETECTION_KEYS
+    return tuple(k for k in keys if k not in dropped)
 
 
 # Inspect's unscored sentinel: `Score.unscored()` sets a NaN value, and the
@@ -799,6 +800,8 @@ def issue_detection_scores(
         collected: dict[str, list[float]] = {}
         for e, i in pairs:
             for key, (value, detail) in edit_checks(e, i, lines).items():
+                if key in policy.skipped_checks:
+                    continue
                 collected.setdefault(key, []).append(value)
                 if value < 1.0:
                     notes.append(detail)
