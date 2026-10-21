@@ -1,0 +1,445 @@
+# Eval samples for the citation_consistency workflow, in inventory form: the findings a correct
+# run reports (anchored by the verbatim citation, with edit expectations) and the citations it must
+# leave alone (with the reason). See evals_inspectai/common/issue_inventory.py. Each sample targets
+# one family of rules from skills/citation-consistency/SKILL.md; decoys sit in paragraphs of their
+# own, since an issue that brackets a decoy's line flags it.
+- input: |
+    # Water Reuse in Arid Cities
+
+    ## Background
+
+    Municipal water reuse has grown steadily since 2000 (Alvarez, 2018). Indirect potable reuse now supplies a meaningful share of demand in several western cities (Bergstrom and Kale, 2021), although public acceptance remains the main constraint (Quintero, 2019).
+
+    Treatment costs fell sharply after membrane prices dropped (Halvorsen, 2017). Desalination remains more expensive per acre-foot than reuse in every city studied (Marchetti, 2020).
+
+    ## Findings
+
+    Utilities that ran public demonstration sites saw higher acceptance (Bergstrom and Kale, 2021).
+
+    We interviewed utility managers in four cities.[^1]
+
+    Chapter 3 describes the cost model in detail.
+
+    [^1]: A water utility manager, interview with the authors, May 2, 2024.
+
+    ## References
+
+    Alvarez, Teresa, *Water Reuse in the American West*, Island Press, 2018.
+
+    Bergstrom, Nils, and Priya Kale, "Public Acceptance of Potable Reuse," *Journal of Water Policy*, Vol. 23, No. 4, 2021.
+
+    Halverson, Erik, "Membrane Costs and Municipal Treatment," *Water Economics*, Vol. 9, 2017.
+
+    Marchetti, Paola, *Desalination at Scale*, RAND Corporation, RR-A3001-1, 2022.
+
+    Okonkwo, Ada, *Groundwater Recharge Methods*, Springer, 2016.
+  expected_issues:
+  - id: missing_quintero
+    title: Citation Not in Reference List
+    anchor: (Quintero, 2019)
+    severity: high
+    edit_expected: false
+  - id: misspelled_halverson
+    title: Citation Does Not Match Reference
+    anchor: (Halvorsen, 2017)
+    severity: medium
+    edit_expected: true
+    edit:
+      must_include:
+      - Halverson, 2017
+  - id: wrong_year_marchetti
+    title: Citation Does Not Match Reference
+    anchor: (Marchetti, 2020)
+    severity: medium
+    edit_expected: true
+    edit:
+      must_include:
+      - Marchetti, 2022
+  - id: uncited_okonkwo
+    title: Uncited Reference
+    anchor: Okonkwo, Ada
+    severity: low
+    edit_expected: false
+  decoys:
+  - anchor: Utilities that ran public demonstration sites saw higher acceptance
+    reason: correct_citation
+  - anchor: A water utility manager, interview with the authors
+    reason: interview
+  - anchor: Chapter 3 describes the cost model in detail.
+    reason: cross_reference
+  notes: Author-date document with a References list. Quintero is absent from the list; Halvorsen and
+    Marchetti 2020 are near misses of Halverson 2017 and Marchetti 2022; Okonkwo is never cited.
+- input: |
+    # Teacher Retention in Rural Districts
+
+    ## Evidence
+
+    Retention bonuses have a modest effect on turnover (Fischer 2019). Districts that pair bonuses with mentoring do better (Ibarra & Cole, 2020).
+
+    Early-career teachers are the most likely to leave (Pak, Lind, and Moreau, 2018).
+
+    The effect is strongest in the first two years (Pak et al., 2018).
+
+    Housing support has also been tried (Sato, et al., 2021).
+
+    Fischer (Fischer, 2019) estimates that a bonus of $5,000 lowers turnover by two percentage points.
+
+    Mentoring programs vary widely in design (Ibarra and Cole, 2020 and Fischer, 2019).
+
+    The largest effects were found in the smallest districts (Fischer, 2019, page 31).
+
+    ## References
+
+    Fischer, Hannah, *Paying to Stay: Retention Bonuses for Teachers*, RAND Corporation, RR-A1501-1, 2019.
+
+    Ibarra, Luis, and Megan Cole, "Mentoring and Retention," *Education Policy Review*, Vol. 14, No. 2, 2020.
+
+    Pak, Joon, Erik Lind, and Claire Moreau, *Who Leaves Teaching?* Urban Institute, 2018.
+
+    Sato, Ken, Rosa Diaz, Amir Haddad, and Lena Vogt, "Housing Support for Rural Teachers," *Rural Education*, Vol. 41, No. 1, 2021.
+  expected_issues:
+  - id: missing_comma
+    title: Citation Format
+    anchor: (Fischer 2019)
+    severity: low
+    edit_expected: true
+    edit:
+      must_include:
+      - (Fischer, 2019)
+  - id: ampersand
+    title: Citation Format
+    anchor: (Ibarra & Cole, 2020)
+    edit_expected: true
+    edit:
+      must_include:
+      - (Ibarra and Cole, 2020)
+      must_not_include:
+      - '&'
+  - id: et_al_three_authors
+    title: Citation Format
+    anchor: (Pak et al., 2018)
+    edit_expected: true
+    edit:
+      must_include:
+      - Pak, Lind, and Moreau, 2018
+  - id: comma_before_et_al
+    title: Citation Format
+    anchor: (Sato, et al., 2021)
+    edit_expected: true
+    edit:
+      must_include:
+      - (Sato et al., 2021)
+  - id: repeated_narrative_name
+    title: Citation Format
+    anchor: Fischer (Fischer, 2019)
+    edit_expected: true
+    edit:
+      must_include:
+      - Fischer (2019)
+      must_not_include:
+      - Fischer (Fischer
+  - id: and_between_sources
+    title: Citation Format
+    anchor: (Ibarra and Cole, 2020 and Fischer, 2019)
+    edit_expected: true
+    edit:
+      must_include:
+      - ;
+      must_not_include:
+      - 2020 and Fischer
+  - id: page_word
+    title: Citation Format
+    anchor: (Fischer, 2019, page 31)
+    edit_expected: true
+    edit:
+      must_include:
+      - (Fischer, 2019, p. 31)
+  decoys:
+  - anchor: Early-career teachers are the most likely to leave (Pak, Lind, and Moreau, 2018).
+    reason: correct_citation
+  notes: Every format rule the skill can fix with a determined edit, one citation each. Pak et al. is
+    wrong because the entry has three authors.
+- input: |
+    # Urban Heat and Public Health
+
+    ## Overview
+
+    Heat waves are the deadliest weather events in the United States (Nguyen, 2020). Tree canopy lowers surface temperatures by several degrees (Ortiz and Webb, 2019).
+
+    Cooling centers reduce heat deaths among older adults (Kaplan, 2021).
+
+    ## Bibliography
+
+    Abrams, Ruth, *Climate and the City*, Yale University Press, 2015.
+
+    Kaplan, David, "Cooling Centers and Mortality," *American Journal of Public Health*, Vol. 111, No. 6, 2021.
+
+    Lee, Min-jun, *Heat Islands in Asian Megacities*, Routledge, 2017.
+
+    Nguyen, Thanh, *Heat Waves and Mortality*, RAND Corporation, RR-A2201-1, 2020.
+
+    Ortiz, Carmen, and Daniel Webb, "Tree Canopy and Surface Temperature," *Urban Forestry*, Vol. 38, 2019.
+  expected_issues: []
+  decoys:
+  - anchor: Abrams, Ruth
+    reason: bibliography_uncited
+  - anchor: Lee, Min-jun
+    reason: bibliography_uncited
+  - anchor: Cooling centers reduce heat deaths among older adults (Kaplan, 2021).
+    reason: correct_citation
+  notes: A Bibliography lists works consulted, so its uncited entries are fine. Every citation is
+    correct; a clean run reports nothing.
+- input: |
+    # Broadband Subsidies in Practice
+
+    ## Discussion
+
+    Reverse auctions lowered subsidy costs per location (Moreno, 2019). Defaults among winning bidders were higher than expected (Takahashi and Byrne, 2022).
+
+    ## References
+
+    This list includes works consulted during the study that are not cited in the text.
+
+    Ferreira, Ana, *Wiring Rural America*, Brookings Institution Press, 2016.
+
+    Moreno, Felipe, "Reverse Auctions for Broadband," *Telecommunications Policy*, Vol. 43, No. 5, 2019.
+
+    Takahashi, Yuki, and Sean Byrne, *Defaults in Broadband Subsidy Programs*, RAND Corporation, RR-A2701-1, 2022.
+
+    Wendt, Oskar, *Spectrum Policy*, MIT Press, 2018.
+  expected_issues: []
+  decoys:
+  - anchor: Ferreira, Ana
+    reason: consulted_note
+  - anchor: Wendt, Oskar
+    reason: consulted_note
+  notes: Headed References, but the note under the heading says the list includes works consulted, so
+    uncited entries are fine.
+- input: |
+    # Peatland Restoration Costs
+
+    ## Site Conditions
+
+    Peat soils compress under heavy equipment, which raises the cost of access roads.[^1] Restoration crews in the northern sites relied on low-ground-pressure vehicles for that reason.[^2]
+
+    Rewetting drained peat stops most of its carbon loss within five years.[^3]
+
+    Costs per hectare varied by a factor of four across sites.[^4]
+
+    [^1]: Barry G. Warner, "Peat: Nature's Compost," *Earth*, Vol. 1, No. 2, March 1992, p. 44.
+    [^2]: Ibid., p. 48.
+    [^3]: Ingrid Solberg and Tomas Lund, *Rewetting Northern Peatlands*, Springer, 2019, p. 112.
+    [^4]: Solberg and Lund, 2019, p. 140.
+
+    ## References
+
+    Solberg, Ingrid, and Tomas Lund, *Rewetting Northern Peatlands*, Springer, 2019.
+
+    Warner, Barry G., "Peat: Nature's Compost," *Earth*, Vol. 1, No. 2, March 1992.
+  expected_issues:
+  - id: ibid_warner
+    title: Ibid. or Op. Cit.
+    anchor: Ibid., p. 48.
+    severity: low
+    edit_expected: true
+    edit:
+      must_include:
+      - Warner, 1992, p. 48
+      must_not_include:
+      - Ibid
+  decoys:
+  - anchor: Solberg and Lund, 2019, p. 140.
+    reason: short_form
+  - anchor: Ingrid Solberg and Tomas Lund, *Rewetting Northern Peatlands*, Springer, 2019, p. 112.
+    reason: full_first_footnote
+  notes: Full-footnote system with short forms. The first citation of each source is a full footnote,
+    later ones use the author-date short form; the ibid. must become Warner's short form with its page.
+- input: |
+    # Wildfire Smoke and School Closures
+
+    ## Evidence
+
+    Smoke days rose sharply after 2015 across the western states (Hollis, 2021). School districts rarely close for smoke alone (Reyes and Grant, 2022).
+
+    Air filtration in classrooms lowers indoor particulate levels by about half.[^1] Many districts lack the funds to install it.[^2]
+
+    Remote instruction during closures widened achievement gaps.[^3]
+
+    [^1]: Okada, *Clean Air in Schools*.
+    [^2]: Reyes and Grant, "Smoke Days and School Budgets."
+    [^3]: Hollis, *Wildfire Seasons*, p. 88.
+
+    ## References
+
+    Hollis, Margaret, *Wildfire Seasons: Smoke and Health in the American West*, University of California Press, 2021.
+
+    Okada, Ren, *Clean Air in Schools*, RAND Corporation, RR-A3101-1, 2020.
+
+    Reyes, Daniel, and Olivia Grant, "Smoke Days and School Budgets," *Education Finance*, Vol. 17, No. 3, 2022.
+  expected_issues:
+  - id: mixed_systems
+    title: Mixed Citation Systems
+    severity: medium
+    edit_expected: false
+  decoys: []
+  notes: The body uses author-date citations while the notes use author-title citations. Which system
+    is the majority is borderline (two in text, three in notes), so the issue is matched on its title
+    alone, wherever it is anchored.
+- input: |
+    # Mobile Clinics in Rural Counties
+
+    ## Findings
+
+    Mobile clinics reach patients who otherwise skip preventive care.[^1] Visits fell when fuel prices rose.[^2]
+
+    [^1]: Grace Holloway, *Care on Wheels*, Johns Hopkins University Press, 2018, p. 23.
+    [^2]: Holloway, 2018, p. 57.
+  expected_issues:
+  - id: missing_list
+    title: Missing Reference List
+    severity: high
+    edit_expected: false
+  decoys: []
+  notes: A full-footnote document with no reference list. The house style requires a list even when
+    the notes carry full citations.
+- input: |
+    # Spectrum Sharing for Rural Coverage
+
+    ## Analysis
+
+    Auction results for rural licenses have been mixed (Davis and Patel, 2022).
+
+    Programs that weigh affordability reach more low-income households [4].
+
+    Current federal guidance is published online (https://www.ntia.gov/program/spectrum-sharing).
+
+    Fixed wireless can serve dispersed households at lower cost (cf. Brennan, 2020).
+
+    Capacity falls as subscribers share a tower (Davis and Patel, 2022b).
+
+    ## References
+
+    Brennan, Laura, *Fixed Wireless Access*, Artech House, 2020.
+
+    Davis, Rachel, and Arun Patel, *Spectrum Auctions and Rural Coverage*, RAND Corporation, RR-A2001-1, 2022a.
+
+    Davis, Rachel, and Arun Patel, *Fixed Wireless Access in Appalachia*, RAND Corporation, RR-A2001-2, 2022b.
+  expected_issues:
+  - id: ambiguous_davis
+    title: Ambiguous Citation
+    anchor: (Davis and Patel, 2022)
+    severity: medium
+    edit_expected: false
+  - id: numbered
+    title: Citation Form Not Allowed
+    anchor: '[4]'
+    severity: low
+    edit_expected: false
+  - id: url
+    title: Citation Form Not Allowed
+    anchor: (https://www.ntia.gov/program/spectrum-sharing)
+    severity: low
+    edit_expected: false
+  - id: cf
+    title: Citation Form Not Allowed
+    anchor: (cf. Brennan, 2020)
+    severity: low
+  decoys:
+  - anchor: Capacity falls as subscribers share a tower (Davis and Patel, 2022b).
+    reason: correct_citation
+  notes: Two Davis and Patel entries from 2022 carry year letters, so a bare 2022 citation could mean
+    either. A numbered citation, a URL standing in for a citation and cf. are forms the style does not
+    allow; none has a determined fix (the cf. issue leaves the edit unchecked, since dropping cf. is
+    a plausible fix).
+- input: file://e2e/citation_consistency/files/long_report.md
+  expected_issues:
+  - id: long_ampersand
+    title: Citation Format
+    anchor: (Haddad & Mills, 2015)
+    edit_expected: true
+    edit:
+      must_include:
+      - (Haddad and Mills, 2015)
+  - id: long_ambiguous_davis
+    title: Ambiguous Citation
+    anchor: (Davis and Patel, 2022)
+    edit_expected: false
+  - id: long_wrong_year_sorensen
+    title: Citation Does Not Match Reference
+    anchor: Sorensen (2019)
+    edit_expected: true
+    edit:
+      must_include:
+      - Sorensen (2021)
+  - id: long_missing_comma
+    title: Citation Format
+    anchor: (Esposito 2010)
+    edit_expected: true
+    edit:
+      must_include:
+      - (Esposito, 2010)
+  - id: long_ibid
+    title: Ibid. or Op. Cit.
+    anchor: '[^3]: Ibid.'
+    edit_expected: false
+  - id: long_missing_okafor
+    title: Citation Not in Reference List
+    anchor: (Okafor, 2021)
+    severity: high
+    edit_expected: false
+  - id: long_page_word
+    title: Citation Format
+    anchor: (Yamamoto, 2016, page 41)
+    edit_expected: true
+    edit:
+      must_include:
+      - (Yamamoto, 2016, p. 41)
+  - id: long_et_al_three_authors
+    title: Citation Format
+    anchor: (Iqbal et al., 2022)
+    edit_expected: true
+    edit:
+      must_include:
+      - Iqbal, Ortiz, and Lowe, 2022
+  - id: long_numbered
+    title: Citation Form Not Allowed
+    anchor: '[12]'
+    edit_expected: false
+  - id: long_misspelled_lindgren
+    title: Citation Does Not Match Reference
+    anchor: (Lindgrin et al., 2021)
+    edit_expected: true
+    edit:
+      must_include:
+      - Lindgren et al., 2021
+  - id: long_comma_before_et_al
+    title: Citation Format
+    anchor: (Fairbanks, et al., 2011)
+    edit_expected: true
+    edit:
+      must_include:
+      - (Fairbanks et al., 2011)
+  - id: long_uncited_moreau
+    title: Uncited Reference
+    anchor: Moreau, Farid, and Omar Chen
+    edit_expected: false
+  - id: long_uncited_novak
+    title: Uncited Reference
+    anchor: Novak, Jonas
+    edit_expected: false
+  decoys:
+  - anchor: '[^1]: A workforce program director, interview with the authors'
+    reason: interview
+  - anchor: '[^2]: For several such partnerships, see Iqbal, Ortiz, and Lowe (2022).'
+    reason: correct_citation
+  - anchor: The final recommendations draw on all of the evidence summarized in Chapter 5.
+    reason: cross_reference
+  - anchor: Paragraph 150 of the review
+    reason: correct_citation
+  notes: A 471-line author-date report with a 50-entry References list and about 300 correct citations,
+    long enough for the skill's sub-agent path. The planted errors sit in their own paragraphs from
+    Chapter 3 on, weighted to the back half, where a single pass gives the text less attention.
+    Generated once from a seeded script and committed as plain markdown; Novak and Moreau are listed
+    but never cited, and the two Davis and Patel 2022 entries are reached only by the ambiguous citation.
+    In an author-date document the replacement for an ibid. note is the author's wording, so no edit
+    is expected for it.
