@@ -17,6 +17,7 @@ import { projectQueryKeys } from '@/lib/hooks/use-project-data';
 import { RunActivityDetails } from './run-activity/run-activity-details';
 import { busyWorkflowTypes, runActivityAriaLabel, runActivityLabel } from './run-activity/run-activity-summary';
 import { RunActivity, useRunActivity } from './run-activity/use-run-activity';
+import { startAssessmentsKey, useStartingWorkflowTypes } from './run-activity/use-starting-workflow-types';
 
 /**
  * Starts assessments from the project header, so it is reachable from every
@@ -46,11 +47,8 @@ export function NewAssessmentButton({
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  const {
-    mutate: startWorkflows,
-    isPending: isStarting,
-    variables: starting,
-  } = useMutation({
+  const { mutate: startWorkflows } = useMutation({
+    mutationKey: startAssessmentsKey(projectId),
     mutationFn: (values: WorkflowConfigFormValues) =>
       startMultipleWorkflowsApiWorkflowsStartMultiplePost({
         body: { project_id: projectId, workflow_types: values.workflowTypes },
@@ -64,6 +62,9 @@ export function NewAssessmentButton({
     },
     onError: (error) => toast.error(getErrorMessage(error, 'Failed to start assessments')),
   });
+
+  const starting = useStartingWorkflowTypes(projectId);
+  const isStarting = starting.length > 0;
 
   const active = runsActive || isStarting;
   const label = <span className={collapseLabel ? 'hidden sm:inline' : undefined}>{runActivityLabel(activity)}</span>;
@@ -85,7 +86,7 @@ export function NewAssessmentButton({
       <WorkflowConfigDialog
         isOpen={open}
         projectId={projectId}
-        runningTypes={busyWorkflowTypes(runs, isStarting ? starting?.workflowTypes : [])}
+        runningTypes={busyWorkflowTypes(runs, starting)}
         onConfirm={(values) => {
           setOpen(false);
           startWorkflows(values);
