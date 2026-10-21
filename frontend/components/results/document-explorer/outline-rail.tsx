@@ -3,6 +3,7 @@
 import { HelpLink } from '@/components/help/help-link';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { useGroupBySeverity, useSeverityStyle } from '@/context/group-by-severity-context';
 import { Issue, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { REPORTED_SEVERITIES } from '@/lib/severity';
 import { SEVERITY } from '@/lib/severity-style';
@@ -47,6 +48,8 @@ export function OutlineRail({
   activeLine,
   onJump,
 }: OutlineRailProps) {
+  const groupBySeverity = useGroupBySeverity();
+  const styleOf = useSeverityStyle();
   const workflowCounts = useMemo(() => {
     const counts = new Map<WorkflowRunType, number>();
     for (const issue of visibleIssues) {
@@ -74,28 +77,31 @@ export function OutlineRail({
           )}
         </div>
 
-        <div className="mt-2 space-y-px">
-          {/* Colours and labels come from the shared palette, so the rail cannot drift from the margin. */}
-          {REPORTED_SEVERITIES.map((severity) => {
-            const count = visibleIssues.filter((i) => i.severity === severity).length;
-            const on = filter.severity.includes(severity);
-            return (
-              <button
-                key={severity}
-                onClick={() => toggleSeverity(severity)}
-                aria-pressed={on}
-                className={cn(
-                  'flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
-                  on ? RAIL_ITEM_ACTIVE : RAIL_ITEM_IDLE,
-                )}
-              >
-                <span className={cn('block size-2 rounded-[2px]', SEVERITY[severity].dot)} />
-                <span className="flex-1 text-left">{SEVERITY[severity].label}</span>
-                <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{count}</span>
-              </button>
-            );
-          })}
-        </div>
+        {/* A project that doesn't group by severity has no severity to filter by. */}
+        {groupBySeverity && (
+          <div className="mt-2 space-y-px">
+            {/* Colours and labels come from the shared palette, so the rail cannot drift from the margin. */}
+            {REPORTED_SEVERITIES.map((severity) => {
+              const count = visibleIssues.filter((i) => i.severity === severity).length;
+              const on = filter.severity.includes(severity);
+              return (
+                <button
+                  key={severity}
+                  onClick={() => toggleSeverity(severity)}
+                  aria-pressed={on}
+                  className={cn(
+                    'flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
+                    on ? RAIL_ITEM_ACTIVE : RAIL_ITEM_IDLE,
+                  )}
+                >
+                  <span className={cn('block size-2 rounded-[2px]', SEVERITY[severity].dot)} />
+                  <span className="flex-1 text-left">{SEVERITY[severity].label}</span>
+                  <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         <div className="mt-4 space-y-2.5 px-2">
           <label className="flex cursor-pointer items-center gap-2 text-sm">
@@ -156,7 +162,7 @@ export function OutlineRail({
                     <span className="min-w-0 flex-1 truncate">{entry.text}</span>
                     <span className="flex shrink-0 items-center gap-[3px]">
                       {marks.slice(0, 4).map((m) => (
-                        <span key={m.id} className={cn('block size-1.5 rounded-full', SEVERITY[m.severity].dot)} />
+                        <span key={m.id} className={cn('block size-1.5 rounded-full', styleOf(m.severity).dot)} />
                       ))}
                     </span>
                   </button>

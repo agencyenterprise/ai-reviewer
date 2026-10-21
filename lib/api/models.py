@@ -154,6 +154,10 @@ class CreateProjectRequest(BaseModel):
     """Request body for creating a project."""
 
     title: str
+    group_by_severity: bool | None = Field(
+        default=None,
+        description="Present issues by severity. Defaults to the user's last project.",
+    )
 
 
 class LinkReferenceFileRequest(BaseModel):

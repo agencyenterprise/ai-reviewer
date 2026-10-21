@@ -14,7 +14,7 @@ import { useShare } from '@/context/share-context';
 import { useShareStatus } from '@/hooks/use-share-status';
 import { ProjectOverview, updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
 import { projectQueryKeys, useProjectIssues } from '@/lib/hooks/use-project-data';
-import { useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
+import { useProjectExplorerFilter } from '@/lib/stores/document-explorer-store';
 import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/api-error';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -54,7 +54,7 @@ export function AnalysisOptionsMenu({
   downloadVariant = 'default',
   compact = false,
 }: AnalysisOptionsMenuProps) {
-  const { filter } = useDocumentExplorerStore();
+  const filter = useProjectExplorerFilter();
   const { project } = overview;
   const projectId = project.id;
   const share = useShareStatus(overview);
@@ -64,6 +64,8 @@ export function AnalysisOptionsMenu({
   const [showShareWarning, setShowShareWarning] = useState(false);
   const [isEnablingForDownload, setIsEnablingForDownload] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  // Remounts the edit form on every open, so values left by a cancelled edit are not submitted later.
+  const [editDialogKey, setEditDialogKey] = useState(0);
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
 
   const shareToken = share.shareStatus?.share_link?.token ?? shareContext.shareToken;
@@ -90,6 +92,7 @@ export function AnalysisOptionsMenu({
           title: values.title,
           publication_date: values.publication_date ? new Date(values.publication_date) : null,
           feedback_visibility: values.feedback_visibility ?? undefined,
+          group_by_severity: values.group_by_severity,
         },
       });
     },
@@ -212,7 +215,10 @@ export function AnalysisOptionsMenu({
             <DropdownMenuContent className="w-56">
               <MenuItemWithTooltip
                 icon={Pencil}
-                onClick={() => setIsEditDialogOpen(true)}
+                onClick={() => {
+                  setEditDialogKey((key) => key + 1);
+                  setIsEditDialogOpen(true);
+                }}
                 tooltip="Edit project details"
               >
                 Edit project details
@@ -265,6 +271,7 @@ export function AnalysisOptionsMenu({
       />
 
       <EditProjectDialog
+        key={editDialogKey}
         isOpen={isEditDialogOpen}
         project={project}
         onConfirm={(values) => updateProjectMutation.mutate(values)}

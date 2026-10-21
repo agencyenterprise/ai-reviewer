@@ -4,6 +4,7 @@ import { SeverityFilter } from '@/components/results/components/severity-filter'
 import { IssueDocumentLink } from '@/components/results/document-explorer/issue-note';
 import { GroupHeader, IssueRow } from '@/components/results/document-explorer/issue-row';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useGroupBySeverity } from '@/context/group-by-severity-context';
 import { Issue, SeverityEnum } from '@/lib/generated-api';
 import { REPORTED_SEVERITIES } from '@/lib/severity';
 import { cn } from '@/lib/utils';
@@ -22,8 +23,9 @@ interface WorkflowIssuesListProps {
 /**
  * The issues one assessment reported, or an all-clear when it found nothing.
  *
- * The rows are the explorer's: grouped by severity, two lines closed, opening
- * in place. Passing checks (severity `none`) are collapsed behind a disclosure,
+ * The rows are the explorer's: grouped by severity (unless the project turns
+ * that off, when they run as one list in the same order), two lines closed,
+ * opening in place. Passing checks (severity `none`) are collapsed behind a disclosure,
  * so an assessment that verified 717 abbreviations and flagged 3 reads as three
  * issues — and does not mount 717 rows to say so.
  */
@@ -37,11 +39,14 @@ export function WorkflowIssuesList({
   const [activeIssueId, setActiveIssueId] = useState<string | null>(null);
   // Empty means no filter, matching the document explorer's severity toggles.
   const [severityFilter, setSeverityFilter] = useState<SeverityEnum[]>([]);
+  const groupBySeverity = useGroupBySeverity();
 
   const realIssues = issues.filter((i) => i.severity !== SeverityEnum.None);
   const informational = issues.filter((i) => i.severity === SeverityEnum.None);
   const visibleIssues =
-    severityFilter.length === 0 ? realIssues : realIssues.filter((i) => severityFilter.includes(i.severity));
+    severityFilter.length === 0 || !groupBySeverity
+      ? realIssues
+      : realIssues.filter((i) => severityFilter.includes(i.severity));
   const isFiltered = visibleIssues.length !== realIssues.length;
 
   const toggleIssue = (issue: Issue) => setActiveIssueId((current) => (current === issue.id ? null : issue.id));
@@ -81,22 +86,28 @@ export function WorkflowIssuesList({
                 ? `${visibleIssues.length} of ${realIssues.length} issues`
                 : `${realIssues.length} issue${realIssues.length !== 1 ? 's' : ''}`}
             </h3>
-            <SeverityFilter value={severityFilter} onChange={setSeverityFilter} />
+            {groupBySeverity && <SeverityFilter value={severityFilter} onChange={setSeverityFilter} />}
           </div>
           {visibleIssues.length === 0 ? (
             <p className="py-4 text-center text-sm text-muted-foreground">No issues match the selected severities.</p>
           ) : (
             <RowFrame>
-              {REPORTED_SEVERITIES.map((severity) => {
-                const group = visibleIssues.filter((issue) => issue.severity === severity);
-                if (group.length === 0) return null;
-                return (
-                  <div key={severity}>
-                    <GroupHeader severity={severity} count={group.length} />
-                    {group.map(renderRow)}
-                  </div>
-                );
-              })}
+              {!groupBySeverity && (
+                <div>
+                  {REPORTED_SEVERITIES.flatMap((s) => visibleIssues.filter((i) => i.severity === s)).map(renderRow)}
+                </div>
+              )}
+              {groupBySeverity &&
+                REPORTED_SEVERITIES.map((severity) => {
+                  const group = visibleIssues.filter((issue) => issue.severity === severity);
+                  if (group.length === 0) return null;
+                  return (
+                    <div key={severity}>
+                      <GroupHeader severity={severity} count={group.length} />
+                      {group.map(renderRow)}
+                    </div>
+                  );
+                })}
             </RowFrame>
           )}
         </section>

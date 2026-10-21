@@ -1,5 +1,6 @@
 'use client';
 
+import { useSeverityStyle } from '@/context/group-by-severity-context';
 import { Issue, SeverityEnum } from '@/lib/generated-api';
 import { SEVERITY } from '@/lib/severity-style';
 import { isIssueResolved } from '@/lib/stores/document-explorer-store';
@@ -40,14 +41,16 @@ interface IssueRowProps {
  */
 export function IssueRow({ issue, active, readOnly, onSelect, crossLink }: IssueRowProps) {
   const resolved = isIssueResolved(issue);
-  const style = SEVERITY[issue.severity];
+  const style = useSeverityStyle()(issue.severity);
 
   const heading = (
     <>
       <IssueMeta issue={issue} />
       <span className="mt-1 flex items-start gap-2">
         <span className="flex-1 text-[13.5px] leading-snug font-medium">{issue.title}</span>
-        {active && <span className={cn('shrink-0 font-mono text-[10px] uppercase', style.text)}>{style.label}</span>}
+        {active && style.label && (
+          <span className={cn('shrink-0 font-mono text-[10px] uppercase', style.text)}>{style.label}</span>
+        )}
       </span>
       {!active && <IssuePreview issue={issue} />}
     </>

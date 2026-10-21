@@ -45,7 +45,8 @@ function getStageMessage(stage: UploadStage, progress: UploadProgress | null, fi
 
 export function useStepUpload(onComplete: () => void) {
   const wizard = useWizard();
-  const { mainDocument, preflightStatus, setPreflightStatus, setMainDocument, setProjectId } = wizard;
+  const { mainDocument, preflightStatus, setPreflightStatus, setMainDocument, setProjectId, setGroupBySeverity } =
+    wizard;
   const [uploadStage, setUploadStage] = useState<UploadStage>('idle');
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 
@@ -80,10 +81,11 @@ export function useStepUpload(onComplete: () => void) {
       });
 
       setUploadStage('complete');
-      return project.id;
+      return project;
     },
-    onSuccess: (projectId) => {
-      setProjectId(projectId);
+    onSuccess: (project) => {
+      setProjectId(project.id);
+      setGroupBySeverity(project.group_by_severity ?? true);
       toast.success('Project created - document processing started');
       onComplete();
     },

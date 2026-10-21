@@ -1,9 +1,9 @@
 'use client';
 
-import { Issue, SeverityEnum } from '@/lib/generated-api';
+import { useSeverityStyle } from '@/context/group-by-severity-context';
+import { Issue } from '@/lib/generated-api';
 import { isIssueResolved } from '@/lib/stores/document-explorer-store';
 import { cn } from '@/lib/utils';
-import { SEVERITY } from '@/lib/severity-style';
 import { IssueBody, IssueMeta, IssuePreview } from './issue-note';
 
 interface MarginNoteProps {
@@ -31,12 +31,12 @@ interface MarginNoteProps {
  */
 export function MarginNote({ issue, active, readOnly, onSelect, anchored = true }: MarginNoteProps) {
   const resolved = isIssueResolved(issue);
-  const style = SEVERITY[issue.severity];
+  const style = useSeverityStyle()(issue.severity);
 
   if (active) {
     return (
       <div className="relative mb-1.5">
-        {anchored && <Leader severity={issue.severity} />}
+        {anchored && <Leader dot={style.dot} />}
         <div className={cn('rounded-md border', style.edge, style.wash)}>
           <button
             onClick={() => onSelect(issue)}
@@ -46,7 +46,9 @@ export function MarginNote({ issue, active, readOnly, onSelect, anchored = true 
             <IssueMeta issue={issue} />
             <span className="mt-0.5 flex items-start gap-2">
               <span className="flex-1 text-[13px] leading-snug font-medium">{issue.title}</span>
-              <span className={cn('shrink-0 font-mono text-[10px] uppercase', style.text)}>{style.label}</span>
+              {style.label && (
+                <span className={cn('shrink-0 font-mono text-[10px] uppercase', style.text)}>{style.label}</span>
+              )}
             </span>
           </button>
           <div className="px-2.5 pt-1.5 pb-2">
@@ -76,6 +78,6 @@ export function MarginNote({ issue, active, readOnly, onSelect, anchored = true 
 }
 
 /** Hairline from the text column into the margin, tying a note to its paragraph. */
-function Leader({ severity }: { severity: SeverityEnum }) {
-  return <span aria-hidden className={cn('absolute top-3.5 -left-6 h-px w-6 opacity-60', SEVERITY[severity].dot)} />;
+function Leader({ dot }: { dot: string }) {
+  return <span aria-hidden className={cn('absolute top-3.5 -left-6 h-px w-6 opacity-60', dot)} />;
 }

@@ -71,18 +71,38 @@ class UpdateProjectRequest(BaseModel):
     title: str | None = None
     publication_date: date | None = None
     feedback_visibility: FeedbackVisibility | None = None
+    group_by_severity: bool | None = None
+
+
+async def _last_group_by_severity(session: AsyncSession, user: User) -> bool:
+    """The setting on the user's most recent own project, so a new one carries it on.
+
+    Projects shared with the user don't count. With no project yet, grouping is on.
+    """
+    stmt = (
+        select(col(Project.group_by_severity))
+        .where(col(Project.user_id) == user.id)
+        .order_by(col(Project.created_at).desc())
+        .limit(1)
+    )
+    last = (await session.execute(stmt)).scalars().first()
+    return True if last is None else last
 
 
 async def create_project(
     title: str,
     user: User,
     publication_date: date | None = None,
+    group_by_severity: bool | None = None,
 ) -> Project:
     async with get_async_db_session() as session:
+        if group_by_severity is None:
+            group_by_severity = await _last_group_by_severity(session, user)
         project = Project(
             title=title,
             user_id=user.id,
             publication_date=publication_date,
+            group_by_severity=group_by_severity,
         )
         session.add(project)
         await session.commit()
@@ -341,10 +361,15 @@ async def update_user_project(
         if request.title is not None:
             project.title = request.title
 
-        project.publication_date = request.publication_date
+        # Sent as null, the date is cleared; left out, it is kept.
+        if "publication_date" in request.model_fields_set:
+            project.publication_date = request.publication_date
 
         if request.feedback_visibility is not None:
             project.feedback_visibility = request.feedback_visibility
+
+        if request.group_by_severity is not None:
+            project.group_by_severity = request.group_by_severity
 
         await session.commit()
         await session.refresh(project)
