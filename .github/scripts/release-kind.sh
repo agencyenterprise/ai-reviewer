@@ -7,8 +7,9 @@
 # commit on main with no pull request counts as patch.
 #
 # A head that is already tagged was released by an earlier run, which prints
-# nothing; if that run stopped before creating the GitHub Release, this fails
-# and says what is left to do by hand.
+# nothing (release.yml's sync-dev job still finishes any sync that run left);
+# if that run stopped before creating the GitHub Release, this fails and says
+# what is left to do by hand.
 #
 # Expects main to be checked out with full history and tags, and GH_TOKEN to be
 # set.
@@ -30,7 +31,7 @@ if TAG=$(git describe --exact-match --tags --match 'v*' HEAD 2>/dev/null); then
     exit 0
   fi
   echo "main's head is tagged ${TAG} but has no GitHub Release: an earlier run stopped partway." >&2
-  echo "Finish by hand: create the release (gh release create ${TAG}) and merge main into dev." >&2
+  echo "Finish by hand: create the release (gh release create ${TAG}), then re-run this workflow to sync dev." >&2
   exit 1
 fi
 

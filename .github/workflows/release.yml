@@ -213,32 +213,6 @@ jobs:
 
           echo "### Released \`${TAG}\`" >> "$GITHUB_STEP_SUMMARY"
 
-      # Brings the release commit back into dev, so main never holds anything
-      # dev lacks and the next release pull request shows only new work.
-      # Only the release bot writes the files that commit touches, so the merge
-      # is clean unless someone edited them on dev by hand; then it falls back
-      # to a pull request for a person to resolve.
-      - name: Merge main back into dev
-        if: env.DRY_RUN != 'true'
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          VERSION: ${{ steps.bump.outputs.version }}
-        run: |
-          set -euo pipefail
-          RELEASE_SHA=$(git rev-parse HEAD)
-          git fetch origin +refs/heads/dev:refs/remotes/origin/dev
-          git checkout -B dev origin/dev
-          if git merge --no-edit -m "chore(release): sync main back to dev after v${VERSION}" "$RELEASE_SHA"; then
-            git push origin dev
-            echo "dev now includes v${VERSION}" >> "$GITHUB_STEP_SUMMARY"
-          else
-            git merge --abort
-            URL=$(gh pr create --base dev --head main --label norelease \
-              --title "chore(release): sync main back to dev after v${VERSION}" \
-              --body "main could not be merged into dev automatically after v${VERSION}. Resolve the conflicts and merge.")
-            echo "main did not merge into dev cleanly: ${URL}" >> "$GITHUB_STEP_SUMMARY"
-          fi
-
       - name: Upload artifacts (for debugging)
         uses: actions/upload-artifact@v4
         if: always()
@@ -248,3 +222,58 @@ jobs:
             .github/scripts/pr-data.json
             .github/scripts/changelog-entry.md
           retention-days: 30
+
+  # Brings main back into dev, so main never holds anything dev lacks and the
+  # next release pull request shows only new work. A job of its own that runs
+  # whether or not this run released anything: a rerun after a release that
+  # published but failed to sync finds nothing to release, and still finishes
+  # the sync here. Only the release bot writes the files a release commit
+  # touches, so the merge is clean unless someone edited them on dev by hand;
+  # then it falls back to a pull request for a person to resolve.
+  sync-dev:
+    needs: [resolve, release]
+    if: >-
+      always() && needs.resolve.result == 'success'
+      && needs.resolve.outputs.dry_run != 'true'
+      && needs.release.result != 'failure' && needs.release.result != 'cancelled'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create release bot token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Merge main into dev
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          git fetch origin +refs/heads/main:refs/remotes/origin/main
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "dev already contains main"
+            exit 0
+          fi
+          VERSION=$(git describe --tags --abbrev=0 --match 'v*' origin/main)
+          MESSAGE="chore(release): sync main back to dev after ${VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git merge --no-edit -m "$MESSAGE" origin/main; then
+            git push origin HEAD:dev
+            echo "dev now includes main (${VERSION})" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git merge --abort
+          if [ -z "$(gh pr list --base dev --head main --state open --json number --jq '.[0].number // empty')" ]; then
+            gh pr create --base dev --head main --label norelease --title "$MESSAGE" \
+              --body "main could not be merged into dev automatically after ${VERSION}. Resolve the conflicts and merge."
+          fi
+          echo "main did not merge into dev cleanly; a pull request is open for it" >> "$GITHUB_STEP_SUMMARY"
