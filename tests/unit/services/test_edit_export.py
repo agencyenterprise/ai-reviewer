@@ -14,9 +14,10 @@ from lib.models.issue import Issue
 from lib.models.issue_edit import IssueEdit, IssueEditStatus
 from lib.services.docx import edit_export
 from lib.services.docx.edit_export import (
-    apply_edit_export,
+    EditExport,
     describe_edit_export,
     plan_edit_export,
+    write_edit_export,
 )
 from lib.workflows.models import SeverityEnum, WorkflowRunType
 from tests.unit.services.lean_docx import new_document
@@ -78,6 +79,36 @@ def _issue(edits: Sequence[IssueEdit]) -> Issue:
     return issue
 
 
+class _CommentWriter:
+    """Stands in for the comment pass: a fresh copy of the original per call.
+
+    Keeps the export each call was handed, so a test can read the notes the
+    delivered file's comments were written from.
+    """
+
+    def __init__(self, original: Path, directory: Path):
+        self.original = original
+        self.directory = directory
+        self.exports: list[EditExport] = []
+        self.paths: list[Path] = []
+
+    async def __call__(self, export: EditExport) -> str:
+        self.exports.append(export)
+        path = self.directory / f"export-{len(self.paths)}.docx"
+        shutil.copyfile(self.original, path)
+        self.paths.append(path)
+        return str(path)
+
+
+async def _write(
+    issues: Sequence[Issue], plan: EditExport, writer: _CommentWriter, tmp_path: Path
+) -> Path:
+    path = await write_edit_export(
+        issues, plan, writer, "project-1", workspace_root=str(tmp_path)
+    )
+    return Path(path)
+
+
 def _visible(path: Path) -> str:
     doc = EditorDocument.open(
         path, author="Reader", workspace_dir=str(path.parent / "read-ws")
@@ -107,16 +138,14 @@ async def test_an_issues_edit_is_planned_noted_and_written(
     plan = await plan_edit_export(
         [issue], _MARKDOWN, str(docx_path), {0: (1, 1)}, workspace_root=str(tmp_path)
     )
-    await apply_edit_export(
-        str(docx_path), plan, "project-1", workspace_root=str(tmp_path)
-    )
+    output = await _write([issue], plan, _CommentWriter(docx_path, tmp_path), tmp_path)
 
     assert plan.notes_for(issue.id) == [
         'Proposed edit: "14% rise" → "18% rise"\n'
         "the figure is wrong\n"
         "Applied below as a tracked change."
     ]
-    assert "reports a 18% rise" in _visible(docx_path)
+    assert "reports a 18% rise" in _visible(output)
 
 
 @pytest.mark.asyncio
@@ -144,16 +173,14 @@ async def test_without_a_paragraph_mapping_nothing_is_written_and_the_note_says_
     plan = await plan_edit_export(
         [issue], _MARKDOWN, str(docx_path), {}, workspace_root=str(tmp_path)
     )
-    await apply_edit_export(
-        str(docx_path), plan, "project-1", workspace_root=str(tmp_path)
-    )
+    output = await _write([issue], plan, _CommentWriter(docx_path, tmp_path), tmp_path)
 
     assert plan.planned == []
     assert plan.notes_for(issue.id)[0].endswith(
         "Not applied as a tracked change: the quoted text could not be "
         "matched in this paragraph."
     )
-    assert docx_path.read_bytes() == before
+    assert output.read_bytes() == before
 
 
 @pytest.mark.asyncio
@@ -201,23 +228,24 @@ def two_paragraph_docx_path(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def reject_the_appendix(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Make docx-editor refuse the appendix paragraph's batch, and only that one.
+    """Make docx-editor refuse the appendix paragraph's operation, and only that.
 
     Stands in for anything the library rejects at apply time -- a stale hash, a
-    search string the paragraph no longer carries. It bites during the
-    rehearsal; the real run never asks for the operation again.
+    search string the paragraph no longer carries. It bites on the first
+    write; the second never asks for the operation again.
     """
     original = EditorDocument.batch_edit
 
     def batch_edit(self, operations, **kwargs):  # type: ignore[no-untyped-def]
-        if any(operation.find == "every source" for operation in operations):
-            raise BatchOperationError(0, "text not found in paragraph")
+        for index, operation in enumerate(operations):
+            if operation.find == "every source":
+                raise BatchOperationError(index, "text not found in paragraph")
         return original(self, operations, **kwargs)
 
     monkeypatch.setattr(EditorDocument, "batch_edit", batch_edit)
 
 
-class TestTheRehearsalDecidesWhatTheCommentsClaim:
+class TestTheWriteDecidesWhatTheCommentsClaim:
     async def _plan(self, path: Path, issues, workspace: Path):
         return await plan_edit_export(
             issues,
@@ -235,52 +263,49 @@ class TestTheRehearsalDecidesWhatTheCommentsClaim:
         refused = _issue(
             [_edit("every source", "every source and dataset", start_line=2)]
         )
+        issues = [writable, refused]
+        writer = _CommentWriter(two_paragraph_docx_path, tmp_path)
 
-        plan = await self._plan(two_paragraph_docx_path, [writable, refused], tmp_path)
-        await apply_edit_export(
-            str(two_paragraph_docx_path),
-            plan,
-            "project-1",
-            workspace_root=str(tmp_path),
-        )
+        plan = await self._plan(two_paragraph_docx_path, issues, tmp_path)
+        output = await _write(issues, plan, writer, tmp_path)
 
-        (refused_note,) = plan.notes_for(refused.id)
+        # The first file's comments promised both redlines, so it is replaced.
+        assert writer.paths == [tmp_path / "export-0.docx", output]
+        assert not writer.paths[0].exists()
+        delivered = writer.exports[-1]
+        (refused_note,) = delivered.notes_for(refused.id)
         assert refused_note.endswith(
             "Not applied as a tracked change: text not found in paragraph."
         )
-        assert [edit.edit_id for edit in plan.planned] == [writable.edit_rows[0].id]
-        assert plan.notes_for(writable.id) == [
+        assert [edit.edit_id for edit in delivered.planned] == [
+            writable.edit_rows[0].id
+        ]
+        assert delivered.notes_for(writable.id) == [
             'Proposed edit: "14% rise" → "18% rise"\n'
             "the figure is wrong\n"
             "Applied below as a tracked change."
         ]
-        visible = _visible(two_paragraph_docx_path)
+        visible = _visible(output)
         assert "reports a 18% rise" in visible
         assert "lists every source consulted" in visible
 
     @pytest.mark.asyncio
-    async def test_the_rehearsal_leaves_the_original_alone_and_is_not_applied_twice(
+    async def test_planning_leaves_the_original_alone_and_a_clean_write_happens_once(
         self, two_paragraph_docx_path: Path, tmp_path: Path
     ):
         issue = _issue([_edit("14% rise", "18% rise")])
         before = two_paragraph_docx_path.read_bytes()
+        writer = _CommentWriter(two_paragraph_docx_path, tmp_path)
 
         plan = await self._plan(two_paragraph_docx_path, [issue], tmp_path)
 
         assert two_paragraph_docx_path.read_bytes() == before
 
-        await apply_edit_export(
-            str(two_paragraph_docx_path),
-            plan,
-            "project-1",
-            workspace_root=str(tmp_path),
-        )
+        output = await _write([issue], plan, writer, tmp_path)
 
-        assert [kind for kind, _ in _revisions(two_paragraph_docx_path)] == [
-            "deletion",
-            "insertion",
-        ]
-        assert _visible(two_paragraph_docx_path).count("18% rise") == 1
+        assert writer.exports == [plan]
+        assert [kind for kind, _ in _revisions(output)] == ["deletion", "insertion"]
+        assert _visible(output).count("18% rise") == 1
 
 
 class TestTheCommentsOnlyMode:
@@ -329,16 +354,15 @@ class TestTheCommentsOnlyMode:
 
 class TestAnEmptyPlanCostsNothing:
     @pytest.mark.asyncio
-    async def test_nothing_to_write_means_no_copy_and_no_rehearsal(
+    async def test_nothing_to_write_opens_nothing_and_writes_once(
         self, docx_path: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ):
         def refuse(*args: object, **kwargs: object) -> None:
-            raise AssertionError("an empty plan must not be rehearsed")
+            raise AssertionError("an empty plan must not open the document")
 
-        monkeypatch.setattr(shutil, "copyfile", refuse)
-        monkeypatch.setattr(edit_export, "apply_tracked_changes", refuse)
         # The quote is nowhere on its line, so the pre-flight plans nothing.
         issue = _issue([_edit("a 40% drop", "a 30% drop")])
+        writer = _CommentWriter(docx_path, tmp_path)
 
         export = await plan_edit_export(
             [issue],
@@ -347,9 +371,13 @@ class TestAnEmptyPlanCostsNothing:
             {0: (1, 1)},
             workspace_root=str(tmp_path),
         )
+        monkeypatch.setattr(EditorDocument, "open", refuse)
+        output = await _write([issue], export, writer, tmp_path)
 
         assert export.planned == []
         assert export.notes_for(issue.id)[0].endswith(
             "Not applied as a tracked change: the quoted text could not be "
             "matched in this paragraph."
         )
+        assert writer.exports == [export]
+        assert output.read_bytes() == docx_path.read_bytes()

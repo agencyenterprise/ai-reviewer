@@ -6,9 +6,10 @@ from typing import Literal
 
 from lib.models.workflow_run import WorkflowRunType
 from lib.services.docx.edit_export import (
-    apply_edit_export,
+    EditExport,
     describe_edit_export,
     plan_edit_export,
+    write_edit_export,
 )
 from lib.services.docx.legacy_doc import readable_docx
 from lib.services.docx.manipulator import (
@@ -144,9 +145,6 @@ async def generate_docx(
         if not share_token:
             docx_type = DocxManipulatorType.COMMENTS
 
-        # Unique per invocation so concurrent exports never collide.
-        output_id = uuid.uuid4().hex
-
         # The export silently skips issues it cannot tie to a paragraph, so account
         # for them here. Two causes: no
         # line range at all (typically a legacy row carrying only chunk_indices, from
@@ -189,47 +187,53 @@ async def generate_docx(
                 )
                 share_token_for_comments = None
             workspace_root = str(docx_manipulator_service.get_output_dir())
-            edit_export = (
-                await plan_edit_export(
+            comment_type = docx_type
+
+            async def write_comments(edit_export: EditExport) -> str:
+                # A fresh output id per call, so concurrent exports never collide
+                # and an export written twice never reuses its first file.
+                comments = [
+                    c
+                    for issue in issues
+                    if (
+                        c := issue_to_comment(
+                            issue,
+                            paragraph_line_ranges,
+                            share_token_for_comments,
+                            edit_notes=edit_export.notes_for(issue.id),
+                            show_severity=project.group_by_severity,
+                        )
+                    )
+                ]
+                return await docx_manipulator_service.add_comments_to_docx(
+                    original_docx_path=docx_path,
+                    comments=comments,
+                    workflow_run_id=uuid.uuid4().hex,
+                    docx_type=comment_type,
+                )
+
+            if include_edits:
+                edit_export = await plan_edit_export(
                     issues=issues,
                     markdown=main_file.markdown or "",
                     docx_path=docx_path,
                     paragraph_line_ranges=paragraph_line_ranges,
                     workspace_root=workspace_root,
                 )
-                if include_edits
-                # Comments only: the edits are still described, nothing is written.
-                else describe_edit_export(issues)
-            )
-            comments = [
-                c
-                for issue in issues
-                if (
-                    c := issue_to_comment(
-                        issue,
-                        paragraph_line_ranges,
-                        share_token_for_comments,
-                        edit_notes=edit_export.notes_for(issue.id),
-                        show_severity=project.group_by_severity,
-                    )
-                )
-            ]
-            output_path = await docx_manipulator_service.add_comments_to_docx(
-                original_docx_path=docx_path,
-                comments=comments,
-                workflow_run_id=output_id,
-                docx_type=docx_type,
-            )
-            if include_edits:
-                # After this point the paragraph index map no longer describes the
-                # file: python-docx stops reading inserted and deleted runs as
-                # paragraph text, so nothing may be re-anchored against it.
-                await apply_edit_export(
-                    output_path,
+                # Comments first, then redlines: once the redlines are in, the
+                # paragraph index map no longer describes the file, since
+                # python-docx stops reading inserted and deleted runs as
+                # paragraph text.
+                output_path = await write_edit_export(
+                    issues,
                     edit_export,
+                    write_comments,
                     project_id,
                     workspace_root=workspace_root,
                 )
+            else:
+                # Comments only: the edits are still described, nothing is written.
+                output_path = await write_comments(describe_edit_export(issues))
         else:
             raise ValueError(f"Unsupported docx_type: {docx_type}")
 

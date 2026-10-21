@@ -538,12 +538,11 @@ class TestGenerateDocxWithoutTrackedChanges:
     async def test_comments_only_plans_nothing_and_writes_no_redlines(self, tmp_path):
         stack, patches = TestGenerateDocxRevision._patches(tmp_path)
         plan = AsyncMock()
-        apply = AsyncMock()
+        write = AsyncMock()
         with stack:
-            for one in patches.values():
-                stack.enter_context(one)
+            entered = {name: stack.enter_context(p) for name, p in patches.items()}
             stack.enter_context(patch(f"{_SERVICE}.plan_edit_export", plan))
-            stack.enter_context(patch(f"{_SERVICE}.apply_edit_export", apply))
+            stack.enter_context(patch(f"{_SERVICE}.write_edit_export", write))
             await generate_docx(
                 project_id=str(_FAKE_PROJECT_ID),
                 share_token=None,
@@ -552,19 +551,23 @@ class TestGenerateDocxWithoutTrackedChanges:
             )
 
         plan.assert_not_awaited()
-        apply.assert_not_awaited()
+        write.assert_not_awaited()
+        entered["docx_manipulator_service"].add_comments_to_docx.assert_awaited_once()
 
     @pytest.mark.asyncio
-    async def test_with_tracked_changes_both_passes_run(self, tmp_path):
+    async def test_with_tracked_changes_the_edits_are_planned_and_written(
+        self, tmp_path
+    ):
         stack, patches = TestGenerateDocxRevision._patches(tmp_path)
-        plan = AsyncMock(return_value=EditExport())
-        apply = AsyncMock()
+        export = EditExport()
+        plan = AsyncMock(return_value=export)
+        write = AsyncMock(return_value=str(tmp_path / "out.docx"))
         with stack:
             for one in patches.values():
                 stack.enter_context(one)
             stack.enter_context(patch(f"{_SERVICE}.plan_edit_export", plan))
-            stack.enter_context(patch(f"{_SERVICE}.apply_edit_export", apply))
-            await generate_docx(
+            stack.enter_context(patch(f"{_SERVICE}.write_edit_export", write))
+            path, _ = await generate_docx(
                 project_id=str(_FAKE_PROJECT_ID),
                 share_token=None,
                 docx_type=DocxManipulatorType.COMMENTS,
@@ -572,7 +575,42 @@ class TestGenerateDocxWithoutTrackedChanges:
             )
 
         plan.assert_awaited_once()
-        apply.assert_awaited_once()
+        write.assert_awaited_once()
+        assert write.await_args.args[1] is export
+        assert path == str(tmp_path / "out.docx")
+
+    @pytest.mark.asyncio
+    async def test_each_write_of_the_comments_gets_its_own_file(self, tmp_path):
+        stack, patches = TestGenerateDocxRevision._patches(tmp_path)
+
+        async def write_twice(issues, export, write_comments, *args, **kwargs):
+            await write_comments(export)
+            return await write_comments(export)
+
+        with stack:
+            entered = {name: stack.enter_context(p) for name, p in patches.items()}
+            stack.enter_context(
+                patch(
+                    f"{_SERVICE}.plan_edit_export",
+                    AsyncMock(return_value=EditExport()),
+                )
+            )
+            stack.enter_context(
+                patch(
+                    f"{_SERVICE}.write_edit_export", AsyncMock(side_effect=write_twice)
+                )
+            )
+            await generate_docx(
+                project_id=str(_FAKE_PROJECT_ID),
+                share_token=None,
+                docx_type=DocxManipulatorType.COMMENTS,
+                include_edits=True,
+            )
+
+        calls = entered["docx_manipulator_service"].add_comments_to_docx.await_args_list
+        run_ids = {call.kwargs["workflow_run_id"] for call in calls}
+        assert len(calls) == 2
+        assert len(run_ids) == 2
 
 
 class TestResolvedRevision:
