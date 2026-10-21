@@ -66,9 +66,9 @@ class TrackedChangesPlan(BaseModel):
 
     `outcomes` covers each decision except rejected edits, which the export
     leaves out entirely. An edit the pre-flight can place is reported as
-    ``applied`` here; whether it survives the write is settled by the caller's
-    rehearsal (see `lib.services.docx.edit_export`) before any comment claims
-    it was applied.
+    ``applied`` here; if the write then refuses it, the caller notes it as
+    failed and writes the file again without it (see
+    `lib.services.docx.edit_export`), so no delivered comment claims it.
     """
 
     planned: list[PlannedEdit]

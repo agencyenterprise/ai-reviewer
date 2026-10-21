@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 from docx import Document as PythonDocxDocument
+from docx_editor import BatchOperationError, EditOperation
 from docx_editor import Document as EditorDocument
-from docx_editor import EditOperation
 
 from lib.services.docx.tracked_changes import apply_tracked_changes
 from tests.unit.services.lean_docx import new_document
@@ -69,6 +69,75 @@ class TestTheFileStaysReadable:
 
         assert await apply_tracked_changes(str(docx_path), []) == []
         assert docx_path.read_bytes() == before
+
+
+class TestOneBatchForTheWholeDocument:
+    """docx-editor snapshots the whole document before every batch it runs."""
+
+    @staticmethod
+    def _count_batches(monkeypatch: pytest.MonkeyPatch) -> list[int]:
+        sizes: list[int] = []
+        original = EditorDocument.batch_edit
+
+        def batch_edit(self, operations, **kwargs):  # type: ignore[no-untyped-def]
+            sizes.append(len(operations))
+            return original(self, operations, **kwargs)
+
+        monkeypatch.setattr(EditorDocument, "batch_edit", batch_edit)
+        return sizes
+
+    @pytest.mark.asyncio
+    async def test_every_paragraph_is_written_in_a_single_batch(
+        self, docx_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        edits = [
+            _edit("14% rise", "18% rise", 1),
+            _edit("**Figure 3**", "Figure 4", 3),
+        ]
+        plan, _ = await _plan(docx_path, edits)
+        sizes = self._count_batches(monkeypatch)
+
+        outcomes = await apply_tracked_changes(
+            str(docx_path), plan.planned, workspace_root=str(docx_path.parent)
+        )
+
+        assert sizes == [2]
+        assert [o.status for o in outcomes] == ["applied", "applied"]
+
+    @pytest.mark.asyncio
+    async def test_a_refused_paragraph_costs_only_its_own_redlines(
+        self, docx_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        edits = [
+            _edit("14% rise", "18% rise", 1),
+            _edit("**Figure 3**", "Figure 4", 3),
+        ]
+        plan, _ = await _plan(docx_path, edits)
+        sizes = self._count_batches(monkeypatch)
+        counted = EditorDocument.batch_edit
+
+        def batch_edit(self, operations, **kwargs):  # type: ignore[no-untyped-def]
+            for index, operation in enumerate(operations):
+                if operation.replace_with == "Figure 4":
+                    sizes.append(len(operations))
+                    raise BatchOperationError(index, "text not found in paragraph")
+            return counted(self, operations, **kwargs)
+
+        monkeypatch.setattr(EditorDocument, "batch_edit", batch_edit)
+
+        outcomes = await apply_tracked_changes(
+            str(docx_path), plan.planned, workspace_root=str(docx_path.parent)
+        )
+
+        by_id = {o.edit_id: o for o in outcomes}
+        assert by_id[edits[0].id].status == "applied"
+        assert by_id[edits[1].id].status == "failed"
+        assert by_id[edits[1].id].detail == "text not found in paragraph"
+        # The refused batch, then the rest written again without it.
+        assert sizes == [2, 1]
+        visible, _, _ = _read(docx_path)
+        assert "18% rise" in visible
+        assert "Figure 4" not in visible
 
 
 # Two paragraphs reading alike, the first of which already carries someone
