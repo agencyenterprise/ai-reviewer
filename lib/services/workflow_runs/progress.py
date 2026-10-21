@@ -26,38 +26,6 @@ def _get_progress_lock(workflow_run_id: uuid.UUID, name: str) -> asyncio.Lock:
     return asyncio.Lock()
 
 
-async def create_and_start_progress(
-    workflow_run_id: uuid.UUID,
-    name: str,
-    level: ProgressLevel,
-    total_steps: int = 0,
-) -> uuid.UUID:
-    """
-    Create a new progress entry and mark it as started.
-
-    Args:
-        workflow_run_id: ID of the workflow run
-        name: Human-readable name
-        level: Progress level (workflow, node, task)
-        total_steps: Total steps to process (default 0, can be updated later)
-
-    Returns:
-        UUID of the created progress entry
-    """
-    async with get_async_db_session() as session:
-        progress = WorkflowProgress(
-            workflow_run_id=workflow_run_id,
-            name=name,
-            level=level,
-            total_steps=total_steps,
-            started_at=datetime.utcnow(),
-        )
-        session.add(progress)
-        await session.commit()
-        await session.refresh(progress)
-        return progress.id
-
-
 async def get_or_create_progress(
     workflow_run_id: uuid.UUID,
     name: str,
@@ -156,26 +124,6 @@ async def update_progress(
         await session.commit()
 
 
-async def complete_progress(progress_id: uuid.UUID) -> None:
-    """
-    Mark a progress entry as completed.
-
-    Args:
-        progress_id: ID of the progress entry
-    """
-    async with get_async_db_session() as session:
-        progress = await _get_progress_by_id(session, progress_id)
-
-        if not progress:
-            logger.warning(f"Progress entry {progress_id} not found")
-            return
-
-        progress.completed_at = datetime.utcnow()
-        progress.current_step = progress.total_steps
-        # Note: updated_at is handled by onupdate in the model
-        await session.commit()
-
-
 async def increment_and_complete_if_done(progress_id: uuid.UUID) -> bool:
     """
     Atomically increment current_step and mark complete if current >= total.
@@ -256,29 +204,6 @@ async def cancel_workflow_progress(
 
         if incomplete:
             await session.commit()
-
-
-async def get_workflow_progress(
-    workflow_run_id: uuid.UUID,
-) -> list[WorkflowProgress]:
-    """
-    Get all progress entries for a workflow run.
-
-    Args:
-        workflow_run_id: ID of the workflow run
-
-    Returns:
-        List of progress entries ordered by creation time
-    """
-    async with get_async_db_session() as session:
-        stmt = (
-            select(WorkflowProgress)
-            .where(col(WorkflowProgress.workflow_run_id) == workflow_run_id)
-            .order_by(col(WorkflowProgress.created_at))
-        )
-        result = await session.execute(stmt)
-        progress_list = result.scalars().all()
-        return list(progress_list)
 
 
 async def get_project_workflow_progress(
