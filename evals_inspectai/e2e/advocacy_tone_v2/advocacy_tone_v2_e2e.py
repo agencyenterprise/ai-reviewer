@@ -3,8 +3,8 @@
 Declared by ``skills/advocacy-tone/SKILL.md``; runs through the API like every
 other e2e eval. The workflow emits one issue per genuine occurrence, bracketing
 the offending sentence, under a fixed title per kind ("Trigger Words Detected",
-"Advocacy Language Detected", "Subjective Tone Detected") with the severity the
-skill gives that kind (low, medium, medium).
+"Advocacy Language Detected", "Subjective Tone Detected"). The agent judges
+each issue's severity, so severity is not scored.
 
 Ground truth is ``dataset.yaml``: fourteen copies of one short report with a
 single Findings sentence swapped (one positive per listed word class, and the
@@ -18,10 +18,9 @@ visited"), matches under Acknowledgments, About the Authors, References,
 Bibliography and Appendix headings, and fully clean reports. A sentence that
 fairly reads as a second kind carries that kind as an optional expected issue.
 
-Scorers: the reusable ``issue_checks`` (severity included) and ``decoy_checks``
-(which carve-out misfired), this workflow's own deterministic ``tone_checks``
-over every reported issue (known title, severity that follows the title, a
-one-line range, nothing in a skipped section), and two judged criteria on the
+Scorers: the reusable ``issue_checks`` and ``decoy_checks`` (which carve-out
+misfired), this workflow's own deterministic ``tone_checks`` over every
+reported issue (known title, a one-line range, nothing in a skipped section), and two judged criteria on the
 suggested action (concrete, and faithful to the sentence). Each occurrence is
 its own issue, so matching is ``one_to_one``; a false positive under any title
 costs precision.
@@ -50,7 +49,7 @@ from evals_inspectai.e2e.advocacy_tone_v2.criteria import (
 WORKFLOW_TYPE = "advocacy_tone_v2"
 DATASET = Path(__file__).parent / "dataset.yaml"
 GROUND_TRUTH = (
-    "Inventory: one expected issue per flagged sentence, with its kind's title and severity (a second "
+    "Inventory: one expected issue per flagged sentence, with its kind's title (a second "
     "kind a sentence fairly reads as is optional); clean documents expect none, and a sentence the skill "
     "must leave alone is a decoy tagged with its carve-out. No edits are expected. A NaN metric value "
     "means the sample gave that check nothing to judge."

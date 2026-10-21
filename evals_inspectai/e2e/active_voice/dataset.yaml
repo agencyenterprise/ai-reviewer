@@ -16,7 +16,6 @@
     title: Passive Voice
     anchor: Response rates were tracked weekly by the research team
     edit_expected: true
-    severity: low
     edit:
       must_include:
       - The research team tracked response rates weekly
@@ -24,7 +23,6 @@
     title: Passive Voice
     anchor: Non-respondents were sent two reminders
     edit_expected: true
-    severity: low
     edit:
       must_include:
       - sent non-respondents two reminders
@@ -97,7 +95,6 @@
     title: Ambiguous Actor
     anchor: The evaluation will assess implementation fidelity
     edit_expected: false
-    severity: medium
   decoys:
   - anchor: The center will then analyze
     reason: active
@@ -556,7 +553,6 @@
     title: Ambiguous Actor
     anchor: the implementation of either vision would need to enlist these suppliers as partners
     edit_expected: false
-    severity: medium
   decoys:
   - anchor: jointly funded by 21 member states
     reason: participial
@@ -627,7 +623,6 @@
     title: Passive Voice
     anchor: The pilot was designed to reduce
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - was designed to
@@ -635,7 +630,6 @@
     title: Passive Voice
     anchor: which was further compounded by the departure of the original training vendor
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - was further compounded by
@@ -657,7 +651,6 @@
     title: Passive Voice
     anchor: The pilot was designed to reduce
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - was designed to
@@ -665,7 +658,6 @@
     title: Passive Voice
     anchor: which was further compounded by the departure of the original training vendor
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - was further compounded by
@@ -1459,7 +1451,6 @@
     title: Passive Voice
     anchor: The curriculum was developed to strengthen
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - was developed to
@@ -1467,7 +1458,6 @@
     title: Passive Voice
     anchor: a gap that was made wider by the state's freeze
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - was made wider by

@@ -16,7 +16,6 @@
     title: Wordy Construction
     anchor: In order to estimate costs
     edit_expected: true
-    severity: low
     edit:
       must_include: ["To estimate costs"]
       must_not_include: ["In order to"]
@@ -36,7 +35,6 @@
     title: Wordy Construction
     anchor: each and every site
     edit_expected: true
-    severity: low
     edit:
       must_include: ["each site"]
       must_not_include: ["each and every"]
@@ -56,7 +54,6 @@
     title: Wordy Construction
     anchor: It is important to note that enrollment fell by 12 percent
     edit_expected: true
-    severity: low
     edit:
       must_include: ["Enrollment fell by 12 percent"]
       must_not_include: ["important to note"]
@@ -74,7 +71,6 @@
     title: Wordy Construction
     anchor: There were few instances when a site managed to achieve an A
     edit_expected: true
-    severity: low
     edit:
       must_include: ["Few sites"]
       must_not_include: ["There were few instances"]
@@ -82,7 +78,6 @@
     title: Wordy Construction
     anchor: has the ability to share buses
     edit_expected: true
-    severity: low
     edit:
       must_not_include: ["has the ability"]
   decoys:
@@ -102,7 +97,6 @@
     title: Run-On Sentence
     anchor: the retiring assets at these locations rely on coal for power generation, the generating units range from 39 to 55 years old
     edit_expected: true
-    severity: low
     edit:
       must_not_include: ["generation, the generating", "generation; the"]
   decoys:
@@ -121,7 +115,6 @@
     title: Throat-Clearing
     anchor: There are several things to consider here.
     edit_expected: true
-    severity: low
   decoys:
   - anchor: The remainder of this report is organized as follows
     reason: signposting
@@ -140,7 +133,6 @@
     title: Vague Reference
     anchor: This makes implementation difficult.
     edit_expected: false
-    severity: medium
   decoys:
   - anchor: so this timing gap forces districts
     reason: clear_referent
@@ -158,7 +150,6 @@
     title: Empty Framing
     anchor: The picture here is complex.
     edit_expected: true
-    severity: low
   decoys:
   - anchor: The framework prioritizes three goals
     reason: topic_sentence
@@ -174,7 +165,6 @@
   - id: funding_essential
     title: Obvious Statement
     anchor: Our first finding is that funding is essential to running a program.
-    severity: low
   decoys:
   - anchor: Finally, we turn to the survey results
     reason: signposting
@@ -247,56 +237,47 @@
     title: Wordy Construction
     anchor: In order to rank the sites
     edit_expected: true
-    severity: low
     edit:
       must_include: ["To rank the sites"]
   - id: complex_issue
     title: Throat-Clearing
     anchor: This is a complex issue.
     edit_expected: true
-    severity: low
   - id: initial_step
     title: Wordy Construction
     anchor: The initial step in developing the framework involved identifying
     edit_expected: true
-    severity: low
     edit:
       must_not_include: ["involved identifying"]
   - id: important_to_note_weights
     title: Wordy Construction
     anchor: It is important to note that the five categories are weighted equally
     edit_expected: true
-    severity: low
     edit:
       must_not_include: ["important to note"]
   - id: coal_run_on
     title: Run-On Sentence
     anchor: the retiring assets at these locations rely on coal for power generation, the generating units range from 39 to 55 years old
     edit_expected: true
-    severity: low
     edit:
       must_not_include: ["generation, the generating"]
   - id: few_instances
     title: Wordy Construction
     anchor: There were few instances when a site managed to achieve an A
     edit_expected: true
-    severity: low
     edit:
       must_include: ["Few sites"]
   - id: every_idea
     title: Empty Framing
     anchor: Every idea above pulls in a direction.
     edit_expected: true
-    severity: low
   - id: different_perspectives
     title: Obvious Statement
     anchor: Stakeholders have different perspectives on data centers
-    severity: low
   - id: there_are_multiple_sites
     title: Wordy Construction
     anchor: There are multiple sites across the United States where existing infrastructure can be made available
     edit_expected: true
-    severity: low
     edit:
       must_include: ["Multiple sites across the United States"]
   decoys:
@@ -327,7 +308,6 @@
     title: Wordy Construction
     anchor: In the case of Pathways
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - In the case of
@@ -335,7 +315,6 @@
     title: Wordy Construction
     anchor: In addition to losing some institutional knowledge
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - In addition to
@@ -343,7 +322,6 @@
     title: Wordy Construction
     anchor: would, therefore, benefit from building
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - benefit from building
@@ -351,7 +329,6 @@
     title: Wordy Construction
     anchor: cohesion and strength
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - cohesion and strength
@@ -359,7 +336,6 @@
     title: Wordy Construction
     anchor: As the original program designers were no longer present
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - As the original
@@ -367,7 +343,6 @@
     title: Wordy Construction
     anchor: design gaps and inconsistencies
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - gaps and inconsistencies
@@ -375,7 +350,6 @@
     title: Wordy Construction
     anchor: Indeed, research on reentry
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - Indeed
@@ -383,7 +357,6 @@
     title: Wordy Construction
     anchor: and also better understand how potential participants perceive the program
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - and also better understand
@@ -391,7 +364,6 @@
     title: Wordy Construction
     anchor: the local realities of the participant population
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - realities of the
@@ -436,7 +408,6 @@
     title: Wordy Construction
     anchor: In the case of Pathways
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - In the case of
@@ -444,7 +415,6 @@
     title: Wordy Construction
     anchor: In addition to losing some institutional knowledge
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - In addition to
@@ -452,7 +422,6 @@
     title: Wordy Construction
     anchor: would, therefore, benefit from building
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - benefit from building
@@ -460,7 +429,6 @@
     title: Wordy Construction
     anchor: cohesion and strength
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - cohesion and strength
@@ -468,7 +436,6 @@
     title: Wordy Construction
     anchor: As the original program designers were no longer present
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - As the original
@@ -476,7 +443,6 @@
     title: Wordy Construction
     anchor: design gaps and inconsistencies
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - gaps and inconsistencies
@@ -484,7 +450,6 @@
     title: Wordy Construction
     anchor: Indeed, research on reentry
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - Indeed
@@ -492,7 +457,6 @@
     title: Wordy Construction
     anchor: and also better understand how potential participants perceive the program
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - and also better understand
@@ -500,7 +464,6 @@
     title: Wordy Construction
     anchor: the local realities of the participant population
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - realities of the
@@ -874,7 +837,6 @@
     title: Wordy Construction
     anchor: With regard to Harbor
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - With regard to
@@ -882,7 +844,6 @@
     title: Wordy Construction
     anchor: Along with losing some planned internship slots
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - Along with losing some
@@ -890,7 +851,6 @@
     title: Wordy Construction
     anchor: would, as a result, benefit from putting in place
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - putting in place
@@ -898,7 +858,6 @@
     title: Wordy Construction
     anchor: trust and goodwill
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - trust and goodwill
@@ -906,7 +865,6 @@
     title: Wordy Construction
     anchor: As the founding staff had moved on
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - As the founding
@@ -914,7 +872,6 @@
     title: Wordy Construction
     anchor: shortcomings and weaknesses
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - shortcomings and weaknesses
@@ -922,7 +879,6 @@
     title: Wordy Construction
     anchor: In fact, studies of youth employment
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - In fact
@@ -930,7 +886,6 @@
     title: Wordy Construction
     anchor: and also get a better sense of how young adults view the program
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - and also get a better sense
@@ -938,7 +893,6 @@
     title: Wordy Construction
     anchor: the day-to-day circumstances of the neighborhoods served
     edit_expected: true
-    severity: low
     edit:
       must_not_include:
       - day-to-day circumstances of the
