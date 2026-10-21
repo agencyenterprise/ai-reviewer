@@ -12,8 +12,10 @@ module's `PlannedEdit` rows as its instructions.
 """
 
 import asyncio
+import shutil
 import uuid
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 
 from docx import Document as PythonDocxDocument
 from docx_editor import Document as EditorDocument
@@ -46,6 +48,19 @@ _UNMAPPABLE_DOCUMENT = (
 )
 
 
+def _docx_named(docx_path: str, directory: str) -> str:
+    """The file under a ``.docx`` name, copied into `directory` when it lacks one.
+
+    docx-editor refuses any other extension, but an upload named ``.doc`` is
+    often a Word 2007+ file underneath, and python-docx reads it as one.
+    """
+    if Path(docx_path).suffix.lower() == ".docx":
+        return docx_path
+    copy = Path(directory) / f"{Path(docx_path).stem}.docx"
+    shutil.copyfile(docx_path, copy)
+    return str(copy)
+
+
 def _paragraph_map(
     docx_path: str, workspace_root: str | None
 ) -> dict[int, MappedParagraph] | None:
@@ -54,9 +69,14 @@ def _paragraph_map(
     ``None`` when the two libraries do not agree on the document's paragraphs;
     see `map_paragraph_refs`. Nothing may be redlined in that case.
     """
-    with editor_workspace(workspace_root) as workspace:
+    with (
+        editor_workspace(workspace_root) as workspace,
+        editor_workspace(workspace_root) as copy_dir,
+    ):
         doc = EditorDocument.open(
-            docx_path, author=TRACKED_CHANGE_AUTHOR, workspace_dir=workspace
+            _docx_named(docx_path, copy_dir),
+            author=TRACKED_CHANGE_AUTHOR,
+            workspace_dir=workspace,
         )
         try:
             editor_paragraphs = doc.list_paragraphs_structured(limit=None)

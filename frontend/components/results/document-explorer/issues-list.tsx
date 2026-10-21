@@ -1,12 +1,11 @@
 'use client';
 
-import { Issue, SeverityEnum } from '@/lib/generated-api';
-import { SEVERITIES_WORST_FIRST } from '@/lib/severity';
+import { useGroupBySeverity } from '@/context/group-by-severity-context';
+import { Issue } from '@/lib/generated-api';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Ref, useImperativeHandle, useMemo } from 'react';
+import { issueListRows } from './issue-list-rows';
 import { GroupHeader, IssueRow } from './issue-row';
-
-type Row = { kind: 'header'; severity: SeverityEnum; count: number } | { kind: 'issue'; issue: Issue };
 
 export interface IssuesListHandle {
   scrollToIssue: (issue: Issue) => void;
@@ -22,21 +21,13 @@ interface IssuesListProps {
 }
 
 /**
- * The issue queue: grouped by severity, one flat row per issue, expanding in
+ * The issue queue: grouped by severity unless the project turns that off, one flat row per issue, expanding in
  * place into the same body the margin note shows. Virtualised, because turning
  * passing checks on can push this past six hundred rows.
  */
 export function IssuesList({ ref, issues, scrollElement, activeIssueId, readOnly, onSelect }: IssuesListProps) {
-  const rows = useMemo<Row[]>(() => {
-    const out: Row[] = [];
-    for (const severity of SEVERITIES_WORST_FIRST) {
-      const group = issues.filter((issue) => issue.severity === severity);
-      if (group.length === 0) continue;
-      out.push({ kind: 'header', severity, count: group.length });
-      for (const issue of group) out.push({ kind: 'issue', issue });
-    }
-    return out;
-  }, [issues]);
+  const groupBySeverity = useGroupBySeverity();
+  const rows = useMemo(() => issueListRows(issues, groupBySeverity), [issues, groupBySeverity]);
 
   const virtualizer = useVirtualizer({
     count: rows.length,

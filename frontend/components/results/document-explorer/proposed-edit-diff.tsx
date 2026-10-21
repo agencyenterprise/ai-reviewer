@@ -100,7 +100,7 @@ function ProposedEditCard({ edit, showLine }: { edit: ProposedEdit; showLine: bo
         </div>
       )}
       <EditText edit={edit} />
-      <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{edit.rationale}</p>
+      {edit.rationale && <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{edit.rationale}</p>}
     </li>
   );
 }

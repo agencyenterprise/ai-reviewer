@@ -58,7 +58,11 @@ async def create_project_endpoint(
     separately via the /api/upload endpoints.
     """
     try:
-        project = await create_project(title=request.title, user=current_user)
+        project = await create_project(
+            title=request.title,
+            user=current_user,
+            group_by_severity=request.group_by_severity,
+        )
         return ProjectCreated(project=project, access_level=AccessLevel.WRITE)
     except Exception as e:
         logger.error("Failed to create project: %s", e, exc_info=True)

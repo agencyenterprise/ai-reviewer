@@ -134,7 +134,7 @@ async def test_a_word_97_main_file_exports_its_comments(tmp_path):
     issue = _issue_on(main_file.markdown, "Bananas", ("tropical", "humid"))
     artifacts = MagicMock()
     artifacts.get_main_file = AsyncMock(return_value=main_file)
-    project = SimpleNamespace(current_revision=1)
+    project = SimpleNamespace(current_revision=1, group_by_severity=True)
 
     with (
         patch(f"{_SERVICE}._get_project_by_id", AsyncMock(return_value=project)),

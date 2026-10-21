@@ -1034,6 +1034,12 @@ export type BibliographyItemValidationV2 = {
    */
   suggested_action: string;
   /**
+   * Summary
+   *
+   * One or two plain sentences telling the author what is wrong with the reference: each incorrect or missing field, with the cited value and what the source says. Leave out correct fields, the search itself and the reference as a whole. Empty when the reference is correct.
+   */
+  summary?: string;
+  /**
    * Url
    *
    * Found URL for the reference.
@@ -1048,7 +1054,7 @@ export type BibliographyItemValidationV2 = {
   /**
    * Updated Reference
    *
-   * Updated reference with the suggested changes made to make the reference valid, matching the format of the original reference. If the reference is already valid, return null.
+   * Updated reference with the suggested changes made to make the reference valid, matching the format of the original reference. Change only the fields marked incorrect or missing and copy everything else exactly as written. If the reference is already valid, return null.
    */
   updated_reference?: string | null;
 };
@@ -1510,6 +1516,12 @@ export type CreateProjectRequest = {
    * Title
    */
   title: string;
+  /**
+   * Group By Severity
+   *
+   * Present issues by severity. Defaults to the user's last project.
+   */
+  group_by_severity?: boolean | null;
 };
 
 /**
@@ -3067,6 +3079,12 @@ export type Project = {
    * The current (latest) revision number for this project
    */
   current_revision?: number;
+  /**
+   * Group By Severity
+   *
+   * Whether the app and the Word export present issues by severity. Display only: issues keep their severity either way.
+   */
+  group_by_severity?: boolean;
 };
 
 /**
@@ -3746,6 +3764,12 @@ export type ReferenceValidationV2Item = {
    * Error message, present on failure.
    */
   error?: string | null;
+  /**
+   * Edits
+   *
+   * Tracked-change edits that apply the validator's correction, located on the reference's line. Empty unless the fix is not in doubt.
+   */
+  edits?: Array<ProposedEdit>;
   /**
    * Messages
    *
@@ -4487,6 +4511,10 @@ export type UpdateProjectRequest = {
    */
   publication_date?: Date | null;
   feedback_visibility?: FeedbackVisibility | null;
+  /**
+   * Group By Severity
+   */
+  group_by_severity?: boolean | null;
 };
 
 /**

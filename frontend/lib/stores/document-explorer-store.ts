@@ -1,5 +1,7 @@
 import { Issue, SeverityEnum, WorkflowRunType } from '@/lib/generated-api';
 import { issueLineRange, issueStartLine, rangesOverlap } from '@/components/results/document-explorer/issue-lines';
+import { useGroupBySeverity } from '@/context/group-by-severity-context';
+import { useMemo } from 'react';
 import { create } from 'zustand';
 import { sortIssueBySeverity } from '../severity';
 
@@ -18,6 +20,14 @@ export const DEFAULT_FILTER: DocumentExplorerFilter = {
 };
 
 export type LineRange = [number, number];
+
+/**
+ * The filter as a project shows it. With grouping off the severity toggles are
+ * hidden, so a severity picked on another project must not hide issues here.
+ */
+export function withSeverityGrouping(filter: DocumentExplorerFilter, groupBySeverity: boolean): DocumentExplorerFilter {
+  return groupBySeverity || filter.severity.length === 0 ? filter : { ...filter, severity: [] };
+}
 
 interface DocumentExplorerState {
   selectedLineRange: LineRange | null;
@@ -38,6 +48,13 @@ export const useDocumentExplorerStore = create<DocumentExplorerState>((set) => (
   setFilter: (partial) => set((state) => ({ filter: { ...state.filter, ...partial } })),
   clearFilters: () => set({ filter: DEFAULT_FILTER }),
 }));
+
+/** The explorer's filter for the project in view; see {@link withSeverityGrouping}. */
+export function useProjectExplorerFilter(): DocumentExplorerFilter {
+  const filter = useDocumentExplorerStore((state) => state.filter);
+  const groupBySeverity = useGroupBySeverity();
+  return useMemo(() => withSeverityGrouping(filter, groupBySeverity), [filter, groupBySeverity]);
+}
 
 /**
  * Count of non-passing issues (excludes severity "None").

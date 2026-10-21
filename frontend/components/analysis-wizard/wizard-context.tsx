@@ -17,11 +17,14 @@ interface WizardState {
   preflightStatus: { format: PreflightStatus };
   selectedWorkflowTypes: WorkflowRunType[];
   needsReferencesStep: boolean;
+  /** The new project's display setting, inherited from the user's last project when it was created. */
+  groupBySeverity: boolean;
 }
 
 interface WizardContextValue extends WizardState {
   setMainDocument: (file: File | null) => void;
   setProjectId: (id: string) => void;
+  setGroupBySeverity: (value: boolean) => void;
   setPreflightStatus: (status: Partial<WizardState['preflightStatus']>) => void;
   setSelectedWorkflowTypes: (types: WorkflowRunType[]) => void;
   nextStep: () => void;
@@ -37,6 +40,7 @@ export function WizardProvider({ children }: WizardProviderProps) {
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const [mainDocument, setMainDocument] = useState<File | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
+  const [groupBySeverity, setGroupBySeverity] = useState(true);
   const [preflightStatus, setPreflightStatusState] = useState<WizardState['preflightStatus']>({
     format: 'idle',
   });
@@ -91,8 +95,10 @@ export function WizardProvider({ children }: WizardProviderProps) {
       preflightStatus,
       selectedWorkflowTypes,
       needsReferencesStep,
+      groupBySeverity,
       setMainDocument,
       setProjectId,
+      setGroupBySeverity,
       setPreflightStatus,
       setSelectedWorkflowTypes,
       nextStep,
@@ -104,6 +110,7 @@ export function WizardProvider({ children }: WizardProviderProps) {
       preflightStatus,
       selectedWorkflowTypes,
       needsReferencesStep,
+      groupBySeverity,
       setPreflightStatus,
       nextStep,
     ],

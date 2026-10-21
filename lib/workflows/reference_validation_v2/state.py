@@ -5,7 +5,12 @@ from pydantic import BaseModel, Field
 
 from lib.agents.reference_validator_v2 import BibliographyItemValidationV2
 from lib.workflows.agent_messages import AgentMessages
-from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
+from lib.workflows.models import (
+    BaseWorkflowConfig,
+    BaseWorkflowState,
+    ProposedEdit,
+    WorkflowRunType,
+)
 from lib.workflows.reducers import Reducer, upsert_by
 
 
@@ -42,6 +47,13 @@ class ReferenceValidationV2Item(BaseModel):
     error: str | None = Field(
         default=None,
         description="Error message, present on failure.",
+    )
+    edits: list[ProposedEdit] = Field(
+        default_factory=list,
+        description=(
+            "Tracked-change edits that apply the validator's correction, located "
+            "on the reference's line. Empty unless the fix is not in doubt."
+        ),
     )
     messages: AgentMessages = Field(
         default_factory=list,
