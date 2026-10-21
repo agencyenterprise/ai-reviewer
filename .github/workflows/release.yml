@@ -1,0 +1,243 @@
+name: Release
+
+# Cuts the release a merged pull request into main asked for via its label.
+#
+#   release:patch / release:minor / release:major   bump, changelog, tag, publish
+#   norelease                                       merge without releasing
+#
+# The release pull request (dev -> main, kept by release-pr.yml) carries the
+# label; release-label.yml makes sure every pull request has exactly one.
+#
+# One commit carries the version bump (pyproject.toml, uv.lock and
+# frontend/package.json) and the changelog entry, and the tag points at it, so
+# `vX.Y.Z` is always a tree that says X.Y.Z and lists its own changes. Nothing
+# is pushed until the changelog is written: a failed run leaves main untouched
+# and can be re-run, or replaced by a manual run of this workflow.
+#
+# Every push uses the release bot's token. The bot is a bypass actor on the
+# rules protecting main and dev, and a tag pushed with GITHUB_TOKEN would start
+# no workflow runs.
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+  # Cuts a release from main's current head without a pull request. dry_run
+  # shows the version and changelog without pushing anything.
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump
+        required: true
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+      dry_run:
+        description: Show what would be released without pushing anything
+        type: boolean
+        default: true
+
+# Two pull requests merged together must not race for the same version. The
+# second run re-reads main after the first has pushed.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    outputs:
+      kind: ${{ steps.kind.outputs.kind }}
+      dry_run: ${{ steps.kind.outputs.dry_run }}
+    steps:
+      - name: Resolve the release kind
+        id: kind
+        env:
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          BUMP: ${{ inputs.bump }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "kind=${BUMP}" >> "$GITHUB_OUTPUT"
+            echo "dry_run=${DRY_RUN}" >> "$GITHUB_OUTPUT"
+            echo "manual release: ${BUMP} (dry run: ${DRY_RUN})"
+            exit 0
+          fi
+          KIND=$(echo "$LABELS" | python3 -c "
+          import json, sys
+          bumps = {'release:patch': 'patch', 'release:minor': 'minor', 'release:major': 'major'}
+          found = [bumps[l] for l in json.load(sys.stdin) if l in bumps]
+          print(found[0] if len(found) == 1 else '')
+          ")
+          echo "kind=${KIND}" >> "$GITHUB_OUTPUT"
+          echo "dry_run=false" >> "$GITHUB_OUTPUT"
+          if [ -z "$KIND" ]; then
+            echo "no release label: nothing to cut"
+          else
+            echo "release kind: ${KIND}"
+          fi
+
+  release:
+    needs: resolve
+    if: needs.resolve.outputs.kind != ''
+    runs-on: ubuntu-latest
+    env:
+      KIND: ${{ needs.resolve.outputs.kind }}
+      DRY_RUN: ${{ needs.resolve.outputs.dry_run }}
+    steps:
+      - name: Create release bot token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Bump the version
+        id: bump
+        run: |
+          set -euo pipefail
+          PREVIOUS_TAG=$(git tag -l 'v*' --sort=-version:refname | head -n 1)
+          CURRENT=$(uv version --short)
+          # The version only ever changes here, so a mismatch means someone
+          # edited it by hand; bumping from it would skip or repeat a version.
+          if [ "v${CURRENT}" != "$PREVIOUS_TAG" ]; then
+            echo "pyproject.toml says ${CURRENT} but the latest tag is ${PREVIOUS_TAG}."
+            echo "Set pyproject.toml back to ${PREVIOUS_TAG#v} (uv version ${PREVIOUS_TAG#v} --no-sync) and re-run."
+            exit 1
+          fi
+          # Re-locks so uv.lock's recorded project version keeps step with
+          # pyproject.toml, without building a virtualenv to do it.
+          uv version --bump "$KIND" --no-sync
+          VERSION=$(uv version --short)
+          node -e '
+            const fs = require("fs");
+            const path = "frontend/package.json";
+            const pkg = JSON.parse(fs.readFileSync(path, "utf8"));
+            pkg.version = process.argv[1];
+            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
+          ' "$VERSION"
+          echo "previous_tag=${PREVIOUS_TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "${PREVIOUS_TAG} -> v${VERSION}"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install changelog script dependencies
+        working-directory: .github/scripts
+        run: |
+          npm init -y
+          npm install @octokit/rest openai
+
+      - name: Collect PRs (3-level traversal)
+        working-directory: .github/scripts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node collect-prs.js \
+            --from-tag "${{ steps.bump.outputs.previous_tag }}" \
+            --to-tag HEAD \
+            --output pr-data.json
+          cat pr-data.json
+
+      - name: Generate AI changelog
+        working-directory: .github/scripts
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DEBUG: "true"
+        run: |
+          node generate-changelog.js \
+            --pr-data pr-data.json \
+            --version "${{ steps.bump.outputs.version }}" \
+            --output changelog-entry.md
+          cat changelog-entry.md
+
+      - name: Update CHANGELOG.md
+        run: |
+          FLAGS=""
+          if [ "$DRY_RUN" = "true" ]; then
+            FLAGS="--dry-run"
+          fi
+          ./.github/scripts/update-changelog.sh \
+            --version "${{ steps.bump.outputs.version }}" \
+            --entry .github/scripts/changelog-entry.md \
+            $FLAGS
+
+      - name: Commit, tag, push and publish the GitHub Release
+        if: env.DRY_RUN != 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ steps.bump.outputs.version }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          TAG="v${VERSION}"
+          MESSAGE="chore(release): ${TAG}${PR_NUMBER:+ (#${PR_NUMBER})}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml uv.lock frontend/package.json CHANGELOG.md
+          git commit -qm "$MESSAGE"
+          git tag -a "$TAG" -m "$MESSAGE"
+
+          # main first: a tag pointing at a commit that never reached main is
+          # harder to unpick than a bump that briefly has no tag.
+          git push origin HEAD:main
+          git push origin "$TAG"
+
+          gh release create "$TAG" --title "Release ${TAG}" \
+            --notes-file .github/scripts/changelog-entry.md
+
+          echo "### Released \`${TAG}\`" >> "$GITHUB_STEP_SUMMARY"
+
+      # Brings the release commit back into dev, so main never holds anything
+      # dev lacks and the next release pull request shows only new work.
+      # Only the release bot writes the files that commit touches, so the merge
+      # is clean unless someone edited them on dev by hand; then it falls back
+      # to a pull request for a person to resolve.
+      - name: Merge main back into dev
+        if: env.DRY_RUN != 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          set -euo pipefail
+          git fetch origin +refs/heads/dev:refs/remotes/origin/dev
+          git checkout -B dev origin/dev
+          if git merge --no-edit -m "chore(release): sync main back to dev after v${VERSION}" main; then
+            git push origin dev
+            echo "dev now includes v${VERSION}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            git merge --abort
+            URL=$(gh pr create --base dev --head main --label norelease \
+              --title "chore(release): sync main back to dev after v${VERSION}" \
+              --body "main could not be merged into dev automatically after v${VERSION}. Resolve the conflicts and merge.")
+            echo "main did not merge into dev cleanly: ${URL}" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload artifacts (for debugging)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: changelog-artifacts-${{ steps.bump.outputs.version }}
+          path: |
+            .github/scripts/pr-data.json
+            .github/scripts/changelog-entry.md
+          retention-days: 30

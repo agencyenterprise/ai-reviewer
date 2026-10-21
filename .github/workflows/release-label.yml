@@ -1,0 +1,62 @@
+name: Release label
+
+# Every pull request carries exactly one release label, so the size of each
+# change is decided by the person who made it, in review:
+#
+#   release:patch / release:minor / release:major   the bump this change needs
+#   norelease                                       ships nothing on its own
+#
+# release-pr.yml rolls the labels of everything merged into dev up to the
+# release pull request (dev -> main), and release.yml cuts the version that
+# pull request's label names. These names are the ones both read, so changing
+# one here means changing it there too.
+#
+# pull_request_target, not pull_request: Dependabot and fork pull requests get a
+# read-only GITHUB_TOKEN under pull_request, so the default label could not be
+# applied. This job never checks out the pull request's code, which is what
+# makes pull_request_target safe here.
+#
+# Defaulting and checking live in one job on purpose. A label applied with
+# GITHUB_TOKEN does not re-trigger `on: labeled`, so a separate labeller would
+# leave the pull request correctly labelled behind a stale failing check. Here
+# the check runs after the default in the same job, and it reads labels from the
+# API rather than the event payload, so it sees what was just applied.
+
+on:
+  pull_request_target:
+    types: [opened, reopened, labeled, unlabeled, synchronize]
+
+jobs:
+  release-label:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      # Only on open. Re-applying on every event would make a label impossible
+      # to remove: dropping `release:patch` to replace it would just add it back.
+      # Pull requests between dev and main are labelled by release-pr.yml and
+      # release.yml, so they are left alone here.
+      - name: Default new pull requests to release:patch
+        if: >-
+          (github.event.action == 'opened' || github.event.action == 'reopened')
+          && github.head_ref != 'dev' && github.head_ref != 'main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          APPLIED=$(gh pr view "$PR" --repo "$REPO" --json labels --jq '[.labels[].name] | join(" ")')
+          if echo " $APPLIED " | grep -qE ' (release:patch|release:minor|release:major|norelease) '; then
+            echo "already labelled: ${APPLIED}"
+          else
+            gh pr edit "$PR" --repo "$REPO" --add-label "release:patch"
+            echo "defaulted to release:patch"
+          fi
+
+      - name: Require exactly one release label
+        uses: mheap/github-action-required-labels@v5
+        with:
+          mode: exactly
+          count: 1
+          labels: "release:patch, release:minor, release:major, norelease"
