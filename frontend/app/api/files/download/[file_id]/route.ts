@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { serverApiUrl } from '@/lib/server-api-url';
 
 /**
  * Proxy endpoint for file download requests.
@@ -28,8 +29,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const shareToken = request.nextUrl.searchParams.get('share_token');
 
     // Build backend URL with share token if present
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    const backendUrl = new URL(`${apiUrl}/api/files/download/${file_id}`);
+    const backendUrl = new URL(`${serverApiUrl}/api/files/download/${file_id}`);
     if (shareToken) {
       backendUrl.searchParams.set('share_token', shareToken);
     }

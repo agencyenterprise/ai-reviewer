@@ -15,6 +15,10 @@ metadata:
   name: api
 spec:
   replicas: 1
+  # The uploads volume is ReadWriteOnce: stop the old pod before starting the new one, or a
+  # new pod on another node waits forever to attach it.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: api
