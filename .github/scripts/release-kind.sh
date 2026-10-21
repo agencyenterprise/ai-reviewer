@@ -6,10 +6,10 @@
 # serialized but merges are not, so one run can release several merges. A
 # commit on main with no pull request counts as patch.
 #
-# A head that is already tagged was released by an earlier run, which prints
-# nothing (release.yml's sync-dev job still finishes any sync that run left);
-# if that run stopped before creating the GitHub Release, this fails and says
-# what is left to do by hand.
+# A head that is already tagged has nothing since the latest tag and prints
+# nothing (release.yml's sync-dev job still finishes any sync an earlier run
+# left). If the latest tag has no GitHub Release, an earlier run stopped
+# partway, and this fails with what is left to do by hand.
 #
 # Expects main to be checked out with full history and tags, and GH_TOKEN to be
 # set.
@@ -25,17 +25,15 @@ rank() {
   esac
 }
 
-if TAG=$(git describe --exact-match --tags --match 'v*' HEAD 2>/dev/null); then
-  if gh release view "$TAG" > /dev/null 2>&1; then
-    echo "main's head is already released as ${TAG}" >&2
-    exit 0
-  fi
-  echo "main's head is tagged ${TAG} but has no GitHub Release: an earlier run stopped partway." >&2
-  echo "Finish by hand: create the release (gh release create ${TAG}), then re-run this workflow to sync dev." >&2
+# Checked wherever main's head is: a pull request merged after an earlier run
+# pushed its tag would otherwise hide that run's missing release.
+PREVIOUS_TAG=$(git tag -l 'v*' --sort=-version:refname | head -n 1)
+if ! gh release view "$PREVIOUS_TAG" > /dev/null 2>&1; then
+  echo "The latest tag ${PREVIOUS_TAG} has no GitHub Release: an earlier run stopped partway." >&2
+  echo "Finish by hand: create the release (gh release create ${PREVIOUS_TAG}), then re-run this workflow." >&2
   exit 1
 fi
 
-PREVIOUS_TAG=$(git tag -l 'v*' --sort=-version:refname | head -n 1)
 BEST=norelease
 for sha in $(git rev-list --first-parent "${PREVIOUS_TAG}..HEAD"); do
   labels=$(gh api "repos/{owner}/{repo}/commits/${sha}/pulls" \
