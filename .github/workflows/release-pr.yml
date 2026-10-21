@@ -1,0 +1,43 @@
+name: Release pull request
+
+# Keeps one pull request open from dev to main whenever dev has something main
+# lacks, titled with the version merging it would release. Merging that pull
+# request is how a release is cut (release.yml). The logic, including how its
+# release label is chosen, is in .github/scripts/sync-release-pr.sh.
+#
+# The pull request is opened with the release bot's token rather than
+# GITHUB_TOKEN: a pull request opened with GITHUB_TOKEN starts no workflow runs,
+# so CI would never report on it.
+
+on:
+  push:
+    branches: [dev]
+  # A label changed on a pull request already in dev does not push to dev, so
+  # this lets the release pull request catch up by hand.
+  workflow_dispatch:
+
+# Pushes that land together resolve to one run against the newest dev.
+concurrency:
+  group: release-pr
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create release bot token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Open or update the release pull request
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: ./.github/scripts/sync-release-pr.sh
