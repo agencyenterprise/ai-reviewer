@@ -10,6 +10,7 @@ from lib.services.docx.edit_export import (
     describe_edit_export,
     plan_edit_export,
 )
+from lib.services.docx.legacy_doc import readable_docx
 from lib.services.docx.manipulator import (
     DocxManipulatorType,
     count_unanchorable_issues,
@@ -103,130 +104,133 @@ async def generate_docx(
     if not main_file_path.endswith(".docx") and not main_file_path.endswith(".doc"):
         raise ValueError("Main file must be a .docx or .doc to generate reviewed DOCX")
 
-    # Build paragraph → (start_line, end_line) map via marker injection. This is
-    # authoritative (no fuzzy matching) and resolves each issue's line range to a
-    # target docx paragraph. The persisted
-    # markdown's line count guards against a structurally different conversion
-    # (e.g. drawing rasterization failing now but not at ingestion) silently
-    # anchoring every comment to the wrong paragraph.
-    paragraph_line_ranges = await build_paragraph_line_ranges(
-        main_file.file_path,
-        expected_line_count=(
-            main_file.markdown.count("\n") + 1 if main_file.markdown else None
-        ),
-    )
-
-    # Query persisted issues directly from DB (faster than computing from workflow states)
-    # get_project_issues excludes archived issues by default
-    all_issues = list(
-        await get_project_issues(
-            project_id=uuid.UUID(project_id),
-            revision=revision,
-            workflow_types=workflow_types,
-        )
-    )
-
-    # Exclude resolved issues from export
-    issues = [issue for issue in all_issues if not issue.is_resolved]
-
-    # Filter issues by severity if specified
-    if severities:
-        issues = [issue for issue in issues if issue.severity in severities]
-
-    # Exclude passing issues (severity=none) unless explicitly included
-    if not include_passing:
-        issues = [issue for issue in issues if issue.severity != SeverityEnum.NONE]
-
-    if not share_token:
-        docx_type = DocxManipulatorType.COMMENTS
-
-    # Unique per invocation so concurrent exports never collide.
-    output_id = uuid.uuid4().hex
-
-    # The export silently skips issues it cannot tie to a paragraph, so account
-    # for them here. Two causes: no
-    # line range at all (typically a legacy row carrying only chunk_indices, from
-    # before workflows emitted line ranges), or a range overlapping no paragraph.
-    no_range, unmatched = count_unanchorable_issues(issues, paragraph_line_ranges)
-    if no_range or unmatched:
-        logger.warning(
-            "DOCX export (%s) for project %s omits %d of %d issues that cannot be "
-            "anchored to a paragraph: %d have no line range, %d have one that "
-            "matches no paragraph",
-            docx_type.value,
-            project_id,
-            no_range + unmatched,
-            len(issues),
-            no_range,
-            unmatched,
+    # A Word 97 binary is read through the LibreOffice conversion ingestion
+    # made its markdown from; the output is a .docx either way.
+    async with readable_docx(main_file) as docx_path:
+        # Build paragraph → (start_line, end_line) map via marker injection. This is
+        # authoritative (no fuzzy matching) and resolves each issue's line range to a
+        # target docx paragraph. The persisted
+        # markdown's line count guards against a structurally different conversion
+        # (e.g. drawing rasterization failing now but not at ingestion) silently
+        # anchoring every comment to the wrong paragraph.
+        paragraph_line_ranges = await build_paragraph_line_ranges(
+            docx_path,
+            expected_line_count=(
+                main_file.markdown.count("\n") + 1 if main_file.markdown else None
+            ),
         )
 
-    if docx_type in [
-        DocxManipulatorType.COMMENTS,
-        DocxManipulatorType.COMMENTS_WITH_LINKS,
-    ]:
-        share_token_for_comments = (
-            share_token
-            if docx_type == DocxManipulatorType.COMMENTS_WITH_LINKS
-            else None
+        # Query persisted issues directly from DB (faster than computing from workflow states)
+        # get_project_issues excludes archived issues by default
+        all_issues = list(
+            await get_project_issues(
+                project_id=uuid.UUID(project_id),
+                revision=revision,
+                workflow_types=workflow_types,
+            )
         )
-        historical = revision != project.current_revision
-        if share_token_for_comments is not None and historical:
-            # A share link opens whatever the shared page shows, and that page
-            # has no revision of its own to open -- it shows the current one.
-            # A link written into a historical export would therefore send the
-            # reader to a different document than the comment beside it.
-            logger.info(
-                "DOCX export for project %s omits share links: it covers revision "
-                "%d, and the shared page shows revision %d",
+
+        # Exclude resolved issues from export
+        issues = [issue for issue in all_issues if not issue.is_resolved]
+
+        # Filter issues by severity if specified
+        if severities:
+            issues = [issue for issue in issues if issue.severity in severities]
+
+        # Exclude passing issues (severity=none) unless explicitly included
+        if not include_passing:
+            issues = [issue for issue in issues if issue.severity != SeverityEnum.NONE]
+
+        if not share_token:
+            docx_type = DocxManipulatorType.COMMENTS
+
+        # Unique per invocation so concurrent exports never collide.
+        output_id = uuid.uuid4().hex
+
+        # The export silently skips issues it cannot tie to a paragraph, so account
+        # for them here. Two causes: no
+        # line range at all (typically a legacy row carrying only chunk_indices, from
+        # before workflows emitted line ranges), or a range overlapping no paragraph.
+        no_range, unmatched = count_unanchorable_issues(issues, paragraph_line_ranges)
+        if no_range or unmatched:
+            logger.warning(
+                "DOCX export (%s) for project %s omits %d of %d issues that cannot be "
+                "anchored to a paragraph: %d have no line range, %d have one that "
+                "matches no paragraph",
+                docx_type.value,
                 project_id,
-                revision,
-                project.current_revision,
+                no_range + unmatched,
+                len(issues),
+                no_range,
+                unmatched,
             )
-            share_token_for_comments = None
-        workspace_root = str(docx_manipulator_service.get_output_dir())
-        edit_export = (
-            await plan_edit_export(
-                issues=issues,
-                markdown=main_file.markdown or "",
-                docx_path=main_file.file_path,
-                paragraph_line_ranges=paragraph_line_ranges,
-                workspace_root=workspace_root,
+
+        if docx_type in [
+            DocxManipulatorType.COMMENTS,
+            DocxManipulatorType.COMMENTS_WITH_LINKS,
+        ]:
+            share_token_for_comments = (
+                share_token
+                if docx_type == DocxManipulatorType.COMMENTS_WITH_LINKS
+                else None
             )
-            if include_edits
-            # Comments only: the edits are still described, nothing is written.
-            else describe_edit_export(issues)
-        )
-        comments = [
-            c
-            for issue in issues
-            if (
-                c := issue_to_comment(
-                    issue,
-                    paragraph_line_ranges,
-                    share_token_for_comments,
-                    edit_notes=edit_export.notes_for(issue.id),
+            historical = revision != project.current_revision
+            if share_token_for_comments is not None and historical:
+                # A share link opens whatever the shared page shows, and that page
+                # has no revision of its own to open -- it shows the current one.
+                # A link written into a historical export would therefore send the
+                # reader to a different document than the comment beside it.
+                logger.info(
+                    "DOCX export for project %s omits share links: it covers revision "
+                    "%d, and the shared page shows revision %d",
+                    project_id,
+                    revision,
+                    project.current_revision,
                 )
+                share_token_for_comments = None
+            workspace_root = str(docx_manipulator_service.get_output_dir())
+            edit_export = (
+                await plan_edit_export(
+                    issues=issues,
+                    markdown=main_file.markdown or "",
+                    docx_path=docx_path,
+                    paragraph_line_ranges=paragraph_line_ranges,
+                    workspace_root=workspace_root,
+                )
+                if include_edits
+                # Comments only: the edits are still described, nothing is written.
+                else describe_edit_export(issues)
             )
-        ]
-        output_path = await docx_manipulator_service.add_comments_to_docx(
-            original_docx_path=main_file.file_path,
-            comments=comments,
-            workflow_run_id=output_id,
-            docx_type=docx_type,
-        )
-        if include_edits:
-            # After this point the paragraph index map no longer describes the
-            # file: python-docx stops reading inserted and deleted runs as
-            # paragraph text, so nothing may be re-anchored against it.
-            await apply_edit_export(
-                output_path,
-                edit_export,
-                project_id,
-                workspace_root=workspace_root,
+            comments = [
+                c
+                for issue in issues
+                if (
+                    c := issue_to_comment(
+                        issue,
+                        paragraph_line_ranges,
+                        share_token_for_comments,
+                        edit_notes=edit_export.notes_for(issue.id),
+                    )
+                )
+            ]
+            output_path = await docx_manipulator_service.add_comments_to_docx(
+                original_docx_path=docx_path,
+                comments=comments,
+                workflow_run_id=output_id,
+                docx_type=docx_type,
             )
-    else:
-        raise ValueError(f"Unsupported docx_type: {docx_type}")
+            if include_edits:
+                # After this point the paragraph index map no longer describes the
+                # file: python-docx stops reading inserted and deleted runs as
+                # paragraph text, so nothing may be re-anchored against it.
+                await apply_edit_export(
+                    output_path,
+                    edit_export,
+                    project_id,
+                    workspace_root=workspace_root,
+                )
+        else:
+            raise ValueError(f"Unsupported docx_type: {docx_type}")
 
     base_name = main_file.file_name.rsplit(".", 1)[0]
     filename = f"{base_name}_{docx_type.value}.docx"

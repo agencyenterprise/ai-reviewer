@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import shutil
+import tempfile
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -58,10 +59,14 @@ class DocxPreprocessor:
 
         logger.info(f"Converting {file_path_obj.name} to {format_name}...")
 
+        # A private user profile per invocation: concurrent soffice instances
+        # sharing the default profile exit 0 without writing their output.
+        profile_dir = Path(tempfile.mkdtemp(prefix="lo-profile-"))
         try:
             process = await asyncio.create_subprocess_exec(
                 libreoffice_cmd,
                 "--headless",
+                f"-env:UserInstallation={profile_dir.as_uri()}",
                 "--convert-to",
                 output_format,
                 "--outdir",
@@ -91,6 +96,8 @@ class DocxPreprocessor:
             raise RuntimeError(
                 f"Conversion timed out after {self.CONVERSION_TIMEOUT}s"
             ) from err
+        finally:
+            shutil.rmtree(profile_dir, ignore_errors=True)
 
     async def convert_doc_to_docx(self, file_path: str) -> str:
         """

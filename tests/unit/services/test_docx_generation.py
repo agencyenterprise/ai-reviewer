@@ -21,6 +21,7 @@ from lib.services.docx.service import _resolved_revision, generate_docx
 from lib.workflows.models import SeverityEnum, WorkflowRunType
 
 _SERVICE = "lib.services.docx.service"
+DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
 _FAKE_PROJECT_ID = uuid.uuid4()
 _FAKE_WORKFLOW_RUN_ID = uuid.uuid4()
@@ -359,9 +360,11 @@ class TestGenerateDocxRevision:
         manipulator, the file artifacts and the comment builder are stubs.
         """
         project = SimpleNamespace(current_revision=current_revision)
+        (tmp_path / "main.docx").write_bytes(b"PK\x03\x04")  # a zip, as OOXML is
         main_file = SimpleNamespace(
             file_path=str(tmp_path / "main.docx"),
             file_name="main.docx",
+            file_type=DOCX_MIME,
             markdown="Output increased by 14%.",
         )
         artifacts = MagicMock()
