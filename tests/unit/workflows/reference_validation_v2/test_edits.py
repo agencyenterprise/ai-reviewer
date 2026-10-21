@@ -165,3 +165,51 @@ def test_edits_that_leave_part_of_the_correction_out_are_not_complete():
 
     assert edits
     assert not applies_full_correction(REFERENCE, corrected, edits)
+
+
+def test_edits_widened_for_uniqueness_do_not_overlap():
+    # "Ann," appears twice, so its edit widens to "Lee, Ann, Doe,"; the deleted
+    # "and" takes "Doe," with it. Two edits sharing "Doe," conflict in the
+    # export and one is not applied, yet the suggested action is left out.
+    reference = "Lee, Ann, Doe, and Bo, Ann, Book, 2020."
+    updated = "Lee, Ana, Doe, Bo, Ann, Book, 2020."
+    field = _field(
+        FieldCategoryV2.AUTHOR,
+        FieldProblemTypeV2.INCORRECT,
+        "Lee, Ann, Doe, and Bo, Ann",
+    )
+    result = _result(updated, field)
+
+    edits = build_reference_edits(result, reference, ["# R", "", reference], 3, 3)
+
+    words = [set(e.original_text.split()) for e in edits]
+    assert all(not (a & b) for i, a in enumerate(words) for b in words[i + 1 :])
+    assert applies_full_correction(reference, updated, edits)
+
+
+def test_a_restyle_in_a_correct_field_is_dropped_even_when_its_word_is_in_an_incorrect_one():
+    reference = "Smith and Jones, War and Peace, 2020."
+    author = _field(
+        FieldCategoryV2.AUTHOR, FieldProblemTypeV2.INCORRECT, "Smith and Jones"
+    )
+    title = _field(FieldCategoryV2.TITLE, FieldProblemTypeV2.CORRECT, "War and Peace")
+    result = _result("Smyth and Jones, War & Peace, 2020.", author, title)
+
+    edits = build_reference_edits(result, reference, [reference], 1, 1)
+
+    assert [(e.original_text, e.replacement_text) for e in edits] == [
+        ("Smith", "Smyth")
+    ]
+
+
+def test_an_author_field_restated_in_another_order_still_holds_its_fix():
+    restated = _field(
+        FieldCategoryV2.AUTHOR,
+        FieldProblemTypeV2.INCORRECT,
+        "Dylan Patel, Daniel Nishball, and Jeremie Elliahou Ontiveros",
+    )
+    result = _result(REFERENCE.replace("Elliahou", "Eliahou"), restated)
+
+    edits = build_reference_edits(result, REFERENCE, LINES, 3, 3)
+
+    assert [e.replacement_text for e in edits] == ["Eliahou"]

@@ -14,7 +14,7 @@ from lib.agents.reference_validator_v2 import (
 )
 
 # Long field values (an author list of thirty names) are cut in the
-# description; the table in the long description has them in full.
+# description; the assessment's results page shows them in full.
 _VALUE_LIMIT = 120
 
 _NOT_FOUND = (

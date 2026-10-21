@@ -13,11 +13,16 @@ An edit is proposed only where the fix is not in doubt:
   whose place in the citation style is a guess, so it stays a suggested action);
 - the corrected reference keeps most of the original's words, since a rewrite
   of most of a citation is a judgment call for the author, not a redline;
-- every word a change touches lies inside a field marked incorrect (for an
-  insertion, the word it is inserted next to, as when co-authors are added to
-  an author list). The validator sometimes restyles a field it marked correct
-  (a title's capitalization, a URL's form); those changes are dropped;
+- every word a change touches lies where a field marked incorrect sits in the
+  reference (for an insertion, the word it is inserted next to, as when
+  co-authors are added to an author list). The validator sometimes restyles a
+  field it marked correct (a title's capitalization, a URL's form); those
+  changes are dropped;
 - the quoted text is found once on the reference's own line of the document.
+
+A change is widened until its quote is unique on the line, so two widened
+changes can reach the same words. Those are merged into one edit: two edits
+sharing a word would conflict in the export, and only one would be applied.
 """
 
 import difflib
@@ -47,6 +52,12 @@ _MAX_EDITS = 4
 
 _EDGE_PUNCTUATION = "\"'“”‘’,.;:()[]"
 
+# Words this short ("and", "of", "the") say nothing about where a field sits.
+_SHORT_WORD = 3
+
+# Words of one field restated in another order sit at most this far apart.
+_RUN_GAP = 3
+
 
 class _WordChange(BaseModel):
     """One run of changed words, as word indices into the original."""
@@ -54,6 +65,14 @@ class _WordChange(BaseModel):
     start: int
     end: int
     replacement: list[str]
+
+
+class _Quote(BaseModel):
+    """A stretch of the original's words to quote, with the changes inside it."""
+
+    start: int
+    end: int
+    changes: list[_WordChange]
 
 
 def build_reference_edits(
@@ -83,15 +102,18 @@ def build_reference_edits(
     if len(changes) > _MAX_EDITS:
         return []
 
-    edits: list[ProposedEdit] = []
-    for change in changes:
-        fields = _fields_holding(_touched_words(change, original), incorrect)
-        if not fields:
-            continue
-        edit = _locate(change, original, lines, start_line, end_line)
-        if edit is not None:
-            edits.append(edit)
-    return edits
+    spans = [span for f in incorrect if (span := _field_span(f, original))]
+    quotes = [
+        quote
+        for change in changes
+        if _inside(_touched(change, original), original, spans)
+        and (quote := _unique_quote(change, original, lines, start_line, end_line))
+    ]
+    return [
+        edit
+        for quote in _merged(quotes)
+        if (edit := _edit(quote, original, lines, start_line, end_line))
+    ]
 
 
 def _incorrect_fields(
@@ -120,64 +142,112 @@ def _normalized(word: str) -> str:
     return word.strip(_EDGE_PUNCTUATION).lower()
 
 
-def _touched_words(change: _WordChange, original: list[str]) -> list[str]:
+def _field_span(
+    field: BibliographyFieldValidationV2, original: list[str]
+) -> tuple[int, int] | None:
+    """Where a field's cited value sits in the reference, as word indices.
+
+    The validator usually copies the value as cited, but it may restate it in
+    another order ("Dylan Patel" for "Patel, Dylan"). Then the span is the
+    densest run of the value's longer words, so a short word such as "and"
+    elsewhere in the reference cannot place the field there.
+    """
+    words = [w for w in map(_normalized, field.current_value.split()) if w]
+    norm = [_normalized(w) for w in original]
+    if not words:
+        return None
+    for i in range(len(norm) - len(words) + 1):
+        if norm[i : i + len(words)] == words:
+            return i, i + len(words)
+    distinctive = {w for w in words if len(w) > _SHORT_WORD}
+    hits = [i for i, w in enumerate(norm) if w in distinctive]
+    runs: list[list[int]] = []
+    for i in hits:
+        if runs and i - runs[-1][-1] <= _RUN_GAP:
+            runs[-1].append(i)
+        else:
+            runs.append([i])
+    best = max(runs, key=len, default=None)
+    return (best[0], best[-1] + 1) if best else None
+
+
+def _touched(change: _WordChange, original: list[str]) -> range:
     """The original's words a change replaces, or for an insertion its neighbour."""
     if change.start < change.end:
-        return original[change.start : change.end]
+        return range(change.start, change.end)
     neighbour = change.start - 1 if change.start > 0 else change.start
-    return original[neighbour : neighbour + 1]
+    return range(neighbour, neighbour + 1)
 
 
-def _fields_holding(
-    words: list[str], fields: list[BibliographyFieldValidationV2]
-) -> list[BibliographyFieldValidationV2]:
-    """The incorrect fields holding the touched words, or none if any word is outside them."""
-    held: list[BibliographyFieldValidationV2] = []
-    for word in filter(None, map(_normalized, words)):
-        field = next(
-            (f for f in fields if word in map(_normalized, f.current_value.split())),
-            None,
-        )
-        if field is None:
-            return []
-        if field not in held:
-            held.append(field)
-    return held
+def _inside(indices: range, original: list[str], spans: list[tuple[int, int]]) -> bool:
+    """Whether every touched word (punctuation aside) lies in an incorrect field."""
+    return all(
+        any(start <= i < end for start, end in spans)
+        for i in indices
+        if _normalized(original[i])
+    )
 
 
-def _locate(
+def _unique_quote(
     change: _WordChange,
     original: list[str],
     lines: Sequence[str],
     start_line: int,
     end_line: int,
-) -> ProposedEdit | None:
-    """Anchor one change on the reference's line, widening it until it is unique."""
+) -> _Quote | None:
+    """The change's words, widened until they appear once on the reference's line."""
     start, end = change.start, change.end
     if not change.replacement or start == end:
         # A deletion takes a neighbouring word with it, so the space before
         # the deleted words goes too; an insertion needs one to quote.
         start, end = (start - 1, end) if start > 0 else (start, end + 1)
-    while True:
-        quote = " ".join(original[start:end])
-        if len(find_quote_lines(lines, start_line, end_line, quote)) == 1:
-            break
+    while (
+        len(
+            find_quote_lines(lines, start_line, end_line, " ".join(original[start:end]))
+        )
+        != 1
+    ):
         if start == 0 and end == len(original):
             return None
         start, end = max(0, start - 1), min(len(original), end + 1)
+    return _Quote(start=start, end=end, changes=[change])
 
-    replacement = " ".join(
-        [
-            *original[start : change.start],
-            *change.replacement,
-            *original[change.end : end],
-        ]
-    )
+
+def _merged(quotes: list[_Quote]) -> list[_Quote]:
+    """Quotes that overlap or touch, joined into one; a superset of a unique quote is unique."""
+    merged: list[_Quote] = []
+    for quote in sorted(quotes, key=lambda q: q.start):
+        if merged and quote.start <= merged[-1].end:
+            last = merged[-1]
+            merged[-1] = _Quote(
+                start=last.start,
+                end=max(last.end, quote.end),
+                changes=[*last.changes, *quote.changes],
+            )
+        else:
+            merged.append(quote)
+    return merged
+
+
+def _edit(
+    quote: _Quote,
+    original: list[str],
+    lines: Sequence[str],
+    start_line: int,
+    end_line: int,
+) -> ProposedEdit | None:
+    """The quote with its changes applied, checked against the document's line."""
+    words: list[str] = []
+    position = quote.start
+    for change in sorted(quote.changes, key=lambda c: c.start):
+        words += [*original[position : change.start], *change.replacement]
+        position = change.end
+    words += original[position : quote.end]
     outcome = resolve_edit(
         lines,
         ProposedEditInput(
-            original_text=quote,
-            replacement_text=replacement,
+            original_text=" ".join(original[quote.start : quote.end]),
+            replacement_text=" ".join(words),
             # The issue's description already says what is wrong; a rationale
             # would repeat it under every edit.
             rationale="",
@@ -195,14 +265,27 @@ def applies_full_correction(
     """Whether applying the edits to the reference gives the validator's correction.
 
     Then the edits say everything a suggested action would, so the issue can
-    leave the action out.
+    leave the action out. Edits whose quotes overlap never pass: the export
+    applies only one of them.
     """
     if not edits or not updated_reference:
         return False
     text = " ".join(reference_text.split())
+    placed: list[tuple[int, int, str]] = []
     for edit in edits:
         quote = " ".join(edit.original_text.split())
-        if quote not in text:
+        position = text.find(quote)
+        if position < 0:
             return False
-        text = text.replace(quote, " ".join(edit.replacement_text.split()), 1)
-    return text == " ".join(updated_reference.split())
+        placed.append(
+            (position, position + len(quote), " ".join(edit.replacement_text.split()))
+        )
+    placed.sort()
+    if any(a[1] > b[0] for a, b in zip(placed, placed[1:])):
+        return False
+    pieces, position = [], 0
+    for start, end, replacement in placed:
+        pieces += [text[position:start], replacement]
+        position = end
+    pieces.append(text[position:])
+    return "".join(pieces) == " ".join(updated_reference.split())
