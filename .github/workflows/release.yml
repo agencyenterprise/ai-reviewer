@@ -107,6 +107,27 @@ jobs:
       - name: Set up Python
         run: uv python install 3.13
 
+      # Runs are serialized, merges are not: if main moved past this pull
+      # request's merge before this run checked it out, its label no longer
+      # describes everything that would ship. A head that is already tagged
+      # means a previous run pushed this release and failed afterwards; bumping
+      # again would skip a version.
+      - name: Check main is what this release describes
+        env:
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          set -euo pipefail
+          if TAG=$(git describe --exact-match --tags --match 'v*' HEAD 2>/dev/null); then
+            echo "main's head is already released as ${TAG}. Finish by hand what the earlier run left:"
+            echo "the GitHub Release (gh release create ${TAG}) and merging main into dev."
+            exit 1
+          fi
+          if [ -n "$MERGE_SHA" ] && [ "$(git rev-parse HEAD)" != "$MERGE_SHA" ]; then
+            echo "main has moved past this pull request's merge (${MERGE_SHA}), so its label may not cover all of it."
+            echo "Run the Release workflow by hand with the bump everything on main needs."
+            exit 1
+          fi
+
       - name: Bump the version
         id: bump
         run: |
@@ -197,10 +218,9 @@ jobs:
           git commit -qm "$MESSAGE"
           git tag -a "$TAG" -m "$MESSAGE"
 
-          # main first: a tag pointing at a commit that never reached main is
-          # harder to unpick than a bump that briefly has no tag.
-          git push origin HEAD:main
-          git push origin "$TAG"
+          # Both or neither: a bump on main without its tag would fail the next
+          # run's version check.
+          git push --atomic origin HEAD:main "$TAG"
 
           gh release create "$TAG" --title "Release ${TAG}" \
             --notes-file .github/scripts/changelog-entry.md

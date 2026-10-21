@@ -2,10 +2,9 @@
 # Open or update the release pull request (dev -> main).
 #
 # Its label is the largest release label among the pull requests merged into dev
-# since main (major > minor > patch > norelease); a pull request without one
-# counts as patch. A label someone set by hand on the release pull request wins:
-# the label this script last computed is kept in the body, and a different one
-# applied there means someone overrode it.
+# since main (major > minor > patch > norelease); a pull request without one,
+# and a commit pushed to dev directly, counts as patch. A label someone set by
+# hand on the release pull request wins over the computed one.
 #
 # Expects origin/main and origin/dev to be fetched with full history and tags,
 # and GH_TOKEN to be set.
@@ -58,10 +57,25 @@ if [ "$(git rev-list --count --no-merges origin/main..origin/dev)" = "0" ]; then
   exit 0
 fi
 
-# Pull requests merged into dev, minus the ones that brought main back into it.
-PR_NUMBERS=$(git log --first-parent --format=%s origin/main..origin/dev \
-  | grep -vE '^Merge pull request #[0-9]+ from [^ ]+/main$' \
-  | sed -nE 's/^Merge pull request #([0-9]+) from .*/\1/p')
+# Pull requests merged into dev, found through GitHub's commit associations so
+# merge, squash and rebase merges all count. A first-parent commit with no pull
+# request was pushed to dev directly.
+PR_NUMBERS=""
+DIRECT_COMMITS=0
+for sha in $(git rev-list --first-parent origin/main..origin/dev); do
+  # Merges that brought main back into dev carry nothing to release.
+  second_parent=$(git rev-parse -q --verify "${sha}^2" || true)
+  if [ -n "$second_parent" ] && git merge-base --is-ancestor "$second_parent" origin/main; then
+    continue
+  fi
+  number=$(gh api "repos/{owner}/{repo}/commits/${sha}/pulls" \
+    --jq '[.[] | select(.base.ref == "dev" and .merged_at != null)][0].number // empty')
+  if [ -z "$number" ]; then
+    DIRECT_COMMITS=$((DIRECT_COMMITS + 1))
+  elif ! echo " $PR_NUMBERS " | grep -q " $number "; then
+    PR_NUMBERS="$PR_NUMBERS $number"
+  fi
+done
 
 COMPUTED=norelease
 PR_LINES=""
@@ -75,22 +89,33 @@ for number in $PR_NUMBERS; do
   fi
   PR_LINES="${PR_LINES}- #${number} ${title} (\`${label}\`)"$'\n'
 done
-if [ -z "$PR_NUMBERS" ]; then
-  # Commits pushed to dev directly, with no pull request to carry a label.
-  COMPUTED=release:patch
-  PR_LINES="- Commits pushed to dev directly (no pull requests)"$'\n'
+if [ "$DIRECT_COMMITS" -gt 0 ]; then
+  # No pull request carried a label for these, so they ship as at least a patch.
+  if [ "$(rank release:patch)" -gt "$(rank "$COMPUTED")" ]; then
+    COMPUTED=release:patch
+  fi
+  PR_LINES="${PR_LINES}- ${DIRECT_COMMITS} commit(s) pushed to dev directly (\`release:patch\`)"$'\n'
 fi
 
+# The body records what this script computed and any label set by hand. A
+# release label that differs from the one this script last applied was set by
+# hand, and it stays until someone changes the label again.
 EXISTING=$(gh pr list --base main --head dev --state open --json number,labels,body --jq '.[0] // empty')
-KIND=$COMPUTED
+OVERRIDE=""
 if [ -n "$EXISTING" ]; then
   PR_NUMBER=$(echo "$EXISTING" | jq -r .number)
   CURRENT=$(release_label_of "$(echo "$EXISTING" | jq -r '[.labels[].name] | join(" ")')")
-  LAST_COMPUTED=$(echo "$EXISTING" | jq -r .body | sed -nE 's/^<!-- computed-label: (.*) -->$/\1/p')
-  if [ -n "$CURRENT" ] && [ "$CURRENT" != "$LAST_COMPUTED" ]; then
-    echo "label overridden by hand to ${CURRENT}; keeping it"
-    KIND=$CURRENT
+  BODY=$(echo "$EXISTING" | jq -r .body)
+  LAST_COMPUTED=$(echo "$BODY" | sed -nE 's/^<!-- computed-label: (.*) -->$/\1/p')
+  OVERRIDE=$(echo "$BODY" | sed -nE 's/^<!-- override-label: (.*) -->$/\1/p')
+  LAST_APPLIED=${OVERRIDE:-$LAST_COMPUTED}
+  if [ -n "$CURRENT" ] && [ "$CURRENT" != "$LAST_APPLIED" ]; then
+    OVERRIDE=$CURRENT
   fi
+fi
+KIND=${OVERRIDE:-$COMPUTED}
+if [ -n "$OVERRIDE" ]; then
+  echo "label set by hand to ${OVERRIDE}; keeping it"
 fi
 
 LAST_TAG=$(git tag -l 'v*' --sort=-version:refname | head -n 1)
@@ -114,6 +139,7 @@ This pull request is kept up to date by \`release-pr.yml\` on every push to dev.
 
 ${PR_LINES}
 <!-- computed-label: ${COMPUTED} -->
+<!-- override-label: ${OVERRIDE} -->
 EOF
 
 echo "Title: ${TITLE}"
