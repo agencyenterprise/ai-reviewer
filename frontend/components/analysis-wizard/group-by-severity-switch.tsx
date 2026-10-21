@@ -41,7 +41,8 @@ export function GroupBySeveritySwitch({ disabled = false }: { disabled?: boolean
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-medium leading-tight">Group issues by severity</span>
         <span className="block text-xs text-muted-foreground">
-          Turn off to list every issue with equal weight, here and in the Word export.
+          Turn off to list every issue with equal weight, here and in the Word export. You can change this later from
+          Edit Project in the project menu.
         </span>
       </span>
     </label>
