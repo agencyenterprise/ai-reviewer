@@ -376,6 +376,35 @@ class TestOneTurnAtATime:
         run.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_the_conversation_is_let_go_when_the_turn_fails_to_start(
+        self,
+    ) -> None:
+        """A turn that fails before its stream exists never runs ``_released``."""
+
+        thread = a_thread()
+        with (
+            patch.object(
+                word_chat.chat_threads,
+                "current_or_new",
+                AsyncMock(return_value=thread),
+            ),
+            patch.object(
+                word_chat.chat_threads,
+                "begin_turn",
+                AsyncMock(side_effect=RuntimeError("the database went away")),
+            ),
+            patch.object(word_chat, "_has_document", AsyncMock(return_value=True)),
+            patch.object(
+                word_chat.chat_threads, "current", AsyncMock(return_value=thread)
+            ),
+            patch.object(word_chat.chat_threads, "release", AsyncMock()) as release,
+        ):
+            with pytest.raises(RuntimeError):
+                await word_chat.stream_turn(url=URL, message="Hi", caller=caller())
+
+        release.assert_awaited_once_with(thread.id, NOW)
+
+    @pytest.mark.asyncio
     async def test_the_conversation_is_let_go_however_the_stream_ends(self) -> None:
         async def failing() -> AsyncIterator[dict]:
             yield {"t": "message", "id": "m"}
