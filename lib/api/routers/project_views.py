@@ -15,19 +15,19 @@ from lib.models.issue import Issue
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunType
 from lib.services.issue_persistence import get_project_issues
-from lib.services.project_content import (
+from lib.services.projects.content import (
     ProjectDocument,
     ProjectReferences,
     get_project_document,
     get_project_references,
 )
-from lib.services.project_overview import (
+from lib.services.projects.overview import (
     ProjectOverview,
     WorkflowRunSummary,
     get_project_overview,
     get_workflow_run_summaries_by_type,
 )
-from lib.services.projects import get_project_access
+from lib.services.projects.service import get_project_access
 
 router = APIRouter(tags=["projects"])
 

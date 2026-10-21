@@ -12,7 +12,7 @@ from lib.models.file import FileRole
 from lib.models.project import AccessLevel
 from lib.services.files.finalization import finalize_file
 from lib.services.files.service import get_files_by_project_id
-from lib.services.projects import create_new_revision, get_project_access
+from lib.services.projects.service import create_new_revision, get_project_access
 
 
 @mcp.tool(

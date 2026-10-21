@@ -32,7 +32,7 @@ class ShareStatusResponse(BaseModel):
     )
 
 
-def _build_share_url(token: str, anchor: str | None = None) -> str:
+def build_share_url(token: str, anchor: str | None = None) -> str:
     """Build the full shareable URL from a token with optional anchor."""
     base_url = config.FRONTEND_URL or "http://localhost:3000"
     url = f"{base_url}/share/{token}"
@@ -43,7 +43,7 @@ def _to_response(share_link: ShareLink) -> ShareLinkResponse:
     """Convert a ShareLink to a response model."""
     return ShareLinkResponse(
         token=share_link.token,
-        url=_build_share_url(share_link.token),
+        url=build_share_url(share_link.token),
         is_active=share_link.is_active,
     )
 

@@ -11,15 +11,15 @@ import pytest
 from fastapi import HTTPException
 
 from lib.models.file import File, FileRole
-from lib.services.project_zip import (
+from lib.services.projects.zip import (
     _build_zip_archive,
     _compression_for,
     create_project_files_zip,
 )
 
 MOUNT_PATH = "/tmp/test-uploads"
-CONFIG_PATH = "lib.services.project_zip.config"
-GET_FILES_PATH = "lib.services.project_zip.get_files_by_project_id"
+CONFIG_PATH = "lib.services.projects.zip.config"
+GET_FILES_PATH = "lib.services.projects.zip.get_files_by_project_id"
 
 
 def make_file(

@@ -18,7 +18,7 @@ from lib.api.services.workflow_runner import (
 )
 from lib.models.project import AccessLevel
 from lib.models.workflow_run import TERMINAL_WORKFLOW_RUN_STATUSES, WorkflowRunStatus
-from lib.services.projects import get_project_access, strip_converted_markdown
+from lib.services.projects.service import get_project_access, strip_converted_markdown
 from lib.services.workflow_runs.service import (
     build_workflow_run_detail,
     get_project_run_summaries,

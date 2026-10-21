@@ -14,7 +14,7 @@ from lib.services.docx.service import DocxManipulatorType, generate_docx
 from lib.services.files.service import (
     get_project_files_list_items,
 )
-from lib.services.projects import (
+from lib.services.projects.service import (
     delete_project_file_with_cleanup,
     get_project_access,
 )
