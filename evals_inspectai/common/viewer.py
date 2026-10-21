@@ -1,8 +1,8 @@
-"""Log-viewer defaults shared by the issue-inventory evals.
+"""Log-viewer defaults shared by the e2e evals.
 
 One narrow, colour-graded column per check, grouped by sample so the epochs
-of a document sit side by side; target and answer hidden, since an inventory
-eval has no target or answer text.
+of a document sit side by side; target and answer hidden, since they are
+either absent or too long to scan in a table.
 """
 
 from collections.abc import Mapping, Sequence
@@ -17,8 +17,8 @@ from inspect_ai.viewer import (
     ViewerConfig,
 )
 
-# Short column labels for the generic checks; compact score columns show these
-# with rotated headers.
+# Short column labels for the issue-inventory checks; compact score columns show
+# these with rotated headers.
 SCORE_LABELS: dict[str, str] = {
     "recall": "Recall",
     "precision": "Precision",
@@ -40,12 +40,12 @@ def decoy_labels(reasons: Sequence[str]) -> dict[str, str]:
     return {f"no_fp_{r}": f"No FP {r}" for r in reasons}
 
 
-def issue_viewer_config(
+def checks_viewer_config(
     scored: Sequence[tuple[str, str]], labels: Mapping[str, str] | None = None
 ) -> ViewerConfig:
     """One column per (scorer name, score key) in ``scored``, in that order;
-    ``labels`` adds headers to the generic ones. ``InventorySuite.viewer`` puts the
-    generic scorers' columns first and the eval's own after them.
+    ``labels`` adds headers to the issue-inventory ones. ``InventorySuite.viewer``
+    puts the generic scorers' columns first and the eval's own after them.
 
     Every emitted key must be listed: the viewer appends any score column the
     config does not mention after its built-in columns, and it decides a score

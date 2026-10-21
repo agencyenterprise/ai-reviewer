@@ -38,37 +38,25 @@ Scoring is in three parts:
   are, telling the two drafts apart and any response memos from the memos.
 """
 
-import json
 from pathlib import Path
 
-import yaml
 from inspect_ai import Task, task
 from inspect_ai.dataset import MemoryDataset, Sample
-from inspect_ai.model import Model, ModelOutput, get_model
+from inspect_ai.model import Model, get_model
 from inspect_ai.scorer import Score, Scorer, Target, mean, scorer, stderr
-from inspect_ai.solver import Generate, Solver, TaskState, solver
-from inspect_ai.viewer import (
-    SampleScoreView,
-    SampleScoreViewSort,
-    ScoreColorScale,
-    TaskSamplesColumn,
-    TaskSamplesSort,
-    TaskSamplesView,
-    ViewerConfig,
-)
+from inspect_ai.solver import TaskState
 
-from evals_inspectai.common.api_solver import surface_conversations
-from evals_inspectai.common.loaders import resolve_input
-from evals_inspectai.common.model_override import output_model_name
+from evals_inspectai.common.loaders import resolve_input, yaml_dataset
 from evals_inspectai.common.peer_review_fixture import (
-    ReviewDocument,
     expected_input_roles,
-    run_review_assistant_request,
+    memo_document,
+    review_assistant_solver,
 )
 from evals_inspectai.common.review_assistant_scorers import (
     STRUCTURE_CHECKS,
     extract_report,
     input_identification,
+    revision_question,
     structure_checks,
 )
 from evals_inspectai.common.scorers import (
@@ -77,6 +65,7 @@ from evals_inspectai.common.scorers import (
     failed_score,
     grade_criteria,
 )
+from evals_inspectai.common.viewer import checks_viewer_config
 from evals_inspectai.e2e.reviewer_coverage_report.response_checks import (
     check_author_verbatim,
     check_response_slots,
@@ -88,7 +77,6 @@ from evals_inspectai.e2e.reviewer_coverage_report.verdict_checks import (
 )
 
 _TARGET_OUTPUT = "reviewer_coverage_report"
-_WORKFLOW = "review_assistant"
 
 # Grader for the judged criteria, set per suite rather than shared, so changing
 # this suite's judge does not silently re-grade any other.
@@ -110,25 +98,18 @@ COVERAGE_CHECKS = (
 ALL_STRUCTURE_CHECKS = (*STRUCTURE_CHECKS, *COVERAGE_CHECKS)
 
 
-def _memo_file(ref: str) -> dict[str, str]:
-    return {
-        "file_name": Path(ref.removeprefix("file://")).name,
-        "content": resolve_input(ref),
-    }
-
-
 def _record_to_sample(record: dict) -> Sample:
     """Build a sample from one dataset record.
 
     The reviewed draft is the sample input. The revised draft and the memos
     travel in metadata: the solver needs both to build the project, and the
     grader needs the revised draft to judge whether a verdict matches what the
-    revision actually did (see `_grading_question`).
+    revision actually did (see `revision_question`).
     """
-    memos = [_memo_file(ref) for ref in record["memos"]]
+    memos = [memo_document(ref) for ref in record["memos"]]
     # Optional: the author's replies to the reviewers. Samples without them
     # exercise the draft-comparison-only path.
-    response_memos = [_memo_file(ref) for ref in record.get("response_memos", [])]
+    response_memos = [memo_document(ref) for ref in record.get("response_memos", [])]
     return Sample(
         id=record["id"],
         input=resolve_input(record["draft"]),
@@ -154,58 +135,7 @@ def _record_to_sample(record: dict) -> Sample:
 
 
 def _load_dataset() -> MemoryDataset:
-    """Read the YAML dataset into memory.
-
-    Inspect ships CSV and JSON loaders but not YAML, so the records are read
-    here and handed over as a `MemoryDataset`. YAML is worth that small amount
-    of glue for the criterion prose, which folded scalars keep readable and
-    diffable where a JSON string of the same length would not.
-    """
-    path = Path(__file__).parent / "dataset.yaml"
-    records = yaml.safe_load(path.read_text())
-    return MemoryDataset(
-        samples=[_record_to_sample(record) for record in records],
-        name="reviewer_coverage_report",
-        location=str(path),
-    )
-
-
-@solver
-def reviewer_coverage_report_solver(
-    timeout_s: float = _WORKFLOW_TIMEOUT_S,
-    poll_interval_s: float = 10,
-) -> Solver:
-    """Ask the Review Assistant for the coverage report over the sample's documents."""
-
-    async def solve(state: TaskState, generate: Generate) -> TaskState:
-        meta = state.metadata or {}
-
-        run_detail = await run_review_assistant_request(
-            draft=state.input_text,
-            memos=[ReviewDocument(m["file_name"], m["content"]) for m in meta["memos"]],
-            outputs=[_TARGET_OUTPUT],
-            timeout_s=timeout_s,
-            revised_draft=meta["revised_draft"],
-            response_memos=[
-                ReviewDocument(m["file_name"], m["content"])
-                for m in meta["response_memos"]
-            ],
-            poll_interval_s=poll_interval_s,
-        )
-
-        workflow_state = run_detail.get("state") or {}
-
-        # Hand the agent's own conversation to Inspect, the same way the shared
-        # `api_workflow_agent` does: lifted out of the state dict so the
-        # completion the scorers parse stays just the workflow result.
-        await surface_conversations(state, workflow_state, _WORKFLOW)
-
-        state.output = ModelOutput(
-            completion=json.dumps(workflow_state), model=output_model_name(run_detail)
-        )
-        return state
-
-    return solve
+    return yaml_dataset(Path(__file__).parent / "dataset.yaml", _record_to_sample)
 
 
 @scorer(metrics={name: [mean(), stderr()] for name in ALL_STRUCTURE_CHECKS})
@@ -275,38 +205,6 @@ SHARED_CRITERIA: dict[str, str] = {
 }
 
 
-def _grading_question(state: TaskState) -> str:
-    """Both drafts, and any response memos, labelled, as the question put to the grader.
-
-    Passing only the reviewed draft made `verdicts_correct` unjudgeable and
-    actively wrong: the grader compared the report's claims about what changed
-    against the draft that had *not* changed, concluded the revisions were
-    fabricated, and marked accurate verdicts as incorrect. Deciding whether a
-    point was addressed, partly addressed, declined or ignored requires seeing
-    what the revision actually did.
-    """
-    meta = state.metadata or {}
-    revised = meta.get("revised_draft", "")
-    question = (
-        "There are two versions of the document. The reviewer memos were "
-        "written against the first; the second is the author's revision "
-        "answering them.\n\n"
-        "=== REVIEWED DRAFT (what the reviewers saw) ===\n"
-        f"{state.input_text}\n\n"
-        "=== REVISED DRAFT (what the author changed it to) ===\n"
-        f"{revised}\n"
-    )
-    # The replies are claims the report is meant to check, so the grader needs
-    # them to tell a verified claim from one the report took on trust.
-    for memo in meta.get("response_memos", []):
-        question += (
-            f"\n=== AUTHOR RESPONSE MEMO: {memo['file_name']} "
-            "(the author's replies; claims, not evidence) ===\n"
-            f"{memo['content']}\n"
-        )
-    return question
-
-
 @scorer(metrics={name: [mean(), stderr()] for name in RUBRIC_CRITERIA})
 def rubric_criteria(model: str | Model | None = None) -> Scorer:
     """Grade this suite's four criteria, each in its own grader call.
@@ -315,7 +213,7 @@ def rubric_criteria(model: str | Model | None = None) -> Scorer:
     and headings survive the flattening, which is what these criteria turn on,
     and the markup would otherwise be most of the prompt. It is also shown both
     drafts, so each verdict is judged against what the revision actually did
-    (see `_grading_question`).
+    (see `revision_question`).
     """
 
     async def score(state: TaskState, target: Target) -> Score:
@@ -328,89 +226,30 @@ def rubric_criteria(model: str | Model | None = None) -> Scorer:
             keys=RUBRIC_CRITERIA,
             criteria=criteria_for(state, SHARED_CRITERIA),
             answer=report.raw_text,
-            question=_grading_question(state),
+            question=revision_question(state),
         )
 
     return score
 
 
-def _viewer_config() -> ViewerConfig:
-    """Log-viewer defaults tuned to how this eval is read.
-
-    Which check regressed, and whether the workflow is stable across epochs.
-    The long text fields are hidden: the input is a whole draft and the target
-    is a paragraph of criterion prose, neither of which is scannable in a table.
-    """
-    score_columns = [
-        *(
-            TaskSamplesColumn.score("coverage_structure", name)
-            for name in ALL_STRUCTURE_CHECKS
-        ),
-        *(TaskSamplesColumn.score("rubric_criteria", name) for name in RUBRIC_CRITERIA),
-        TaskSamplesColumn.score("input_identification"),
-    ]
-
-    return ViewerConfig(
-        task_samples_view=TaskSamplesView(
-            name="Checks and epochs",
-            columns=[
-                TaskSamplesColumn(id="sampleStatus"),
-                TaskSamplesColumn(id="sampleId"),
-                TaskSamplesColumn(id="epoch"),
-                *score_columns,
-                TaskSamplesColumn(id="error"),
-                TaskSamplesColumn(id="duration"),
-                TaskSamplesColumn(id="input", visible=False),
-                TaskSamplesColumn(id="target", visible=False),
-                TaskSamplesColumn(id="answer", visible=False),
-                TaskSamplesColumn(id="tokens", visible=False),
-            ],
-            # Group each scenario's epochs together: comparing repeats of one
-            # fixture is the main reading, and the colour scales already make a
-            # weak cell obvious.
-            sort=[
-                TaskSamplesSort(column="sampleId", dir="asc"),
-                TaskSamplesSort(column="epoch", dir="asc"),
-            ],
-            compact_scores=True,
-            multiline=False,
-            score_labels={
-                "verbatim": "Verbatim",
-                "quoted": "Quoted",
-                "id_scheme": "IDs",
-                "self_contained": "Self-cont.",
-                "two_part_layout": "Layout",
-                "voice": "Voice",
-                "verdict_table": "Table",
-                "verdict_vocabulary": "Scale",
-                "recommendation": "Rec.",
-                "author_verbatim": "Replies",
-                "response_slots": "Slots",
-                "verdicts_correct": "Verdicts",
-                "part1_is_decision_grade": "Part 1",
-                "evidence_and_location": "Evidence",
-                "scenario_trap": "Trap",
-                "input_identification": "Inputs",
-            },
-            # Pinned to 0..1 rather than left to the viewer's default, which
-            # anchors each palette to that column's observed range: a check that
-            # passes everywhere would paint nothing, and an identical score
-            # would read differently from one column to the next.
-            score_color_scales={
-                name: ScoreColorScale(palette="good-high", min=0.0, max=1.0)
-                for name in (
-                    *ALL_STRUCTURE_CHECKS,
-                    *RUBRIC_CRITERIA,
-                    "input_identification",
-                )
-            },
-            color_scales_enabled=True,
-        ),
-        sample_score_view=SampleScoreView(
-            default="grid",
-            sort=SampleScoreViewSort(column="value", dir="asc"),
-        ),
-    )
+SCORE_LABELS = {
+    "verbatim": "Verbatim",
+    "quoted": "Quoted",
+    "id_scheme": "IDs",
+    "self_contained": "Self-cont.",
+    "two_part_layout": "Layout",
+    "voice": "Voice",
+    "verdict_table": "Table",
+    "verdict_vocabulary": "Scale",
+    "recommendation": "Rec.",
+    "author_verbatim": "Replies",
+    "response_slots": "Slots",
+    "verdicts_correct": "Verdicts",
+    "part1_is_decision_grade": "Part 1",
+    "evidence_and_location": "Evidence",
+    "scenario_trap": "Trap",
+    "input_identification": "Inputs",
+}
 
 
 @task
@@ -418,11 +257,18 @@ def reviewer_coverage_report_e2e():
     return Task(
         dataset=_load_dataset(),
         fail_on_error=0.2,
-        solver=reviewer_coverage_report_solver(),
+        solver=review_assistant_solver(timeout_s=_WORKFLOW_TIMEOUT_S),
         scorer=[
             coverage_structure(),
             rubric_criteria(),
             input_identification(),
         ],
-        viewer=_viewer_config(),
+        viewer=checks_viewer_config(
+            [
+                *(("coverage_structure", name) for name in ALL_STRUCTURE_CHECKS),
+                *(("rubric_criteria", name) for name in RUBRIC_CRITERIA),
+                ("input_identification", "input_identification"),
+            ],
+            SCORE_LABELS,
+        ),
     )

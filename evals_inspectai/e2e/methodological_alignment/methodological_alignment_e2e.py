@@ -48,12 +48,12 @@ from evals_inspectai.common.issue_checks import (
 )
 from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue
 from evals_inspectai.common.issue_judge import gist, grade
-from evals_inspectai.common.issue_viewer import issue_viewer_config
 from evals_inspectai.common.scorers import DEFAULT_GRADER_MODEL
 from evals_inspectai.common.simple_deep_agent_types import (
     IssueItem,
     SimpleDeepAgentOutput,
 )
+from evals_inspectai.common.viewer import checks_viewer_config
 from evals_inspectai.e2e.methodological_alignment.criteria import (
     GAP_CRITERION,
     JUDGE_DESCRIPTIONS,
@@ -289,5 +289,5 @@ def methodological_alignment_e2e(timeout_s: float = 900, judge_calls: int = 1) -
         scorer=[report_checks(), plant_checks(), methodology_judged(calls=judge_calls)],
         fail_on_error=0.2,
         # The planted risks are scored by this eval's own scorers, so no generic columns.
-        viewer=issue_viewer_config(columns, SCORE_LABELS),
+        viewer=checks_viewer_config(columns, SCORE_LABELS),
     )

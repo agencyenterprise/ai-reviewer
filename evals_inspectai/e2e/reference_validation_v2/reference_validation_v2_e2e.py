@@ -36,8 +36,8 @@ from evals_inspectai.common.api_solver import api_workflow_agent
 from evals_inspectai.common.errors import WorkflowCompletionError
 from evals_inspectai.common.issue_checks import PER_KEY_METRICS
 from evals_inspectai.common.issue_judge import gist, grade
-from evals_inspectai.common.issue_viewer import issue_viewer_config
 from evals_inspectai.common.scorers import DEFAULT_GRADER_MODEL
+from evals_inspectai.common.viewer import checks_viewer_config
 from evals_inspectai.e2e.reference_validation_v2.criteria import (
     DESCRIPTIONS,
     JUDGE_DESCRIPTIONS,
@@ -176,5 +176,5 @@ def reference_validation_v2_e2e(timeout_s: float = 600, judge_calls: int = 1) ->
         ),
         scorer=[validation_checks(), validation_judged(calls=judge_calls)],
         fail_on_error=0.2,
-        viewer=issue_viewer_config(columns, SCORE_LABELS),
+        viewer=checks_viewer_config(columns, SCORE_LABELS),
     )

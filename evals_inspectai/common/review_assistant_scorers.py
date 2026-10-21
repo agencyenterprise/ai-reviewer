@@ -302,3 +302,33 @@ def report_structure() -> Scorer:
         return checks_to_score(structure_checks(report, state.metadata or {}))
 
     return score
+
+
+def revision_question(state: TaskState) -> str:
+    """Both drafts, and any response memos, labelled, as the question put to a grader.
+
+    For the outputs that compare a revision with what the reviewers asked.
+    Passing only the reviewed draft made those criteria unjudgeable and
+    actively wrong: the grader compared the output's claims about what changed
+    against the draft that had *not* changed, concluded the revisions were
+    fabricated, and marked accurate replies and verdicts as incorrect.
+    """
+    meta = state.metadata or {}
+    question = (
+        "There are two versions of the document. The reviewer memos were "
+        "written against the first; the second is the author's revision "
+        "answering them.\n\n"
+        "=== REVIEWED DRAFT (what the reviewers saw) ===\n"
+        f"{state.input_text}\n\n"
+        "=== REVISED DRAFT (what the author changed it to) ===\n"
+        f"{meta.get('revised_draft', '')}\n"
+    )
+    # The replies are claims the output is meant to check, so the grader needs
+    # them to tell a verified claim from one taken on trust.
+    for memo in meta.get("response_memos", []):
+        question += (
+            f"\n=== AUTHOR RESPONSE MEMO: {memo['file_name']} "
+            "(the author's replies; claims, not evidence) ===\n"
+            f"{memo['content']}\n"
+        )
+    return question

@@ -35,13 +35,6 @@ from inspect_ai.dataset import Sample
 from inspect_ai.model import Model, get_model
 from inspect_ai.scorer import Score, Scorer, Target, scorer
 from inspect_ai.solver import TaskState
-from inspect_ai.viewer import (
-    ScoreColorScale,
-    TaskSamplesColumn,
-    TaskSamplesSort,
-    TaskSamplesView,
-    ViewerConfig,
-)
 from pydantic import ValidationError
 
 from evals_inspectai.common.api_solver import api_workflow_agent
@@ -49,6 +42,7 @@ from evals_inspectai.common.issue_checks import PER_KEY_METRICS
 from evals_inspectai.common.issue_judge import grade
 from evals_inspectai.common.loaders import resolve_input, yaml_dataset
 from evals_inspectai.common.scorers import DEFAULT_GRADER_MODEL
+from evals_inspectai.common.viewer import checks_viewer_config
 from evals_inspectai.e2e.reviewer_2.criteria import (
     CLAIMS_ACCURATE,
     JUDGE_DESCRIPTIONS,
@@ -190,41 +184,6 @@ def review_judged(calls: int = 1) -> Scorer:
     return score
 
 
-def _viewer() -> ViewerConfig:
-    scored = [
-        *(("review_structure", k) for k in STRUCTURE_DESCRIPTIONS),
-        *(("review_judged", k) for k in JUDGED_KEYS),
-    ]
-    return ViewerConfig(
-        task_samples_view=TaskSamplesView(
-            name="Checks by sample and epoch",
-            columns=[
-                TaskSamplesColumn(id="sampleStatus"),
-                TaskSamplesColumn(id="sampleId"),
-                TaskSamplesColumn(id="epoch"),
-                TaskSamplesColumn(id="input"),
-                *(TaskSamplesColumn.score(s, k) for s, k in scored),
-                TaskSamplesColumn(id="error"),
-                TaskSamplesColumn(id="duration"),
-                TaskSamplesColumn(id="target", visible=False),
-                TaskSamplesColumn(id="answer", visible=False),
-            ],
-            sort=[
-                TaskSamplesSort(column="sampleId", dir="asc"),
-                TaskSamplesSort(column="epoch", dir="asc"),
-            ],
-            compact_scores=True,
-            multiline=False,
-            score_labels=SCORE_LABELS,
-            score_color_scales={
-                k: ScoreColorScale(palette="good-high", min=0.0, max=1.0)
-                for _, k in scored
-            },
-            color_scales_enabled=True,
-        )
-    )
-
-
 @task
 def reviewer_2_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Task:
     """Run Reviewer 2 on every sample and score the review and rebuttal.
@@ -249,5 +208,11 @@ def reviewer_2_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Task:
         solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s),
         scorer=[review_structure(), review_judged(calls=judge_calls)],
         fail_on_error=0.2,
-        viewer=_viewer(),
+        viewer=checks_viewer_config(
+            [
+                *(("review_structure", k) for k in STRUCTURE_DESCRIPTIONS),
+                *(("review_judged", k) for k in JUDGED_KEYS),
+            ],
+            SCORE_LABELS,
+        ),
     )

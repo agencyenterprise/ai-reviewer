@@ -30,43 +30,31 @@ Scoring:
 - `input_identification`: the share of documents the agent took for what they are.
 """
 
-import json
 import re
 from pathlib import Path
 
-import yaml
 from inspect_ai import Task, task
 from inspect_ai.dataset import MemoryDataset, Sample
-from inspect_ai.model import Model, ModelOutput, get_model
+from inspect_ai.model import Model, get_model
 from inspect_ai.scorer import Score, Scorer, Target, mean, scorer, stderr
-from inspect_ai.solver import Generate, Solver, TaskState, solver
-from inspect_ai.viewer import (
-    SampleScoreView,
-    SampleScoreViewSort,
-    ScoreColorScale,
-    TaskSamplesColumn,
-    TaskSamplesSort,
-    TaskSamplesView,
-    ViewerConfig,
-)
+from inspect_ai.solver import TaskState
 
-from evals_inspectai.common.api_solver import surface_conversations
 from evals_inspectai.common.html_report import (
     HtmlReport,
     find_point_ids,
     top_level_ids_by_reviewer,
 )
-from evals_inspectai.common.loaders import resolve_input
-from evals_inspectai.common.model_override import output_model_name
+from evals_inspectai.common.loaders import resolve_input, yaml_dataset
 from evals_inspectai.common.peer_review_fixture import (
-    ReviewDocument,
     expected_input_roles,
-    run_review_assistant_request,
+    memo_document,
+    review_assistant_solver,
 )
 from evals_inspectai.common.review_assistant_scorers import (
     extract_report,
     input_identification,
     reports_by_output,
+    revision_question,
     structure_checks,
 )
 from evals_inspectai.common.scorers import (
@@ -75,9 +63,9 @@ from evals_inspectai.common.scorers import (
     failed_score,
     grade_criteria,
 )
+from evals_inspectai.common.viewer import checks_viewer_config
 
 _TARGET_OUTPUT = "reviewer_response_memos"
-_WORKFLOW = "review_assistant"
 
 # Grader for the judged criteria, set per suite rather than shared, so changing
 # this suite's judge does not silently re-grade any other.
@@ -105,16 +93,9 @@ _BEFORE_SENDING = re.compile(
 )
 
 
-def _memo_file(ref: str) -> dict[str, str]:
-    return {
-        "file_name": Path(ref.removeprefix("file://")).name,
-        "content": resolve_input(ref),
-    }
-
-
 def _record_to_sample(record: dict) -> Sample:
     """Build a sample: the reviewed draft as input, the rest in metadata."""
-    memos = [_memo_file(ref) for ref in record["memos"]]
+    memos = [memo_document(ref) for ref in record["memos"]]
     return Sample(
         id=record["id"],
         input=resolve_input(record["draft"]),
@@ -136,40 +117,7 @@ def _record_to_sample(record: dict) -> Sample:
 
 
 def _load_dataset() -> MemoryDataset:
-    path = Path(__file__).parent / "dataset.yaml"
-    records = yaml.safe_load(path.read_text())
-    return MemoryDataset(
-        samples=[_record_to_sample(record) for record in records],
-        name="reviewer_response_memos",
-        location=str(path),
-    )
-
-
-@solver
-def reviewer_response_memos_solver(
-    timeout_s: float = _WORKFLOW_TIMEOUT_S,
-    poll_interval_s: float = 10,
-) -> Solver:
-    """Ask the Review Assistant for the sample's outputs over its documents."""
-
-    async def solve(state: TaskState, generate: Generate) -> TaskState:
-        meta = state.metadata or {}
-        run_detail = await run_review_assistant_request(
-            draft=state.input_text,
-            memos=[ReviewDocument(m["file_name"], m["content"]) for m in meta["memos"]],
-            outputs=meta["outputs"],
-            timeout_s=timeout_s,
-            revised_draft=meta["revised_draft"],
-            poll_interval_s=poll_interval_s,
-        )
-        workflow_state = run_detail.get("state") or {}
-        await surface_conversations(state, workflow_state, _WORKFLOW)
-        state.output = ModelOutput(
-            completion=json.dumps(workflow_state), model=output_model_name(run_detail)
-        )
-        return state
-
-    return solve
+    return yaml_dataset(Path(__file__).parent / "dataset.yaml", _record_to_sample)
 
 
 def check_flags_block(report: HtmlReport) -> tuple[bool, str]:
@@ -291,19 +239,6 @@ SHARED_CRITERIA: dict[str, str] = {
 }
 
 
-def _grading_question(state: TaskState) -> str:
-    """Both drafts, labelled: a reply can only be judged against what changed."""
-    meta = state.metadata or {}
-    return (
-        "There are two versions of the document. The reviewer memos were written against the "
-        "first; the second is the author's revision answering them.\n\n"
-        "=== REVIEWED DRAFT (what the reviewers saw) ===\n"
-        f"{state.input_text}\n\n"
-        "=== REVISED DRAFT (what the author changed it to) ===\n"
-        f"{meta.get('revised_draft', '')}\n"
-    )
-
-
 @scorer(metrics={name: [mean(), stderr()] for name in RUBRIC_CRITERIA})
 def rubric_criteria(model: str | Model | None = None) -> Scorer:
     """Grade this suite's four criteria, each in its own grader call, on the rendered text."""
@@ -317,72 +252,27 @@ def rubric_criteria(model: str | Model | None = None) -> Scorer:
             keys=RUBRIC_CRITERIA,
             criteria=criteria_for(state, SHARED_CRITERIA),
             answer=report.raw_text,
-            question=_grading_question(state),
+            question=revision_question(state),
         )
 
     return score
 
 
-def _viewer_config() -> ViewerConfig:
-    """Which check regressed, and whether the workflow is stable across epochs."""
-    columns = [
-        *(TaskSamplesColumn.score("memo_structure", name) for name in MEMO_CHECKS),
-        *(TaskSamplesColumn.score("request_outputs", name) for name in REQUEST_CHECKS),
-        *(TaskSamplesColumn.score("rubric_criteria", name) for name in RUBRIC_CRITERIA),
-        TaskSamplesColumn.score("input_identification"),
-    ]
-    return ViewerConfig(
-        task_samples_view=TaskSamplesView(
-            name="Checks and epochs",
-            columns=[
-                TaskSamplesColumn(id="sampleStatus"),
-                TaskSamplesColumn(id="sampleId"),
-                TaskSamplesColumn(id="epoch"),
-                *columns,
-                TaskSamplesColumn(id="error"),
-                TaskSamplesColumn(id="duration"),
-                TaskSamplesColumn(id="input", visible=False),
-                TaskSamplesColumn(id="target", visible=False),
-                TaskSamplesColumn(id="answer", visible=False),
-                TaskSamplesColumn(id="tokens", visible=False),
-            ],
-            sort=[
-                TaskSamplesSort(column="sampleId", dir="asc"),
-                TaskSamplesSort(column="epoch", dir="asc"),
-            ],
-            compact_scores=True,
-            multiline=False,
-            score_labels={
-                "verbatim": "Verbatim",
-                "quoted": "Quoted",
-                "id_scheme": "IDs",
-                "self_contained": "Self-cont.",
-                "voice": "Voice",
-                "flags_block": "Flags",
-                "outputs_delivered": "Outputs",
-                "ids_consistent": "Same IDs",
-                "replies_match_revision": "Replies",
-                "author_voice": "Author",
-                "flags_kept_internal": "Internal",
-                "scenario_trap": "Trap",
-                "input_identification": "Inputs",
-            },
-            # Pinned to 0..1 so a cell's colour means the same in every column.
-            score_color_scales={
-                name: ScoreColorScale(palette="good-high", min=0.0, max=1.0)
-                for name in (
-                    *MEMO_CHECKS,
-                    *REQUEST_CHECKS,
-                    *RUBRIC_CRITERIA,
-                    "input_identification",
-                )
-            },
-            color_scales_enabled=True,
-        ),
-        sample_score_view=SampleScoreView(
-            default="grid", sort=SampleScoreViewSort(column="value", dir="asc")
-        ),
-    )
+SCORE_LABELS = {
+    "verbatim": "Verbatim",
+    "quoted": "Quoted",
+    "id_scheme": "IDs",
+    "self_contained": "Self-cont.",
+    "voice": "Voice",
+    "flags_block": "Flags",
+    "outputs_delivered": "Outputs",
+    "ids_consistent": "Same IDs",
+    "replies_match_revision": "Replies",
+    "author_voice": "Author",
+    "flags_kept_internal": "Internal",
+    "scenario_trap": "Trap",
+    "input_identification": "Inputs",
+}
 
 
 @task
@@ -390,12 +280,20 @@ def reviewer_response_memos_e2e():
     return Task(
         dataset=_load_dataset(),
         fail_on_error=0.2,
-        solver=reviewer_response_memos_solver(),
+        solver=review_assistant_solver(timeout_s=_WORKFLOW_TIMEOUT_S),
         scorer=[
             memo_structure(),
             request_outputs(),
             rubric_criteria(),
             input_identification(),
         ],
-        viewer=_viewer_config(),
+        viewer=checks_viewer_config(
+            [
+                *(("memo_structure", name) for name in MEMO_CHECKS),
+                *(("request_outputs", name) for name in REQUEST_CHECKS),
+                *(("rubric_criteria", name) for name in RUBRIC_CRITERIA),
+                ("input_identification", "input_identification"),
+            ],
+            SCORE_LABELS,
+        ),
     )

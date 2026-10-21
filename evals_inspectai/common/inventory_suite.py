@@ -48,7 +48,7 @@ from evals_inspectai.common.issue_inventory import (
     load_inventory,
 )
 from evals_inspectai.common.issue_judge import JudgeCriterion, judged_criteria
-from evals_inspectai.common.issue_viewer import decoy_labels, issue_viewer_config
+from evals_inspectai.common.viewer import checks_viewer_config, decoy_labels
 
 # Per scorer name, what each of its keys checks: the Task metadata's metrics and,
 # in the same order, the viewer's columns.
@@ -150,6 +150,6 @@ class InventorySuite(BaseModel):
             *generic,
             *((name, key) for name, keys in (own or {}).items() for key in keys),
         ]
-        return issue_viewer_config(
+        return checks_viewer_config(
             columns, {**decoy_labels(self.policy.decoy_reasons), **(labels or {})}
         )

@@ -43,8 +43,8 @@ from evals_inspectai.common.api_client import (
 from evals_inspectai.common.api_solver import surface_conversations
 from evals_inspectai.common.errors import WorkflowCompletionError
 from evals_inspectai.common.issue_checks import PER_KEY_METRICS
-from evals_inspectai.common.issue_viewer import issue_viewer_config
 from evals_inspectai.common.model_override import output_model_name
+from evals_inspectai.common.viewer import checks_viewer_config
 from evals_inspectai.e2e.reference_downloader.records import (
     DESCRIPTIONS,
     KEYS,
@@ -188,7 +188,7 @@ def reference_downloader_e2e(timeout_s: float = 600) -> Task:
         solver=reference_downloader_solver(timeout_s=timeout_s),
         scorer=download_checks(),
         fail_on_error=0.2,
-        viewer=issue_viewer_config(
+        viewer=checks_viewer_config(
             [("download_checks", k) for k in KEYS], SCORE_LABELS
         ),
     )

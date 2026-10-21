@@ -12,12 +12,20 @@ through the same endpoints the Review Assistant tab calls:
    and no revision;
 3. start a request naming the outputs and every document, and wait for it.
 
+`review_assistant_solver` runs those steps for a sample, and `memo_document`
+reads a memo the way every suite's dataset gives it.
+
 The order the documents are named in matters: the skill letters reviewers in
 the order their documents are given, so memos go in the dataset's order.
 """
 
+import json
 import logging
+from pathlib import Path
 from typing import Any, NamedTuple
+
+from inspect_ai.model import ModelOutput
+from inspect_ai.solver import Generate, Solver, TaskState, solver
 
 from evals_inspectai.common.api_client import (
     create_project_and_start_workflows,
@@ -27,9 +35,14 @@ from evals_inspectai.common.api_client import (
     start_review_assistant_request,
     tus_upload_file,
 )
+from evals_inspectai.common.api_solver import surface_conversations
+from evals_inspectai.common.docx_fixture import MarkedUpCopy, with_byline
+from evals_inspectai.common.loaders import resolve_input
+from evals_inspectai.common.model_override import output_model_name
 
 logger = logging.getLogger(__name__)
 
+_WORKFLOW = "review_assistant"
 _DOCUMENT_PROCESSING = "document_processing"
 _REVIEW_INPUT_ROLE = "review_input"
 
@@ -177,3 +190,63 @@ async def run_review_assistant_request(
         timeout_s=timeout_s,
         poll_interval_s=poll_interval_s,
     )
+
+
+def memo_document(entry: str | dict) -> dict[str, str]:
+    """A memo's display name and text; a mapping may sign it with a `byline`.
+
+    The memo is a `file://` reference, and its file name is carried through as
+    its display name on upload.
+    """
+    ref = entry if isinstance(entry, str) else entry["source"]
+    text = resolve_input(ref)
+    if isinstance(entry, dict) and entry.get("byline"):
+        text = with_byline(text, entry["byline"])
+    return {"file_name": Path(ref.removeprefix("file://")).name, "content": text}
+
+
+def _documents(memos: list[dict[str, str]]) -> list[ReviewDocument]:
+    return [ReviewDocument(m["file_name"], m["content"]) for m in memos]
+
+
+@solver
+def review_assistant_solver(timeout_s: float, poll_interval_s: float = 10) -> Solver:
+    """Ask the Review Assistant for the sample's outputs over its documents.
+
+    The reviewed draft is the sample input; the rest comes from metadata:
+    `memos`, and when the sample has them `revised_draft`, `response_memos`
+    and `marked_up` copies. The outputs are `outputs` when the sample asks for
+    several, else its one `output`.
+
+    A custom solver rather than the shared `api_workflow_agent` because the
+    documents have to be uploaded alongside the draft and named in the request.
+    """
+
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        meta = state.metadata or {}
+        run_detail = await run_review_assistant_request(
+            draft=state.input_text,
+            memos=_documents(meta["memos"]),
+            outputs=meta.get("outputs", [meta["output"]]),
+            timeout_s=timeout_s,
+            revised_draft=meta.get("revised_draft"),
+            response_memos=_documents(meta.get("response_memos", [])),
+            marked_up=[
+                ReviewDocument(m.file_name, m.content())
+                for m in map(MarkedUpCopy.model_validate, meta.get("marked_up", []))
+            ],
+            poll_interval_s=poll_interval_s,
+        )
+        workflow_state = run_detail.get("state") or {}
+
+        # Hand the agent's own conversation to Inspect, the same way the shared
+        # `api_workflow_agent` does: lifted out of the state dict so the
+        # completion the scorers parse stays just the workflow result.
+        await surface_conversations(state, workflow_state, _WORKFLOW)
+
+        state.output = ModelOutput(
+            completion=json.dumps(workflow_state), model=output_model_name(run_detail)
+        )
+        return state
+
+    return solve
