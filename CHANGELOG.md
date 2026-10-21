@@ -6,6 +6,48 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.1.0] - 2026-10-21
+
+### Added
+- Added Draft Detective chat to the Word add-in, using the /chat skills (no web search), returning comments and tracked changes as one card per answer that pauses until applied or dismissed (#909).
+- Added support for preserving figures in documents read by the Word pane or Teams bot, including rendered charts and saved images opened with `view_image` (#909).
+- Added a new `conversations` table and related Microsoft Word/Teams conversation tables, linking conversations to users by email when safe (#909).
+- Added an experimental **Citations & Reference List** check that validates citation/reference-list consistency and citation house style, with proposed edits for malformed citations (#926).
+- Added a per-project “Group issues by severity” setting (default on) that can be changed at creation or later, affecting issue display, share links, and Word export formatting while keeping stored severities unchanged (#922).
+- Added tracked-change edits for Reference Error Checker when confident, and made reference-validation issues more readable with titles and short descriptions (#921).
+- Added UI feedback showing running/queued assessments directly on the “Run assessments” button and disabled selection of already running/queued assessments in the run dialog (#923).
+- Added tests for Microsoft 365 routers to pin Word/Teams routes, Teams error status mapping, and claim release when a Word chat turn fails to start (#928).
+- Added tests covering TTL, expiry, and empty-key paths for the MCP OAuth Postgres key-value store, including a strict xfail for rotated `AUTH_SECRET` handling (#918).
+- Added a release process that decides release size from PR labels and keeps a dev → main release PR updated, with merging performing version bumps, changelog writing, tagging, GitHub Release publishing, and syncing main back to dev (#933).
+
+### Changed
+- Changed Writing Style checks to let the agent assign low/medium/high severity using shared criteria, and updated evals to stop scoring exact severity for these checks (#924).
+- Changed frontend server code to use a runtime `API_INTERNAL_URL` when set (falling back to `NEXT_PUBLIC_API_URL`), and set k8s and docker compose to use `http://api:8000` (#930).
+- Changed the API Deployment rollout strategy to `Recreate` because the uploads PVC is `ReadWriteOnce` (#930).
+- Changed the k8s deploy to make sign-in work by sourcing `AUTH_*` keys for the frontend from `app-secrets` (#915).
+- Changed the PR template to better fit agent-written PRs, emphasizing design-level change descriptions, verification, and open questions (#919).
+- Changed evals code to share the Review Assistant solver and unify log-viewer layout across suites, with deliberate viewer layout changes (#932).
+- Changed workflow manifests to derive state/config types from generic parameters and typed state lookup to remove unchecked casts, with no behavior change (#931).
+- Changed project services organization by moving five project service modules into a `lib/services/projects/` package and moving their unit tests accordingly, with behavior and OpenAPI unchanged (#929).
+- Changed file upload-processing organization by moving markdown conversion and image extraction into the `lib/services/files/` package and moving related unit tests accordingly, with behavior and OpenAPI unchanged (#914).
+- Changed frontend results components by removing optional props that no caller passes and removing redundant local types, with no rendering change (#916).
+- Changed the release flow to correctly detect squash/rebase merges, preserve manual release labels, guard reruns, and adjust workflow check names for backend/frontend (#935).
+- Changed in-app help to document the per-project “Group issues by severity” switch and how it affects filters (#925).
+
+### Fixed
+- Fixed DOCX export so exporting comments works when the main document is a real Word 97 binary `.doc`, producing a `.docx` output (#920).
+- Fixed LibreOffice conversion concurrency by giving each conversion its own user profile, addressing failures where conversions could exit without writing output (#920).
+- Fixed k8s deployment issues by keeping `.env` files out of the frontend Docker image and correcting `k8s/README.md` to match manifest behavior (#915).
+- Fixed `update_user_project` so `publication_date` is only set when included in the request, preventing unrelated PATCHes from wiping the date (#922).
+
+### Security
+- Bumped vite and certifi to clear advisories (#930).
+
+### Removed
+- Removed unused workflow progress helper functions and removed integration tests that only covered those removed functions (#927).
+- Removed the separate “N running” indicator next to the Run assessments button, keeping the details in a popover body component (#923).
+
+
 ## [v2.0.13] - 2026-10-19
 
 ### Changed
