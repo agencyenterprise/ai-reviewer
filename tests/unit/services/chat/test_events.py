@@ -6,8 +6,15 @@ reasoning content blocks in the token stream, ``tool_call_chunk`` blocks that
 are deliberately ignored there, and completed messages in ``updates``.
 """
 
-from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, ToolMessage
-from langgraph.types import Overwrite
+from langchain_core.messages import (
+    AIMessage,
+    AIMessageChunk,
+    HumanMessage,
+    RemoveMessage,
+    ToolMessage,
+)
+from langgraph.graph.message import REMOVE_ALL_MESSAGES
+from langgraph.types import Interrupt, Overwrite
 
 from lib.services.chat.events import GraphEventMapper, content_blocks
 
@@ -153,6 +160,13 @@ class TestUpdates:
             {"t": "tool", "id": "c1", "name": "read_file", "args": {"file_path": "/a"}}
         ]
 
+    def test_a_tool_message_a_middleware_rewrites_is_not_a_new_result(self) -> None:
+        # SeenImageRedactionMiddleware replaces a seen image result under the same id.
+        mapper = GraphEventMapper()
+        redacted = ToolMessage(content="[image seen]", tool_call_id="c1", id="t1")
+        update = {"SeenImageRedactionMiddleware.after_model": {"messages": [redacted]}}
+        assert mapper.map("updates", update) == []
+
     def test_a_tool_message_is_a_result_carrying_its_stored_id(self) -> None:
         mapper = GraphEventMapper()
         ok = ToolMessage(content="contents", tool_call_id="c1", id="t1")
@@ -228,6 +242,20 @@ class TestUpdates:
         payload = {"PatchToolCallsMiddleware.before_agent": {"messages": rewritten}}
         assert mapper.map("updates", payload) == []
 
+    def test_a_history_rewrite_by_removal_is_not_new_output(self) -> None:
+        """deepagents 0.7 rewrites it as "remove every message, then these", when a
+        tool call was left without a result: a message sent while an answer waited on
+        a card. Announcing it would replay the whole conversation's tool calls."""
+        mapper = GraphEventMapper()
+        rewritten = [
+            RemoveMessage(id=REMOVE_ALL_MESSAGES),
+            HumanMessage(content="hi"),
+            AIMessage(content="", tool_calls=[{"id": "old", "name": "ls", "args": {}}]),
+            ToolMessage(content="ok", tool_call_id="old", id="t-old"),
+        ]
+        payload = {"PatchToolCallsMiddleware.before_agent": {"messages": rewritten}}
+        assert mapper.map("updates", payload) == []
+
     def test_a_single_message_write_is_handled_like_a_list(self) -> None:
         mapper = GraphEventMapper()
         message = ToolMessage(content="ok", tool_call_id="c1", id="t1")
@@ -251,3 +279,34 @@ def test_content_blocks_normalises_every_shape() -> None:
         {"type": "text", "text": "a"}
     ]
     assert content_blocks(None) == []
+
+
+class TestAPauseForThePerson:
+    def test_an_interrupt_becomes_an_event_with_what_was_asked(self) -> None:
+        mapper = GraphEventMapper()
+        paused = (Interrupt(value={"suggestion_id": "card-1"}, id="i-1"),)
+
+        events = mapper.map("updates", {"__interrupt__": paused})
+
+        assert events == [{"t": "interrupt", "v": [{"suggestion_id": "card-1"}]}]
+
+
+class TestAToolResultNamesItsTool:
+    def test_the_name_travels_with_the_result(self) -> None:
+        """A resumed run's first result answers a call made before it paused, which the
+        page has only in the stored history: without the name it cannot match them."""
+
+        mapper = GraphEventMapper()
+        message = ToolMessage(
+            content="Applied 7 of 8.", tool_call_id="c9", name="ask_to_apply", id="t9"
+        )
+
+        events = mapper.map("updates", {"tools": {"messages": [message]}})
+
+        assert events[-1] == {
+            "t": "tool_result",
+            "id": "c9",
+            "result": "Applied 7 of 8.",
+            "mid": "t9",
+            "name": "ask_to_apply",
+        }

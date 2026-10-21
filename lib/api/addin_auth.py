@@ -53,6 +53,10 @@ class AddinIdentity(BaseModel):
     tid: str | None = None
     email: str | None = None
     name: str | None = None
+    # The ``email`` claim alone, as the web app's Microsoft sign-in reads it: what links
+    # the account to a Draft Detective user (``lib/services/microsoft/linked_users.py``).
+    # ``email`` falls back to the UPN for display, which can differ from it.
+    email_claim: str | None = None
 
 
 _TENANT_ISSUER = re.compile(
@@ -127,6 +131,7 @@ def from_entra_token(token: str) -> AddinIdentity | None:
         tid=str(claims["tid"]),
         email=claims.get("email") or claims.get("preferred_username"),
         name=claims.get("name"),
+        email_claim=claims.get("email"),
     )
 
 
@@ -167,6 +172,7 @@ def from_session_token(token: str) -> AddinIdentity | None:
         tid=claims.get("tid"),
         email=claims.get("email"),
         name=claims.get("name"),
+        email_claim=claims.get("email"),
     )
 
 

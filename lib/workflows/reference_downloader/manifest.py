@@ -1,5 +1,3 @@
-import builtins
-
 from langgraph.graph import StateGraph
 
 from lib.workflows.manifest import WorkflowManifest
@@ -30,14 +28,6 @@ class ReferenceDownloaderManifest(
     # accurate.
     required_dependencies = [WorkflowRunType.REFERENCE_EXTRACTION]
     optional_dependencies = [WorkflowRunType.REFERENCE_FILE_MATCHING]
-
-    def get_state_type(self) -> builtins.type[ReferenceDownloaderState]:
-        """Get the type of the workflow state."""
-        return ReferenceDownloaderState
-
-    def get_config_type(self) -> builtins.type[ReferenceDownloaderWorkflowConfig]:
-        """Get the type of the workflow config."""
-        return ReferenceDownloaderWorkflowConfig
 
     def build_graph(self) -> StateGraph:
         """Build and return the graph of the workflow."""

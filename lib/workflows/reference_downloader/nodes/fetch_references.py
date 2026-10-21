@@ -8,12 +8,12 @@ from lib.models.file import FileRole
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     FileArtifactsServiceType,
 )
+from lib.services.files.conversion import convert_and_cache_file_markdown
 from lib.services.files.service import (
     delete_project_files,
     get_supporting_candidate_files,
     update_files_role,
 )
-from lib.services.markdown_conversion import convert_and_cache_file_markdown
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.reference_downloader.agents.reference_fetcher import (

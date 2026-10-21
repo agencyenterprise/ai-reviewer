@@ -21,7 +21,6 @@
   - id: firm_size_dump
     title: Data Without Synthesis
     anchor: Of the 31 firms, 14 had fewer than 50 employees
-    severity: medium
   decoys:
   - anchor: We interviewed hiring managers at 42 firms
     reason: methods_description
@@ -43,7 +42,6 @@
   - id: quote_dump
     title: Data Without Synthesis
     anchor: I don't know when I'd meet with the reading coach
-    severity: medium
   decoys:
   - anchor: Teachers described the block schedule as the main barrier to collaboration
     reason: interpreted_data
@@ -90,7 +88,6 @@
   - id: chronology_dump
     title: Data Without Synthesis
     anchor: The legislature passed the formula in March 2021
-    severity: medium
   decoys:
   - anchor: Of the 40 districts that gained at least 5 percent
     reason: interpreted_data
@@ -223,7 +220,6 @@
   - id: recommendations_first
     title: Illogical Order
     anchor: Roughly one in five rural households in the state
-    severity: medium
   notes: >-
     The recommendations come before the data and findings they rest on. Framing is complete, and
     the findings interpret their numbers.
@@ -253,7 +249,6 @@
   - id: tiers_after_use
     title: Illogical Order
     anchor: Heat waves now send more people to emergency departments
-    severity: medium
   notes: >-
     The findings use the tiers before the chapter that defines them, and the survey methods come
     after both.
@@ -281,7 +276,6 @@
   - id: no_next_steps
     title: "Missing Framing: What Happens Next"
     anchor: Downtown ridership remains below its 2019 level.
-    severity: medium
   decoys:
   - anchor: We analyzed 4.1 million tap-card trips
     reason: methods_description
@@ -310,12 +304,10 @@
   - id: no_stakes
     title: "Missing Framing: Why It Matters"
     anchor: This report presents the results of a survey of 300 employers
-    severity: medium
   - id: no_novelty
     title: "Missing Framing: What Is New"
     anchor: This report presents the results of a survey of 300 employers
     line: 5
-    severity: medium
   notes: >-
     The introduction says what the report does but not why a reader should care about
     credential recognition or what the survey adds; Chapter 4 answers what happens next.
@@ -337,16 +329,13 @@
   - id: library_why
     title: "Missing Framing: Why It Matters"
     anchor: This report describes library card sign-ups
-    severity: medium
   - id: library_new
     title: "Missing Framing: What Is New"
     anchor: This report describes library card sign-ups
     line: 5
-    severity: medium
   - id: library_next
     title: "Missing Framing: What Happens Next"
     anchor: The four branches that added evening hours in 2023
-    severity: medium
   notes: >-
     None of the three questions is answered. There is no conclusion, so what happens next is
     anchored to the last section of the main body.
@@ -378,7 +367,6 @@
   - id: schedule_restated
     title: Restated Point
     anchor: Under the four-day schedule, classes run Monday through Thursday
-    severity: low
   decoys:
   - anchor: As Chapter 2 showed, the four-day week trims annual instructional hours
     reason: cross_reference
@@ -428,15 +416,12 @@
   - id: enrollee_dump
     title: Data Without Synthesis
     anchor: Of the 2,870 apprentices, 2,410 were men and 460 were women
-    severity: medium
   - id: earnings_dump
     title: Data Without Synthesis
     anchor: Completers' earnings in the first year after the program averaged
-    severity: medium
   - id: program_restated
     title: Restated Point
     anchor: The program gives each participating employer $4,000
-    severity: low
   decoys:
   - anchor: The state's manufacturing apprenticeship program places more young workers
     reason: summary_restatement

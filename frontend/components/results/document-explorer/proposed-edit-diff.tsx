@@ -1,6 +1,5 @@
 'use client';
 
-import { cn } from '@/lib/utils';
 import { diffWords } from 'diff';
 import { PencilLineIcon } from 'lucide-react';
 import { useMemo } from 'react';
@@ -101,7 +100,7 @@ function ProposedEditCard({ edit, showLine }: { edit: ProposedEdit; showLine: bo
         </div>
       )}
       <EditText edit={edit} />
-      <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{edit.rationale}</p>
+      {edit.rationale && <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{edit.rationale}</p>}
     </li>
   );
 }
@@ -111,13 +110,13 @@ function ProposedEditCard({ edit, showLine }: { edit: ProposedEdit; showLine: bo
  * suggested-action block is, since it is the same kind of thing: what to do
  * about the finding, only stated as the exact words rather than as advice.
  */
-export function ProposedEdits({ edits, className }: { edits: ProposedEdit[]; className?: string }) {
+export function ProposedEdits({ edits }: { edits: ProposedEdit[] }) {
   if (edits.length === 0) return null;
 
   const single = edits.length === 1 ? edits[0] : null;
 
   return (
-    <div className={cn('bg-background/60 rounded border border-dashed px-2 py-1.5', className)}>
+    <div className="bg-background/60 rounded border border-dashed px-2 py-1.5">
       <p className="mb-1 flex items-center gap-1 font-mono text-[9.5px] tracking-wide text-muted-foreground uppercase">
         <PencilLineIcon className="size-3" />
         {single ? 'Proposed edit' : `Proposed edits (${edits.length})`}

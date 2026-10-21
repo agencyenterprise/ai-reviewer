@@ -1,7 +1,7 @@
 # Eval samples for the advocacy_tone_v2 workflow, in inventory form (see
 # evals_inspectai/common/issue_inventory.py). The workflow reports one issue per genuine occurrence,
-# bracketing the offending sentence, titled by kind: "Trigger Words Detected" (severity low), "Advocacy
-# Language Detected" and "Subjective Tone Detected" (both medium). A sentence the skill must leave alone
+# bracketing the offending sentence, titled by kind: "Trigger Words Detected", "Advocacy
+# Language Detected" or "Subjective Tone Detected"; the agent judges severity. A sentence the skill must leave alone
 # is a decoy tagged with the carve-out that applies. A sentence that fairly reads as a second kind as well
 # carries that second kind as an optional expected issue (`required: false`). The workflow proposes no
 # edits, so no expectation names one. Every paragraph is on one line, so a sentence never spans lines.
@@ -25,13 +25,11 @@
   - id: obviously_works
     title: Trigger Words Detected
     anchor: The intervention obviously works
-    severity: low
   - id: unnecessary_analysis_subjective
     title: Subjective Tone Detected
     anchor: further analysis is unnecessary
-    severity: medium
     required: false
-  notes: '''obviously'' asserts certainty with no evidence cited: a trigger word, severity low. ''further analysis
+  notes: '''obviously'' asserts certainty with no evidence cited: a trigger word. ''further analysis
     is unnecessary'' is also a dismissive evaluative judgment, so a Subjective Tone issue on the same sentence is
     acceptable but not expected.'
 - input: |
@@ -72,11 +70,9 @@
   - id: we_believe
     title: Advocacy Language Detected
     anchor: We believe stricter enforcement
-    severity: medium
   - id: better_outcomes_subjective
     title: Subjective Tone Detected
     anchor: would yield better outcomes overall
-    severity: medium
     required: false
   notes: '''We believe'' frames a recommendation for stricter enforcement as the authors'' opinion, with no evidence
     cited: advocacy, medium. ''better outcomes overall'' is an unqualified evaluative claim, so a Subjective Tone
@@ -99,7 +95,6 @@
   - id: remarkably_impressive
     title: Subjective Tone Detected
     anchor: The results are remarkably impressive
-    severity: medium
   notes: Value judgments and emotional language ('remarkably impressive', 'tireless dedication', 'most exciting
     breakthroughs') in place of a neutral statement of the result. No listed trigger word or advocacy phrase, so
     subjective tone, medium.
@@ -137,7 +132,6 @@
   - id: urgent_act_now
     title: Advocacy Language Detected
     anchor: It is urgent that policymakers act now
-    severity: medium
   notes: '''urgent'' and the call to ''act now'' carry the authors'' own push for urgency, with no evidence cited:
     advocacy, medium.'
 - input: |
@@ -158,11 +152,9 @@
   - id: agencies_must_prioritize
     title: Advocacy Language Detected
     anchor: Agencies must prioritize funding
-    severity: medium
   - id: above_all_else_subjective
     title: Subjective Tone Detected
     anchor: above all else
-    severity: medium
     required: false
   notes: '''must'' asserts the authors'' own obligation, not an existing rule, with no evidence cited: advocacy,
     medium. ''above all else'' is an absolute value judgment, so a Subjective Tone issue on the same sentence is
@@ -185,7 +177,6 @@
   - id: requires_restructuring
     title: Advocacy Language Detected
     anchor: requires a fundamental restructuring
-    severity: medium
   notes: '''requires'' states what ought to be done (a restructuring) rather than how something works, with no
     evidence cited: advocacy, medium.'
 - input: |
@@ -206,7 +197,6 @@
   - id: essential_to_expand
     title: Advocacy Language Detected
     anchor: It is essential to expand funding
-    severity: medium
   notes: '''essential'' asserts an obligation to expand funding, a position rather than a result, with no evidence
     cited: advocacy, medium.'
 - input: |
@@ -227,7 +217,6 @@
   - id: must_act_to_ensure
     title: Advocacy Language Detected
     anchor: Policymakers must act to ensure equitable access
-    severity: medium
   notes: '''must act to ensure'' pushes a recommendation with no evidence cited. It is the authors'' normative push,
     not the methods-language ''ensure'' that describes how data quality was kept: advocacy, medium.'
 - input: |
@@ -341,15 +330,12 @@
   - id: undoubtedly_changed
     title: Trigger Words Detected
     anchor: The mediation sessions undoubtedly changed
-    severity: low
   - id: in_our_opinion
     title: Advocacy Language Detected
     anchor: In our opinion, diversion should replace
-    severity: medium
   - id: heartless
     title: Subjective Tone Detected
     anchor: The county's earlier approach was heartless
-    severity: medium
   decoys:
   - anchor: To ensure consistent matching
     reason: methods_language
@@ -393,20 +379,16 @@
   - id: must_double_budget
     title: Advocacy Language Detected
     anchor: The state must immediately double its apprenticeship budget
-    severity: medium
   - id: whatever_the_cost_subjective
     title: Subjective Tone Detected
     anchor: whatever the cost
-    severity: medium
     required: false
   - id: critical_legislature
     title: Advocacy Language Detected
     anchor: It is critical that the legislature act
-    severity: medium
   - id: generation_lost_subjective
     title: Subjective Tone Detected
     anchor: a generation of young workers will be lost
-    severity: medium
     required: false
   decoys:
   - anchor: local areas must spend at least 75 percent
@@ -452,16 +434,13 @@
   - id: clearly_best
     title: Trigger Words Detected
     anchor: Option B is clearly the best approach
-    severity: low
   - id: best_approach_subjective
     title: Subjective Tone Detected
     anchor: the best approach for the district
-    severity: medium
     required: false
   - id: everyone_knows
     title: Advocacy Language Detected
     anchor: Everyone knows that electric buses are safer
-    severity: medium
   decoys:
   - anchor: clearly states that grant funds may cover
     reason: factual_policy_mention
@@ -510,7 +489,6 @@
   - id: never_comfortable
     title: Trigger Words Detected
     anchor: Older patients will never be comfortable
-    severity: low
   decoys:
   - anchor: deeply grateful to the extraordinary staff
     reason: skipped_section
@@ -604,11 +582,9 @@
   - id: callous_betrayal
     title: Subjective Tone Detected
     anchor: a callous betrayal of the families
-    severity: medium
   - id: admirable_grace
     title: Subjective Tone Detected
     anchor: handled the cuts with admirable grace
-    severity: medium
   decoys:
   - anchor: It is possible that some patrons moved
     reason: hedged_claim
@@ -645,15 +621,12 @@
   - id: always_return
     title: Trigger Words Detected
     anchor: Parents who lost the subsidy always return
-    severity: low
   - id: it_is_clear_that
     title: Advocacy Language Detected
     anchor: It is clear that the program's end drove parents
-    severity: medium
   - id: ensuring_priority
     title: Advocacy Language Detected
     anchor: Ensuring that every working family can afford child care
-    severity: medium
   decoys:
   - anchor: essential workers such as hospital staff
     reason: term_of_art
@@ -740,20 +713,16 @@
   - id: definitely_recruit
     title: Trigger Words Detected
     anchor: will definitely help rural districts recruit teachers
-    severity: low
   - id: without_doubt
     title: Advocacy Language Detected
     anchor: Without doubt, the small drop in math scores
-    severity: medium
   - id: price_worth_paying_subjective
     title: Subjective Tone Detected
     anchor: is a price worth paying
-    severity: medium
     required: false
   - id: we_believe_four_day
     title: Advocacy Language Detected
     anchor: We believe the state should allow any district
-    severity: medium
   decoys:
   - anchor: these accounts may not be representative
     reason: hedged_claim
@@ -795,15 +764,12 @@
   - id: certainly_eliminate
     title: Trigger Words Detected
     anchor: would certainly eliminate the problem
-    severity: low
   - id: requires_overhaul
     title: Advocacy Language Detected
     anchor: Closing this gap requires an immediate overhaul
-    severity: medium
   - id: appalling
     title: Subjective Tone Detected
     anchor: handling of the issue has been appalling
-    severity: medium
   decoys:
   - anchor: A 2022 state law requires every public school
     reason: existing_obligation
@@ -849,11 +815,9 @@
   - id: absolutely_ignore
     title: Trigger Words Detected
     anchor: Employers absolutely ignore heat warnings
-    severity: low
   - id: urgent_heat_standard
     title: Advocacy Language Detected
     anchor: It is urgent that the state adopt its own heat standard
-    severity: medium
   decoys:
   - anchor: most important workplace safety problem of the next decade
     reason: skipped_section

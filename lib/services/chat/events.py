@@ -11,6 +11,8 @@ streamed with ``stream_mode=["messages", "updates"]``:
 
 - ``messages`` carries the model's token stream. Text and reasoning deltas come
   from there, read off the ``v1`` content blocks (see ``build_llm``).
+- ``updates`` also carries ``__interrupt__`` when a tool pauses the run to ask the
+  person something; that becomes an ``interrupt`` event and ends the stream.
 - ``updates`` carries each node's finished output. Tool calls are announced
   from the completed ``AIMessage``, once their arguments are whole, and tool
   results from the ``ToolMessage`` the tools node wrote. Hosted web search never
@@ -31,16 +33,27 @@ import uuid
 from collections.abc import AsyncIterator, Iterable
 from typing import Any
 
-from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, ToolMessage
+from langchain_core.messages import (
+    AIMessage,
+    AIMessageChunk,
+    BaseMessage,
+    RemoveMessage,
+    ToolMessage,
+)
 from langchain_core.runnables import RunnableConfig
+from langgraph.graph.message import REMOVE_ALL_MESSAGES
 from langgraph.graph.state import CompiledStateGraph
-from langgraph.types import Overwrite, StreamMode
+from langgraph.types import Command, Overwrite, StreamMode
 
 from lib.services.chat.citations import CitationFilter
 
 ChatEvent = dict[str, Any]
 
 STREAM_MODES: list[StreamMode] = ["messages", "updates"]
+
+
+# The node of a LangChain agent that runs its tools.
+TOOLS_NODE = "tools"
 
 
 def message_event(message_id: str) -> ChatEvent:
@@ -64,9 +77,19 @@ def tool_event(call_id: str, name: str, args: Any) -> ChatEvent:
 
 
 def tool_result_event(
-    call_id: str, result: Any, is_error: bool = False, message_id: str | None = None
+    call_id: str,
+    result: Any,
+    is_error: bool = False,
+    message_id: str | None = None,
+    name: str | None = None,
 ) -> ChatEvent:
+    """A tool's result. ``name`` is the tool's, sent along because the call it answers
+    may not be in this stream: a resumed run's first result answers a call made before
+    it paused, which the page has only in the stored history."""
+
     event: ChatEvent = {"t": "tool_result", "id": call_id, "result": result}
+    if name:
+        event["name"] = name
     if is_error:
         event["isError"] = True
     if message_id:
@@ -76,6 +99,12 @@ def tool_result_event(
 
 def error_event(message: str) -> ChatEvent:
     return {"t": "error", "v": message}
+
+
+def interrupt_event(values: list[Any]) -> ChatEvent:
+    """The run paused for the person: each value is what a tool asked them."""
+
+    return {"t": "interrupt", "v": values}
 
 
 def content_blocks(content: Any) -> list[dict[str, Any]]:
@@ -92,12 +121,14 @@ def new_messages(channel_value: Any) -> list[BaseMessage]:
     """The messages a node appended, from whatever it wrote to the channel.
 
     A node may write one message or a list. deepagents' ``PatchToolCallsMiddleware``
-    instead writes an ``Overwrite`` of the whole history before the first model
-    call; that is a rewrite of what the client already sent, not new output, so it
-    is skipped rather than re-announced.
+    instead rewrites the whole history before the first model call, when a tool call
+    was left without a result (an answer paused on a card, then a new message): an
+    ``Overwrite``, or, in deepagents 0.7, a list that starts by removing every
+    message. Either is a rewrite of what the client already has, not new output, so
+    it is skipped rather than re-announced.
     """
 
-    if isinstance(channel_value, Overwrite):
+    if isinstance(channel_value, Overwrite) or _rewrites_history(channel_value):
         return []
     if isinstance(channel_value, BaseMessage):
         return [channel_value]
@@ -106,6 +137,15 @@ def new_messages(channel_value: Any) -> list[BaseMessage]:
             message for message in channel_value if isinstance(message, BaseMessage)
         ]
     return []
+
+
+def _rewrites_history(channel_value: Any) -> bool:
+    return (
+        isinstance(channel_value, list)
+        and bool(channel_value)
+        and isinstance(channel_value[0], RemoveMessage)
+        and channel_value[0].id == REMOVE_ALL_MESSAGES
+    )
 
 
 class GraphEventMapper:
@@ -148,13 +188,19 @@ class GraphEventMapper:
         if not isinstance(payload, dict):
             return []
         events: list[ChatEvent] = []
-        for channels in payload.values():
+        # A tool that waits for the person (LangGraph's `interrupt`) ends the run here;
+        # the page is told what it is waiting for, and the run resumes in a later call.
+        if paused := payload.get("__interrupt__"):
+            events.append(interrupt_event([item.value for item in paused]))
+        for node, channels in payload.items():
             if not isinstance(channels, dict):
                 continue
             for message in new_messages(channels.get("messages")):
                 if isinstance(message, AIMessage):
                     events.extend(self._from_ai_message(message))
-                elif isinstance(message, ToolMessage):
+                # Only the tools node's are new results: a middleware rewriting one in
+                # place (``SeenImageRedactionMiddleware``) would show it twice.
+                elif isinstance(message, ToolMessage) and node == TOOLS_NODE:
                     events.append(self._from_tool_message(message))
         return events
 
@@ -215,12 +261,13 @@ class GraphEventMapper:
             message.text,
             is_error=message.status == "error",
             message_id=message.id,
+            name=message.name,
         )
 
 
 async def stream_chat_events(
     agent: CompiledStateGraph,
-    agent_input: dict[str, Any],
+    agent_input: dict[str, Any] | Command,
     config: RunnableConfig,
 ) -> AsyncIterator[ChatEvent]:
     """Run one turn and yield the page's events as the graph produces them."""

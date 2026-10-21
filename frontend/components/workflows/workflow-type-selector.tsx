@@ -18,6 +18,8 @@ interface WorkflowTypeSelectorProps {
   onSelectionChange: (types: WorkflowRunType[]) => void;
   disabled?: boolean;
   disabledTypes?: WorkflowRunType[];
+  /** Already running or queued: shown as running, unticked and not selectable. */
+  runningTypes?: WorkflowRunType[];
   showHeader?: boolean;
   headerDescription?: string;
   error?: string;
@@ -30,6 +32,7 @@ export function WorkflowTypeSelector({
   onSelectionChange,
   disabled = false,
   disabledTypes = [],
+  runningTypes = [],
   showHeader = true,
   headerDescription,
   error,
@@ -61,13 +64,20 @@ export function WorkflowTypeSelector({
   );
 
   const visibleCount = renderedTypes.length;
-  const selectedVisibleCount = renderedTypes.filter((type) => selectedTypes.includes(type)).length;
+  const isSelected = (type: WorkflowRunType) => selectedTypes.includes(type) && !runningTypes.includes(type);
+  const selectedVisibleCount = renderedTypes.filter(isSelected).length;
+
+  // Every change drops what is running, so a row ticked before its assessment
+  // started elsewhere stays unticked once that run finishes, instead of
+  // coming back checked after a Deselect all that could not reach it.
+  const commitSelection = (types: WorkflowRunType[]) =>
+    onSelectionChange(types.filter((type) => !runningTypes.includes(type)));
 
   const handleCheckedChange = (type: WorkflowRunType, checked: boolean) => {
     if (checked) {
-      onSelectionChange([...selectedTypes, type]);
+      commitSelection([...selectedTypes, type]);
     } else {
-      onSelectionChange(selectedTypes.filter((t) => t !== type));
+      commitSelection(selectedTypes.filter((t) => t !== type));
     }
   };
 
@@ -75,27 +85,30 @@ export function WorkflowTypeSelector({
   // Anything else already in `selectedTypes` is left alone, so a caller that
   // seeds the selection with a type this list does not offer keeps it.
   const bulkSelectableTypes = useMemo(
-    () => renderedTypes.filter((type) => !disabledTypes.includes(type)),
-    [renderedTypes, disabledTypes],
+    () => renderedTypes.filter((type) => !disabledTypes.includes(type) && !runningTypes.includes(type)),
+    [renderedTypes, disabledTypes, runningTypes],
   );
 
   const selectedBulkCount = bulkSelectableTypes.filter((type) => selectedTypes.includes(type)).length;
 
   const handleSelectAll = () => {
-    onSelectionChange([...selectedTypes, ...bulkSelectableTypes.filter((type) => !selectedTypes.includes(type))]);
+    commitSelection([...selectedTypes, ...bulkSelectableTypes.filter((type) => !selectedTypes.includes(type))]);
   };
 
   const handleDeselectAll = () => {
-    onSelectionChange(selectedTypes.filter((type) => !bulkSelectableTypes.includes(type)));
+    commitSelection(selectedTypes.filter((type) => !bulkSelectableTypes.includes(type)));
   };
 
   const renderCheckbox = (workflowType: WorkflowTypeDescription) => (
     <WorkflowTypeCheckbox
       key={workflowType.type}
       workflowType={workflowType}
-      checked={selectedTypes.includes(workflowType.type)}
+      checked={isSelected(workflowType.type)}
       onCheckedChange={(checked) => handleCheckedChange(workflowType.type, checked === true)}
-      disabled={controlsDisabled || disabledTypes.includes(workflowType.type)}
+      running={runningTypes.includes(workflowType.type)}
+      disabled={
+        controlsDisabled || disabledTypes.includes(workflowType.type) || runningTypes.includes(workflowType.type)
+      }
       estimatedSeconds={getEstimatedSeconds(workflowType.type)}
     />
   );
@@ -151,7 +164,7 @@ export function WorkflowTypeSelector({
           presets={presets}
           selectedTypes={selectedTypes}
           offeredTypes={bulkSelectableTypes}
-          onSelectionChange={onSelectionChange}
+          onSelectionChange={commitSelection}
           disabled={controlsDisabled}
           getWorkflowTypeName={getWorkflowTypeName}
         />

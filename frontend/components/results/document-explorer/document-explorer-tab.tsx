@@ -12,6 +12,7 @@ import {
   getVisibleIssues,
   LineRange,
   useDocumentExplorerStore,
+  useProjectExplorerFilter,
 } from '@/lib/stores/document-explorer-store';
 import {
   findRunByType,
@@ -60,8 +61,9 @@ export function DocumentExplorerTab({
   canRunAssessments,
   onNavigateToAnalyses,
 }: DocumentExplorerTabProps) {
-  const { selectedLineRange, selectLineRange, clearLineSelection, filter, setFilter, clearFilters } =
+  const { selectedLineRange, selectLineRange, clearLineSelection, setFilter, clearFilters } =
     useDocumentExplorerStore();
+  const filter = useProjectExplorerFilter();
 
   // Resolving an issue and rating it are judgements about the analysis, not edits to the
   // document, so they stay open on older revisions. `readOnly` covers both here, and only

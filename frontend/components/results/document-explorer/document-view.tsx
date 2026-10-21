@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import type { Element } from 'hast';
 import { DocumentImage, documentUrlTransform } from '@/components/document-image';
 import { SEVERITY } from '@/lib/severity-style';
+import { useSeverityStyle } from '@/context/group-by-severity-context';
 import { clearEditHighlight, editRanges, setEditHighlight } from './edit-highlight';
 import { issueLineRange, rangesOverlap } from './issue-lines';
 import { MarginLayer } from './margin-layer';
@@ -18,11 +19,6 @@ import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import type { PluggableList } from 'unified';
-
-interface IssueWithLines extends Issue {
-  start_line?: number | null;
-  end_line?: number | null;
-}
 
 /** The reader's place: a block, and where in the pane its top was sitting. */
 export interface ScrollAnchor {
@@ -79,12 +75,12 @@ const CLEARED_CLASSES = [
   'cursor-pointer',
 ];
 
-function hasLineRange(issue: Issue): issue is IssueWithLines & { start_line: number; end_line: number } {
+function hasLineRange(issue: Issue): issue is Issue & { start_line: number; end_line: number } {
   return issueLineRange(issue) !== null;
 }
 
-function pickTopSeverityIssue(issues: IssueWithLines[], lineStart: number, lineEnd: number) {
-  let best: IssueWithLines | null = null;
+function pickTopSeverityIssue(issues: Issue[], lineStart: number, lineEnd: number) {
+  let best: Issue | null = null;
   for (const issue of issues) {
     const lines = issueLineRange(issue);
     if (!lines || !rangesOverlap(lines, [lineStart, lineEnd])) continue;
@@ -154,7 +150,7 @@ const WIDTH_WITH_MARGIN = 'xl:max-w-[calc(3rem_+_46rem_+_26rem_+_1px)]';
 const NestedContext = createContext(false);
 
 interface MarginState {
-  issues: IssueWithLines[];
+  issues: Issue[];
   activeIssueId: string | null;
   readOnly: boolean;
   onSelect: (issue: Issue) => void;
@@ -329,7 +325,8 @@ export function DocumentView({
     scrollToAnchor: ({ line, offset }: ScrollAnchor) => scrollToRange([line, line], { at: 'top', offset }, 'auto'),
   }));
 
-  const lineIssues = useMemo(() => issues.filter(hasLineRange) as IssueWithLines[], [issues]);
+  const lineIssues = useMemo(() => issues.filter(hasLineRange), [issues]);
+  const styleOf = useSeverityStyle();
   // The rest: findings about the document rather than a place in it, like a
   // missing Abbreviations section. Nothing anchors them, so the margin would
   // drop them entirely and the header would count issues that are not on screen.
@@ -390,11 +387,11 @@ export function DocumentView({
       block.setAttribute('data-issue-selected', String(isSelected));
 
       if (isSelected) {
-        block.classList.add(...SEVERITY[issue.severity].wash.split(' '));
+        block.classList.add(...styleOf(issue.severity).wash.split(' '));
       }
 
       if (rule) {
-        rule.className = cn('w-[2px] shrink-0 rounded-full', SEVERITY[issue.severity].dot);
+        rule.className = cn('w-[2px] shrink-0 rounded-full', styleOf(issue.severity).dot);
       }
 
       const handler = (event: Event) => {
@@ -408,7 +405,7 @@ export function DocumentView({
     return () => {
       for (const cleanup of cleanups) cleanup();
     };
-  }, [markdown, lineIssues, selectedLineRange, onIssueSelect]);
+  }, [markdown, lineIssues, selectedLineRange, onIssueSelect, styleOf]);
 
   /**
    * The edits belonging to the open issue. Without an id — a host that shows the

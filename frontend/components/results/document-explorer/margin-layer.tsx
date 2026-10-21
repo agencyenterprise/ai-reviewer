@@ -7,11 +7,9 @@ import { issueStartLine } from './issue-lines';
 import { MarginNote } from './margin-note';
 import { Slot, stackNotes } from './margin-stack';
 
-type IssueWithLines = Issue & { start_line?: number | null };
-
 interface MarginLayerProps {
   /** Issues anchored to a line, in the order they appear in the document. */
-  issues: IssueWithLines[];
+  issues: Issue[];
   /** Issues about the document rather than a place in it. */
   documentIssues: Issue[];
   activeIssueId: string | null;
@@ -55,7 +53,7 @@ export function MarginLayer({ issues, documentIssues, activeIssueId, readOnly, o
       .map((issue) => ({
         id: issue.id,
         line: issueStartLine(issue),
-        issue: issue as Issue,
+        issue,
       }))
       .sort((a, b) => (a.line ?? 0) - (b.line ?? 0));
     // The document-level group rides at the top, above the first paragraph's

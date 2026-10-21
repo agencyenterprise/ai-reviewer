@@ -20,8 +20,7 @@ from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunType
 from lib.services.docx.service import DocxManipulatorType, generate_docx
 from lib.services.files.service import get_files_by_project_id
-from lib.services.project_zip import create_project_files_zip
-from lib.services.projects import (
+from lib.services.projects.service import (
     MAX_PROJECT_PAGE_SIZE,
     ProjectCreated,
     ProjectListPage,
@@ -35,6 +34,7 @@ from lib.services.projects import (
     get_user_projects,
     update_user_project,
 )
+from lib.services.projects.zip import create_project_files_zip
 from lib.services.references import MatchSource, add_file_to_reference
 from lib.services.uuid_utils import ensure_uuid
 from lib.services.workflow_runs.progress import get_project_workflow_progress
@@ -58,7 +58,11 @@ async def create_project_endpoint(
     separately via the /api/upload endpoints.
     """
     try:
-        project = await create_project(title=request.title, user=current_user)
+        project = await create_project(
+            title=request.title,
+            user=current_user,
+            group_by_severity=request.group_by_severity,
+        )
         return ProjectCreated(project=project, access_level=AccessLevel.WRITE)
     except Exception as e:
         logger.error("Failed to create project: %s", e, exc_info=True)

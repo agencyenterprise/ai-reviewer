@@ -5,7 +5,9 @@ and broken out by field so a regression names the field), the fields a correct r
 flags and the ones it must leave alone, the corrections it must carry, and the
 skill's own contract: the final result follows mechanically from the fields
 (Step 6), a found work with an incorrect field gets an updated reference while a
-correct or fabricated one gets none, and a URL is given for a found work.
+correct or fabricated one gets none, and a URL is given for a found work. Then the
+tracked-change edits: given only for a found work with an incorrect field, and
+carrying the record's corrections once applied.
 
 Judged, per record with a labeller's rationale: whether the run's reasoning
 reaches the labeller's account of the reference.
@@ -60,12 +62,20 @@ class ValidationResult(BaseModel):
         )
 
 
+class ProposedEdit(BaseModel):
+    """Local mirror of ProposedEdit: the part the checks read."""
+
+    original_text: str = ""
+    replacement_text: str = ""
+
+
 class ReferenceValidationItem(BaseModel):
     reference_id: str = ""
     input_reference: str = ""
     status: str = ""
     validation_result: ValidationResult | None = None
     error: str | None = None
+    edits: list[ProposedEdit] = Field(default_factory=list)
 
 
 class ReferenceValidationOutput(BaseModel):
@@ -86,6 +96,9 @@ KEYS = (
     "updated_reference_as_specified",
     "all_fields_reported",
     "url_when_found",
+    "edits_only_when_due",
+    "edit_given",
+    "edits_carry_corrections",
 )
 
 
@@ -115,8 +128,62 @@ def _updated_reference_expected(record: ReferenceRecord) -> bool | None:
     return None
 
 
+def _edited(reference: str, edits: Sequence[ProposedEdit]) -> str:
+    """The reference with its edits applied, whitespace normalized as the anchoring is.
+
+    Every edit is placed on the original text and applied back to front, as the
+    export does, so a later edit never rewrites an earlier one's output."""
+    text = " ".join(reference.split())
+    placed = []
+    for edit in edits:
+        quote = " ".join(edit.original_text.split())
+        position = text.find(quote)
+        if position >= 0:
+            placed.append((position, position + len(quote), edit.replacement_text))
+    for start, end, replacement in sorted(placed, reverse=True):
+        text = text[:start] + replacement + text[end:]
+    return text
+
+
+def edit_scores(
+    edits: Sequence[ProposedEdit], record: ReferenceRecord
+) -> tuple[dict[str, float], list[str]]:
+    """The tracked-change checks: edits only for a found work with an incorrect field,
+    one given for such a work, and applying them carries the record's corrections.
+
+    Edits are allowed whenever the record accepts ``incorrect_fields``, and required
+    only when it accepts nothing else."""
+    allowed = not record.not_found and "incorrect_fields" in record.result
+    due = not record.not_found and record.result == ["incorrect_fields"]
+    edited = normalize(_edited(record.reference, edits))
+    # Missing fields are never edited (their place in the citation is a guess),
+    # so only the corrections of fields labelled incorrect are expected here.
+    carried = [
+        any(normalize(p) in edited for p in phrases)
+        for field, phrases in record.corrections.items()
+        if "missing" not in record.accepted(field)
+    ]
+    values = {
+        "edits_only_when_due": float(allowed or not edits),
+        "edit_given": float(bool(edits)) if due and record.corrections else math.nan,
+        "edits_carry_corrections": _share(carried) if edits else math.nan,
+    }
+    notes = [] if values["edits_only_when_due"] else ["edits given where none belong"]
+    notes += (
+        ["no edit for a correctable reference"] if values["edit_given"] == 0.0 else []
+    )
+    notes += (
+        ["edits leave a correction out"]
+        if edits and values["edits_carry_corrections"] < 1.0
+        else []
+    )
+    return values, notes
+
+
 def validation_scores(
-    result: ValidationResult, record: ReferenceRecord
+    result: ValidationResult,
+    record: ReferenceRecord,
+    edits: Sequence[ProposedEdit] = (),
 ) -> tuple[dict[str, float], str]:
     """Every key in ``KEYS`` for one reference (see the module docstring)."""
     reported = {f: result.problem(f) or "correct" for f in FIELDS}
@@ -186,6 +253,9 @@ def validation_scores(
             if has_update
             else "no updated reference where the skill requires one"
         )
+    edit_values, edit_notes = edit_scores(edits, record)
+    values |= edit_values
+    notes += edit_notes
     return values, " | ".join(notes) if notes else "every field as labelled"
 
 
@@ -233,6 +303,9 @@ DESCRIPTIONS = {
     "updated_reference_as_specified": "1 if an updated reference is given exactly when the skill requires one: for an incorrect found work or a bare URL, and never for a correct or fabricated reference. NaN when the skill leaves it open.",
     "all_fields_reported": "Share of the five fields the run reports an entry for.",
     "url_when_found": "1 if a URL is given for a reference that exists. NaN for a fabricated one.",
+    "edits_only_when_due": "1 unless tracked-change edits are given for a reference whose record does not accept incorrect_fields (correct, only missing fields) or that is fabricated.",
+    "edit_given": "1 if a found work with an incorrect field and labelled corrections gets at least one edit. NaN otherwise.",
+    "edits_carry_corrections": "Share of the record's corrections to fields labelled incorrect present in the reference once its edits are applied (missing fields are never edited). NaN when there are no edits or no such corrections.",
 }
 JUDGE_DESCRIPTIONS = {
     "reasoning_matches": "Graded per record with a labeller's rationale: the reasoning and suggested action reach the labeller's account of the reference (C=1, P=0.5, I=0).",

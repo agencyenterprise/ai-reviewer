@@ -1,8 +1,5 @@
 """Manifest for Claim Reference Validation V2 workflow."""
 
-import builtins
-from typing import cast
-
 from langgraph.graph import StateGraph
 
 from lib.agents.citation_validator import TruthfulnessLabel
@@ -154,12 +151,6 @@ class ClaimReferenceValidationV2Manifest(
         WorkflowRunType.REFERENCE_DOWNLOADER,
     ]
 
-    def get_state_type(self) -> builtins.type[ClaimReferenceValidationV2State]:
-        return ClaimReferenceValidationV2State
-
-    def get_config_type(self) -> builtins.type[ClaimReferenceValidationV2Config]:
-        return ClaimReferenceValidationV2Config
-
     def build_graph(self) -> StateGraph:
         return build_claim_reference_validation_v2_graph()
 
@@ -191,12 +182,10 @@ class ClaimReferenceValidationV2Manifest(
         other_states: list[WorkflowState],
     ) -> list[DocumentIssue]:
         doc_processing_state = get_state_by_type(
-            WorkflowRunType.DOCUMENT_PROCESSING, other_states
+            WorkflowRunType.DOCUMENT_PROCESSING, DocumentProcessingState, other_states
         )
         supporting_files = (
-            cast(DocumentProcessingState, doc_processing_state).supporting_files
-            if doc_processing_state
-            else None
+            doc_processing_state.supporting_files if doc_processing_state else None
         )
 
         issues = []

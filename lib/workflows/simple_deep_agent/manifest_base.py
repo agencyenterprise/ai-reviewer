@@ -113,12 +113,6 @@ class SimpleDeepAgentManifest(
         """Map the report file and the reported issues into the state result."""
         return markdown_result_from_run(run)
 
-    def get_state_type(self) -> type[SimpleDeepAgentState]:
-        return SimpleDeepAgentState
-
-    def get_config_type(self) -> type[SimpleDeepAgentConfig]:
-        return SimpleDeepAgentConfig
-
     def build_graph(self) -> StateGraph:
         manifest = self
 

@@ -8,6 +8,7 @@ import { PageTitle } from '@/components/shared/page-title';
 import { Badge } from '@/components/ui/badge';
 import { EditableTitle } from '@/components/ui/editable-title';
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
+import { GroupBySeverityProvider } from '@/context/group-by-severity-context';
 import { useShare } from '@/context/share-context';
 import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
 import { AccessLevel, ProjectOverview, UserRole, WorkflowRunType } from '@/lib/generated-api';
@@ -21,7 +22,6 @@ import { NewAssessmentButton } from './new-assessment-button';
 import { OldRevisionBanner } from './old-revision-banner';
 import { ProjectTab, ProjectTabs } from './project-tabs';
 import { ReferenceReviewBanner } from './reference-review-banner';
-import { RunActivityIndicator } from './run-activity/run-activity-indicator';
 import { RunActivityLine } from './run-activity/run-activity-line';
 
 interface ProjectShellProps {
@@ -146,70 +146,72 @@ export function ProjectShell({
     >
       <PageTitle title={overview.project.title} />
 
-      <ProjectViewProvider
-        value={{
-          overview,
-          readOnly,
-          selectedRevision,
-          onRevisionChange,
-          onRevisionCreated,
-          navigateToTab,
-          assessmentHref,
-        }}
-      >
-        <div className="bg-background text-foreground flex h-dvh flex-col">
-          <AppBar title={titleNode} />
+      <GroupBySeverityProvider value={overview.project.group_by_severity ?? true}>
+        <ProjectViewProvider
+          value={{
+            overview,
+            readOnly,
+            selectedRevision,
+            onRevisionChange,
+            onRevisionCreated,
+            navigateToTab,
+            assessmentHref,
+          }}
+        >
+          <div className="bg-background text-foreground flex h-dvh flex-col">
+            <AppBar title={titleNode} />
 
-          {/* This project: the ways in on the left, what you can do with it on
+            {/* This project: the ways in on the left, what you can do with it on
               the right. The title names the project a row above. */}
-          <header className="flex h-12 shrink-0 items-center gap-3 border-b px-3">
-            <ProjectTabs tabs={tabs} activeTab={activeTab} onTabChange={onTabChange} />
+            <header className="flex h-12 shrink-0 items-center gap-3 border-b px-3">
+              <ProjectTabs tabs={tabs} activeTab={activeTab} onTabChange={onTabChange} />
 
-            {/* Share badge, revision switcher, Export and the overflow menu. */}
-            <div className="ml-auto flex shrink-0 items-center gap-2">
-              {readOnly && (
-                <Badge variant="secondary" className="h-7 text-xs">
-                  Read-only view
-                </Badge>
-              )}
-              {/* What is running sits next to what starts a run, so the answer to
-                  "did that go?" is where the question was asked. */}
-              <RunActivityIndicator projectId={overview.project.id} workflowDetails={results} />
-              {!readOnly && <NewAssessmentButton projectId={overview.project.id} />}
-              <AnalysisOptionsMenu
-                overview={overview}
-                readOnly={readOnly}
-                selectedRevision={selectedRevision}
-                onRevisionChange={onRevisionChange}
-                onRevisionCreated={onRevisionCreated}
-                downloadLabel="Export"
-                downloadVariant="outline"
-                compact
-              />
-            </div>
-          </header>
+              {/* Share badge, revision switcher, Export and the overflow menu. */}
+              <div className="ml-auto flex shrink-0 items-center gap-2">
+                {readOnly && (
+                  <Badge variant="secondary" className="h-7 text-xs">
+                    Read-only view
+                  </Badge>
+                )}
+                {/* The button that starts a run also says what is running, so the
+                    answer to "did that go?" is where the question was asked. A
+                    read-only view gets the status alone. */}
+                <NewAssessmentButton projectId={overview.project.id} />
+                <AnalysisOptionsMenu
+                  overview={overview}
+                  readOnly={readOnly}
+                  selectedRevision={selectedRevision}
+                  onRevisionChange={onRevisionChange}
+                  onRevisionCreated={onRevisionCreated}
+                  downloadLabel="Export"
+                  downloadVariant="outline"
+                  compact
+                />
+              </div>
+            </header>
 
-          <RunActivityLine active={runsActive} />
+            <RunActivityLine active={runsActive} />
 
-          {notice}
+            {notice}
 
-          {needsReferenceReview && (
-            <ReferenceReviewBanner overview={overview} onReviewReferences={() => onTabChange('references')} />
-          )}
+            {needsReferenceReview && (
+              <ReferenceReviewBanner overview={overview} onReviewReferences={() => onTabChange('references')} />
+            )}
 
-          {/* An older revision governs every tab, not just the document, so the
+            {/* An older revision governs every tab, not just the document, so the
               notice belongs to the view rather than to the reader. */}
-          {selectedRevision != null && selectedRevision < currentRevision && (
-            <OldRevisionBanner
-              selectedRevision={selectedRevision}
-              currentRevision={currentRevision}
-              onViewCurrent={onRevisionChange ? () => onRevisionChange(currentRevision) : undefined}
-            />
-          )}
+            {selectedRevision != null && selectedRevision < currentRevision && (
+              <OldRevisionBanner
+                selectedRevision={selectedRevision}
+                currentRevision={currentRevision}
+                onViewCurrent={onRevisionChange ? () => onRevisionChange(currentRevision) : undefined}
+              />
+            )}
 
-          <div className="min-h-0 flex-1">{children}</div>
-        </div>
-      </ProjectViewProvider>
+            <div className="min-h-0 flex-1">{children}</div>
+          </div>
+        </ProjectViewProvider>
+      </GroupBySeverityProvider>
     </ProjectFeedbackProvider>
   );
 }

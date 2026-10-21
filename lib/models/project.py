@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 from enum import Enum
 
-from sqlalchemy import Column, Date, DateTime, ForeignKey, Index, Integer
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Index, Integer, true
 from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlmodel import Field, SQLModel, String
@@ -77,4 +77,12 @@ class Project(SQLModel, table=True):
         sa_column=Column(Integer, nullable=False, default=1),
         default=1,
         description="The current (latest) revision number for this project",
+    )
+    group_by_severity: bool = Field(
+        sa_column=Column(Boolean, nullable=False, default=True, server_default=true()),
+        default=True,
+        description=(
+            "Whether the app and the Word export present issues by severity. "
+            "Display only: issues keep their severity either way."
+        ),
     )

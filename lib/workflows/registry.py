@@ -49,6 +49,10 @@ def register_workflow_manifest(manifest: WorkflowManifest) -> None:
     Register a workflow manifest.
     """
 
+    # Raises at import for a manifest that never named its [State, Config].
+    manifest.get_state_type()
+    manifest.get_config_type()
+
     if manifest.type in _workflow_manifest_registry:
         raise ValueError(
             f"Workflow manifest already registered for type: {manifest.type}"

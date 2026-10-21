@@ -1,6 +1,3 @@
-import builtins
-from typing import cast
-
 from langgraph.graph import StateGraph
 
 from lib.agents.reference_validator_v2 import ReferenceValidationFinalResultV2
@@ -8,10 +5,16 @@ from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 from lib.workflows.reducers import cancel_pending
 from lib.workflows.reference_extraction.state import ReferenceExtractionState
+from lib.workflows.reference_validation_v2.edits import applies_full_correction
 from lib.workflows.reference_validation_v2.graph import (
     build_reference_validation_v2_graph,
 )
+from lib.workflows.reference_validation_v2.issue_text import (
+    issue_description,
+    issue_title,
+)
 from lib.workflows.reference_validation_v2.state import (
+    ReferenceValidationV2Item,
     ReferenceValidationV2State,
     ReferenceValidationV2Status,
     ReferenceValidationV2WorkflowConfig,
@@ -25,11 +28,15 @@ _FINAL_RESULT_SEVERITY: dict[ReferenceValidationFinalResultV2, SeverityEnum] = {
     ReferenceValidationFinalResultV2.INCORRECT_FIELDS: SeverityEnum.HIGH,
 }
 
-_FINAL_RESULT_TITLE: dict[ReferenceValidationFinalResultV2, str] = {
-    ReferenceValidationFinalResultV2.CORRECT: "Valid reference",
-    ReferenceValidationFinalResultV2.MISSING_FIELDS: "Reference is missing fields",
-    ReferenceValidationFinalResultV2.INCORRECT_FIELDS: "Reference has incorrect fields",
-}
+
+def _suggested_action(validation: ReferenceValidationV2Item) -> str | None:
+    """The validator's suggested action, unless the edits already carry all of it."""
+    result = validation.validation_result
+    if result is None or applies_full_correction(
+        validation.input_reference, result.updated_reference, validation.edits
+    ):
+        return None
+    return result.suggested_action or None
 
 
 class ReferenceValidationV2Manifest(
@@ -43,12 +50,6 @@ class ReferenceValidationV2Manifest(
     # Each reference fans out a gpt-5.5 + web_search deep agent; cap how many
     # run in parallel so large bibliographies don't trip provider 429s.
     max_concurrency = 20
-
-    def get_state_type(self) -> builtins.type[ReferenceValidationV2State]:
-        return ReferenceValidationV2State
-
-    def get_config_type(self) -> builtins.type[ReferenceValidationV2WorkflowConfig]:
-        return ReferenceValidationV2WorkflowConfig
 
     def build_graph(self) -> StateGraph:
         return build_reference_validation_v2_graph()
@@ -84,12 +85,7 @@ class ReferenceValidationV2Manifest(
         issues: list[DocumentIssue] = []
 
         ref_extraction_state = get_state_by_type(
-            WorkflowRunType.REFERENCE_EXTRACTION, other_states
-        )
-        ref_extraction_state = (
-            cast(ReferenceExtractionState, ref_extraction_state)
-            if ref_extraction_state
-            else None
+            WorkflowRunType.REFERENCE_EXTRACTION, ReferenceExtractionState, other_states
         )
 
         ref_by_id = (
@@ -108,24 +104,16 @@ class ReferenceValidationV2Manifest(
             result = validation.validation_result
             ref = ref_by_id.get(validation.reference_id)
             severity = _FINAL_RESULT_SEVERITY[result.final_result]
-            title = _FINAL_RESULT_TITLE[result.final_result]
-
-            field_validations = "\n\n".join(
-                [
-                    f"- **{item.category.value.capitalize()}**: {item.problem_type.value.capitalize()}\n\n\t*Current*: {item.current_value or '-'}\n\n\t*Suggested*: {item.suggested_value}"
-                    for item in result.bibliography_field_validations
-                ]
-            )
 
             issue = DocumentIssue(
-                title=title,
-                description=f"> {result.original_reference}",
+                title=issue_title(result),
+                description=issue_description(result),
                 severity=severity,
                 type=self.type,
                 start_line=ref.start_line if ref else None,
                 end_line=ref.end_line if ref else None,
-                long_description=f"{f'### Suggested updated reference\n\n> {result.updated_reference}' if result.updated_reference else ''}\n\n### Field validations\n\n{field_validations}\n\n### Reasoning\n\n{result.reasoning}",
-                suggested_action=result.suggested_action or None,
+                suggested_action=_suggested_action(validation),
+                edits=validation.edits,
             )
             issues.append(issue)
 

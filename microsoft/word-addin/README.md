@@ -72,7 +72,42 @@ Requires re-opening Word every time manifest changes.
 ## Preview in browser (without Word)
 
 To work on the pane's layout, open `http://localhost:3000/addin` in a browser. Anything
-that reads or writes the document needs Word.
+that reads or writes the document needs Word, and so does signing in.
+
+## The chat
+
+The pane's **Chat** tab is a conversation with Draft Detective about the open document
+(`frontend/components/addin/chat/`, backend `lib/api/routers/microsoft/word_chat.py`).
+
+- With each message the pane reads the document as a .docx (Office.js `getFileAsync`,
+  which makes Word save any pending edit first) and uploads it only when it changed since
+  it was last sent in this conversation (`frontend/lib/addin/pane-document.ts`). The
+  backend reads it like any uploaded .docx (`lib/services/microsoft/word/pane_document.py`).
+  It is converted as the web app converts a project's main document: charts and
+  metafile pictures are rendered to images, and every image is saved as a `files` row
+  owned by the conversation (`conversation_id`, no project) and referenced from the
+  markdown as `draftdetective://{id}`. The agent opens them with `view_image`, bound to
+  that conversation when the turn is built, so it can read no other conversation's or
+  project's images. The text selected in Word goes along too, so "this paragraph"
+  means something.
+- Checks run by name: the list button beside the message box, or "/" in it, offers the
+  workflows that can run without the internet (`lib/agents/word_chat_checks.py`), and
+  picking one sends "Run the … check" straight away.
+- The agent's comments and tracked changes come back as one card per answer, shown once
+  the answer ends. The agent may store them in several calls (it batches long lists);
+  each call after the first adds to that answer's card, until a card is full (100
+  comments, 100 edits) or applying it has begun. The card is a handoff card: Apply
+  claims, writes and reports them through `/handoffs`, like the ones from Teams, and the
+  result goes back to the agent with the next message.
+- The agent asks before it carries on: after its last batch it calls `ask_to_apply`,
+  which pauses the answer on the card (LangGraph's `interrupt`). Applying or dismissing
+  the card resumes it (`POST /api/microsoft/word/chat/thread/resume`), and the agent,
+  reading the card's outcome itself, says what landed and may retry a failed quote once.
+  A new message while it waits moves on; the card stays open.
+- One conversation per document and account. **New chat** clears it; the old one stays in
+  the database, out of the pane's reach. A document never saved has no URL, so the pane
+  gives it a key of its own (`unsaved:<id>`, kept in sessionStorage) and each unsaved
+  document gets its own conversation.
 
 ## Publish the Word add-in in your organization
 
@@ -87,26 +122,32 @@ Reference video (older, but still useful): https://www.youtube.com/watch?v=p3aeO
 
 ## How the pane writes to the document
 
-The pane reads a paragraph's markup with `getOoxml`, sends it to
-`/api/microsoft/word/comments/annotate` or `/api/microsoft/word/suggestions/apply`, and
-puts the result back with `insertOoxml` (`frontend/lib/addin/word-writes.ts`). The
-backend writes the comment, or the `w:ins`/`w:del` of a tracked change, authored as
-Draft Detective. See `frontend/lib/addin/apply-handoff.ts` and "From Teams to Word" in
-[`../README.md`](../README.md) for how changes asked for in Teams get there.
+With Word's own API (`frontend/lib/addin/apply-handoff.ts`): each quote is found with
+Word's search inside its paragraph, an edit replaces those words with `insertText` while
+change tracking is on for everyone, and a comment is added with `insertComment`. The
+author's tracking setting is restored afterwards. Each write takes under a tenth of a
+second in Word for the web, and it touches only the quoted words, so a coauthor's edits
+elsewhere in the paragraph are left alone.
+
+Word records these under the name of whoever clicks Apply: no Word API can set the
+author of a tracked change or a comment. So the pane starts each comment with
+"Draft Detective:".
 
 Things worth knowing:
 
-- It has to be markup. Word's API attributes a comment to whoever is signed in, with
-  no way to override it, and cannot create a tracked change at all.
-- The pane switches the document's change tracking off around every write and
-  restores it afterwards. Left on, Word records our write as a revision by the
-  signed-in user, which wraps Draft Detective's suggestion inside the author's own.
-- A write replaces the whole paragraph, or the whole table it sits in, so the pane
-  reads that range's text again just before writing and writes nothing if it changed
-  since the markup was read: an edit typed meanwhile, by the author or a coauthor,
-  would otherwise be lost. A formatting-only change is not caught.
-- Change tracking can only be switched from WordApi 1.4. On older Word the pane writes
-  with tracking left as it is.
+- Quotes are matched with curly quotes, dashes and spacing evened out, then Word is asked
+  for the paragraph's own characters (`frontend/lib/addin/quote-search.ts`). Word's
+  search takes at most 255 characters, so a longer quote is found by its first and last
+  hundred and the range between them is checked against it. The chat agent's quotes are
+  checked the same way before they are offered
+  (`lib/services/microsoft/word/quote_check.py`), so a quote Word would not find, or
+  would find twice, goes back to the agent instead of onto a card.
+- An item is reported as not applied, with nothing written, when Word's search finds a
+  different number of hits than the paragraph's text has (a field, a footnote mark, an
+  earlier tracked change inside the quote), or when Word refuses the write. There is no
+  fallback: what happens to each item is reported back to Teams or to the chat agent.
+- Each write is its own round trip, so a refusal is pinned on its own item.
+- Change tracking and comments need WordApi 1.4. Older Word cannot apply at all.
 
 ## Signing in
 
@@ -119,6 +160,14 @@ released only to the account that asked (matched by Entra object id, not email).
 2. **A dialog**, when single sign-on is not available: `/addin/sign-in` signs in with
    Draft Detective's own Microsoft sign-in and hands the session token back. Only a
    Microsoft sign-in works here; it is the one that carries the object id.
+
+Either way the pane is a Microsoft account, not a Draft Detective user: what it may do
+is decided by the object id. A conversation it starts is still listed under the Draft
+Detective user with the account's `email` claim (`conversations.user_id`, see
+`lib/services/microsoft/linked_users.py`), as the web app knows people by email, but only
+while `AUTH_MICROSOFT_ENTRA_ID_ISSUER` names one tenant and the account is from it: Entra
+does not verify that claim, so an email from another tenant could be anyone's. Teams
+conversations are listed under whoever asked first, by their mail address in Graph.
 
 Both use one Entra app registration per environment: the same one as Draft Detective's
 own "Sign in with Microsoft" (`AUTH_MICROSOFT_ENTRA_ID_ID`), with:

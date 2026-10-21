@@ -67,7 +67,7 @@ async def _summarize_document(
         summary = FileSummary(file_id=document.file_id, **response.summary.model_dump())
 
     if role == FileRole.MAIN:
-        from lib.services.projects import update_project_title  # noqa: PLC0415  circular: projects -> registry -> this node
+        from lib.services.projects.service import update_project_title  # noqa: PLC0415  circular: projects -> registry -> this node
 
         await update_project_title(
             project_id=runtime.context.project_id,

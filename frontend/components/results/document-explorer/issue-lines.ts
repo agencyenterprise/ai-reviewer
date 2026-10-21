@@ -1,22 +1,20 @@
 import type { Issue } from '@/lib/generated-api';
 
-type IssueLines = Issue & { start_line?: number | null; end_line?: number | null };
-
 /**
  * Where an issue sits in the document, or nowhere.
  *
- * Read off the issue defensively: the lines are not part of the API type, and a
- * finding about the document rather than a place in it carries none at all.
+ * A finding about the document rather than a place in it carries no lines, and
+ * an issue missing either end has no range.
  */
 export function issueLineRange(issue: Issue): [number, number] | null {
-  const { start_line: start, end_line: end } = issue as IssueLines;
+  const { start_line: start, end_line: end } = issue;
   if (typeof start !== 'number' || typeof end !== 'number') return null;
   return [start, end];
 }
 
 /** The line an issue starts on, even when its end line is missing. */
 export function issueStartLine(issue: Issue): number | null {
-  const { start_line: start } = issue as IssueLines;
+  const { start_line: start } = issue;
   return typeof start === 'number' ? start : null;
 }
 

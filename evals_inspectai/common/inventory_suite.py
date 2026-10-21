@@ -2,7 +2,8 @@
 
 An eval states two things about its workflow: how its reports pair with
 expected issues (``pairing``, plus ``pair_on_location`` when titles are
-verdicts) and which state fields hold its issues (``results``). Everything
+verdicts) and which state fields hold its issues (``results``), plus, rarely,
+an edit-hygiene check its edits break by design (``skip_checks``). Everything
 else is derived from the dataset once, here: which generic checks apply, the
 decoy reasons, the named titles, the metric descriptions and the viewer
 columns. The derived ``ScoringPolicy`` rides on every sample's inventory, so
@@ -33,6 +34,7 @@ from pydantic import BaseModel, ConfigDict
 
 from evals_inspectai.common.issue_checks import (
     DEFAULT_RESULTS,
+    EDIT_KEYS,
     decoy_checks,
     decoy_descriptions,
     issue_check_descriptions,
@@ -48,7 +50,7 @@ from evals_inspectai.common.issue_inventory import (
     load_inventory,
 )
 from evals_inspectai.common.issue_judge import JudgeCriterion, judged_criteria
-from evals_inspectai.common.issue_viewer import decoy_labels, issue_viewer_config
+from evals_inspectai.common.viewer import checks_viewer_config, decoy_labels
 
 # Per scorer name, what each of its keys checks: the Task metadata's metrics and,
 # in the same order, the viewer's columns.
@@ -78,16 +80,22 @@ class InventorySuite(BaseModel):
         extra_fields: Sequence[str] = (),
         results: Sequence[str] = DEFAULT_RESULTS,
         name: str | None = None,
+        skip_checks: Sequence[str] = (),
     ) -> "InventorySuite":
         """Load ``path`` under the workflow's pairing. ``results`` names the state fields
         holding its issues (see ``issue_checks.issues_from_state``); ``name`` is the
-        dataset name, the file's directory by default."""
+        dataset name, the file's directory by default; ``skip_checks`` names edit-hygiene
+        keys (``EDIT_KEYS``) the workflow's edits break by design, left out of scoring."""
+        unknown = set(skip_checks) - set(EDIT_KEYS)
+        if unknown:
+            raise ValueError(f"only edit checks can be skipped, not {sorted(unknown)}")
         records, extras = load_inventory(path, extra_fields, pairing, pair_on_location)
         policy = (
             records[0].policy
             if records
             else derive_policy([], pairing, pair_on_location)
-        )
+        ).model_copy(update={"skipped_checks": list(skip_checks)})
+        records = [r.model_copy(update={"policy": policy}) for r in records]
         return cls(
             path=path,
             name=name or path.parent.name,
@@ -150,6 +158,6 @@ class InventorySuite(BaseModel):
             *generic,
             *((name, key) for name, keys in (own or {}).items() for key in keys),
         ]
-        return issue_viewer_config(
+        return checks_viewer_config(
             columns, {**decoy_labels(self.policy.decoy_reasons), **(labels or {})}
         )

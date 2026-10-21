@@ -21,6 +21,7 @@ from lib.services.docx.service import _resolved_revision, generate_docx
 from lib.workflows.models import SeverityEnum, WorkflowRunType
 
 _SERVICE = "lib.services.docx.service"
+DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
 _FAKE_PROJECT_ID = uuid.uuid4()
 _FAKE_WORKFLOW_RUN_ID = uuid.uuid4()
@@ -81,6 +82,39 @@ class TestIssueToComment:
         assert "This claim lacks evidence" in comment.comment_text
         assert comment.severity == CommentSeverity.HIGH
         assert comment.get_author() == "🚨 High Priority"
+
+    def test_without_severity_the_comment_names_no_priority(self):
+        """A project that doesn't group by severity exports plain Draft Detective comments."""
+        issue = _make_issue(
+            title="Unsupported Claim",
+            description="This claim lacks evidence",
+            severity=SeverityEnum.LOW,
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
+            start_line=1,
+            end_line=3,
+        )
+
+        comment = issue_to_comment(issue, {0: (1, 3)}, show_severity=False)
+
+        assert comment is not None
+        assert comment.get_author() == "Draft Detective"
+        assert comment.get_initials() == "DD"
+        assert "Priority" not in comment.comment_text
+
+    def test_without_severity_a_passing_check_still_reads_as_passing(self):
+        issue = _make_issue(
+            title="Abbreviation defined",
+            description="Defined at first use",
+            severity=SeverityEnum.NONE,
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
+            start_line=1,
+            end_line=3,
+        )
+
+        comment = issue_to_comment(issue, {0: (1, 3)}, show_severity=False)
+
+        assert comment is not None
+        assert comment.get_author() == "✅ Passing"
 
     def test_includes_suggested_action_and_long_description_in_order(self):
         """Comment carries description, then suggested action, then long_description."""
@@ -358,10 +392,14 @@ class TestGenerateDocxRevision:
         issue query are given, and what the comments are told -- so the
         manipulator, the file artifacts and the comment builder are stubs.
         """
-        project = SimpleNamespace(current_revision=current_revision)
+        project = SimpleNamespace(
+            current_revision=current_revision, group_by_severity=True
+        )
+        (tmp_path / "main.docx").write_bytes(b"PK\x03\x04")  # a zip, as OOXML is
         main_file = SimpleNamespace(
             file_path=str(tmp_path / "main.docx"),
             file_name="main.docx",
+            file_type=DOCX_MIME,
             markdown="Output increased by 14%.",
         )
         artifacts = MagicMock()
@@ -372,8 +410,8 @@ class TestGenerateDocxRevision:
             return_value=str(tmp_path / "out.docx")
         )
         return contextlib.ExitStack(), {
-            "_get_project_by_id": patch(
-                f"{_SERVICE}._get_project_by_id", AsyncMock(return_value=project)
+            "get_project_by_id": patch(
+                f"{_SERVICE}.get_project_by_id", AsyncMock(return_value=project)
             ),
             "FileArtifactsService": patch(
                 f"{_SERVICE}.FileArtifactsService", MagicMock(return_value=artifacts)

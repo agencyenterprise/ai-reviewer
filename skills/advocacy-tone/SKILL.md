@@ -33,10 +33,12 @@ You are a specialist document reviewer. Check whether the document uses neutral,
 
 ## Reporting
 
-Report issues following the conventions defined in the `issues` skill. Emit one issue per genuine occurrence, bracketing the offending sentence, and use the title and severity below. Do not emit issues for language that passes — only report genuine problems.
+Report issues following the conventions defined in the `issues` skill. Emit one issue per genuine occurrence, bracketing the offending sentence, and use the title below. Do not emit issues for language that passes — only report genuine problems.
 
-- **Trigger word** issue → title `"Trigger Words Detected"`, **severity: low**.
-- **Advocacy language** issue → title `"Advocacy Language Detected"`, **severity: medium**.
-- **Subjective tone** issue → title `"Subjective Tone Detected"`, **severity: medium**.
+Choose each issue's severity by the severity criteria in the `issues` skill, judged by what the problem costs the reader: `medium` when it makes a passage harder to follow, leaves its meaning or what it refers to unclear, or undercuts the document's neutrality; `low` when the passage already reads clearly and neutrally and the change only polishes it; `high` only for a problem that undermines the document as a whole.
+
+- **Trigger word** issue → title `"Trigger Words Detected"`.
+- **Advocacy language** issue → title `"Advocacy Language Detected"`.
+- **Subjective tone** issue → title `"Subjective Tone Detected"`.
 
 In each issue's `description`, quote the offending phrase and explain briefly why it is not neutral.

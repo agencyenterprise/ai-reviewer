@@ -30,6 +30,18 @@ class TestEditNotes:
             "Applied below as a tracked change."
         )
 
+    def test_an_empty_rationale_leaves_no_blank_line(self):
+        edit = _edit("14% rise", "18% rise", 1)
+        edit.rationale = ""
+
+        (note,) = build_edit_notes(
+            [edit], {edit.id: EditOutcome(edit_id=edit.id, status="applied")}, {}
+        )
+
+        assert note == (
+            'Proposed edit: "14% rise" → "18% rise"\nApplied below as a tracked change.'
+        )
+
     def test_a_deletion_is_labelled_as_one(self):
         edit = _edit("for 2019", "", 1)
 

@@ -271,6 +271,10 @@ class ScoringPolicy(BaseModel):
     titles: bool = True
     anchors: bool = True
     severities: bool = True
+    # Generic check keys the workflow opts out of, because its edits do by design
+    # what the check guards against: a citation fix changes the citation that
+    # edit_keeps_numbers_and_markers expects to survive. The workflow's to say.
+    skipped_checks: list[str] = Field(default_factory=list)
 
 
 class ResolvedInventory(BaseModel):

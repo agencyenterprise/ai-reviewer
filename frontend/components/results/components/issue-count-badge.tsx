@@ -1,9 +1,10 @@
 'use client';
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useGroupBySeverity } from '@/context/group-by-severity-context';
 import { SeverityEnum } from '@/lib/generated-api';
 import { REPORTED_SEVERITIES } from '@/lib/severity';
-import { ReportedIssuesSummary } from '@/lib/health-status';
+import { badgeHeadline, ReportedIssuesSummary } from '@/lib/health-status';
 import { cn } from '@/lib/utils';
 import {
   CheckCircleIcon,
@@ -33,12 +34,13 @@ const severityDisplay: Record<
  * Shows the size of the *most severe* tier rather than the total, so the colour
  * and the number always describe the same thing: "7 in red" means seven
  * high-severity issues, not thirty-four issues of which some are high. The full
- * breakdown is one hover away.
+ * breakdown is one hover away. A project that doesn't group by severity shows
+ * the total in medium, with the breakdown still in the tooltip.
  */
 export function IssueCountBadge({ summary }: { summary: ReportedIssuesSummary }) {
-  const severity = summary.maxSeverity ?? SeverityEnum.None;
+  const groupBySeverity = useGroupBySeverity();
+  const { severity, count: headline } = badgeHeadline(summary, groupBySeverity);
   const { icon: Icon, className } = severityDisplay[severity];
-  const headline = summary.maxSeverity ? summary.counts[summary.maxSeverity] : 0;
 
   return (
     <Tooltip>
@@ -63,7 +65,8 @@ export function IssueCountBadge({ summary }: { summary: ReportedIssuesSummary })
             </p>
             <ul>
               {REPORTED_SEVERITIES.filter((tier) => summary.counts[tier] > 0).map((tier) => {
-                const { icon: TierIcon, label } = severityDisplay[tier];
+                const { label } = severityDisplay[tier];
+                const { icon: TierIcon } = severityDisplay[groupBySeverity ? tier : SeverityEnum.Medium];
                 return (
                   <li key={tier} className="flex items-center gap-1.5">
                     <TierIcon className="size-3" />

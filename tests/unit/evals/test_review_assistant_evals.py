@@ -2,6 +2,7 @@
 
 import json
 from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from inspect_ai.dataset import Sample
@@ -9,12 +10,15 @@ from inspect_ai.model import ModelName, ModelOutput
 from inspect_ai.scorer import Target
 from inspect_ai.solver import TaskState
 
+from evals_inspectai.common import peer_review_fixture
 from evals_inspectai.common.docx_fixture import MarkedUpCopy
 from evals_inspectai.common.html_report import HtmlReport
 from evals_inspectai.common.peer_review_fixture import (
     DRAFT_FILE_NAME,
     REVISED_DRAFT_FILE_NAME,
+    ReviewDocument,
     expected_input_roles,
+    review_assistant_solver,
 )
 from evals_inspectai.common.review_assistant_scorers import (
     extract_report,
@@ -57,6 +61,43 @@ def _html(*paragraphs: str) -> HtmlReport:
 
 def _meta(sample: Sample) -> dict[str, Any]:
     return sample.metadata or {}
+
+
+async def _requested(sample: Sample) -> tuple[list[str], list[str]]:
+    """Run the shared solver on a sample with the API patched out; return the
+    file names it uploads after the draft and the outputs it asks for."""
+    seen: dict[str, Any] = {}
+
+    async def build(
+        main_file_name: str, main_markdown: str, documents: list[ReviewDocument]
+    ) -> tuple[str, dict[str, str]]:
+        seen["names"] = [d.file_name for d in documents]
+        names = [main_file_name, *seen["names"]]
+        return "project", {n: n for n in names}
+
+    async def run(project_id: str, outputs: list[str], *_: Any, **__: Any) -> dict:
+        seen["outputs"] = outputs
+        return {"state": {"reports": []}}
+
+    async def surface(*_: Any) -> None:
+        return None
+
+    state = TaskState(
+        model=ModelName("mockllm/model"),
+        sample_id=sample.id or "s",
+        epoch=1,
+        input=sample.input,
+        messages=[],
+        metadata=_meta(sample),
+    )
+    with (
+        patch.object(peer_review_fixture, "build_review_project", build),
+        patch.object(peer_review_fixture, "run_review_request", run),
+        patch.object(peer_review_fixture, "surface_conversations", surface),
+    ):
+        state = await review_assistant_solver(timeout_s=1)(state, AsyncMock())
+    assert json.loads(state.output.completion) == {"reports": []}
+    return seen["names"], seen["outputs"]
 
 
 def test_every_suite_names_its_documents_and_their_roles() -> None:
@@ -159,3 +200,30 @@ def test_the_flags_block_is_found_by_its_instruction() -> None:
         _html("For the author: remove this block before sending.")
     )[0]
     assert not check_flags_block(_html("Dear reviewer, thank you."))[0]
+
+
+@pytest.mark.asyncio
+async def test_the_solver_uploads_each_suites_documents_and_asks_for_its_outputs() -> (
+    None
+):
+    planning = {s.id: s for s in planning_dataset()}
+    names, outputs = await _requested(planning["hiring_audits_comments_only_reviewer"])
+    copy = MarkedUpCopy.model_validate(
+        _meta(planning["hiring_audits_comments_only_reviewer"])["marked_up"][0]
+    )
+    assert names[-1] == copy.file_name
+    assert outputs == ["revision_planning_summary"]
+
+    for sample in coverage_dataset():
+        meta = _meta(sample)
+        names, outputs = await _requested(sample)
+        assert names == [
+            *(m["file_name"] for m in meta["memos"]),
+            REVISED_DRAFT_FILE_NAME,
+            *(m["file_name"] for m in meta["response_memos"]),
+        ]
+        assert outputs == ["reviewer_coverage_report"]
+
+    many = next(s for s in memos_dataset() if s.id == "hiring_audits_all_outputs")
+    _, outputs = await _requested(many)
+    assert outputs == _meta(many)["outputs"] and len(outputs) > 1

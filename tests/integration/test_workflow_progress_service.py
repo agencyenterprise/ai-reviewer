@@ -1,6 +1,7 @@
 """Integration tests for workflow progress service."""
 
 import uuid
+from datetime import datetime
 
 import pytest
 import pytest_asyncio
@@ -9,14 +10,11 @@ from sqlmodel import col
 
 from lib.config.database import get_async_db_session
 from lib.models.project import Project
-from lib.models.workflow_progress import ProgressLevel
+from lib.models.workflow_progress import ProgressLevel, WorkflowProgress
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services.workflow_runs.progress import (
     cancel_workflow_progress,
-    complete_progress,
-    create_and_start_progress,
     get_or_create_progress,
-    get_workflow_progress,
     increment_and_complete_if_done,
     update_progress,
 )
@@ -68,39 +66,52 @@ async def workflow_run_id(project_id):
             await session.commit()
 
 
-@pytest.mark.asyncio
-async def test_create_and_start_progress(workflow_run_id):
-    """Test creating and starting a progress entry."""
-    # Create progress entry
-    progress_id = await create_and_start_progress(
-        workflow_run_id=workflow_run_id,
-        name="Test Node",
-        level=ProgressLevel.NODE,
-        total_steps=10,
-    )
+async def _start_progress(
+    workflow_run_id: uuid.UUID,
+    name: str,
+    level: ProgressLevel,
+    total_steps: int = 0,
+) -> uuid.UUID:
+    """Insert a started progress entry, as a workflow node would."""
+    async with get_async_db_session() as session:
+        progress = WorkflowProgress(
+            workflow_run_id=workflow_run_id,
+            name=name,
+            level=level,
+            total_steps=total_steps,
+            started_at=datetime.utcnow(),
+        )
+        session.add(progress)
+        await session.commit()
+        await session.refresh(progress)
+        return progress.id
 
-    assert progress_id is not None
-    assert isinstance(progress_id, uuid.UUID)
 
-    # Verify it was created and started
-    progress_list = await get_workflow_progress(workflow_run_id)
-    assert len(progress_list) == 1
+async def _complete_progress(progress_id: uuid.UUID) -> None:
+    """Stamp a progress entry as completed."""
+    async with get_async_db_session() as session:
+        progress = await session.get(WorkflowProgress, progress_id)
+        assert progress is not None
+        progress.completed_at = datetime.utcnow()
+        await session.commit()
 
-    progress = progress_list[0]
-    assert progress.name == "Test Node"
-    assert progress.level == ProgressLevel.NODE
-    assert progress.total_steps == 10
-    assert progress.current_step == 0
-    assert progress.started_at is not None
-    assert progress.completed_at is None
-    assert progress.status == "in_progress"
+
+async def _progress_for(workflow_run_id: uuid.UUID) -> list[WorkflowProgress]:
+    """Read a run's progress entries in creation order."""
+    async with get_async_db_session() as session:
+        stmt = (
+            select(WorkflowProgress)
+            .where(col(WorkflowProgress.workflow_run_id) == workflow_run_id)
+            .order_by(col(WorkflowProgress.created_at))
+        )
+        return list((await session.execute(stmt)).scalars().all())
 
 
 @pytest.mark.asyncio
 async def test_update_progress_steps(workflow_run_id):
     """Test updating progress step counters."""
     # Create progress entry
-    progress_id = await create_and_start_progress(
+    progress_id = await _start_progress(
         workflow_run_id=workflow_run_id,
         name="Test Task",
         level=ProgressLevel.TASK,
@@ -111,7 +122,7 @@ async def test_update_progress_steps(workflow_run_id):
     await update_progress(progress_id, current_step=50)
 
     # Verify update
-    progress_list = await get_workflow_progress(workflow_run_id)
+    progress_list = await _progress_for(workflow_run_id)
     progress = progress_list[0]
     assert progress.current_step == 50
     assert progress.total_steps == 100
@@ -119,67 +130,10 @@ async def test_update_progress_steps(workflow_run_id):
     # Update total steps
     await update_progress(progress_id, total_steps=150)
 
-    progress_list = await get_workflow_progress(workflow_run_id)
+    progress_list = await _progress_for(workflow_run_id)
     progress = progress_list[0]
     assert progress.current_step == 50
     assert progress.total_steps == 150
-
-
-@pytest.mark.asyncio
-async def test_complete_progress(workflow_run_id):
-    """Test completing a progress entry."""
-    # Create progress entry
-    progress_id = await create_and_start_progress(
-        workflow_run_id=workflow_run_id,
-        name="Test Node",
-        level=ProgressLevel.NODE,
-        total_steps=5,
-    )
-
-    # Update to partial completion
-    await update_progress(progress_id, current_step=3)
-
-    # Complete progress
-    await complete_progress(progress_id)
-
-    # Verify completion
-    progress_list = await get_workflow_progress(workflow_run_id)
-    progress = progress_list[0]
-    assert progress.completed_at is not None
-    assert progress.current_step == progress.total_steps
-    assert progress.status == "completed"
-
-
-@pytest.mark.asyncio
-async def test_get_workflow_progress_ordering(workflow_run_id):
-    """Test that progress entries are returned in creation order."""
-    # Create multiple progress entries
-    await create_and_start_progress(
-        workflow_run_id=workflow_run_id,
-        name="First Node",
-        level=ProgressLevel.NODE,
-    )
-
-    await create_and_start_progress(
-        workflow_run_id=workflow_run_id,
-        name="Second Node",
-        level=ProgressLevel.NODE,
-    )
-
-    await create_and_start_progress(
-        workflow_run_id=workflow_run_id,
-        name="Third Node",
-        level=ProgressLevel.NODE,
-    )
-
-    # Get progress list
-    progress_list = await get_workflow_progress(workflow_run_id)
-
-    # Verify order
-    assert len(progress_list) == 3
-    assert progress_list[0].name == "First Node"
-    assert progress_list[1].name == "Second Node"
-    assert progress_list[2].name == "Third Node"
 
 
 @pytest.mark.asyncio
@@ -195,7 +149,7 @@ async def test_get_or_create_progress_creates_new(workflow_run_id):
     assert isinstance(progress_id, uuid.UUID)
 
     # Verify it was created with total_steps=1
-    progress_list = await get_workflow_progress(workflow_run_id)
+    progress_list = await _progress_for(workflow_run_id)
     assert len(progress_list) == 1
 
     progress = progress_list[0]
@@ -235,7 +189,7 @@ async def test_get_or_create_progress_joins_existing(workflow_run_id):
     assert progress_id_1 == progress_id_2 == progress_id_3
 
     # Verify only one entry was created with total_steps=3
-    progress_list = await get_workflow_progress(workflow_run_id)
+    progress_list = await _progress_for(workflow_run_id)
     assert len(progress_list) == 1
 
     progress = progress_list[0]
@@ -263,7 +217,7 @@ async def test_get_or_create_progress_different_names(workflow_run_id):
     assert progress_id_a != progress_id_b
 
     # Verify two entries were created
-    progress_list = await get_workflow_progress(workflow_run_id)
+    progress_list = await _progress_for(workflow_run_id)
     assert len(progress_list) == 2
 
 
@@ -276,7 +230,7 @@ async def test_get_or_create_progress_ignores_completed(workflow_run_id):
         name="Completable Node",
         level=ProgressLevel.NODE,
     )
-    await complete_progress(progress_id_1)
+    await _complete_progress(progress_id_1)
 
     # Now get_or_create should create a new entry (not join the completed one)
     progress_id_2 = await get_or_create_progress(
@@ -289,7 +243,7 @@ async def test_get_or_create_progress_ignores_completed(workflow_run_id):
     assert progress_id_1 != progress_id_2
 
     # Verify two entries exist
-    progress_list = await get_workflow_progress(workflow_run_id)
+    progress_list = await _progress_for(workflow_run_id)
     assert len(progress_list) == 2
 
 
@@ -318,7 +272,7 @@ async def test_increment_and_complete_if_done_increments(workflow_run_id):
     completed = await increment_and_complete_if_done(progress_id)
     assert completed is False
 
-    progress_list = await get_workflow_progress(workflow_run_id)
+    progress_list = await _progress_for(workflow_run_id)
     progress = progress_list[0]
     assert progress.current_step == 1
     assert progress.completed_at is None
@@ -327,7 +281,7 @@ async def test_increment_and_complete_if_done_increments(workflow_run_id):
     completed = await increment_and_complete_if_done(progress_id)
     assert completed is False
 
-    progress_list = await get_workflow_progress(workflow_run_id)
+    progress_list = await _progress_for(workflow_run_id)
     progress = progress_list[0]
     assert progress.current_step == 2
     assert progress.completed_at is None
@@ -357,7 +311,7 @@ async def test_increment_and_complete_if_done_completes(workflow_run_id):
     assert completed is True
 
     # Verify completion
-    progress_list = await get_workflow_progress(workflow_run_id)
+    progress_list = await _progress_for(workflow_run_id)
     progress = progress_list[0]
     assert progress.current_step == 2
     assert progress.total_steps == 2
@@ -380,7 +334,7 @@ async def test_increment_and_complete_single_step(workflow_run_id):
     assert completed is True
 
     # Verify completion
-    progress_list = await get_workflow_progress(workflow_run_id)
+    progress_list = await _progress_for(workflow_run_id)
     progress = progress_list[0]
     assert progress.current_step == 1
     assert progress.total_steps == 1
@@ -406,13 +360,13 @@ async def test_cancel_workflow_progress_completes_incomplete_entries(
     workflow_run_id, project_id
 ):
     """All incomplete progress entries are stamped with completed_at."""
-    await create_and_start_progress(
+    await _start_progress(
         workflow_run_id=workflow_run_id,
         name="Node A",
         level=ProgressLevel.NODE,
         total_steps=5,
     )
-    await create_and_start_progress(
+    await _start_progress(
         workflow_run_id=workflow_run_id,
         name="Node B",
         level=ProgressLevel.NODE,
@@ -421,7 +375,7 @@ async def test_cancel_workflow_progress_completes_incomplete_entries(
 
     await cancel_workflow_progress(project_id, WorkflowRunType.DOCUMENT_PROCESSING)
 
-    entries = await get_workflow_progress(workflow_run_id)
+    entries = await _progress_for(workflow_run_id)
     assert len(entries) == 2
     for entry in entries:
         assert entry.completed_at is not None, (
@@ -434,18 +388,18 @@ async def test_cancel_workflow_progress_is_noop_when_all_already_complete(
     workflow_run_id, project_id
 ):
     """If all entries are already complete, cancel_workflow_progress does not raise."""
-    progress_id = await create_and_start_progress(
+    progress_id = await _start_progress(
         workflow_run_id=workflow_run_id,
         name="Done Node",
         level=ProgressLevel.NODE,
         total_steps=1,
     )
-    await complete_progress(progress_id)
+    await _complete_progress(progress_id)
 
     # Should not raise even though there's nothing left to complete
     await cancel_workflow_progress(project_id, WorkflowRunType.DOCUMENT_PROCESSING)
 
-    entries = await get_workflow_progress(workflow_run_id)
+    entries = await _progress_for(workflow_run_id)
     assert entries[0].completed_at is not None
 
 
@@ -468,13 +422,13 @@ async def test_cancel_workflow_progress_does_not_affect_different_type(
         await session.commit()
 
     try:
-        await create_and_start_progress(
+        await _start_progress(
             workflow_run_id=workflow_run_id,
             name="Target Node",
             level=ProgressLevel.NODE,
             total_steps=2,
         )
-        await create_and_start_progress(
+        await _start_progress(
             workflow_run_id=other_run_id,
             name="Other Node",
             level=ProgressLevel.NODE,
@@ -483,8 +437,8 @@ async def test_cancel_workflow_progress_does_not_affect_different_type(
 
         await cancel_workflow_progress(project_id, WorkflowRunType.DOCUMENT_PROCESSING)
 
-        target_entries = await get_workflow_progress(workflow_run_id)
-        other_entries = await get_workflow_progress(other_run_id)
+        target_entries = await _progress_for(workflow_run_id)
+        other_entries = await _progress_for(other_run_id)
 
         assert target_entries[0].completed_at is not None
         assert other_entries[0].completed_at is None
@@ -519,13 +473,13 @@ async def test_cancel_workflow_progress_clears_stuck_progress_from_previous_runs
         await session.commit()
 
     try:
-        await create_and_start_progress(
+        await _start_progress(
             workflow_run_id=previous_run_id,
             name="Stuck Node",
             level=ProgressLevel.NODE,
             total_steps=3,
         )
-        await create_and_start_progress(
+        await _start_progress(
             workflow_run_id=current_run_id,
             name="Active Node",
             level=ProgressLevel.NODE,
@@ -534,8 +488,8 @@ async def test_cancel_workflow_progress_clears_stuck_progress_from_previous_runs
 
         await cancel_workflow_progress(project_id, WorkflowRunType.RECOMMENDATION_CHECK)
 
-        previous_entries = await get_workflow_progress(previous_run_id)
-        current_entries = await get_workflow_progress(current_run_id)
+        previous_entries = await _progress_for(previous_run_id)
+        current_entries = await _progress_for(current_run_id)
 
         assert previous_entries[0].completed_at is not None, (
             "Stuck entry from previous run should be cleared"

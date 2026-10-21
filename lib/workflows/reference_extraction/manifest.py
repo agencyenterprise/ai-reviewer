@@ -1,7 +1,5 @@
 """Manifest for reference extraction workflow."""
 
-import builtins
-
 from langgraph.graph import StateGraph
 
 from lib.services.files.service import get_main_file_id
@@ -26,14 +24,6 @@ class ReferenceExtractionManifest(
     needs_web_search = False
     is_internal = True
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
-
-    def get_state_type(self) -> builtins.type[ReferenceExtractionState]:
-        """Get the type of the workflow state."""
-        return ReferenceExtractionState
-
-    def get_config_type(self) -> builtins.type[ReferenceExtractionConfig]:
-        """Get the type of the workflow config."""
-        return ReferenceExtractionConfig
 
     def build_graph(self) -> StateGraph:
         """Build and return the graph of the workflow."""

@@ -1,128 +1,202 @@
-import { isApiError } from '@/lib/api-error';
-import {
-  annotateApiMicrosoftWordCommentsAnnotatePost,
-  applySuggestionsApiMicrosoftWordSuggestionsApplyPost,
-  HandoffView,
-} from '@/lib/generated-api';
-import { AppliedItem, CHANGED, FailureReason, NOT_FOUND, ParagraphWork, planHandoff, relocate } from './handoff-plan';
-import { paragraphTexts, readParagraphMarkup, scopeText, writeParagraphMarkup } from './word-writes';
-
-const SIGN_IN_EXPIRED = 'the sign-in expired before this was written';
+import { HandoffComment, HandoffEdit, HandoffView } from '@/lib/generated-api';
+import { AppliedItem, HandoffPlan, normalize, planHandoff } from './handoff-plan';
+import { Lookup, lookup } from './quote-search';
 
 /**
- * Write a handoff from Teams into the open document, and say what landed.
+ * Write a handoff's comments and tracked changes into the open document with Word's own
+ * API, and say what landed.
  *
- * One read and one write per paragraph however many items it has, because each write
- * is a chance for Word to reject the package. Edits go before comments: a comment whose
- * words an edit removed falls back to the whole paragraph, whereas an edit whose words
- * now carry comment markers is still found.
+ * Each quote is found with Word's search inside its paragraph; an edit replaces those
+ * words with change tracking on, and a comment is added on them. A write takes under a
+ * tenth of a second in Word for the web, and touches only the quoted words, so a
+ * coauthor's edits elsewhere in the paragraph are left alone.
  *
- * `authorize` is asked before every call, so a long run renews its token as it goes.
- * A 401 stops the run instead of being counted against one paragraph: every later call
- * would be refused too, and the caller has to sign in again. If paragraphs were already
- * written by then, the run returns what landed and the rest as not written, so the
- * result can be reported after signing in again instead of the handoff being replayed.
+ * Word records these under the name of whoever applies them, with no way to name another
+ * author, so each comment is marked as Draft Detective's in its text. An item Word's
+ * search cannot pin down (a quote across a footnote mark, say), or that Word refuses, is
+ * reported as not applied.
  */
-export async function applyHandoff(handoff: HandoffView, authorize: () => Promise<string>): Promise<AppliedItem[]> {
-  const plan = planHandoff(await paragraphTexts(), handoff.items.comments ?? [], handoff.items.edits ?? []);
-  const outcomes: AppliedItem[] = [...plan.unplaced];
+export async function applyHandoff(handoff: Pick<HandoffView, 'items'>): Promise<AppliedItem[]> {
+  const { plan, written } = await write(handoff.items.comments ?? [], handoff.items.edits ?? []);
+  return outcomesOf(plan, written, canWrite() ? NOT_WRITTEN : OLD_WORD);
+}
 
-  const groups = [...plan.paragraphs.values()];
-  for (const [i, work] of groups.entries()) {
-    try {
-      outcomes.push(...(await applyToParagraph(work, authorize)));
-    } catch (error) {
-      // Nothing written yet: let the caller sign in again and apply from the start.
-      if (!outcomes.some((outcome) => outcome.applied)) throw error;
-      // Some of it is already in the document, so it must be reported, not replayed:
-      // what is left counts as not written, and the report asks for the new sign-in.
-      for (const rest of groups.slice(i)) outcomes.push(...failed(rest, SIGN_IN_EXPIRED, 'not_written'));
-      break;
+export const COMMENT_PREFIX = 'Draft Detective: ';
+export const NOT_WRITTEN = 'Word could not find these exact words, or would not change them';
+export const OLD_WORD = 'this version of Word cannot add tracked changes or comments';
+
+/** A comment's text, marked once as Draft Detective's even if the agent already did. */
+export function signed(comment: string): string {
+  return COMMENT_PREFIX + comment.replace(/^\s*draft detective\s*[:\-–—]\s*/i, '');
+}
+
+/** Every item's outcome, by its position in the handoff. */
+export function outcomesOf(plan: HandoffPlan, written: Set<number>, detail: string): AppliedItem[] {
+  const placed = [...plan.paragraphs.values()].flatMap((work) => [
+    ...work.edits.map(({ index, edit }) => ({ index, kind: 'edit' as const, quote: edit.quote })),
+    ...work.comments.map(({ index, comment }) => ({ index, kind: 'comment' as const, quote: comment.quote })),
+  ]);
+  const outcomes = placed.map((item): AppliedItem => {
+    const applied = written.has(item.index);
+    return { ...item, applied, detail: applied ? '' : detail, reason: applied ? undefined : 'refused' };
+  });
+  return [...plan.unplaced, ...outcomes].sort((a, b) => a.index - b.index);
+}
+
+/** Change tracking and comments arrived in WordApi 1.4. */
+function canWrite(): boolean {
+  return Office.context.requirements.isSetSupported('WordApi', '1.4');
+}
+
+type Run = { plan: HandoffPlan; written: Set<number> };
+type Item = { index: number; quote: string; paragraph: Word.Paragraph; text: string };
+type Found = { item: Item; lookup: Lookup; hits: Word.RangeCollection };
+type Long = { item: Item; head: Word.Range; tails: Word.RangeCollection; tailNth: number };
+
+/** Write the handoff's items through Word's API: the plan from the document's text, and what was written. */
+async function write(comments: HandoffComment[], edits: HandoffEdit[]): Promise<Run> {
+  return Word.run(async (context) => {
+    const paragraphs = context.document.body.paragraphs;
+    paragraphs.load('items/text');
+    await context.sync();
+    const texts = paragraphs.items.map((paragraph) => String(paragraph.text ?? ''));
+    const plan = planHandoff(texts, comments, edits);
+    const written = new Set<number>();
+    if (!canWrite()) return { plan, written };
+
+    const items: Item[] = [...plan.paragraphs.entries()].flatMap(([at, work]) => {
+      const where = { paragraph: paragraphs.items[at], text: texts[at] };
+      return [
+        ...work.edits.map(({ index, edit }) => ({ index, quote: edit.quote, ...where })),
+        ...work.comments.map(({ index, comment }) => ({ index, quote: comment.quote, ...where })),
+      ];
+    });
+    const ranges = await findAll(context, items);
+    const replacements = new Map(edits.map((edit, i) => [comments.length + i, edit.replacement]));
+    const notes = new Map(comments.map((comment, i) => [i, comment.comment]));
+
+    await withTracking(context, async () => {
+      // Edits first: a comment's words an edit replaced are still there, as a tracked deletion.
+      for (const [index, replacement] of replacements) {
+        const range = ranges.get(index);
+        if (range && (await wrote(context, () => replace(range, replacement)))) written.add(index);
+      }
+      for (const [index, comment] of notes) {
+        const range = ranges.get(index);
+        if (range && (await wrote(context, () => range.insertComment(signed(comment))))) written.add(index);
+      }
+    });
+    return { plan, written };
+  });
+}
+
+function replace(range: Word.Range, replacement: string): void {
+  if (replacement) range.insertText(replacement, Word.InsertLocation.replace);
+  else range.delete();
+}
+
+/** One write per sync, so a refusal is pinned on its own item. */
+async function wrote(context: Word.RequestContext, queue: () => void): Promise<boolean> {
+  try {
+    queue();
+    await context.sync();
+    return true;
+  } catch (error) {
+    console.info('Word refused a write', error);
+    return false;
+  }
+}
+
+/** With change tracking on for everyone, as Word's own tracked changes need, then as it was. */
+async function withTracking(context: Word.RequestContext, work: () => Promise<void>): Promise<void> {
+  const document = context.document;
+  document.load('changeTrackingMode');
+  await context.sync();
+  const previous = document.changeTrackingMode;
+  const switching = previous !== Word.ChangeTrackingMode.trackAll;
+  if (switching) {
+    document.changeTrackingMode = Word.ChangeTrackingMode.trackAll;
+    await context.sync();
+  }
+  try {
+    await work();
+  } finally {
+    if (switching) {
+      document.changeTrackingMode = previous;
+      await context.sync();
     }
   }
-  return outcomes.sort((a, b) => a.index - b.index);
 }
 
-function failed(work: ParagraphWork, detail: string, reason: FailureReason): AppliedItem[] {
-  return [
-    ...work.edits.map(({ index, edit }): AppliedItem => ({
-      index,
-      kind: 'edit',
-      quote: edit.quote,
-      applied: false,
-      detail,
-      reason,
-    })),
-    ...work.comments.map(({ index, comment }): AppliedItem => ({
-      index,
-      kind: 'comment',
-      quote: comment.quote,
-      applied: false,
-      detail,
-      reason,
-    })),
-  ];
+function queueSearch(item: Item): Found | null {
+  const where = lookup(item.text, item.quote);
+  if (!where) return null;
+  const hits = item.paragraph.search(where.kind === 'whole' ? where.search : where.head, { matchCase: true });
+  hits.load('items/text');
+  return { item, lookup: where, hits };
 }
 
-async function applyToParagraph(work: ParagraphWork, authorize: () => Promise<string>): Promise<AppliedItem[]> {
-  const index = relocate(await paragraphTexts(), work);
-  if (index === null) return failed(work, NOT_FOUND, 'not_found');
-
+/**
+ * Every search in one round trip. One search Word refuses fails that whole round trip,
+ * so then each is asked again on its own, and only the refused one is left out.
+ */
+async function searchAll(context: Word.RequestContext, items: Item[]): Promise<Found[]> {
+  const batch = items.map(queueSearch).filter((found) => found !== null);
   try {
-    const before = await scopeText(index);
-    const read = await readParagraphMarkup(index);
-    if (before === null || !read) return failed(work, NOT_FOUND, 'not_found');
-    let markup: string = read;
-    const outcomes: AppliedItem[] = [];
-
-    if (work.edits.length) {
-      const applied = await applySuggestionsApiMicrosoftWordSuggestionsApplyPost({
-        body: { ooxml: markup, edits: work.edits.map(({ edit }) => edit) },
-        headers: { Authorization: await authorize() },
-      });
-      markup = applied.ooxml ?? markup;
-      // No markup back means nothing was written, whatever each edit says.
-      const written = !!applied.ooxml;
-      const withheld = !written && (applied.warnings ?? []).length > 0;
-      work.edits.forEach(({ index: position, edit }, i) => {
-        const result = applied.edits?.[i];
-        const landed = written && !!result?.applied;
-        outcomes.push({
-          index: position,
-          kind: 'edit',
-          quote: edit.quote,
-          applied: landed,
-          detail: landed ? '' : result?.detail || applied.detail || 'the change was not written',
-          reason: landed ? undefined : withheld ? 'withheld' : 'refused',
-        });
-      });
-    }
-
-    for (const { index: position, comment } of work.comments) {
-      const anchored = await annotateApiMicrosoftWordCommentsAnnotatePost({
-        body: { ooxml: markup, quote: comment.quote, comment: comment.comment },
-        headers: { Authorization: await authorize() },
-      });
-      markup = anchored.ooxml ?? markup;
-      outcomes.push({
-        index: position,
-        kind: 'comment',
-        quote: comment.quote,
-        applied: anchored.anchored,
-        detail: anchored.detail ?? '',
-        reason: anchored.anchored ? undefined : 'refused',
-      });
-    }
-
-    if (outcomes.some((outcome) => outcome.applied)) {
-      // The write replaces the whole paragraph, or its whole table, with markup made
-      // from the earlier read: anything typed into it meanwhile would be lost.
-      if (!(await writeParagraphMarkup(index, markup, before))) return failed(work, CHANGED, 'changed');
-    }
-    return outcomes;
+    await context.sync();
+    return batch;
   } catch (error) {
-    if (isApiError(error, 401)) throw error;
-    console.error('Could not apply to paragraph', index, error);
-    return failed(work, 'Word or the service refused the change', 'not_written');
+    console.info('Word refused a search; searching one at a time', error);
+  }
+  const found: Found[] = [];
+  for (const item of items) {
+    const one = queueSearch(item);
+    if (!one) continue;
+    try {
+      await context.sync();
+      found.push(one);
+    } catch {
+      // Reported as not written.
+    }
+  }
+  return found;
+}
+
+/** Each item's range, where Word's search agrees with the paragraph's text. */
+async function findAll(context: Word.RequestContext, items: Item[]): Promise<Map<number, Word.Range>> {
+  const ranges = new Map<number, Word.Range>();
+  const long: Long[] = [];
+  for (const { item, lookup: where, hits } of await searchAll(context, items)) {
+    // A different count means Word reads the paragraph otherwise than its text: not guessed at.
+    if (hits.items.length !== where.hits) continue;
+    const hit = hits.items[where.nth];
+    if (where.kind === 'whole') ranges.set(item.index, hit);
+    else {
+      const tails = hit.expandTo(item.paragraph.getRange('End')).search(where.tail, { matchCase: true });
+      tails.load('items');
+      long.push({ item, head: hit, tails, tailNth: where.tailNth });
+    }
+  }
+  if (long.length) await placeLong(context, long, ranges);
+  return ranges;
+}
+
+/** A long quote runs from its head to its tail, if the words between are the quote's. */
+async function placeLong(context: Word.RequestContext, long: Long[], ranges: Map<number, Word.Range>): Promise<void> {
+  try {
+    await context.sync();
+    const spans = long.flatMap(({ item, head, tails, tailNth }) => {
+      const tail = tails.items[tailNth];
+      if (!tail) return [];
+      const span = head.expandTo(tail);
+      span.load('text');
+      return [{ item, span }];
+    });
+    await context.sync();
+    for (const { item, span } of spans) {
+      if (normalize(String(span.text ?? '')) === normalize(item.quote)) ranges.set(item.index, span);
+    }
+  } catch (error) {
+    console.info('Word refused a search for a long quote', error);
   }
 }

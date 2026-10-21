@@ -34,6 +34,7 @@ when the asker opens the document.
 """
 
 import logging
+import uuid
 from collections.abc import Sequence
 from typing import Any
 
@@ -52,11 +53,17 @@ from lib.agents.deep_agent_setup import (
     build_skill_files,
     tool_names,
 )
+from lib.agents.seen_image_redaction import SeenImageRedactionMiddleware
 from lib.agents.tools.sharepoint import check_document_for, open_document_for
-from lib.agents.tools.word_handoff import offer_changes_for
+from lib.agents.tools.view_image import VIEW_IMAGE_PROMPT, view_image_for_conversation
+from lib.agents.tools.word_handoff import offer_changes_for, tenant_of
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
 from lib.config.llm_models import LLMModel
+from lib.services import conversations
+from lib.services.microsoft import linked_users
+from lib.services.microsoft.graph import client as graph_client
+from lib.services.microsoft.graph.client import GraphError
 
 logger = logging.getLogger(__name__)
 
@@ -239,6 +246,23 @@ class QuestionAnswer(BaseModel):
     error: str | None = None
 
 
+async def asker(graph_token: str, name: str) -> uuid.UUID | None:
+    """The Draft Detective user who asked, by their mail address, for listing.
+
+    Read from Graph with their own token, so it is theirs; ``linked_users`` decides
+    whether that address can be trusted to mean a user. Optional: a lookup that fails
+    leaves the conversation unlisted rather than unanswered.
+    """
+
+    try:
+        person = await graph_client.me(token=graph_token)
+    except GraphError as error:
+        logger.info("could not look up who asked: %s", error)
+        return None
+    email = str(person.get("mail") or "") or None
+    return await linked_users.user_for(email, name, tenant_of(graph_token))
+
+
 async def answer_question(
     question: str,
     graph_token: str,
@@ -294,16 +318,23 @@ async def answer_question(
     }
 
     try:
+        # What the documents' images opened here belong to; the agent's own history
+        # stays under the Teams id, as before.
+        conversation_id = await conversations.for_teams(
+            thread_id, lambda: asker(graph_token, asked_by)
+        )
         async with get_checkpointer() as saver:
             agent = build_deep_agent(
                 model=build_llm(model, api_key),
                 tools=[
-                    open_document_for(graph_token),
+                    open_document_for(graph_token, conversation_id),
                     check_document_for(graph_token),
+                    view_image_for_conversation(conversation_id),
                     *([offer_changes_for(graph_token, reference)] if reference else []),
                 ],
                 skills=["/skills/"],
-                system_prompt=SYSTEM_PROMPT,
+                system_prompt=SYSTEM_PROMPT + VIEW_IMAGE_PROMPT,
+                middleware=[SeenImageRedactionMiddleware()],
                 checkpointer=saver,
             )
 

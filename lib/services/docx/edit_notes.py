@@ -97,13 +97,11 @@ def build_edit_notes(
         outcome = outcomes.get(edit.id)
         if outcome is None:
             continue
-        notes.append(
-            "\n".join(
-                [
-                    _headline(edit),
-                    edit.rationale,
-                    _status_line(outcome, conflict_winner_names.get(edit.id)),
-                ]
-            )
-        )
+        lines = [
+            _headline(edit),
+            edit.rationale,
+            _status_line(outcome, conflict_winner_names.get(edit.id)),
+        ]
+        # A rationale may be empty when the issue's description already says why.
+        notes.append("\n".join(line for line in lines if line))
     return notes

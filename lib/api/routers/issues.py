@@ -19,7 +19,7 @@ from lib.services.issue_persistence import (
     resolve_issue,
     unresolve_issue,
 )
-from lib.services.projects import get_project_access
+from lib.services.projects.service import get_project_access
 
 router = APIRouter(tags=["issues"])
 

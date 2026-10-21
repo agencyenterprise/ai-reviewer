@@ -36,14 +36,14 @@ from evals_inspectai.common.api_solver import api_workflow_agent
 from evals_inspectai.common.errors import WorkflowCompletionError
 from evals_inspectai.common.issue_checks import PER_KEY_METRICS
 from evals_inspectai.common.issue_judge import gist, grade
-from evals_inspectai.common.issue_viewer import issue_viewer_config
 from evals_inspectai.common.scorers import DEFAULT_GRADER_MODEL
+from evals_inspectai.common.viewer import checks_viewer_config
 from evals_inspectai.e2e.reference_validation_v2.criteria import (
     DESCRIPTIONS,
     JUDGE_DESCRIPTIONS,
     KEYS,
+    ReferenceValidationItem,
     ReferenceValidationOutput,
-    ValidationResult,
     reasoning_prompt,
     validation_scores,
 )
@@ -71,11 +71,14 @@ SCORE_LABELS = {
     "updated_reference_as_specified": "Updated ref",
     "all_fields_reported": "All fields",
     "url_when_found": "URL",
+    "edits_only_when_due": "Edits due",
+    "edit_given": "Edit given",
+    "edits_carry_corrections": "Edits fix",
     "reasoning_matches": "Reasoning",
 }
 
 
-def _validation(state: TaskState) -> tuple[ValidationResult | None, str]:
+def _validation(state: TaskState) -> tuple[ReferenceValidationItem | None, str]:
     """The run's validation of its one reference, or None with the reason there is none.
     A per-reference error is an infrastructure failure, raised so Inspect retries it."""
     try:
@@ -91,7 +94,7 @@ def _validation(state: TaskState) -> tuple[ValidationResult | None, str]:
         )
     if item.validation_result is None:
         return None, "the reference has no validation result"
-    return item.validation_result, ""
+    return item, ""
 
 
 def _record(state: TaskState) -> ReferenceRecord:
@@ -103,10 +106,12 @@ def validation_checks() -> Scorer:
     """The deterministic checks, one key each (see ``criteria.validation_scores``)."""
 
     async def score(state: TaskState, target: Target) -> Score:
-        result, why = _validation(state)
-        if result is None:
+        item, why = _validation(state)
+        if item is None or item.validation_result is None:
             return Score(value=dict.fromkeys(KEYS, 0.0), explanation=why)
-        values, explanation = validation_scores(result, _record(state))
+        values, explanation = validation_scores(
+            item.validation_result, _record(state), item.edits
+        )
         return Score(value=values, explanation=explanation)
 
     return score
@@ -123,9 +128,10 @@ def validation_judged(calls: int = 1) -> Scorer:
                 value={"reasoning_matches": math.nan},
                 explanation="no labeller's rationale",
             )
-        result, why = _validation(state)
-        if result is None:
+        item, why = _validation(state)
+        if item is None or item.validation_result is None:
             return Score(value={"reasoning_matches": 0.0}, explanation=why)
+        result = item.validation_result
         grader = get_model(role="grader", default=DEFAULT_GRADER_MODEL)
         value, reasoning = await grade(grader, reasoning_prompt(record, result), calls)
         return Score(
@@ -170,5 +176,5 @@ def reference_validation_v2_e2e(timeout_s: float = 600, judge_calls: int = 1) ->
         ),
         scorer=[validation_checks(), validation_judged(calls=judge_calls)],
         fail_on_error=0.2,
-        viewer=issue_viewer_config(columns, SCORE_LABELS),
+        viewer=checks_viewer_config(columns, SCORE_LABELS),
     )

@@ -35,7 +35,6 @@
     title: Vague Header
     anchor: Findings
     line: 11
-    severity: medium
   decoys:
   - anchor: How We Measured Reading Gains
     reason: procedural_header
@@ -64,7 +63,6 @@
   - id: staffing_levels
     title: Header Lacks Takeaway
     anchor: Analysis of Court Staffing Levels
-    severity: low
   decoys:
   - anchor: Sources of Caseload and Payroll Data
     reason: procedural_header
@@ -93,7 +91,6 @@
   - id: costs_header
     title: Header Does Not Match Content
     anchor: Program Costs
-    severity: medium
   decoys:
   - anchor: How the Pilot Worked
     reason: procedural_header
@@ -122,7 +119,6 @@
   - id: no_bluf
     title: Bottom Line Not Up Front
     anchor: "## Introduction"
-    severity: high
   notes: The introduction gives purpose and structure only; the 9 versus 15 percent finding first appears in Chapter 3. Every header already states its point.
 
 - input: |
@@ -166,7 +162,6 @@
   - id: retention_lead
     title: Lead Sentence Lacks Takeaway
     anchor: "**Retention.**"
-    severity: low
   decoys:
   - anchor: Staff tutors cost districts about 30 percent more than contractors
     reason: argued_lead
@@ -229,11 +224,9 @@
   - id: too_many
     title: Too Many Key Findings
     anchor: Enrollment in the program grew from 400 to 2,100 patients
-    severity: medium
   - id: cost_item
     title: Key Finding Not Brief
     anchor: To measure costs, we drew on billing records from three clinics
-    severity: low
   notes: Nine items, one of which buries a cost finding behind its method. The box's header itself must not be retitled.
 
 # ---- protected headers ------------------------------------------------------------------------
@@ -320,7 +313,6 @@
   - id: results_header
     title: Vague Header
     anchor: "3. Results"
-    severity: medium
   decoys:
   - anchor: "2. Data and Methods"
     reason: procedural_header
@@ -424,29 +416,23 @@
   - id: ch3_findings
     title: Vague Header
     anchor: "Chapter 3: Findings"
-    severity: medium
   - id: leak_detection
     title: Header Lacks Takeaway
     anchor: Leak Detection
     line: 29
-    severity: low
   - id: rate_changes
     title: Header Lacks Takeaway
     anchor: Rate Changes
-    severity: low
   - id: staffing_mismatch
     title: Header Does Not Match Content
     anchor: Staffing
     line: 43
-    severity: medium
   - id: ch4_discussion
     title: Vague Header
     anchor: "Chapter 4: Discussion"
-    severity: medium
   - id: crews_lead
     title: Lead Sentence Lacks Takeaway
     anchor: "**Crews.**"
-    severity: low
   decoys:
   - anchor: Production and billing records.
     reason: procedural_lead
@@ -468,28 +454,22 @@
   - id: no_bluf
     title: Bottom Line Not Up Front
     anchor: "## Introduction"
-    severity: high
   - id: overview_header
     title: Vague Header
     anchor: Overview
-    severity: medium
   - id: where_moved
     title: Header Lacks Takeaway
     anchor: Where Families Moved
-    severity: low
   - id: school_outcomes
     title: Header Lacks Takeaway
     anchor: School Outcomes
     line: 21
-    severity: low
   - id: other_issues
     title: Vague Header
     anchor: Other Issues
-    severity: medium
   - id: distance_lead
     title: Lead Sentence Lacks Takeaway
     anchor: "**Distance.**"
-    severity: low
   - id: landlord_header
     title: Header
     anchor: Landlord Participation

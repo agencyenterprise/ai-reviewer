@@ -1,7 +1,10 @@
 import { FileListItem, FileRole } from '@/lib/generated-api';
 
+/** What matching reads of a project file: any listing of the project's files has it. */
+export type UploadRow = Pick<FileListItem, 'id' | 'file_name' | 'file_size' | 'role' | 'created_at'>;
+
 /** A row the upload could have created for this staged file: same name, same bytes. */
-const couldBe = (row: FileListItem, file: File) => row.file_name === file.name && row.file_size === file.size;
+const couldBe = (row: UploadRow, file: File) => row.file_name === file.name && row.file_size === file.size;
 
 /**
  * Which project file each finished upload created.
@@ -16,16 +19,16 @@ const couldBe = (row: FileListItem, file: File) => row.file_name === file.name &
  * can still commit and answer in opposite orders and swap; only an id
  * returned by the upload would rule that out.
  */
-export function matchUploads(
+export function matchUploads<Row extends UploadRow>(
   finished: File[],
   before: ReadonlySet<string>,
-  after: FileListItem[],
-): Map<File, FileListItem> {
+  after: Row[],
+): Map<File, Row> {
   const fresh = after
     .filter((row) => !before.has(row.id) && row.role === FileRole.ReviewInput)
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   const taken = new Set<string>();
-  const matched = new Map<File, FileListItem>();
+  const matched = new Map<File, Row>();
   for (const file of finished) {
     const row = fresh.find((candidate) => !taken.has(candidate.id) && couldBe(candidate, file));
     if (!row) continue;
@@ -36,7 +39,7 @@ export function matchUploads(
 }
 
 /** The uploaded rows in the order the files were sent: reviewer letters follow it. */
-export function inSentOrder(sent: File[], matched: Map<File, FileListItem>): FileListItem[] {
+export function inSentOrder<Row>(sent: File[], matched: Map<File, Row>): Row[] {
   return sent.flatMap((file) => {
     const row = matched.get(file);
     return row ? [row] : [];

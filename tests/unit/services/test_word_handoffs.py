@@ -87,7 +87,7 @@ class TestWhoOwnsAHandoff:
 
     def sql(self, account: Account) -> str:
         return str(
-            handoffs._owned_by(account).compile(compile_kwargs={"literal_binds": True})
+            handoffs.owned_by(account).compile(compile_kwargs={"literal_binds": True})
         )
 
     def test_the_object_id_must_match(self) -> None:
@@ -379,4 +379,37 @@ class TestReportingApplied:
         ):
             assert await handoffs.report_applied(uuid.uuid4(), ANA, []) is False
 
+        post.assert_not_awaited()
+
+
+class TestHandoffsFromTheChat:
+    @pytest.mark.asyncio
+    async def test_the_teams_list_leaves_out_the_chats_suggestions(self) -> None:
+        result = MagicMock()
+        result.scalars.return_value.all.return_value = []
+        session = session_returning()
+        session.execute = AsyncMock(return_value=result)
+        with patch.object(handoffs, "get_async_db_session", return_value=session):
+            await handoffs.pending_for(ANA)
+
+        assert "chat_thread_id is null" in statements(session)[1]
+
+    @pytest.mark.asyncio
+    async def test_applying_one_posts_nothing_to_teams(self) -> None:
+        finished = FinishedHandoff(
+            document_name="Draft.docx", reference=None, items=ITEMS
+        )
+        with (
+            patch.object(handoffs, "_open_items", AsyncMock(return_value=ITEMS)),
+            patch.object(
+                handoffs, "finish", AsyncMock(return_value=finished)
+            ) as finish,
+            patch.object(handoffs.bot, "post_later", AsyncMock()) as post,
+        ):
+            reported = await handoffs.report_applied(
+                uuid.uuid4(), ANA, [ItemResult(index=0, applied=True)]
+            )
+
+        assert reported is True
+        finish.assert_awaited_once()
         post.assert_not_awaited()

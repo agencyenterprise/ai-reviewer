@@ -1,3 +1,7 @@
+'use client';
+
+import { usePathname } from 'next/navigation';
+
 import { Badge } from '@/components/ui/badge';
 import packageJson from '@/package.json';
 
@@ -11,7 +15,11 @@ function GithubMark({ className }: { className?: string }) {
 }
 
 export function VersionBadge() {
+  const pathname = usePathname();
   const repoUrl = packageJson.repository?.url;
+
+  // The Word add-in's pane is about 320px wide, and the badge would sit on its composer.
+  if (pathname?.startsWith('/addin')) return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-50">

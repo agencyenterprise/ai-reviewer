@@ -40,6 +40,11 @@ interface WorkflowConfigDialogProps {
   submitLabel?: string;
   /** The help topic the dialog's link opens. Follows what the dialog is for. */
   helpTopic?: HelpTopicId;
+  /**
+   * Assessments already running or queued. They are listed as running and
+   * cannot be ticked, so a second click on Run cannot start the same work twice.
+   */
+  runningTypes?: WorkflowRunType[];
 }
 
 /** The run button says how many it will start, so the count is confirmed where it matters. */
@@ -64,6 +69,7 @@ export function WorkflowConfigDialog({
   description,
   submitLabel,
   helpTopic = 'assessments',
+  runningTypes = [],
 }: WorkflowConfigDialogProps) {
   const [storedWebSearchConsent] = useWebSearchConsent(projectId);
   const { showExperimentalFeatures } = useExperimentalFeatures();
@@ -112,14 +118,20 @@ export function WorkflowConfigDialog({
       // preselected without consent) has had none. The footer decides from
       // the current values instead, and this guard keeps a submit honest.
       if (!readinessOf(value).ready) return;
-      onConfirm(value);
+      onConfirm(startable(value));
     },
   });
+
+  // A row ticked before its assessment started elsewhere stays ticked in the
+  // form, but it is no longer something this dialog can start.
+  function startable(value: WorkflowConfigFormValues): WorkflowConfigFormValues {
+    return { ...value, workflowTypes: value.workflowTypes.filter((t) => !runningTypes.includes(t)) };
+  }
 
   // Whether these values can run, from the values and the metadata alone.
   function readinessOf(value: WorkflowConfigFormValues, fieldErrors: string[] = [], pristine = false) {
     return runReadiness({
-      selectedTypes: value.workflowTypes,
+      selectedTypes: startable(value).workflowTypes,
       webSearchConsent: value.webSearchConsent,
       workflowTypes,
       metadataPending: isMetadataPending,
@@ -187,6 +199,7 @@ export function WorkflowConfigDialog({
                 selectedTypes={field.state.value}
                 onSelectionChange={field.handleChange}
                 disabledTypes={type ? [type] : undefined}
+                runningTypes={runningTypes}
               />
             )}
           </form.Field>
@@ -237,7 +250,7 @@ export function WorkflowConfigDialog({
                 !state.isTouched,
               ),
               isSubmitting: state.isSubmitting,
-              selectedCount: state.values.workflowTypes.length,
+              selectedCount: startable(state.values).workflowTypes.length,
             })}
           >
             {({ readiness, isSubmitting, selectedCount }) => (

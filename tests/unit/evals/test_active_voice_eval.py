@@ -137,7 +137,9 @@ def test_actor_criterion_applies_only_to_passive_issues_without_an_edit():
 def test_every_metric_has_a_description_for_the_log_viewer():
     reasons = list(decoy_reasons(load_inventory_records(DATASET)))
     described = active_voice_e2e().metadata["metrics"]
-    assert set(described["issue_checks"]) == set(DETECTION_KEYS) | set(EDIT_KEYS)
+    assert set(described["issue_checks"]) == (set(DETECTION_KEYS) | set(EDIT_KEYS)) - {
+        "severity_correct"
+    }, "the agent judges severity, so it is not scored"
     assert set(described["decoy_checks"]) == {f"no_fp_{r}" for r in reasons}
     assert set(described["active_voice_edit_checks"]) == {
         f"edit_{name}" for name in EXTRA_EDIT_CHECKS

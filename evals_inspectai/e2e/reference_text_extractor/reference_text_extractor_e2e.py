@@ -34,17 +34,9 @@ Run (backend must be running)::
 from pathlib import Path
 
 from inspect_ai import Task, task
-from inspect_ai.viewer import (
-    SampleScoreView,
-    SampleScoreViewSort,
-    ScoreColorScale,
-    TaskSamplesColumn,
-    TaskSamplesSort,
-    TaskSamplesView,
-    ViewerConfig,
-)
 
 from evals_inspectai.common.api_solver import api_workflow_agent
+from evals_inspectai.common.viewer import checks_viewer_config
 from evals_inspectai.e2e.reference_text_extractor.criteria import (
     DESCRIPTIONS,
     KEYS,
@@ -56,45 +48,6 @@ from evals_inspectai.e2e.reference_text_extractor.records import reference_datas
 WORKFLOW_TYPE = "reference_extraction"
 DATASET = Path(__file__).parent / "dataset.yaml"
 SCORER = "reference_checks"
-
-
-def viewer_config() -> ViewerConfig:
-    """One narrow, colour-graded column per check, epochs of a document side by side;
-    target and answer hidden, since the labels live in metadata."""
-    return ViewerConfig(
-        task_samples_view=TaskSamplesView(
-            name="Checks by sample and epoch",
-            columns=[
-                TaskSamplesColumn(id="sampleStatus"),
-                TaskSamplesColumn(id="sampleId"),
-                TaskSamplesColumn(id="epoch"),
-                TaskSamplesColumn(id="input"),
-                *(TaskSamplesColumn.score(SCORER, key) for key in KEYS),
-                TaskSamplesColumn(id="error"),
-                TaskSamplesColumn(id="duration"),
-                TaskSamplesColumn(id="target", visible=False),
-                TaskSamplesColumn(id="answer", visible=False),
-                TaskSamplesColumn(id="tokens", visible=False),
-            ],
-            sort=[
-                TaskSamplesSort(column="sampleId", dir="asc"),
-                TaskSamplesSort(column="epoch", dir="asc"),
-            ],
-            compact_scores=True,
-            multiline=False,
-            score_labels=SCORE_LABELS,
-            # Pinned to 0..1 so a check that passes everywhere still paints green.
-            score_color_scales={
-                key: ScoreColorScale(palette="good-high", min=0.0, max=1.0)
-                for key in KEYS
-            },
-            color_scales_enabled=True,
-        ),
-        sample_score_view=SampleScoreView(
-            default="grid",
-            sort=SampleScoreViewSort(column="value", dir="asc"),
-        ),
-    )
 
 
 @task
@@ -118,5 +71,5 @@ def reference_text_extractor_e2e(timeout_s: float = 600) -> Task:
         solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s),
         scorer=[reference_checks()],
         fail_on_error=0.2,
-        viewer=viewer_config(),
+        viewer=checks_viewer_config([(SCORER, key) for key in KEYS], SCORE_LABELS),
     )

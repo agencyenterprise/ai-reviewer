@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { FileUpload } from '@/components/ui/file-upload';
 import { UploadProgressList } from '@/components/ui/upload-progress-list';
 import {
-  FileListItem,
   FileRole,
   listProjectFilesEndpointApiProjectProjectIdFilesGet,
   ProjectOverview,
@@ -18,7 +17,7 @@ import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { DOCUMENT_KINDS, OUTPUTS } from './outputs';
 import { ProjectFilePicker } from './project-file-picker';
-import { inSentOrder, matchUploads } from './uploaded-files';
+import { inSentOrder, matchUploads, UploadRow } from './uploaded-files';
 import { useStartReviewAssistantRequest } from './use-review-assistant';
 
 interface RequestComposerProps {
@@ -52,7 +51,7 @@ export function RequestComposer({ overview, onStarted }: RequestComposerProps) {
    * under "Already in this project" instead, so trying again never uploads
    * them twice.
    */
-  const keepUploaded = (matched: Map<File, FileListItem>) => {
+  const keepUploaded = (matched: Map<File, UploadRow>) => {
     setPicked((prev) => new Set([...prev, ...[...matched.values()].map((row) => row.id)]));
     setStaged((prev) => prev.filter((file) => !matched.has(file)));
   };
@@ -60,7 +59,7 @@ export function RequestComposer({ overview, onStarted }: RequestComposerProps) {
   /** What the upload created for each finished file, read back from the project. */
   const readUploads = async () => matchUploads(finished.current, filesBeforeUpload.current, await listFiles(projectId));
 
-  const submit = (matched: Map<File, FileListItem>) => {
+  const submit = (matched: Map<File, UploadRow>) => {
     const uploaded = inSentOrder(staged, matched);
     setPhase('starting');
     const newFileIds = uploaded.map((file) => file.id);
@@ -81,7 +80,7 @@ export function RequestComposer({ overview, onStarted }: RequestComposerProps) {
    * would not say so. So nothing starts: the files that made it are kept, and
    * the rest stay staged to retry or remove.
    */
-  const holdAfterPartialUpload = (matched: Map<File, FileListItem>) => {
+  const holdAfterPartialUpload = (matched: Map<File, UploadRow>) => {
     keepUploaded(matched);
     setPhase('idle');
     const missing = sentCount.current - matched.size;

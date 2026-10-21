@@ -32,7 +32,7 @@ async def test_document_takes_title_and_authors_from_the_main_file_summary(page)
 @pytest.mark.asyncio
 async def test_document_reads_the_revisions_markdown(page):
     with patch(
-        "lib.services.project_content.get_main_document_markdown",
+        "lib.services.projects.content.get_main_document_markdown",
         new=AsyncMock(return_value="# The Draft"),
     ) as markdown:
         document = await get_project_document_endpoint(

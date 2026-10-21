@@ -38,7 +38,6 @@ are each worth reading and testing on their own.
 
 from pathlib import Path
 
-import yaml
 from inspect_ai import Task, task
 from inspect_ai.dataset import MemoryDataset, Sample
 from inspect_ai.model import Model, get_model
@@ -47,6 +46,7 @@ from inspect_ai.solver import TaskState
 from pydantic import ValidationError
 
 from evals_inspectai.common.api_solver import api_workflow_agent
+from evals_inspectai.common.loaders import yaml_dataset
 from evals_inspectai.common.scorers import (
     REQUIREMENT_TEMPLATE,
     checks_to_score,
@@ -59,6 +59,7 @@ from evals_inspectai.common.simple_deep_agent_types import (
     AgentCheckResult,
     SimpleDeepAgentOutput,
 )
+from evals_inspectai.common.viewer import checks_viewer_config
 from evals_inspectai.e2e.results_extraction.checks import inventory_check_results
 from evals_inspectai.e2e.results_extraction.contract import (
     INVENTORY_CHECKS,
@@ -69,7 +70,6 @@ from evals_inspectai.e2e.results_extraction.criteria import (
     SHARED_CRITERIA,
     answer_text,
 )
-from evals_inspectai.e2e.results_extraction.viewer import viewer_config
 
 # Each criterion is graded this many times and the median taken: graders
 # disagreed with themselves across repeats of an unchanged output, and this is
@@ -96,6 +96,13 @@ def _record_to_sample(record: dict) -> Sample:
     `target_answer` becomes the `sample_expectations` criterion rather than a
     target string, so it is graded in its own call alongside the shared one.
     """
+    if not record.get("expected_results") and not record.get("expects_no_results"):
+        raise ValueError(
+            f"dataset record {record.get('id')!r} declares no expected_results; "
+            "four of the deterministic checks compare against that inventory "
+            "and have nothing to check without it. A document that genuinely "
+            "presents no results should say so with `expects_no_results: true`"
+        )
     return Sample(
         id=record["id"],
         input=record["input"],
@@ -109,29 +116,24 @@ def _record_to_sample(record: dict) -> Sample:
 
 
 def _load_dataset() -> MemoryDataset:
-    """Read the YAML dataset into memory.
+    return yaml_dataset(Path(__file__).parent / "dataset.yaml", _record_to_sample)
 
-    Inspect ships CSV and JSON loaders but not YAML, so the records are read
-    here and handed over as a `MemoryDataset`. YAML earns that glue twice over:
-    the documents are inline as block scalars, which keeps each record readable
-    and diffable as one unit, and the rubric prose stays legible where a JSON
-    string of the same length would not.
-    """
-    path = Path(__file__).parent / "dataset.yaml"
-    records = yaml.safe_load(path.read_text())
-    for record in records:
-        if not record.get("expected_results") and not record.get("expects_no_results"):
-            raise ValueError(
-                f"dataset record {record.get('id')!r} declares no expected_results; "
-                "four of the deterministic checks compare against that inventory "
-                "and have nothing to check without it. A document that genuinely "
-                "presents no results should say so with `expects_no_results: true`"
-            )
-    return MemoryDataset(
-        samples=[_record_to_sample(record) for record in records],
-        name="results_extraction",
-        location=str(path),
-    )
+
+SCORE_LABELS = {
+    "report": "Report",
+    "inventory_table": "Table",
+    "result_count": "Count",
+    "labels": "Labels",
+    "severity_split": "Split",
+    "line_ranges": "Lines",
+    "no_duplicates": "No dupes",
+    "completeness": "Found",
+    "class_accuracy": "Class",
+    "no_extras": "No extras",
+    "severity_ordering": "Order",
+    "classification_grounded": "Grounded",
+    "sample_expectations": "Sample",
+}
 
 
 def _extract_result(state: TaskState) -> tuple[AgentCheckResult | None, str]:
@@ -206,5 +208,11 @@ def results_extraction_e2e():
             rubric_criteria(),
             tool_called("view_image"),
         ],
-        viewer=viewer_config(),
+        viewer=checks_viewer_config(
+            [
+                *(("inventory_checks", name) for name in INVENTORY_CHECKS),
+                *(("rubric_criteria", name) for name in RUBRIC_CRITERIA),
+            ],
+            SCORE_LABELS,
+        ),
     )

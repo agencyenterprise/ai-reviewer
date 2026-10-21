@@ -85,11 +85,10 @@ export interface HtmlReportFrameHandle {
 interface HtmlReportFrameProps {
   html: string;
   title?: string;
-  className?: string;
   ref?: Ref<HtmlReportFrameHandle>;
 }
 
-export function HtmlReportFrame({ html, title = 'Report', className, ref }: HtmlReportFrameProps) {
+export function HtmlReportFrame({ html, title = 'Report', ref }: HtmlReportFrameProps) {
   const srcDoc = useMemo(() => buildSrcDoc(html), [html]);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -128,8 +127,8 @@ export function HtmlReportFrame({ html, title = 'Report', className, ref }: Html
     // offsetSize is added to the measured content height. It carries the
     // frame's vertical borders, because the resizer writes style.height and
     // under the app's border-box default those borders come out of it, leaving
-    // the report short of its own content. Measured rather than assumed so a
-    // caller's className can change the border. Plus one pixel of slack:
+    // the report short of its own content. Measured rather than assumed, so a
+    // change to the frame's border class carries through. Plus one pixel of slack:
     // content heights are fractional (286.88px is normal), and a frame even a
     // rounding error short would leave the report a scrollbar with almost no
     // travel. Width keeps border-box sizing, so the frame never overflows its
@@ -180,7 +179,7 @@ export function HtmlReportFrame({ html, title = 'Report', className, ref }: Html
       // dialog open. Neither enables script execution without allow-scripts.
       sandbox="allow-same-origin allow-modals"
       srcDoc={srcDoc}
-      className={className ?? 'block w-full rounded-lg border bg-white'}
+      className="block w-full rounded-lg border bg-white"
     />
   );
 }

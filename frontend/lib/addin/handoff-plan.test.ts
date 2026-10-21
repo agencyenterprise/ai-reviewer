@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AMBIGUOUS, NOT_FOUND, locate, planHandoff, relocate } from './handoff-plan';
+import { AMBIGUOUS, NOT_FOUND, OVERLAPS, locate, planHandoff } from './handoff-plan';
 
 const paragraphs = [
   'Introduction',
@@ -17,12 +17,25 @@ describe('locate', () => {
     expect(locate(["the author's view"], 'the author’s view')).toBe(0);
   });
 
+  it('treats hyphens and en or em dashes alike', () => {
+    expect(locate(['Site specific - BTM'], 'Site specific – BTM')).toBe(0);
+    expect(locate(['a long—winded clause'], 'long-winded')).toBe(0);
+  });
+
   it('reports a quote that is gone', () => {
     expect(locate(paragraphs, 'no such words')).toBe(NOT_FOUND);
   });
 
   it('refuses to choose between two paragraphs', () => {
     expect(locate(paragraphs, 'unding')).toBe(AMBIGUOUS);
+  });
+
+  it('refuses to choose between two places in one paragraph', () => {
+    expect(locate(['Then the rate rose, and the rate fell.'], 'the rate')).toBe(AMBIGUOUS);
+  });
+
+  it('counts occurrences that overlap', () => {
+    expect(locate(['A banana.'], 'ana')).toBe(AMBIGUOUS);
   });
 });
 
@@ -45,11 +58,21 @@ describe('planHandoff', () => {
       { index: 1, kind: 'comment', quote: 'vanished text', applied: false, detail: NOT_FOUND, reason: 'not_found' },
     ]);
   });
-});
 
-describe('relocate', () => {
-  it('falls back to another quote when the first has been edited away', () => {
-    const work = { quotes: ['recieve funding', 'two sources'], comments: [], edits: [] };
-    expect(relocate(['Intro', 'We receive funding from two sources.'], work)).toBe(1);
+  it('withholds an edit over words an earlier edit changes', () => {
+    const plan = planHandoff(
+      ['The quick brown fox jumps.'],
+      [],
+      [
+        { quote: 'quick brown', replacement: 'slow brown' },
+        { quote: 'brown fox', replacement: 'red fox' },
+        { quote: 'jumps', replacement: 'leaps' },
+      ],
+    );
+
+    expect(plan.paragraphs.get(0)?.edits.map(({ index }) => index)).toEqual([0, 2]);
+    expect(plan.unplaced).toEqual([
+      { index: 1, kind: 'edit', quote: 'brown fox', applied: false, detail: OVERLAPS, reason: 'withheld' },
+    ]);
   });
 });

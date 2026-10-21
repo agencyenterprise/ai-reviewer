@@ -22,9 +22,8 @@ Two things were established by probing a real tenant rather than from documentat
 Writing is deliberately absent. A whole-file PUT is refused with 423 while anyone
 has the document open, whatever identity asks -- even a View Only desktop session --
 and Word desktop keeps that lock for more than nine minutes after it quits (probed
-2026-10-08). So writes belong to a Word client: see
-``lib/services/microsoft/word/word_package.py`` and the add-in, and
-``lib/services/microsoft/word/handoffs.py`` for how a request made in Teams gets there.
+2026-10-08). So writes belong to a Word client: the add-in writes with Word's own API,
+and ``lib/services/microsoft/word/handoffs.py`` is how a request made in Teams gets there.
 """
 
 import base64

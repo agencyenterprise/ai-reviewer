@@ -1,14 +1,15 @@
 """A SharePoint document, loaded as markdown.
 
-The backend holds a real .docx here rather than the Flat OPC an add-in sends, so both
-readers below open it directly and none of the adapter in
-``lib/services/microsoft/word/word_package.py`` is involved. That is the one clear
-simplification of loading documents server-side.
-
 Two readers, because neither does both jobs. **markitdown** produces the body, the same
 converter the rest of the app uses for a main document -- headings, tables and emphasis
 survive, where a paragraph-by-paragraph read flattens them into indistinguishable
 strings. **docx-editor** produces the comments, which markitdown does not extract.
+
+The body is converted the way the web app converts a project's main document
+(``convert_docx``): native charts and metafile pictures are rendered to images first,
+and every image is saved to disk and referenced from the markdown as
+``draftdetective://{id}``, for ``view_image``. Saving the ``files`` rows that make those
+ids resolvable is the caller's: it knows which conversation owns them.
 
 Read-only. Writing back is refused by SharePoint with 423 while anyone has the
 document open, so it is not offered here at all.
@@ -18,12 +19,14 @@ import asyncio
 import logging
 import shutil
 import tempfile
+import time
 from pathlib import Path
 
 from docx_editor import Document
 from pydantic import BaseModel, Field
 
-from lib.services.converters.base import convert_to_markdown
+from lib.services.files.conversion import convert_docx
+from lib.services.files.image_extraction import ExtractedImage, extract_data_uri_images
 from lib.services.microsoft.graph import client
 
 logger = logging.getLogger(__name__)
@@ -42,6 +45,10 @@ class LoadedDocument(BaseModel):
     )
     last_modified: str | None = None
     size_bytes: int = 0
+    images: list[ExtractedImage] = Field(
+        default_factory=list,
+        description="The images the markdown references, saved but not yet owned",
+    )
 
     @property
     def lines(self) -> int:
@@ -50,7 +57,7 @@ class LoadedDocument(BaseModel):
         return len(self.markdown.splitlines())
 
 
-def _read_comments(path: Path, work: Path) -> list[tuple[str, str]]:
+def read_comments(path: Path, work: Path) -> list[tuple[str, str]]:
     """Comments and their replies, flattened, via docx-editor on a real file."""
 
     doc = Document.open(path, author="Draft Detective", workspace_dir=str(work / "ws"))
@@ -63,6 +70,35 @@ def _read_comments(path: Path, work: Path) -> list[tuple[str, str]]:
     finally:
         doc.close()
     return comments
+
+
+class ReadDocx(BaseModel):
+    markdown: str
+    comments: list[tuple[str, str]]
+    images: list[ExtractedImage]
+
+
+async def read_docx(path: Path, work: Path) -> ReadDocx:
+    """A .docx on disk as markdown with its images, plus its comments.
+
+    ``work`` is scratch space. Shared with the add-in's chat, which reads the .docx the
+    pane sends (``lib/services/microsoft/word/pane_document.py``).
+    """
+
+    start = time.perf_counter()
+    markdown, display_sizes = await convert_docx(str(path), keep_data_uris=True)
+    extraction = await extract_data_uri_images(markdown, display_sizes)
+    # docx-editor is synchronous and unzips into a workspace, so it does not belong on
+    # the event loop.
+    comments = await asyncio.to_thread(read_comments, path, work)
+    logger.info(
+        "read a .docx: %s images, %.1f s",
+        len(extraction.images),
+        time.perf_counter() - start,
+    )
+    return ReadDocx(
+        markdown=extraction.markdown, comments=comments, images=extraction.images
+    )
 
 
 async def load(url: str, *, token: str) -> LoadedDocument:
@@ -88,18 +124,16 @@ async def load(url: str, *, token: str) -> LoadedDocument:
     try:
         path = work / "document.docx"
         path.write_bytes(payload)
-        markdown = await convert_to_markdown(str(path), converter="markitdown")
-        # docx-editor is synchronous and unzips into a workspace, so it does not
-        # belong on the event loop.
-        comments = await asyncio.to_thread(_read_comments, path, work)
+        read = await read_docx(path, work)
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
     return LoadedDocument(
         name=str(item.get("name") or "document.docx"),
         url=url,
-        markdown=markdown,
-        comments=comments,
+        markdown=read.markdown,
+        comments=read.comments,
         last_modified=item.get("lastModifiedDateTime"),
         size_bytes=len(payload),
+        images=read.images,
     )

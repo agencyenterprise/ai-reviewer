@@ -1,124 +1,39 @@
-"""Draft Detective writing into a Word document, through the add-in.
+"""Every route the Word add-in calls, under ``/word``.
 
-The add-in sends the markup of one paragraph and gets it back with a comment
-(``/comments/annotate``) or tracked changes (``/suggestions/apply``) written in, both
-authored as Draft Detective -- see ``lib/services/microsoft/word/markup_writes.py``.
+The add-in's chat with Draft Detective lives in ``word_chat.py`` and is mounted here,
+under ``/word/chat``. The routes in this file are the add-in's side of changes asked for
+in Teams, under ``/handoffs``.
 
-Changes asked for in Teams arrive here too, under ``/handoffs``: the bot cannot write a
-document, so it stores the comments and edits (``lib/services/microsoft/word/handoffs``)
-and the add-in collects them, writes them through the routes above, and reports what
-landed, which the bot posts back into the Teams thread. Those routes are scoped to the
-signed-in Microsoft account: a handoff is released only to the account that asked for it.
+The Teams bot cannot write a document, so it stores the comments and edits it was asked
+for (``lib/services/microsoft/word/handoffs``). The add-in collects them, writes them
+with Word's own API, and reports what landed, which the bot posts back into the Teams
+thread. A handoff is released only to the Microsoft account that asked for it.
 
 Every route here is called by the add-in, signed in as a Microsoft account (see
 ``lib/api/addin_auth.py``), not with an ordinary Draft Detective session.
 """
 
-import asyncio
-import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from lib.api.addin_auth import AddinIdentity, get_addin_identity
-from lib.services.microsoft.word import handoffs, markup_writes
+from lib.api.routers.microsoft import word_chat
+from lib.services.microsoft.word import handoffs
 from lib.services.microsoft.word.handoffs import (
     Account,
     HandoffView,
     InvalidResults,
     ItemResult,
 )
-from lib.services.microsoft.word.markup_writes import (
-    CommentPlacement,
-    EditsWritten,
-    EditToApply,
-)
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/word", tags=["microsoft", "word"])
-
-MAX_MARKUP_CHARS = 8_000_000
-
-# Both write routes take the markup of one paragraph, or the outermost table around it.
-SCOPE = (
-    "the paragraph, or the whole outermost table when it is inside one. Write the "
-    "result back at the same scope it was read at."
-)
+router.include_router(word_chat.router)
 
 
 def _account(caller: AddinIdentity) -> Account:
     return Account(oid=caller.oid, tid=caller.tid)
-
-
-def _too_large(markup: str) -> None:
-    if len(markup) > MAX_MARKUP_CHARS:
-        raise HTTPException(
-            status_code=413, detail=f"Markup exceeds {MAX_MARKUP_CHARS} characters"
-        )
-
-
-class AnnotateRequest(BaseModel):
-    ooxml: str = Field(
-        description=f"Flat OPC markup for the range the comment belongs on: {SCOPE}"
-    )
-    quote: str | None = Field(
-        default=None,
-        description=(
-            "Optionally the phrase within this paragraph to highlight, verbatim. "
-            "Omitted, or not found, anchors the comment to the whole paragraph."
-        ),
-    )
-    comment: str = Field(description="What to say about it")
-
-
-@router.post("/comments/annotate", response_model=CommentPlacement)
-async def annotate(
-    request: AnnotateRequest,
-    caller: AddinIdentity = Depends(get_addin_identity),
-) -> CommentPlacement:
-    """Write one Draft Detective comment into this paragraph's markup."""
-
-    _too_large(request.ooxml)
-    # Package and XML work: kept off the event loop.
-    placed = await asyncio.to_thread(
-        markup_writes.add_comment, request.ooxml, request.comment, request.quote
-    )
-    if not placed.anchored:
-        logger.info("no comment anchored for account %s: %s", caller.oid, placed.detail)
-    return placed
-
-
-class ApplySuggestionsRequest(BaseModel):
-    ooxml: str = Field(description=f"Flat OPC markup for the range to change: {SCOPE}")
-    edits: list[EditToApply] = Field(
-        max_length=100,  # a handoff holds at most 100
-        description=(
-            "Every change for this one paragraph, applied in one pass, so the "
-            "caller reads and writes the paragraph once however many there are."
-        ),
-    )
-
-
-@router.post("/suggestions/apply", response_model=EditsWritten)
-async def apply_suggestions(
-    request: ApplySuggestionsRequest,
-    caller: AddinIdentity = Depends(get_addin_identity),
-) -> EditsWritten:
-    """Write Draft Detective's proposed changes into this paragraph as tracked changes."""
-
-    _too_large(request.ooxml)
-    written = await asyncio.to_thread(
-        markup_writes.apply_edits, request.ooxml, request.edits
-    )
-    logger.info(
-        "applied %s of %s change(s) for account %s",
-        written.applied,
-        len(request.edits),
-        caller.oid,
-    )
-    return written
 
 
 class PendingHandoffs(BaseModel):

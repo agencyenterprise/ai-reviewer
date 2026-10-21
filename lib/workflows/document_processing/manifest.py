@@ -1,4 +1,3 @@
-import builtins
 import logging
 
 from langgraph.graph import StateGraph
@@ -27,14 +26,6 @@ class DocumentProcessingManifest(
     needs_web_search = False
     is_internal = True
     always_run = True  # Always run document processing to ensure new files are processed. The workflow processes only new files in subsequent runs, reusing cached results from previous runs.
-
-    def get_state_type(self) -> builtins.type[DocumentProcessingState]:
-        """Get the type of the workflow state."""
-        return DocumentProcessingState
-
-    def get_config_type(self) -> builtins.type[DocumentProcessingWorkflowConfig]:
-        """Get the type of the workflow config."""
-        return DocumentProcessingWorkflowConfig
 
     def build_graph(self) -> StateGraph:
         """Build and return the graph of the workflow."""
