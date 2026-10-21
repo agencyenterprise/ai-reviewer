@@ -1,3 +1,5 @@
+name: Backend
+
 on:
   pull_request:
   # Branch pushes are already covered by their PR's run; pushes to these

@@ -34,12 +34,14 @@ jobs:
     steps:
       # Only on open. Re-applying on every event would make a label impossible
       # to remove: dropping `release:patch` to replace it would just add it back.
-      # Pull requests between dev and main are labelled by release-pr.yml and
-      # release.yml, so they are left alone here.
+      # Pull requests between this repository's dev and main are labelled by
+      # release-pr.yml and release.yml, so they are left alone here. A fork's
+      # branch named dev or main is an ordinary contribution and gets the default.
       - name: Default new pull requests to release:patch
         if: >-
           (github.event.action == 'opened' || github.event.action == 'reopened')
-          && github.head_ref != 'dev' && github.head_ref != 'main'
+          && !(github.event.pull_request.head.repo.full_name == github.repository
+               && (github.head_ref == 'dev' || github.head_ref == 'main'))
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
