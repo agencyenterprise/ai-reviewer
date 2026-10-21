@@ -1,5 +1,3 @@
-from typing import cast
-
 from langgraph.graph import StateGraph
 
 from lib.agents.reference_validator_v2 import ReferenceValidationFinalResultV2
@@ -87,12 +85,7 @@ class ReferenceValidationV2Manifest(
         issues: list[DocumentIssue] = []
 
         ref_extraction_state = get_state_by_type(
-            WorkflowRunType.REFERENCE_EXTRACTION, other_states
-        )
-        ref_extraction_state = (
-            cast(ReferenceExtractionState, ref_extraction_state)
-            if ref_extraction_state
-            else None
+            WorkflowRunType.REFERENCE_EXTRACTION, ReferenceExtractionState, other_states
         )
 
         ref_by_id = (

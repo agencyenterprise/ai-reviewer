@@ -1,7 +1,5 @@
 """Manifest for document summarization workflow."""
 
-import builtins
-
 from langgraph.graph import StateGraph
 
 from lib.services.files.service import (
@@ -30,14 +28,6 @@ class DocumentSummarizationManifest(
     is_internal = True
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
     always_run = True  # Always run document summarization to ensure new files are summarized. The workflow summarizes only new files in subsequent runs, reusing cached results from previous runs.
-
-    def get_state_type(self) -> builtins.type[DocumentSummarizationState]:
-        """Get the type of the workflow state."""
-        return DocumentSummarizationState
-
-    def get_config_type(self) -> builtins.type[DocumentSummarizationWorkflowConfig]:
-        """Get the type of the workflow config."""
-        return DocumentSummarizationWorkflowConfig
 
     def build_graph(self) -> StateGraph:
         """Build and return the graph of the workflow."""
