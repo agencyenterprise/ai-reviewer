@@ -122,7 +122,7 @@ async function generateChangelog(prsByLevel, version, apiKey) {
     const openai = new OpenAI({ apiKey });
     
     const response = await openai.chat.completions.create({
-      model: 'gpt-5.2',
+      model: 'gpt-5.6-terra',
       messages: [
         {
           role: 'system',
@@ -141,8 +141,7 @@ STRICT RULES:
           content: prompt
         }
       ],
-      temperature: 0,
-      max_completion_tokens: 6000
+      max_completion_tokens: 16000
     });
   
     const changelog = response.choices[0].message.content.trim();
