@@ -22,13 +22,12 @@ export REGISTRY=quay.io/your-org  # or docker.io/your-username, ghcr.io/your-org
 
 # Build images
 docker build -t $REGISTRY/ai-reviewer-api:latest -f Dockerfile .
-# The frontend calls the API at NEXT_PUBLIC_API_URL, from the browser and from its own
-# server code. The value is fixed when the image is built (setting it in frontend-config
-# has no effect). With http://localhost:8000 (also the default) and the port-forward
-# quick start, only the browser reaches the API: file downloads, the admin pages and
-# the About page call it from inside the pod and fail. Behind Routes or an Ingress,
-# pass the API's public URL and rebuild once you know it. The frontend pod must be able
-# to reach that URL too (see "Optional: Network Security").
+# The browser calls the API at NEXT_PUBLIC_API_URL, and the frontend's /mcp redirect
+# points there. The value is fixed when the image is built (setting it in frontend-config
+# has no effect). http://localhost:8000 (also the default) suits the port-forward quick
+# start. Behind Routes or an Ingress, pass the API's public URL and rebuild once you know
+# it. The frontend's server code (file downloads, the admin pages, the About page) calls
+# the API at API_INTERNAL_URL from frontend-config instead, read when the pod starts.
 docker build -t $REGISTRY/ai-reviewer-frontend:latest -f frontend/Dockerfile frontend/ \
   --build-arg NEXT_PUBLIC_API_URL=http://localhost:8000
 
@@ -194,10 +193,7 @@ kubectl apply -f network-policy.yaml -n ai-reviewer
 **Note:** Requires a CNI plugin that supports NetworkPolicy (Calico, Cilium, Weave).
 OpenShift has this by default, and `oc apply -f .` applies these policies too.
 
-The frontend policy lets the frontend reach only the API pod and DNS, which isn't enough for two things its server code does:
-
-- **Sign-in:** after the provider redirects back, Auth.js exchanges the code for tokens and fetches the provider's OIDC metadata from the frontend pod, over HTTPS to Google (`oauth2.googleapis.com`, `accounts.google.com`, `www.googleapis.com`) or Microsoft (`login.microsoftonline.com`). With the policy as shipped, sign-in fails at the callback.
-- **API calls at the public URL** it was built with (see step 1), when that URL goes through a Route or an Ingress. Otherwise file downloads, the admin pages and the About page fail.
+The frontend policy lets the frontend reach only the API pod and DNS. Its server code calls the API through `API_INTERNAL_URL` (the `api` Service), which that allows, but sign-in needs more: after the provider redirects back, Auth.js exchanges the code for tokens and fetches the provider's OIDC metadata from the frontend pod, over HTTPS to Google (`oauth2.googleapis.com`, `accounts.google.com`, `www.googleapis.com`) or Microsoft (`login.microsoftonline.com`). With the policy as shipped, sign-in fails at the callback.
 
 Add an egress rule for TCP 443 to the frontend policy before applying it, the way the api policy already allows external HTTPS. Use a broad port-443 rule unless your CNI can filter by domain:
 

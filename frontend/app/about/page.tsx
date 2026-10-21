@@ -2,10 +2,9 @@ import { Markdown } from '@/components/markdown';
 import { Card, CardContent } from '@/components/ui/card';
 import { getAboutContentApiAboutGet } from '@/lib/generated-api';
 import { createClient, createConfig } from '@/lib/generated-api/client';
+import { serverApiUrl } from '@/lib/server-api-url';
 
-const serverClient = createClient(
-  createConfig({ baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000' }),
-);
+const serverClient = createClient(createConfig({ baseUrl: serverApiUrl }));
 
 export default async function AboutPage() {
   let content: string | null = null;
