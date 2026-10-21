@@ -101,6 +101,21 @@ class TestIssueToComment:
         assert comment.get_initials() == "DD"
         assert "Priority" not in comment.comment_text
 
+    def test_without_severity_a_passing_check_still_reads_as_passing(self):
+        issue = _make_issue(
+            title="Abbreviation defined",
+            description="Defined at first use",
+            severity=SeverityEnum.NONE,
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
+            start_line=1,
+            end_line=3,
+        )
+
+        comment = issue_to_comment(issue, {0: (1, 3)}, show_severity=False)
+
+        assert comment is not None
+        assert comment.get_author() == "✅ Passing"
+
     def test_includes_suggested_action_and_long_description_in_order(self):
         """Comment carries description, then suggested action, then long_description."""
         issue = _make_issue(

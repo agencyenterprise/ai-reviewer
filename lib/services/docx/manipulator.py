@@ -174,8 +174,10 @@ def issue_to_comment(
     `lib.services.docx.edit_notes`: what each edit changes, why, and whether it
     reached the document as a tracked change.
 
-    With ``show_severity`` off (the project doesn't group by severity), the comment
-    is authored as plain "Draft Detective" instead of naming a priority.
+    With ``show_severity`` off (the project doesn't group by severity), a finding's
+    comment is authored as plain "Draft Detective" instead of naming a priority.
+    Passing checks keep their author either way: "passing" is not a priority, and
+    the app keeps them apart from findings too.
     """
     line_range = _resolve_issue_line_range(issue)
     if line_range is None:
@@ -212,7 +214,7 @@ def issue_to_comment(
         comment_text=comment_text,
         severity=(
             _map_severity_enum_to_comment_severity(issue.severity)
-            if show_severity
+            if show_severity or issue.severity == SeverityEnum.NONE
             else None
         ),
         share_link=share_link,
