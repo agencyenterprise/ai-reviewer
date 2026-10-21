@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WorkflowRunPublic, WorkflowRunStatus, WorkflowRunType } from '@/lib/generated-api';
-import { busyWorkflowTypes, runActivityAriaLabel, runActivityLabel } from './run-activity-summary';
+import { busyWorkflowTypes, runActivityLabel, runActivityStatus } from './run-activity-summary';
 import { RunActivityItem } from './use-run-activity';
 
 function item(currentStep = 0, totalSteps = 0): RunActivityItem {
@@ -30,12 +30,17 @@ describe('runActivityLabel', () => {
   });
 });
 
-describe('runActivityAriaLabel', () => {
+describe('runActivityStatus', () => {
   it('names the running and queued counts', () => {
-    expect(runActivityAriaLabel({ running: [item()], queued: [item(), item()] })).toBe(
-      '1 assessment running, 2 queued. Show details',
+    expect(runActivityStatus({ running: [item(), item()], queued: [item()] })).toBe('2 assessments running, 1 queued');
+    expect(runActivityStatus({ running: [], queued: [] })).toBe('Assessments starting');
+  });
+
+  it("carries a single run's visible progress", () => {
+    expect(runActivityStatus({ running: [item(21, 50)], queued: [item()] })).toBe(
+      'Abbreviation Scan 42% done, 1 queued',
     );
-    expect(runActivityAriaLabel({ running: [], queued: [] })).toBe('Assessments starting. Show details');
+    expect(runActivityStatus({ running: [item(0, 1)], queued: [] })).toBe('1 assessment running');
   });
 });
 

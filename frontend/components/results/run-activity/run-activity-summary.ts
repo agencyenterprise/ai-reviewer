@@ -27,12 +27,21 @@ export function runActivityLabel({ running, queued }: RunActivity): string {
   return `Running ${running.length}…`;
 }
 
-/** The same state for a screen reader, which has no spinner to see. */
-export function runActivityAriaLabel({ running, queued }: RunActivity): string {
-  if (running.length === 0 && queued.length === 0) return 'Assessments starting. Show details';
-  const parts = [`${running.length} assessment${running.length === 1 ? '' : 's'} running`];
+/**
+ * The same state for a screen reader, which has no spinner to see. The header
+ * controls override their content with an aria-label, so this carries what the
+ * label shows, a single run's progress included.
+ */
+export function runActivityStatus({ running, queued }: RunActivity): string {
+  if (running.length === 0 && queued.length === 0) return 'Assessments starting';
+  const percent = running.length === 1 ? progressPercent(running[0]) : null;
+  const parts = [
+    percent !== null
+      ? `${running[0].label} ${percent}% done`
+      : `${running.length} assessment${running.length === 1 ? '' : 's'} running`,
+  ];
   if (queued.length > 0) parts.push(`${queued.length} queued`);
-  return `${parts.join(', ')}. Show details`;
+  return parts.join(', ');
 }
 
 /**

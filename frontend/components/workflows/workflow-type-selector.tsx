@@ -67,11 +67,17 @@ export function WorkflowTypeSelector({
   const isSelected = (type: WorkflowRunType) => selectedTypes.includes(type) && !runningTypes.includes(type);
   const selectedVisibleCount = renderedTypes.filter(isSelected).length;
 
+  // Every change drops what is running, so a row ticked before its assessment
+  // started elsewhere stays unticked once that run finishes, instead of
+  // coming back checked after a Deselect all that could not reach it.
+  const commitSelection = (types: WorkflowRunType[]) =>
+    onSelectionChange(types.filter((type) => !runningTypes.includes(type)));
+
   const handleCheckedChange = (type: WorkflowRunType, checked: boolean) => {
     if (checked) {
-      onSelectionChange([...selectedTypes, type]);
+      commitSelection([...selectedTypes, type]);
     } else {
-      onSelectionChange(selectedTypes.filter((t) => t !== type));
+      commitSelection(selectedTypes.filter((t) => t !== type));
     }
   };
 
@@ -86,11 +92,11 @@ export function WorkflowTypeSelector({
   const selectedBulkCount = bulkSelectableTypes.filter((type) => selectedTypes.includes(type)).length;
 
   const handleSelectAll = () => {
-    onSelectionChange([...selectedTypes, ...bulkSelectableTypes.filter((type) => !selectedTypes.includes(type))]);
+    commitSelection([...selectedTypes, ...bulkSelectableTypes.filter((type) => !selectedTypes.includes(type))]);
   };
 
   const handleDeselectAll = () => {
-    onSelectionChange(selectedTypes.filter((type) => !bulkSelectableTypes.includes(type)));
+    commitSelection(selectedTypes.filter((type) => !bulkSelectableTypes.includes(type)));
   };
 
   const renderCheckbox = (workflowType: WorkflowTypeDescription) => (
@@ -158,7 +164,7 @@ export function WorkflowTypeSelector({
           presets={presets}
           selectedTypes={selectedTypes}
           offeredTypes={bulkSelectableTypes}
-          onSelectionChange={onSelectionChange}
+          onSelectionChange={commitSelection}
           disabled={controlsDisabled}
           getWorkflowTypeName={getWorkflowTypeName}
         />

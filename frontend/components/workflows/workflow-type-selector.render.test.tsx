@@ -1,4 +1,4 @@
-import { act } from 'react';
+import { act, useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WorkflowRunType, type WorkflowTypeDescription } from '@/lib/generated-api';
 import { renderInto, type Rendered } from '@/lib/test-render';
@@ -76,5 +76,33 @@ describe('WorkflowTypeSelector with running assessments', () => {
       WorkflowRunType.AbbreviationScanV2,
       WorkflowRunType.FiguresTablesCheck,
     ]);
+  });
+
+  it('does not bring back a row that started running, then finished, after Deselect all', async () => {
+    const A = WorkflowRunType.AbbreviationScanV2;
+    const B = WorkflowRunType.AdvocacyToneV2;
+    let setRunning: (types: WorkflowRunType[]) => void = () => {};
+
+    // The dialog's form owns the selection; this stands in for it.
+    function Stateful() {
+      const [selected, setSelected] = useState<WorkflowRunType[]>([A, B]);
+      const [running, setRunningState] = useState<WorkflowRunType[]>([]);
+      setRunning = setRunningState;
+      return <WorkflowTypeSelector selectedTypes={selected} onSelectionChange={setSelected} runningTypes={running} />;
+    }
+
+    rendered = await renderInto(<Stateful />);
+    const checkbox = (type: WorkflowRunType) => rendered!.container.querySelector<HTMLButtonElement>(`[id="${type}"]`)!;
+    const deselectAll = () =>
+      Array.from(rendered!.container.querySelectorAll('button')).find((b) => b.textContent === 'Deselect all')!;
+
+    // A starts elsewhere while the dialog is open, then the user clears the list.
+    await act(async () => setRunning([A]));
+    await act(async () => deselectAll().click());
+    // A's run finishes.
+    await act(async () => setRunning([]));
+
+    expect(checkbox(A).getAttribute('data-state')).toBe('unchecked');
+    expect(checkbox(B).getAttribute('data-state')).toBe('unchecked');
   });
 });

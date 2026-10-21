@@ -15,7 +15,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { projectQueryKeys } from '@/lib/hooks/use-project-data';
 import { RunActivityDetails } from './run-activity/run-activity-details';
-import { busyWorkflowTypes, runActivityAriaLabel, runActivityLabel } from './run-activity/run-activity-summary';
+import { busyWorkflowTypes, runActivityLabel, runActivityStatus } from './run-activity/run-activity-summary';
 import { RunActivity, useRunActivity } from './run-activity/use-run-activity';
 import { startAssessmentsKey, useStartingWorkflowTypes } from './run-activity/use-starting-workflow-types';
 
@@ -73,7 +73,7 @@ export function NewAssessmentButton({
     // Nothing to start in a read-only view, but what runs is still worth knowing.
     return active ? (
       <RunActivityPopover activity={activity}>
-        <Button variant="ghost" size="xs" aria-label={runActivityAriaLabel(activity)}>
+        <Button variant="ghost" size="xs" aria-label={`${runActivityStatus(activity)}. Show details`}>
           <Loader2 className="text-primary size-3.5 animate-spin" />
           {label}
         </Button>
@@ -105,7 +105,7 @@ export function NewAssessmentButton({
               variant={active ? 'outline' : 'default'}
               className={cn(active && 'rounded-r-none')}
               onClick={() => setOpen(true)}
-              aria-label={active ? 'Assessments running. Run more assessments' : 'Run assessments'}
+              aria-label={active ? `${runActivityStatus(activity)}. Run more assessments` : 'Run assessments'}
             >
               {active ? <Loader2 className="text-primary size-3.5 animate-spin" /> : <PlayIcon />}
               {/* A phone header cannot carry five labelled controls; here the
@@ -124,7 +124,7 @@ export function NewAssessmentButton({
               size="xs"
               variant="outline"
               className="rounded-l-none border-l-0 px-1.5 has-[>svg]:px-1.5"
-              aria-label={runActivityAriaLabel(activity)}
+              aria-label={`${runActivityStatus(activity)}. Show details`}
             >
               <ChevronDownIcon />
             </Button>
