@@ -13,8 +13,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from lib.models.project import AccessLevel, Project
-from lib.services import project_overview
-from lib.services.project_overview import _OverviewRuns, get_project_overview
+from lib.services.projects import overview as project_overview
+from lib.services.projects.overview import _OverviewRuns, get_project_overview
 
 
 @pytest.mark.asyncio

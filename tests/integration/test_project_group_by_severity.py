@@ -16,7 +16,7 @@ from sqlmodel import col
 from lib.config.database import get_async_db_session
 from lib.models.project import Project
 from lib.models.user import User, UserRole
-from lib.services.projects import (
+from lib.services.projects.service import (
     UpdateProjectRequest,
     create_project,
     update_user_project,

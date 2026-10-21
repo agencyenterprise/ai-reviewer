@@ -7,7 +7,7 @@ from mcp.types import ToolAnnotations
 from lib.api.mcp import helpers
 from lib.api.mcp.instance import mcp
 from lib.models.project import AccessLevel
-from lib.services.projects import get_project_access
+from lib.services.projects.service import get_project_access
 
 
 @mcp.tool(

@@ -19,7 +19,7 @@ from lib.api.services.workflow_runner import (
 from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
-from lib.services.projects import get_project_access
+from lib.services.projects.service import get_project_access
 from lib.services.workflow_runs.service import (
     WorkflowRunDetail,
     build_workflow_run_detail,

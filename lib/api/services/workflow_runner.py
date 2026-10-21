@@ -12,7 +12,7 @@ from lib.models.project import AccessLevel, Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services.files.service import assert_project_has_main_file
-from lib.services.projects import get_project_access
+from lib.services.projects.service import get_project_access
 from lib.services.users import get_user_decrypted_api_key
 from lib.services.workflow_runs.gates import (
     approve_gate,

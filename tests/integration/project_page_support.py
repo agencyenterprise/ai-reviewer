@@ -23,7 +23,7 @@ from lib.models.project import Project
 from lib.models.share_link import ShareLink
 from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
-from lib.services.project_overview import ProjectOverview
+from lib.services.projects.overview import ProjectOverview
 from lib.workflows.models import SeverityEnum, WorkflowError, WorkflowRunType
 from lib.workflows.reference_downloader.state import (
     ReferenceDownloaderState,

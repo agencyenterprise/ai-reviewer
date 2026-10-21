@@ -13,7 +13,7 @@ from lib.config.database import get_async_db_session
 from lib.models.project import AccessLevel, FeedbackVisibility, Project
 from lib.models.share_link import ShareLink, generate_share_token
 from lib.models.user import User, UserRole
-from lib.services.projects import get_project_access
+from lib.services.projects.service import get_project_access
 
 # ---------------------------------------------------------------------------
 # Fixtures

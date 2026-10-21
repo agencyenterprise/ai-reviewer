@@ -8,7 +8,7 @@ from fastapi import HTTPException
 
 from lib.models.project import AccessLevel, Project
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
-from lib.services.projects import create_new_revision
+from lib.services.projects.service import create_new_revision
 from lib.workflows.registry import get_all_manifests
 
 
@@ -79,11 +79,11 @@ async def test_create_new_revision_increments_revision():
 
     with (
         patch(
-            "lib.services.projects.get_project_access",
+            "lib.services.projects.service.get_project_access",
             new=AsyncMock(return_value=(project, AccessLevel.WRITE)),
         ),
         patch(
-            "lib.services.projects.get_async_db_session",
+            "lib.services.projects.service.get_async_db_session",
             side_effect=lambda: next(session_iter),
         ),
     ):
@@ -105,11 +105,11 @@ async def test_create_new_revision_from_revision_3():
 
     with (
         patch(
-            "lib.services.projects.get_project_access",
+            "lib.services.projects.service.get_project_access",
             new=AsyncMock(return_value=(project, AccessLevel.WRITE)),
         ),
         patch(
-            "lib.services.projects.get_async_db_session",
+            "lib.services.projects.service.get_async_db_session",
             side_effect=lambda: next(session_iter),
         ),
     ):
@@ -139,15 +139,15 @@ async def test_create_new_revision_cancels_active_workflows():
 
     with (
         patch(
-            "lib.services.projects.get_project_access",
+            "lib.services.projects.service.get_project_access",
             new=AsyncMock(return_value=(project, AccessLevel.WRITE)),
         ),
         patch(
-            "lib.services.projects.get_async_db_session",
+            "lib.services.projects.service.get_async_db_session",
             side_effect=lambda: next(session_iter),
         ),
         patch(
-            "lib.services.projects.cancel_workflow_run",
+            "lib.services.projects.service.cancel_workflow_run",
             new=mock_cancel,
         ),
     ):
@@ -180,14 +180,14 @@ async def test_create_new_revision_leaves_independent_runs_running():
 
     with (
         patch(
-            "lib.services.projects.get_project_access",
+            "lib.services.projects.service.get_project_access",
             new=AsyncMock(return_value=(project, AccessLevel.WRITE)),
         ),
         patch(
-            "lib.services.projects.get_async_db_session",
+            "lib.services.projects.service.get_async_db_session",
             side_effect=lambda: next(session_iter),
         ),
-        patch("lib.services.projects.cancel_workflow_run", new=mock_cancel),
+        patch("lib.services.projects.service.cancel_workflow_run", new=mock_cancel),
     ):
         await create_new_revision(str(project.id), MagicMock())
 
@@ -212,11 +212,11 @@ async def test_create_new_revision_returns_previous_workflow_types():
 
     with (
         patch(
-            "lib.services.projects.get_project_access",
+            "lib.services.projects.service.get_project_access",
             new=AsyncMock(return_value=(project, AccessLevel.WRITE)),
         ),
         patch(
-            "lib.services.projects.get_async_db_session",
+            "lib.services.projects.service.get_async_db_session",
             side_effect=lambda: next(session_iter),
         ),
     ):
@@ -251,11 +251,11 @@ async def test_create_new_revision_excludes_workflows_opted_out_of_auto_rerun():
 
     with (
         patch(
-            "lib.services.projects.get_project_access",
+            "lib.services.projects.service.get_project_access",
             new=AsyncMock(return_value=(project, AccessLevel.WRITE)),
         ),
         patch(
-            "lib.services.projects.get_async_db_session",
+            "lib.services.projects.service.get_async_db_session",
             side_effect=lambda: next(session_iter),
         ),
     ):
@@ -268,7 +268,7 @@ async def test_create_new_revision_excludes_workflows_opted_out_of_auto_rerun():
 async def test_create_new_revision_requires_write_access():
     """Should raise when user lacks WRITE access."""
     with patch(
-        "lib.services.projects.get_project_access",
+        "lib.services.projects.service.get_project_access",
         new=AsyncMock(
             side_effect=HTTPException(status_code=403, detail="Access denied")
         ),
@@ -310,15 +310,15 @@ async def test_create_new_revision_skips_retired_workflow_types():
 
     with (
         patch(
-            "lib.services.projects.get_project_access",
+            "lib.services.projects.service.get_project_access",
             new=AsyncMock(return_value=(project, AccessLevel.WRITE)),
         ),
         patch(
-            "lib.services.projects.get_async_db_session",
+            "lib.services.projects.service.get_async_db_session",
             side_effect=lambda: next(session_iter),
         ),
         patch(
-            "lib.services.projects.get_all_manifests",
+            "lib.services.projects.service.get_all_manifests",
             return_value=surviving,
         ),
     ):

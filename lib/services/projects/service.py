@@ -25,11 +25,11 @@ from lib.services.files.service import (
     delete_project_files,
     get_files_by_project_id,
 )
+from lib.services.projects.share_links import get_resource_by_token
 from lib.services.references import (
     remove_fetch_result_for_file,
     remove_file_from_references,
 )
-from lib.services.share_links import get_resource_by_token
 from lib.services.workflow_runs.service import (
     WorkflowRunDetail,
     cancel_workflow_run,
@@ -191,7 +191,7 @@ async def get_user_projects(
         )
 
 
-async def _get_project_by_id(project_id: str) -> Project | None:
+async def get_project_by_id(project_id: str) -> Project | None:
     try:
         project_uuid = uuid.UUID(project_id)
     except ValueError:
@@ -260,7 +260,7 @@ async def get_project_access(
     Raises:
         HTTPException: 404 if project not found, 403 if access is denied or insufficient
     """
-    project = await _get_project_by_id(project_id)
+    project = await get_project_by_id(project_id)
 
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")

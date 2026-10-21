@@ -7,7 +7,7 @@ from lib.api.models import StartWorkflowResponse
 from lib.api.services.workflow_runner import start_workflow_run
 from lib.models.project import AccessLevel
 from lib.models.user import User
-from lib.services.projects import get_project_access
+from lib.services.projects.service import get_project_access
 from lib.services.review_assistant_requests import (
     ReviewAssistantRequestSummary,
     StartReviewAssistantRequest,

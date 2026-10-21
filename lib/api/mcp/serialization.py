@@ -5,9 +5,9 @@ from lib.api.mcp.helpers import build_project_url
 from lib.api.services.workflow_runner import WorkflowGateRequiredError
 from lib.models.user import User
 from lib.services.issue_persistence import get_project_issues
-from lib.services.project_content import get_project_document
-from lib.services.project_overview import get_project_overview
-from lib.services.projects import get_project_access
+from lib.services.projects.content import get_project_document
+from lib.services.projects.overview import get_project_overview
+from lib.services.projects.service import get_project_access
 
 # The overview fields an agent has no use for: `files` has its own tool
 # (list_project_files), and the share link and issues_version only drive the

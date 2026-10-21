@@ -22,7 +22,7 @@ from lib.services.file_artifacts_service.file_artifacts_service import (
     FileArtifactsService,
 )
 from lib.services.issue_persistence import get_project_issues
-from lib.services.projects import _get_project_by_id
+from lib.services.projects.service import get_project_by_id
 from lib.workflows.models import SeverityEnum
 
 logger = logging.getLogger(__name__)
@@ -79,7 +79,7 @@ async def generate_docx(
     Returns:
         ``(file_path, filename)`` for the generated file.
     """
-    project = await _get_project_by_id(project_id)
+    project = await get_project_by_id(project_id)
     if project is None:
         raise ValueError(f"Project {project_id} not found")
     revision = _resolved_revision(revision, project.current_revision)

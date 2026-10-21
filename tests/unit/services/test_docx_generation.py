@@ -410,8 +410,8 @@ class TestGenerateDocxRevision:
             return_value=str(tmp_path / "out.docx")
         )
         return contextlib.ExitStack(), {
-            "_get_project_by_id": patch(
-                f"{_SERVICE}._get_project_by_id", AsyncMock(return_value=project)
+            "get_project_by_id": patch(
+                f"{_SERVICE}.get_project_by_id", AsyncMock(return_value=project)
             ),
             "FileArtifactsService": patch(
                 f"{_SERVICE}.FileArtifactsService", MagicMock(return_value=artifacts)

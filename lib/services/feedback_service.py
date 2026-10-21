@@ -16,7 +16,7 @@ from lib.models.issue import Issue
 from lib.models.project import AccessLevel, FeedbackVisibility, Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
-from lib.services.projects import get_project_access
+from lib.services.projects.service import get_project_access
 
 
 async def _verify_workflow_run_ownership(

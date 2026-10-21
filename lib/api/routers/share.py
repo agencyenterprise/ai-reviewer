@@ -11,8 +11,8 @@ from fastapi import APIRouter, Depends
 from lib.api.auth import get_current_user
 from lib.models.project import AccessLevel
 from lib.models.user import User
-from lib.services.projects import get_project_access
-from lib.services.share_links import (
+from lib.services.projects.service import get_project_access
+from lib.services.projects.share_links import (
     ShareStatusResponse,
     disable_sharing,
     enable_sharing,

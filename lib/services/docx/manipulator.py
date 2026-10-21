@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from lib.config.env import config
 from lib.models.issue import Issue
 from lib.services.docx.paragraph_line_mapper import find_paragraph_by_line_range
-from lib.services.share_links import _build_share_url
+from lib.services.projects.share_links import build_share_url
 from lib.workflows.models import SeverityEnum
 from lib.workflows.registry import get_workflow_manifest
 
@@ -192,7 +192,7 @@ def issue_to_comment(
     share_link = None
     if share_token:
         anchor = _build_issue_anchor(line_range)
-        share_link = _build_share_url(share_token, anchor)
+        share_link = build_share_url(share_token, anchor)
 
     workflow_name = _get_workflow_display_name(issue)
     title = f"{issue.title} ({workflow_name})" if workflow_name else issue.title

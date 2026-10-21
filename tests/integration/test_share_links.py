@@ -1,7 +1,7 @@
 """The share-link lifecycle: enabling, revoking and re-enabling a project's link.
 
 `test_project_overview_view.py` covers reading through a link that already
-exists. This file covers the write side in `lib.services.share_links` and its
+exists. This file covers the write side in `lib.services.projects.share_links` and its
 routes: a revoked link must stop granting access, and only the owner may turn
 sharing on or off.
 """
@@ -22,8 +22,8 @@ from lib.config.env import config
 from lib.models.project import FeedbackVisibility, Project
 from lib.models.share_link import ShareLink
 from lib.models.user import User, UserRole
-from lib.services.projects import get_project_access
-from lib.services.share_links import (
+from lib.services.projects.service import get_project_access
+from lib.services.projects.share_links import (
     ShareStatusResponse,
     disable_sharing,
     enable_sharing,

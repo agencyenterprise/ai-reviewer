@@ -137,7 +137,7 @@ async def test_a_word_97_main_file_exports_its_comments(tmp_path):
     project = SimpleNamespace(current_revision=1, group_by_severity=True)
 
     with (
-        patch(f"{_SERVICE}._get_project_by_id", AsyncMock(return_value=project)),
+        patch(f"{_SERVICE}.get_project_by_id", AsyncMock(return_value=project)),
         patch(f"{_SERVICE}.FileArtifactsService", MagicMock(return_value=artifacts)),
         patch(f"{_SERVICE}.get_project_issues", AsyncMock(return_value=[issue])),
         patch.object(docx_manipulator_service, "get_output_dir", return_value=tmp_path),

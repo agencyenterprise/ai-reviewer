@@ -6,9 +6,9 @@ These routes require a valid share token instead of authentication.
 
 from fastapi import APIRouter, HTTPException
 
-from lib.services.project_overview import ProjectOverview, get_project_overview
-from lib.services.projects import get_project_access
-from lib.services.share_links import get_resource_by_token
+from lib.services.projects.overview import ProjectOverview, get_project_overview
+from lib.services.projects.service import get_project_access
+from lib.services.projects.share_links import get_resource_by_token
 
 router = APIRouter(prefix="/api/public", tags=["public"])
 
