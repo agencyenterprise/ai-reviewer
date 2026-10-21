@@ -1,6 +1,7 @@
 name: Release
 
-# Cuts the release a merged pull request into main asked for via its label.
+# Cuts the release that the pull requests merged into main since the latest tag
+# ask for via their labels (the largest one wins).
 #
 #   release:patch / release:minor / release:major   bump, changelog, tag, publish
 #   norelease                                       merge without releasing
@@ -44,40 +45,45 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Decides the bump and pins the commit it was decided for. The release job
+  # checks out that commit, so if main moves in between, its push is rejected
+  # rather than releasing changes the bump did not account for; the run that
+  # the newer merge queued then releases everything.
   resolve:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       kind: ${{ steps.kind.outputs.kind }}
+      sha: ${{ steps.kind.outputs.sha }}
       dry_run: ${{ steps.kind.outputs.dry_run }}
     steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
       - name: Resolve the release kind
         id: kind
         env:
-          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          GH_TOKEN: ${{ github.token }}
           BUMP: ${{ inputs.bump }}
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -euo pipefail
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "kind=${BUMP}" >> "$GITHUB_OUTPUT"
+            KIND=$BUMP
             echo "dry_run=${DRY_RUN}" >> "$GITHUB_OUTPUT"
-            echo "manual release: ${BUMP} (dry run: ${DRY_RUN})"
-            exit 0
-          fi
-          KIND=$(echo "$LABELS" | python3 -c "
-          import json, sys
-          bumps = {'release:patch': 'patch', 'release:minor': 'minor', 'release:major': 'major'}
-          found = [bumps[l] for l in json.load(sys.stdin) if l in bumps]
-          print(found[0] if len(found) == 1 else '')
-          ")
-          echo "kind=${KIND}" >> "$GITHUB_OUTPUT"
-          echo "dry_run=false" >> "$GITHUB_OUTPUT"
-          if [ -z "$KIND" ]; then
-            echo "no release label: nothing to cut"
           else
-            echo "release kind: ${KIND}"
+            KIND=$(./.github/scripts/release-kind.sh)
+            echo "dry_run=false" >> "$GITHUB_OUTPUT"
           fi
+          echo "kind=${KIND}" >> "$GITHUB_OUTPUT"
+          echo "release kind: ${KIND:-none, nothing to cut}"
 
   release:
     needs: resolve
@@ -94,10 +100,10 @@ jobs:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
-      - name: Checkout main
+      - name: Checkout the resolved commit
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ needs.resolve.outputs.sha }}
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
 
@@ -106,27 +112,6 @@ jobs:
 
       - name: Set up Python
         run: uv python install 3.13
-
-      # Runs are serialized, merges are not: if main moved past this pull
-      # request's merge before this run checked it out, its label no longer
-      # describes everything that would ship. A head that is already tagged
-      # means a previous run pushed this release and failed afterwards; bumping
-      # again would skip a version.
-      - name: Check main is what this release describes
-        env:
-          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
-        run: |
-          set -euo pipefail
-          if TAG=$(git describe --exact-match --tags --match 'v*' HEAD 2>/dev/null); then
-            echo "main's head is already released as ${TAG}. Finish by hand what the earlier run left:"
-            echo "the GitHub Release (gh release create ${TAG}) and merging main into dev."
-            exit 1
-          fi
-          if [ -n "$MERGE_SHA" ] && [ "$(git rev-parse HEAD)" != "$MERGE_SHA" ]; then
-            echo "main has moved past this pull request's merge (${MERGE_SHA}), so its label may not cover all of it."
-            echo "Run the Release workflow by hand with the bump everything on main needs."
-            exit 1
-          fi
 
       - name: Bump the version
         id: bump
@@ -219,7 +204,8 @@ jobs:
           git tag -a "$TAG" -m "$MESSAGE"
 
           # Both or neither: a bump on main without its tag would fail the next
-          # run's version check.
+          # run's version check. Rejected if main moved since resolve; the run
+          # the newer merge queued releases it all.
           git push --atomic origin HEAD:main "$TAG"
 
           gh release create "$TAG" --title "Release ${TAG}" \
@@ -239,9 +225,10 @@ jobs:
           VERSION: ${{ steps.bump.outputs.version }}
         run: |
           set -euo pipefail
+          RELEASE_SHA=$(git rev-parse HEAD)
           git fetch origin +refs/heads/dev:refs/remotes/origin/dev
           git checkout -B dev origin/dev
-          if git merge --no-edit -m "chore(release): sync main back to dev after v${VERSION}" main; then
+          if git merge --no-edit -m "chore(release): sync main back to dev after v${VERSION}" "$RELEASE_SHA"; then
             git push origin dev
             echo "dev now includes v${VERSION}" >> "$GITHUB_STEP_SUMMARY"
           else
