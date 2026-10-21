@@ -120,6 +120,21 @@ async def test_an_issues_edit_is_planned_noted_and_written(
 
 
 @pytest.mark.asyncio
+async def test_a_word_file_uploaded_under_a_doc_name_is_still_planned(
+    docx_path: Path, tmp_path: Path
+):
+    doc_named = docx_path.with_suffix(".doc")
+    docx_path.rename(doc_named)
+    issue = _issue([_edit("14% rise", "18% rise")])
+
+    plan = await plan_edit_export(
+        [issue], _MARKDOWN, str(doc_named), {0: (1, 1)}, workspace_root=str(tmp_path)
+    )
+
+    assert plan.notes_for(issue.id)[0].endswith("Applied below as a tracked change.")
+
+
+@pytest.mark.asyncio
 async def test_without_a_paragraph_mapping_nothing_is_written_and_the_note_says_so(
     docx_path: Path, tmp_path: Path
 ):

@@ -8,7 +8,9 @@ import pytest
 from evals_inspectai.e2e.reference_validation_v2.criteria import (
     KEYS,
     FieldValidation,
+    ProposedEdit,
     ValidationResult,
+    edit_scores,
     mechanical_result,
     reasoning_prompt,
     validation_scores,
@@ -81,8 +83,76 @@ def test_a_correctly_flagged_reference_passes_every_check():
         updated="Patel, Dylan, and Jeremie Eliahou Ontiveros ...",
         author="incorrect",
     )
-    values, note = validation_scores(result, MISSPELLED)
+    edits = [ProposedEdit(original_text="Elliahou", replacement_text="Eliahou")]
+    values, note = validation_scores(result, MISSPELLED, edits)
     assert all(v == 1.0 for v in values.values() if not math.isnan(v)), note
+
+
+def test_edits_are_checked_against_the_records_corrections():
+    wrong = [ProposedEdit(original_text="Patel", replacement_text="Patil")]
+    values, _ = edit_scores(wrong, MISSPELLED)
+    assert values["edit_given"] == 1.0 and values["edits_carry_corrections"] == 0.0
+    values, note = edit_scores([], MISSPELLED)
+    assert values["edit_given"] == 0.0
+    assert note == ["no edit for a correctable reference"]
+
+
+def test_an_edit_is_allowed_but_not_required_when_incorrect_fields_is_one_accepted_result():
+    either = ReferenceRecord.model_validate(
+        {
+            "id": "either",
+            "reference": "Smith, A Study, 2020.",
+            "result": ["correct", "incorrect_fields"],
+        }
+    )
+    edits = [ProposedEdit(original_text="2020", replacement_text="2021")]
+    values, _ = edit_scores(edits, either)
+    assert values["edits_only_when_due"] == 1.0
+    values, _ = edit_scores([], either)
+    assert math.isnan(values["edit_given"])
+
+
+def test_corrections_to_missing_fields_are_not_expected_from_edits():
+    record = ReferenceRecord.model_validate(
+        {
+            "id": "author_and_year",
+            "reference": "Herzig and Berant. A Study.",
+            "result": "incorrect_fields",
+            "fields": {"author": "incorrect", "year": "missing"},
+            "corrections": {"author": "Shaw", "year": "2021"},
+        }
+    )
+    edits = [ProposedEdit(original_text="Berant.", replacement_text="Shaw.")]
+    values, _ = edit_scores(edits, record)
+    assert values["edits_carry_corrections"] == 1.0
+
+
+def test_edits_are_applied_on_the_original_reference_not_one_after_another():
+    record = ReferenceRecord.model_validate(
+        {
+            "id": "swap",
+            "reference": "Smyth, Ann and Smith, Bob. A Study. 2020.",
+            "result": "incorrect_fields",
+            "fields": {"author": "incorrect"},
+            "corrections": {"author": "Smith, Ann and Jones, Bob"},
+        }
+    )
+    edits = [
+        ProposedEdit(original_text="Smyth,", replacement_text="Smith,"),
+        ProposedEdit(original_text="Smith,", replacement_text="Jones,"),
+    ]
+    values, _ = edit_scores(edits, record)
+    assert values["edits_carry_corrections"] == 1.0
+
+
+def test_an_edit_on_a_correct_reference_is_not_due():
+    correct = ReferenceRecord.model_validate(
+        {"id": "ok", "reference": "Smith, A Study, 2020."}
+    )
+    edits = [ProposedEdit(original_text="2020", replacement_text="2021")]
+    values, _ = edit_scores(edits, correct)
+    assert values["edits_only_when_due"] == 0.0
+    assert math.isnan(values["edit_given"])
 
 
 def test_the_wrong_field_flagged_fails_the_field_checks_but_not_the_result():

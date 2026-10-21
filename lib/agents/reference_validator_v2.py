@@ -59,6 +59,15 @@ class BibliographyItemValidationV2(BaseModel):
     suggested_action: str = Field(
         description="Suggested action to take if the reference is not valid. A summary of the suggested changes to make the reference valid. If the reference is valid, return 'No changes needed'."
     )
+    summary: str = Field(
+        default="",
+        description=(
+            "One or two plain sentences telling the author what is wrong with the "
+            "reference: each incorrect or missing field, with the cited value and "
+            "what the source says. Leave out correct fields, the search itself and "
+            "the reference as a whole. Empty when the reference is correct."
+        ),
+    )
     url: str = Field(description="Found URL for the reference.")
     reasoning: str = Field(
         default="",
@@ -66,7 +75,7 @@ class BibliographyItemValidationV2(BaseModel):
     )
     updated_reference: str | None = Field(
         default=None,
-        description="Updated reference with the suggested changes made to make the reference valid, matching the format of the original reference. If the reference is already valid, return null.",
+        description="Updated reference with the suggested changes made to make the reference valid, matching the format of the original reference. Change only the fields marked incorrect or missing and copy everything else exactly as written. If the reference is already valid, return null.",
     )
 
 

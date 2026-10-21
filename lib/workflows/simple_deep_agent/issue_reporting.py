@@ -13,6 +13,7 @@ gets the plain tool, with no mention of edits at all, so the option costs no
 context for workflows that do not use it.
 """
 
+from collections.abc import Sequence
 from threading import Lock
 from typing import Any, Literal
 
@@ -63,6 +64,96 @@ class _EditResolution(BaseModel):
     rejection: str | None = Field(
         default=None,
         description="Set when the whole issue must be rejected so the agent can retry.",
+    )
+
+
+def resolve_edit(
+    lines: Sequence[str],
+    edit: ProposedEditInput,
+    label: str,
+    start_line: int,
+    end_line: int,
+) -> ProposedEdit | str:
+    """Turn one proposed edit into a located edit, or a corrective message.
+
+    `label` names the edit in the message ("edit 2") so the caller can tell
+    which of several was refused.
+    """
+    if not edit.original_text.strip():
+        return f"{label}: original_text must not be blank."
+    if edit.replacement_text == edit.original_text:
+        return (
+            f"{label}: replacement_text is identical to original_text, so the "
+            "edit would change nothing."
+        )
+
+    # The app renders `$$...$$` as MathML and Word holds an equation as
+    # OMML with no delimiters, so neither surface has characters an edit
+    # could be placed on. Single-dollar text is not math in the app
+    # (`singleDollarTextMath: false`), so `$5 million` is ordinary prose.
+    if "$$" in edit.original_text or "$$" in edit.replacement_text:
+        return (
+            f"{label}: original_text and replacement_text must not contain "
+            "display math (`$$...$$`); the export cannot place equations."
+        )
+
+    matches = find_quote_lines(lines, start_line, end_line, edit.original_text)
+    if not matches:
+        return (
+            f"{label}: original_text was not found on any single line of lines "
+            f"{start_line}-{end_line}. Quote it verbatim from one line of the "
+            f"document. Lines {start_line}-{end_line} read: "
+            f"{range_excerpt(lines, start_line, end_line)!r}"
+        )
+    if len(matches) > 1:
+        return (
+            f"{label}: original_text appears {len(matches)} times in lines "
+            f"{start_line}-{end_line}. Quote a longer span that appears only "
+            "once (up to the whole line) and make the replacement inside it."
+        )
+    line = matches[0]
+
+    # The rendered form is settled here, once, and stored with the edit:
+    # the in-app highlight and the DOCX redline both look for the
+    # characters the reader sees, and neither should have to re-derive
+    # them from the markdown.
+    spans = locate_in_paragraph(
+        lines[line - 1], normalize_whitespace(edit.original_text)
+    )
+    rendered = (
+        rendered_span(lines[line - 1], spans[0][0], spans[0][1])
+        if len(spans) == 1
+        else None
+    )
+    if rendered is None:
+        return (
+            f"{label}: original_text must start and end on plain text, not "
+            "inside a link address or a formatting marker. Quote whole "
+            "words from the line, including any markup that surrounds them."
+        )
+
+    # Rendered where the quote sat, not on its own: the quote may open or
+    # close inside formatting that carries on around it, and so does the
+    # replacement that takes its place.
+    replacement = rendered_replacement_in_context(
+        lines[line - 1], spans[0][0], spans[0][1], edit.replacement_text
+    )
+    if replacement is None:
+        return (
+            f"{label}: replacement_text cannot be placed where "
+            "original_text sits without breaking the surrounding "
+            "formatting; quote the whole formatted span instead."
+        )
+
+    return ProposedEdit(
+        original_text=edit.original_text,
+        replacement_text=edit.replacement_text,
+        rationale=edit.rationale,
+        start_line=line,
+        end_line=line,
+        display_text=rendered.display_text,
+        display_occurrence=rendered.display_occurrence,
+        display_replacement=replacement,
     )
 
 
@@ -153,98 +244,13 @@ class IssueReporter:
 
         resolved: list[ProposedEdit] = []
         for position, edit in enumerate(edits, start=1):
-            outcome = self._resolve_edit(edit, position, start_line, end_line)
+            outcome = resolve_edit(
+                self._lines, edit, f"edit {position}", start_line, end_line
+            )
             if isinstance(outcome, str):
                 return _EditResolution(rejection=outcome)
             resolved.append(outcome)
         return _EditResolution(edits=resolved)
-
-    def _resolve_edit(
-        self,
-        edit: ProposedEditInput,
-        position: int,
-        start_line: int,
-        end_line: int,
-    ) -> ProposedEdit | str:
-        """Turn one proposed edit into a located edit, or a corrective message."""
-        lines = self._lines
-        label = f"edit {position}"
-        if not edit.original_text.strip():
-            return f"{label}: original_text must not be blank."
-        if edit.replacement_text == edit.original_text:
-            return (
-                f"{label}: replacement_text is identical to original_text, so the "
-                "edit would change nothing."
-            )
-
-        # The app renders `$$...$$` as MathML and Word holds an equation as
-        # OMML with no delimiters, so neither surface has characters an edit
-        # could be placed on. Single-dollar text is not math in the app
-        # (`singleDollarTextMath: false`), so `$5 million` is ordinary prose.
-        if "$$" in edit.original_text or "$$" in edit.replacement_text:
-            return (
-                f"{label}: original_text and replacement_text must not contain "
-                "display math (`$$...$$`); the export cannot place equations."
-            )
-
-        matches = find_quote_lines(lines, start_line, end_line, edit.original_text)
-        if not matches:
-            return (
-                f"{label}: original_text was not found on any single line of lines "
-                f"{start_line}-{end_line}. Quote it verbatim from one line of the "
-                f"document. Lines {start_line}-{end_line} read: "
-                f"{range_excerpt(lines, start_line, end_line)!r}"
-            )
-        if len(matches) > 1:
-            return (
-                f"{label}: original_text appears {len(matches)} times in lines "
-                f"{start_line}-{end_line}. Quote a longer span that appears only "
-                "once (up to the whole line) and make the replacement inside it."
-            )
-        line = matches[0]
-
-        # The rendered form is settled here, once, and stored with the edit:
-        # the in-app highlight and the DOCX redline both look for the
-        # characters the reader sees, and neither should have to re-derive
-        # them from the markdown.
-        spans = locate_in_paragraph(
-            lines[line - 1], normalize_whitespace(edit.original_text)
-        )
-        rendered = (
-            rendered_span(lines[line - 1], spans[0][0], spans[0][1])
-            if len(spans) == 1
-            else None
-        )
-        if rendered is None:
-            return (
-                f"{label}: original_text must start and end on plain text, not "
-                "inside a link address or a formatting marker. Quote whole "
-                "words from the line, including any markup that surrounds them."
-            )
-
-        # Rendered where the quote sat, not on its own: the quote may open or
-        # close inside formatting that carries on around it, and so does the
-        # replacement that takes its place.
-        replacement = rendered_replacement_in_context(
-            lines[line - 1], spans[0][0], spans[0][1], edit.replacement_text
-        )
-        if replacement is None:
-            return (
-                f"{label}: replacement_text cannot be placed where "
-                "original_text sits without breaking the surrounding "
-                "formatting; quote the whole formatted span instead."
-            )
-
-        return ProposedEdit(
-            original_text=edit.original_text,
-            replacement_text=edit.replacement_text,
-            rationale=edit.rationale,
-            start_line=line,
-            end_line=line,
-            display_text=rendered.display_text,
-            display_occurrence=rendered.display_occurrence,
-            display_replacement=replacement,
-        )
 
     def _build_report_tool(self) -> BaseTool:
         reporter = self
