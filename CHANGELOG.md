@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.1.1] - 2026-10-21
+
+### Changed
+
+- Improved DOCX export performance for tracked changes by writing edits in a single batch and removing the rehearsal write, while preserving unchanged output.
+- Updated release-note generation to use `gpt-5.6-terra`, with adjusted completion token limits and without a temperature setting.
+
+
 ## [v2.1.0] - 2026-10-21
 
 ### Added
