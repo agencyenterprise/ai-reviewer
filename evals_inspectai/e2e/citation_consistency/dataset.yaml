@@ -351,6 +351,37 @@
     either. A numbered citation, a URL standing in for a citation and cf. are forms the style does not
     allow; none has a determined fix (the cf. issue leaves the edit unchecked, since dropping cf. is
     a plausible fix).
+- input: |
+    # Coastal Flood Insurance
+
+    ## Premiums
+
+    Premiums rose fastest in the most exposed counties (see Marchetti 2022, p. 4).[^1]
+
+    Take-up fell where premiums rose most (Ostrowski, 2020).
+
+    [^1]: Premium data cover 2015 through 2021.
+
+    ## References
+
+    Marchetti, Paola, *Flood Insurance Markets on the Gulf Coast*, RAND Corporation, RR-A4101-1, 2022.
+
+    Ostrowski, Lena, "Who Drops Flood Coverage?" *Journal of Risk and Insurance*, Vol. 87, No. 2, 2020.
+  expected_issues:
+  - id: comma_with_see_page_and_callout
+    title: Citation Format
+    anchor: (see Marchetti 2022, p. 4)
+    edit_expected: true
+    edit:
+      must_include:
+      - (see Marchetti, 2022, p. 4)
+      - '[^1]'
+  decoys:
+  - anchor: Take-up fell where premiums rose most (Ostrowski, 2020).
+    reason: correct_citation
+  notes: The fix adds only the comma; the refinement, the page and the footnote callout after the
+    parenthesis must survive. The suite skips edit_keeps_numbers_and_markers, so these must_include
+    phrases carry that guarantee for a citation with a callout.
 - input: file://e2e/citation_consistency/files/long_report.md
   expected_issues:
   - id: long_ampersand
@@ -438,7 +469,7 @@
     reason: correct_citation
   notes: A 471-line author-date report with a 50-entry References list and about 300 correct citations,
     long enough for the skill's sub-agent path. The planted errors sit in their own paragraphs from
-    Chapter 3 on, weighted to the back half, where a single pass gives the text less attention.
+    Chapter 3 on (11 faulty citations), weighted to the back half, where a single pass gives the text less attention.
     Generated once from a seeded script and committed as plain markdown; Novak and Moreau are listed
     but never cited, and the two Davis and Patel 2022 entries are reached only by the ambiguous citation.
     In an author-date document the replacement for an ibid. note is the author's wording, so no edit

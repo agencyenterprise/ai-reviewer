@@ -14,10 +14,12 @@ faulty citations and each must be reported on its own.
 
 ``edit_keeps_numbers_and_markers`` is skipped: it checks that an edit keeps
 every citation of the original, and this workflow's edits rewrite a citation by
-design (a year fixed, *et al.* expanded).
+design (a year fixed, *et al.* expanded). The samples' ``must_include`` phrases
+carry its guarantee instead: a page number, a *see* and a footnote callout next
+to a fixed citation must survive the edit.
 
 The last sample is a 471-line report (``files/long_report.md``), long enough
-for the skill's sub-agent path; it takes several minutes, against well under
+for the skill's sub-agent path; it takes about two minutes, against well under
 one for the others.
 
 Run (backend must be running)::
