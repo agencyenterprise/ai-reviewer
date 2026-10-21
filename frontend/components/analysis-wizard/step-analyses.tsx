@@ -5,7 +5,7 @@ import { Info, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { WorkflowTypeSelector } from '@/components/workflows/workflow-type-selector';
 import { WebSearchConsentCheckbox } from '@/components/workflows/web-search-consent-checkbox';
-import { GroupBySeveritySwitch } from './group-by-severity-switch';
+import { GroupBySeveritySwitch, useSaveGroupBySeverity } from './group-by-severity-switch';
 import { useWizard } from './wizard-context';
 import { StepHeading, StepLayout } from './step-layout';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
@@ -62,9 +62,12 @@ export function StepAnalyses() {
   });
 
   const isSubmitting = startAnalysisMutation.isPending || startAnalysisMutation.isSuccess;
+  const saveGroupBySeverity = useSaveGroupBySeverity();
+  // Leaving the step while the setting saves would open the project on the old value.
+  const isSaving = saveGroupBySeverity.isPending;
 
   const handleStartAnalysis = () => {
-    if (isSubmitting) return;
+    if (isSubmitting || isSaving) return;
     startAnalysisMutation.mutate();
   };
 
@@ -99,10 +102,10 @@ export function StepAnalyses() {
           </p>
         )}
         <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row">
-          <Button variant="outline" onClick={goToProject} disabled={isSubmitting}>
+          <Button variant="outline" onClick={goToProject} disabled={isSubmitting || isSaving}>
             Skip for now
           </Button>
-          <Button onClick={handleStartAnalysis} disabled={blocker !== null || isSubmitting}>
+          <Button onClick={handleStartAnalysis} disabled={blocker !== null || isSubmitting || isSaving}>
             {isSubmitting ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
@@ -140,7 +143,11 @@ export function StepAnalyses() {
               selectedTypes={selectedWorkflowTypes}
               onSelectionChange={setSelectedWorkflowTypes}
             />
-            <GroupBySeveritySwitch />
+            <GroupBySeveritySwitch
+              checked={wizard.groupBySeverity}
+              onCheckedChange={(value) => saveGroupBySeverity.mutate(value)}
+              disabled={!wizard.projectId || isSaving}
+            />
           </>
         )}
       </div>

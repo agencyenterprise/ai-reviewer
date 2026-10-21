@@ -64,6 +64,8 @@ export function AnalysisOptionsMenu({
   const [showShareWarning, setShowShareWarning] = useState(false);
   const [isEnablingForDownload, setIsEnablingForDownload] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  // Remounts the edit form on every open, so values left by a cancelled edit are not submitted later.
+  const [editDialogKey, setEditDialogKey] = useState(0);
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = useState(false);
 
   const shareToken = share.shareStatus?.share_link?.token ?? shareContext.shareToken;
@@ -213,7 +215,10 @@ export function AnalysisOptionsMenu({
             <DropdownMenuContent className="w-56">
               <MenuItemWithTooltip
                 icon={Pencil}
-                onClick={() => setIsEditDialogOpen(true)}
+                onClick={() => {
+                  setEditDialogKey((key) => key + 1);
+                  setIsEditDialogOpen(true);
+                }}
                 tooltip="Edit project details"
               >
                 Edit project details
@@ -266,6 +271,7 @@ export function AnalysisOptionsMenu({
       />
 
       <EditProjectDialog
+        key={editDialogKey}
         isOpen={isEditDialogOpen}
         project={project}
         onConfirm={(values) => updateProjectMutation.mutate(values)}
