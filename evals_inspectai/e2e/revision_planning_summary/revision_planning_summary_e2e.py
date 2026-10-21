@@ -40,13 +40,11 @@ who left only Word comments on a copy of the draft, which must count as a
 reviewer of their own.
 """
 
-import json
 from pathlib import Path
 
-import yaml
 from inspect_ai import Task, task
 from inspect_ai.dataset import MemoryDataset, Sample
-from inspect_ai.model import Model, ModelOutput, get_model
+from inspect_ai.model import Model, get_model
 from inspect_ai.scorer import (
     Score,
     Scorer,
@@ -55,25 +53,14 @@ from inspect_ai.scorer import (
     scorer,
     stderr,
 )
-from inspect_ai.solver import Generate, Solver, TaskState, solver
-from inspect_ai.viewer import (
-    SampleScoreView,
-    SampleScoreViewSort,
-    ScoreColorScale,
-    TaskSamplesColumn,
-    TaskSamplesSort,
-    TaskSamplesView,
-    ViewerConfig,
-)
+from inspect_ai.solver import TaskState
 
-from evals_inspectai.common.api_solver import surface_conversations
-from evals_inspectai.common.docx_fixture import MarkedUpCopy, with_byline
-from evals_inspectai.common.loaders import resolve_input
-from evals_inspectai.common.model_override import output_model_name
+from evals_inspectai.common.docx_fixture import MarkedUpCopy
+from evals_inspectai.common.loaders import resolve_input, yaml_dataset
 from evals_inspectai.common.peer_review_fixture import (
-    ReviewDocument,
     expected_input_roles,
-    run_review_assistant_request,
+    memo_document,
+    review_assistant_solver,
 )
 from evals_inspectai.common.review_assistant_scorers import (
     STRUCTURE_CHECKS,
@@ -82,9 +69,9 @@ from evals_inspectai.common.review_assistant_scorers import (
     report_structure,
 )
 from evals_inspectai.common.scorers import criteria_for, failed_score, grade_criteria
+from evals_inspectai.common.viewer import checks_viewer_config
 
 _TARGET_OUTPUT = "revision_planning_summary"
-_WORKFLOW = "review_assistant"
 
 # Grader for the judged criteria. Set here rather than taking the shared
 # `DEFAULT_GRADER_MODEL`, so changing this suite's judge does not silently
@@ -96,27 +83,17 @@ GRADER_MODEL = "openai/gpt-5.6-terra"
 _WORKFLOW_TIMEOUT_S = 2400
 
 
-def _memo(entry: str | dict) -> dict[str, str]:
-    """A memo's display name and text; a mapping may sign it with a `byline`."""
-    ref = entry if isinstance(entry, str) else entry["source"]
-    text = resolve_input(ref)
-    if isinstance(entry, dict) and entry.get("byline"):
-        text = with_byline(text, entry["byline"])
-    return {"file_name": Path(ref.removeprefix("file://")).name, "content": text}
-
-
 def _record_to_sample(record: dict) -> Sample:
     """Build a sample from one dataset record.
 
     The draft and the reviewer memos are `file://` references, resolved here.
     Keeping them on disk as markdown rather than embedding them keeps the
     dataset readable and lets the fixture documents be edited as the documents
-    they are; the memo's file name is carried through as its display name on
-    upload. A memo may be given as a mapping instead, to add a `byline`, and a
-    record may carry `marked_up` copies of the draft, built as Word files at
-    upload time.
+    they are. A memo may be given as a mapping instead, to add a `byline` (see
+    `memo_document`), and a record may carry `marked_up` copies of the draft,
+    built as Word files at upload time.
     """
-    memos = [_memo(entry) for entry in record.get("memos", [])]
+    memos = [memo_document(entry) for entry in record.get("memos", [])]
     marked_up = [MarkedUpCopy.model_validate(m) for m in record.get("marked_up", [])]
     return Sample(
         id=record["id"],
@@ -142,63 +119,7 @@ def _record_to_sample(record: dict) -> Sample:
 
 
 def _load_dataset() -> MemoryDataset:
-    """Read the YAML dataset into memory.
-
-    Inspect ships CSV and JSON loaders but not YAML, so the records are read
-    here and handed over as a `MemoryDataset`. YAML is worth that small amount
-    of glue for the criterion prose, which folded scalars keep readable and
-    diffable where a JSON string of the same length would not be.
-    """
-    path = Path(__file__).parent / "dataset.yaml"
-    records = yaml.safe_load(path.read_text())
-    return MemoryDataset(
-        samples=[_record_to_sample(record) for record in records],
-        name="revision_planning_summary",
-        location=str(path),
-    )
-
-
-@solver
-def revision_planning_summary_solver(
-    timeout_s: float = _WORKFLOW_TIMEOUT_S,
-    poll_interval_s: float = 10,
-) -> Solver:
-    """Ask the Review Assistant for the planning summary over the sample's documents.
-
-    A custom solver rather than the shared `api_workflow_agent` because the
-    memos have to be uploaded alongside the draft and named in the request; see
-    `peer_review_fixture`.
-    """
-
-    async def solve(state: TaskState, generate: Generate) -> TaskState:
-        meta = state.metadata or {}
-
-        run_detail = await run_review_assistant_request(
-            draft=state.input_text,
-            memos=[ReviewDocument(m["file_name"], m["content"]) for m in meta["memos"]],
-            marked_up=[
-                ReviewDocument(m.file_name, m.content())
-                for m in (MarkedUpCopy.model_validate(raw) for raw in meta["marked_up"])
-            ],
-            outputs=[_TARGET_OUTPUT],
-            timeout_s=timeout_s,
-            poll_interval_s=poll_interval_s,
-        )
-
-        workflow_state = run_detail.get("state") or {}
-
-        # Hand the agent's own conversation to Inspect, the same way the shared
-        # `api_workflow_agent` does: lifted out of the state dict so the
-        # completion the scorers parse stays just the workflow result.
-        await surface_conversations(state, workflow_state, _WORKFLOW)
-
-        state.output = ModelOutput(
-            completion=json.dumps(workflow_state),
-            model=output_model_name(run_detail),
-        )
-        return state
-
-    return solve
+    return yaml_dataset(Path(__file__).parent / "dataset.yaml", _record_to_sample)
 
 
 # The rubric, decomposed. One prose brief per sample produced a single grade
@@ -271,104 +192,19 @@ def rubric_criteria(model: str | Model | None = None) -> Scorer:
     return score
 
 
-def _viewer_config() -> ViewerConfig:
-    """Log-viewer defaults tuned to how this eval is actually read.
-
-    Two questions come up every run: which check regressed, and whether the
-    workflow is stable across epochs. The grid is arranged to answer both at a
-    glance, and the long text fields are hidden because they would otherwise
-    dominate every row -- the input is a whole draft and the target is a
-    paragraph of criterion prose, neither of which is scannable in a table.
-
-    These are defaults, not overrides: they apply until a reviewer customises
-    the view in their own browser.
-    """
-    score_columns = [
-        *(
-            TaskSamplesColumn.score("report_structure", name)
-            for name in STRUCTURE_CHECKS
-        ),
-        *(TaskSamplesColumn.score("rubric_criteria", name) for name in RUBRIC_CRITERIA),
-        TaskSamplesColumn.score("input_identification"),
-    ]
-
-    return ViewerConfig(
-        task_samples_view=TaskSamplesView(
-            name="Checks and epochs",
-            columns=[
-                TaskSamplesColumn(id="sampleStatus"),
-                # Which fixture, and which of its runs. Both matter here: each
-                # sample plants a different trap, and the epochs are the
-                # determinism read.
-                TaskSamplesColumn(id="sampleId"),
-                TaskSamplesColumn(id="epoch"),
-                *score_columns,
-                # The structured-output parse failure surfaces here, and it is
-                # frequent enough to be worth a permanent column.
-                TaskSamplesColumn(id="error"),
-                TaskSamplesColumn(id="duration"),
-                # Hidden: the draft and the criterion text are far too long to
-                # scan, and token counts cover only the graders, not the
-                # workflow.
-                TaskSamplesColumn(id="input", visible=False),
-                TaskSamplesColumn(id="target", visible=False),
-                TaskSamplesColumn(id="answer", visible=False),
-                TaskSamplesColumn(id="tokens", visible=False),
-            ],
-            # Group each sample's epochs together rather than floating failures
-            # to the top: comparing epochs of one fixture is the main reading,
-            # and the colour scales already make a weak cell obvious.
-            sort=[
-                TaskSamplesSort(column="sampleId", dir="asc"),
-                TaskSamplesSort(column="epoch", dir="asc"),
-            ],
-            # Ten score columns; rotate the headers and keep rows compact.
-            compact_scores=True,
-            multiline=False,
-            # Full check names do not fit a narrow column.
-            score_labels={
-                "verbatim": "Verbatim",
-                "quoted": "Quoted",
-                "id_scheme": "IDs",
-                "self_contained": "Self-cont.",
-                "two_part_layout": "Layout",
-                "voice": "Voice",
-                "locations_by_content": "Locations",
-                "part1_triage": "Triage",
-                "planning_notes": "Notes",
-                "scenario_trap": "Trap",
-                "input_identification": "Inputs",
-            },
-            # Everything is numeric with 1 good. The rubric criteria are no
-            # longer categorical C/P/I: they are graded that way and mapped to
-            # 1.0 / 0.5 / 0.0 before scoring, so a partial reads as a mid tone
-            # rather than needing its own colour role.
-            # Every score here is numeric on a fixed 0-to-1 domain, so pin the
-            # domain rather than leaving it to the viewer's default, which
-            # anchors each palette to that column's *observed* range. Two
-            # things go wrong with the default. A check that passes on every
-            # run has min == max, no range to map, and paints nothing, so the
-            # healthy columns look unevaluated. And an identical score reads
-            # differently per column: 0.5 was the floor of `part1_triage`
-            # (observed 0.5-1.0) and painted as bad, while the same 0.5 was
-            # the midpoint of `scenario_trap` (observed 0.0-1.0) and painted as
-            # middling. Pinning 0..1 makes a cell's colour mean the same thing
-            # in every column and gives a passing column its full-marks green.
-            score_color_scales={
-                name: ScoreColorScale(palette="good-high", min=0.0, max=1.0)
-                for name in (
-                    *STRUCTURE_CHECKS,
-                    *RUBRIC_CRITERIA,
-                    "input_identification",
-                )
-            },
-            color_scales_enabled=True,
-        ),
-        sample_score_view=SampleScoreView(
-            default="chips",
-            sort=SampleScoreViewSort(column="value", dir="asc"),
-        ),
-    )
+SCORE_LABELS = {
+    "verbatim": "Verbatim",
+    "quoted": "Quoted",
+    "id_scheme": "IDs",
+    "self_contained": "Self-cont.",
+    "two_part_layout": "Layout",
+    "voice": "Voice",
+    "locations_by_content": "Locations",
+    "part1_triage": "Triage",
+    "planning_notes": "Notes",
+    "scenario_trap": "Trap",
+    "input_identification": "Inputs",
+}
 
 
 @task
@@ -376,11 +212,18 @@ def revision_planning_summary_e2e():
     return Task(
         dataset=_load_dataset(),
         fail_on_error=0.2,
-        solver=revision_planning_summary_solver(),
+        solver=review_assistant_solver(timeout_s=_WORKFLOW_TIMEOUT_S),
         scorer=[
             report_structure(),
             rubric_criteria(),
             input_identification(),
         ],
-        viewer=_viewer_config(),
+        viewer=checks_viewer_config(
+            [
+                *(("report_structure", name) for name in STRUCTURE_CHECKS),
+                *(("rubric_criteria", name) for name in RUBRIC_CRITERIA),
+                ("input_identification", "input_identification"),
+            ],
+            SCORE_LABELS,
+        ),
     )
