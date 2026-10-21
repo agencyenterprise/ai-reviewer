@@ -5,6 +5,7 @@ and answers from that run's state, or raises when the run or its state is
 missing. References read the file matching state too, but only when it exists.
 """
 
+from contextlib import AbstractContextManager
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -37,14 +38,24 @@ def _extraction_state() -> ReferenceExtractionState:
     )
 
 
-def _patch_runs(states: dict[WorkflowRunType, WorkflowState | None]):
-    """Serve one run per type in ``states``, holding that state (or none)."""
+def _patch_runs(
+    states: dict[WorkflowRunType, WorkflowState | None],
+) -> tuple[AbstractContextManager[object], AbstractContextManager[object]]:
+    """Serve one run per type in ``states``, holding that state (or none).
 
-    async def run_by_type(project_id, run_type, revision, include_state):
+    The run type itself stands in for the run row.
+    """
+
+    async def run_by_type(
+        project_id: str,
+        run_type: WorkflowRunType,
+        revision: int,
+        include_state: bool,
+    ) -> WorkflowRunType | None:
         assert (project_id, revision, include_state) == (PROJECT_ID, 2, True)
         return run_type if run_type in states else None
 
-    async def read_state(run):
+    async def read_state(run: WorkflowRunType) -> WorkflowState | None:
         return states[run]
 
     return (
