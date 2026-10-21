@@ -24,6 +24,7 @@ import {
   type LucideIcon,
   FileCheckIcon,
   TableIcon,
+  Loader2,
 } from 'lucide-react';
 import { DynamicIcon, iconNames, type IconName } from 'lucide-react/dynamic';
 import { cn } from '@/lib/utils';
@@ -129,6 +130,8 @@ interface WorkflowTypeCheckboxProps {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
   disabled?: boolean;
+  /** Already running or queued on this document, so it cannot be started again. */
+  running?: boolean;
   /** Median run time in seconds, from historical runs. Hidden when unavailable. */
   estimatedSeconds?: number | null;
 }
@@ -143,6 +146,7 @@ export function WorkflowTypeCheckbox({
   checked,
   onCheckedChange,
   disabled = false,
+  running = false,
   estimatedSeconds,
 }: WorkflowTypeCheckboxProps) {
   const requiresSupportingFiles = workflowType.gates.includes(WorkflowGate.ReferenceReview);
@@ -175,6 +179,12 @@ export function WorkflowTypeCheckbox({
             description and the badges read as qualifiers of the name. */}
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="truncate text-sm font-medium leading-tight">{workflowType.name}</span>
+          {running && (
+            <Badge variant="secondary" className="h-5 gap-1 px-1.5 text-[11px] font-normal">
+              <Loader2 aria-hidden className="text-primary size-3 animate-spin" />
+              Running
+            </Badge>
+          )}
           {requiresSupportingFiles && (
             <TraitBadge
               icon={Files}
