@@ -72,16 +72,18 @@ When the document has more than 300 lines and you can hand work to sub-agents, s
 
 Report issues following the conventions defined in the `issues` skill. Do not emit issues for terms that pass. Explain each inconsistency in plain practical terms, why one form is better for the reader, never by reference to a rule or guideline.
 
+Choose each issue's severity by the severity criteria in the `issues` skill, judged by what the problem costs the reader: `medium` when it makes a passage harder to follow, leaves its meaning or what it refers to unclear, or undercuts the document's neutrality; `low` when the passage already reads clearly and neutrally and the change only polishes it; `high` only for a problem that undermines the document as a whole.
+
 One issue per inconsistency, anchored to the first occurrence of the minority form and bracketing its paragraph with `start_line` and `end_line`. In the `description`, name the variants, give a count of each, and list the lines where the minority form appears. In `suggested_action`, state the consistent form.
 
-- **Inconsistent term** → title `"Inconsistent Term: <form A> / <form B>"`, **severity: medium**.
-- **Inconsistent spelling** → title `"Inconsistent Spelling: <form A> / <form B>"`, **severity: low**.
-- **Inconsistent hyphenation** → title `"Inconsistent Hyphenation: <form A> / <form B>"`, **severity: low**.
-- **Inconsistent number style** → title `"Inconsistent Number Style: <form A> / <form B>"`, **severity: low**.
-- **Inconsistent tense** → one issue per document, or per section when sections differ, title `"Inconsistent Tense"`, **severity: medium**. Quote one finding in each tense and name the sections involved.
-- **Tense that does not fit the sentence** → one issue per sentence, anchored to that sentence, title `"Verb Tense: <verb as written> / <verb as fixed>"`, **severity: low**. Say what in the sentence fixes the tense. A finding that differs only from the tense the findings settle on is an inconsistent tense, not this; never report one verb under both.
-- **Inconsistent tone** → one issue per shift, title `"Inconsistent Tone"`, **severity: medium**. Quote a sentence from each side of the shift.
-- **House style compound** → title `"House Style: decisionmaking"`, **severity: low**. List every occurrence.
+- **Inconsistent term** → title `"Inconsistent Term: <form A> / <form B>"`.
+- **Inconsistent spelling** → title `"Inconsistent Spelling: <form A> / <form B>"`.
+- **Inconsistent hyphenation** → title `"Inconsistent Hyphenation: <form A> / <form B>"`.
+- **Inconsistent number style** → title `"Inconsistent Number Style: <form A> / <form B>"`.
+- **Inconsistent tense** → one issue per document, or per section when sections differ, title `"Inconsistent Tense"`. Quote one finding in each tense and name the sections involved.
+- **Tense that does not fit the sentence** → one issue per sentence, anchored to that sentence, title `"Verb Tense: <verb as written> / <verb as fixed>"`. Say what in the sentence fixes the tense. A finding that differs only from the tense the findings settle on is an inconsistent tense, not this; never report one verb under both.
+- **Inconsistent tone** → one issue per shift, title `"Inconsistent Tone"`. Quote a sentence from each side of the shift.
+- **House style compound** → title `"House Style: decisionmaking"`. List every occurrence.
 
 ### Proposed edits
 
@@ -89,7 +91,7 @@ When you can attach proposed edits to an issue, attach one edit per minority occ
 
 ### Volume and coverage
 
-Consistency findings are few by nature: one issue per term family, spelling, hyphenation, number style, compound, tense pattern or tone shift, never one per occurrence. Report up to 20 issues. If the document has more, keep the ones with the most occurrences and summarize the rest in one issue titled `"Inconsistent Term: Further Variants"`, **severity: low**, listing each family in a line.
+Consistency findings are few by nature: one issue per term family, spelling, hyphenation, number style, compound, tense pattern or tone shift, never one per occurrence. Report up to 20 issues. If the document has more, keep the ones with the most occurrences and summarize the rest in one issue titled `"Inconsistent Term: Further Variants"`, listing each family in a line.
 
 Verbs in the wrong tense for their sentence are the exception: they are reported one per sentence, up to 10, on top of the 20; when a long document is split into parts, the limit applies to each part. When there are more, report the first 10 and list the lines of the rest in the last one's description.
 

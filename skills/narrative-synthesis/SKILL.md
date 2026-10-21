@@ -61,20 +61,22 @@ Report problems; do not rewrite the document. Each issue says what is wrong and,
 
 Report issues following the conventions defined in the `issues` skill. Do not emit issues for checks that pass. Explain each problem in plain practical terms, what the reader loses and why the change would help them, never by reference to a rule or guideline.
 
-- **Data without synthesis** → one issue per passage, title `"Data Without Synthesis"`, **severity: medium**. Quote the passage's first sentence in the `description` and bracket the passage with `start_line` and `end_line`. The `suggested_action` names the candidate takeaway the figures support, as described in the procedure.
-- **Illogical order** → one issue per document, title `"Illogical Order"`, **severity: medium**. Anchor it to the introductory section, bracketing that section with `start_line` and `end_line`. In the `description`, name each section or passage that is out of place; in `suggested_action`, give the order you propose.
+Choose each issue's severity by the severity criteria in the `issues` skill, judged by what the problem costs the reader: `medium` when it makes a passage harder to follow, leaves its meaning or what it refers to unclear, or undercuts the document's neutrality; `low` when the passage already reads clearly and neutrally and the change only polishes it; `high` only for a problem that undermines the document as a whole.
+
+- **Data without synthesis** → one issue per passage, title `"Data Without Synthesis"`. Quote the passage's first sentence in the `description` and bracket the passage with `start_line` and `end_line`. The `suggested_action` names the candidate takeaway the figures support, as described in the procedure.
+- **Illogical order** → one issue per document, title `"Illogical Order"`. Anchor it to the introductory section, bracketing that section with `start_line` and `end_line`. In the `description`, name each section or passage that is out of place; in `suggested_action`, give the order you propose.
 - **Missing framing** → one issue per unanswered question:
-  - title `"Missing Framing: Why It Matters"`, **severity: medium**, anchored to the introductory section (or the summary, when there is no introduction);
-  - title `"Missing Framing: What Is New"`, **severity: medium**, anchored to the introductory section (or the summary);
-  - title `"Missing Framing: What Happens Next"`, **severity: medium**, anchored to the concluding section, or the last section of the main body when there is none.
+  - title `"Missing Framing: Why It Matters"`, anchored to the introductory section (or the summary, when there is no introduction);
+  - title `"Missing Framing: What Is New"`, anchored to the introductory section (or the summary);
+  - title `"Missing Framing: What Happens Next"`, anchored to the concluding section, or the last section of the main body when there is none.
 
   Bracket the anchoring section with `start_line` and `end_line`. In `suggested_action`, say what the answer should cover, drawn from the document's own content.
-- **Restated point** → one issue per restating passage, title `"Restated Point"`, **severity: low**, anchored to the later passage and bracketing it. In the `description`, quote the restating passage's first sentence and name the section where the point was first made, by its header and line numbers, without quoting it.
-- **Main body too long** → one issue per document, title `"Main Body Too Long"`, **severity: low**, with `start_line` and `end_line` both set to the first line of the main body. Give your estimate of the main body's length and name the material that could move to an appendix or be cut.
+- **Restated point** → one issue per restating passage, title `"Restated Point"`, anchored to the later passage and bracketing it. In the `description`, quote the restating passage's first sentence and name the section where the point was first made, by its header and line numbers, without quoting it.
+- **Main body too long** → one issue per document, title `"Main Body Too Long"`, with `start_line` and `end_line` both set to the first line of the main body. Give your estimate of the main body's length and name the material that could move to an appendix or be cut.
 
 ### Volume and coverage
 
-Narrative findings are few by nature. Report up to 5 `"Data Without Synthesis"` issues, the most consequential first; when the pattern recurs beyond that, report the rest in one issue titled `"Data Without Synthesis: Recurring"`, **severity: medium**, anchored to the next passage and listing the first sentence and lines of each remaining one. Report up to 5 `"Restated Point"` issues on the same terms. Order, each framing question and length are reported at most once per document.
+Narrative findings are few by nature. Report up to 5 `"Data Without Synthesis"` issues, the most consequential first; when the pattern recurs beyond that, report the rest in one issue titled `"Data Without Synthesis: Recurring"`, anchored to the next passage and listing the first sentence and lines of each remaining one. Report up to 5 `"Restated Point"` issues on the same terms. Order, each framing question and length are reported at most once per document.
 
 ## Report
 

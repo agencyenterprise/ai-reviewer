@@ -85,12 +85,14 @@ When the document has more than 300 lines and you can hand work to sub-agents, s
 
 Report issues following the conventions defined in the `issues` skill. Do not emit issues for sentences that pass. Explain each problem in plain practical terms, why the change reads better, never by reference to a rule or guideline.
 
-- **Wordy construction** → one issue per paragraph that contains wordy constructions, title `"Wordy Construction"`, **severity: low**. In the `description`, quote every wordy phrase from that paragraph with its sentence. In `suggested_action`, give the tighter wording for each, and attach an edit for each sentence that contains one. Bracket the paragraph with `start_line` and `end_line`.
-- **Run-on sentence** → one issue per sentence, title `"Run-On Sentence"`, **severity: low**. Quote the sentence and give the split version.
-- **Throat-clearing** → one issue per sentence, title `"Throat-Clearing"`, **severity: low**. Quote the sentence and say what, if anything, should replace it.
-- **Vague reference** → one issue per sentence, title `"Vague Reference"`, **severity: medium**. Quote the sentence, say which word is vague, and either name the referent or ask the author to.
-- **Empty framing** → one issue per sentence, title `"Empty Framing"`, **severity: low**. Quote the sentence and give the specific framing the paragraph supports, or suggest deleting it.
-- **Obvious statement** → one issue per sentence, title `"Obvious Statement"`, **severity: low**. Quote the sentence, say why the intended reader already knows it, and give the deeper point if the paragraph supports one.
+Choose each issue's severity by the severity criteria in the `issues` skill, judged by what the problem costs the reader: `medium` when it makes a passage harder to follow, leaves its meaning or what it refers to unclear, or undercuts the document's neutrality; `low` when the passage already reads clearly and neutrally and the change only polishes it; `high` only for a problem that undermines the document as a whole.
+
+- **Wordy construction** → one issue per paragraph that contains wordy constructions, title `"Wordy Construction"`. In the `description`, quote every wordy phrase from that paragraph with its sentence. In `suggested_action`, give the tighter wording for each, and attach an edit for each sentence that contains one. Bracket the paragraph with `start_line` and `end_line`.
+- **Run-on sentence** → one issue per sentence, title `"Run-On Sentence"`. Quote the sentence and give the split version.
+- **Throat-clearing** → one issue per sentence, title `"Throat-Clearing"`. Quote the sentence and say what, if anything, should replace it.
+- **Vague reference** → one issue per sentence, title `"Vague Reference"`. Quote the sentence, say which word is vague, and either name the referent or ask the author to.
+- **Empty framing** → one issue per sentence, title `"Empty Framing"`. Quote the sentence and give the specific framing the paragraph supports, or suggest deleting it.
+- **Obvious statement** → one issue per sentence, title `"Obvious Statement"`. Quote the sentence, say why the intended reader already knows it, and give the deeper point if the paragraph supports one.
 
 ### Proposed edits
 
@@ -98,7 +100,7 @@ When you can attach proposed edits to an issue, attach one edit per sentence who
 
 ### Volume and coverage
 
-Report every qualifying paragraph up to 40 concision issues; when a long document is split into parts, the limit applies to each part. If there are more, report the remainder one issue per section, titled `"Wordy Construction: Section Summary"`, **severity: low**, anchored to the section's first reportable paragraph and spanning the section: quote each reported phrase with its tighter wording, and attach edits as above. Precision issues are never consolidated. Every section of the document is covered either way.
+Report every qualifying paragraph up to 40 concision issues; when a long document is split into parts, the limit applies to each part. If there are more, report the remainder one issue per section, titled `"Wordy Construction: Section Summary"`, anchored to the section's first reportable paragraph and spanning the section: quote each reported phrase with its tighter wording, and attach edits as above. Precision issues are never consolidated. Every section of the document is covered either way.
 
 ## Report
 

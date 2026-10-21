@@ -65,13 +65,15 @@ Report problems; do not rewrite the document. Feedback on a header or a lead sen
 
 Report issues following the conventions defined in the `issues` skill. Do not emit issues for headers, openers or boxes that pass. Explain each problem in plain practical terms, what a skimming reader misses and why the suggested wording helps, never by reference to a rule or guideline.
 
-- **Vague header** → one issue per header, title `"Vague Header"`, **severity: medium**.
-- **Header lacks takeaway** → one issue per header, title `"Header Lacks Takeaway"`, **severity: low**.
-- **Header does not match content** → one issue per header, title `"Header Does Not Match Content"`, **severity: medium**. Say what the section actually covers.
-- **Bottom line not up front** → one issue per document, title `"Bottom Line Not Up Front"`, **severity: high**. Bracket the introductory section with `start_line` and `end_line`. In the `description`, say what the introductory section does contain and quote where the main finding first appears. In `suggested_action`, ask the authors to state that finding in the introductory section, pointing to the sentence to draw on; do not write the new paragraph.
-- **Lead sentence lacks takeaway** → one issue per opener, title `"Lead Sentence Lacks Takeaway"`, **severity: low**. Bracket the paragraph.
-- **Too many key findings** → one issue per box, title `"Too Many Key Findings"`, **severity: medium**. Bracket the box from its header line to its last item, give the count, and name the items that could be merged or moved to the body; never suggest changing the box's header.
-- **Key finding not brief** → one issue per item, title `"Key Finding Not Brief"`, **severity: low**. Quote the item and say what makes it long.
+Choose each issue's severity by the severity criteria in the `issues` skill, judged by what the problem costs the reader: `medium` when it makes a passage harder to follow, leaves its meaning or what it refers to unclear, or undercuts the document's neutrality; `low` when the passage already reads clearly and neutrally and the change only polishes it; `high` only for a problem that undermines the document as a whole.
+
+- **Vague header** → one issue per header, title `"Vague Header"`.
+- **Header lacks takeaway** → one issue per header, title `"Header Lacks Takeaway"`.
+- **Header does not match content** → one issue per header, title `"Header Does Not Match Content"`. Say what the section actually covers.
+- **Bottom line not up front** → one issue per document, title `"Bottom Line Not Up Front"`. Bracket the introductory section with `start_line` and `end_line`. In the `description`, say what the introductory section does contain and quote where the main finding first appears. In `suggested_action`, ask the authors to state that finding in the introductory section, pointing to the sentence to draw on; do not write the new paragraph.
+- **Lead sentence lacks takeaway** → one issue per opener, title `"Lead Sentence Lacks Takeaway"`. Bracket the paragraph.
+- **Too many key findings** → one issue per box, title `"Too Many Key Findings"`. Bracket the box from its header line to its last item, give the count, and name the items that could be merged or moved to the body; never suggest changing the box's header.
+- **Key finding not brief** → one issue per item, title `"Key Finding Not Brief"`. Quote the item and say what makes it long.
 
 For the three header issues, set `start_line` and `end_line` to the header's line and quote the header in the `description`. Begin `suggested_action` with the suggested wording in exactly this form, then one sentence on why it is better:
 
@@ -83,7 +85,7 @@ These issues carry no proposed text edits: a new header or opener is wording the
 
 ### Volume and coverage
 
-Every section header is checked, to the last section of the document; report every qualifying header up to 30 header issues. If the document has more, keep the vague and mismatched headers and those of the highest-level sections, and summarize the rest in one issue titled `"Header Lacks Takeaway: Further Headers"`, **severity: low**, listing each remaining header with its line. Report up to 15 lead-sentence issues; when a document uses topic-label openers throughout, report the first 15 and list the lines of the rest in a final issue titled `"Lead Sentence Lacks Takeaway: Recurring Pattern"`, **severity: low**.
+Every section header is checked, to the last section of the document; report every qualifying header up to 30 header issues. If the document has more, keep the vague and mismatched headers and those of the highest-level sections, and summarize the rest in one issue titled `"Header Lacks Takeaway: Further Headers"`, listing each remaining header with its line. Report up to 15 lead-sentence issues; when a document uses topic-label openers throughout, report the first 15 and list the lines of the rest in a final issue titled `"Lead Sentence Lacks Takeaway: Recurring Pattern"`.
 
 ## Report
 
