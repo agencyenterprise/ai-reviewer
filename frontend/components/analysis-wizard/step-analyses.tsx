@@ -5,6 +5,7 @@ import { Info, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { WorkflowTypeSelector } from '@/components/workflows/workflow-type-selector';
 import { WebSearchConsentCheckbox } from '@/components/workflows/web-search-consent-checkbox';
+import { GroupBySeveritySwitch } from './group-by-severity-switch';
 import { useWizard } from './wizard-context';
 import { StepHeading, StepLayout } from './step-layout';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
@@ -133,11 +134,14 @@ export function StepAnalyses() {
             </div>
           </div>
         ) : (
-          <WorkflowTypeSelector
-            projectId={wizard.projectId ?? undefined}
-            selectedTypes={selectedWorkflowTypes}
-            onSelectionChange={setSelectedWorkflowTypes}
-          />
+          <>
+            <WorkflowTypeSelector
+              projectId={wizard.projectId ?? undefined}
+              selectedTypes={selectedWorkflowTypes}
+              onSelectionChange={setSelectedWorkflowTypes}
+            />
+            <GroupBySeveritySwitch />
+          </>
         )}
       </div>
     </StepLayout>

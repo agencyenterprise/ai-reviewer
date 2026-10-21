@@ -10,6 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { HelpLink } from '@/components/help/help-link';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Callout } from '@/components/ui/callout';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
@@ -29,6 +30,7 @@ export interface EditProjectFormValues {
   title: string;
   publication_date: string;
   feedback_visibility: FeedbackVisibility | null;
+  group_by_severity: boolean;
 }
 
 function formatDateForInput(date: Date | string | null | undefined): string {
@@ -62,6 +64,7 @@ export function EditProjectDialog({
       title: project.title || '',
       publication_date: formatDateForInput(project.publication_date),
       feedback_visibility: project.feedback_visibility ?? null,
+      group_by_severity: project.group_by_severity ?? true,
     } as EditProjectFormValues,
     validators: {
       onChange: ({ value }) => {
@@ -158,6 +161,26 @@ export function EditProjectDialog({
                 <HelpLink topic="feedback">What each option shares</HelpLink>
               </p>
             </div>
+          )}
+        </form.Field>
+
+        <form.Field name="group_by_severity">
+          {(field) => (
+            <label className="flex cursor-pointer items-start gap-3">
+              <Switch
+                checked={field.state.value}
+                onCheckedChange={field.handleChange}
+                disabled={isSubmitting}
+                className="mt-0.5"
+              />
+              <span className="space-y-1">
+                <span className="block text-sm font-medium leading-tight">Group issues by severity</span>
+                <span className="block text-sm text-muted-foreground">
+                  Turn off to list every issue with equal weight, in the app, on share links and in the Word export. The
+                  assessments still rate each issue.
+                </span>
+              </span>
+            </label>
           )}
         </form.Field>
 

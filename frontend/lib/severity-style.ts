@@ -46,3 +46,13 @@ export const SEVERITY: Record<SeverityEnum, SeverityStyle> = {
     text: 'text-green-700 dark:text-green-300',
   },
 };
+
+/**
+ * The style an issue is shown with. With grouping off every reported issue
+ * takes the medium colours and no label, so none of them reads as optional;
+ * passing checks stay green, since "passing" is not a priority.
+ */
+export function severityStyle(severity: SeverityEnum, groupBySeverity: boolean): SeverityStyle {
+  if (groupBySeverity || severity === SeverityEnum.None) return SEVERITY[severity];
+  return { ...SEVERITY[SeverityEnum.Medium], label: '' };
+}

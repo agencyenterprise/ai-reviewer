@@ -1510,6 +1510,12 @@ export type CreateProjectRequest = {
    * Title
    */
   title: string;
+  /**
+   * Group By Severity
+   *
+   * Present issues by severity. Defaults to the user's last project.
+   */
+  group_by_severity?: boolean | null;
 };
 
 /**
@@ -3067,6 +3073,12 @@ export type Project = {
    * The current (latest) revision number for this project
    */
   current_revision?: number;
+  /**
+   * Group By Severity
+   *
+   * Whether the app and the Word export present issues by severity. Display only: issues keep their severity either way.
+   */
+  group_by_severity?: boolean;
 };
 
 /**
@@ -4487,6 +4499,10 @@ export type UpdateProjectRequest = {
    */
   publication_date?: Date | null;
   feedback_visibility?: FeedbackVisibility | null;
+  /**
+   * Group By Severity
+   */
+  group_by_severity?: boolean | null;
 };
 
 /**

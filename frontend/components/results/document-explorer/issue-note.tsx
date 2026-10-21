@@ -13,7 +13,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { FeedbackType, Issue } from '@/lib/generated-api';
 import { useIssueActions } from '@/lib/hooks/use-issue-actions';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
-import { SEVERITY } from '@/lib/severity-style';
+import { useSeverityStyle } from '@/context/group-by-severity-context';
 import { isIssueResolved } from '@/lib/stores/document-explorer-store';
 import { cn } from '@/lib/utils';
 import {
@@ -125,10 +125,11 @@ export function IssueMeta({ issue }: { issue: Issue }) {
   const line = lineLabel(issue);
   const feedbackVisible = useIsIssueFeedbackVisible(issue.id);
   const editCount = issueEdits(issue).length;
+  const style = useSeverityStyle()(issue.severity);
 
   return (
     <span className="flex items-center gap-1.5">
-      <span className={cn('block size-1.5 shrink-0 rounded-full', SEVERITY[issue.severity].dot)} />
+      <span className={cn('block size-1.5 shrink-0 rounded-full', style.dot)} />
       <span className="truncate font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
         {getWorkflowTypeName(issue.workflow_type)}
       </span>

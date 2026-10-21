@@ -2,7 +2,12 @@
 
 import { Button } from '@/components/ui/button';
 import { Issue } from '@/lib/generated-api';
-import { getIssueCount, hasActiveFilters, useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
+import {
+  getIssueCount,
+  hasActiveFilters,
+  useDocumentExplorerStore,
+  useProjectExplorerFilter,
+} from '@/lib/stores/document-explorer-store';
 import { CheckCircle2, FileSearch, Loader2 } from 'lucide-react';
 import { ReactNode, Ref, useImperativeHandle, useRef, useState } from 'react';
 import { NewAssessmentButton } from '../new-assessment-button';
@@ -62,7 +67,8 @@ export function IssuesColumn({
   readOnly,
   onSelectIssue,
 }: IssuesColumnProps) {
-  const { filter, clearFilters } = useDocumentExplorerStore();
+  const { clearFilters } = useDocumentExplorerStore();
+  const filter = useProjectExplorerFilter();
   const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
   const listRef = useRef<IssuesListHandle>(null);
 

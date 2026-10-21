@@ -83,6 +83,24 @@ class TestIssueToComment:
         assert comment.severity == CommentSeverity.HIGH
         assert comment.get_author() == "🚨 High Priority"
 
+    def test_without_severity_the_comment_names_no_priority(self):
+        """A project that doesn't group by severity exports plain Draft Detective comments."""
+        issue = _make_issue(
+            title="Unsupported Claim",
+            description="This claim lacks evidence",
+            severity=SeverityEnum.LOW,
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
+            start_line=1,
+            end_line=3,
+        )
+
+        comment = issue_to_comment(issue, {0: (1, 3)}, show_severity=False)
+
+        assert comment is not None
+        assert comment.get_author() == "Draft Detective"
+        assert comment.get_initials() == "DD"
+        assert "Priority" not in comment.comment_text
+
     def test_includes_suggested_action_and_long_description_in_order(self):
         """Comment carries description, then suggested action, then long_description."""
         issue = _make_issue(
@@ -359,7 +377,9 @@ class TestGenerateDocxRevision:
         issue query are given, and what the comments are told -- so the
         manipulator, the file artifacts and the comment builder are stubs.
         """
-        project = SimpleNamespace(current_revision=current_revision)
+        project = SimpleNamespace(
+            current_revision=current_revision, group_by_severity=True
+        )
         (tmp_path / "main.docx").write_bytes(b"PK\x03\x04")  # a zip, as OOXML is
         main_file = SimpleNamespace(
             file_path=str(tmp_path / "main.docx"),

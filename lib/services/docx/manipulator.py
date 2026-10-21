@@ -163,6 +163,7 @@ def issue_to_comment(
     paragraph_line_ranges: dict[int, tuple[int, int]],
     share_token: str | None = None,
     edit_notes: Sequence[str] = (),
+    show_severity: bool = True,
 ) -> "DocxComment | None":
     """Convert an Issue to DocxComment with optional share link.
 
@@ -172,6 +173,9 @@ def issue_to_comment(
     ``edit_notes`` are the issue's proposed-edit blocks, already formatted by
     `lib.services.docx.edit_notes`: what each edit changes, why, and whether it
     reached the document as a tracked change.
+
+    With ``show_severity`` off (the project doesn't group by severity), the comment
+    is authored as plain "Draft Detective" instead of naming a priority.
     """
     line_range = _resolve_issue_line_range(issue)
     if line_range is None:
@@ -206,7 +210,11 @@ def issue_to_comment(
     return DocxComment(
         paragraph_index=paragraph_index,
         comment_text=comment_text,
-        severity=_map_severity_enum_to_comment_severity(issue.severity),
+        severity=(
+            _map_severity_enum_to_comment_severity(issue.severity)
+            if show_severity
+            else None
+        ),
         share_link=share_link,
     )
 

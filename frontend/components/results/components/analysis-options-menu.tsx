@@ -14,7 +14,7 @@ import { useShare } from '@/context/share-context';
 import { useShareStatus } from '@/hooks/use-share-status';
 import { ProjectOverview, updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
 import { projectQueryKeys, useProjectIssues } from '@/lib/hooks/use-project-data';
-import { useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
+import { useProjectExplorerFilter } from '@/lib/stores/document-explorer-store';
 import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/api-error';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -54,7 +54,7 @@ export function AnalysisOptionsMenu({
   downloadVariant = 'default',
   compact = false,
 }: AnalysisOptionsMenuProps) {
-  const { filter } = useDocumentExplorerStore();
+  const filter = useProjectExplorerFilter();
   const { project } = overview;
   const projectId = project.id;
   const share = useShareStatus(overview);
@@ -90,6 +90,7 @@ export function AnalysisOptionsMenu({
           title: values.title,
           publication_date: values.publication_date ? new Date(values.publication_date) : null,
           feedback_visibility: values.feedback_visibility ?? undefined,
+          group_by_severity: values.group_by_severity,
         },
       });
     },

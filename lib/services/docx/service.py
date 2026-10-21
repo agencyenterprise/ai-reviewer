@@ -210,6 +210,7 @@ async def generate_docx(
                         paragraph_line_ranges,
                         share_token_for_comments,
                         edit_notes=edit_export.notes_for(issue.id),
+                        show_severity=project.group_by_severity,
                     )
                 )
             ]
