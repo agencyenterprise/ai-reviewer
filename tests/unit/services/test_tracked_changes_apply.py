@@ -139,6 +139,42 @@ class TestOneBatchForTheWholeDocument:
         assert "18% rise" in visible
         assert "Figure 4" not in visible
 
+    @pytest.mark.asyncio
+    async def test_a_real_refusal_after_a_written_edit_rolls_back_and_retries(
+        self, docx_path: Path
+    ):
+        # docx-editor writes a batch from the last paragraph back, so the
+        # second paragraph's redline is already in the document when the first
+        # paragraph's operation is refused. Nothing is mocked: the refusal, the
+        # operation index and the rollback are the library's own.
+        edits = [
+            _edit("14% rise", "18% rise", 1),
+            _edit("**Figure 3**", "Figure 4", 3),
+        ]
+        plan, _ = await _plan(docx_path, edits)
+        planned = [
+            edit.model_copy(update={"find": "text the paragraph does not carry"})
+            if edit.edit_id == edits[0].id
+            else edit
+            for edit in plan.planned
+        ]
+
+        outcomes = await apply_tracked_changes(
+            str(docx_path), planned, workspace_root=str(docx_path.parent)
+        )
+
+        by_id = {o.edit_id: o for o in outcomes}
+        assert by_id[edits[0].id].status == "failed"
+        assert by_id[edits[1].id].status == "applied"
+        visible, _, revisions = _read(docx_path)
+        assert _BODY[0] in visible
+        assert "Figure 3 and Figure 4 close the section." in visible
+        # Written once: the rolled-back attempt left no revisions behind.
+        assert sorted((r.type, r.text) for r in revisions) == [
+            ("deletion", "3"),
+            ("insertion", "4"),
+        ]
+
 
 # Two paragraphs reading alike, the first of which already carries someone
 # else's tracked insertion. python-docx leaves an inserted run out of
