@@ -10,7 +10,6 @@ interface WebSearchConsentCheckboxProps {
   disabled?: boolean;
   /** Marks the row as the thing a validation message is about; the message itself is the caller's. */
   invalid?: boolean;
-  error?: string;
 }
 
 /**
@@ -23,7 +22,6 @@ export function WebSearchConsentCheckbox({
   onCheckedChange,
   disabled = false,
   invalid = false,
-  error,
 }: WebSearchConsentCheckboxProps) {
   return (
     <div className="space-y-1.5">
@@ -32,7 +30,7 @@ export function WebSearchConsentCheckbox({
         className={cn(
           'flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-2 transition-colors',
           'bg-amber-500/10 hover:bg-amber-500/15',
-          (invalid || error) && 'ring-1 ring-destructive/40',
+          invalid && 'ring-1 ring-destructive/40',
           disabled && 'cursor-not-allowed opacity-50',
         )}
       >
@@ -41,7 +39,7 @@ export function WebSearchConsentCheckbox({
           checked={checked}
           onCheckedChange={(value) => onCheckedChange(value === true)}
           disabled={disabled}
-          aria-invalid={invalid || error ? true : undefined}
+          aria-invalid={invalid || undefined}
         />
         <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400">
           <Globe aria-hidden className="size-4" />
@@ -56,7 +54,6 @@ export function WebSearchConsentCheckbox({
           </span>
         </span>
       </label>
-      {error && <p className="px-2 text-xs text-destructive">{error}</p>}
     </div>
   );
 }
