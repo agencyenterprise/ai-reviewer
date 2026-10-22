@@ -1,14 +1,15 @@
-"""Which Draft Detective user a Microsoft account is, for listing its conversations.
+"""Which Draft Detective user a Microsoft account is, by its email.
 
 The web app knows a person by email: whichever provider they sign in with, the session's
 email finds or creates their ``users`` row (``lib/api/auth.py``). The Word add-in and the
 Teams bot know them as a Microsoft account. Matching that account to a user by the same
-email puts a conversation in the pane or in Teams under the account the person signs in
-to the web app with.
+email lists a conversation in the pane or in Teams under that user, and answers it with
+the OpenAI key that user saved, as /chat does.
 
-Only for listing. What a person may do in the add-in or in Teams is still decided by
-their object id (``lib/api/addin_auth.py``, Teams handoffs), never by this: an email
-can at worst file a conversation under the wrong list.
+That is no more than the web app already grants the same account: signing in there with
+Microsoft, the same ``email`` claim from the same tenant opens that user, saved key and
+all. What a person may do with documents and handoffs in the add-in or in Teams is still
+decided by their object id (``lib/api/addin_auth.py``, Teams handoffs), never by this.
 
 Two conditions, both needed for the email to mean the same person:
 
