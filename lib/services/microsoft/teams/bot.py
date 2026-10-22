@@ -101,7 +101,7 @@ REQUIRED_SETTINGS = {
 }
 
 
-def _missing() -> str | None:
+def missing() -> str | None:
     """Why the bot cannot run, or None when every setting it needs is set."""
 
     for name, why in REQUIRED_SETTINGS.items():
@@ -113,11 +113,11 @@ def _missing() -> str | None:
 def configured() -> bool:
     """Whether this deployment runs the Teams bot: every setting it needs is set."""
 
-    return _missing() is None
+    return missing() is None
 
 
 def _auth_configuration() -> AgentAuthConfiguration:
-    if (why := _missing()) is not None:
+    if (why := missing()) is not None:
         raise NotConfigured(why)
     return AgentAuthConfiguration(
         auth_type=AuthTypes.client_secret,
