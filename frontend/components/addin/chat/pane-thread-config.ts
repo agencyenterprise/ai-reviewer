@@ -6,21 +6,28 @@ import { PaneWelcome } from './pane-welcome';
 import { SuggestChangesPart } from './suggestion-card';
 
 /**
- * The pane's text sizes, a step down from /chat's for a pane about 320px wide. Each one
- * named, on the thread's root:
- * - message text (the user's and the agent's): 14px, from the page's 16px;
- * - the agent's markdown headings: h1 and h2 16px (from 20px and 18px), h3 and h4 14px
- *   (from 16px); h5 and h6 are already 14px;
- * - the message box: 14px, from 16px.
+ * The pane's text sizes, close to the document's beside it rather than /chat's, and how
+ * its errors read. Each one named, on the thread's root:
+ * - message text (the user's and the agent's): 13px, from the page's 16px;
+ * - the agent's markdown headings: h1 and h2 14px (from 20px and 18px), h3 to h6 13px
+ *   (from 16px and 14px);
+ * - the message box: 13px, from 16px;
+ * - an error in full, wrapping a long URL, where /chat cuts it at two lines: the pane's
+ *   errors say what to do next (where to add an OpenAI key, say), and two lines of a
+ *   pane this narrow cut that off.
  * Cards, the welcome and the checks list set their own sizes.
  */
 export const PANE_THREAD_CLASS = [
-  'text-sm',
-  '[&_.aui-md-h1]:text-base',
-  '[&_.aui-md-h2]:text-base',
-  '[&_.aui-md-h3]:text-sm',
-  '[&_.aui-md-h4]:text-sm',
-  '[&_.aui-composer-input]:text-sm',
+  'text-[13px]',
+  '[&_.aui-md-h1]:text-sm',
+  '[&_.aui-md-h2]:text-sm',
+  '[&_.aui-md-h3]:text-[13px]',
+  '[&_.aui-md-h4]:text-[13px]',
+  '[&_.aui-md-h5]:text-[13px]',
+  '[&_.aui-md-h6]:text-[13px]',
+  '[&_.aui-composer-input]:text-[13px]',
+  '[&_.aui-message-error-message]:line-clamp-none',
+  '[&_.aui-message-error-message]:break-words',
 ].join(' ');
 
 // Module scope, so Thread's message subtrees don't re-render with this component. /chat's
