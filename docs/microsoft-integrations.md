@@ -148,11 +148,14 @@ https://<frontend>/addin/manifest.xml
 Open it in a browser first. You should see XML naming your `<frontend>`. A message naming
 `AUTH_MICROSOFT_ENTRA_ID_*` settings means part 1.5 is not deployed yet.
 
-**Publishing more than one deployment in the tenant**, such as a test one beside
-production? Give each one its own name first: set `ADDIN_NAME` on the frontend, such as
-`Draft Detective (test)`, and redeploy it. Word shows that name on the add-in and on its
-button, so people can tell which one they are using. Set it before publishing: Office
-only picks up a changed name with the next release.
+> **Optional: only if this tenant gets more than one deployment's add-in.** Skip this if
+> the tenant uses a single deployment; the add-in is then called "Draft Detective".
+>
+> With two, such as a test deployment beside production, both would show up in Word
+> as "Draft Detective". To tell them apart, give each its own name before publishing:
+> set `ADDIN_NAME` on the frontend, such as `Draft Detective (test)`, and redeploy it.
+> Word shows that name on the add-in and on its button. Office only picks up a changed
+> name with the next release, so set it before the first publish.
 
 Then open [**Integrated apps**](https://admin.cloud.microsoft/#/Settings/IntegratedApps)
 in the Microsoft 365 admin center:
