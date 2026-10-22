@@ -109,7 +109,7 @@ async def teams_package() -> Response:
     if (why := bot.missing()) is not None or not bot_id:
         return PlainTextResponse(f"{why}.\n", status_code=503)
     return Response(
-        package.package(bot_id),
+        package.package(bot_id, config.FRONTEND_URL),
         media_type="application/zip",
         headers={
             "Content-Disposition": 'attachment; filename="draft-detective-teams.zip"',

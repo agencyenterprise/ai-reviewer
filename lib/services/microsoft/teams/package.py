@@ -41,7 +41,7 @@ COMMANDS = [
 ]
 
 
-def manifest(bot_id: str, version: str) -> dict:
+def manifest(bot_id: str, version: str, frontend_url: str) -> dict:
     scopes = ["personal", "team", "groupChat"]
     return {
         "$schema": (
@@ -51,11 +51,13 @@ def manifest(bot_id: str, version: str) -> dict:
         "manifestVersion": MANIFEST_VERSION,
         "version": version,
         "id": bot_id,
+        # Teams requires all three links. They point at this deployment: its About page
+        # says how documents are handled, and there is no separate terms page.
         "developer": {
-            "name": "AE Studio",
-            "websiteUrl": "https://ae.studio",
-            "privacyUrl": "https://ae.studio/privacy",
-            "termsOfUseUrl": "https://ae.studio/terms",
+            "name": BOT_NAME,
+            "websiteUrl": frontend_url,
+            "privacyUrl": f"{frontend_url}/about",
+            "termsOfUseUrl": f"{frontend_url}/about",
         },
         "name": {"short": BOT_NAME, "full": f"{BOT_NAME} document review"},
         "description": {"short": DESCRIPTION_SHORT, "full": DESCRIPTION_LONG},
@@ -102,16 +104,17 @@ def app_version() -> str:
         return str(tomllib.load(file)["project"]["version"])
 
 
-def package(bot_id: str) -> bytes:
+def package(bot_id: str, frontend_url: str) -> bytes:
     """The zip Teams installs: the manifest and the two icons Teams requires.
 
-    The icons are committed: Teams rejects a package whose icons are the wrong size
-    (192 and 32 pixels), and the outline must be single-colour on transparency.
+    The icons are the site's favicon (``frontend/app/icon.svg``), committed as PNGs:
+    Teams rejects a package whose icons are the wrong size (192 and 32 pixels), and the
+    outline must be single-colour on transparency, so it is the mark alone, in white.
     """
 
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
-        document = manifest(bot_id=bot_id, version=app_version())
+        document = manifest(bot_id, app_version(), frontend_url.rstrip("/"))
         archive.writestr("manifest.json", json.dumps(document, indent=2))
         archive.write(ICONS / "color.png", "color.png")
         archive.write(ICONS / "outline.png", "outline.png")
