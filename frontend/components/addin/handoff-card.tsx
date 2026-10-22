@@ -130,7 +130,7 @@ export function HandoffCard({ handoff, source, authorize, onExpired, onDone, onR
   if (written) {
     return (
       <div className="flex flex-col gap-2 text-xs">
-        <p className="font-medium text-sm">Applied in Word.</p>
+        <p className="font-medium text-[13px]">Applied in Word.</p>
         {report.isError || report.isIdle ? (
           <>
             <p className="text-red-500">
@@ -221,7 +221,7 @@ export function AppliedSummary({ items, sent, destination, onDone }: AppliedSumm
   const missed = items.filter((item) => !item.applied);
   return (
     <div className="flex flex-col gap-1 text-xs">
-      <p className="font-medium text-sm">
+      <p className="font-medium text-[13px]">
         Applied {items.length - missed.length} of {items.length}.
       </p>
       {!sent && (
