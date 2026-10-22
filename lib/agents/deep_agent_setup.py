@@ -31,7 +31,7 @@ from langchain.chat_models import BaseChatModel, init_chat_model
 from langchain_core.messages import BaseMessage
 
 from lib.agents.read_file_line_numbers import ReadFileLineNumbersMiddleware
-from lib.config.env import get_model_api_key
+from lib.config.env import config, get_model_api_key
 from lib.config.llm_models import LLMModel, gpt_5_6_terra_model
 from lib.config.rate_limiter import get_rate_limiter, hash_api_key
 from lib.models.agent import ReasoningDict
@@ -157,6 +157,12 @@ build_deep_agent = _with_our_additions(create_deep_agent)
 """``create_deep_agent``, same signature, with our middleware added to the caller's
 and to every subagent the caller declares, and the general-purpose subagent replaced
 by ours (unless the caller passes one)."""
+
+
+def has_deployment_key(model: LLMModel) -> bool:
+    """Whether ``model`` can run without a user's own key: the deployment set one."""
+
+    return bool(get_model_api_key(model.name) or config.OPENAI_API_KEY)
 
 
 def build_llm(

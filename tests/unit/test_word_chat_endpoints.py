@@ -32,6 +32,9 @@ from lib.services.microsoft.word.handoffs import Account
 ANA = Account(oid="oid-ana", tid="tid-contoso")
 URL = "https://contoso.sharepoint.com/sites/Policy/Shared%20Documents/Draft.docx"
 NOW = datetime.now(UTC)
+OWN_KEY = "sk-ana-own"
+# The real lookup; the fixture below stands it in for every other test.
+API_KEY_FOR = word_chat._api_key
 
 
 @pytest.fixture(autouse=True)
@@ -44,6 +47,7 @@ def free_conversation() -> Iterator[AsyncMock]:
         ) as claim,
         patch.object(word_chat.chat_threads, "release", AsyncMock()),
         patch.object(word_chat.chat_suggestions, "mark_heard", AsyncMock()),
+        patch.object(word_chat, "_api_key", AsyncMock(return_value=OWN_KEY)),
     ):
         yield claim
 
@@ -135,8 +139,9 @@ class TestATurn:
         assert start.await_args is not None
         assert start.await_args.args[:2] == (ANA, URL)
         news.assert_called_once_with([])
-        turn, target = run.call_args.args
+        turn, target, api_key = run.call_args.args
         assert turn.thread_id == thread.id and turn.suggestion_news == "[news]"
+        assert api_key == OWN_KEY
         assert turn.document is None and turn.selection == "the words"
         assert target.requester.oid == ANA.oid and target.chat_thread_id == thread.id
 
@@ -194,7 +199,7 @@ class TestATurn:
         # and so do the new copy's.
         prune.assert_awaited_once_with(thread.id, keep={kept, image.id})
         store.assert_awaited_once_with(thread.id, [image])
-        turn, _target = run.call_args.args
+        turn, _target, _key = run.call_args.args
         assert turn.document == read
 
     @pytest.mark.asyncio
@@ -349,8 +354,46 @@ class TestResuming:
         lookup.assert_awaited_once_with(card_id, ANA)
         # Not a new turn: cards that settled meanwhile are still news on the next one.
         begin.assert_not_awaited()
-        thread_id, target = run.call_args.args
+        thread_id, target, api_key = run.call_args.args
         assert thread_id == thread.id and target.requester.oid == ANA.oid
+        assert api_key == OWN_KEY
+
+
+class TestTheKeyItAnswersWith:
+    """The person's own OpenAI key, as on /chat; else the deployment's; else refused."""
+
+    @staticmethod
+    def keys(own: str | None, deployment: bool) -> Any:
+        return (
+            patch.object(
+                word_chat.conversations, "owner", AsyncMock(return_value=uuid.uuid4())
+            ),
+            patch.object(
+                word_chat.users, "stored_api_key", AsyncMock(return_value=own)
+            ),
+            patch.object(word_chat, "has_deployment_key", return_value=deployment),
+        )
+
+    @pytest.mark.asyncio
+    async def test_their_own_key_comes_first(self) -> None:
+        owner, stored, deployment = self.keys("sk-own", deployment=True)
+        with owner, stored, deployment:
+            assert await API_KEY_FOR(uuid.uuid4()) == "sk-own"
+
+    @pytest.mark.asyncio
+    async def test_without_one_the_deployments_key_is_used(self) -> None:
+        owner, stored, deployment = self.keys(None, deployment=True)
+        with owner, stored, deployment:
+            assert await API_KEY_FOR(uuid.uuid4()) is None
+
+    @pytest.mark.asyncio
+    async def test_with_neither_it_is_refused_with_where_to_add_one(self) -> None:
+        owner, stored, deployment = self.keys(None, deployment=False)
+        with owner, stored, deployment, pytest.raises(HTTPException) as raised:
+            await API_KEY_FOR(uuid.uuid4())
+
+        assert raised.value.status_code == 403
+        assert "/account" in str(raised.value.detail)
 
 
 class TestOneTurnAtATime:

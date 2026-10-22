@@ -90,6 +90,54 @@ def conversation() -> Any:
         yield found
 
 
+@pytest.fixture(autouse=True)
+def keys() -> Any:
+    """Nobody linked asks, and the deployment has a key: no Graph call, no database."""
+
+    with (
+        patch("lib.agents.teams_agent.asker", AsyncMock(return_value=None)) as who,
+        patch("lib.agents.teams_agent.has_deployment_key", return_value=True),
+    ):
+        yield who
+
+
+class TestTheKeyItAnswersWith:
+    """The asker's own OpenAI key, as on /chat; else the deployment's; else it says so."""
+
+    @pytest.mark.asyncio
+    async def test_whoever_asks_answers_with_their_own_key(
+        self, keys: AsyncMock
+    ) -> None:
+        keys.return_value = uuid.uuid4()
+        with (
+            patch(
+                "lib.agents.teams_agent.users.stored_api_key",
+                AsyncMock(return_value="sk-own"),
+            ),
+            patch("lib.agents.teams_agent.build_llm") as llm,
+            patch(
+                "lib.agents.teams_agent.build_deep_agent",
+                return_value=agent_returning("an answer"),
+            ),
+        ):
+            await answer_question("hello?", graph_token=TOKEN, thread_id=THREAD)
+
+        assert llm.call_args.args[1] == "sk-own"
+
+    @pytest.mark.asyncio
+    async def test_with_no_key_at_all_it_says_where_to_add_one(self) -> None:
+        with (
+            patch("lib.agents.teams_agent.has_deployment_key", return_value=False),
+            patch("lib.agents.teams_agent.build_deep_agent") as built,
+        ):
+            answer = await answer_question(
+                "hello?", graph_token=TOKEN, thread_id=THREAD
+            )
+
+        built.assert_not_called()
+        assert answer.failed is False and "/account" in answer.text
+
+
 class TestWhatTheAgentIsGiven:
     @pytest.mark.asyncio
     async def test_no_document_is_mounted_up_front(self) -> None:

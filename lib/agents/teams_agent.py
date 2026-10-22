@@ -51,16 +51,18 @@ from lib.agents.deep_agent_setup import (
     build_deep_agent,
     build_llm,
     build_skill_files,
+    has_deployment_key,
     tool_names,
 )
 from lib.agents.seen_image_redaction import SeenImageRedactionMiddleware
 from lib.agents.tools.sharepoint import check_document_for, open_document_for
 from lib.agents.tools.view_image import VIEW_IMAGE_PROMPT, view_image_for_conversation
 from lib.agents.tools.word_handoff import offer_changes_for, tenant_of
+from lib.config.env import config
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
 from lib.config.llm_models import LLMModel
-from lib.services import conversations
+from lib.services import conversations, users
 from lib.services.microsoft import linked_users
 from lib.services.microsoft.graph import client as graph_client
 from lib.services.microsoft.graph.client import GraphError
@@ -246,12 +248,22 @@ class QuestionAnswer(BaseModel):
     error: str | None = None
 
 
+# Answered instead when there is no OpenAI key to answer with.
+NO_API_KEY = (
+    "I need your OpenAI API key to answer. Sign in to {frontend}/account with your work "
+    "email address and add it there, then ask me again."
+)
+
+
 async def asker(graph_token: str, name: str) -> uuid.UUID | None:
-    """The Draft Detective user who asked, by their mail address, for listing.
+    """The Draft Detective user who asked, by their mail address.
+
+    For listing the conversation under them, and for answering with their own OpenAI
+    key, as /chat does.
 
     Read from Graph with their own token, so it is theirs; ``linked_users`` decides
     whether that address can be trusted to mean a user. Optional: a lookup that fails
-    leaves the conversation unlisted rather than unanswered.
+    leaves the conversation unlisted, and answered with the deployment's key.
     """
 
     try:
@@ -261,6 +273,10 @@ async def asker(graph_token: str, name: str) -> uuid.UUID | None:
         return None
     email = str(person.get("mail") or "") or None
     return await linked_users.user_for(email, name, tenant_of(graph_token))
+
+
+async def _known(user_id: uuid.UUID | None) -> uuid.UUID | None:
+    return user_id
 
 
 async def answer_question(
@@ -318,14 +334,21 @@ async def answer_question(
     }
 
     try:
+        # Whoever asks this time, not whoever started the conversation: in a channel
+        # those differ, and each person answers with their own key.
+        asked_by_user = await asker(graph_token, asked_by)
+        key = api_key or await users.stored_api_key(asked_by_user)
+        if key is None and not has_deployment_key(model):
+            frontend = config.FRONTEND_URL.rstrip("/")
+            return QuestionAnswer(text=NO_API_KEY.format(frontend=frontend))
         # What the documents' images opened here belong to; the agent's own history
         # stays under the Teams id, as before.
         conversation_id = await conversations.for_teams(
-            thread_id, lambda: asker(graph_token, asked_by)
+            thread_id, lambda: _known(asked_by_user)
         )
         async with get_checkpointer() as saver:
             agent = build_deep_agent(
-                model=build_llm(model, api_key),
+                model=build_llm(model, key),
                 tools=[
                     open_document_for(graph_token, conversation_id),
                     check_document_for(graph_token),

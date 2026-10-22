@@ -34,6 +34,19 @@ async def start(
     return conversation.id
 
 
+async def owner(conversation_id: uuid.UUID) -> uuid.UUID | None:
+    """The user a conversation is listed under, if it is linked to one."""
+
+    async with get_async_db_session() as session:
+        return (
+            await session.execute(
+                select(col(Conversation.user_id)).where(
+                    col(Conversation.id) == conversation_id
+                )
+            )
+        ).scalar_one_or_none()
+
+
 async def remove(session: AsyncSession, conversation_id: uuid.UUID) -> None:
     """Delete a conversation; its surface's row and its files go with it (cascade)."""
 
