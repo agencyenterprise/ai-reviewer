@@ -12,7 +12,8 @@ import {
 import { applyHandoff } from '@/lib/addin/apply-handoff';
 import { expiresAt, openSignOutDialog, signInInteractively, ssoSignIn } from '@/lib/addin/sign-in';
 import { flush, renderInto, Rendered, testQueryClient, withQueryClient } from '@/lib/test-render';
-import { HandoffPanel } from './handoff-panel';
+import { AddinSignIn } from './addin-sign-in';
+import { HandoffList } from './handoff-panel';
 
 vi.mock('@/lib/generated-api', async (original) => ({
   ...(await original<typeof import('@/lib/generated-api')>()),
@@ -57,7 +58,14 @@ const handoff = (id: string, name = 'Draft.docx', status: HandoffView['status'] 
 let rendered: Rendered | null = null;
 
 async function render(client = testQueryClient()): Promise<HTMLElement> {
-  rendered = await renderInto(withQueryClient(client, <HandoffPanel />));
+  rendered = await renderInto(
+    withQueryClient(
+      client,
+      <AddinSignIn prompt="Sign in to apply changes asked for in Teams.">
+        {(session) => <HandoffList session={session} />}
+      </AddinSignIn>,
+    ),
+  );
   // Signing in silently, then listing: two rounds of promises before anything shows.
   await flush();
   await flush();
@@ -94,7 +102,7 @@ afterEach(async () => {
   vi.mocked(expiresAt).mockReturnValue(null);
 });
 
-describe('HandoffPanel', () => {
+describe('HandoffList, signed in through AddinSignIn', () => {
   it('asks nothing of the API until someone has signed in', async () => {
     const container = await render();
 
