@@ -56,8 +56,11 @@ async def download_file(
     if not os.path.isfile(file.file_path):
         raise HTTPException(status_code=404, detail="File not found on disk")
 
-    # Return the file from the file system
+    # Named after the upload, or the browser names it after the URL (the file's
+    # id). Inline, so a PDF or image still opens in the tab the link opens.
     return FileResponse(
         path=file.file_path,
         media_type=file.file_type,
+        filename=file.file_name,
+        content_disposition_type="inline",
     )

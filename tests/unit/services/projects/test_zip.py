@@ -118,26 +118,42 @@ class TestBuildZipArchive:
                 assert any("notes.txt" in n for n in names)
 
     @patch(CONFIG_PATH)
-    def test_archive_entry_names_use_id_prefix(self, mock_config: MagicMock):
+    def test_archive_entries_keep_the_uploaded_names(self, mock_config: MagicMock):
         mock_config.FILE_UPLOADS_MOUNT_PATH = MOUNT_PATH
-        fid = uuid.uuid4()
-        f = make_file(
-            file_name="doc.txt",
-            file_path=f"{MOUNT_PATH}/x/doc.txt",
-            file_id=fid,
-        )
 
-        with tempfile.TemporaryDirectory():
-            os.makedirs(os.path.dirname(f.file_path), exist_ok=True)
-            with open(f.file_path, "w") as fh:
-                fh.write("hello")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            f = make_file(file_name="Report v3.docx")
+            self._create_temp_file(tmpdir, f)
 
             buf, count = _build_zip_archive([f])
 
         assert count == 1
         with zipfile.ZipFile(buf, "r") as zf:
-            name = zf.namelist()[0]
-            assert name == f"{str(fid)[:4]}_doc.txt"
+            assert zf.namelist() == ["Report v3.docx"]
+
+    @patch(CONFIG_PATH)
+    def test_archive_numbers_only_names_already_taken(self, mock_config: MagicMock):
+        mock_config.FILE_UPLOADS_MOUNT_PATH = MOUNT_PATH
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            files = [
+                make_file(file_name="notes.pdf"),
+                make_file(file_name="NOTES.pdf"),
+                make_file(file_name="notes.pdf"),
+                make_file(file_name="other.pdf"),
+            ]
+            for f in files:
+                self._create_temp_file(tmpdir, f)
+
+            buf, _ = _build_zip_archive(files)
+
+        with zipfile.ZipFile(buf, "r") as zf:
+            assert zf.namelist() == [
+                "notes.pdf",
+                "NOTES (2).pdf",
+                "notes (3).pdf",
+                "other.pdf",
+            ]
 
     @patch(CONFIG_PATH)
     def test_skips_files_outside_mount_path(self, mock_config: MagicMock):

@@ -48,6 +48,18 @@ def _compression_for(file_name: str) -> int:
     return zipfile.ZIP_DEFLATED
 
 
+def _entry_name(file_name: str, taken: set[str]) -> str:
+    """The file's own name, numbered like ``report (2).pdf`` only when an
+    earlier entry already has it. Compared case-insensitively, since most
+    file systems would overwrite one with the other on extraction."""
+    stem, ext = os.path.splitext(file_name)
+    name, n = file_name, 1
+    while name.lower() in taken:
+        n += 1
+        name = f"{stem} ({n}){ext}"
+    return name
+
+
 async def create_project_files_zip(
     project_id: uuid.UUID | str,
     roles: list[FileRole] | None = None,
@@ -87,6 +99,7 @@ def _build_zip_archive(files: list[File]) -> tuple[io.BytesIO, int]:
     """Build the ZIP archive synchronously (intended to run in a thread)."""
     zip_buffer = io.BytesIO()
     files_added = 0
+    taken: set[str] = set()
 
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         for file in files:
@@ -104,11 +117,9 @@ def _build_zip_archive(files: list[File]) -> tuple[io.BytesIO, int]:
 
             try:
                 compression = _compression_for(file.file_name)
-                zip_file.write(
-                    file.file_path,
-                    f"{str(file.id)[:4]}_{file.file_name}",
-                    compress_type=compression,
-                )
+                entry_name = _entry_name(file.file_name, taken)
+                zip_file.write(file.file_path, entry_name, compress_type=compression)
+                taken.add(entry_name.lower())
                 files_added += 1
             except Exception as e:
                 logger.error(
