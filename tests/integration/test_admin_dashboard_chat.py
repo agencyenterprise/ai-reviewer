@@ -127,7 +127,7 @@ async def chat_data() -> AsyncIterator[_Fixture]:
         )
         await _checkpoint(session, str(web.id), hour_ago, source="loop")
         await _checkpoint(session, str(web.id), hour_ago, namespace="tools:abc")
-        await _checkpoint(session, str(word.id), hour_ago, sender="oid-ana")
+        await _checkpoint(session, str(word.id), hour_ago, sender=f"oid-ana-{tag}")
         # Names no parallel fixture shares, so each is one more person.
         await _checkpoint(session, teams_id, hour_ago, sender=f"Ana {tag}")
         await _checkpoint(session, teams_id, hour_ago, sender=f"Bo {tag}")
