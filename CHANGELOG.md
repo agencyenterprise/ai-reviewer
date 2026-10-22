@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.3.0] - 2026-10-22
+
+### Added
+- Added a public API endpoint to download the Microsoft Teams app package for upload to the Teams admin center.
+
+### Changed
+- Teams app packages now use the app version, allowing updates by downloading and uploading the latest package.
+- Updated Teams package links and developer name to identify Draft Detective and point to the deployment frontend.
+- Teams package icons now use the site favicon design.
+- Consolidated Teams sign-in setup into the bot app registration and updated Microsoft integration documentation.
+- Updated the Microsoft Teams admin guide to use the package download URL instead of building a package from a repository checkout.
+- Bumped `opentelemetry-api` from 1.39.1 to 1.45.1.
+
+### Fixed
+- Teams package downloads now return a 503 response until the bot is configured or the frontend URL uses HTTPS.
+
+### Removed
+- Removed the separate Teams sign-in app registration.
+- Removed the Teams app package build script and its app ID options.
+
+
 ## [v2.2.0] - 2026-10-22
 
 ### Added
