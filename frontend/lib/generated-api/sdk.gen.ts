@@ -94,6 +94,8 @@ import type {
   ExtractAttachmentTextApiChatExtractPostData,
   ExtractAttachmentTextApiChatExtractPostErrors,
   ExtractAttachmentTextApiChatExtractPostResponses,
+  FeaturesApiMicrosoftWordFeaturesGetData,
+  FeaturesApiMicrosoftWordFeaturesGetResponses,
   GenerateThreadTitleApiChatThreadsThreadIdTitlePostData,
   GenerateThreadTitleApiChatThreadsThreadIdTitlePostErrors,
   GenerateThreadTitleApiChatThreadsThreadIdTitlePostResponses,
@@ -2371,6 +2373,21 @@ export const listChecksApiMicrosoftWordChatChecksGet = <ThrowOnError extends boo
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/microsoft/word/chat/checks',
+    ...options,
+  });
+
+/**
+ * Features
+ *
+ * What the pane offers on this deployment.
+ */
+export const featuresApiMicrosoftWordFeaturesGet = <ThrowOnError extends boolean = true>(
+  options?: Options<FeaturesApiMicrosoftWordFeaturesGetData, ThrowOnError>,
+): RequestResult<FeaturesApiMicrosoftWordFeaturesGetResponses, unknown, ThrowOnError, 'data'> =>
+  (options?.client ?? client).get<FeaturesApiMicrosoftWordFeaturesGetResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/microsoft/word/features',
     ...options,
   });
 

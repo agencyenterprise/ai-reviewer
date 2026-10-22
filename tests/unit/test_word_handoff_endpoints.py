@@ -194,3 +194,38 @@ class TestTheRequestTheAddInSends:
 
         assert response.status_code == 422
         pending.assert_not_awaited()
+
+
+class TestFeatures:
+    """The pane offers the changes from Teams only where the Teams bot runs."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("runs", [True, False])
+    async def test_it_says_whether_the_teams_bot_runs(self, runs: bool) -> None:
+        with patch.object(word.bot, "configured", return_value=runs):
+            found = await word.features(caller())
+
+        assert found.teams is runs
+
+    @pytest.mark.parametrize(
+        ("app_id", "password", "connection", "runs"),
+        [
+            ("app", "secret", "graph-user", True),
+            (None, "secret", "graph-user", False),
+            ("app", None, "graph-user", False),
+            ("app", "secret", None, False),
+        ],
+    )
+    def test_the_bot_runs_only_with_every_setting_it_needs(
+        self,
+        app_id: str | None,
+        password: str | None,
+        connection: str | None,
+        runs: bool,
+    ) -> None:
+        with (
+            patch.object(word.bot.config, "TEAMS_BOT_APP_ID", app_id),
+            patch.object(word.bot.config, "TEAMS_BOT_APP_PASSWORD", password),
+            patch.object(word.bot.config, "TEAMS_USER_AUTH_CONNECTION", connection),
+        ):
+            assert word.bot.configured() is runs

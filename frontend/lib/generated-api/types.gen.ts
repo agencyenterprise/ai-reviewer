@@ -388,6 +388,18 @@ export type ActivityPoint = {
 };
 
 /**
+ * AddinFeatures
+ */
+export type AddinFeatures = {
+  /**
+   * Teams
+   *
+   * Whether this deployment runs the Teams bot, so the pane offers the changes asked for there
+   */
+  teams: boolean;
+};
+
+/**
  * AdminDashboardResponse
  *
  * Everything the admin usage dashboard renders.
@@ -8431,6 +8443,23 @@ export type ListChecksApiMicrosoftWordChatChecksGetResponses = {
 
 export type ListChecksApiMicrosoftWordChatChecksGetResponse =
   ListChecksApiMicrosoftWordChatChecksGetResponses[keyof ListChecksApiMicrosoftWordChatChecksGetResponses];
+
+export type FeaturesApiMicrosoftWordFeaturesGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/microsoft/word/features';
+};
+
+export type FeaturesApiMicrosoftWordFeaturesGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: AddinFeatures;
+};
+
+export type FeaturesApiMicrosoftWordFeaturesGetResponse =
+  FeaturesApiMicrosoftWordFeaturesGetResponses[keyof FeaturesApiMicrosoftWordFeaturesGetResponses];
 
 export type ListPendingApiMicrosoftWordHandoffsGetData = {
   body?: never;

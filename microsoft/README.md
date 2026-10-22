@@ -60,6 +60,11 @@ serves at `/addin/manifest.xml` (`frontend/lib/addin/manifest.ts`). The manifest
 UUID v5 of the frontend host, so each deployment is its own add-in, and its version
 follows the app's.
 
+The pane is the chat. Where the Teams bot runs (`GET /api/microsoft/word/features`, which
+reports whether every setting the bot needs is set), a notice above the chat says what
+waits from Teams, only while something does, and **Review** opens those suggestions in
+the chat's place.
+
 ### Signing in
 
 The pane is a Microsoft account, not a Draft Detective user: what it may do is decided by

@@ -13,11 +13,10 @@ import { useQuery } from '@tanstack/react-query';
  * be written into this document. The bot cannot write a document itself, so the work
  * waits here until the person who asked opens it and chooses Apply.
  */
-export function HandoffList({ session }: { session: AddinSession }) {
-  const { email, authorize, expire } = session;
+/** The handoffs waiting from Teams, for this document and others: one request, shared. */
+export function usePendingHandoffs({ email, authorize, expire }: AddinSession) {
   const documentUrl = typeof Office !== 'undefined' ? (Office.context.document?.url ?? '') : '';
-
-  const pending = useQuery({
+  return useQuery({
     enabled: !!documentUrl,
     queryKey: ['addin-handoffs', email, documentUrl],
     queryFn: async () => {
@@ -40,6 +39,11 @@ export function HandoffList({ session }: { session: AddinSession }) {
     },
     retry: false,
   });
+}
+
+export function HandoffList({ session }: { session: AddinSession }) {
+  const { email, authorize, expire } = session;
+  const pending = usePendingHandoffs(session);
 
   if (pending.isLoading) return <Section>Checking for suggestions from Teams…</Section>;
   if (pending.error) return <Section>Could not check for suggestions from Teams.</Section>;
