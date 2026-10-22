@@ -59,7 +59,11 @@ Select **Register**. On the app's **Overview**, note the **Application (client) 
 Draft Detective knows people by email address, and Microsoft only puts it in the sign-in
 token when asked to.
 
-In the app's menu, open **Token configuration** → **Add optional claim**. Choose token
+Open [**App registrations**](https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade),
+select the **All applications** tab, and select the app you just registered. The steps
+below are on its pages, in the menu on the left.
+
+Open **Token configuration** → **Add optional claim**. Choose token
 type **ID**, tick **email** and select **Add**. When asked, tick **Turn on the Microsoft
 Graph email permission** and select **Add**.
 
@@ -112,8 +116,9 @@ It works in Word for the web, Windows and Mac.
 ### 2.1 Let Office sign people in
 
 The pane signs people in silently, as the account they are signed in to Word with
-(Office single sign-on). That needs four more settings on the app from part 1. Open it
-from [**App registrations**](https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade).
+(Office single sign-on). That needs four more settings on the app from part 1. Open
+[**App registrations**](https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade),
+select the **All applications** tab, and select that app.
 
 1. **Manifest**: find `"requestedAccessTokenVersion": null` and change it to
    `"requestedAccessTokenVersion": 2`. Select **Save**.
@@ -143,11 +148,14 @@ https://<frontend>/addin/manifest.xml
 Open it in a browser first. You should see XML naming your `<frontend>`. A message naming
 `AUTH_MICROSOFT_ENTRA_ID_*` settings means part 1.5 is not deployed yet.
 
-**Publishing more than one deployment in the tenant**, such as a test one beside
-production? Give each one its own name first: set `ADDIN_NAME` on the frontend, such as
-`Draft Detective (test)`, and redeploy it. Word shows that name on the add-in and on its
-button, so people can tell which one they are using. Set it before publishing: Office
-only picks up a changed name with the next release.
+> **Optional: only if this tenant gets more than one deployment's add-in.** Skip this if
+> the tenant uses a single deployment; the add-in is then called "Draft Detective".
+>
+> With two, such as a test deployment beside production, both would show up in Word
+> as "Draft Detective". To tell them apart, give each its own name before publishing:
+> set `ADDIN_NAME` on the frontend, such as `Draft Detective (test)`, and redeploy it.
+> Word shows that name on the add-in and on its button. Office only picks up a changed
+> name with the next release, so set it before the first publish.
 
 Then open [**Integrated apps**](https://admin.cloud.microsoft/#/Settings/IntegratedApps)
 in the Microsoft 365 admin center:
