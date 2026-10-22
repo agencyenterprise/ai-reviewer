@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.2.0] - 2026-10-22
+
+### Added
+- Added chat usage tracking to the admin dashboard for web, Word, and Teams, including messages, conversations, people, and activity charts.
+- Added a browser-based preview of the Word add-in pane at `/addin/preview`.
+- Added a Teams suggestions notice and review flow to the Word add-in pane.
+- Added support for using a person’s saved OpenAI key for Word and Teams answers, with deployment-key fallback.
+- Added a deployment-specific Word add-in manifest at `/addin/manifest.xml`.
+- Added an admin guide for setting up Microsoft sign-in, the Word add-in, and the Teams bot.
+
+### Changed
+- Updated the Word add-in pane with a Web app link and a more compact layout and text size.
+- Updated Microsoft integration documentation, including clearer guidance for returning to registered apps and consolidating developer documentation.
+- Updated local development and Docker Compose documentation and configuration to support frontend sign-in.
+- Upgraded Pillow to version 13.0.0.
+
+### Fixed
+- Fixed Word add-in chat errors being truncated, including long URLs.
+- Fixed Docker Compose frontend authentication configuration that caused sign-in requests to fail.
+
+### Security
+- Updated Pillow to 13.0.0 to address eight dependency advisories.
+
+### Removed
+- Removed manually maintained Word add-in manifest templates and stale manifest files.
+
+
 ## [v2.1.1] - 2026-10-21
 
 ### Changed
