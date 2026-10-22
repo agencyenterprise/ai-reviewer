@@ -217,7 +217,10 @@ Open [**App registrations → New registration**](https://entra.microsoft.com/#v
 - **Supported account types:** **Single tenant**.
 - **Redirect URI:** platform **Web**, `https://token.botframework.com/.auth/web/redirect`.
 
-Select **Register** and note its **Application (client) ID**. Then:
+Select **Register** and note its **Application (client) ID**. To come back to the app
+later, open [**App registrations**](https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade),
+select the **All applications** tab, and select it. The steps below are on its pages, in
+the menu on the left:
 
 1. **API permissions** → **Add a permission** → **Microsoft Graph** → **Delegated
    permissions**. Tick **Files.Read.All** and select **Add permissions**. Then select
@@ -233,8 +236,10 @@ again.
 - **Supported account types:** **Single tenant**.
 - **Redirect URI:** leave it empty.
 
-Select **Register** and note its **Application (client) ID**. Then open **Certificates &
-secrets** → **New client secret** → **Add**, and copy the **Value**.
+Select **Register** and note its **Application (client) ID**. Then, on the app's pages
+(find it again under [**App registrations**](https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade)
+→ **All applications**), open **Certificates & secrets** → **New client secret** →
+**Add**, and copy the **Value**.
 
 It needs no API permissions.
 
@@ -291,18 +296,18 @@ Set these on **the API**, then redeploy it:
 
 ### 3.7 Publish the bot in Teams
 
-Teams installs a bot from a small zip package. Build it from a checkout of this
-repository, with the bot app's client ID:
+Teams installs a bot from a small zip package, which the API builds for this deployment.
+Download it from:
 
-```bash
-TEAMS_BOT_APP_ID=<bot client ID> uv run python microsoft/teams-app/build_package.py
+```
+https://<api>/api/microsoft/teams/package.zip
 ```
 
-It writes `microsoft/teams-app/draft-detective-teams.zip`.
+It answers with an error naming what is missing until the settings in 3.6 are set.
 
 Then open [**Manage apps**](https://admin.teams.microsoft.com/policies/manage-apps) in the
-Teams admin center, select **Upload new app** → **Upload**, and choose the zip. Draft
-Detective is now in your organization's app catalog, available to everyone.
+Teams admin center, select **Upload new app** → **Upload**, and choose the downloaded
+zip. Draft Detective is now in your organization's app catalog, available to everyone.
 
 To add it, people open **Apps → Built for your org** in Teams, select **Draft Detective**
 and **Add**. To use it in a channel, they add it to that team.
@@ -324,9 +329,8 @@ where that is acceptable.
 
 ### Later
 
-- **A new package:** Teams recognizes the bot by its app ID, so uploading the same
-  package twice is refused. Build it with a higher version
-  (`build_package.py 1.2.2`), then open Draft Detective in
+- **A new release:** the package's version is the application's, so it rises with each
+  release. To update Draft Detective in Teams, download the package again, open it in
   [Manage apps](https://admin.teams.microsoft.com/policies/manage-apps) and update it
   there. Updating from Teams itself is not offered.
 - **A new API host:** update the messaging endpoint (3.4).

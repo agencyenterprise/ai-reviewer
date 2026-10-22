@@ -1,9 +1,10 @@
-"""The Teams bot's messaging endpoint.
+"""The Teams bot's messaging endpoint, and the package that installs it.
 
-One way in: ``/messages``, called by the Bot Connector. It authenticates with the token
-the Connector presents and hands the activity to ``conversation.on_turn``; what the bot
-does with it lives in ``lib/services/microsoft/teams/``. This module only maps the
-outcome to what the Connector expects: an empty 200, an invoke's reply, or an error
+``/package.zip`` is the Teams app package an admin uploads to Teams
+(``lib/services/microsoft/teams/package.py``). Everything else is ``/messages``, called
+by the Bot Connector. It authenticates with the token the Connector presents and hands
+the activity to ``conversation.on_turn``; what the bot does with it lives in
+``lib/services/microsoft/teams/``. This module only maps the outcome to what the Connector expects: an empty 200, an invoke's reply, or an error
 status chosen so that the Connector retries only what a retry can fix.
 
 Read-only, deliberately. A whole-file write back is refused with 423 while anyone has
@@ -20,10 +21,11 @@ flow to post answers and could only reply in a separate message. A transport-neu
 import logging
 
 from fastapi import APIRouter, Header, HTTPException, Request, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from microsoft_agents.activity.invoke_response import InvokeResponse
 
-from lib.services.microsoft.teams import bot, conversation
+from lib.config.env import config
+from lib.services.microsoft.teams import bot, conversation, package
 
 logger = logging.getLogger(__name__)
 
@@ -91,3 +93,25 @@ async def bot_messages(
     # For everything else the Connector wants an empty 200; a body it would treat as
     # a payload.
     return Response(status_code=200)
+
+
+@router.get("/package.zip")
+async def teams_package() -> Response:
+    """The Teams app package for this deployment, for an admin to upload to Teams.
+
+    Public, like the add-in's manifest: it holds the bot's app id and nothing secret.
+    Refused until the bot is configured, so a bot that could answer nobody is never
+    published.
+    """
+
+    bot_id = config.TEAMS_BOT_APP_ID
+    if (why := bot.missing()) is not None or not bot_id:
+        return PlainTextResponse(f"{why}.\n", status_code=503)
+    return Response(
+        package.package(bot_id),
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": 'attachment; filename="draft-detective-teams.zip"',
+            "Cache-Control": "no-store",
+        },
+    )

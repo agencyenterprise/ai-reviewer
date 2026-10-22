@@ -10,7 +10,7 @@ This file assumes you have read it.
 | | Code | Can it change a document? |
 |---|---|---|
 | Word add-in | `frontend/app/addin/`, `frontend/components/addin/`, `frontend/lib/addin/`; API under `/api/microsoft/word` | Yes |
-| Teams bot | `lib/services/microsoft/teams/`, `lib/agents/teams_agent.py`; API under `/api/microsoft/teams`; package from `teams-app/build_package.py` | Only through the add-in |
+| Teams bot | `lib/services/microsoft/teams/`, `lib/agents/teams_agent.py`; API under `/api/microsoft/teams`; package at `/api/microsoft/teams/package.zip` | Only through the add-in |
 
 ## Why two integrations
 
@@ -152,7 +152,7 @@ is answered (`lib/services/microsoft/teams/sign_in.py`). Only the person who ask
 release it.
 
 - **`validDomains` must contain `token.botframework.com`**, or sign-in fails in every
-  scope with the same misleading error. `teams-app/build_package.py` sets it.
+  scope with the same misleading error. The package's manifest sets it.
 - **The parked question lives in the database** (`microsoft_teams_signin_state`), not in
   memory: the card and its actions arrive as separate requests, which land on different
   workers in production. A row nobody finishes is swept after an hour.
@@ -162,11 +162,12 @@ release it.
 
 ### The package
 
-`teams-app/build_package.py` writes the manifest and icons into a zip. The app id
-defaults to the bot's (`TEAMS_BOT_APP_ID`), which keeps the two from drifting apart.
-Teams recognizes an upload by that id, so updating needs a higher version
-(`build_package.py 1.2.2`); `--new-app-id` mints a fresh id instead, installing a second
-app beside the old one, for when a catalog entry is in the way. In the Teams admin center,
+`GET /api/microsoft/teams/package.zip` builds the zip from the manifest and the committed
+icons (`lib/services/microsoft/teams/package.py`), refused with 503 until the bot is
+configured. The app id is the bot's (`TEAMS_BOT_APP_ID`), which keeps the two from
+drifting apart. Teams recognizes an upload by that id and refuses an update that does not
+raise the version, so the version is the application's own, which every release raises.
+In the Teams admin center,
 the **External app ID** is that id; the **App ID** is Teams' own, and putting it in the
 manifest fails with a bare "cannot upload the app".
 

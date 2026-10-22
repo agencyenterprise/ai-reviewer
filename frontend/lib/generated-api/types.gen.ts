@@ -8693,3 +8693,17 @@ export type BotMessagesApiMicrosoftTeamsMessagesPostResponses = {
    */
   200: unknown;
 };
+
+export type TeamsPackageApiMicrosoftTeamsPackageZipGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/microsoft/teams/package.zip';
+};
+
+export type TeamsPackageApiMicrosoftTeamsPackageZipGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};

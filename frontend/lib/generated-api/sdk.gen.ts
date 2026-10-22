@@ -252,6 +252,8 @@ import type {
   SubmitFeedbackApiFeedbackPostData,
   SubmitFeedbackApiFeedbackPostErrors,
   SubmitFeedbackApiFeedbackPostResponses,
+  TeamsPackageApiMicrosoftTeamsPackageZipGetData,
+  TeamsPackageApiMicrosoftTeamsPackageZipGetResponses,
   UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostData,
   UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostErrors,
   UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostResponses,
@@ -2523,5 +2525,23 @@ export const botMessagesApiMicrosoftTeamsMessagesPost = <ThrowOnError extends bo
   >({
     responseStyle: 'data',
     url: '/api/microsoft/teams/messages',
+    ...options,
+  });
+
+/**
+ * Teams Package
+ *
+ * The Teams app package for this deployment, for an admin to upload to Teams.
+ *
+ * Public, like the add-in's manifest: it holds the bot's app id and nothing secret.
+ * Refused until the bot is configured, so a bot that could answer nobody is never
+ * published.
+ */
+export const teamsPackageApiMicrosoftTeamsPackageZipGet = <ThrowOnError extends boolean = true>(
+  options?: Options<TeamsPackageApiMicrosoftTeamsPackageZipGetData, ThrowOnError>,
+): RequestResult<TeamsPackageApiMicrosoftTeamsPackageZipGetResponses, unknown, ThrowOnError, 'data'> =>
+  (options?.client ?? client).get<TeamsPackageApiMicrosoftTeamsPackageZipGetResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    url: '/api/microsoft/teams/package.zip',
     ...options,
   });
