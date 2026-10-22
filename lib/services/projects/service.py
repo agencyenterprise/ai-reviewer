@@ -26,7 +26,7 @@ from lib.services.files.service import (
     get_files_by_project_id,
 )
 from lib.services.projects.share_links import get_resource_by_token
-from lib.services.references import (
+from lib.services.references.service import (
     remove_fetch_result_for_file,
     remove_file_from_references,
 )

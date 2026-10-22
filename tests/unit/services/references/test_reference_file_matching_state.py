@@ -1,4 +1,4 @@
-"""Unit tests for how lib.services.references loads (and seeds) the
+"""Unit tests for how lib.services.references.service loads (and seeds) the
 ReferenceFileMatching state, exercised through get_file_reference_matches."""
 
 import uuid
@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from lib.services.references import get_file_reference_matches
+from lib.services.references.service import get_file_reference_matches
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.reference_file_matching.state import (
     MatchSource,
@@ -32,7 +32,7 @@ def _make_run(state_json: dict | None) -> MagicMock:
 @pytest.fixture
 def svc() -> Iterator[SimpleNamespace]:
     """Patch every collaborator of the state loader; tests set return values."""
-    target = "lib.services.references"
+    target = "lib.services.references.service"
     with (
         patch(f"{target}.get_project_workflow_run_by_type", new=AsyncMock()) as get_run,
         patch(f"{target}.read_workflow_run_state", new=AsyncMock()) as read_state,

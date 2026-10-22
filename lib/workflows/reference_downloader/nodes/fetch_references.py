@@ -251,7 +251,7 @@ async def _update_reference_file_matching(
 ):
     """Link the fetched file to its reference in the ReferenceFileMatching workflow state."""
 
-    from lib.services.references import add_file_to_reference  # noqa: PLC0415  circular: references -> registry -> this node
+    from lib.services.references.service import add_file_to_reference  # noqa: PLC0415  circular: references -> registry -> this node
 
     await add_file_to_reference(
         project_id=project_id,

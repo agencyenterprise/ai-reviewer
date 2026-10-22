@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from lib.services.references import remove_file_from_references
+from lib.services.references.service import remove_file_from_references
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.reference_file_matching.state import (
     MatchSource,
@@ -37,7 +37,7 @@ def _stub_persist_state():
     """Capture the state_json write; the checkpointer write was removed in the
     write-side cutover, so persist_workflow_run_state is now the only write."""
     with patch(
-        "lib.services.references.persist_workflow_run_state", new=AsyncMock()
+        "lib.services.references.service.persist_workflow_run_state", new=AsyncMock()
     ) as m:
         yield m
 
@@ -45,7 +45,7 @@ def _stub_persist_state():
 @pytest.mark.asyncio
 async def test_returns_empty_when_no_workflow_run(_stub_persist_state):
     with patch(
-        "lib.services.references._get_file_matching_workflow_state",
+        "lib.services.references.service._get_file_matching_workflow_state",
         new=AsyncMock(return_value=(None, None)),
     ):
         removed = await remove_file_from_references(
@@ -59,7 +59,7 @@ async def test_returns_empty_when_no_workflow_run(_stub_persist_state):
 @pytest.mark.asyncio
 async def test_returns_empty_when_no_state(_stub_persist_state):
     with patch(
-        "lib.services.references._get_file_matching_workflow_state",
+        "lib.services.references.service._get_file_matching_workflow_state",
         new=AsyncMock(return_value=(_make_run(), None)),
     ):
         removed = await remove_file_from_references(
@@ -84,7 +84,7 @@ async def test_returns_empty_when_no_match_for_file_id(_stub_persist_state):
     )
 
     with patch(
-        "lib.services.references._get_file_matching_workflow_state",
+        "lib.services.references.service._get_file_matching_workflow_state",
         new=AsyncMock(return_value=(_make_run(), state)),
     ):
         removed = await remove_file_from_references(
@@ -109,7 +109,7 @@ async def test_removes_single_match_and_preserves_others(_stub_persist_state):
     run = _make_run()
 
     with patch(
-        "lib.services.references._get_file_matching_workflow_state",
+        "lib.services.references.service._get_file_matching_workflow_state",
         new=AsyncMock(return_value=(run, state)),
     ):
         removed = await remove_file_from_references(
@@ -135,7 +135,7 @@ async def test_removes_multiple_matches_pointing_at_same_file(_stub_persist_stat
     state = _make_state([dup_a, dup_b])
 
     with patch(
-        "lib.services.references._get_file_matching_workflow_state",
+        "lib.services.references.service._get_file_matching_workflow_state",
         new=AsyncMock(return_value=(_make_run(), state)),
     ):
         removed = await remove_file_from_references(

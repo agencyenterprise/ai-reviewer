@@ -15,7 +15,7 @@ from lib.agents.batched_reference_matcher import (
     BatchedReferenceMatcherAgent,
 )
 from lib.run_utils import run_tasks
-from lib.services.reference_embedding_matcher import (
+from lib.services.references.embedding_matcher import (
     CandidateMatch,
     ReferenceEmbeddingMatcher,
 )

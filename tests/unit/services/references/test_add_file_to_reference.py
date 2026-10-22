@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from lib.services.references import add_file_to_reference
+from lib.services.references.service import add_file_to_reference
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.reference_extraction.state import (
     ExtractedReference,
@@ -52,7 +52,7 @@ def _make_run() -> MagicMock:
 @pytest.fixture
 def persist() -> Iterator[AsyncMock]:
     with patch(
-        "lib.services.references.persist_workflow_run_state", new=AsyncMock()
+        "lib.services.references.service.persist_workflow_run_state", new=AsyncMock()
     ) as m:
         yield m
 
@@ -63,11 +63,11 @@ def _patch_states(
 ):
     return (
         patch(
-            "lib.services.references._get_file_matching_workflow_state",
+            "lib.services.references.service._get_file_matching_workflow_state",
             new=AsyncMock(return_value=matching),
         ),
         patch(
-            "lib.services.references._get_extraction_workflow_state",
+            "lib.services.references.service._get_extraction_workflow_state",
             new=AsyncMock(return_value=(_make_run(), extraction)),
         ),
     )
