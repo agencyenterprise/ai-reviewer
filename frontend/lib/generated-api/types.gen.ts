@@ -454,6 +454,16 @@ export type AdminDashboardResponse = {
    */
   top_users: Array<ActiveUserItem>;
   feedback: DashboardFeedbackSummary;
+  /**
+   * Chat Surfaces
+   *
+   * Every chat surface, in a fixed order, used or not
+   */
+  chat_surfaces: Array<ChatSurfaceUsage>;
+  /**
+   * Chat Activity
+   */
+  chat_activity: Array<ChatActivityPoint>;
 };
 
 /**
@@ -1134,6 +1144,32 @@ export type CancelWorkflowResponse = {
 };
 
 /**
+ * ChatActivityPoint
+ *
+ * Messages sent in one bucket, per surface.
+ */
+export type ChatActivityPoint = {
+  /**
+   * Bucket
+   *
+   * Start of the day/week bucket (UTC)
+   */
+  bucket: Date;
+  /**
+   * Web
+   */
+  web: number;
+  /**
+   * Word
+   */
+  word: number;
+  /**
+   * Teams
+   */
+  teams: number;
+};
+
+/**
  * ChatAttachment
  *
  * A document the user attached to the turn, already converted to text.
@@ -1251,6 +1287,29 @@ export type ChatSuggestion = {
    * Heard At
    */
   heard_at?: Date | null;
+};
+
+/**
+ * ChatSurfaceUsage
+ *
+ * Chat on one surface: the web app's /chat, the Word add-in or Teams.
+ */
+export type ChatSurfaceUsage = {
+  surface: ConversationKind;
+  /**
+   * New conversations. In Teams one conversation is a whole chat or channel reply chain, so it is started once and then reused.
+   */
+  conversations_started: MetricWithDelta;
+  /**
+   * Messages people sent to Draft Detective. The ignore list cannot apply to Teams messages, whose senders are known only by name.
+   */
+  messages: MetricWithDelta;
+  /**
+   * People
+   *
+   * Distinct senders of those messages in the selected window: users on /chat, Microsoft accounts in Word, display names in Teams
+   */
+  people: number;
 };
 
 /**
@@ -1471,6 +1530,20 @@ export type ClaimReferenceValidationV2State = {
    */
   citation_issues?: Array<CitationIssueItem>;
 };
+
+/**
+ * ConversationKind
+ */
+export const ConversationKind = {
+  Web: 'web',
+  Word: 'word',
+  Teams: 'teams',
+} as const;
+
+/**
+ * ConversationKind
+ */
+export type ConversationKind = (typeof ConversationKind)[keyof typeof ConversationKind];
 
 /**
  * CostBreakdown

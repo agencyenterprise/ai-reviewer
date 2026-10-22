@@ -41,6 +41,10 @@ from lib.workflows.registry import get_all_manifests
 # one. Same choice as the pre-run duration estimates.
 _DURATION_PERCENTILE = 0.5
 
+# A model's timestamp column, or one computed in SQL (the chat queries read one
+# out of a checkpoint's JSON).
+_Timestamp = Mapped[datetime] | ColumnElement[datetime]
+
 
 def _assessment_type_values() -> list[str]:
     """Slugs of the workflows a user can choose to run today.
@@ -64,7 +68,7 @@ def _is_assessment() -> ColumnElement[bool]:
     return col(WorkflowRun.type).in_(_assessment_type_values())
 
 
-def _in_current(window: DashboardWindow, ts: Mapped[datetime]) -> ColumnElement[bool]:
+def _in_current(window: DashboardWindow, ts: _Timestamp) -> ColumnElement[bool]:
     """The selected window, upper bound included.
 
     The bound is not decoration: without it a row written while the aggregates
@@ -74,12 +78,13 @@ def _in_current(window: DashboardWindow, ts: Mapped[datetime]) -> ColumnElement[
     return and_(ts >= window.start, ts < window.end)
 
 
-def _in_previous(window: DashboardWindow, ts: Mapped[datetime]) -> ColumnElement[bool]:
+def _in_previous(window: DashboardWindow, ts: _Timestamp) -> ColumnElement[bool]:
     return and_(ts >= window.previous_start, ts < window.start)
 
 
 def _user_not_ignored(
-    user_id: Mapped[uuid.UUID], ignored: Collection[uuid.UUID]
+    user_id: Mapped[uuid.UUID] | Mapped[uuid.UUID | None],
+    ignored: Collection[uuid.UUID],
 ) -> ColumnElement[bool]:
     """`user_id` is nobody the caller asked to leave out.
 
@@ -156,7 +161,7 @@ def _feedback_not_ignored(ignored: Collection[uuid.UUID]) -> ColumnElement[bool]
 
 
 def _current_and_previous_counts(
-    window: DashboardWindow, ts: Mapped[datetime]
+    window: DashboardWindow, ts: _Timestamp
 ) -> tuple[ColumnElement[int], ColumnElement[int]]:
     """Counts for both windows, for a query filtered to `previous_start` onward."""
     return (
