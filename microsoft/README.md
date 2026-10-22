@@ -197,8 +197,13 @@ rather than publishing it to the tenant:
   and reopen Word, as after every change to it
   ([Microsoft's guide](https://learn.microsoft.com/en-us/office/dev/add-ins/testing/sideload-an-office-add-in-on-mac)).
 
-To work on the pane's layout alone, open `http://localhost:3000/addin` in a browser.
-Anything that reads or writes the document needs Word, and so does signing in.
+To work on the pane without Word, a tunnel or a Microsoft sign-in, open
+`/addin/preview` on any deployment, or `http://localhost:3000/addin/preview` locally. It runs the real pane
+with Office and the add-in's API stood in for in the browser (`frontend/lib/addin/preview/`),
+and its controls switch between scenarios: the Teams bot on or off, suggestions waiting
+from Teams, a new conversation, an answer or one waiting on a card, a missing OpenAI key,
+and the pane's width. Messages get canned replies; asking for comments or changes offers a
+card, and dismissing it carries the answer on. Apply cannot write without Word.
 
 **Bot.** Point your Azure Bot's messaging endpoint at
 `https://<api tunnel>/api/microsoft/teams/messages`. A stale endpoint fails silently: the
