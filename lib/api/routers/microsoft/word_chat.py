@@ -35,6 +35,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from starlette.types import Receive, Scope, Send
 
+from lib.agents.deep_agent_setup import DEFAULT_MODEL, has_deployment_key
 from lib.agents.tools.word_suggestions import DOCUMENT_PATH, SuggestionTarget
 from lib.agents.word_chat_agent import (
     WordChatTurn,
@@ -44,7 +45,9 @@ from lib.agents.word_chat_agent import (
 )
 from lib.agents.word_chat_checks import PaneCheck, pane_checks
 from lib.api.addin_auth import AddinIdentity, get_addin_identity
+from lib.config.env import config
 from lib.models.microsoft_word_chat_thread import MicrosoftWordChatThread
+from lib.services import users
 from lib.services.chat.events import ChatEvent
 from lib.services.chat.history import to_ui_messages
 from lib.services.chat.sse import sse_stream
@@ -163,11 +166,10 @@ async def stream_turn(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=DOCUMENT_NEEDED,
             )
-    thread = await chat_threads.current_or_new(
-        account,
-        url,
-        lambda: linked_users.user_for(caller.email_claim, caller.name, caller.tid),
-    )
+    user_id = await _linked_user(caller)
+    # Before the thread: a message that cannot be answered starts nothing.
+    api_key = await _api_key(user_id)
+    thread = await chat_threads.current_or_new(account, url, lambda: _given(user_id))
     token = await _claim(thread.id)
     try:
         if loaded is not None:
@@ -184,7 +186,7 @@ async def stream_turn(
             suggestion_news=chat_suggestions.news(suggestions),
         )
         events = _released(
-            run_word_chat_turn(turn, _target(caller, thread)),
+            run_word_chat_turn(turn, _target(caller, thread), api_key),
             thread.id,
             token,
             # Once the turn's first event arrives its input, news included, is stored.
@@ -194,6 +196,45 @@ async def stream_turn(
         await chat_threads.release(thread.id, token)
         raise
     return _ClaimedStream(events, thread.id, token)
+
+
+# Sent with a 403 when there is no OpenAI key to answer with.
+NO_API_KEY = (
+    "Draft Detective needs your OpenAI API key to answer. Sign in to {frontend}/account "
+    "with this Microsoft account's email address and add it there, then ask again."
+)
+
+
+async def _linked_user(caller: AddinIdentity) -> UUID | None:
+    """The Draft Detective user this account is, by its email (``linked_users``).
+
+    Found on every request rather than read off the conversation, which is linked only
+    when it starts: a conversation started unlinked would otherwise never find the key
+    its person adds later.
+    """
+
+    return await linked_users.user_for(caller.email_claim, caller.name, caller.tid)
+
+
+async def _given(user_id: UUID | None) -> UUID | None:
+    return user_id
+
+
+async def _api_key(user_id: UUID | None) -> str | None:
+    """The key to answer with: the person's own, as on /chat, else the deployment's.
+
+    Theirs is the key saved by the user the account is linked to by email: the same
+    trust the web app's Microsoft sign-in gives that email. Refused when neither has a
+    key, rather than failing mid-answer.
+    """
+
+    own = await users.stored_api_key(user_id)
+    if own is None and not has_deployment_key(DEFAULT_MODEL):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=NO_API_KEY.format(frontend=config.FRONTEND_URL.rstrip("/")),
+        )
+    return own
 
 
 # Sent with a 423 while another turn runs in the conversation (``chat_threads.claim``).
@@ -342,9 +383,12 @@ async def resume_turn(
             status_code=status.HTTP_409_CONFLICT,
             detail="The card has not been applied or dismissed yet.",
         )
+    api_key = await _api_key(await _linked_user(caller))
     token = await _claim(thread.id)
     events = _released(
-        run_word_chat_resume(thread.id, _target(caller, thread)), thread.id, token
+        run_word_chat_resume(thread.id, _target(caller, thread), api_key),
+        thread.id,
+        token,
     )
     return _ClaimedStream(events, thread.id, token)
 
