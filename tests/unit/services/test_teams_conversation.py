@@ -16,7 +16,6 @@ from microsoft_agents.activity import (
     ChannelAccount,
     ChannelId,
     ConversationAccount,
-    ConversationReference,
 )
 
 from lib.services.microsoft.teams import conversation
@@ -313,6 +312,20 @@ class TestAskingBeforeAnswering:
         sign_out.assert_not_awaited()
 
     @pytest.mark.asyncio
+    async def test_a_bare_mention_asks_for_a_question(self) -> None:
+        with (
+            patch.object(conversation.bot, "question_from", return_value=""),
+            patch.object(conversation.sign_in, "user_token", AsyncMock()) as token,
+            patch.object(conversation, "_start_answering") as answer,
+        ):
+            context = self.context()
+            await conversation.on_question(context)
+
+        context.send_activity.assert_awaited_once()
+        token.assert_not_awaited()
+        answer.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_a_signed_in_asker_is_answered_straight_away(self) -> None:
         with (
             patch.object(
@@ -326,33 +339,3 @@ class TestAskingBeforeAnswering:
 
         park.assert_not_awaited()
         assert answer.call_args[0][-1] == "tok"
-
-
-class TestAnswering:
-    @pytest.mark.asyncio
-    async def test_the_agent_is_told_where_to_report_applied_changes(self) -> None:
-        """Without the reference, changes offered in Teams could not be reported back."""
-
-        reference = ConversationReference(
-            service_url="https://smba.trafficmanager.net/br/",
-            channel_id=ChannelId(channel="msteams"),
-            conversation=ConversationAccount(id="19:x;messageid=1"),
-        )
-        answer = MagicMock(failed=False, text="done")
-        with (
-            patch.object(
-                conversation, "answer_question", AsyncMock(return_value=answer)
-            ) as ask,
-            patch.object(conversation.bot, "post_later", AsyncMock()),
-        ):
-            await conversation._answer_into_thread(
-                reference, "fix the typos", "Ana", "19:x;messageid=1", [], "token"
-            )
-
-        assert ask.await_args is not None
-        stored = ask.await_args.kwargs["reference"]
-        assert stored["serviceUrl"] == "https://smba.trafficmanager.net/br/"
-        assert (
-            ConversationReference.model_validate(stored).conversation.id
-            == "19:x;messageid=1"
-        )

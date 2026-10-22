@@ -8,11 +8,25 @@ read does not even reliably log. That combination is how a lost reply becomes si
 import asyncio
 import logging
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from microsoft_agents.activity import (
+    ChannelId,
+    ConversationAccount,
+    ConversationReference,
+)
 
 from lib.services.microsoft.teams import conversation
+
+# A real reference rather than a stand-in: ``_answer_into_thread`` dumps it before it
+# asks, and a placeholder that cannot be dumped fails there, ahead of the path a test
+# meant to reach.
+REFERENCE = ConversationReference(
+    service_url="https://smba.trafficmanager.net/br/",
+    channel_id=ChannelId(channel="msteams"),
+    conversation=ConversationAccount(id="19:x;messageid=1"),
+)
 
 
 class TestWhenAnsweringFails:
@@ -20,23 +34,18 @@ class TestWhenAnsweringFails:
 
     @pytest.mark.asyncio
     async def test_a_reported_failure_is_apologised_for(self) -> None:
-        failed = AsyncMock(
-            return_value=type(
-                "Answer", (), {"failed": True, "error": "boom", "text": ""}
-            )()
-        )
+        failed = AsyncMock(return_value=MagicMock(failed=True, error="boom", text=""))
         posted = AsyncMock()
         with (
             patch.object(conversation, "answer_question", failed),
             patch.object(conversation.bot, "post_later", posted),
         ):
             await conversation._answer_into_thread(
-                "ref", "does this overclaim?", "Carlos", "19:x", [], "token"
+                REFERENCE, "does this overclaim?", "Carlos", "19:x", [], "token"
             )
 
-        posted.assert_awaited_once()
-        assert posted.await_args is not None
-        assert posted.await_args[0][1] == conversation.APOLOGY
+        failed.assert_awaited_once()
+        posted.assert_awaited_once_with(REFERENCE, conversation.APOLOGY)
 
     @pytest.mark.asyncio
     async def test_a_raise_is_apologised_for_too(self) -> None:
@@ -46,22 +55,18 @@ class TestWhenAnsweringFails:
         ``except Exception`` never covers a future edit.
         """
 
+        raising = AsyncMock(side_effect=RuntimeError("upstream"))
         posted = AsyncMock()
         with (
-            patch.object(
-                conversation,
-                "answer_question",
-                AsyncMock(side_effect=RuntimeError("upstream")),
-            ),
+            patch.object(conversation, "answer_question", raising),
             patch.object(conversation.bot, "post_later", posted),
         ):
             await conversation._answer_into_thread(
-                "ref", "does this overclaim?", "Carlos", "19:x", [], "token"
+                REFERENCE, "does this overclaim?", "Carlos", "19:x", [], "token"
             )
 
-        posted.assert_awaited_once()
-        assert posted.await_args is not None
-        assert posted.await_args[0][1] == conversation.APOLOGY
+        raising.assert_awaited_once()
+        posted.assert_awaited_once_with(REFERENCE, conversation.APOLOGY)
 
     @pytest.mark.asyncio
     async def test_a_raise_does_not_escape_to_the_task(self) -> None:
@@ -76,7 +81,7 @@ class TestWhenAnsweringFails:
             patch.object(conversation.bot, "post_later", AsyncMock()),
         ):
             await conversation._answer_into_thread(
-                "ref", "q", "Carlos", "19:x", [], "t"
+                REFERENCE, "q", "Carlos", "19:x", [], "t"
             )
 
     @pytest.mark.asyncio
@@ -94,11 +99,74 @@ class TestWhenAnsweringFails:
             patch.object(conversation.logger, "exception") as logged,
         ):
             await conversation._answer_into_thread(
-                "ref", question, "C", "19:x", [], "t"
+                REFERENCE, question, "C", "19:x", [], "t"
             )
 
         assert logged.call_args is not None
         assert len(logged.call_args[0][1]) == 120
+
+
+class TestWhenAnsweringSucceeds:
+    @pytest.mark.asyncio
+    async def test_the_answer_is_posted_into_the_thread(self) -> None:
+        answer = MagicMock(failed=False, text="It overclaims in section 2.")
+        posted = AsyncMock()
+        with (
+            patch.object(
+                conversation, "answer_question", AsyncMock(return_value=answer)
+            ),
+            patch.object(conversation.bot, "post_later", posted),
+        ):
+            await conversation._answer_into_thread(
+                REFERENCE, "does this overclaim?", "Ana", "19:x", [], "token"
+            )
+
+        posted.assert_awaited_once_with(REFERENCE, "It overclaims in section 2.")
+
+    @pytest.mark.asyncio
+    async def test_the_agent_is_told_where_to_report_applied_changes(self) -> None:
+        """Without the reference, changes offered in Teams could not be reported back."""
+
+        answer = MagicMock(failed=False, text="done")
+        with (
+            patch.object(
+                conversation, "answer_question", AsyncMock(return_value=answer)
+            ) as ask,
+            patch.object(conversation.bot, "post_later", AsyncMock()),
+        ):
+            await conversation._answer_into_thread(
+                REFERENCE, "fix the typos", "Ana", "19:x;messageid=1", [], "token"
+            )
+
+        assert ask.await_args is not None
+        stored = ask.await_args.kwargs["reference"]
+        assert stored["serviceUrl"] == "https://smba.trafficmanager.net/br/"
+        assert (
+            ConversationReference.model_validate(stored).conversation.id
+            == "19:x;messageid=1"
+        )
+
+    @pytest.mark.asyncio
+    async def test_answering_runs_on_after_the_turn_returns(self) -> None:
+        """``_start_answering`` returns at once; the answer arrives from its task."""
+
+        answer = MagicMock(failed=False, text="done")
+        posted = AsyncMock()
+        already_running = set(conversation._running)
+        with (
+            patch.object(
+                conversation, "answer_question", AsyncMock(return_value=answer)
+            ),
+            patch.object(conversation.bot, "post_later", posted),
+        ):
+            conversation._start_answering(
+                REFERENCE, "q", "Ana", "19:x", ["https://x.sharepoint.com/a.docx"], "t"
+            )
+            posted.assert_not_awaited()
+            (task,) = conversation._running - already_running
+            await task
+
+        posted.assert_awaited_once_with(REFERENCE, "done")
 
 
 class TestRetiringADetachedTask:
