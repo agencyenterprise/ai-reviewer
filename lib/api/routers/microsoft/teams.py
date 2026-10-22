@@ -4,8 +4,9 @@
 (``lib/services/microsoft/teams/package.py``). Everything else is ``/messages``, called
 by the Bot Connector. It authenticates with the token the Connector presents and hands
 the activity to ``conversation.on_turn``; what the bot does with it lives in
-``lib/services/microsoft/teams/``. This module only maps the outcome to what the Connector expects: an empty 200, an invoke's reply, or an error
-status chosen so that the Connector retries only what a retry can fix.
+``lib/services/microsoft/teams/``. This module only maps the outcome to what the
+Connector expects: an empty 200, an invoke's reply, or an error status chosen so that
+the Connector retries only what a retry can fix.
 
 Read-only, deliberately. A whole-file write back is refused with 423 while anyone has
 the document open, whatever identity asks, so this path answers in chat and never

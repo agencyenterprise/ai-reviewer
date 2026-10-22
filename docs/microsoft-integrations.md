@@ -332,7 +332,8 @@ where that is acceptable.
 - **A new release:** the package's version is the application's, so it rises with each
   release. To update Draft Detective in Teams, download the package again, open it in
   [Manage apps](https://admin.teams.microsoft.com/policies/manage-apps) and update it
-  there. Updating from Teams itself is not offered.
+  there. Updating from Teams itself is not offered. A change to the package between
+  releases keeps the same version, so it reaches Teams only with the next release.
 - **A new API host:** update the messaging endpoint (3.4).
 
 ---
