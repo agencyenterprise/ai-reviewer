@@ -18,7 +18,6 @@ class ReferenceExtractionManifest(
 ):
     """Manifest for reference extraction workflow."""
 
-    type = WorkflowRunType.REFERENCE_EXTRACTION
     name = "Reference Extraction"
     description = "Extract bibliographic references from document using section detection and windowed extraction"
     needs_web_search = False

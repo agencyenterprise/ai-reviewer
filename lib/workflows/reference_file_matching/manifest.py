@@ -24,7 +24,6 @@ class ReferenceFileMatchingManifest(
 ):
     """Manifest for reference file matching workflow."""
 
-    type = WorkflowRunType.REFERENCE_FILE_MATCHING
     name = "Reference File Matching"
     description = "Match extracted references to supporting documents"
     needs_web_search = False

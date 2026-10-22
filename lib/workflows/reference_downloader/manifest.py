@@ -15,7 +15,6 @@ from lib.workflows.workflow_types import WorkflowState
 class ReferenceDownloaderManifest(
     WorkflowManifest[ReferenceDownloaderState, ReferenceDownloaderWorkflowConfig]
 ):
-    type = WorkflowRunType.REFERENCE_DOWNLOADER
     name = "Reference Downloader"
     description = "Search the web for each reference and download the related full-text when available (PDF or Markdown)."
     needs_web_search = True

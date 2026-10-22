@@ -21,7 +21,6 @@ from lib.workflows.workflow_types import WorkflowState
 class DocumentSummarizationManifest(
     WorkflowManifest[DocumentSummarizationState, DocumentSummarizationWorkflowConfig]
 ):
-    type = WorkflowRunType.DOCUMENT_SUMMARIZATION
     name = "Document Summarization"
     description = "Summarize the main document and supporting documents"
     needs_web_search = False
