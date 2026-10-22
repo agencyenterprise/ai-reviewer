@@ -38,6 +38,7 @@ import uuid
 from collections.abc import Sequence
 from typing import Any
 
+import httpx
 from langchain_core.messages import BaseMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langfuse import propagate_attributes
@@ -268,7 +269,8 @@ async def asker(graph_token: str, name: str) -> uuid.UUID | None:
 
     try:
         person = await graph_client.me(token=graph_token)
-    except GraphError as error:
+    except (GraphError, httpx.HTTPError) as error:
+        # Asked on every question now: a failed lookup must not fail the answer.
         logger.info("could not look up who asked: %s", error)
         return None
     email = str(person.get("mail") or "") or None

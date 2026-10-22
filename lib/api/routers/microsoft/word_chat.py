@@ -47,7 +47,7 @@ from lib.agents.word_chat_checks import PaneCheck, pane_checks
 from lib.api.addin_auth import AddinIdentity, get_addin_identity
 from lib.config.env import config
 from lib.models.microsoft_word_chat_thread import MicrosoftWordChatThread
-from lib.services import conversations, users
+from lib.services import users
 from lib.services.chat.events import ChatEvent
 from lib.services.chat.history import to_ui_messages
 from lib.services.chat.sse import sse_stream
@@ -166,12 +166,10 @@ async def stream_turn(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=DOCUMENT_NEEDED,
             )
-    thread = await chat_threads.current_or_new(
-        account,
-        url,
-        lambda: linked_users.user_for(caller.email_claim, caller.name, caller.tid),
-    )
-    api_key = await _api_key(thread.id)
+    user_id = await _linked_user(caller)
+    # Before the thread: a message that cannot be answered starts nothing.
+    api_key = await _api_key(user_id)
+    thread = await chat_threads.current_or_new(account, url, lambda: _given(user_id))
     token = await _claim(thread.id)
     try:
         if loaded is not None:
@@ -207,15 +205,30 @@ NO_API_KEY = (
 )
 
 
-async def _api_key(thread_id: UUID) -> str | None:
-    """The key to answer with: the person's own, as on /chat, else the deployment's.
+async def _linked_user(caller: AddinIdentity) -> UUID | None:
+    """The Draft Detective user this account is, by its email (``linked_users``).
 
-    Theirs is found through the user the conversation is listed under, linked by the
-    account's email (``linked_users``): the same trust the web app's Microsoft sign-in
-    gives that email. Refused when neither has a key, rather than failing mid-answer.
+    Found on every request rather than read off the conversation, which is linked only
+    when it starts: a conversation started unlinked would otherwise never find the key
+    its person adds later.
     """
 
-    own = await users.stored_api_key(await conversations.owner(thread_id))
+    return await linked_users.user_for(caller.email_claim, caller.name, caller.tid)
+
+
+async def _given(user_id: UUID | None) -> UUID | None:
+    return user_id
+
+
+async def _api_key(user_id: UUID | None) -> str | None:
+    """The key to answer with: the person's own, as on /chat, else the deployment's.
+
+    Theirs is the key saved by the user the account is linked to by email: the same
+    trust the web app's Microsoft sign-in gives that email. Refused when neither has a
+    key, rather than failing mid-answer.
+    """
+
+    own = await users.stored_api_key(user_id)
     if own is None and not has_deployment_key(DEFAULT_MODEL):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -370,7 +383,7 @@ async def resume_turn(
             status_code=status.HTTP_409_CONFLICT,
             detail="The card has not been applied or dismissed yet.",
         )
-    api_key = await _api_key(thread.id)
+    api_key = await _api_key(await _linked_user(caller))
     token = await _claim(thread.id)
     events = _released(
         run_word_chat_resume(thread.id, _target(caller, thread), api_key),

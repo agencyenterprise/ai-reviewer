@@ -366,9 +366,6 @@ class TestTheKeyItAnswersWith:
     def keys(own: str | None, deployment: bool) -> Any:
         return (
             patch.object(
-                word_chat.conversations, "owner", AsyncMock(return_value=uuid.uuid4())
-            ),
-            patch.object(
                 word_chat.users, "stored_api_key", AsyncMock(return_value=own)
             ),
             patch.object(word_chat, "has_deployment_key", return_value=deployment),
@@ -376,24 +373,56 @@ class TestTheKeyItAnswersWith:
 
     @pytest.mark.asyncio
     async def test_their_own_key_comes_first(self) -> None:
-        owner, stored, deployment = self.keys("sk-own", deployment=True)
-        with owner, stored, deployment:
+        stored, deployment = self.keys("sk-own", deployment=True)
+        with stored, deployment:
             assert await API_KEY_FOR(uuid.uuid4()) == "sk-own"
 
     @pytest.mark.asyncio
     async def test_without_one_the_deployments_key_is_used(self) -> None:
-        owner, stored, deployment = self.keys(None, deployment=True)
-        with owner, stored, deployment:
+        stored, deployment = self.keys(None, deployment=True)
+        with stored, deployment:
             assert await API_KEY_FOR(uuid.uuid4()) is None
 
     @pytest.mark.asyncio
     async def test_with_neither_it_is_refused_with_where_to_add_one(self) -> None:
-        owner, stored, deployment = self.keys(None, deployment=False)
-        with owner, stored, deployment, pytest.raises(HTTPException) as raised:
+        stored, deployment = self.keys(None, deployment=False)
+        with stored, deployment, pytest.raises(HTTPException) as raised:
             await API_KEY_FOR(uuid.uuid4())
 
         assert raised.value.status_code == 403
         assert "/account" in str(raised.value.detail)
+
+    @pytest.mark.asyncio
+    async def test_the_person_is_found_on_every_message_not_off_the_conversation(
+        self,
+    ) -> None:
+        # A conversation started before its account was linked has no user; the key
+        # its person adds afterwards must still be found.
+        person = uuid.uuid4()
+        with (
+            patch.object(
+                word_chat.linked_users, "user_for", AsyncMock(return_value=person)
+            ) as linked,
+            patch.object(word_chat, "_api_key", AsyncMock(return_value=OWN_KEY)) as key,
+            patch.object(
+                word_chat.chat_threads, "current", AsyncMock(return_value=a_thread())
+            ),
+            patch.object(word_chat, "_has_document", AsyncMock(return_value=True)),
+            patch.object(
+                word_chat.chat_threads,
+                "current_or_new",
+                AsyncMock(return_value=a_thread()),
+            ),
+            patch.object(word_chat.chat_threads, "begin_turn", AsyncMock()),
+            patch.object(
+                word_chat.chat_suggestions, "for_thread", AsyncMock(return_value=[])
+            ),
+            patch.object(word_chat, "run_word_chat_turn"),
+        ):
+            await word_chat.stream_turn(url=URL, message="Hi", caller=caller())
+
+        linked.assert_awaited_once()
+        key.assert_awaited_once_with(person)
 
 
 class TestOneTurnAtATime:

@@ -19,6 +19,7 @@ import uuid
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import jwt
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
@@ -90,6 +91,10 @@ def conversation() -> Any:
         yield found
 
 
+# The real lookup; the fixture below stands it in for every other test.
+REAL_ASKER = asker
+
+
 @pytest.fixture(autouse=True)
 def keys() -> Any:
     """Nobody linked asks, and the deployment has a key: no Graph call, no database."""
@@ -123,6 +128,16 @@ class TestTheKeyItAnswersWith:
             await answer_question("hello?", graph_token=TOKEN, thread_id=THREAD)
 
         assert llm.call_args.args[1] == "sk-own"
+
+    @pytest.mark.asyncio
+    async def test_a_network_error_looking_them_up_does_not_fail_the_answer(
+        self,
+    ) -> None:
+        with patch(
+            "lib.agents.teams_agent.graph_client.me",
+            AsyncMock(side_effect=httpx.ConnectTimeout("slow")),
+        ):
+            assert await REAL_ASKER(TOKEN, "Ana") is None
 
     @pytest.mark.asyncio
     async def test_with_no_key_at_all_it_says_where_to_add_one(self) -> None:
