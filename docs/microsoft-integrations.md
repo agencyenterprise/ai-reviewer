@@ -59,7 +59,11 @@ Select **Register**. On the app's **Overview**, note the **Application (client) 
 Draft Detective knows people by email address, and Microsoft only puts it in the sign-in
 token when asked to.
 
-In the app's menu, open **Token configuration** → **Add optional claim**. Choose token
+Open [**App registrations**](https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade),
+select the **All applications** tab, and select the app you just registered. The steps
+below are on its pages, in the menu on the left.
+
+Open **Token configuration** → **Add optional claim**. Choose token
 type **ID**, tick **email** and select **Add**. When asked, tick **Turn on the Microsoft
 Graph email permission** and select **Add**.
 
@@ -112,8 +116,9 @@ It works in Word for the web, Windows and Mac.
 ### 2.1 Let Office sign people in
 
 The pane signs people in silently, as the account they are signed in to Word with
-(Office single sign-on). That needs four more settings on the app from part 1. Open it
-from [**App registrations**](https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade).
+(Office single sign-on). That needs four more settings on the app from part 1. Open
+[**App registrations**](https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade),
+select the **All applications** tab, and select that app.
 
 1. **Manifest**: find `"requestedAccessTokenVersion": null` and change it to
    `"requestedAccessTokenVersion": 2`. Select **Save**.
