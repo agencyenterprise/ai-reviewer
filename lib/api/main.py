@@ -88,8 +88,9 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    # Expose Tus headers so frontend can read them
+    # Expose Tus headers, and the download filename, so frontend can read them
     expose_headers=[
+        "Content-Disposition",
         "Upload-Offset",
         "Upload-Length",
         "Upload-Expires",
