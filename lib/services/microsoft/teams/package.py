@@ -3,7 +3,7 @@
 Teams installs a bot from a zip holding a manifest and two icons. The API builds it on
 request (``GET /api/microsoft/teams/package.zip``) from this deployment's settings, so an
 admin downloads it and uploads it to the Teams admin center
-(``docs/microsoft-integrations.md``, part 3.7) with nothing to build or edit.
+(``docs/microsoft-integrations.md``, part 3.6) with nothing to build or edit.
 
 The app id is the bot's (``TEAMS_BOT_APP_ID``), which keeps the two from drifting apart:
 Teams recognises an upload by it. The version is the application's own, so each release
