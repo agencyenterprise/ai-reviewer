@@ -8,8 +8,6 @@ import { cn } from '@/lib/utils';
 interface WorkflowRunCostProps {
   cost: CostBreakdown | null | undefined;
   className?: string;
-  /** Hide the "Cost:" label prefix (useful in compact contexts like history items). */
-  compact?: boolean;
 }
 
 function formatUsd(value: number | string | null | undefined): string {
@@ -23,7 +21,7 @@ function formatTokens(n: number): string {
   return n.toLocaleString();
 }
 
-export function WorkflowRunCost({ cost, className, compact }: WorkflowRunCostProps) {
+export function WorkflowRunCost({ cost, className }: WorkflowRunCostProps) {
   if (!cost) return null;
 
   const total = Number(cost.total_cost_usd ?? 0);
@@ -40,7 +38,7 @@ export function WorkflowRunCost({ cost, className, compact }: WorkflowRunCostPro
       <TooltipPrimitive.Root>
         <TooltipPrimitive.Trigger asChild>
           <span className={cn('inline-flex items-center gap-1 cursor-help', className)}>
-            {!compact && <span className="font-medium">Cost:</span>}
+            <span className="font-medium">Cost:</span>
             <span>{formatUsd(total)}</span>
           </span>
         </TooltipPrimitive.Trigger>

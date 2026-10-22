@@ -16,13 +16,9 @@ interface WorkflowTypeSelectorProps {
   projectId?: string;
   selectedTypes: WorkflowRunType[];
   onSelectionChange: (types: WorkflowRunType[]) => void;
-  disabled?: boolean;
   disabledTypes?: WorkflowRunType[];
   /** Already running or queued: shown as running, unticked and not selectable. */
   runningTypes?: WorkflowRunType[];
-  showHeader?: boolean;
-  headerDescription?: string;
-  error?: string;
 }
 
 export function WorkflowTypeSelector({
@@ -30,12 +26,8 @@ export function WorkflowTypeSelector({
   projectId,
   selectedTypes,
   onSelectionChange,
-  disabled = false,
   disabledTypes = [],
   runningTypes = [],
-  showHeader = true,
-  headerDescription,
-  error,
 }: WorkflowTypeSelectorProps) {
   const { workflowTypes: allTypes, getWorkflowTypeName, isPending: isLoadingWorkflowTypes } = useWorkflowTypes();
   const { getEstimatedSeconds } = useWorkflowDurationEstimates(projectId);
@@ -107,55 +99,48 @@ export function WorkflowTypeSelector({
       onCheckedChange={(checked) => handleCheckedChange(workflowType.type, checked === true)}
       running={runningTypes.includes(workflowType.type)}
       disabled={
-        controlsDisabled || disabledTypes.includes(workflowType.type) || runningTypes.includes(workflowType.type)
+        isLoadingWorkflowTypes || disabledTypes.includes(workflowType.type) || runningTypes.includes(workflowType.type)
       }
       estimatedSeconds={getEstimatedSeconds(workflowType.type)}
     />
   );
 
-  const controlsDisabled = disabled || isLoadingWorkflowTypes;
-
   return (
     <div className="space-y-3">
-      {showHeader && (
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <h2 className="text-sm font-medium">
-              Assessments
-              <span className="text-destructive ml-1">*</span>
-              {visibleCount > 0 && (
-                <span className="ml-2 text-xs font-normal tabular-nums text-muted-foreground">
-                  {selectedVisibleCount}/{visibleCount} selected
-                </span>
-              )}
-            </h2>
-            {headerDescription && <p className="text-sm text-muted-foreground">{headerDescription}</p>}
-          </div>
-
-          {bulkSelectableTypes.length > 1 && (
-            <div className="flex shrink-0 items-center gap-1">
-              <Button
-                type="button"
-                variant="ghost"
-                size="xs"
-                onClick={handleSelectAll}
-                disabled={controlsDisabled || selectedBulkCount === bulkSelectableTypes.length}
-              >
-                Select all
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="xs"
-                onClick={handleDeselectAll}
-                disabled={controlsDisabled || selectedBulkCount === 0}
-              >
-                Deselect all
-              </Button>
-            </div>
+      <div className="flex items-start justify-between gap-4">
+        <h2 className="text-sm font-medium">
+          Assessments
+          <span className="text-destructive ml-1">*</span>
+          {visibleCount > 0 && (
+            <span className="ml-2 text-xs font-normal tabular-nums text-muted-foreground">
+              {selectedVisibleCount}/{visibleCount} selected
+            </span>
           )}
-        </div>
-      )}
+        </h2>
+
+        {bulkSelectableTypes.length > 1 && (
+          <div className="flex shrink-0 items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={handleSelectAll}
+              disabled={isLoadingWorkflowTypes || selectedBulkCount === bulkSelectableTypes.length}
+            >
+              Select all
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={handleDeselectAll}
+              disabled={isLoadingWorkflowTypes || selectedBulkCount === 0}
+            >
+              Deselect all
+            </Button>
+          </div>
+        )}
+      </div>
       {/* Presets sit between the header and the list: a department picks its
           set here and the rows below show what that set is. Never in
           single-type mode, where there is nothing to choose between. */}
@@ -165,7 +150,7 @@ export function WorkflowTypeSelector({
           selectedTypes={selectedTypes}
           offeredTypes={bulkSelectableTypes}
           onSelectionChange={commitSelection}
-          disabled={controlsDisabled}
+          disabled={isLoadingWorkflowTypes}
           getWorkflowTypeName={getWorkflowTypeName}
         />
       )}
@@ -194,8 +179,6 @@ export function WorkflowTypeSelector({
             </section>
           ))
         )}
-
-        {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
     </div>
   );
