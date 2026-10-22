@@ -55,13 +55,12 @@ async def _indexed_matcher(embeddings: MagicMock) -> ReferenceEmbeddingMatcher:
 
 @pytest.mark.asyncio
 async def test_index_embeds_citation_shaped_text(embeddings):
-    matcher = await _indexed_matcher(embeddings)
+    await _indexed_matcher(embeddings)
 
     texts = embeddings.aembed_documents.await_args.args[0]
     assert texts[0] == (
         "Title: Title 0\nAuthors: Author 0\nYear: 2020\nAbstract: Abstract 0"
     )
-    assert matcher.get_indexed_count() == 3
 
 
 @pytest.mark.asyncio
@@ -108,7 +107,6 @@ async def test_empty_index_returns_one_empty_list_per_reference(embeddings):
     await matcher.index_summaries([])
 
     assert await matcher.find_candidates(["a", "b"]) == [[], []]
-    assert matcher.get_indexed_count() == 0
     embeddings.aembed_documents.assert_not_awaited()
 
 

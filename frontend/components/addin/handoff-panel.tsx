@@ -1,19 +1,12 @@
 'use client';
 
-import { AddinSession, AddinSignIn, Section } from '@/components/addin/addin-sign-in';
+import { AddinSession, Section } from '@/components/addin/addin-sign-in';
 import { HandoffCard } from '@/components/addin/handoff-card';
 import { Button } from '@/components/ui/button';
 import { waitingDocuments } from '@/lib/addin/other-documents';
 import { isApiError } from '@/lib/api-error';
 import { listPendingApiMicrosoftWordHandoffsGet } from '@/lib/generated-api';
 import { useQuery } from '@tanstack/react-query';
-
-export const TEAMS_SIGN_IN_PROMPT = 'Asked Draft Detective for changes in Teams? Sign in to apply them.';
-
-/** The handoffs list on its own, signing in first: what the pane showed before its chat. */
-export function HandoffPanel() {
-  return <AddinSignIn prompt={TEAMS_SIGN_IN_PROMPT}>{(session) => <HandoffList session={session} />}</AddinSignIn>;
-}
 
 /**
  * Comments and tracked changes someone asked Draft Detective for in Teams, waiting to

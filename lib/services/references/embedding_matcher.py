@@ -144,6 +144,3 @@ class ReferenceEmbeddingMatcher:
         )
 
         return results
-
-    def get_indexed_count(self) -> int:
-        return len(self._summaries)
