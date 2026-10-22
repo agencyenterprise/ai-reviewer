@@ -152,13 +152,12 @@ unless people from other tenants will use the add-in.
 
 ### 3. The Word add-in manifest
 
-1. Copy `word-addin/manifest-template.xml` and replace `{FRONTEND_URL}`
-   (`https://<frontend>`), `{FRONTEND_HOST}` (`<frontend>`) and `{ENTRA_CLIENT_ID}` (the
-   app from step 2). Give it a new `<Id>` (any GUID) so it does not collide with ours.
-2. Publish it to your users from the Microsoft 365 admin centre: **Settings →
-   Integrated apps → Upload custom apps → Office Add-in**, and assign it to users or
-   groups. (See "Publish the Word add-in in your organization" in
-   [`word-addin/README.md`](word-addin/README.md).)
+The frontend serves the manifest for its own deployment at
+`https://<frontend>/addin/manifest.xml`, once the three `AUTH_MICROSOFT_ENTRA_ID_*` settings are set (step 4).
+Publish it to your users from the Microsoft 365 admin centre: **Settings → Integrated
+apps → Upload custom apps → Office Add-in**, give it that URL, and assign it to users or
+groups. (See "Publish the Word add-in in your organization" in
+[`word-addin/README.md`](word-addin/README.md).)
 
 ### 4. Configuration
 
