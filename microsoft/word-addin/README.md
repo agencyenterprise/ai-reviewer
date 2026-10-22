@@ -31,14 +31,17 @@ Forward the ports 3000 and 8000 in VSCode/Cursor. Make sure they are public.
 
 Use the generated public HTTPS URLs in the steps below.
 
-### Prepare the manifest
+### Get the manifest
 
-1. Copy `microsoft/word-addin/manifest-template.xml` to a new file (for example, `microsoft/word-addin/manifest-dev.local.xml`).
-2. Replace the placeholders:
-   - `{FRONTEND_URL}`: your public frontend URL (the 3000 tunnel), with `https://`.
-   - `{FRONTEND_HOST}`: the same host, without `https://`.
-   - `{ENTRA_CLIENT_ID}`: the client id of the add-in's Entra app (see "Signing in" below).
-   - Example: `sed -i "" -e "s|{FRONTEND_URL}|https://<host>|g" -e "s|{FRONTEND_HOST}|<host>|g" -e "s|{ENTRA_CLIENT_ID}|<client id>|g" microsoft/word-addin/manifest-dev.local.xml`
+The frontend serves the add-in's manifest at `/addin/manifest.xml`, filled in for itself:
+its address (`AUTH_URL`, or the host it was reached at), the Entra app it signs in with
+(`AUTH_MICROSOFT_ENTRA_ID_ID`, see "Signing in" below) and its version
+(`frontend/lib/addin/manifest.ts`). The add-in's id is derived from the host, so each
+deployment, and each tunnel, is its own add-in.
+
+Set `AUTH_URL` in `frontend/.env` to the frontend tunnel's URL, then save
+`https://<frontend tunnel>/addin/manifest.xml` to a file, such as
+`microsoft/word-addin/manifest-dev.local.xml`.
 
 ### Frontend API URL
 
@@ -50,12 +53,12 @@ Use the generated public HTTPS URLs in the steps below.
 2. Go to `Home` → `Add-ins` → `More Add-ins`.
 3. Go to `My Add-ins`.
 4. Choose `Manage My Add-in` → `Upload My Add-in`.
-5. Select your updated manifest file.
+5. Select the manifest file you saved.
 
 ### Notes
 
 - Keep both the API and frontend running while testing.
-- If your tunnel URLs change, update the manifest and `.env`, then reload/re-upload the add-in.
+- If your tunnel URLs change, update `.env`, then save the manifest and upload it again.
 
 ## Sideload Office Add-ins on Mac for testing
 
@@ -114,9 +117,10 @@ The pane's **Chat** tab is a conversation with Draft Detective about the open do
 Official deployment guide:
 https://learn.microsoft.com/en-us/microsoft-365/admin/manage/office-addins?view=o365-worldwide#upload-custom-office-add-ins-in-your-organization
 
-In step 3, choose **Add-in only manifest** and provide the manifest URL.
-
-Manifest URL from this repo: `https://raw.githubusercontent.com/agencyenterprise/draft-detective/refs/heads/dev/microsoft/word-addin/manifest.xml`
+In step 3, choose **Add-in only manifest** and provide the deployment's manifest URL:
+`https://<frontend>/addin/manifest.xml`. It answers 503 until `AUTH_MICROSOFT_ENTRA_ID_ID`
+is set. Its version follows the app's, so after a release that changes the manifest,
+update the add-in from the same page.
 
 Reference video (older, but still useful): https://www.youtube.com/watch?v=p3aeO9muEI8&t=181s
 
@@ -187,5 +191,6 @@ Then set `AUTH_MICROSOFT_ENTRA_ID_ID`, `AUTH_MICROSOFT_ENTRA_ID_SECRET` and
 **both** the frontend and the backend. All three are required: a deployment that does not
 sign its users in with Microsoft has no add-in sign-in. A tenant-specific issuer means only
 that tenant's accounts are accepted. The manifest's `WebApplicationInfo` names the
-same client id and Application ID URI. The URI contains the frontend host, so a tunnel
-whose URL changes needs the app, the manifest and the redirect URI updated with it.
+same client id and Application ID URI, filled in by `/addin/manifest.xml`. The URI
+contains the frontend host, so a tunnel whose URL changes needs the app's Application ID
+URI and redirect URI updated with it, and the manifest saved again.
