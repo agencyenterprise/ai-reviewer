@@ -60,9 +60,10 @@ serves at `/addin/manifest.xml` (`frontend/lib/addin/manifest.ts`). The manifest
 UUID v5 of the frontend host, so each deployment is its own add-in, and its version
 follows the app's.
 
-The pane shows its **From Teams** tab only where the Teams bot runs: it asks
-`GET /api/microsoft/word/features`, which reports whether every `TEAMS_*` setting the bot
-needs is set. Without the bot, it is the chat alone.
+The pane is the chat. Where the Teams bot runs (`GET /api/microsoft/word/features`, which
+reports whether every setting the bot needs is set), a notice above the chat says what
+waits from Teams, only while something does, and **Review** opens those suggestions in
+the chat's place.
 
 ### Signing in
 
