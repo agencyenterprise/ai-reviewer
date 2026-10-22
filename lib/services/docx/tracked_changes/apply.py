@@ -9,7 +9,7 @@ inserted and deleted runs once tracked changes exist, so the paragraph index
 map the comment pass anchors to is only valid before this pass runs: comments
 first, save, then redlines.
 
-The instructions come from `lib.services.docx.tracked_changes_planning`, which
+The instructions come from `lib.services.docx.tracked_changes.planning`, which
 resolved every one of them against the original file. The comments are written
 before anything is known about the write, so a caller whose write was refused
 somewhere writes the file again; see `lib.services.docx.edit_export`.
@@ -22,7 +22,7 @@ from collections.abc import Sequence
 from docx_editor import BatchOperationError, EditOperation, EditResult
 from docx_editor import Document as EditorDocument
 
-from lib.services.docx.tracked_changes_models import (
+from lib.services.docx.tracked_changes.models import (
     TRACKED_CHANGE_AUTHOR,
     EditOutcome,
     PlannedEdit,

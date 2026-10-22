@@ -10,22 +10,22 @@ from pathlib import Path
 import pytest
 
 from lib.services.docx.tracked_changes import apply_tracked_changes
-from tests.unit.services.lean_docx import new_document
-from tests.unit.services.tracked_changes_support import (
+from tests.unit.services.docx.tracked_changes.support import (
     OTHER_PASSAGE_DETAIL as _OTHER_PASSAGE_DETAIL,
 )
-from tests.unit.services.tracked_changes_support import (
+from tests.unit.services.docx.tracked_changes.support import (
     make_edit as _edit,
 )
-from tests.unit.services.tracked_changes_support import (
+from tests.unit.services.docx.tracked_changes.support import (
     plan_edits as _plan,
 )
-from tests.unit.services.tracked_changes_support import (
+from tests.unit.services.docx.tracked_changes.support import (
     read_document as _read,
 )
-from tests.unit.services.tracked_changes_support import (
+from tests.unit.services.docx.tracked_changes.support import (
     statuses as _statuses,
 )
+from tests.unit.services.lean_docx import new_document
 
 _FOOTNOTE_PARAGRAPH = "The protocol was applied to the second cohort in 2019."
 _FOOTNOTE_MARKDOWN = (

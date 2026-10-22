@@ -2,7 +2,7 @@
 
 The outcome of every proposed edit the export considered, the instructions for
 the ones that became redlines, and the docx-editor workspace both passes open.
-Shared by `tracked_changes_planning` and `tracked_changes_apply` so neither has
+Shared by `planning` and `apply` so neither has
 to import the other.
 """
 

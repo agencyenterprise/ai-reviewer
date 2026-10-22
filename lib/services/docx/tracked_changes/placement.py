@@ -2,7 +2,7 @@
 
 An edit is anchored to a markdown line; the export has to turn that into
 characters of a Word paragraph. Three questions, in order: is the edit's line
-part of the mapped paragraph at all (`tracked_changes_lines` answers that one),
+part of the mapped paragraph at all (`lines` answers that one),
 which of the paragraph's spans does the quote mean, and can the replacement be
 written as a tracked insertion.
 
@@ -11,7 +11,7 @@ that covers several markdown lines cannot be indexed by an occurrence counted
 in one of them, so a quote it repeats is reported instead of placed.
 
 `plan_edit` answers all three for one edit and is the only name
-`tracked_changes_planning` needs from here.
+`planning` needs from here.
 """
 
 import re
@@ -24,11 +24,11 @@ from lib.services.docx.edit_text import (
     unsupported_replacement_reason,
 )
 from lib.services.docx.paragraph_refs import MappedParagraph
-from lib.services.docx.tracked_changes_lines import (
+from lib.services.docx.tracked_changes.lines import (
     line_belongs_to_paragraph,
     source_line,
 )
-from lib.services.docx.tracked_changes_models import (
+from lib.services.docx.tracked_changes.models import (
     EditOutcome,
     EditOutcomeStatus,
     PlannedEdit,
