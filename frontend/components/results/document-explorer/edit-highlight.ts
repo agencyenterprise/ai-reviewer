@@ -182,7 +182,7 @@ export function blocksForLineRange(container: Element, start: number, end: numbe
  *
  * The DOCX export settles a repeat in such a paragraph the same way, and says
  * so in the issue's comment: see `_resolve_span` in
- * `lib/services/docx/tracked_changes_placement.py`. Keeping the two on one
+ * `lib/services/docx/tracked_changes/placement.py`. Keeping the two on one
  * rule is the point -- an author who sees a span highlighted here should get
  * that span redlined, and no span marked where none is redlined.
  */

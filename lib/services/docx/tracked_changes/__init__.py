@@ -6,17 +6,18 @@ read, but a caller wants the whole thing and does not care where the lines
 fall. So the public names live here, and the modules behind them are free to be
 reorganised.
 
-- `tracked_changes_models`: the outcome and plan rows, and the docx-editor
+- `models`: the outcome and plan rows, and the docx-editor
   workspace both passes open.
-- `tracked_changes_placement`: where one edit's redline goes in its paragraph,
+- `lines`: whether an edit's markdown line is the mapped paragraph's own.
+- `placement`: where one edit's redline goes in its paragraph,
   or why it cannot go anywhere.
-- `tracked_changes_planning`: the read-only pre-flight over every edit.
-- `tracked_changes_apply`: what docx-editor is asked to write.
+- `planning`: the read-only pre-flight over every edit.
+- `apply`: what docx-editor is asked to write.
 """
 
-from lib.services.docx.tracked_changes_apply import apply_tracked_changes
-from lib.services.docx.tracked_changes_models import EditOutcome, PlannedEdit
-from lib.services.docx.tracked_changes_planning import (
+from lib.services.docx.tracked_changes.apply import apply_tracked_changes
+from lib.services.docx.tracked_changes.models import EditOutcome, PlannedEdit
+from lib.services.docx.tracked_changes.planning import (
     plan_tracked_changes,
     unplaceable_outcomes,
 )

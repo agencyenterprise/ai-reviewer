@@ -2,12 +2,12 @@
 
 A read-only pre-flight against the *original* file. Each edit is mapped to a
 Word paragraph by its markdown line and handed to
-`tracked_changes_placement.plan_edit`; what comes back is either a redline to
+`placement.plan_edit`; what comes back is either a redline to
 write or an outcome saying why it cannot be one. Then the paragraph's own
 overlaps are settled, since one paragraph can cover several markdown lines and
 two edits that never competed on a line can still cover the same words.
 
-Nothing here writes; `tracked_changes_apply` does that, and takes this
+Nothing here writes; `apply` does that, and takes this
 module's `PlannedEdit` rows as its instructions.
 """
 
@@ -32,14 +32,14 @@ from lib.services.docx.paragraph_refs import (
     map_paragraph_refs,
     paragraph_ordinals,
 )
-from lib.services.docx.tracked_changes_models import (
+from lib.services.docx.tracked_changes.models import (
     TRACKED_CHANGE_AUTHOR,
     EditOutcome,
     PlannedEdit,
     TrackedChangesPlan,
     editor_workspace,
 )
-from lib.services.docx.tracked_changes_placement import plan_edit
+from lib.services.docx.tracked_changes.placement import plan_edit
 
 # Why nothing could be placed: python-docx and docx-editor disagreed on the
 # document's paragraphs, so not one ref could be trusted.

@@ -11,7 +11,7 @@ import pytest
 from lib.models.issue_edit import IssueEditStatus
 from lib.services.docx.edit_notes import build_edit_notes
 from lib.services.docx.tracked_changes import EditOutcome
-from tests.unit.services.tracked_changes_support import (
+from tests.unit.services.docx.tracked_changes.support import (
     make_edit as _edit,
 )
 
