@@ -84,6 +84,8 @@ def stub_the_aggregates(monkeypatch):
             feedback=DashboardFeedbackSummary(
                 thumbs_up=0, thumbs_down=0, with_comment=0
             ),
+            chat_surfaces=[],
+            chat_activity=[],
         )
 
     async def fake_default_ignored_users() -> list[DashboardIgnoredUser]:

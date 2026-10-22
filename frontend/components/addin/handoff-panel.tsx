@@ -1,6 +1,6 @@
 'use client';
 
-import { AddinSession, AddinSignIn, Section } from '@/components/addin/addin-sign-in';
+import { AddinSession, Section } from '@/components/addin/addin-sign-in';
 import { HandoffCard } from '@/components/addin/handoff-card';
 import { Button } from '@/components/ui/button';
 import { waitingDocuments } from '@/lib/addin/other-documents';
@@ -8,23 +8,15 @@ import { isApiError } from '@/lib/api-error';
 import { listPendingApiMicrosoftWordHandoffsGet } from '@/lib/generated-api';
 import { useQuery } from '@tanstack/react-query';
 
-export const TEAMS_SIGN_IN_PROMPT = 'Asked Draft Detective for changes in Teams? Sign in to apply them.';
-
-/** The handoffs list on its own, signing in first: what the pane showed before its chat. */
-export function HandoffPanel() {
-  return <AddinSignIn prompt={TEAMS_SIGN_IN_PROMPT}>{(session) => <HandoffList session={session} />}</AddinSignIn>;
-}
-
 /**
  * Comments and tracked changes someone asked Draft Detective for in Teams, waiting to
  * be written into this document. The bot cannot write a document itself, so the work
  * waits here until the person who asked opens it and chooses Apply.
  */
-export function HandoffList({ session }: { session: AddinSession }) {
-  const { email, authorize, expire } = session;
+/** The handoffs waiting from Teams, for this document and others: one request, shared. */
+export function usePendingHandoffs({ email, authorize, expire }: AddinSession) {
   const documentUrl = typeof Office !== 'undefined' ? (Office.context.document?.url ?? '') : '';
-
-  const pending = useQuery({
+  return useQuery({
     enabled: !!documentUrl,
     queryKey: ['addin-handoffs', email, documentUrl],
     queryFn: async () => {
@@ -47,6 +39,11 @@ export function HandoffList({ session }: { session: AddinSession }) {
     },
     retry: false,
   });
+}
+
+export function HandoffList({ session }: { session: AddinSession }) {
+  const { email, authorize, expire } = session;
+  const pending = usePendingHandoffs(session);
 
   if (pending.isLoading) return <Section>Checking for suggestions from Teams…</Section>;
   if (pending.error) return <Section>Could not check for suggestions from Teams.</Section>;

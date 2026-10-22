@@ -1,30 +1,15 @@
 """Build the Teams app package that installs Draft Detective as a bot.
 
 Teams installs a bot from a zip holding a manifest and two icons. The manifest is
-generated rather than committed with the ids baked in, because the bot's app id and
-the tenant come from the environment and a manifest with someone else's ids in it is
-a confusing thing to find in a repository.
+generated rather than committed with the ids baked in, because the bot's app id
+comes from the environment, and a manifest with someone else's ids in it is a
+confusing thing to find in a repository.
 
-    uv run python microsoft/teams-app/build_package.py [version]
+    TEAMS_BOT_APP_ID=<bot client id> uv run python microsoft/teams-app/build_package.py [version]
 
-Writes ``draft-detective-teams.zip`` next to this script. Upload it in Teams via
-Apps > Manage your apps > Upload a custom app, which the tenant has to allow.
-
-The version matters on every upload after the first. Teams identifies an app by the
-``id`` in its manifest, so re-uploading the same id is refused with "this app has
-already been submitted in your org". To change an installed app, raise the version
-and use the update action rather than uploading it as new.
-
-Two ids are easy to confuse, and the admin centre shows the wrong one first:
-
-- **ID do aplicativo externo / External app ID** -- this is ``manifest.id``, and the
-  one that must match on an update.
-- **ID do Aplicativo / App ID** -- Teams' own catalog id, read-only. Putting it in
-  the manifest fails with a bare "cannot upload the app, try again".
-
-Updating an app whose entry already exists in the org catalog is done from the Teams
-admin centre (Teams apps > Manage apps), not from Manage your apps in the client,
-where the only actions offered are View details and Copy link.
+Writes ``draft-detective-teams.zip`` next to this script. Publishing and updating it
+are in ``docs/microsoft-integrations.md`` (part 3.7); the ids and versions behind an
+update are in ``microsoft/README.md``.
 """
 
 import argparse

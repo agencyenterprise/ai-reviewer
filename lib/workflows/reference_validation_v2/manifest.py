@@ -42,7 +42,6 @@ def _suggested_action(validation: ReferenceValidationV2Item) -> str | None:
 class ReferenceValidationV2Manifest(
     WorkflowManifest[ReferenceValidationV2State, ReferenceValidationV2WorkflowConfig]
 ):
-    type = WorkflowRunType.REFERENCE_VALIDATION_V2
     name = "Reference Error Checker"
     description = "Are your references accurate? Uses web search to check each citation exists online and that the author, title, publisher, and year match public sources. Useful for catching typos or hallucinated references."
     needs_web_search = True
@@ -64,18 +63,6 @@ class ReferenceValidationV2Manifest(
             ReferenceValidationV2Status.CANCELLED,
         )
         return state.model_copy(update={"reference_validations": updated})
-
-    async def create_initial_state(
-        self,
-        config: ReferenceValidationV2WorkflowConfig,
-        existing_states: list[WorkflowState],
-        revision: int,
-        prior_self_state: ReferenceValidationV2State | None = None,
-    ) -> ReferenceValidationV2State:
-        return ReferenceValidationV2State(
-            type=WorkflowRunType.REFERENCE_VALIDATION_V2,
-            config=config,
-        )
 
     def convert_state_to_issues(
         self, state: ReferenceValidationV2State, other_states: list[WorkflowState]

@@ -35,7 +35,7 @@ from lib.services.projects.service import (
     update_user_project,
 )
 from lib.services.projects.zip import create_project_files_zip
-from lib.services.references import MatchSource, add_file_to_reference
+from lib.services.references.service import MatchSource, add_file_to_reference
 from lib.services.uuid_utils import ensure_uuid
 from lib.services.workflow_runs.progress import get_project_workflow_progress
 from lib.workflows.models import SeverityEnum

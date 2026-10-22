@@ -19,24 +19,13 @@ export interface ActiveFilters {
 }
 
 /**
- * Whether an export scoped by these filters would differ from a full one.
- *
- * The passing toggle only counts when it actually changes the export: beside
- * any severity selection the passing checks are filtered out again, so it
- * would otherwise claim a scope with no badge to show for it.
- */
-export function hasActiveFilters(filters: ActiveFilters): boolean {
-  return narrowsTheExport(filters) || passingChecksIncluded(filters);
-}
-
-/**
  * Whether the filters leave findings out, as opposed to letting more in.
  *
  * The passing toggle only ever widens the export, and `exportScopeSentence`
  * already says which way it is set, so a passing-only scope is described in
  * words rather than by a lone badge under "Matching the current filters".
  */
-function narrowsTheExport(filters: ActiveFilters): boolean {
+export function narrowsTheExport(filters: ActiveFilters): boolean {
   const partialSeverity = filters.severity.length > 0 && filters.severity.length < 3;
   return partialSeverity || filters.workflowType.length > 0;
 }

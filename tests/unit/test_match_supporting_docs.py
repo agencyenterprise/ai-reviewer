@@ -10,7 +10,7 @@ from lib.agents.batched_reference_matcher import (
     BatchedMatchResult,
     SingleReferenceMatch,
 )
-from lib.services.reference_embedding_matcher import CandidateMatch
+from lib.services.references.embedding_matcher import CandidateMatch
 from lib.workflows.document_summarization.state import FileSummary
 from lib.workflows.reference_extraction.state import ExtractedReference
 from lib.workflows.reference_file_matching.nodes.match_supporting_docs import (

@@ -12,7 +12,6 @@ W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 # resolved state, which review markup reads.
 W14 = "http://schemas.microsoft.com/office/word/2010/wordml"
 W15 = "http://schemas.microsoft.com/office/word/2012/wordml"
-PKG = "http://schemas.microsoft.com/office/2006/xmlPackage"
 
 
 def qn(tag: str, namespace: str = W) -> str:

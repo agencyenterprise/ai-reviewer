@@ -30,7 +30,6 @@ from lib.workflows.models import (
     DocumentIssue,
     WorkflowError,
     WorkflowErrorSeverity,
-    WorkflowRunType,
 )
 from lib.workflows.review_assistant.inputs import mount_review_inputs
 from lib.workflows.review_assistant.prompt import (
@@ -145,7 +144,6 @@ def precheck(config: ReviewAssistantConfig) -> str | None:
 class ReviewAssistantManifest(
     WorkflowManifest[ReviewAssistantState, ReviewAssistantConfig]
 ):
-    type = WorkflowRunType.REVIEW_ASSISTANT
     name = "Review Assistant"
     description = (
         "Produces any of the review-assistant outputs (revision-planning summary, "
@@ -208,15 +206,6 @@ class ReviewAssistantManifest(
         graph.add_edge(START, "run_agent")
         graph.add_edge("run_agent", END)
         return graph  # type: ignore[return-value]
-
-    async def create_initial_state(
-        self,
-        config: ReviewAssistantConfig,
-        existing_states: list["WorkflowState"],
-        revision: int,
-        prior_self_state: ReviewAssistantState | None = None,
-    ) -> ReviewAssistantState:
-        return ReviewAssistantState(config=config)
 
     def convert_state_to_issues(
         self, state: ReviewAssistantState, other_states: list["WorkflowState"]

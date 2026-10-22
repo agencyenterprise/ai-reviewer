@@ -20,10 +20,10 @@ const STARTERS = [
 export const PaneWelcome: FC = () => (
   <div className="aui-thread-welcome-root mb-6 flex flex-col gap-4 px-2">
     <div>
-      <h1 className="fade-in slide-in-from-bottom-1 animate-in fill-mode-both font-semibold text-base duration-200">
+      <h1 className="fade-in slide-in-from-bottom-1 animate-in fill-mode-both font-semibold text-sm duration-200">
         Ask Draft Detective about this document.
       </h1>
-      <p className="fade-in slide-in-from-bottom-1 animate-in fill-mode-both text-muted-foreground text-sm delay-75 duration-200">
+      <p className="fade-in slide-in-from-bottom-1 animate-in fill-mode-both text-muted-foreground text-[13px] delay-75 duration-200">
         It reads the document as it is now, and can suggest comments and tracked changes for you to apply.
       </p>
     </div>
@@ -32,7 +32,7 @@ export const PaneWelcome: FC = () => (
         <ThreadPrimitive.Suggestion key={prompt} prompt={prompt} send asChild>
           <Button
             variant="ghost"
-            className="fade-in slide-in-from-bottom-2 animate-in fill-mode-both h-auto w-full justify-start whitespace-normal rounded-xl border px-3 py-2 text-left text-sm duration-200 hover:bg-muted"
+            className="fade-in slide-in-from-bottom-2 animate-in fill-mode-both h-auto w-full justify-start whitespace-normal rounded-xl border px-3 py-2 text-left text-[13px] duration-200 hover:bg-muted"
           >
             {prompt}
           </Button>

@@ -39,11 +39,17 @@ const activeUserItemSchemaResponseTransformer = (data: any) => {
   return data;
 };
 
+const chatActivityPointSchemaResponseTransformer = (data: any) => {
+  data.bucket = new Date(data.bucket);
+  return data;
+};
+
 const adminDashboardResponseSchemaResponseTransformer = (data: any) => {
   data.period_start = new Date(data.period_start);
   data.period_end = new Date(data.period_end);
   data.activity = data.activity.map((item: any) => activityPointSchemaResponseTransformer(item));
   data.top_users = data.top_users.map((item: any) => activeUserItemSchemaResponseTransformer(item));
+  data.chat_activity = data.chat_activity.map((item: any) => chatActivityPointSchemaResponseTransformer(item));
   return data;
 };
 

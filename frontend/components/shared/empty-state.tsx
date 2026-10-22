@@ -4,10 +4,8 @@ import { Card, CardContent } from '../ui/card';
 interface EmptyStateProps {
   /** Icon to display - can be a LucideIcon component or a ReactNode */
   icon?: LucideIcon | React.ReactNode;
-  /** Main message text (alias for title for backward compatibility) */
+  /** Main message text */
   message?: string;
-  /** Title text (alias for message) */
-  title?: string;
   /** Optional secondary description */
   description?: string;
   /** Optional custom content to render below the message */
@@ -20,12 +18,9 @@ interface EmptyStateProps {
  *
  * Supports two patterns:
  * - Simple: <EmptyState message="No data" />
- * - Rich: <EmptyState icon={<CustomIcon />} title="Title" description="Description" />
+ * - Rich: <EmptyState icon={<CustomIcon />} message="Message" description="Description" />
  */
-export function EmptyState({ icon, message, title, description, children }: EmptyStateProps) {
-  // Support both message and title for backward compatibility
-  const displayMessage = message ?? title;
-
+export function EmptyState({ icon, message, description, children }: EmptyStateProps) {
   // Render icon - support both LucideIcon components and ReactNode
   const renderIcon = () => {
     if (!icon) {
@@ -48,7 +43,7 @@ export function EmptyState({ icon, message, title, description, children }: Empt
       <CardContent className="flex items-center justify-center py-12">
         <div className="text-center space-y-2">
           {renderIcon()}
-          {displayMessage && <p className="text-sm text-muted-foreground">{displayMessage}</p>}
+          {message && <p className="text-sm text-muted-foreground">{message}</p>}
           {description && <p className="text-xs text-muted-foreground max-w-sm mx-auto">{description}</p>}
           {children}
         </div>

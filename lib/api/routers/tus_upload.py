@@ -16,7 +16,7 @@ from lib.models.user import User
 from lib.services.files.finalization import finalize_file_from_path
 from lib.services.files.service import get_files_by_project_id
 from lib.services.projects.service import get_project_access
-from lib.services.references import add_file_to_reference
+from lib.services.references.service import add_file_to_reference
 from lib.workflows.reference_file_matching.state import MatchSource
 
 logger = logging.getLogger(__name__)

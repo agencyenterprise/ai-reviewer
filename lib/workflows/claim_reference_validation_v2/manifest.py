@@ -131,7 +131,6 @@ def _build_issue(
 class ClaimReferenceValidationV2Manifest(
     WorkflowManifest[ClaimReferenceValidationV2State, ClaimReferenceValidationV2Config]
 ):
-    type = WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2
     name = "Claim Reference Validation"
     description = (
         "Checks every citation in your document against its referenced source and "
@@ -163,18 +162,6 @@ class ClaimReferenceValidationV2Manifest(
             SectionVerificationStatus.CANCELLED,
         )
         return state.model_copy(update={"section_verifications": updated})
-
-    async def create_initial_state(
-        self,
-        config: ClaimReferenceValidationV2Config,
-        existing_states: list[WorkflowState],
-        revision: int,
-        prior_self_state: ClaimReferenceValidationV2State | None = None,
-    ) -> ClaimReferenceValidationV2State:
-        return ClaimReferenceValidationV2State(
-            type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
-            config=config,
-        )
 
     def convert_state_to_issues(
         self,

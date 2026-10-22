@@ -36,7 +36,7 @@ dependencies = [
     "python-magic>=0.4.27",
     "markitdown[docx,pdf,pptx,xls,xlsx]>=0.1.5",
     "pypdfium2>=5.6.0",
-    "pillow>=11.0.0",
+    "pillow>=13.0.0",
     "pyjwt>=2.13.0",
     "mypy>=1.19.1",
     "rich>=14.2.0",
@@ -109,9 +109,9 @@ known-third-party = ["alembic"]
 "tests/integration/test_project_content_views.py" = ["F811"]
 "tests/integration/test_project_overview_view.py" = ["F811"]
 "tests/integration/test_workflow_run_detail_view.py" = ["F811"]
-"tests/unit/services/test_tracked_changes_apply.py" = ["F811"]
-"tests/unit/services/test_tracked_changes_conflicts.py" = ["F811"]
-"tests/unit/services/test_tracked_changes_planning.py" = ["F811"]
+"tests/unit/services/docx/tracked_changes/test_apply.py" = ["F811"]
+"tests/unit/services/docx/tracked_changes/test_conflicts.py" = ["F811"]
+"tests/unit/services/docx/tracked_changes/test_planning.py" = ["F811"]
 
 [tool.mypy]
 explicit_package_bases = true

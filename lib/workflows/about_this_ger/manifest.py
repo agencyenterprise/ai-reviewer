@@ -14,7 +14,6 @@ from lib.workflows.workflow_types import WorkflowState
 
 
 class AboutThisGerManifest(WorkflowManifest[AboutThisGerState, AboutThisGerConfig]):
-    type = WorkflowRunType.ABOUT_THIS_GER
     name = "About This (GER)"
     description = "Does the preface meet publication requirements? Checks that required elements are present: publication context, objectives, audience, funding, author bios."
 
@@ -24,18 +23,6 @@ class AboutThisGerManifest(WorkflowManifest[AboutThisGerState, AboutThisGerConfi
 
     def build_graph(self) -> StateGraph:
         return build_about_this_ger_graph()
-
-    async def create_initial_state(
-        self,
-        config: AboutThisGerConfig,
-        existing_states: list[WorkflowState],
-        revision: int,
-        prior_self_state: AboutThisGerState | None = None,
-    ) -> AboutThisGerState:
-        return AboutThisGerState(
-            type=WorkflowRunType.ABOUT_THIS_GER,
-            config=config,
-        )
 
     def convert_state_to_issues(
         self, state: AboutThisGerState, other_states: list[WorkflowState]

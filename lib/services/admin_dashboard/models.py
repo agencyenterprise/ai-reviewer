@@ -1,7 +1,7 @@
 """Response models for the admin usage dashboard.
 
 Everything the dashboard renders is an aggregate over `workflow_runs`,
-`projects`, `users` and `feedback` for a rolling window. Counts are paired with
+`projects`, `users`, `feedback` and the chat conversations for a rolling window. Counts are paired with
 the immediately preceding window of the same length so the UI can show a delta
 without a second request.
 """
@@ -12,6 +12,7 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
+from lib.models.conversation import ConversationKind
 from lib.models.user import UserRole
 
 
@@ -114,6 +115,39 @@ class DashboardFeedbackSummary(BaseModel):
     with_comment: int = Field(description="Feedback entries that carry written text")
 
 
+class ChatSurfaceUsage(BaseModel):
+    """Chat on one surface: the web app's /chat, the Word add-in or Teams."""
+
+    surface: ConversationKind
+    conversations_started: MetricWithDelta = Field(
+        description=(
+            "New conversations. In Teams one conversation is a whole chat or "
+            "channel reply chain, so it is started once and then reused."
+        )
+    )
+    messages: MetricWithDelta = Field(
+        description=(
+            "Messages people sent to Draft Detective. The ignore list cannot "
+            "apply to Teams messages, whose senders are known only by name."
+        )
+    )
+    people: int = Field(
+        description=(
+            "Distinct senders of those messages in the selected window: users on "
+            "/chat, Microsoft accounts in Word, display names in Teams"
+        )
+    )
+
+
+class ChatActivityPoint(BaseModel):
+    """Messages sent in one bucket, per surface."""
+
+    bucket: date = Field(description="Start of the day/week bucket (UTC)")
+    web: int
+    word: int
+    teams: int
+
+
 class AdminDashboardResponse(BaseModel):
     """Everything the admin usage dashboard renders."""
 
@@ -149,3 +183,8 @@ class AdminDashboardResponse(BaseModel):
     workflows: list[WorkflowUsageItem]
     top_users: list[ActiveUserItem]
     feedback: DashboardFeedbackSummary
+
+    chat_surfaces: list[ChatSurfaceUsage] = Field(
+        description="Every chat surface, in a fixed order, used or not"
+    )
+    chat_activity: list[ChatActivityPoint]

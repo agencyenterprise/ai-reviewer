@@ -142,5 +142,5 @@ function settled(data: ChatSuggestion) {
 }
 
 function Frame({ children }: { children: React.ReactNode }) {
-  return <div className="my-2 rounded-lg border bg-card p-3 text-sm">{children}</div>;
+  return <div className="my-2 rounded-lg border bg-card p-3 text-[13px]">{children}</div>;
 }

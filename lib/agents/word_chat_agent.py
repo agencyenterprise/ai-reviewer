@@ -162,12 +162,15 @@ def run_config(thread_id: uuid.UUID, account_oid: str) -> RunnableConfig:
 
 
 async def run_word_chat_turn(
-    turn: WordChatTurn, target: SuggestionTarget
+    turn: WordChatTurn, target: SuggestionTarget, api_key: str | None = None
 ) -> AsyncIterator[ChatEvent]:
-    """One turn, as the same events the /chat page renders, checkpointed as it goes."""
+    """One turn, as the same events the /chat page renders, checkpointed as it goes.
+
+    ``api_key`` is the person's own OpenAI key; without one the deployment's is used.
+    """
 
     async with get_checkpointer() as saver:
-        agent = build_word_chat_agent(saver, target)
+        agent = build_word_chat_agent(saver, target, api_key=api_key)
         async for event in stream_chat_events(
             agent, turn_input(turn), run_config(turn.thread_id, target.requester.oid)
         ):
@@ -194,7 +197,7 @@ async def pending_suggestion(thread_id: uuid.UUID) -> uuid.UUID | None:
 
 
 async def run_word_chat_resume(
-    thread_id: uuid.UUID, target: SuggestionTarget
+    thread_id: uuid.UUID, target: SuggestionTarget, api_key: str | None = None
 ) -> AsyncIterator[ChatEvent]:
     """Carry on a paused turn once its card is settled, as the same events.
 
@@ -203,7 +206,7 @@ async def run_word_chat_resume(
     """
 
     async with get_checkpointer() as saver:
-        agent = build_word_chat_agent(saver, target)
+        agent = build_word_chat_agent(saver, target, api_key=api_key)
         async for event in stream_chat_events(
             agent, Command(resume=True), run_config(thread_id, target.requester.oid)
         ):

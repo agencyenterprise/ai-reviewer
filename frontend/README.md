@@ -1,24 +1,26 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+The Draft Detective frontend: a [Next.js](https://nextjs.org) 16 app. The project-wide setup (backend, database, Docker) is in [`DEVELOPMENT.md`](../DEVELOPMENT.md).
 
 ## Getting Started
 
-First, run the development server:
+Use the Node version in `.nvmrc` (22.22.2 or newer) and pnpm, which `packageManager` in `package.json` pins. The versions are locked in `pnpm-lock.yaml`, which npm and yarn ignore.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.template .env   # then fill in AUTH_SECRET and a sign-in provider
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). The app calls the backend at `NEXT_PUBLIC_API_URL` (default `http://localhost:8000`), so start the backend too (`uv run dev.py` from the project root). `AUTH_SECRET` must match the backend's: `DEVELOPMENT.md` covers the environment variables.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`pnpm dev` runs Turbopack. `pnpm dev:webpack` runs webpack instead, and `pnpm dev:poll` adds file polling for file systems that don't report changes (some Docker and network mounts).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## API Types
+
+`lib/generated-api/` is generated from the backend's OpenAPI schema by [Hey API](https://heyapi.dev): never edit it by hand. After a backend API change, regenerate it with the backend running on port 8000:
+
+```bash
+pnpm run openapi-generate
+```
 
 ## Testing
 
@@ -37,17 +39,8 @@ Tests live next to the module they cover, as `*.test.ts` (for example
 `describe`/`it`/`expect` from `vitest` explicitly rather than relying on
 globals, and the `@/` path alias resolves as it does in the app.
 
-## Learn More
+Before opening a PR, run what CI runs: `pnpm run lint`, `pnpm test` and `pnpm run build`.
 
-To learn more about Next.js, take a look at the following resources:
+## Deployment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`Dockerfile` builds a standalone production image. `NEXT_PUBLIC_*` values are fixed when it is built, so pass them as build arguments. See [`docs/railway-deployment.md`](../docs/railway-deployment.md) for Railway and [`k8s/README.md`](../k8s/README.md) for Kubernetes.

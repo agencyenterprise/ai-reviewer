@@ -20,7 +20,7 @@ const sampleTriggers = [
   'Validate the inferences in this manuscript with Draft Detective and flag any unsupported claims.',
 ];
 
-function CopyableCode({ code, multiline = false }: { code: string; multiline?: boolean }) {
+function CopyableCode({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -31,13 +31,7 @@ function CopyableCode({ code, multiline = false }: { code: string; multiline?: b
 
   return (
     <div className="flex items-start gap-2">
-      <code
-        className={`flex-1 rounded-md bg-muted px-3 py-2 text-sm font-mono break-all ${
-          multiline ? 'whitespace-pre overflow-x-auto' : ''
-        }`}
-      >
-        {code}
-      </code>
+      <code className="flex-1 rounded-md bg-muted px-3 py-2 text-sm font-mono break-all">{code}</code>
       <Button variant="outline" onClick={handleCopy} title="Copy">
         {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
         {copied ? 'Copied' : 'Copy'}

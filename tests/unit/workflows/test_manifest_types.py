@@ -5,7 +5,10 @@ manifest that answers with the wrong one breaks every stored run of its
 workflow. The table pins what each registered manifest answers.
 """
 
+from typing import get_args
+
 import pytest
+from langgraph.graph import StateGraph
 
 from lib.workflows.abbreviation_scan_v2.state import (
     AbbreviationScanV2Config,
@@ -24,7 +27,13 @@ from lib.workflows.document_summarization.state import (
     DocumentSummarizationState,
     DocumentSummarizationWorkflowConfig,
 )
-from lib.workflows.models import WorkflowRunType
+from lib.workflows.manifest import WorkflowManifest
+from lib.workflows.models import (
+    BaseWorkflowConfig,
+    BaseWorkflowState,
+    DocumentIssue,
+    WorkflowRunType,
+)
 from lib.workflows.reference_downloader.state import (
     ReferenceDownloaderState,
     ReferenceDownloaderWorkflowConfig,
@@ -52,9 +61,12 @@ from lib.workflows.simple_deep_agent.state import (
     SimpleDeepAgentConfig,
     SimpleDeepAgentState,
 )
+from lib.workflows.workflow_types import WorkflowState
 
 # Workflows with a state of their own; every other one is a simple deep agent.
-OWN_TYPES: dict[WorkflowRunType, tuple[type, type]] = {
+OWN_TYPES: dict[
+    WorkflowRunType, tuple[type[BaseWorkflowState], type[BaseWorkflowConfig]]
+] = {
     WorkflowRunType.ABBREVIATION_SCAN_V2: (
         AbbreviationScanV2State,
         AbbreviationScanV2Config,
@@ -117,3 +129,28 @@ def test_registering_a_manifest_without_type_arguments_fails() -> None:
 
     with pytest.raises(TypeError, match="Untyped"):
         register_workflow_manifest(Untyped())
+
+
+@pytest.mark.parametrize("workflow_type", list(OWN_TYPES), ids=lambda t: t.value)
+def test_own_state_manifest_takes_its_type_from_the_state_literal(
+    workflow_type: WorkflowRunType,
+) -> None:
+    state_type, _ = OWN_TYPES[workflow_type]
+
+    assert get_args(state_type.model_fields["type"].annotation) == (workflow_type,)
+    assert get_all_manifests()[workflow_type].type == workflow_type
+
+
+def test_declaring_a_type_the_state_literal_sets_fails() -> None:
+    with pytest.raises(TypeError, match="Reviewer2State already sets"):
+
+        class Declared(WorkflowManifest[Reviewer2State, Reviewer2Config]):
+            type = WorkflowRunType.REVIEWER_2
+
+            def build_graph(self) -> StateGraph:
+                raise NotImplementedError
+
+            def convert_state_to_issues(
+                self, state: Reviewer2State, other_states: list[WorkflowState]
+            ) -> list[DocumentIssue]:
+                return []

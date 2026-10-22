@@ -18,7 +18,7 @@ from lib.services.projects.service import (
     delete_project_file_with_cleanup,
     get_project_access,
 )
-from lib.services.references import get_file_reference_matches
+from lib.services.references.service import get_file_reference_matches
 from lib.workflows.models import SeverityEnum, WorkflowRunType
 
 

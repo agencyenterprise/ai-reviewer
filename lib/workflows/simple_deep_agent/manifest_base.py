@@ -147,15 +147,6 @@ class SimpleDeepAgentManifest(
         graph.add_edge("run_agent", END)
         return graph  # type: ignore[return-value]
 
-    async def create_initial_state(
-        self,
-        config: SimpleDeepAgentConfig,
-        existing_states: list["WorkflowState"],
-        revision: int,
-        prior_self_state: SimpleDeepAgentState | None = None,
-    ) -> SimpleDeepAgentState:
-        return SimpleDeepAgentState(type=self.type, config=config)
-
     def convert_state_to_issues(
         self,
         state: SimpleDeepAgentState,

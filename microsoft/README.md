@@ -1,207 +1,214 @@
-# Microsoft integrations
+# Microsoft integrations: for developers
 
-Draft Detective reaches into Microsoft 365 from more than one direction, and the
-directions are not interchangeable. Each subdirectory here is one of them, and this
-file exists to say which one you want before you open it.
+How Draft Detective's Word add-in and Teams bot work, why they are built the way they
+are, and how to run them locally.
 
-| Directory                        | Surface           | Can it change a document? |
-| -------------------------------- | ----------------- | ------------------------- |
-| [`word-addin/`](word-addin/)     | Word task pane (chat, and changes from Teams) | Yes |
-| [`teams-app/`](teams-app/)       | Teams bot         | Only through the add-in   |
+**Setting one up for a deployment?** See
+[`docs/microsoft-integrations.md`](../docs/microsoft-integrations.md), the admin guide.
+This file assumes you have read it.
 
-## What decides the split
+| | Code | Can it change a document? |
+|---|---|---|
+| Word add-in | `frontend/app/addin/`, `frontend/components/addin/`, `frontend/lib/addin/`; API under `/api/microsoft/word` | Yes |
+| Teams bot | `lib/services/microsoft/teams/`, `lib/agents/teams_agent.py`; API under `/api/microsoft/teams`; package from `teams-app/build_package.py` | Only through the add-in |
 
-**Only a Word client can write to a document someone is editing.** SharePoint refuses
-a whole-file write with `423 Locked` while the document is open, whatever identity
-asks — which was verified rather than assumed.
-So anything that adds a comment or a tracked change has to run inside Word, through
-the add-in. Everything that only needs to *read* can run on the server.
+## Why two integrations
 
-That single fact is why there are two integrations rather than one, and it is worth
-knowing before proposing a feature: "write in the margin" and "answer in chat" are
-not two renderings of the same capability.
+**Only a Word client can write to a document someone is editing.** SharePoint refuses a
+whole-file write with `423 Locked` while anyone has the document open, whoever asks. It
+was probed on 2026-10-08, writing as the account that had the document open: an idle Word
+for the web tab and a View Only Word desktop session both got 423. Closing the web tab
+released the lock within seconds; quitting Word desktop did not release it for more than
+nine minutes. So "write when nobody has it open" is no plan either.
 
-It was probed again on 2026-10-08, writing as the same account that had the document
-open: an idle Word for the web tab and a View Only Word desktop session both got 423.
-Closing the web tab released the lock within seconds; quitting Word desktop did not
-release it for more than nine minutes. So "write when nobody has it open" is not a
-plan either.
+So anything that adds a comment or a tracked change runs inside Word, in the add-in, and
+anything that only reads can run on the server. "Write in the margin" and "answer in
+chat" are different capabilities, not two renderings of one.
 
-## From Teams to Word
+### From Teams to Word: handoffs
 
-When someone asks the bot for comments or tracked changes, it cannot write them, so it
-hands them to the add-in. The bot stores what it would add, keyed by the document and
-by who asked (`lib/services/microsoft/word/handoffs.py`), and says so in the thread.
-When that person opens the document in Word, the task pane signs them in as their
-Microsoft account (Office single sign-on, or a dialog when that is unavailable), finds
-the handoffs released to that same account -- matched by Entra object id, never by
-email -- and applies one on **Apply**; the result is posted
-back into the Teams thread. Items are placed by quote, so anything whose words have
-since changed is reported rather than misplaced. A handoff released to one account is invisible to every
-other, which also means a guest asking from another organisation's Team may not see
-theirs: Teams can sign a guest in as their guest account there, while Word signs them in
-as their home account. That fails closed, never open. Routes live under
-`/api/microsoft/word/handoffs`.
+Asked for comments or changes, the bot cannot write them, so it stores them as a
+**handoff**, keyed by the document and by who asked (`lib/services/microsoft/word/handoffs.py`),
+and says so in the thread. When that person opens the document with the add-in, the pane
+lists the handoffs released to their account and **Apply** writes one; the result is
+posted back to the thread.
+
+A handoff is released only to the same Microsoft account that asked, matched by Entra
+object id and tenant, never by email. That fails closed: a guest asking from another
+organization's Team, whom Teams signs in as their guest account while Word signs them in
+as their home account, does not see theirs.
+
+The add-in's own chat stores its suggestions as handoffs too (`chat_thread_id` set, no
+Teams `reference`), so both are applied, claimed and reported the same way.
+
+### Conversations
+
+Every conversation, on any surface (the web app's /chat, the add-in's chat, Teams), has a
+row in `conversations`; the images of a document read in it are `files` rows it owns
+(`conversation_id`, no project). Each surface keeps its own details in a table linked
+one-to-one by id: `chat_threads`, `microsoft_word_chat_threads`,
+`microsoft_teams_conversations` (which holds the Teams conversation id that keys the
+agent's history). A conversation is listed under a Draft Detective user by email
+(`lib/services/microsoft/linked_users.py`), only when `AUTH_MICROSOFT_ENTRA_ID_ISSUER` names
+one tenant and the account is from it: Entra does not verify that claim. Access is never
+decided by it.
 
 ## Word add-in
 
-The task pane, loaded from the frontend at `/addin`. It writes Draft Detective's
-comments, and tracked changes the author accepts or rejects, into the open document with
-Word's own API: the changes asked for in Teams (above), and the ones suggested in its own
-chat. Word records them under the name of whoever applies them, so each comment starts
-with "Draft Detective:".
+The pane is the frontend's `/addin` page, opened by Word from the manifest the frontend
+serves at `/addin/manifest.xml` (`frontend/lib/addin/manifest.ts`). The manifest's id is a
+UUID v5 of the frontend host, so each deployment is its own add-in, and its version
+follows the app's.
 
-**The chat** (the pane's first tab) talks to a Draft Detective agent about the open
-document, with every skill the /chat page has and no web search, as in Teams
-(`lib/agents/word_chat_agent.py`). The pane sends the document's .docx with a message
-whenever it changed, so the agent reads what the author is looking at, unsaved edits
-included. Asked for changes, the agent stores them as a handoff tied to the chat, and the
-chat shows them as a card: **Apply** writes them in exactly as a handoff from Teams is
-written, and the next message tells the agent what landed. One conversation per document
-and Microsoft account; **New chat** sets it aside for good. Routes live under
-`/api/microsoft/word/chat`.
+The pane is the chat. Where the Teams bot runs (`GET /api/microsoft/word/features`, which
+reports whether every setting the bot needs is set), a notice above the chat says what
+waits from Teams, only while something does, and **Review** opens those suggestions in
+the chat's place.
 
-The add-in hands the backend the document itself, because it is the only party that
-can see a document mid-edit: SharePoint's copy, which Graph serves, was measured lagging a
-fresh edit by most of a minute. Backend routes live under `/api/microsoft/word`.
+### Signing in
 
-See [`word-addin/README.md`](word-addin/README.md) for local development: tunnelling,
-and manifest sideloading.
+The pane is a Microsoft account, not a Draft Detective user: what it may do is decided by
+the Entra object id (`lib/api/addin_auth.py`).
 
-## Teams app
+1. **Office single sign-on**, tried silently when the pane opens: Office hands over a
+   token for the account signed in to Word, issued for the deployment's sign-in app with
+   the `access_as_user` scope. The API checks it against Microsoft's signing keys.
+2. **A dialog**, when single sign-on fails: `/addin/sign-in` signs in with the web app's
+   own Microsoft sign-in and hands the session token back. Only a Microsoft sign-in works
+   there, as it is the one that carries the object id.
 
-A bot with its own identity, mentioned in a channel or a chat. It answers questions
-about a document and writes nothing to it: no write means no lock to fight and no Word
-client to automate. Asked for changes, it hands them to the add-in (above).
+Both need all three `AUTH_MICROSOFT_ENTRA_ID_*` settings; without them the API accepts no
+add-in token.
 
-The document is not configured — someone links to it in the message. **A link is the
-only way in.** Looking a document up by name was built and removed: matching names
-means searching somewhere, and anything the service can search is wider than what the
-person asking may be allowed to read, whereas a link is something they already had.
+### The chat
 
-The backend loads the document itself here, always as the person who asked: it holds a
-delegated token for them, obtained through the OAuth connection named by
-`TEAMS_USER_AUTH_CONNECTION`, so it can reach nothing they could not. Each person signs
-in once, from wherever they first ask — the bot replies with a sign-in card that works in
-channels too. One click, once, and never again.
+The **Chat** tab talks to a Draft Detective agent about the open document
+(`lib/agents/word_chat_agent.py`, routes in `lib/api/routers/microsoft/word_chat.py`), with
+the /chat page's skills and no web search.
 
-The document is converted as the web app converts a project's main document: charts and
-metafile pictures are rendered to images, and every image is kept as a `files` row owned
-by the conversation (`conversation_id`, no project). The bot opens them with
-`view_image`, bound to that conversation, so it judges a figure by what it shows rather
-than by its caption.
+- **The document goes with the message.** The pane reads it as a .docx with
+  `getFileAsync`, which makes Word save any pending edit first, and uploads it only when
+  it changed since it was last sent (`frontend/lib/addin/pane-document.ts`). Only the pane
+  can see a document mid-edit: SharePoint's copy, which Graph serves, was measured lagging
+  a fresh edit by most of a minute. It is converted like a project's main document, charts
+  and metafiles rendered to images, and the agent opens those with `view_image`, bound to
+  the conversation when the turn is built.
+- **Changes come back as one card per answer.** The agent may store them in several
+  `suggest_changes` calls; each adds to the answer's card. Its quotes are checked against
+  the document first (`lib/services/microsoft/word/quote_check.py`), so one Word would not
+  find, or would find twice, goes back to the agent.
+- **The answer waits for the card.** After its last batch the agent calls `ask_to_apply`,
+  a LangGraph `interrupt`. Applying or dismissing the card resumes it
+  (`POST /api/microsoft/word/chat/thread/resume`), and the agent reads the outcome from the
+  card itself.
+- **One conversation per document and account.** **New chat** sets it aside for good. An
+  unsaved document has no URL, so the pane gives it a key of its own (`unsaved:<id>`).
+- **One turn at a time.** A turn claims its conversation (`running_since`); another
+  message meanwhile gets 423.
 
-Worth knowing that gating the read does not gate the audience: the answer goes into the
-channel the question came from, visible to everyone there regardless of who can open
-the document. The same goes for a document's images, which anyone asking later in the
-same reply chain can have the bot describe, as they can its text.
+### Writing to the document
 
-Every conversation, on any surface (the web app's /chat, the Word add-in's chat, Teams),
-has a row in `conversations`, which is what its images belong to; each surface keeps what
-it knows about its conversations in its own table, linked one-to-one by id. Teams'
-(`microsoft_teams_conversations`) is created on a conversation's first question and holds
-the Teams conversation id, which still keys the agent's history.
+With Word's own API (`frontend/lib/addin/apply-handoff.ts`): each quote is found with
+Word's search inside its paragraph, an edit replaces those words with `insertText` while
+change tracking is on for everyone, and a comment is added with `insertComment`. The
+author's tracking setting is restored afterwards. Each write takes under a tenth of a
+second and touches only the quoted words.
 
-See [`teams-app/build_package.py`](teams-app/build_package.py) for the manifest and
-how the installable package is built. Backend routes live under
-`/api/microsoft/teams`.
+- **Authorship:** Word records changes under whoever clicks **Apply**; no Word API sets
+  another author. So each comment starts with "Draft Detective:".
+- **Matching:** quotes are compared with quotes, dashes and spacing evened out, and found
+  by Word's search, which takes at most 255 characters: a longer quote is found by its
+  ends (`frontend/lib/addin/quote-search.ts`).
+- **No fallback:** an item Word's search does not find exactly once in its paragraph (a
+  field, a footnote mark, an earlier tracked change inside the quote), or whose write Word
+  refuses, is reported as not applied. Each write is its own round trip, so a refusal is
+  pinned on its own item.
+- **WordApi 1.4** is needed for change tracking and comments; older Word cannot apply.
 
-## Setting it up in your own Microsoft 365 tenant
+## Teams bot
 
-Everything an organisation needs to run both integrations against its own deployment,
-in order. The linked READMEs have the detail for each step; this is the checklist.
+A bot with its own identity, mentioned in a chat or channel. It reads documents and
+writes none.
 
-**You will need:** a tenant administrator (to register apps and grant admin consent), a
-Teams administrator (to allow and install a custom app), an Azure subscription (for the
-Azure Bot resource), and the public HTTPS addresses of your deployment's frontend
-(`<frontend>`) and API (`<api>`).
+- **A link is the only way to name a document.** Looking one up by name was built and
+  removed: a search reaches wider than what the asker may read, while a link is something
+  they already had.
+- **It reads as the person who asked**, with a delegated token from the OAuth connection
+  `TEAMS_USER_AUTH_CONNECTION`, so it reaches nothing they could not. The Bot Framework
+  token service keeps the refresh token; this service never stores one. Gating the read
+  does not gate the audience: the answer goes to the whole chat or channel.
+- **Documents are converted like a project's**, images kept for the conversation, so the
+  bot judges a figure by what it shows.
 
-### 1. The Teams bot
+### Signing in where the question was asked
 
-Follow [`teams-app/README.md`](teams-app/README.md), sections 1 to 4:
+The Bot Framework's usual sign-in card, the `OAuthCard`, only works in a 1:1 chat; in a
+channel it fails with a misleading "the app does not exist or has been uninstalled". So
+the bot posts an Adaptive Card whose button is an `Action.Execute`, the one route Teams
+documents for signing in inside a group chat or channel. Without a token the bot answers
+the action with a `loginRequest`, Teams opens the sign-in window, then sends the action
+again with a code the token service turns into the user's token, and the parked question
+is answered (`lib/services/microsoft/teams/sign_in.py`). Only the person who asked can
+release it.
 
-1. **Azure Bot resource** with a Microsoft App ID and client secret. Messaging endpoint:
-   `https://<api>/api/microsoft/teams/messages`. Add the **Microsoft Teams** channel.
-2. **Graph app registration** for signing users in: Web redirect URI
-   `https://token.botframework.com/.auth/web/redirect`, delegated `Files.Read.All` and
-   `User.Read` with admin consent, a client secret.
-3. **OAuth connection** on the bot (Azure Active Directory v2) using that registration,
-   scopes `Files.Read.All User.Read`. Note its name.
-4. **Build and install the Teams package**: `uv run python microsoft/teams-app/build_package.py`,
-   then upload it in Teams (custom app uploads must be allowed by policy).
+- **`validDomains` must contain `token.botframework.com`**, or sign-in fails in every
+  scope with the same misleading error. `teams-app/build_package.py` sets it.
+- **The parked question lives in the database** (`microsoft_teams_signin_state`), not in
+  memory: the card and its actions arrive as separate requests, which land on different
+  workers in production. A row nobody finishes is swept after an hour.
+- **No Teams SSO.** It would save one click, once per person, but needs an Application ID
+  URI, an exposed scope and Teams' client ids pre-authorized, and bot SSO does not work in
+  channels at all.
 
-### 2. The Word add-in's Entra app
+### The package
 
-Follow "Signing in" in [`word-addin/README.md`](word-addin/README.md). The add-in signs
-in with **the same app registration as Draft Detective's own "Sign in with Microsoft"**
-(the one `AUTH_MICROSOFT_ENTRA_ID_ID` names). If you already have that app, add the
-settings below to it; otherwise register one with all of them:
+`teams-app/build_package.py` writes the manifest and icons into a zip. The app id
+defaults to the bot's (`TEAMS_BOT_APP_ID`), which keeps the two from drifting apart.
+Teams recognizes an upload by that id, so updating needs a higher version
+(`build_package.py 1.2.2`); `--new-app-id` mints a fresh id instead, installing a second
+app beside the old one, for when a catalog entry is in the way. In the Teams admin center,
+the **External app ID** is that id; the **App ID** is Teams' own, and putting it in the
+manifest fails with a bare "cannot upload the app".
 
-- **Expose an API**: Application ID URI `api://<frontend>/<client id>`, scope
-  `access_as_user`, and client application `ea5a67f6-b6f3-4338-b240-c655ddc3cc8e`
-  (Microsoft Office) pre-authorized for it.
-- **Manifest**: `requestedAccessTokenVersion` = `2`.
-- **Authentication**: Web redirect URI `https://<frontend>/api/auth/callback/microsoft-entra-id`.
-- **Token configuration**: optional claim `email`, on ID and access tokens.
-- **API permissions**: Microsoft Graph delegated `openid`, `profile`, `email`,
-  `offline_access`, `User.Read`, with admin consent.
-- **Certificates & secrets**: a client secret (the frontend's sign-in needs it).
+## Local development
 
-Register it as single-tenant (**Accounts in this organizational directory only**)
-unless people from other tenants will use the add-in.
+Word and Teams reach the app over the public internet, so both the frontend
+(`localhost:3000`) and the API (`localhost:8000`) need public HTTPS URLs. Any tunnel
+works: VS Code's public port forwarding, or ngrok (copy `ngrok.yaml` here to
+`ngrok-dev.yaml`, which is git-ignored, add your token, and run
+`ngrok start --config ngrok-dev.yaml --all` from `microsoft/`). A reserved
+domain saves redoing the steps below each time the tunnel restarts.
 
-### 3. The Word add-in manifest
+Set it up as its own deployment, following the admin guide with the tunnel hosts as
+`<frontend>` and `<api>`, in a tenant where you can register apps. Then, in your `.env`
+files:
 
-1. Copy `word-addin/manifest-template.xml` and replace `{FRONTEND_URL}`
-   (`https://<frontend>`), `{FRONTEND_HOST}` (`<frontend>`) and `{ENTRA_CLIENT_ID}` (the
-   app from step 2). Give it a new `<Id>` (any GUID) so it does not collide with ours.
-2. Publish it to your users from the Microsoft 365 admin centre: **Settings →
-   Integrated apps → Upload custom apps → Office Add-in**, and assign it to users or
-   groups. (See "Publish the Word add-in in your organization" in
-   [`word-addin/README.md`](word-addin/README.md).)
+- `frontend/.env`: `AUTH_URL` (the frontend tunnel), `NEXT_PUBLIC_API_URL` (the API
+  tunnel), the three `AUTH_MICROSOFT_ENTRA_ID_*`, and `ADDIN_NAME`, such as
+  `Draft Detective (local)`, so Word tells it apart from a published add-in.
+- `.env`: the three `AUTH_MICROSOFT_ENTRA_ID_*`, and the `TEAMS_*` settings for the bot.
 
-### 4. Configuration
+**Add-in.** Save `https://<frontend tunnel>/addin/manifest.xml` to a file and sideload it,
+rather than publishing it to the tenant:
 
-Backend:
+- Word for the web: in a document, **Home → Add-ins → More Add-ins → My Add-ins →
+  Upload My Add-in**.
+- Word for Mac: copy it into `~/Library/Containers/com.microsoft.Word/Data/Documents/wef/`
+  and reopen Word, as after every change to it
+  ([Microsoft's guide](https://learn.microsoft.com/en-us/office/dev/add-ins/testing/sideload-an-office-add-in-on-mac)).
 
-| Variable | Value |
-|---|---|
-| `TEAMS_BOT_APP_ID` | The Azure Bot's Microsoft App ID (step 1.1) |
-| `TEAMS_BOT_APP_PASSWORD` | Its client secret |
-| `TEAMS_BOT_TENANT_ID` | Your tenant id, for a single-tenant bot; leave unset for a multi-tenant one |
-| `TEAMS_USER_AUTH_CONNECTION` | The OAuth connection's name (step 1.3) |
+To work on the pane without Word, a tunnel or a Microsoft sign-in, open
+`/addin/preview` on any deployment, or `http://localhost:3000/addin/preview` locally. It runs the real pane
+with Office and the add-in's API stood in for in the browser (`frontend/lib/addin/preview/`),
+and its controls switch between scenarios: the Teams bot on or off, suggestions waiting
+from Teams, a new conversation, an answer or one waiting on a card, a missing OpenAI key,
+and the pane's width. Messages get canned replies; asking for comments or changes offers a
+card, and dismissing it carries the answer on. Apply cannot write without Word.
 
-Backend **and** frontend: Draft Detective's "Sign in with Microsoft", which the add-in
-signs in with too (already set if the UI signs in with Microsoft). All three are required
-for the add-in to sign anyone in.
+**Bot.** Point your Azure Bot's messaging endpoint at
+`https://<api tunnel>/api/microsoft/teams/messages`. A stale endpoint fails silently: the
+message never arrives. The API logs each question and the document it resolved.
 
-| Variable | Value |
-|---|---|
-| `AUTH_MICROSOFT_ENTRA_ID_ID` | The sign-in app's client id (step 2) |
-| `AUTH_MICROSOFT_ENTRA_ID_SECRET` | Its client secret |
-| `AUTH_MICROSOFT_ENTRA_ID_ISSUER` | `https://login.microsoftonline.com/<tenant id>/v2.0`: only your tenant's accounts are accepted |
-
-On the backend, these also make the MCP server sign people in with Microsoft when Google
-(`AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`) is not configured.
-
-### 5. Database and network
-
-- Run `uv run alembic upgrade head`. It creates the tables both integrations use
-  (`microsoft_teams_signin_state`, `microsoft_word_handoffs`,
-  `microsoft_word_chat_threads`).
-- The backend must accept inbound HTTPS from the Bot Framework on
-  `/api/microsoft/teams/messages`, and reach `login.microsoftonline.com` (token signing
-  keys), `graph.microsoft.com`, `api.botframework.com` / `token.botframework.com`, and
-  the Teams service URLs (`*.trafficmanager.net`) outbound.
-
-### 6. Check it works
-
-1. In Teams, message the bot with a question and a SharePoint link. It asks you to sign
-   in once, then answers.
-2. Ask it for comments or fixes on a document. It replies that they will be applied in
-   Word.
-3. Open that document in Word with the add-in. The pane signs you in (usually without a
-   click), shows the suggestions, and **Apply** writes them in as tracked changes and comments.
-4. The Teams thread gets an "Applied to … in Word" message.
-5. In the pane's **Chat** tab, ask about the document, then ask for comments on it. A card
-   with **Apply** appears under the answer, and applying it writes them in.
+**When a tunnel's host changes**, update the Entra app's redirect URI and Application ID
+URI, `AUTH_URL` and `NEXT_PUBLIC_API_URL`, the bot's messaging endpoint, and save and
+sideload the manifest again.

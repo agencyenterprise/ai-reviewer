@@ -18,7 +18,6 @@ from lib.workflows.workflow_types import WorkflowState
 class AbbreviationScanV2Manifest(
     WorkflowManifest[AbbreviationScanV2State, AbbreviationScanV2Config]
 ):
-    type = WorkflowRunType.ABBREVIATION_SCAN_V2
     name = "Abbreviation Scan"
     description = "Have you defined all abbreviations and acronyms accurately and consistently? Checks that every abbreviation is spelled out at first use and all abbreviations are listed in an Abbreviations section."
     needs_web_search = False
@@ -37,18 +36,6 @@ class AbbreviationScanV2Manifest(
             state.chunks, ChunkStatus.PENDING, ChunkStatus.CANCELLED
         )
         return state.model_copy(update={"chunks": updated})
-
-    async def create_initial_state(
-        self,
-        config: AbbreviationScanV2Config,
-        existing_states: list[WorkflowState],
-        revision: int,
-        prior_self_state: AbbreviationScanV2State | None = None,
-    ) -> AbbreviationScanV2State:
-        return AbbreviationScanV2State(
-            type=WorkflowRunType.ABBREVIATION_SCAN_V2,
-            config=config,
-        )
 
     def convert_state_to_issues(
         self, state: AbbreviationScanV2State, other_states: list[WorkflowState]

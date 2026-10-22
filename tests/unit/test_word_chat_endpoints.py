@@ -2,7 +2,8 @@
 
 They are thin, so what is pinned is the contract: every call is scoped to the signed-in
 Microsoft account, a document that cannot be read is refused before anything runs, and
-a turn hears about earlier suggestions.
+a turn hears about earlier suggestions. ``TestTheRequestThePaneSends`` goes through
+HTTP, for what FastAPI refuses before a route runs.
 """
 
 import uuid
@@ -13,10 +14,11 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import HTTPException, UploadFile
+from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi.testclient import TestClient
 from starlette.requests import ClientDisconnect
 
-from lib.api.addin_auth import AddinIdentity
+from lib.api.addin_auth import AddinIdentity, get_addin_identity
 from lib.api.routers.microsoft import word_chat
 from lib.api.routers.microsoft.word_chat import (
     WordChatClearRequest,
@@ -30,6 +32,9 @@ from lib.services.microsoft.word.handoffs import Account
 ANA = Account(oid="oid-ana", tid="tid-contoso")
 URL = "https://contoso.sharepoint.com/sites/Policy/Shared%20Documents/Draft.docx"
 NOW = datetime.now(UTC)
+OWN_KEY = "sk-ana-own"
+# The real lookup; the fixture below stands it in for every other test.
+API_KEY_FOR = word_chat._api_key
 
 
 @pytest.fixture(autouse=True)
@@ -42,6 +47,7 @@ def free_conversation() -> Iterator[AsyncMock]:
         ) as claim,
         patch.object(word_chat.chat_threads, "release", AsyncMock()),
         patch.object(word_chat.chat_suggestions, "mark_heard", AsyncMock()),
+        patch.object(word_chat, "_api_key", AsyncMock(return_value=OWN_KEY)),
     ):
         yield claim
 
@@ -133,8 +139,9 @@ class TestATurn:
         assert start.await_args is not None
         assert start.await_args.args[:2] == (ANA, URL)
         news.assert_called_once_with([])
-        turn, target = run.call_args.args
+        turn, target, api_key = run.call_args.args
         assert turn.thread_id == thread.id and turn.suggestion_news == "[news]"
+        assert api_key == OWN_KEY
         assert turn.document is None and turn.selection == "the words"
         assert target.requester.oid == ANA.oid and target.chat_thread_id == thread.id
 
@@ -192,7 +199,7 @@ class TestATurn:
         # and so do the new copy's.
         prune.assert_awaited_once_with(thread.id, keep={kept, image.id})
         store.assert_awaited_once_with(thread.id, [image])
-        turn, _target = run.call_args.args
+        turn, _target, _key = run.call_args.args
         assert turn.document == read
 
     @pytest.mark.asyncio
@@ -347,8 +354,75 @@ class TestResuming:
         lookup.assert_awaited_once_with(card_id, ANA)
         # Not a new turn: cards that settled meanwhile are still news on the next one.
         begin.assert_not_awaited()
-        thread_id, target = run.call_args.args
+        thread_id, target, api_key = run.call_args.args
         assert thread_id == thread.id and target.requester.oid == ANA.oid
+        assert api_key == OWN_KEY
+
+
+class TestTheKeyItAnswersWith:
+    """The person's own OpenAI key, as on /chat; else the deployment's; else refused."""
+
+    @staticmethod
+    def keys(own: str | None, deployment: bool) -> Any:
+        return (
+            patch.object(
+                word_chat.users, "stored_api_key", AsyncMock(return_value=own)
+            ),
+            patch.object(word_chat, "has_deployment_key", return_value=deployment),
+        )
+
+    @pytest.mark.asyncio
+    async def test_their_own_key_comes_first(self) -> None:
+        stored, deployment = self.keys("sk-own", deployment=True)
+        with stored, deployment:
+            assert await API_KEY_FOR(uuid.uuid4()) == "sk-own"
+
+    @pytest.mark.asyncio
+    async def test_without_one_the_deployments_key_is_used(self) -> None:
+        stored, deployment = self.keys(None, deployment=True)
+        with stored, deployment:
+            assert await API_KEY_FOR(uuid.uuid4()) is None
+
+    @pytest.mark.asyncio
+    async def test_with_neither_it_is_refused_with_where_to_add_one(self) -> None:
+        stored, deployment = self.keys(None, deployment=False)
+        with stored, deployment, pytest.raises(HTTPException) as raised:
+            await API_KEY_FOR(uuid.uuid4())
+
+        assert raised.value.status_code == 403
+        assert "/account" in str(raised.value.detail)
+
+    @pytest.mark.asyncio
+    async def test_the_person_is_found_on_every_message_not_off_the_conversation(
+        self,
+    ) -> None:
+        # A conversation started before its account was linked has no user; the key
+        # its person adds afterwards must still be found.
+        person = uuid.uuid4()
+        with (
+            patch.object(
+                word_chat.linked_users, "user_for", AsyncMock(return_value=person)
+            ) as linked,
+            patch.object(word_chat, "_api_key", AsyncMock(return_value=OWN_KEY)) as key,
+            patch.object(
+                word_chat.chat_threads, "current", AsyncMock(return_value=a_thread())
+            ),
+            patch.object(word_chat, "_has_document", AsyncMock(return_value=True)),
+            patch.object(
+                word_chat.chat_threads,
+                "current_or_new",
+                AsyncMock(return_value=a_thread()),
+            ),
+            patch.object(word_chat.chat_threads, "begin_turn", AsyncMock()),
+            patch.object(
+                word_chat.chat_suggestions, "for_thread", AsyncMock(return_value=[])
+            ),
+            patch.object(word_chat, "run_word_chat_turn"),
+        ):
+            await word_chat.stream_turn(url=URL, message="Hi", caller=caller())
+
+        linked.assert_awaited_once()
+        key.assert_awaited_once_with(person)
 
 
 class TestOneTurnAtATime:
@@ -475,3 +549,67 @@ class TestOneTurnAtATime:
             ):
                 pass
             heard.assert_awaited_once()
+
+
+class TestTheRequestThePaneSends:
+    def client(self) -> TestClient:
+        app = FastAPI()
+        app.include_router(word_chat.router)
+        app.dependency_overrides[get_addin_identity] = caller
+        return TestClient(app, raise_server_exceptions=False)
+
+    def test_a_message_reaches_the_turn_as_a_form(self) -> None:
+        # Without the document and with no conversation, the route itself refuses it:
+        # the form was read, and the turn's own rule answered.
+        with patch.object(
+            word_chat.chat_threads, "current", AsyncMock(return_value=None)
+        ) as current:
+            response = self.client().post(
+                "/chat/thread/stream", data={"url": URL, "message": "Hi"}
+            )
+
+        assert response.status_code == 409
+        assert response.json()["detail"] == word_chat.DOCUMENT_NEEDED
+        current.assert_awaited_once_with(ANA, URL)
+
+    @pytest.mark.parametrize(
+        "form",
+        [{"url": URL, "message": ""}, {"url": URL}, {"message": "Hi"}],
+        ids=["empty message", "no message", "no url"],
+    )
+    def test_a_turn_without_a_message_or_url_is_refused_before_anything_runs(
+        self, form: dict[str, str]
+    ) -> None:
+        with (
+            patch.object(word_chat.chat_threads, "current") as current,
+            patch.object(word_chat.chat_threads, "current_or_new") as start,
+        ):
+            response = self.client().post("/chat/thread/stream", data=form)
+
+        assert response.status_code == 422
+        current.assert_not_called()
+        start.assert_not_called()
+
+    @pytest.mark.parametrize("path", ["/chat/thread/resume", "/chat/thread/clear"])
+    def test_resuming_or_clearing_needs_the_document_url(self, path: str) -> None:
+        with patch.object(word_chat.chat_threads, "current") as current:
+            response = self.client().post(path, json={})
+
+        assert response.status_code == 422
+        current.assert_not_called()
+
+    def test_clearing_takes_the_url_from_the_body(self) -> None:
+        with patch.object(
+            word_chat.chat_threads, "clear", AsyncMock(return_value=True)
+        ) as clear:
+            response = self.client().post("/chat/thread/clear", json={"url": URL})
+
+        assert response.status_code == 204
+        clear.assert_awaited_once_with(ANA, URL)
+
+    def test_a_suggestion_id_that_is_not_a_uuid_is_refused(self) -> None:
+        with patch.object(word_chat.chat_suggestions, "suggestion_for") as lookup:
+            response = self.client().get("/chat/suggestions/not-a-uuid")
+
+        assert response.status_code == 422
+        lookup.assert_not_called()

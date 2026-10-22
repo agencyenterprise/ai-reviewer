@@ -88,17 +88,37 @@ class InvalidActivity(Exception):
     """
 
 
+# Every setting the bot cannot run without, and what to say when one is missing. The one
+# list both ``configured`` and the bot's own start read, so they cannot disagree.
+REQUIRED_SETTINGS = {
+    "TEAMS_BOT_APP_ID": "TEAMS_BOT_APP_ID and TEAMS_BOT_APP_PASSWORD must be set before "
+    "the bot can accept a request",
+    "TEAMS_BOT_APP_PASSWORD": "TEAMS_BOT_APP_ID and TEAMS_BOT_APP_PASSWORD must be set "
+    "before the bot can accept a request",
+    "TEAMS_USER_AUTH_CONNECTION": "TEAMS_USER_AUTH_CONNECTION must name the OAuth "
+    "connection on the Azure Bot resource: the bot reads documents only as the person "
+    "who asked",
+}
+
+
+def _missing() -> str | None:
+    """Why the bot cannot run, or None when every setting it needs is set."""
+
+    for name, why in REQUIRED_SETTINGS.items():
+        if not getattr(config, name):
+            return why
+    return None
+
+
+def configured() -> bool:
+    """Whether this deployment runs the Teams bot: every setting it needs is set."""
+
+    return _missing() is None
+
+
 def _auth_configuration() -> AgentAuthConfiguration:
-    if not config.TEAMS_BOT_APP_ID or not config.TEAMS_BOT_APP_PASSWORD:
-        raise NotConfigured(
-            "TEAMS_BOT_APP_ID and TEAMS_BOT_APP_PASSWORD must be set before the bot "
-            "can accept a request"
-        )
-    if not config.TEAMS_USER_AUTH_CONNECTION:
-        raise NotConfigured(
-            "TEAMS_USER_AUTH_CONNECTION must name the OAuth connection on the Azure Bot "
-            "resource: the bot reads documents only as the person who asked"
-        )
+    if (why := _missing()) is not None:
+        raise NotConfigured(why)
     return AgentAuthConfiguration(
         auth_type=AuthTypes.client_secret,
         client_id=config.TEAMS_BOT_APP_ID,

@@ -27,7 +27,7 @@ from lib.services.docx.service import docx_manipulator_service, generate_docx
 from lib.services.files.conversion import convert_file_document_to_markdown
 from lib.services.files.document import FileDocument
 from lib.workflows.models import SeverityEnum, WorkflowRunType
-from tests.unit.services.tracked_changes_support import display_fields
+from tests.unit.services.docx.tracked_changes.support import display_fields
 
 _SOFFICE = shutil.which("soffice") or shutil.which("libreoffice")
 _SERVICE = "lib.services.docx.service"

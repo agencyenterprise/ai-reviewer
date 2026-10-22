@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from sqlalchemy import text
 
 from lib.config.database import get_async_db_session
-from lib.services.admin_dashboard import queries
+from lib.services.admin_dashboard import chat_queries, queries
 from lib.services.admin_dashboard.models import AdminDashboardResponse
 from lib.services.admin_dashboard.window import DashboardWindow
 
@@ -68,7 +68,7 @@ async def get_admin_dashboard(
         window = DashboardWindow.for_days(days)
 
         async with get_async_db_session() as session:
-            # One snapshot for all eight aggregates. Without it they run under
+            # One snapshot for all ten aggregates. Without it they run under
             # READ COMMITTED and each sees its own moment, so a run written
             # mid-request can be counted by the activity series but not by the
             # headline above it — the same quantity, disagreeing with itself on
@@ -105,6 +105,12 @@ async def get_admin_dashboard(
             top_users = await queries.get_top_users(
                 session, window, _TOP_USERS_LIMIT, ignored
             )
+            chat_surfaces = await chat_queries.get_chat_surfaces(
+                session, window, ignored
+            )
+            chat_activity = await chat_queries.get_chat_activity(
+                session, window, ignored
+            )
 
     return AdminDashboardResponse(
         period_days=window.days,
@@ -123,4 +129,6 @@ async def get_admin_dashboard(
         workflows=workflows,
         top_users=top_users,
         feedback=feedback,
+        chat_surfaces=chat_surfaces,
+        chat_activity=chat_activity,
     )

@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import HTTPException
 from sqlalchemy import or_, select
 from sqlmodel import col
@@ -107,3 +109,12 @@ def get_user_decrypted_api_key(user: User) -> str | None:
     if not user.encrypted_openai_api_key:
         return None
     return decrypt_value(user.encrypted_openai_api_key)
+
+
+async def stored_api_key(user_id: uuid.UUID | None) -> str | None:
+    """The OpenAI API key a user saved in their account settings, if any."""
+    if user_id is None:
+        return None
+    async with get_async_db_session() as session:
+        user = await session.get(User, user_id)
+    return get_user_decrypted_api_key(user) if user else None

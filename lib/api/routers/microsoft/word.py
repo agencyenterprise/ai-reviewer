@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 
 from lib.api.addin_auth import AddinIdentity, get_addin_identity
 from lib.api.routers.microsoft import word_chat
+from lib.services.microsoft.teams import bot
 from lib.services.microsoft.word import handoffs
 from lib.services.microsoft.word.handoffs import (
     Account,
@@ -34,6 +35,24 @@ router.include_router(word_chat.router)
 
 def _account(caller: AddinIdentity) -> Account:
     return Account(oid=caller.oid, tid=caller.tid)
+
+
+class AddinFeatures(BaseModel):
+    teams: bool = Field(
+        description=(
+            "Whether this deployment runs the Teams bot, so the pane offers the changes "
+            "asked for there"
+        )
+    )
+
+
+@router.get("/features", response_model=AddinFeatures)
+async def features(
+    _caller: AddinIdentity = Depends(get_addin_identity),
+) -> AddinFeatures:
+    """What the pane offers on this deployment."""
+
+    return AddinFeatures(teams=bot.configured())
 
 
 class PendingHandoffs(BaseModel):

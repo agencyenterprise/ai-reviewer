@@ -11,6 +11,7 @@ import {
 } from '@/lib/addin/sign-in';
 import { getErrorMessage } from '@/lib/api-error';
 import { QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ExternalLinkIcon } from 'lucide-react';
 import { Fragment, ReactNode, useState } from 'react';
 
 /** What the signed-in parts of the pane get: who, and a header for the next call. */
@@ -175,12 +176,22 @@ export function AddinSignIn({ prompt, children }: AddinSignInProps) {
 
   return (
     <>
-      <div className="flex items-center justify-between gap-2 border-b px-3 py-1 text-[11px] text-muted-foreground">
-        <span className="truncate">Signed in as {auth.email}</span>
+      <div className="flex items-center gap-2 border-b px-3 py-1 text-[11px] text-muted-foreground">
+        <span className="min-w-0 flex-1 truncate">Signed in as {auth.email}</span>
+        {/* The pane is served by the web app, so its root is the app itself. */}
+        <a
+          href="/"
+          target="_blank"
+          rel="noreferrer"
+          className="flex shrink-0 items-center gap-1 whitespace-nowrap hover:text-foreground"
+        >
+          Web app
+          <ExternalLinkIcon className="size-3" aria-hidden />
+        </a>
         <Button
           size="sm"
           variant="ghost"
-          className="h-6 px-2 text-[11px]"
+          className="h-6 shrink-0 whitespace-nowrap px-2 text-[11px]"
           onClick={() => signOut.mutate()}
           disabled={signOut.isPending}
         >

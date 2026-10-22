@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 class DocumentProcessingManifest(
     WorkflowManifest[DocumentProcessingState, DocumentProcessingWorkflowConfig]
 ):
-    type = WorkflowRunType.DOCUMENT_PROCESSING
     name = "Markdown Conversion"
     description = "Convert documents to markdown"
     needs_web_search = False
