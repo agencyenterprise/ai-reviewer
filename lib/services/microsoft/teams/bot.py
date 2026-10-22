@@ -88,6 +88,16 @@ class InvalidActivity(Exception):
     """
 
 
+def configured() -> bool:
+    """Whether this deployment runs the Teams bot: every setting it needs is set."""
+
+    return bool(
+        config.TEAMS_BOT_APP_ID
+        and config.TEAMS_BOT_APP_PASSWORD
+        and config.TEAMS_USER_AUTH_CONNECTION
+    )
+
+
 def _auth_configuration() -> AgentAuthConfiguration:
     if not config.TEAMS_BOT_APP_ID or not config.TEAMS_BOT_APP_PASSWORD:
         raise NotConfigured(
