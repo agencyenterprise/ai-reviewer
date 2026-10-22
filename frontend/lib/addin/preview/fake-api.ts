@@ -75,15 +75,30 @@ function json(body: unknown, status = 200): Response {
 
 const NO_CONTENT = () => new Response(null, { status: 204 });
 
-/** A server-sent event stream of `events`, paced like a model typing. */
-function eventStream(events: object[]): Response {
+const aborted = () => new DOMException('The request was aborted.', 'AbortError');
+
+const NO_API_KEY =
+  'Draft Detective needs your OpenAI API key to answer. Sign in to https://draftdetective.example.com/account ' +
+  "with this Microsoft account's email address and add it there, then ask again.";
+
+/**
+ * A server-sent event stream of `events`, paced like a model typing. Stopped as a real
+ * request is when `signal` aborts (the pane's Stop). `onComplete` runs once every event
+ * was sent: only then does the backend have the whole answer to store.
+ */
+function eventStream(events: object[], signal: AbortSignal | undefined, onComplete: () => void): Response {
   const encoder = new TextEncoder();
   const body = new ReadableStream({
     async start(controller) {
       for (const event of events) {
         await new Promise((resolve) => setTimeout(resolve, 'v' in event ? 25 : 120));
+        if (signal?.aborted) {
+          controller.error(aborted());
+          return;
+        }
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
       }
+      onComplete();
       controller.close();
     },
   });
@@ -107,7 +122,12 @@ export function installFakeApi(scenario: PreviewScenario): void {
   };
   const real = window.fetch.bind(window);
 
-  async function answer(path: string, method: string, body: BodyInit | null | undefined): Promise<Response> {
+  async function answer(
+    path: string,
+    method: string,
+    body: BodyInit | null | undefined,
+    signal: AbortSignal | undefined,
+  ): Promise<Response> {
     if (path === `${WORD}/features`) return json({ teams: scenario.teams });
     if (path === `${WORD}/handoffs`) return json(state.handoffs);
     const handoffAction = path.match(new RegExp(`^${WORD}/handoffs/([^/]+)/(started|applied|dismissed)$`));
@@ -130,8 +150,8 @@ export function installFakeApi(scenario: PreviewScenario): void {
       state.pending = null;
       return NO_CONTENT();
     }
-    if (path === `${WORD}/chat/thread/stream` && method === 'POST') return stream(body);
-    if (path === `${WORD}/chat/thread/resume` && method === 'POST') return resume();
+    if (path === `${WORD}/chat/thread/stream` && method === 'POST') return stream(body, signal);
+    if (path === `${WORD}/chat/thread/resume` && method === 'POST') return resume(signal);
     return json({ detail: `The preview does not answer ${method} ${path}` }, 404);
   }
 
@@ -148,37 +168,33 @@ export function installFakeApi(scenario: PreviewScenario): void {
     return NO_CONTENT();
   }
 
-  async function stream(body: BodyInit | null | undefined): Promise<Response> {
-    if (!scenario.key) {
-      return json(
-        {
-          detail:
-            'Draft Detective needs your OpenAI API key to answer. Sign in to https://draftdetective.example.com/account ' +
-            "with this Microsoft account's email address and add it there, then ask again.",
-        },
-        403,
-      );
-    }
+  function stream(body: BodyInit | null | undefined, signal: AbortSignal | undefined): Response {
+    if (!scenario.key) return json({ detail: NO_API_KEY }, 403);
     const form = body instanceof FormData ? body : null;
     const text = String(form?.get('message') ?? '');
     const id = String(form?.get('message_id') ?? crypto.randomUUID());
+    // The question is stored as the turn starts; the answer once all of it was sent.
     state.messages = [...state.messages, { id, type: 'human', content: text, additional_kwargs: { attachments: [] } }];
     const reply = previewReply(text);
-    state.messages = [...state.messages, ...reply.stored];
-    if (reply.card) {
-      state.pending = reply.card;
-      state.cards.set(reply.card, cardFor(reply.card));
-    }
-    return eventStream(reply.events);
+    return eventStream(reply.events, signal, () => {
+      state.messages = [...state.messages, ...reply.stored];
+      if (reply.card) {
+        state.pending = reply.card;
+        state.cards.set(reply.card, cardFor(reply.card));
+      }
+    });
   }
 
-  function resume(): Response {
+  function resume(signal: AbortSignal | undefined): Response {
+    // As the real route: refused before anything changes, so the card still waits.
+    if (!scenario.key) return json({ detail: NO_API_KEY }, 403);
     const card = state.pending ? state.cards.get(state.pending) : undefined;
-    state.pending = null;
     const said = card?.status === 'dismissed' ? 'Understood: I left those out.' : 'Those are in the document now.';
     const reply = previewReply(said, true);
-    state.messages = [...state.messages, ...reply.stored];
-    return eventStream(reply.events);
+    return eventStream(reply.events, signal, () => {
+      state.pending = null;
+      state.messages = [...state.messages, ...reply.stored];
+    });
   }
 
   window.fetch = async (input, init) => {
@@ -186,10 +202,13 @@ export function installFakeApi(scenario: PreviewScenario): void {
     const url = new URL(request?.url ?? (input instanceof URL ? input.href : String(input)), window.location.href);
     if (!url.pathname.startsWith(WORD)) return real(input, init);
     const method = (init?.method ?? request?.method ?? 'GET').toUpperCase();
+    const signal = init?.signal ?? request?.signal ?? undefined;
+    if (signal?.aborted) throw aborted();
     return answer(
       url.pathname,
       method,
       init?.body ?? (request?.body ? await request.formData().catch(() => null) : null),
+      signal,
     );
   };
 }

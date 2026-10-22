@@ -22,10 +22,12 @@ export function PanePreview() {
     queryKey: ['addin-preview', query],
     queryFn: async () => {
       installFakeApi(scenario);
-      await officeReady().catch(() => null);
+      // The stand-in builds on office.js itself: without it there is no pane to show.
+      await officeReady();
       installFakeOffice();
       return true;
     },
+    retry: false,
     staleTime: Infinity,
     gcTime: 0,
   });
@@ -41,6 +43,12 @@ export function PanePreview() {
           className="flex h-[min(720px,calc(100vh-5rem))] flex-col overflow-hidden border bg-card shadow"
           style={{ width: scenario.width }}
         >
+          {ready.error && (
+            <p className="p-4 text-sm text-destructive">
+              The preview could not start: office.js did not load from appsforoffice.microsoft.com. Check the network
+              and reload.
+            </p>
+          )}
           {ready.data && (
             <AddinSignIn prompt="Sign in to chat with Draft Detective about this document.">
               {(session) => <AddinPane session={session} />}

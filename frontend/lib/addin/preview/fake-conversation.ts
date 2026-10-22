@@ -90,8 +90,9 @@ export function conversationFor(chat: 'empty' | 'conversation' | 'card'): {
 
 const ASKS_FOR_CHANGES = /\b(comment|suggest|edit|change|fix|tighten|rewrite)/i;
 
-function textEvents(text: string): ChatStreamEvent[] {
-  return (text.match(/.{1,12}(\s|$)|\S+/g) ?? [text]).map((v) => ({ t: 'text', v }));
+/** The text as word-sized pieces that join back to exactly `text`, blank lines and all. */
+export function textEvents(text: string): ChatStreamEvent[] {
+  return (text.match(/\S+\s*|\s+/g) ?? []).map((v) => ({ t: 'text', v }));
 }
 
 /** The agent's reply to `text`, as the stream sends it and as it is stored afterwards. */
