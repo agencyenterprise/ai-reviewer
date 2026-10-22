@@ -17,7 +17,7 @@ import { useSearchParams } from 'next/navigation';
 export function PanePreview() {
   const scenario = scenarioFrom(useSearchParams());
   const query = scenarioQuery(scenario);
-  // Installed once per scenario, before the pane mounts: it asks for its data at once.
+  // Installed before the pane mounts, which asks for its data at once; once per page load.
   const ready = useQuery({
     queryKey: ['addin-preview', query],
     queryFn: async () => {
@@ -42,7 +42,7 @@ export function PanePreview() {
           style={{ width: scenario.width }}
         >
           {ready.data && (
-            <AddinSignIn key={query} prompt="Sign in to chat with Draft Detective about this document.">
+            <AddinSignIn prompt="Sign in to chat with Draft Detective about this document.">
               {(session) => <AddinPane session={session} />}
             </AddinSignIn>
           )}

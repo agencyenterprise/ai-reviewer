@@ -90,8 +90,14 @@ function eventStream(events: object[]): Response {
   return new Response(body, { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
 }
 
-/** Answer the add-in's API from memory for this page. Returns a function that stops it. */
-export function installFakeApi(scenario: PreviewScenario): () => void {
+// Once per page load: a second install would wrap the first and start its state over.
+// Each scenario is a page load of its own (`pane-preview.tsx`).
+let installed = false;
+
+/** Answer the add-in's API from memory for this page, for as long as it is open. */
+export function installFakeApi(scenario: PreviewScenario): void {
+  if (installed) return;
+  installed = true;
   const conversation = conversationFor(scenario.chat);
   const state: State = {
     messages: conversation.messages,
@@ -185,8 +191,5 @@ export function installFakeApi(scenario: PreviewScenario): () => void {
       method,
       init?.body ?? (request?.body ? await request.formData().catch(() => null) : null),
     );
-  };
-  return () => {
-    window.fetch = real;
   };
 }
