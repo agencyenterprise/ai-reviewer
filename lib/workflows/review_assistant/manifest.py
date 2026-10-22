@@ -209,15 +209,6 @@ class ReviewAssistantManifest(
         graph.add_edge("run_agent", END)
         return graph  # type: ignore[return-value]
 
-    async def create_initial_state(
-        self,
-        config: ReviewAssistantConfig,
-        existing_states: list["WorkflowState"],
-        revision: int,
-        prior_self_state: ReviewAssistantState | None = None,
-    ) -> ReviewAssistantState:
-        return ReviewAssistantState(config=config)
-
     def convert_state_to_issues(
         self, state: ReviewAssistantState, other_states: list["WorkflowState"]
     ) -> list[DocumentIssue]:
