@@ -52,9 +52,19 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    # The image leaves out .env files, so Auth.js gets its settings here, from the
+    # root .env: the same keys k8s/frontend.yaml passes. AUTH_URL is the browser's
+    # address for the app; without it, production Auth.js rejects every request.
     environment:
       - NODE_ENV=production
       - API_INTERNAL_URL=http://api:8000
+      - AUTH_URL=http://localhost:3000
+      - AUTH_SECRET=${AUTH_SECRET:-}
+      - AUTH_GOOGLE_ID=${AUTH_GOOGLE_ID:-}
+      - AUTH_GOOGLE_SECRET=${AUTH_GOOGLE_SECRET:-}
+      - AUTH_MICROSOFT_ENTRA_ID_ID=${AUTH_MICROSOFT_ENTRA_ID_ID:-}
+      - AUTH_MICROSOFT_ENTRA_ID_SECRET=${AUTH_MICROSOFT_ENTRA_ID_SECRET:-}
+      - AUTH_MICROSOFT_ENTRA_ID_ISSUER=${AUTH_MICROSOFT_ENTRA_ID_ISSUER:-}
     depends_on:
       - api
     networks:

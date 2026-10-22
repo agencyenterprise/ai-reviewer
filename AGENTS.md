@@ -8,7 +8,7 @@ Deeper docs, read when the task needs them: `DEVELOPMENT.md` (setup, Docker, env
 
 ```bash
 # Backend (always uv)
-uv run dev.py                              # Start the full dev environment
+uv run dev.py                              # Start the backend (port 8000, auto-reload)
 uv run pytest tests/unit                   # Unit tests
 uv run pytest tests/integration            # Integration tests (on the *_test database)
 uv run pytest tests/path/to/test.py -k "name"

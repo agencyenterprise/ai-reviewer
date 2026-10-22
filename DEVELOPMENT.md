@@ -32,6 +32,16 @@ sudo apt-get install libmagic1
 sudo dnf install file-libs
 ```
 
+- **LibreOffice**: Converts legacy `.doc` uploads and rasterizes charts and vector drawings in DOCX files. The backend looks for `soffice` or `libreoffice` on your `PATH`:
+
+```bash
+# macOS
+brew install --cask libreoffice
+
+# Ubuntu/Debian
+sudo apt-get install libreoffice-writer-nogui
+```
+
 Verify installations:
 
 ```bash
@@ -67,17 +77,7 @@ uv sync --frozen
 # uv sync
 ```
 
-This creates a local virtual environment at `.venv/` and installs all dependencies from `pyproject.toml` and `uv.lock`.
-
-### Virtual Environment Activation
-
-```bash
-# Activate the virtual environment
-source .venv/bin/activate
-
-# Verify installation
-python --version  # Should show Python 3.13.x
-```
+This creates a local virtual environment at `.venv/` and installs all dependencies from `pyproject.toml` and `uv.lock`. Run every Python command through `uv run` (for example `uv run python --version`), so it uses that environment without activating it.
 
 ### Frontend Setup
 
@@ -85,11 +85,11 @@ python --version  # Should show Python 3.13.x
 # Navigate to frontend directory
 cd frontend
 
-# Install dependencies using pnpm (recommended)
+# Install dependencies (always pnpm: the versions are pinned in pnpm-lock.yaml)
 pnpm install
 
-# Alternative: using npm
-npm install
+# Create the frontend's environment file (see Environment Variables)
+cp .env.template .env
 ```
 
 ## Running the Application
@@ -99,8 +99,8 @@ npm install
 #### Development Mode
 
 ```bash
-# From project root with virtual environment activated
-uv run fastapi dev lib/api/main.py
+# From the project root: serves on port 8000 (or $PORT) with auto-reload
+uv run dev.py
 
 # Alternative: using uvicorn directly
 uv run uvicorn lib.api.main:app --reload --host 0.0.0.0 --port 8000
@@ -120,9 +120,6 @@ uv run uvicorn lib.api.main:app --host 0.0.0.0 --port 8000
 # From frontend directory
 cd frontend
 pnpm dev
-
-# Alternative: using npm
-npm run dev
 ```
 
 #### Production Mode
@@ -131,28 +128,8 @@ npm run dev
 # Build the application
 pnpm build
 
-# Start production server
+# Start production server (needs AUTH_URL in frontend/.env, see Environment Variables)
 pnpm start
-```
-
-## Managing Dependencies
-
-- **Add a dependency**:
-
-```bash
-uv add <package>
-```
-
-- **Remove a dependency**:
-
-```bash
-uv remove <package>
-```
-
-- **Upgrade using the lockfile**:
-
-```bash
-uv lock --upgrade && uv sync --frozen
 ```
 
 ## Docker Setup (Recommended)
@@ -184,6 +161,8 @@ docker compose logs -f
 docker compose down
 ```
 
+Both containers take their settings from the root `.env` (see Environment Variables): the API reads all of it, and the frontend reads only `AUTH_SECRET` and the sign-in provider keys. The frontend image is built with the default API URL, `http://localhost:8000`.
+
 ### Database Migrations
 
 After starting the services, run database migrations:
@@ -198,15 +177,20 @@ docker compose exec api uv run alembic upgrade head
 
 ## Environment Variables
 
-Copy the environment template file and fill in the required variables:
+The backend and the frontend each read their own `.env`, and each has a template next to it. Copy both and fill in the required variables:
 
 ```bash
-# Copy the template
+# Backend (also read by docker compose)
 cp .env.template .env
 
-# Edit the file with your actual values
-nano .env  # or use your preferred editor
+# Frontend, for pnpm dev and pnpm start
+cp frontend/.env.template frontend/.env
 ```
+
+Sign-in needs the same `AUTH_SECRET` in both files, and at least one provider configured in both: Google (`AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`) or Microsoft Entra ID (`AUTH_MICROSOFT_ENTRA_ID_ID`, `AUTH_MICROSOFT_ENTRA_ID_SECRET`, and `AUTH_MICROSOFT_ENTRA_ID_ISSUER`, which is `https://login.microsoftonline.com/<tenant id>/v2.0`): the frontend signs users in and mints the API's tokens with that secret, and the backend verifies them with it. The backend also won't start without a provider, which its MCP server signs in with. Register `http://localhost:3000/api/auth/callback/<provider>` (`google` or `microsoft-entra-id`) as a redirect URI with the provider. To connect MCP clients too, also register `http://localhost:8000/mcp/auth/callback` (`MCP_BASE_URL` plus `/auth/callback`).
+
+`pnpm dev` trusts the host it runs on, but a production build (`pnpm start`) doesn't: add `AUTH_URL=http://localhost:3000` to `frontend/.env` before running it, or every sign-in request fails with `UntrustedHost`.
+
 For production deployment, see [docs/railway-deployment.md](docs/railway-deployment.md).
 
 
@@ -258,7 +242,7 @@ uv run alembic downgrade -1
 uv run pytest
 
 # Run a specific test file or pattern
-uv run pytest tests/integration/test_workflow_progress_integration.py
+uv run pytest tests/integration/test_workflow_progress_service.py
 uv run pytest tests/ -k "test_name"
 ```
 
@@ -294,16 +278,19 @@ uv run inspect view
 ### Code Quality
 
 ```bash
-# Format and lint Python code
+# Format, lint and type check Python code
 uv run ruff format .
 uv run ruff check .
+uv run mypy .
 
-# Lint frontend code
-cd frontend && pnpm lint
-
-# Type check frontend
-cd frontend && pnpm exec tsc --noEmit
+# Lint, test and build the frontend (the build also type checks)
+cd frontend
+pnpm lint
+pnpm test
+pnpm build
 ```
+
+CI blocks a PR on any of these. `AGENTS.md` lists which ones to run before handing back a change.
 
 ## Security Scanning
 
