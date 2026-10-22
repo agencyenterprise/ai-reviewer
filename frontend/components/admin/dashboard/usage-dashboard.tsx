@@ -17,6 +17,7 @@ import { useState } from 'react';
 import { ActivityCharts } from './activity-charts';
 import { AssessmentUsage } from './assessment-usage';
 import { AssessmentsTable } from './assessments-table';
+import { ChatUsage } from './chat-usage';
 import { IgnoredUsersSelect } from './ignored-users-select';
 import { RunOutcomes } from './run-outcomes';
 import { formatCacheWindow, toDate } from './format';
@@ -232,6 +233,24 @@ export function UsageDashboard() {
             </CardHeader>
             <CardContent>
               <TopUsersTable users={data.top_users} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Chat</CardTitle>
+              <CardDescription>
+                Messages people sent to Draft Detective on the web app&apos;s chat, in the Word add-in and in Teams.
+                People are counted per surface: Teams knows a sender only by their display name.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChatUsage
+                surfaces={data.chat_surfaces}
+                activity={data.chat_activity}
+                granularity={data.granularity}
+                comparisonLabel={comparisonLabel}
+              />
             </CardContent>
           </Card>
         </>

@@ -31,7 +31,7 @@ const SERIES: Series[] = [
  * counted in the hundreds and users in single digits, and a second y-axis to
  * fit them together would misstate both.
  */
-function ColumnChart({
+export function ColumnChart({
   title,
   points,
   granularity,
