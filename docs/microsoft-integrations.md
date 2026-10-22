@@ -319,7 +319,8 @@ where that is acceptable.
 - **A new package:** Teams recognizes the bot by its app ID, so uploading the same
   package twice is refused. Build it with a higher version
   (`build_package.py 1.2.2`), then open Draft Detective in
-  [Manage apps](https://admin.teams.microsoft.com/policies/manage-apps) and update it.
+  [Manage apps](https://admin.teams.microsoft.com/policies/manage-apps) and update it
+  there. Updating from Teams itself is not offered.
 - **A new API host:** update the messaging endpoint (3.4).
 
 ---
