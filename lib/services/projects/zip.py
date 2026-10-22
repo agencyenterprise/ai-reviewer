@@ -2,6 +2,7 @@ import asyncio
 import io
 import logging
 import os
+import unicodedata
 import uuid
 import zipfile
 
@@ -48,13 +49,18 @@ def _compression_for(file_name: str) -> int:
     return zipfile.ZIP_DEFLATED
 
 
+def _collision_key(name: str) -> str:
+    """Names that extract to the same file: most file systems ignore case, and
+    macOS also treats canonically equivalent spellings (NFC/NFD) as one."""
+    return unicodedata.normalize("NFC", name).casefold()
+
+
 def _entry_name(file_name: str, taken: set[str]) -> str:
     """The file's own name, numbered like ``report (2).pdf`` only when an
-    earlier entry already has it. Compared case-insensitively, since most
-    file systems would overwrite one with the other on extraction."""
+    earlier entry would extract to the same file."""
     stem, ext = os.path.splitext(file_name)
     name, n = file_name, 1
-    while name.lower() in taken:
+    while _collision_key(name) in taken:
         n += 1
         name = f"{stem} ({n}){ext}"
     return name
@@ -100,9 +106,12 @@ def _build_zip_archive(files: list[File]) -> tuple[io.BytesIO, int]:
     zip_buffer = io.BytesIO()
     files_added = 0
     taken: set[str] = set()
+    # Oldest upload first, so the same files get the same names on every
+    # download: the earliest keeps the plain name when two share one.
+    ordered = sorted(files, key=lambda f: (f.created_at, str(f.id)))
 
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
-        for file in files:
+        for file in ordered:
             if not file.file_path.startswith(config.FILE_UPLOADS_MOUNT_PATH):
                 logger.warning(
                     f"Skipping file {file.id} - path outside mount path: {file.file_path}"
@@ -119,7 +128,7 @@ def _build_zip_archive(files: list[File]) -> tuple[io.BytesIO, int]:
                 compression = _compression_for(file.file_name)
                 entry_name = _entry_name(file.file_name, taken)
                 zip_file.write(file.file_path, entry_name, compress_type=compression)
-                taken.add(entry_name.lower())
+                taken.add(_collision_key(entry_name))
                 files_added += 1
             except Exception as e:
                 logger.error(

@@ -3,8 +3,10 @@
 import io
 import os
 import tempfile
+import unicodedata
 import uuid
 import zipfile
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -134,26 +136,74 @@ class TestBuildZipArchive:
     @patch(CONFIG_PATH)
     def test_archive_numbers_only_names_already_taken(self, mock_config: MagicMock):
         mock_config.FILE_UPLOADS_MOUNT_PATH = MOUNT_PATH
+        files = [
+            make_file(file_name="notes.pdf"),
+            make_file(file_name="NOTES.pdf"),
+            make_file(file_name="notes.pdf"),
+            make_file(file_name="other.pdf"),
+        ]
 
+        assert self._names(files) == [
+            "notes.pdf",
+            "NOTES (2).pdf",
+            "notes (3).pdf",
+            "other.pdf",
+        ]
+
+    def _names(self, files: list[File]) -> list[str]:
+        """Entry names, the files uploaded in the order given."""
+        start = datetime.now(UTC)
+        for i, f in enumerate(files):
+            f.created_at = start + timedelta(seconds=i)
         with tempfile.TemporaryDirectory() as tmpdir:
-            files = [
-                make_file(file_name="notes.pdf"),
-                make_file(file_name="NOTES.pdf"),
-                make_file(file_name="notes.pdf"),
-                make_file(file_name="other.pdf"),
-            ]
             for f in files:
                 self._create_temp_file(tmpdir, f)
-
             buf, _ = _build_zip_archive(files)
-
         with zipfile.ZipFile(buf, "r") as zf:
-            assert zf.namelist() == [
-                "notes.pdf",
-                "NOTES (2).pdf",
-                "notes (3).pdf",
-                "other.pdf",
-            ]
+            return zf.namelist()
+
+    @pytest.mark.parametrize("first, second", [("Σ.pdf", "ς.pdf"), ("ς.pdf", "Σ.pdf")])
+    @patch(CONFIG_PATH)
+    def test_numbers_names_that_differ_only_in_unicode_case(
+        self, mock_config: MagicMock, first: str, second: str
+    ):
+        mock_config.FILE_UPLOADS_MOUNT_PATH = MOUNT_PATH
+        files = [make_file(file_name=first), make_file(file_name=second)]
+
+        assert self._names(files) == [first, f"{second[:-4]} (2).pdf"]
+
+    @patch(CONFIG_PATH)
+    def test_numbers_canonically_equivalent_names(self, mock_config: MagicMock):
+        """NFC and NFD spellings extract to one file on macOS."""
+        mock_config.FILE_UPLOADS_MOUNT_PATH = MOUNT_PATH
+        nfc = unicodedata.normalize("NFC", "é.pdf")
+        nfd = unicodedata.normalize("NFD", "é.pdf")
+        files = [make_file(file_name=nfc), make_file(file_name=nfd)]
+
+        assert self._names(files) == [nfc, f"{nfd[:-4]} (2).pdf"]
+
+    @patch(CONFIG_PATH)
+    def test_oldest_upload_keeps_the_plain_name_whatever_the_input_order(
+        self, mock_config: MagicMock
+    ):
+        mock_config.FILE_UPLOADS_MOUNT_PATH = MOUNT_PATH
+        older, newer = (
+            make_file(file_name="notes.pdf"),
+            make_file(file_name="notes.pdf"),
+        )
+        now = datetime.now(UTC)
+        older.created_at, newer.created_at = now - timedelta(days=1), now
+
+        with tempfile.TemporaryDirectory():
+            for f, content in ((older, "older"), (newer, "newer")):
+                os.makedirs(os.path.dirname(f.file_path), exist_ok=True)
+                with open(f.file_path, "w") as fh:
+                    fh.write(content)
+            for files in ([older, newer], [newer, older]):
+                buf, _ = _build_zip_archive(files)
+                with zipfile.ZipFile(buf, "r") as zf:
+                    assert zf.read("notes.pdf") == b"older"
+                    assert zf.read("notes (2).pdf") == b"newer"
 
     @patch(CONFIG_PATH)
     def test_skips_files_outside_mount_path(self, mock_config: MagicMock):

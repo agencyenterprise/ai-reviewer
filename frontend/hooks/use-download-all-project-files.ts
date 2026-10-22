@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { downloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGet, FileRole } from '@/lib/generated-api';
 import { useShare } from '@/context/share-context';
+import { filenameFromContentDisposition } from '@/lib/file-download';
 
 export function useDownloadAllProjectFiles(
   projectId: string | null | undefined,
@@ -25,9 +26,8 @@ export function useDownloadAllProjectFiles(
         responseStyle: 'fields',
       })) as { response: Response; data: Blob };
 
-      const contentDisposition = response.headers.get('content-disposition');
-      const filenameMatch = contentDisposition?.match(/filename="?(.+?)"?$/);
-      const filename = filenameMatch?.[1] || `project_${projectId}_files.zip`;
+      const filename =
+        filenameFromContentDisposition(response.headers.get('content-disposition')) ?? `project_${projectId}_files.zip`;
 
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
