@@ -201,19 +201,18 @@ the person who asked, so it can only read what they can. It never writes to a do
 asked for comments or changes, it leaves them for the Word add-in, and the person applies
 them from the pane the next time they open the document.
 
-The bot needs three things, set up in this order:
+The bot needs two things, set up in this order:
 
-1. **An app registration for reading documents.** Each person signs in to it once, and
-   the bot reads documents with their access.
-2. **An app registration for the bot itself.** This is the identity Teams talks to.
-3. **An Azure Bot resource.** It connects Teams to the deployment, and holds each
+1. **An app registration for the bot.** It is the identity Teams talks to, and the app
+   each person signs in to once so the bot reads documents with their access.
+2. **An Azure Bot resource.** It connects Teams to the deployment, and holds each
    person's sign-in.
 
-### 3.1 Register the document-reading app
+### 3.1 Register the bot's app
 
 Open [**App registrations → New registration**](https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/CreateApplicationBlade/quickStartType~/null/isMSAApp~/false).
 
-- **Name:** `Draft Detective (Teams sign-in)`.
+- **Name:** `Draft Detective (Teams bot)`.
 - **Supported account types:** **Single tenant**.
 - **Redirect URI:** platform **Web**, `https://token.botframework.com/.auth/web/redirect`.
 
@@ -227,23 +226,7 @@ the menu on the left:
    **Grant admin consent for <your organization>** and confirm.
 2. **Certificates & secrets** → **New client secret** → **Add**. Copy the **Value**.
 
-### 3.2 Register the bot's app
-
-Open [**New registration**](https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/CreateApplicationBlade/quickStartType~/null/isMSAApp~/false)
-again.
-
-- **Name:** `Draft Detective (Teams bot)`.
-- **Supported account types:** **Single tenant**.
-- **Redirect URI:** leave it empty.
-
-Select **Register** and note its **Application (client) ID**. Then, on the app's pages
-(find it again under [**App registrations**](https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade)
-→ **All applications**), open **Certificates & secrets** → **New client secret** →
-**Add**, and copy the **Value**.
-
-It needs no API permissions.
-
-### 3.3 Create the Azure Bot
+### 3.2 Create the Azure Bot
 
 Open [**Create an Azure Bot**](https://portal.azure.com/#create/Microsoft.AzureBot) in the
 Azure portal.
@@ -255,11 +238,11 @@ Azure portal.
   nothing.
 - **Type of App:** **Single Tenant**.
 - **Creation type:** **Use existing app registration**. **App ID:** the bot app's client
-  ID (3.2). **App tenant ID:** your tenant ID.
+  ID (3.1). **App tenant ID:** your tenant ID.
 
 Select **Review + create**, then **Create**, and **Go to resource** when it is done.
 
-### 3.4 Connect it to the deployment and to Teams
+### 3.3 Connect it to the deployment and to Teams
 
 In the bot's menu:
 
@@ -268,13 +251,13 @@ In the bot's menu:
 2. **Settings → Channels** → **Microsoft Teams**. Accept the terms, keep the defaults and
    select **Apply**. Without this channel, Teams refuses the app later with "Invalid Bot".
 
-### 3.5 Add the sign-in connection
+### 3.4 Add the sign-in connection
 
 Still in the bot, open **Settings → Configuration** → **Add OAuth Connection Settings**:
 
 - **Name:** `graph-user`.
 - **Service Provider:** **Azure Active Directory v2**.
-- **Client id** and **Client secret:** the document-reading app's (3.1).
+- **Client id** and **Client secret:** the bot app's (3.1).
 - **Token Exchange URL:** leave it empty.
 - **Tenant ID:** your tenant ID.
 - **Scopes:** `Files.Read.All User.Read`.
@@ -283,18 +266,18 @@ Select **Save**. Then select the `graph-user` connection and **Test Connection**
 sign-in window opens, and it should end with a token. If your organization's Conditional
 Access refuses the sign-in, this is where it shows; an exclusion for the app fixes it.
 
-### 3.6 Configure the deployment
+### 3.5 Configure the deployment
 
 Set these on **the API**, then redeploy it:
 
 | Variable | Value |
 |---|---|
-| `TEAMS_BOT_APP_ID` | The bot app's client ID (3.2) |
-| `TEAMS_BOT_APP_PASSWORD` | The bot app's secret (3.2) |
+| `TEAMS_BOT_APP_ID` | The bot app's client ID (3.1) |
+| `TEAMS_BOT_APP_PASSWORD` | The bot app's secret (3.1) |
 | `TEAMS_BOT_TENANT_ID` | Your tenant ID |
-| `TEAMS_USER_AUTH_CONNECTION` | `graph-user` (3.5) |
+| `TEAMS_USER_AUTH_CONNECTION` | `graph-user` (3.4) |
 
-### 3.7 Publish the bot in Teams
+### 3.6 Publish the bot in Teams
 
 Teams installs a bot from a small zip package, which the API builds for this deployment.
 Download it from:
@@ -303,7 +286,7 @@ Download it from:
 https://<api>/api/microsoft/teams/package.zip
 ```
 
-It answers with an error naming what is missing until the settings in 3.6 are set.
+It answers with an error naming what is missing until the settings in 3.5 are set.
 
 Then open [**Manage apps**](https://admin.teams.microsoft.com/policies/manage-apps) in the
 Teams admin center, select **Upload new app** → **Upload**, and choose the downloaded
@@ -334,7 +317,7 @@ where that is acceptable.
   [Manage apps](https://admin.teams.microsoft.com/policies/manage-apps) and update it
   there. Updating from Teams itself is not offered. A change to the package between
   releases keeps the same version, so it reaches Teams only with the next release.
-- **A new API host:** update the messaging endpoint (3.4).
+- **A new API host:** update the messaging endpoint (3.3).
 
 ---
 
@@ -356,13 +339,11 @@ What lives in Microsoft 365 and Azure when all three are set up:
 | Where | What | Part |
 |---|---|---|
 | Entra app registration | `Draft Detective` | 1, 2 |
-| Entra app registration | `Draft Detective (Teams sign-in)` | 3 |
 | Entra app registration | `Draft Detective (Teams bot)` | 3 |
 | Microsoft 365 admin center, Integrated apps | The Word add-in | 2 |
 | Azure | The Azure Bot, with its Teams channel and `graph-user` connection | 3 |
 | Teams admin center, Manage apps | The Teams app | 3 |
 
-Three client secrets expire: the sign-in app's (1.4) and the Teams apps' (3.1, 3.2).
-Renew each before its expiry date. The sign-in app's goes in
-`AUTH_MICROSOFT_ENTRA_ID_SECRET`, the Teams sign-in app's in the `graph-user` connection,
-and the bot's in `TEAMS_BOT_APP_PASSWORD`.
+Two client secrets expire: the sign-in app's (1.4) and the Teams bot app's (3.1). Renew
+each before its expiry date. The sign-in app's goes in `AUTH_MICROSOFT_ENTRA_ID_SECRET`,
+and the bot app's in both `TEAMS_BOT_APP_PASSWORD` and the `graph-user` connection.

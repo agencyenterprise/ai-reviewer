@@ -25,6 +25,8 @@ from PIL import Image
 from lib.api.routers.microsoft import teams
 from lib.services.microsoft.teams import package
 
+FRONTEND = "https://dd.example.com"
+
 
 class TestSignInCanOpenAtAll:
     def test_the_token_service_domain_is_trusted(self) -> None:
@@ -34,7 +36,7 @@ class TestSignInCanOpenAtAll:
         which is what broke sign-in in every scope.
         """
 
-        document = package.manifest(bot_id="b", version="1.0.0")
+        document = package.manifest("b", "1.0.0", FRONTEND)
 
         assert "token.botframework.com" in document["validDomains"]
 
@@ -51,7 +53,7 @@ class TestSSOIsNotDeclared:
     """
 
     def test_the_manifest_declares_no_sso(self) -> None:
-        document = package.manifest(bot_id="b", version="1.0.0")
+        document = package.manifest("b", "1.0.0", FRONTEND)
 
         assert "webApplicationInfo" not in document
 
@@ -63,7 +65,7 @@ class TestSSOIsNotDeclared:
 
 class TestTheRestOfTheManifest:
     def test_the_bot_is_offered_in_every_scope_it_supports(self) -> None:
-        document = package.manifest(bot_id="b", version="1.0.0")
+        document = package.manifest("b", "1.0.0", FRONTEND)
 
         assert set(document["bots"][0]["scopes"]) == {"personal", "team", "groupChat"}
 
@@ -71,28 +73,44 @@ class TestTheRestOfTheManifest:
         """Teams cannot acquire a token in a channel, so 1:1 has to be installable."""
 
         assert (
-            "personal"
-            in package.manifest(bot_id="b", version="1.0.0")["bots"][0]["scopes"]
+            "personal" in package.manifest("b", "1.0.0", FRONTEND)["bots"][0]["scopes"]
         )
 
     def test_the_version_is_what_was_asked_for(self) -> None:
         """Teams refuses an update that does not raise the version."""
 
-        assert package.manifest(bot_id="b", version="9.9.9")["version"] == "9.9.9"
+        assert package.manifest("b", "9.9.9", FRONTEND)["version"] == "9.9.9"
 
 
 class TestThePackage:
     def test_it_holds_the_manifest_and_icons_of_the_sizes_teams_requires(self) -> None:
-        archive = zipfile.ZipFile(io.BytesIO(package.package("bot-id")))
+        archive = zipfile.ZipFile(io.BytesIO(package.package("bot-id", f"{FRONTEND}/")))
 
         document = json.loads(archive.read("manifest.json"))
         assert document["id"] == document["bots"][0]["botId"] == "bot-id"
         assert document["version"] == package.app_version()
+        assert document["developer"]["websiteUrl"] == FRONTEND
+        assert document["developer"]["privacyUrl"] == f"{FRONTEND}/about"
         sizes = {
             name: Image.open(io.BytesIO(archive.read(name))).size
             for name in ("color.png", "outline.png")
         }
         assert sizes == {"color.png": (192, 192), "outline.png": (32, 32)}
+
+    def test_the_colour_icon_is_a_full_square(self) -> None:
+        """Teams rounds the corners itself, so pre-rounded ones come out doubled."""
+
+        colour = Image.open(package.ICONS / "color.png").convert("RGBA")
+
+        assert colour.getchannel("A").getextrema() == (255, 255)
+
+    def test_the_outline_is_only_opaque_white_or_transparent(self) -> None:
+        """Teams refuses any other pixel with ``InvalidOutlineIconTransparency``."""
+
+        outline = Image.open(package.ICONS / "outline.png").convert("RGBA")
+
+        pixels = set(outline.get_flattened_data())
+        assert pixels <= {(255, 255, 255, 255), (0, 0, 0, 0)}
 
 
 def client() -> TestClient:
@@ -106,6 +124,7 @@ class TestTheDownload:
         with (
             patch.object(teams.bot, "missing", return_value=None),
             patch.object(teams.config, "TEAMS_BOT_APP_ID", "bot-id"),
+            patch.object(teams.config, "FRONTEND_URL", FRONTEND),
         ):
             response = client().get("/api/microsoft/teams/package.zip")
 
@@ -122,3 +141,16 @@ class TestTheDownload:
 
         assert response.status_code == 503
         assert "TEAMS_BOT_APP_ID" in response.text
+
+    def test_it_is_refused_while_the_frontend_is_not_https(self) -> None:
+        """Teams refuses a package whose developer links are not HTTPS."""
+
+        with (
+            patch.object(teams.bot, "missing", return_value=None),
+            patch.object(teams.config, "TEAMS_BOT_APP_ID", "bot-id"),
+            patch.object(teams.config, "FRONTEND_URL", "http://localhost:3000"),
+        ):
+            response = client().get("/api/microsoft/teams/package.zip")
+
+        assert response.status_code == 503
+        assert "FRONTEND_URL" in response.text

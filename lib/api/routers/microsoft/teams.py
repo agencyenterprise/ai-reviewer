@@ -102,14 +102,21 @@ async def teams_package() -> Response:
 
     Public, like the add-in's manifest: it holds the bot's app id and nothing secret.
     Refused until the bot is configured, so a bot that could answer nobody is never
-    published.
+    published, and until ``FRONTEND_URL`` is HTTPS: the manifest links to it, and
+    Teams refuses a package whose links are not.
     """
 
     bot_id = config.TEAMS_BOT_APP_ID
     if (why := bot.missing()) is not None or not bot_id:
         return PlainTextResponse(f"{why}.\n", status_code=503)
+    if not config.FRONTEND_URL.startswith("https://"):
+        return PlainTextResponse(
+            "FRONTEND_URL must be the frontend's https:// address: the package links "
+            "to it, and Teams accepts only HTTPS links.\n",
+            status_code=503,
+        )
     return Response(
-        package.package(bot_id),
+        package.package(bot_id, config.FRONTEND_URL),
         media_type="application/zip",
         headers={
             "Content-Disposition": 'attachment; filename="draft-detective-teams.zip"',
