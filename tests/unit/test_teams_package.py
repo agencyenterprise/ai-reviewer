@@ -97,6 +97,14 @@ class TestThePackage:
         }
         assert sizes == {"color.png": (192, 192), "outline.png": (32, 32)}
 
+    def test_the_outline_is_only_opaque_white_or_transparent(self) -> None:
+        """Teams refuses any other pixel with ``InvalidOutlineIconTransparency``."""
+
+        outline = Image.open(package.ICONS / "outline.png").convert("RGBA")
+
+        pixels = set(outline.get_flattened_data())
+        assert pixels <= {(255, 255, 255, 255), (0, 0, 0, 0)}
+
 
 def client() -> TestClient:
     app = FastAPI()
