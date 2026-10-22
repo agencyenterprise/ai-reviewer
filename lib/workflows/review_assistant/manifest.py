@@ -30,7 +30,6 @@ from lib.workflows.models import (
     DocumentIssue,
     WorkflowError,
     WorkflowErrorSeverity,
-    WorkflowRunType,
 )
 from lib.workflows.review_assistant.inputs import mount_review_inputs
 from lib.workflows.review_assistant.prompt import (
@@ -145,7 +144,6 @@ def precheck(config: ReviewAssistantConfig) -> str | None:
 class ReviewAssistantManifest(
     WorkflowManifest[ReviewAssistantState, ReviewAssistantConfig]
 ):
-    type = WorkflowRunType.REVIEW_ASSISTANT
     name = "Review Assistant"
     description = (
         "Produces any of the review-assistant outputs (revision-planning summary, "

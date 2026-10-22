@@ -42,7 +42,6 @@ def _suggested_action(validation: ReferenceValidationV2Item) -> str | None:
 class ReferenceValidationV2Manifest(
     WorkflowManifest[ReferenceValidationV2State, ReferenceValidationV2WorkflowConfig]
 ):
-    type = WorkflowRunType.REFERENCE_VALIDATION_V2
     name = "Reference Error Checker"
     description = "Are your references accurate? Uses web search to check each citation exists online and that the author, title, publisher, and year match public sources. Useful for catching typos or hallucinated references."
     needs_web_search = True

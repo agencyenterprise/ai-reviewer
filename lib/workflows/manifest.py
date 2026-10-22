@@ -1,7 +1,7 @@
 import builtins
 import types
 from abc import ABC, abstractmethod
-from typing import cast, get_args, get_origin
+from typing import Literal, cast, get_args, get_origin
 
 from langgraph.graph import StateGraph
 
@@ -22,7 +22,9 @@ class WorkflowManifest[
 ](ABC):
     """Base class for workflow manifests."""
 
-    # Type of the workflow
+    # Type of the workflow. A state that pins its type with
+    # `type: Literal[WorkflowRunType.X]` sets it (see __init_subclass__); only
+    # manifests sharing a state, like the simple deep agents, declare it.
     type: WorkflowRunType
 
     # Name of the workflow
@@ -98,6 +100,25 @@ class WorkflowManifest[
             if isinstance(state_type, type) and isinstance(config_type, type):
                 cls._state_type = state_type
                 cls._config_type = config_type
+                cls._take_type_from_state(state_type)
+
+    @classmethod
+    def _take_type_from_state(
+        cls, state_type: builtins.type[BaseWorkflowState]
+    ) -> None:
+        """Set ``type`` from the state's ``type: Literal[...]``, if it has one."""
+
+        field = state_type.model_fields.get("type")
+        annotation = field.annotation if field is not None else None
+        if get_origin(annotation) is not Literal:
+            return
+        # Declaring it as well would leave two places to keep in step.
+        if "type" in cls.__dict__:
+            raise TypeError(
+                f"{cls.__name__} declares type, which {state_type.__name__} "
+                "already sets with its Literal: remove the declaration"
+            )
+        (cls.type,) = get_args(annotation)
 
     def get_state_type(self) -> builtins.type[WorkflowStateType]:
         """Get the type of the workflow state."""

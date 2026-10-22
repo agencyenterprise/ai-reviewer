@@ -18,7 +18,6 @@ from lib.workflows.workflow_types import WorkflowState
 class AbbreviationScanV2Manifest(
     WorkflowManifest[AbbreviationScanV2State, AbbreviationScanV2Config]
 ):
-    type = WorkflowRunType.ABBREVIATION_SCAN_V2
     name = "Abbreviation Scan"
     description = "Have you defined all abbreviations and acronyms accurately and consistently? Checks that every abbreviation is spelled out at first use and all abbreviations are listed in an Abbreviations section."
     needs_web_search = False

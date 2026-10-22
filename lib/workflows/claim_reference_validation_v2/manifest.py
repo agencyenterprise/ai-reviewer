@@ -131,7 +131,6 @@ def _build_issue(
 class ClaimReferenceValidationV2Manifest(
     WorkflowManifest[ClaimReferenceValidationV2State, ClaimReferenceValidationV2Config]
 ):
-    type = WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2
     name = "Claim Reference Validation"
     description = (
         "Checks every citation in your document against its referenced source and "
