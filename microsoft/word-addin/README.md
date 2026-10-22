@@ -120,8 +120,8 @@ Official deployment guide:
 https://learn.microsoft.com/en-us/microsoft-365/admin/manage/office-addins?view=o365-worldwide#upload-custom-office-add-ins-in-your-organization
 
 In step 3, choose **Add-in only manifest** and provide the deployment's manifest URL:
-`https://<frontend>/addin/manifest.xml`. It answers 503 until `AUTH_MICROSOFT_ENTRA_ID_ID`
-is set. Its version follows the app's, so after a release that changes the manifest,
+`https://<frontend>/addin/manifest.xml`. It answers 503 until the three
+`AUTH_MICROSOFT_ENTRA_ID_*` settings are set. Its version follows the app's, so after a release that changes the manifest,
 update the add-in from the same page.
 
 Reference video (older, but still useful): https://www.youtube.com/watch?v=p3aeO9muEI8&t=181s

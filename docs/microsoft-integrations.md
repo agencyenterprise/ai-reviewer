@@ -140,8 +140,8 @@ The deployment serves the add-in's manifest, already filled in for it, at:
 https://<frontend>/addin/manifest.xml
 ```
 
-Open it in a browser first. You should see XML naming your `<frontend>`. A message asking
-for `AUTH_MICROSOFT_ENTRA_ID_ID` means part 1.5 is not deployed yet.
+Open it in a browser first. You should see XML naming your `<frontend>`. A message naming
+`AUTH_MICROSOFT_ENTRA_ID_*` settings means part 1.5 is not deployed yet.
 
 **Publishing more than one deployment in the tenant**, such as a test one beside
 production? Give each one its own name first: set `ADDIN_NAME` on the frontend, such as

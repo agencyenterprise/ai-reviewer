@@ -153,7 +153,7 @@ unless people from other tenants will use the add-in.
 ### 3. The Word add-in manifest
 
 The frontend serves the manifest for its own deployment at
-`https://<frontend>/addin/manifest.xml`, once `AUTH_MICROSOFT_ENTRA_ID_ID` is set (step 4).
+`https://<frontend>/addin/manifest.xml`, once the three `AUTH_MICROSOFT_ENTRA_ID_*` settings are set (step 4).
 Publish it to your users from the Microsoft 365 admin centre: **Settings → Integrated
 apps → Upload custom apps → Office Add-in**, give it that URL, and assign it to users or
 groups. (See "Publish the Word add-in in your organization" in
