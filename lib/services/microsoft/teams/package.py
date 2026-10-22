@@ -108,8 +108,9 @@ def package(bot_id: str, frontend_url: str) -> bytes:
     """The zip Teams installs: the manifest and the two icons Teams requires.
 
     The icons are the site's favicon (``frontend/app/icon.svg``), committed as PNGs:
-    Teams rejects a package whose icons are the wrong size (192 and 32 pixels), and the
-    outline must be single-colour on transparency, so it is the mark alone, in white.
+    Teams rejects a package whose icons are the wrong size (192 and 32 pixels). The
+    colour icon is a full square, since Teams rounds its corners itself; the outline must
+    be opaque white on transparency, so it is the mark alone.
     """
 
     buffer = io.BytesIO()

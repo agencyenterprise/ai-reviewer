@@ -97,6 +97,13 @@ class TestThePackage:
         }
         assert sizes == {"color.png": (192, 192), "outline.png": (32, 32)}
 
+    def test_the_colour_icon_is_a_full_square(self) -> None:
+        """Teams rounds the corners itself, so pre-rounded ones come out doubled."""
+
+        colour = Image.open(package.ICONS / "color.png").convert("RGBA")
+
+        assert colour.getchannel("A").getextrema() == (255, 255)
+
     def test_the_outline_is_only_opaque_white_or_transparent(self) -> None:
         """Teams refuses any other pixel with ``InvalidOutlineIconTransparency``."""
 
