@@ -128,7 +128,7 @@ pnpm dev
 # Build the application
 pnpm build
 
-# Start production server
+# Start production server (needs AUTH_URL in frontend/.env, see Environment Variables)
 pnpm start
 ```
 
@@ -187,7 +187,9 @@ cp .env.template .env
 cp frontend/.env.template frontend/.env
 ```
 
-Sign-in needs the same `AUTH_SECRET` in both files, and at least one provider configured in both: Google (`AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`) or Microsoft Entra ID (`AUTH_MICROSOFT_ENTRA_ID_ID`, `AUTH_MICROSOFT_ENTRA_ID_SECRET`, and `AUTH_MICROSOFT_ENTRA_ID_ISSUER`, which is `https://login.microsoftonline.com/<tenant id>/v2.0`): the frontend signs users in and mints the API's tokens with that secret, and the backend verifies them with it. The backend also won't start without a provider, which its MCP server signs in with. Register `http://localhost:3000/api/auth/callback/<provider>` (`google` or `microsoft-entra-id`) as a redirect URI with the provider.
+Sign-in needs the same `AUTH_SECRET` in both files, and at least one provider configured in both: Google (`AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`) or Microsoft Entra ID (`AUTH_MICROSOFT_ENTRA_ID_ID`, `AUTH_MICROSOFT_ENTRA_ID_SECRET`, and `AUTH_MICROSOFT_ENTRA_ID_ISSUER`, which is `https://login.microsoftonline.com/<tenant id>/v2.0`): the frontend signs users in and mints the API's tokens with that secret, and the backend verifies them with it. The backend also won't start without a provider, which its MCP server signs in with. Register `http://localhost:3000/api/auth/callback/<provider>` (`google` or `microsoft-entra-id`) as a redirect URI with the provider. To connect MCP clients too, also register `http://localhost:8000/mcp/auth/callback` (`MCP_BASE_URL` plus `/auth/callback`).
+
+`pnpm dev` trusts the host it runs on, but a production build (`pnpm start`) doesn't: add `AUTH_URL=http://localhost:3000` to `frontend/.env` before running it, or every sign-in request fails with `UntrustedHost`.
 
 For production deployment, see [docs/railway-deployment.md](docs/railway-deployment.md).
 
@@ -282,9 +284,10 @@ uv run ruff check .
 uv run mypy .
 
 # Lint, test and build the frontend (the build also type checks)
-cd frontend && pnpm lint
-cd frontend && pnpm test
-cd frontend && pnpm build
+cd frontend
+pnpm lint
+pnpm test
+pnpm build
 ```
 
 CI blocks a PR on any of these. `AGENTS.md` lists which ones to run before handing back a change.
