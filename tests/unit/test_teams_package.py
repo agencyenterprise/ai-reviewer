@@ -124,6 +124,7 @@ class TestTheDownload:
         with (
             patch.object(teams.bot, "missing", return_value=None),
             patch.object(teams.config, "TEAMS_BOT_APP_ID", "bot-id"),
+            patch.object(teams.config, "FRONTEND_URL", FRONTEND),
         ):
             response = client().get("/api/microsoft/teams/package.zip")
 
@@ -140,3 +141,16 @@ class TestTheDownload:
 
         assert response.status_code == 503
         assert "TEAMS_BOT_APP_ID" in response.text
+
+    def test_it_is_refused_while_the_frontend_is_not_https(self) -> None:
+        """Teams refuses a package whose developer links are not HTTPS."""
+
+        with (
+            patch.object(teams.bot, "missing", return_value=None),
+            patch.object(teams.config, "TEAMS_BOT_APP_ID", "bot-id"),
+            patch.object(teams.config, "FRONTEND_URL", "http://localhost:3000"),
+        ):
+            response = client().get("/api/microsoft/teams/package.zip")
+
+        assert response.status_code == 503
+        assert "FRONTEND_URL" in response.text
