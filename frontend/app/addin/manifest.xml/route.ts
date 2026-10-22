@@ -1,4 +1,4 @@
-import { addinManifest } from '@/lib/addin/manifest';
+import { addinManifest, DEFAULT_ADDIN_NAME } from '@/lib/addin/manifest';
 import packageJson from '@/package.json';
 import { NextRequest } from 'next/server';
 
@@ -17,7 +17,12 @@ export function GET(request: NextRequest) {
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     });
   }
-  const manifest = addinManifest({ frontendUrl: publicOrigin(request), clientId, version: packageJson.version });
+  const manifest = addinManifest({
+    frontendUrl: publicOrigin(request),
+    clientId,
+    version: packageJson.version,
+    name: process.env.ADDIN_NAME?.trim() || DEFAULT_ADDIN_NAME,
+  });
   return new Response(manifest, {
     headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'no-store' },
   });

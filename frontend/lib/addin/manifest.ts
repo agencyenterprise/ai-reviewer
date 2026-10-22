@@ -15,7 +15,16 @@ export type ManifestSettings = {
   clientId: string;
   /** The app's version, `major.minor.patch`. */
   version: string;
+  /**
+   * What Word calls the add-in: its name and its button on the Home tab. Two deployments
+   * published in one tenant need different ones, or people cannot tell which pane, and
+   * which deployment, they are sending a document to.
+   */
+  name: string;
 };
+
+/** The name, unless the deployment sets `ADDIN_NAME`. */
+export const DEFAULT_ADDIN_NAME = 'Draft Detective';
 
 // Namespace for the add-in ids derived from a host (a UUID v4 picked once, never reused).
 const ID_NAMESPACE = '6f1d6c2e-3b8a-4c1e-9a52-2f0d4b7e8c13';
@@ -42,18 +51,19 @@ export function manifestVersion(version: string): string {
   return [...parts, 0, 0, 0, 0].slice(0, 4).join('.');
 }
 
-export function addinManifest({ frontendUrl, clientId, version }: ManifestSettings): string {
+export function addinManifest({ frontendUrl, clientId, version, name }: ManifestSettings): string {
   const origin = new URL(frontendUrl).origin;
   const host = new URL(origin).host;
   const url = escapeXml(origin);
   const id = escapeXml(clientId);
+  const label = escapeXml(name);
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
   <Id>${addinId(host)}</Id>
   <Version>${manifestVersion(version)}</Version>
   <ProviderName>Draft Detective</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="Draft Detective"/>
+  <DisplayName DefaultValue="${label}"/>
   <Description DefaultValue="Chat with Draft Detective about your document, and apply its comments and suggested changes."/>
   <IconUrl DefaultValue="${url}/logo_160x160.png"/>
   <HighResolutionIconUrl DefaultValue="${url}/logo_160x160.png"/>
@@ -127,13 +137,13 @@ export function addinManifest({ frontendUrl, clientId, version }: ManifestSettin
         <bt:Url id="Commands.Url" DefaultValue="${url}/addin"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GetStarted.Title" DefaultValue="Get started with the Draft Detective add-in!"/>
-        <bt:String id="CommandsGroup.Label" DefaultValue="Draft Detective"/>
-        <bt:String id="TaskpaneButton.Label" DefaultValue="Draft Detective"/>
+        <bt:String id="GetStarted.Title" DefaultValue="Get started with ${label}!"/>
+        <bt:String id="CommandsGroup.Label" DefaultValue="${label}"/>
+        <bt:String id="TaskpaneButton.Label" DefaultValue="${label}"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="GetStarted.Description" DefaultValue="The Draft Detective add-in loaded successfully. Go to the HOME tab and click the 'Draft Detective' button to get started."/>
-        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Click to open the Draft Detective add-in."/>
+        <bt:String id="GetStarted.Description" DefaultValue="${label} loaded successfully. Go to the HOME tab and click the '${label}' button to get started."/>
+        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Click to open ${label}."/>
       </bt:LongStrings>
     </Resources>
     <!-- Office single sign-on: the Entra app the pane asks Office for a token for.

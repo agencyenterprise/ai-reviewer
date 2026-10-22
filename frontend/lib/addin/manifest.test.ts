@@ -5,6 +5,7 @@ const SETTINGS = {
   frontendUrl: 'https://dd.example.com/some/path',
   clientId: '11111111-2222-3333-4444-555555555555',
   version: '2.0.13',
+  name: 'Draft Detective',
 };
 
 function parsed(xml: string): Document {
@@ -27,6 +28,17 @@ describe('addinManifest', () => {
     );
     expect(text(document, 'Resource')).toEqual(['api://dd.example.com/11111111-2222-3333-4444-555555555555']);
     expect(text(document, 'Version')).toEqual(['2.0.13.0']);
+  });
+
+  it('names the add-in and its button as the deployment asks, so two deployments can be told apart', () => {
+    const document = parsed(addinManifest({ ...SETTINGS, name: 'Draft Detective (dev) & co' }));
+    const string = (id: string) => document.querySelector(`[id="${id}"]`)?.getAttribute('DefaultValue');
+
+    expect(document.getElementsByTagName('DisplayName')[0].getAttribute('DefaultValue')).toBe(
+      'Draft Detective (dev) & co',
+    );
+    expect(string('TaskpaneButton.Label')).toBe('Draft Detective (dev) & co');
+    expect(string('CommandsGroup.Label')).toBe('Draft Detective (dev) & co');
   });
 
   it('defines every resource it refers to', () => {

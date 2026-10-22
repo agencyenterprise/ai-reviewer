@@ -35,8 +35,10 @@ Use the generated public HTTPS URLs in the steps below.
 
 The frontend serves the add-in's manifest at `/addin/manifest.xml`, filled in for itself:
 its address (`AUTH_URL`, or the host it was reached at), the Entra app it signs in with
-(`AUTH_MICROSOFT_ENTRA_ID_ID`, see "Signing in" below) and its version
-(`frontend/lib/addin/manifest.ts`). The add-in's id is derived from the host, so each
+(`AUTH_MICROSOFT_ENTRA_ID_ID`, see "Signing in" below), its version and its name
+(`ADDIN_NAME`, "Draft Detective" by default) (`frontend/lib/addin/manifest.ts`). Give a
+tunnel's add-in a name of its own, such as `Draft Detective (local)`, so Word tells it
+apart from a published one. The add-in's id is derived from the host, so each
 deployment, and each tunnel, is its own add-in.
 
 Set `AUTH_URL` in `frontend/.env` to the frontend tunnel's URL, then save
