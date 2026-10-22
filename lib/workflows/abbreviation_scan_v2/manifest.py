@@ -38,18 +38,6 @@ class AbbreviationScanV2Manifest(
         )
         return state.model_copy(update={"chunks": updated})
 
-    async def create_initial_state(
-        self,
-        config: AbbreviationScanV2Config,
-        existing_states: list[WorkflowState],
-        revision: int,
-        prior_self_state: AbbreviationScanV2State | None = None,
-    ) -> AbbreviationScanV2State:
-        return AbbreviationScanV2State(
-            type=WorkflowRunType.ABBREVIATION_SCAN_V2,
-            config=config,
-        )
-
     def convert_state_to_issues(
         self, state: AbbreviationScanV2State, other_states: list[WorkflowState]
     ) -> list[DocumentIssue]:

@@ -164,18 +164,6 @@ class ClaimReferenceValidationV2Manifest(
         )
         return state.model_copy(update={"section_verifications": updated})
 
-    async def create_initial_state(
-        self,
-        config: ClaimReferenceValidationV2Config,
-        existing_states: list[WorkflowState],
-        revision: int,
-        prior_self_state: ClaimReferenceValidationV2State | None = None,
-    ) -> ClaimReferenceValidationV2State:
-        return ClaimReferenceValidationV2State(
-            type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
-            config=config,
-        )
-
     def convert_state_to_issues(
         self,
         state: ClaimReferenceValidationV2State,

@@ -119,7 +119,6 @@ class WorkflowManifest[
 
         raise NotImplementedError()
 
-    @abstractmethod
     async def create_initial_state(
         self,
         config: WorkflowConfigType,
@@ -129,14 +128,19 @@ class WorkflowManifest[
     ) -> WorkflowStateType:
         """Create and return the initial state of the workflow.
 
-        ``prior_self_state`` is the same-type prior run's state (or None). Most
-        workflows build fresh from dependency states and ignore it; accumulating
-        workflows (e.g. reference_downloader) seed their carried-forward fields
-        from it, since each run now gets a fresh langgraph_thread_id and the
-        checkpointer no longer carries prior state forward.
+        The default is a fresh state holding only the type and the config, every
+        other field at its default. Override in workflows that start from more:
+        the main file id, dependency states, or ``prior_self_state``, the
+        same-type prior run's state (or None). Accumulating workflows (e.g.
+        reference_downloader) seed their carried-forward fields from it, since
+        each run gets a fresh langgraph_thread_id and the checkpointer no longer
+        carries prior state forward.
         """
 
-        raise NotImplementedError()
+        # The base state declares neither field: each workflow's state does.
+        return self.get_state_type().model_validate(
+            {"type": self.type, "config": config}
+        )
 
     @abstractmethod
     def convert_state_to_issues(
