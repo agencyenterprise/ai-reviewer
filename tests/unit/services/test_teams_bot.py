@@ -27,7 +27,7 @@ from microsoft_agents.activity import (
     Mention,
 )
 from microsoft_agents.activity.invoke_response import InvokeResponse
-from microsoft_agents.hosting.core import ClaimsIdentity
+from microsoft_agents.hosting.core import AuthenticationConstants, ClaimsIdentity
 
 from lib.config.env import config
 from lib.services.microsoft.teams import bot
@@ -158,7 +158,10 @@ class TestPostingAFollowUp:
         assert audience == bot.BOT_AUDIENCE
         # No inbound request to infer the sender from, so the claims name the bot.
         assert identity.is_authenticated
-        assert identity.get_app_id() == config.TEAMS_BOT_APP_ID
+        assert identity.claims == {
+            AuthenticationConstants.AUDIENCE_CLAIM: config.TEAMS_BOT_APP_ID,
+            AuthenticationConstants.APP_ID_CLAIM: config.TEAMS_BOT_APP_ID,
+        }
 
         context = MagicMock(send_activity=AsyncMock())
         await deliver(context)
