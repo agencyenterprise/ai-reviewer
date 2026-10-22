@@ -126,7 +126,10 @@ class ChatSurfaceUsage(BaseModel):
         )
     )
     messages: MetricWithDelta = Field(
-        description="Messages people sent to Draft Detective"
+        description=(
+            "Messages people sent to Draft Detective. The ignore list cannot "
+            "apply to Teams messages, whose senders are known only by name."
+        )
     )
     people: int = Field(
         description=(

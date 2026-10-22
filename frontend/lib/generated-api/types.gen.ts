@@ -1289,7 +1289,7 @@ export type ChatSurfaceUsage = {
    */
   conversations_started: MetricWithDelta;
   /**
-   * Messages people sent to Draft Detective
+   * Messages people sent to Draft Detective. The ignore list cannot apply to Teams messages, whose senders are known only by name.
    */
   messages: MetricWithDelta;
   /**

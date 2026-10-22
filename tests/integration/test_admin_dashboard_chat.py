@@ -3,7 +3,9 @@
 The figures are global and other tests write conversations in parallel, so
 each assertion compares two readings taken in one snapshot: everyone, and
 everyone but the fixture's user. Every conversation here is listed under that
-user, so the difference is exactly the fixture's rows.
+user, so the difference is exactly the fixture's rows. Teams messages are the
+exception, since the ignore list never applies to them: they are compared
+with a reading taken after deleting them in a transaction that is rolled back.
 
 The checkpoints are written by hand, shaped as LangGraph writes them: what is
 pinned is which of them count as a message, and that a Teams conversation's
@@ -88,8 +90,8 @@ async def chat_data() -> AsyncIterator[_Fixture]:
 
     The web conversation has two messages this week from its owner, one from
     the week before, a resume (`loop`) and a subgraph's input, which are not
-    messages. The Word one has one message. The Teams one has two, from two
-    people, under its Teams id.
+    messages. The Word one has one message. The Teams one, which the user
+    started, has two, from two other people, under its Teams id.
     """
     await _create_checkpoint_tables()
     tag = uuid.uuid4().hex[:12]
@@ -126,8 +128,9 @@ async def chat_data() -> AsyncIterator[_Fixture]:
         await _checkpoint(session, str(web.id), hour_ago, source="loop")
         await _checkpoint(session, str(web.id), hour_ago, namespace="tools:abc")
         await _checkpoint(session, str(word.id), hour_ago, sender="oid-ana")
-        await _checkpoint(session, teams_id, hour_ago, sender="Ana")
-        await _checkpoint(session, teams_id, hour_ago, sender="Bo")
+        # Names no parallel fixture shares, so each is one more person.
+        await _checkpoint(session, teams_id, hour_ago, sender=f"Ana {tag}")
+        await _checkpoint(session, teams_id, hour_ago, sender=f"Bo {tag}")
         await session.commit()
 
     yield _Fixture(user, teams_id)
@@ -193,8 +196,32 @@ async def test_messages_are_counted_per_surface(chat_data: _Fixture) -> None:
     # Web: the resume and the subgraph's input are not messages.
     assert mine(ConversationKind.WEB) == (1, 2, 1, 1)
     assert mine(ConversationKind.WORD) == (1, 1, 0, 1)
-    # Teams: found under its Teams id, and two people wrote in it.
-    assert mine(ConversationKind.TEAMS) == (1, 2, 0, 2)
+    # Teams: the conversation is listed under the ignored user, who started it,
+    # but its messages are Ana's and Bo's, so they stay.
+    assert mine(ConversationKind.TEAMS) == (1, 0, 0, 0)
+
+
+@pytest.mark.asyncio
+async def test_teams_messages_are_found_under_the_teams_id(
+    chat_data: _Fixture,
+) -> None:
+    window = DashboardWindow.for_days(DAYS)
+    async with get_async_db_session() as session:
+        await session.execute(text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"))
+        before = _by_surface(await chat_queries.get_chat_surfaces(session, window))
+        await session.execute(
+            text("DELETE FROM checkpoints WHERE thread_id = :thread"),
+            {"thread": chat_data.teams_id},
+        )
+        after = _by_surface(await chat_queries.get_chat_surfaces(session, window))
+        await session.rollback()
+
+    teams_before, teams_after = (
+        before[ConversationKind.TEAMS],
+        after[ConversationKind.TEAMS],
+    )
+    assert teams_before.messages.current - teams_after.messages.current == 2
+    assert teams_before.people - teams_after.people == 2
 
 
 @pytest.mark.asyncio
@@ -206,7 +233,7 @@ async def test_the_activity_series_counts_the_same_messages(
     assert len(activity) == len(others) >= DAYS
     assert sum(point.web for point in activity) - sum(p.web for p in others) == 2
     assert sum(point.word for point in activity) - sum(p.word for p in others) == 1
-    assert sum(point.teams for point in activity) - sum(p.teams for p in others) == 2
+    assert sum(point.teams for point in activity) == sum(p.teams for p in others)
 
 
 @pytest.mark.asyncio

@@ -241,7 +241,8 @@ export function UsageDashboard() {
               <CardTitle>Chat</CardTitle>
               <CardDescription>
                 Messages people sent to Draft Detective on the web app&apos;s chat, in the Word add-in and in Teams.
-                People are counted per surface: Teams knows a sender only by their display name.
+                Teams knows a sender only by their display name, so its messages and people include anyone left out
+                above.
               </CardDescription>
             </CardHeader>
             <CardContent>

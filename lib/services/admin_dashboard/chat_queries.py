@@ -32,6 +32,7 @@ from sqlalchemy import (
     column,
     distinct,
     func,
+    or_,
     select,
     table,
     text,
@@ -115,8 +116,24 @@ def _messages_from(
         )
         .where(
             _sent_at() >= window.previous_start,
-            _user_not_ignored(col(Conversation.user_id), ignored),
+            _sender_not_ignored(ignored),
         )
+    )
+
+
+def _sender_not_ignored(ignored: Collection[uuid.UUID]) -> ColumnElement[bool]:
+    """The message was sent by nobody on the ignore list, as far as is known.
+
+    On /chat and in Word the conversation's user is the sender: a web thread
+    belongs to its owner and a Word chat to one Microsoft account. A Teams
+    conversation is listed under whoever asked first, while anyone in the chat
+    may write in it, and its senders are known only by display name. So its
+    messages are never left out: leaving them out by who started it would drop
+    everyone else's, and keep an ignored user's in a chat someone else began.
+    """
+    return or_(
+        col(Conversation.kind) == ConversationKind.TEAMS.value,
+        _user_not_ignored(col(Conversation.user_id), ignored),
     )
 
 
