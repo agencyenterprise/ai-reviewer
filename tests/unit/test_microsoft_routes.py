@@ -38,6 +38,7 @@ def depends_on(dependant: Dependant, dependency: object) -> bool:
 def test_the_routes_are_where_their_callers_look() -> None:
     assert set(mounted()) == {
         "POST /api/microsoft/teams/messages",
+        "GET /api/microsoft/teams/package.zip",
         "GET /api/microsoft/word/features",
         "GET /api/microsoft/word/handoffs",
         "POST /api/microsoft/word/handoffs/{handoff_id}/started",
