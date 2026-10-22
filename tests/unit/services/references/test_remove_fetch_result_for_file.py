@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from lib.services.references import remove_fetch_result_for_file
+from lib.services.references.service import remove_fetch_result_for_file
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.reference_downloader.agents.reference_fetcher import (
     ReferenceFetchConclusion,
@@ -55,7 +55,7 @@ def _stub_persist_state():
     """Capture the state_json write; the checkpointer write was removed in the
     write-side cutover, so persist_workflow_run_state is now the only write."""
     with patch(
-        "lib.services.references.persist_workflow_run_state", new=AsyncMock()
+        "lib.services.references.service.persist_workflow_run_state", new=AsyncMock()
     ) as m:
         yield m
 
@@ -63,7 +63,7 @@ def _stub_persist_state():
 @pytest.mark.asyncio
 async def test_returns_zero_when_no_downloader_run_exists(_stub_persist_state):
     with patch(
-        "lib.services.references._get_downloader_workflow_state",
+        "lib.services.references.service._get_downloader_workflow_state",
         new=AsyncMock(return_value=(None, None)),
     ):
         removed = await remove_fetch_result_for_file(
@@ -79,7 +79,7 @@ async def test_returns_zero_when_state_has_no_fetched_references(_stub_persist_s
     state = _make_state([])
 
     with patch(
-        "lib.services.references._get_downloader_workflow_state",
+        "lib.services.references.service._get_downloader_workflow_state",
         new=AsyncMock(return_value=(_make_run(), state)),
     ):
         removed = await remove_fetch_result_for_file(
@@ -107,7 +107,7 @@ async def test_returns_zero_when_no_result_matches_file_id(_stub_persist_state):
     )
 
     with patch(
-        "lib.services.references._get_downloader_workflow_state",
+        "lib.services.references.service._get_downloader_workflow_state",
         new=AsyncMock(return_value=(_make_run(), state)),
     ):
         removed = await remove_fetch_result_for_file(
@@ -138,7 +138,7 @@ async def test_persists_filtered_state_dropping_matching_entry(_stub_persist_sta
     run = _make_run()
 
     with patch(
-        "lib.services.references._get_downloader_workflow_state",
+        "lib.services.references.service._get_downloader_workflow_state",
         new=AsyncMock(return_value=(run, state)),
     ):
         removed = await remove_fetch_result_for_file(
@@ -172,7 +172,7 @@ async def test_removes_multiple_entries_pointing_at_same_file(_stub_persist_stat
     state = _make_state([dup_a, dup_b])
 
     with patch(
-        "lib.services.references._get_downloader_workflow_state",
+        "lib.services.references.service._get_downloader_workflow_state",
         new=AsyncMock(return_value=(_make_run(), state)),
     ):
         removed = await remove_fetch_result_for_file(
@@ -210,7 +210,7 @@ async def test_preserves_entries_without_result(_stub_persist_state):
     state = _make_state([pending, errored, drop])
 
     with patch(
-        "lib.services.references._get_downloader_workflow_state",
+        "lib.services.references.service._get_downloader_workflow_state",
         new=AsyncMock(return_value=(_make_run(), state)),
     ):
         removed = await remove_fetch_result_for_file(

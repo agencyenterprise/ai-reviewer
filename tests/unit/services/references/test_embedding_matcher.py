@@ -9,10 +9,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from lib.services.reference_embedding_matcher import ReferenceEmbeddingMatcher
+from lib.services.references.embedding_matcher import ReferenceEmbeddingMatcher
 from lib.workflows.document_summarization.state import FileSummary
 
-MODULE = "lib.services.reference_embedding_matcher"
+MODULE = "lib.services.references.embedding_matcher"
 
 # Three documents along distinct axes; the magnitudes differ on purpose so the
 # ranking only comes out right if vectors are normalized before the dot product.

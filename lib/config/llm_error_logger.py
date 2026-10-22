@@ -341,7 +341,7 @@ def log_embedding_error(
 
     Unlike chat models, embeddings calls in this codebase don't run through a
     LangChain callback (they're invoked directly from `vector_store.py` and
-    `reference_embedding_matcher.py`). This helper is called from the
+    `references/embedding_matcher.py`). This helper is called from the
     `except` block of those call sites.
     """
     is_rate_limit = _is_rate_limit_error(error)
