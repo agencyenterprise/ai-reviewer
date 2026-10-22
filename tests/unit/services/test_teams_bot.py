@@ -10,22 +10,24 @@ token turns one bad request into a retry storm. Both of these were 500s until a
 manual probe against the tunnel showed it.
 """
 
+import logging
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
-import pydantic
 import pytest
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
     Attachment,
     ChannelAccount,
+    ChannelId,
     ConversationAccount,
+    ConversationReference,
     EntityTypes,
     Mention,
 )
 from microsoft_agents.activity.invoke_response import InvokeResponse
-from microsoft_agents.hosting.core import ClaimsIdentity, TurnContext
+from microsoft_agents.hosting.core import ClaimsIdentity
 
 from lib.config.env import config
 from lib.services.microsoft.teams import bot
@@ -113,45 +115,95 @@ class TestBuildingTheAdapter:
         assert bot.bot.adapter is bot.bot.adapter
 
 
-class TestTheFollowUpActivity:
-    """The answer arrives after the turn has ended, so it is sent against a
+class TestPostingAFollowUp:
+    """The answer arrives after the turn has ended, so ``post_later`` sends it against a
     conversation reference rather than a live context. Building that continuation
     is where the bot failed in Teams: it was round-tripped through
     model_dump/model_validate, and model_dump emits None for every unset optional
     field, which validating back rejects on all thirty of them."""
 
-    def incoming(self):
-        return Activity(
-            type=ActivityTypes.message,
-            id="1785865987930",
-            channel_id="msteams",
-            service_url="https://smba.trafficmanager.net/br/",
-            conversation=ConversationAccount(id="19:abc@thread.tacv2"),
-            from_property=ChannelAccount(id="29:xyz", name="Carlos Bonetti"),
-            recipient=ChannelAccount(id="28:bot"),
-            text="are you there?",
+    def reference(self) -> ConversationReference:
+        return bot.reference_for(
+            Activity(
+                type=ActivityTypes.message,
+                id="1785865987930",
+                channel_id=ChannelId(channel="msteams"),
+                service_url="https://smba.trafficmanager.net/br/",
+                conversation=ConversationAccount(id="19:abc@thread.tacv2"),
+                from_property=ChannelAccount(id="29:xyz", name="Carlos Bonetti"),
+                recipient=ChannelAccount(id="28:bot"),
+                text="are you there?",
+            )
         )
 
-    def test_the_continuation_keeps_where_to_send(self) -> None:
-        reference = bot.reference_for(self.incoming())
-        continuation = TurnContext.apply_conversation_reference(
-            Activity(type=ActivityTypes.event, name="continue"),
-            reference,
-            is_incoming=False,
+    def adapter(self, monkeypatch: pytest.MonkeyPatch, **kwargs: Any) -> AsyncMock:
+        process_proactive = AsyncMock(**kwargs)
+        monkeypatch.setattr(
+            bot.bot, "_adapter", MagicMock(process_proactive=process_proactive)
         )
+        return process_proactive
 
+    @pytest.mark.asyncio
+    async def test_the_answer_lands_in_the_thread_it_came_from(
+        self, configured: None, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        process_proactive = self.adapter(monkeypatch)
+
+        await bot.post_later(self.reference(), "It overclaims in section 2.")
+
+        assert process_proactive.await_args is not None
+        identity, continuation, audience, deliver = process_proactive.await_args.args
         assert continuation.conversation.id == "19:abc@thread.tacv2"
         assert continuation.service_url == "https://smba.trafficmanager.net/br/"
+        assert audience == bot.BOT_AUDIENCE
+        # No inbound request to infer the sender from, so the claims name the bot.
+        assert identity.is_authenticated
+        assert identity.get_app_id() == config.TEAMS_BOT_APP_ID
 
-    def test_round_tripping_the_continuation_would_break_it(self) -> None:
-        """Pins the actual failure, so nobody reintroduces the dump/validate pair."""
-        continuation = TurnContext.apply_conversation_reference(
-            Activity(type=ActivityTypes.event, name="continue"),
-            bot.reference_for(self.incoming()),
-            is_incoming=False,
-        )
-        with pytest.raises(pydantic.ValidationError):
-            Activity.model_validate(continuation.model_dump())
+        context = MagicMock(send_activity=AsyncMock())
+        await deliver(context)
+        (sent,) = context.send_activity.await_args.args
+        assert sent.type == ActivityTypes.message
+        assert sent.text == "It overclaims in section 2."
+
+    @pytest.mark.asyncio
+    async def test_a_failure_to_post_is_logged_not_raised(
+        self,
+        configured: None,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """The request was answered long ago; there is nobody to raise to."""
+
+        self.adapter(monkeypatch, side_effect=RuntimeError("connector down"))
+
+        with caplog.at_level(logging.ERROR, logger=bot.logger.name):
+            await bot.post_later(self.reference(), "an answer")
+
+        assert "connector down" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_missing_credentials_are_logged_not_raised(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        monkeypatch.setattr(config, "TEAMS_BOT_APP_ID", None)
+        monkeypatch.setattr(bot, "bot", bot._Bot())
+
+        with caplog.at_level(logging.ERROR, logger=bot.logger.name):
+            await bot.post_later(self.reference(), "an answer")
+
+        assert "TEAMS_BOT_APP_ID" in caplog.text
+
+
+class TestShowingTyping:
+    @pytest.mark.asyncio
+    async def test_a_typing_indicator_that_fails_does_not_fail_the_turn(self) -> None:
+        context = MagicMock(send_activity=AsyncMock(side_effect=RuntimeError("429")))
+
+        await bot.send_typing(context)
+
+        (sent,) = context.send_activity.await_args.args
+        assert sent.type == ActivityTypes.typing
 
 
 class TestReadingTheQuestion:
