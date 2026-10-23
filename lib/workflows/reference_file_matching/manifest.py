@@ -55,9 +55,7 @@ class ReferenceFileMatchingManifest(
         matching state so already-matched references are not re-processed.
         """
         existing_matching_state = get_state_by_type(
-            WorkflowRunType.REFERENCE_FILE_MATCHING,
-            ReferenceFileMatchingState,
-            existing_states,
+            ReferenceFileMatchingState, existing_states
         )
         existing_matches = (
             existing_matching_state.matches
