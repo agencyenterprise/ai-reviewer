@@ -26,7 +26,10 @@ KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
 
 def entra_token(**overrides: Any) -> str:
-    """An Office single sign-on token as Entra would issue it, signed with ``KEY``."""
+    """An Office single sign-on token as Entra would issue it, signed with ``KEY``.
+
+    An override of None leaves that claim out.
+    """
 
     now = datetime.now(UTC)
     claims: dict[str, Any] = {
@@ -41,11 +44,16 @@ def entra_token(**overrides: Any) -> str:
         "exp": now + timedelta(hours=1),
         **overrides,
     }
-    return jwt.encode(claims, KEY, algorithm="RS256", headers={"kid": "k1"})
+    return jwt.encode(
+        without_nones(claims), KEY, algorithm="RS256", headers={"kid": "k1"}
+    )
 
 
 def session_token(**overrides: Any) -> str:
-    """A Draft Detective session token, as the frontend mints it."""
+    """A Draft Detective session token, as the frontend mints it.
+
+    An override of None leaves that claim out.
+    """
 
     claims: dict[str, Any] = {
         "sub": "microsoft-entra-id:abc",
@@ -59,7 +67,11 @@ def session_token(**overrides: Any) -> str:
         "exp": datetime.now(UTC) + timedelta(minutes=15),
         **overrides,
     }
-    return jwt.encode(claims, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(without_nones(claims), SECRET_KEY, algorithm=ALGORITHM)
+
+
+def without_nones(claims: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in claims.items() if value is not None}
 
 
 @pytest.fixture(autouse=True)
@@ -122,14 +134,25 @@ class TestOfficeSingleSignOn:
         ],
     )
     async def test_anything_else_is_nobody(self, overrides: dict[str, Any]) -> None:
-        claims = {key: value for key, value in overrides.items() if value is not None}
-        token = entra_token(**claims)
-        if overrides.get("oid", "") is None:
-            payload = jwt.decode(token, options={"verify_signature": False})
-            payload.pop("oid")
-            token = jwt.encode(payload, KEY, algorithm="RS256", headers={"kid": "k1"})
+        assert await addin_auth.identify(entra_token(**overrides)) is None
 
-        assert await addin_auth.identify(token) is None
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("scopes", "accepted"),
+        [
+            ("User.Read access_as_user openid", True),
+            ("access_as_user_admin", False),
+            ("User.access_as_user", False),
+        ],
+    )
+    async def test_the_scope_is_one_of_the_granted_scopes(
+        self, scopes: str, accepted: bool
+    ) -> None:
+        """``scp`` lists scopes separated by spaces: the add-in's must be one of them."""
+
+        identity = await addin_auth.identify(entra_token(scp=scopes))
+
+        assert (identity is not None) is accepted
 
     @pytest.mark.asyncio
     async def test_a_token_signed_by_someone_else_is_nobody(self) -> None:
@@ -179,6 +202,26 @@ class TestTheSignInAppsTenant:
         assert await addin_auth.identify(self.other_tenant_token()) is None
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "issuer",
+        [
+            f"https://login.microsoftonline.com/{TENANT}/v2.0/",
+            f"https://login.microsoftonline.com/{TENANT.upper()}/v2.0",
+        ],
+        ids=["trailing slash", "upper case"],
+    )
+    async def test_the_tenant_specific_issuer_may_be_written_either_way(
+        self, monkeypatch: pytest.MonkeyPatch, issuer: str
+    ) -> None:
+        """Its own tenant still gets in, by single sign-on and by the dialog alike."""
+
+        monkeypatch.setattr(addin_auth.config, "AUTH_MICROSOFT_ENTRA_ID_ISSUER", issuer)
+
+        assert await addin_auth.identify(entra_token()) is not None
+        assert await addin_auth.identify(session_token()) is not None
+        assert await addin_auth.identify(self.other_tenant_token()) is None
+
+    @pytest.mark.asyncio
     async def test_a_multi_tenant_issuer_lets_any_tenant_in(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -189,6 +232,9 @@ class TestTheSignInAppsTenant:
         )
 
         assert await addin_auth.identify(self.other_tenant_token()) is not None
+        assert (
+            await addin_auth.identify(session_token(tid=self.OTHER_TENANT)) is not None
+        )
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -229,6 +275,20 @@ class TestTheDialogFallback:
         self,
     ) -> None:
         assert await addin_auth.identify(session_token(oid=None)) is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "overrides",
+        [
+            {"exp": datetime.now(UTC) - timedelta(minutes=5)},
+            {"aud": "another-api"},
+            {"iss": "another-issuer"},
+            {"tid": None},
+        ],
+        ids=["expired", "another audience", "another issuer", "no tenant"],
+    )
+    async def test_any_other_session_is_nobody(self, overrides: dict[str, Any]) -> None:
+        assert await addin_auth.identify(session_token(**overrides)) is None
 
     @pytest.mark.asyncio
     async def test_a_session_signed_with_another_secret_is_nobody(self) -> None:
