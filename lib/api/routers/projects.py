@@ -1,5 +1,6 @@
 import logging
 from typing import Literal
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -331,8 +332,19 @@ async def download_all_project_files(
     return StreamingResponse(
         zip_buffer,
         media_type="application/zip",
-        headers={"Content-Disposition": f'attachment; filename="{zip_filename}"'},
+        headers={"Content-Disposition": _attachment_disposition(zip_filename)},
     )
+
+
+def _attachment_disposition(filename: str) -> str:
+    """A Content-Disposition header for ``filename``, as Starlette's FileResponse
+    builds one: headers are Latin-1, so a name quoting would change goes in the
+    RFC 5987 ``filename*`` form instead (a title in Chinese would otherwise fail
+    the response)."""
+    quoted = quote(filename)
+    if quoted != filename:
+        return f"attachment; filename*=utf-8''{quoted}"
+    return f'attachment; filename="{filename}"'
 
 
 @router.get(

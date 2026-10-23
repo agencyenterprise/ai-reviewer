@@ -3,8 +3,10 @@
 import io
 import os
 import tempfile
+import unicodedata
 import uuid
 import zipfile
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -14,6 +16,7 @@ from lib.models.file import File, FileRole
 from lib.services.projects.zip import (
     _build_zip_archive,
     _compression_for,
+    _entry_name,
     create_project_files_zip,
 )
 
@@ -118,26 +121,114 @@ class TestBuildZipArchive:
                 assert any("notes.txt" in n for n in names)
 
     @patch(CONFIG_PATH)
-    def test_archive_entry_names_use_id_prefix(self, mock_config: MagicMock):
+    def test_archive_entries_keep_the_uploaded_names(self, mock_config: MagicMock):
         mock_config.FILE_UPLOADS_MOUNT_PATH = MOUNT_PATH
-        fid = uuid.uuid4()
-        f = make_file(
-            file_name="doc.txt",
-            file_path=f"{MOUNT_PATH}/x/doc.txt",
-            file_id=fid,
-        )
 
-        with tempfile.TemporaryDirectory():
-            os.makedirs(os.path.dirname(f.file_path), exist_ok=True)
-            with open(f.file_path, "w") as fh:
-                fh.write("hello")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            f = make_file(file_name="Report v3.docx")
+            self._create_temp_file(tmpdir, f)
 
             buf, count = _build_zip_archive([f])
 
         assert count == 1
         with zipfile.ZipFile(buf, "r") as zf:
-            name = zf.namelist()[0]
-            assert name == f"{str(fid)[:4]}_doc.txt"
+            assert zf.namelist() == ["Report v3.docx"]
+
+    @patch(CONFIG_PATH)
+    def test_archive_numbers_only_names_already_taken(self, mock_config: MagicMock):
+        mock_config.FILE_UPLOADS_MOUNT_PATH = MOUNT_PATH
+        files = [
+            make_file(file_name="notes.pdf"),
+            make_file(file_name="NOTES.pdf"),
+            make_file(file_name="notes.pdf"),
+            make_file(file_name="other.pdf"),
+        ]
+
+        assert self._names(files) == [
+            "notes.pdf",
+            "NOTES (2).pdf",
+            "notes (3).pdf",
+            "other.pdf",
+        ]
+
+    def _names(self, files: list[File]) -> list[str]:
+        """Entry names, the files uploaded in the order given."""
+        start = datetime.now(UTC)
+        for i, f in enumerate(files):
+            f.created_at = start + timedelta(seconds=i)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for f in files:
+                self._create_temp_file(tmpdir, f)
+            buf, _ = _build_zip_archive(files)
+        with zipfile.ZipFile(buf, "r") as zf:
+            return zf.namelist()
+
+    @pytest.mark.parametrize("first, second", [("Σ.pdf", "ς.pdf"), ("ς.pdf", "Σ.pdf")])
+    @patch(CONFIG_PATH)
+    def test_numbers_names_that_differ_only_in_unicode_case(
+        self, mock_config: MagicMock, first: str, second: str
+    ):
+        mock_config.FILE_UPLOADS_MOUNT_PATH = MOUNT_PATH
+        files = [make_file(file_name=first), make_file(file_name=second)]
+
+        assert self._names(files) == [first, f"{second[:-4]} (2).pdf"]
+
+    @patch(CONFIG_PATH)
+    def test_numbers_canonically_equivalent_names(self, mock_config: MagicMock):
+        """NFC and NFD spellings extract to one file on macOS."""
+        mock_config.FILE_UPLOADS_MOUNT_PATH = MOUNT_PATH
+        nfc = unicodedata.normalize("NFC", "é.pdf")
+        nfd = unicodedata.normalize("NFD", "é.pdf")
+        files = [make_file(file_name=nfc), make_file(file_name=nfd)]
+
+        assert self._names(files) == [nfc, f"{nfd[:-4]} (2).pdf"]
+
+    @patch(CONFIG_PATH)
+    def test_numbers_names_windows_reads_as_one(self, mock_config: MagicMock):
+        """Windows drops trailing dots and spaces, so these extract to one file."""
+        mock_config.FILE_UPLOADS_MOUNT_PATH = MOUNT_PATH
+        names = ["report.pdf", "report.pdf.", "report.pdf "]
+        files = [make_file(file_name=n) for n in names]
+
+        assert self._names(files) == ["report.pdf", "report (2).pdf", "report (3).pdf"]
+
+    @pytest.mark.parametrize(
+        "uploaded, entry",
+        [
+            ("CON.pdf", "_CON.pdf"),
+            ("aux.tar.gz", "_aux.tar.gz"),
+            ("COM1", "_COM1"),
+            ("console.pdf", "console.pdf"),
+            ('a<b>:c"d\\e|f?g*.pdf', "a_b__c_d_e_f_g_.pdf"),
+            ("tab\there.pdf", "tab_here.pdf"),
+            ("...", "file"),
+        ],
+    )
+    def test_entry_names_are_valid_on_windows(self, uploaded: str, entry: str):
+        assert _entry_name(uploaded, set()) == entry
+
+    @patch(CONFIG_PATH)
+    def test_oldest_upload_keeps_the_plain_name_whatever_the_input_order(
+        self, mock_config: MagicMock
+    ):
+        mock_config.FILE_UPLOADS_MOUNT_PATH = MOUNT_PATH
+        older, newer = (
+            make_file(file_name="notes.pdf"),
+            make_file(file_name="notes.pdf"),
+        )
+        now = datetime.now(UTC)
+        older.created_at, newer.created_at = now - timedelta(days=1), now
+
+        with tempfile.TemporaryDirectory():
+            for f, content in ((older, "older"), (newer, "newer")):
+                os.makedirs(os.path.dirname(f.file_path), exist_ok=True)
+                with open(f.file_path, "w") as fh:
+                    fh.write(content)
+            for files in ([older, newer], [newer, older]):
+                buf, _ = _build_zip_archive(files)
+                with zipfile.ZipFile(buf, "r") as zf:
+                    assert zf.read("notes.pdf") == b"older"
+                    assert zf.read("notes (2).pdf") == b"newer"
 
     @patch(CONFIG_PATH)
     def test_skips_files_outside_mount_path(self, mock_config: MagicMock):

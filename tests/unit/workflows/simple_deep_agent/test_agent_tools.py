@@ -9,11 +9,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from lib.config.llm_models import claude_3_5_sonnet_model, web_search_tool
+from lib.config.llm_models import LLMModel, web_search_tool
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.registry import get_workflow_manifest
 from lib.workflows.simple_deep_agent.agent import SimpleDeepAgent
 from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifest
+
+CLAUDE_MODEL = LLMModel(provider="anthropic", name="claude-sonnet-4-5-20250929")
 
 
 def test_web_search_workflow_gets_the_web_search_tool():
@@ -28,9 +30,7 @@ def test_web_search_workflow_gets_the_web_search_tool():
 def test_web_search_tool_follows_the_model_the_agent_runs_on():
     manifest = get_workflow_manifest(WorkflowRunType.METHODOLOGICAL_ALIGNMENT)
     assert isinstance(manifest, SimpleDeepAgentManifest)
-    assert manifest.agent_tools(claude_3_5_sonnet_model) == [
-        web_search_tool(claude_3_5_sonnet_model)
-    ]
+    assert manifest.agent_tools(CLAUDE_MODEL) == [web_search_tool(CLAUDE_MODEL)]
 
 
 @pytest.mark.parametrize(

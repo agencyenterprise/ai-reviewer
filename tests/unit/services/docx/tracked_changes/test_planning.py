@@ -10,6 +10,7 @@ import pytest
 from docx import Document as PythonDocxDocument
 
 from lib.services.docx.tracked_changes import apply_tracked_changes
+from tests.unit.services.docx.lean_docx import new_document
 from tests.unit.services.docx.tracked_changes.support import (
     docx_path,  # noqa: F401 -- a fixture, reached by name
 )
@@ -25,7 +26,6 @@ from tests.unit.services.docx.tracked_changes.support import (
 from tests.unit.services.docx.tracked_changes.support import (
     statuses as _statuses,
 )
-from tests.unit.services.lean_docx import new_document
 
 
 class TestPlanAndApply:

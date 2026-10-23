@@ -71,9 +71,7 @@ class ReferenceValidationV2Manifest(
 
         issues: list[DocumentIssue] = []
 
-        ref_extraction_state = get_state_by_type(
-            WorkflowRunType.REFERENCE_EXTRACTION, ReferenceExtractionState, other_states
-        )
+        ref_extraction_state = get_state_by_type(ReferenceExtractionState, other_states)
 
         ref_by_id = (
             {ref.id: ref for ref in ref_extraction_state.extracted_references}

@@ -1,3 +1,5 @@
+# Railway config as code. It covers build and deploy settings only: variables and
+# volumes are set on the service in the Railway dashboard (docs/railway-deployment.md).
 [build]
 builder = "dockerfile"
 
@@ -7,12 +9,3 @@ startCommand = "sh scripts/start_api.sh"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 300
 restartPolicyType = "always"
-
-# Persistent storage for file uploads
-[[volumes]]
-name = "file-uploads"
-mount = "/app/uploads"
-
-# Auto-reference the PostgreSQL service's connection URL
-[env]
-DATABASE_URL = "${{Postgres.DATABASE_URL}}"

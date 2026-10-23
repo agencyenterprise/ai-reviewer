@@ -168,9 +168,7 @@ class ClaimReferenceValidationV2Manifest(
         state: ClaimReferenceValidationV2State,
         other_states: list[WorkflowState],
     ) -> list[DocumentIssue]:
-        doc_processing_state = get_state_by_type(
-            WorkflowRunType.DOCUMENT_PROCESSING, DocumentProcessingState, other_states
-        )
+        doc_processing_state = get_state_by_type(DocumentProcessingState, other_states)
         supporting_files = (
             doc_processing_state.supporting_files if doc_processing_state else None
         )
