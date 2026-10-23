@@ -20,8 +20,8 @@ from lib.services.docx.edit_export import (
     write_edit_export,
 )
 from lib.workflows.models import SeverityEnum, WorkflowRunType
+from tests.unit.services.docx.lean_docx import new_document
 from tests.unit.services.docx.tracked_changes.support import display_fields
-from tests.unit.services.lean_docx import new_document
 
 _PARAGRAPH = "The chapter reports a 14% rise in output for 2019."
 _MARKDOWN = _PARAGRAPH

@@ -27,7 +27,7 @@ from lib.workflows.simple_deep_agent.agent_types import (
     DeepAgentRun,
     ReportNotWrittenError,
 )
-from tests.unit.services.lean_docx import new_document
+from tests.unit.services.docx.lean_docx import new_document
 
 PLAN = ReviewAssistantOutput.REVISION_PLANNING_SUMMARY
 COVERAGE = ReviewAssistantOutput.REVIEWER_COVERAGE_REPORT

@@ -19,7 +19,7 @@ from lib.services.docx.paragraph_refs import (
     map_paragraph_refs,
     paragraph_ordinals,
 )
-from tests.unit.services.lean_docx import new_document
+from tests.unit.services.docx.lean_docx import new_document
 
 # A body paragraph, a two-cell table, an empty paragraph, two paragraphs that
 # read alike, and a paragraph inside a content control: everything that makes
