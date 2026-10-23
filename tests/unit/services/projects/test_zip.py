@@ -183,6 +183,19 @@ class TestBuildZipArchive:
         assert self._names(files) == [nfc, f"{nfd[:-4]} (2).pdf"]
 
     @patch(CONFIG_PATH)
+    def test_numbers_names_windows_reads_as_one(self, mock_config: MagicMock):
+        """Windows drops trailing dots and spaces, so these extract to one file."""
+        mock_config.FILE_UPLOADS_MOUNT_PATH = MOUNT_PATH
+        names = ["report.pdf", "report.pdf.", "report.pdf "]
+        files = [make_file(file_name=n) for n in names]
+
+        assert self._names(files) == [
+            "report.pdf",
+            "report.pdf (2).",
+            "report (2).pdf ",
+        ]
+
+    @patch(CONFIG_PATH)
     def test_oldest_upload_keeps_the_plain_name_whatever_the_input_order(
         self, mock_config: MagicMock
     ):

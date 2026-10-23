@@ -50,9 +50,10 @@ def _compression_for(file_name: str) -> int:
 
 
 def _collision_key(name: str) -> str:
-    """Names that extract to the same file: most file systems ignore case, and
-    macOS also treats canonically equivalent spellings (NFC/NFD) as one."""
-    return unicodedata.normalize("NFC", name).casefold()
+    """Names that extract to the same file: most file systems ignore case,
+    macOS treats canonically equivalent spellings (NFC/NFD) as one, and
+    Windows drops trailing dots and spaces."""
+    return unicodedata.normalize("NFC", name).casefold().rstrip(". ")
 
 
 def _entry_name(file_name: str, taken: set[str]) -> str:
