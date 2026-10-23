@@ -2,6 +2,7 @@ import asyncio
 import io
 import logging
 import os
+import re
 import unicodedata
 import uuid
 import zipfile
@@ -49,18 +50,36 @@ def _compression_for(file_name: str) -> int:
     return zipfile.ZIP_DEFLATED
 
 
+# What Windows refuses in a file name (uploads only reject "/"): these
+# characters, and the device names, whatever extension follows them.
+_WINDOWS_FORBIDDEN = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
+_WINDOWS_RESERVED = frozenset(
+    {"CON", "PRN", "AUX", "NUL"}
+    | {f"{port}{i}" for port in ("COM", "LPT") for i in range(1, 10)}
+)
+
+
+def _portable_name(file_name: str) -> str:
+    """The name as every common OS can extract it. Windows also drops trailing
+    dots and spaces, so they go here rather than silently on extraction."""
+    name = _WINDOWS_FORBIDDEN.sub("_", file_name).rstrip(". ") or "file"
+    if name.split(".", 1)[0].upper() in _WINDOWS_RESERVED:
+        name = f"_{name}"
+    return name
+
+
 def _collision_key(name: str) -> str:
-    """Names that extract to the same file: most file systems ignore case,
-    macOS treats canonically equivalent spellings (NFC/NFD) as one, and
-    Windows drops trailing dots and spaces."""
-    return unicodedata.normalize("NFC", name).casefold().rstrip(". ")
+    """Names that extract to the same file: most file systems ignore case, and
+    macOS treats canonically equivalent spellings (NFC/NFD) as one."""
+    return unicodedata.normalize("NFC", name).casefold()
 
 
 def _entry_name(file_name: str, taken: set[str]) -> str:
-    """The file's own name, numbered like ``report (2).pdf`` only when an
-    earlier entry would extract to the same file."""
-    stem, ext = os.path.splitext(file_name)
-    name, n = file_name, 1
+    """The file's own name, made portable, and numbered like ``report (2).pdf``
+    only when an earlier entry would extract to the same file."""
+    portable = _portable_name(file_name)
+    stem, ext = os.path.splitext(portable)
+    name, n = portable, 1
     while _collision_key(name) in taken:
         n += 1
         name = f"{stem} ({n}){ext}"

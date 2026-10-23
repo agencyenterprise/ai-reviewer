@@ -16,6 +16,7 @@ from lib.models.file import File, FileRole
 from lib.services.projects.zip import (
     _build_zip_archive,
     _compression_for,
+    _entry_name,
     create_project_files_zip,
 )
 
@@ -189,11 +190,22 @@ class TestBuildZipArchive:
         names = ["report.pdf", "report.pdf.", "report.pdf "]
         files = [make_file(file_name=n) for n in names]
 
-        assert self._names(files) == [
-            "report.pdf",
-            "report.pdf (2).",
-            "report (2).pdf ",
-        ]
+        assert self._names(files) == ["report.pdf", "report (2).pdf", "report (3).pdf"]
+
+    @pytest.mark.parametrize(
+        "uploaded, entry",
+        [
+            ("CON.pdf", "_CON.pdf"),
+            ("aux.tar.gz", "_aux.tar.gz"),
+            ("COM1", "_COM1"),
+            ("console.pdf", "console.pdf"),
+            ('a<b>:c"d\\e|f?g*.pdf', "a_b__c_d_e_f_g_.pdf"),
+            ("tab\there.pdf", "tab_here.pdf"),
+            ("...", "file"),
+        ],
+    )
+    def test_entry_names_are_valid_on_windows(self, uploaded: str, entry: str):
+        assert _entry_name(uploaded, set()) == entry
 
     @patch(CONFIG_PATH)
     def test_oldest_upload_keeps_the_plain_name_whatever_the_input_order(
