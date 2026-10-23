@@ -38,7 +38,7 @@ The two `railway.toml` files set each service's build and deploy settings: the D
 
 ### 3. Add the Uploads Volume
 
-Uploaded files live on disk. On the backend service, add a volume (**+ New** → **Volume**, or right-click the service) mounted at `/app/uploads`, the directory the image creates for them. Without it, every redeploy loses the uploads.
+Uploaded files live on disk. On the backend service, add a volume (**+ New** → **Volume**, or right-click the service) mounted at `/app/uploads`, the directory the image creates for them. Without it, every redeploy loses the uploads. Railway mounts volumes as root while the image runs as the non-root `app` user, so also set `RAILWAY_RUN_UID=0` on the backend (step 4). Without it the backend can't write to the volume and exits at startup, when it creates `uploads/logs`.
 
 ### 4. Configure Environment Variables
 
@@ -50,6 +50,7 @@ Set these in Railway dashboard under **Variables**:
 
 ```
 DATABASE_URL=${{Postgres.DATABASE_URL}}
+RAILWAY_RUN_UID=0  # lets the non-root app user write to the uploads volume
 AUTH_SECRET=<generate-a-secure-random-string>
 FRONTEND_URL=https://<your-frontend-domain>
 MCP_BASE_URL=https://<your-backend-domain>/mcp
