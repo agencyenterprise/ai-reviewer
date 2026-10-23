@@ -1,7 +1,7 @@
 import builtins
 import types
 from abc import ABC, abstractmethod
-from typing import Literal, cast, get_args, get_origin
+from typing import cast, get_args, get_origin
 
 from langgraph.graph import StateGraph
 
@@ -13,6 +13,7 @@ from lib.workflows.models import (
     WorkflowGate,
     WorkflowRunType,
 )
+from lib.workflows.util import pinned_run_type
 from lib.workflows.workflow_types import WorkflowState
 
 
@@ -108,9 +109,8 @@ class WorkflowManifest[
     ) -> None:
         """Set ``type`` from the state's ``type: Literal[...]``, if it has one."""
 
-        field = state_type.model_fields.get("type")
-        annotation = field.annotation if field is not None else None
-        if get_origin(annotation) is not Literal:
+        run_type = pinned_run_type(state_type)
+        if run_type is None:
             return
         # Declaring it as well would leave two places to keep in step.
         if "type" in cls.__dict__:
@@ -118,7 +118,7 @@ class WorkflowManifest[
                 f"{cls.__name__} declares type, which {state_type.__name__} "
                 "already sets with its Literal: remove the declaration"
             )
-        (cls.type,) = get_args(annotation)
+        cls.type = run_type
 
     def get_state_type(self) -> builtins.type[WorkflowStateType]:
         """Get the type of the workflow state."""

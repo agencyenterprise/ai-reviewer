@@ -30,13 +30,13 @@ from lib.workflows.document_summarization.state import (
     DocumentSummarizationState,
     FileSummary,
 )
-from lib.workflows.models import BaseWorkflowState, WorkflowRunType
+from lib.workflows.models import BaseWorkflowState
 from lib.workflows.reference_extraction.state import (
     ExtractedReference,
     ReferenceExtractionState,
 )
 from lib.workflows.reference_file_matching.state import ReferenceFileMatchingState
-from lib.workflows.util import as_state_type
+from lib.workflows.util import as_state_type, run_type_of
 
 logger = logging.getLogger(__name__)
 
@@ -81,32 +81,28 @@ class FileArtifactsService(FileArtifactsServiceType):
         self.revision = revision
 
     @overload
-    async def _get_state_by_type[StateType: BaseWorkflowState](
+    async def _get_state[StateType: BaseWorkflowState](
         self,
-        run_type: WorkflowRunType,
         state_type: type[StateType],
         raise_exception: Literal[True] = True,
     ) -> StateType: ...
 
     @overload
-    async def _get_state_by_type[StateType: BaseWorkflowState](
+    async def _get_state[StateType: BaseWorkflowState](
         self,
-        run_type: WorkflowRunType,
         state_type: type[StateType],
         raise_exception: Literal[False],
     ) -> StateType | None: ...
 
-    async def _get_state_by_type[StateType: BaseWorkflowState](
+    async def _get_state[StateType: BaseWorkflowState](
         self,
-        run_type: WorkflowRunType,
         state_type: type[StateType],
         raise_exception: bool = True,
     ) -> StateType | None:
-        """Retrieve workflow state for a specific workflow run type.
+        """Retrieve the state of the run type a state class pins.
 
         Args:
-            run_type: The type of workflow run to retrieve state for.
-            state_type: The state class that run type's state is hydrated as.
+            state_type: The state class, which names the run type to look up.
             raise_exception: Whether to raise an exception if no workflow run or state is found.
 
         Returns:
@@ -116,6 +112,7 @@ class FileArtifactsService(FileArtifactsServiceType):
             ValueError: If no workflow run or state is found for the given type
                 and project ID.
         """
+        run_type = run_type_of(state_type)
         workflow_run = await get_project_workflow_run_by_type(
             self.project_id, run_type, revision=self.revision, include_state=True
         )
@@ -134,12 +131,12 @@ class FileArtifactsService(FileArtifactsServiceType):
 
         return as_state_type(state, state_type) if state is not None else None
 
-    async def _try_load(
+    async def _try_load[T](
         self,
         what: str,
-        loader: Callable[[], Awaitable[Any]],
-    ):
-        """Run a loader and return its value, logging exceptions at debug level."""
+        loader: Callable[[], Awaitable[T]],
+    ) -> T | None:
+        """Run a loader and return its value, or None (with a warning) if it raises."""
         try:
             return await loader()
         except Exception as exc:
@@ -176,9 +173,7 @@ class FileArtifactsService(FileArtifactsServiceType):
 
     async def _get_file_document_from_state(self, file_id: str) -> FileDocument:
         """Return FileDocument from the document processing workflow state."""
-        state = await self._get_state_by_type(
-            WorkflowRunType.DOCUMENT_PROCESSING, DocumentProcessingState
-        )
+        state = await self._get_state(DocumentProcessingState)
 
         if state.file.file_id == file_id:
             return state.file
@@ -191,7 +186,7 @@ class FileArtifactsService(FileArtifactsServiceType):
             f"No file document found with id {file_id} for project {self.project_id}"
         )
 
-    async def _load_main_files(self, revision: int | None = None):
+    async def _load_main_files(self, revision: int | None = None) -> list[File] | None:
         """Return the revision's MAIN files from DB (or None if DB read fails).
 
         Defaults to the service's own revision; pass ``revision`` to read a
@@ -252,9 +247,7 @@ class FileArtifactsService(FileArtifactsServiceType):
             )
             return await load_file_document(main_file, use_cached_artifacts=True)
 
-        state = await self._get_state_by_type(
-            WorkflowRunType.DOCUMENT_PROCESSING, DocumentProcessingState
-        )
+        state = await self._get_state(DocumentProcessingState)
         return state.file
 
     async def get_project_files(
@@ -285,7 +278,7 @@ class FileArtifactsService(FileArtifactsServiceType):
             documents.append(await self._load_file_document_with_markdown(file))
         return documents
 
-    async def get_file_summary(self, file_id: str) -> "FileSummary":
+    async def get_file_summary(self, file_id: str) -> FileSummary:
         """Retrieve the file summary for a file by its ID.
         Prefers DB cached summaries and falls back to workflow state.
 
@@ -301,28 +294,24 @@ class FileArtifactsService(FileArtifactsServiceType):
         """
         summary = await self._try_load(
             f"summary for file {file_id}",
-            lambda: self._get_file_summary_from_db(file_id, FileSummary),
+            lambda: self._get_file_summary_from_db(file_id),
         )
         if summary is not None:
             return summary
 
         return await self._get_summary_from_state(file_id)
 
-    async def _get_file_summary_from_db(
-        self, file_id: str, summary_cls: type["FileSummary"]
-    ) -> "FileSummary | None":
+    async def _get_file_summary_from_db(self, file_id: str) -> FileSummary | None:
         """Return FileSummary from DB cached summary when available."""
         file = await get_file_by_id(file_id)
         if not file.has_cached_summary or file.summary is None:
             return None
         logger.debug("Loaded summary for file %s from DB cache", file_id)
-        return summary_cls(file_id=file_id, **file.summary)
+        return FileSummary(file_id=file_id, **file.summary)
 
-    async def _get_summary_from_state(self, file_id: str) -> "FileSummary":
+    async def _get_summary_from_state(self, file_id: str) -> FileSummary:
         """Return FileSummary from the document summarization workflow state."""
-        state = await self._get_state_by_type(
-            WorkflowRunType.DOCUMENT_SUMMARIZATION, DocumentSummarizationState
-        )
+        state = await self._get_state(DocumentSummarizationState)
 
         summary = next(
             (s for s in state.summaries if s.file_id == file_id),
@@ -335,7 +324,7 @@ class FileArtifactsService(FileArtifactsServiceType):
             f"No file summary found with id {file_id} for project {self.project_id}"
         )
 
-    async def get_extracted_references(self) -> list["ExtractedReference"]:
+    async def get_extracted_references(self) -> list[ExtractedReference]:
         """Retrieve raw extracted references from the reference extraction workflow.
 
         Returns:
@@ -345,12 +334,10 @@ class FileArtifactsService(FileArtifactsServiceType):
             ValueError: If no reference extraction workflow run or state is found
                 for the project.
         """
-        state = await self._get_state_by_type(
-            WorkflowRunType.REFERENCE_EXTRACTION, ReferenceExtractionState
-        )
+        state = await self._get_state(ReferenceExtractionState)
         return state.extracted_references
 
-    async def get_references(self) -> list["BibliographyItem"]:
+    async def get_references(self) -> list[BibliographyItem]:
         """Retrieve extracted references as BibliographyItem objects.
 
         Composes BibliographyItem objects from:
@@ -365,17 +352,14 @@ class FileArtifactsService(FileArtifactsServiceType):
                 for the project.
         """
         # Get extracted references (required)
-        extraction_state = await self._get_state_by_type(
-            WorkflowRunType.REFERENCE_EXTRACTION, ReferenceExtractionState
-        )
+        extraction_state = await self._get_state(ReferenceExtractionState)
         extracted_refs = extraction_state.extracted_references
 
         if not extracted_refs:
             return []
 
         # Try to get file matching state (optional)
-        matching_state = await self._get_state_by_type(
-            WorkflowRunType.REFERENCE_FILE_MATCHING,
+        matching_state = await self._get_state(
             ReferenceFileMatchingState,
             raise_exception=False,
         )
