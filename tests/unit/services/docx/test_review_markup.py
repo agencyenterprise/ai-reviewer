@@ -12,7 +12,7 @@ from lib.services.docx.review_markup_markdown import (
     comments_markdown,
     tracked_changes_markdown,
 )
-from tests.unit.services.lean_docx import new_document
+from tests.unit.services.docx.lean_docx import new_document
 
 _FIRST = "The survey reached 400 households across three districts."
 _SECOND = "Response rates were highest in the northern district."

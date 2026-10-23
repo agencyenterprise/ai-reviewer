@@ -29,7 +29,7 @@ from lib.services.text.markdown_rendering import (
 )
 from lib.workflows.models import SeverityEnum
 from lib.workflows.simple_deep_agent.edit_anchoring import document_lines
-from tests.unit.services.lean_docx import new_document
+from tests.unit.services.docx.lean_docx import new_document
 
 # The document under test. A non-breaking space inside prose and a phrase
 # repeated in one paragraph are both ordinary in converted DOCX documents; the

@@ -10,6 +10,7 @@ import pytest
 
 from lib.models.issue_edit import IssueEdit
 from lib.services.docx.tracked_changes import apply_tracked_changes
+from tests.unit.services.docx.lean_docx import new_document
 from tests.unit.services.docx.tracked_changes.support import (
     make_edit as _edit,
 )
@@ -22,7 +23,6 @@ from tests.unit.services.docx.tracked_changes.support import (
 from tests.unit.services.docx.tracked_changes.support import (
     statuses as _statuses,
 )
-from tests.unit.services.lean_docx import new_document
 
 _JOINED_MARKDOWN = "This is aword."
 _JOINED_LINE_RANGES: dict[int, tuple[int, int]] = {0: (1, 1)}

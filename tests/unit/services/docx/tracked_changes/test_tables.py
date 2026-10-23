@@ -11,6 +11,7 @@ import pytest
 from docx import Document as PythonDocxDocument
 
 from lib.services.docx.tracked_changes import apply_tracked_changes
+from tests.unit.services.docx.lean_docx import new_document
 from tests.unit.services.docx.tracked_changes.support import (
     make_edit as _edit,
 )
@@ -23,7 +24,6 @@ from tests.unit.services.docx.tracked_changes.support import (
 from tests.unit.services.docx.tracked_changes.support import (
     statuses as _statuses,
 )
-from tests.unit.services.lean_docx import new_document
 
 # A paragraph followed by a table, with the paragraph's own figure repeated in
 # a cell. The line-range mapper runs a body paragraph's range up to the line
