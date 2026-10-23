@@ -64,7 +64,7 @@ AUTH_MICROSOFT_ENTRA_ID_ISSUER=https://login.microsoftonline.com/<tenant-id>/v2.
 
 `DATABASE_URL` is a [reference variable](https://docs.railway.com/variables#referencing-another-services-variable): `Postgres` is the database service's name, so use yours if you renamed it. The backend won't start without a sign-in provider: Google needs both of its keys, Entra ID all three.
 
-Register the deployed URLs as redirect URIs with the provider, since the localhost ones in `DEVELOPMENT.md` don't cover them: `https://<your-frontend-domain>/api/auth/callback/<provider>` (`google` or `microsoft-entra-id`) for sign-in, and `https://<your-backend-domain>/mcp/auth/callback` (`MCP_BASE_URL` plus `/auth/callback`) for MCP clients.
+Register the deployed URLs as redirect URIs with the provider, since the localhost ones in `DEVELOPMENT.md` don't cover them: `https://<your-frontend-domain>/api/auth/callback/<provider>` (`google` or `microsoft-entra-id`) for sign-in, and `https://<your-backend-domain>/mcp/auth/callback` (`MCP_BASE_URL` plus `/auth/callback`) for MCP clients. With Entra ID, MCP sign-in also asks for the scope `api://<client-id>/mcp-access`, so the app registration needs `api://<client-id>` as an Application ID URI and a scope named `mcp-access` under **Expose an API**.
 
 **Optional:**
 
