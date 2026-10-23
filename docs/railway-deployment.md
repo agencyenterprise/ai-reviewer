@@ -5,7 +5,8 @@ This guide covers deploying Draft Detective to [Railway](https://railway.app).
 ## Prerequisites
 
 - Railway account
-- OpenAI API key
+- A Google or Microsoft Entra ID OAuth app for sign-in (`DEVELOPMENT.md` covers both)
+- OpenAI API key, unless each user brings their own (see below)
 - (Optional) Langfuse account for observability
 
 ## Quick Start
@@ -26,7 +27,20 @@ Create these services in your Railway project:
 | **Backend API** | Connect from GitHub (uses root `railway.toml`)         |
 | **Frontend**    | Connect from GitHub, set root directory to `frontend/` |
 
-### 3. Configure Environment Variables
+The two `railway.toml` files set each service's build and deploy settings: the Dockerfile builder, the start command, the health check and, for the backend, the migrations. They set nothing else. Variables and the uploads volume are set on each service in the dashboard, as below.
+
+> **Note:** Railway has deprecated `railway.toml` (Config as Code) in favour of Infrastructure as Code (`.railway/railway.ts`). Services that already use the file keep it until 2026-12-01. A service created since the deprecation ignores the file, so enter its settings under the service's **Settings** instead:
+>
+> - **Backend:** pre-deploy command `uv run alembic upgrade head` and health check path `/api/health`.
+> - **Frontend:** root directory `frontend/` and health check path `/api/health`.
+>
+> Both build from their Dockerfile, whose `CMD` already starts the service. Without the backend's pre-deploy command, no migrations run and the backend starts against an empty database.
+
+### 3. Add the Uploads Volume
+
+Uploaded files live on disk. On the backend service, add a volume (**+ New** → **Volume**, or right-click the service) mounted at `/app/uploads`, the directory the image creates for them. Without it, every redeploy loses the uploads.
+
+### 4. Configure Environment Variables
 
 #### Backend API Service
 
@@ -35,23 +49,34 @@ Set these in Railway dashboard under **Variables**:
 **Required:**
 
 ```
+DATABASE_URL=${{Postgres.DATABASE_URL}}
 AUTH_SECRET=<generate-a-secure-random-string>
-OPENAI_API_KEY=<your-openai-api-key>
-FRONTEND_URL=https://<your-frontend-domain>.railway.app
+FRONTEND_URL=https://<your-frontend-domain>
+MCP_BASE_URL=https://<your-backend-domain>/mcp
+
+# A sign-in provider: Google, Microsoft Entra ID, or both
+AUTH_GOOGLE_ID=<client-id>
+AUTH_GOOGLE_SECRET=<client-secret>
+AUTH_MICROSOFT_ENTRA_ID_ID=<client-id>
+AUTH_MICROSOFT_ENTRA_ID_SECRET=<client-secret>
+AUTH_MICROSOFT_ENTRA_ID_ISSUER=https://login.microsoftonline.com/<tenant-id>/v2.0
 ```
 
-**Auto-configured** (via `railway.toml`):
-
-- `DATABASE_URL`, `POSTGRES_*` - Linked from PostgreSQL service
+`DATABASE_URL` is a [reference variable](https://docs.railway.com/variables#referencing-another-services-variable): `Postgres` is the database service's name, so use yours if you renamed it. The backend won't start without a sign-in provider: Google needs both of its keys, Entra ID all three.
 
 **Optional:**
 
 ```
+# Server-wide OpenAI key. Without it, each user saves their own key in the app.
+OPENAI_API_KEY=<your-openai-api-key>
+
 # Langfuse observability
 LANGFUSE_HOST=https://cloud.langfuse.com
 LANGFUSE_SECRET_KEY=<your-secret-key>
 LANGFUSE_PUBLIC_KEY=<your-public-key>
 ```
+
+`.env.template` lists the rest, with their defaults.
 
 #### Frontend Service
 
@@ -60,23 +85,32 @@ Set these in Railway dashboard:
 **Required:**
 
 ```
+NEXT_PUBLIC_API_URL=https://${{ai-reviewer-api.RAILWAY_PUBLIC_DOMAIN}}
 AUTH_SECRET=<same-value-as-backend>
+AUTH_URL=https://<your-frontend-domain>
+
+# The same sign-in provider keys as the backend
+AUTH_GOOGLE_ID=<client-id>
+AUTH_GOOGLE_SECRET=<client-secret>
+AUTH_MICROSOFT_ENTRA_ID_ID=<client-id>
+AUTH_MICROSOFT_ENTRA_ID_SECRET=<client-secret>
+AUTH_MICROSOFT_ENTRA_ID_ISSUER=https://login.microsoftonline.com/<tenant-id>/v2.0
 ```
 
-**Auto-configured** (via `frontend/railway.toml`):
-
-- `NEXT_PUBLIC_API_URL` - References backend service
+`ai-reviewer-api` is the backend service's name: use yours. `AUTH_URL` is the frontend's public URL, and sign-in fails with `UntrustedHost` without it. `NEXT_PUBLIC_*` values are compiled into the build, so changing one takes a redeploy.
 
 **Optional:**
 
 ```
 NEXT_PUBLIC_POSTHOG_KEY=<posthog-project-key>
 NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
+# Ask each user for an OpenAI key before their first run (for a backend with no OPENAI_API_KEY)
+NEXT_PUBLIC_REQUIRE_OPENAI_API_KEY_CONFIG=true
 ```
 
-### 4. Deploy
+### 5. Deploy
 
-Railway automatically deploys when you push to your connected branch. The backend runs database migrations automatically via the `preDeployCommand` in `railway.toml`.
+Railway automatically deploys when you push to your connected branch. The backend runs database migrations before each deploy, via the `preDeployCommand` in `railway.toml` or the pre-deploy command in its **Settings** (see the note in step 2).
 
 ## Custom Workflow Configuration
 
@@ -96,7 +130,7 @@ check — for example the trigger words and advocacy phrases in
 
 ### Database Connection Issues
 
-Ensure the PostgreSQL service is running and the `DATABASE_URL` variable is correctly linked:
+Ensure the PostgreSQL service is running and the backend's `DATABASE_URL` variable references it:
 
 1. Go to Backend service → Variables
 2. Click **+ New Variable** → **Add Reference**
@@ -110,21 +144,27 @@ Check the deploy logs for migration output. Migrations run automatically via:
 preDeployCommand = ["uv run alembic upgrade head"]
 ```
 
+On a service that ignores `railway.toml` (see the note in step 2), check that the same command is the pre-deploy command in its **Settings**.
+
 ### Health Check Failures
 
 The backend health endpoint is `/api/health`. If health checks fail:
 
 1. Check deploy logs for startup errors
-2. Verify all required environment variables are set
+2. Verify all required environment variables are set: a missing sign-in provider stops the backend at startup
 3. Ensure PostgreSQL is accessible
 
 ## Environment Variable Reference
 
-| Variable                    | Required | Default                 | Description                              |
-| --------------------------- | -------- | ----------------------- | ---------------------------------------- |
-| `AUTH_SECRET`               | ✅       | -                       | JWT signing secret (must match frontend) |
-| `OPENAI_API_KEY`            | ✅       | -                       | OpenAI API key for LLM operations        |
-| `DATABASE_URL`              | ✅       | -                       | PostgreSQL connection string             |
-| `FRONTEND_URL`              | ✅       | `http://localhost:3000` | Frontend URL for share links             |
-| `LANGFUSE_*`                | ❌       | -                       | Langfuse observability config            |
-| `LANGGRAPH_MAX_CONCURRENCY` | ❌       | `30`                    | Max parallel workflow nodes              |
+| Variable                                      | Service  | Required | Default                     | Description                                              |
+| --------------------------------------------- | -------- | -------- | --------------------------- | -------------------------------------------------------- |
+| `DATABASE_URL`                                | Backend  | ✅       | -                           | PostgreSQL connection string                             |
+| `AUTH_SECRET`                                 | Both     | ✅       | -                           | JWT signing secret (the same value on both)              |
+| `AUTH_GOOGLE_*` / `AUTH_MICROSOFT_ENTRA_ID_*` | Both     | ✅       | -                           | Sign-in provider: at least one, the same on both         |
+| `FRONTEND_URL`                                | Backend  | ✅       | `http://localhost:3000`     | Frontend URL for share links                             |
+| `MCP_BASE_URL`                                | Backend  | ✅       | `http://localhost:8000/mcp` | Public URL of the MCP server, ending in `/mcp`           |
+| `AUTH_URL`                                    | Frontend | ✅       | -                           | Frontend's public URL, for sign-in                       |
+| `NEXT_PUBLIC_API_URL`                         | Frontend | ✅       | `http://localhost:8000`     | Backend's public URL, set at build time                  |
+| `OPENAI_API_KEY`                              | Backend  | ❌       | -                           | Server-wide OpenAI key; without it users bring their own |
+| `LANGFUSE_*`                                  | Backend  | ❌       | -                           | Langfuse observability config                            |
+| `LANGGRAPH_MAX_CONCURRENCY`                   | Backend  | ❌       | `30`                        | Max parallel workflow nodes                              |
