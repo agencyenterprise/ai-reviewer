@@ -12,17 +12,9 @@ const nextConfig: NextConfig = {
   // auth proxy (proxy.ts) would answer with the sign-in page (issue #774). A 307 keeps the
   // method and body, and redirects run before proxy.ts.
   redirects: async () => [{ source: '/mcp', destination: `${apiUrl}/mcp/`, permanent: false }],
-  // Enable reliable hot reload when using the webpack dev server (non-Turbopack dev).
-  // Ignored when running with Turbopack.
-  webpack: (config, { dev }) => {
-    if (dev) {
-      config.watchOptions = {
-        poll: 1000,
-        aggregateTimeout: 300,
-      };
-    }
-    return config;
-  },
+  // No `webpack` hook: Next 16 runs Turbopack by default and exits when it finds one with
+  // no `turbopack` config. File polling for mounts that don't report changes is
+  // `pnpm dev:poll` (WATCHPACK_POLLING).
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'ui-avatars.com' },
