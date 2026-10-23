@@ -6,7 +6,7 @@ import {
   SeverityEnum,
   WorkflowRunType,
 } from '@/lib/generated-api';
-import { downloadFile } from '@/lib/file-download';
+import { downloadFile, filenameFromContentDisposition } from '@/lib/file-download';
 
 export type DocxType = DocxManipulatorType | 'original';
 
@@ -42,7 +42,10 @@ export async function downloadDocxFile({
   includeEdits = true,
   revision,
 }: DownloadDocxRequest): Promise<void> {
-  const response = await downloadProjectDocxApiProjectsProjectIdDocxDownloadGet({
+  // 'fields' rather than the SDK's 'data', for the response headers: the backend
+  // names the file after the uploaded document, and that name is what people
+  // track the file by once it leaves the app.
+  const { data, response } = (await downloadProjectDocxApiProjectsProjectIdDocxDownloadGet({
     path: { project_id: projectId },
     query: {
       share_token: shareToken,
@@ -53,16 +56,19 @@ export async function downloadDocxFile({
       include_edits: includeEdits,
       revision: revision,
     },
-  });
+    responseStyle: 'fields',
+  })) as unknown as { data: unknown; response: Response };
 
-  if (!(response instanceof Blob)) {
+  if (!(data instanceof Blob)) {
     throw new Error('Unexpected response type from DOCX download');
   }
 
   const timestamp = new Date().toISOString().split('T')[0];
-  const filename = `document_${projectId}_${timestamp}.docx`;
+  const filename =
+    filenameFromContentDisposition(response.headers.get('content-disposition')) ??
+    `document_${projectId}_${timestamp}.docx`;
 
-  downloadFile({ blob: response, filename });
+  downloadFile({ blob: data, filename });
 }
 
 export function useDownloadDocx({
