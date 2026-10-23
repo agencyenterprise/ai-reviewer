@@ -1,5 +1,5 @@
 import { Issue, SeverityEnum, WorkflowRunType } from './generated-api';
-import { getMaxSeverity } from './severity';
+import { getMaxSeverity, REPORTED_SEVERITIES } from './severity';
 import { isIssueResolved } from './stores/document-explorer-store';
 
 /**
@@ -51,4 +51,20 @@ export function badgeHeadline(
   if (!summary.maxSeverity) return { severity: SeverityEnum.None, count: 0 };
   if (!groupBySeverity) return { severity: SeverityEnum.Medium, count: summary.total };
   return { severity: summary.maxSeverity, count: summary.counts[summary.maxSeverity] };
+}
+
+/**
+ * The per-severity lines of an assessment's tooltip, most severe first. Empty
+ * when the project doesn't group by severity, so no High or Low label shows
+ * where every issue otherwise reads as medium.
+ */
+export function badgeBreakdown(
+  summary: ReportedIssuesSummary,
+  groupBySeverity: boolean,
+): { severity: SeverityEnum; count: number }[] {
+  if (!groupBySeverity) return [];
+  return REPORTED_SEVERITIES.filter((severity) => summary.counts[severity] > 0).map((severity) => ({
+    severity,
+    count: summary.counts[severity],
+  }));
 }

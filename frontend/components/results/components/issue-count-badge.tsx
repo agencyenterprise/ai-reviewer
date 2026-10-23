@@ -3,8 +3,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useGroupBySeverity } from '@/context/group-by-severity-context';
 import { SeverityEnum } from '@/lib/generated-api';
-import { REPORTED_SEVERITIES } from '@/lib/severity';
-import { badgeHeadline, ReportedIssuesSummary } from '@/lib/health-status';
+import { badgeBreakdown, badgeHeadline, ReportedIssuesSummary } from '@/lib/health-status';
 import { cn } from '@/lib/utils';
 import {
   CheckCircleIcon,
@@ -27,7 +26,6 @@ const severityDisplay: Record<
   [SeverityEnum.High]: { icon: CircleAlertIcon, label: 'high', className: 'text-red-600' },
 };
 
-/** Most severe first — the order the breakdown is read in. */
 /**
  * Compact count of the issues one assessment reported.
  *
@@ -35,12 +33,13 @@ const severityDisplay: Record<
  * and the number always describe the same thing: "7 in red" means seven
  * high-severity issues, not thirty-four issues of which some are high. The full
  * breakdown is one hover away. A project that doesn't group by severity shows
- * the total in medium, with the breakdown still in the tooltip.
+ * the total in medium, and its tooltip gives only the total, with no tiers.
  */
 export function IssueCountBadge({ summary }: { summary: ReportedIssuesSummary }) {
   const groupBySeverity = useGroupBySeverity();
   const { severity, count: headline } = badgeHeadline(summary, groupBySeverity);
   const { icon: Icon, className } = severityDisplay[severity];
+  const breakdown = badgeBreakdown(summary, groupBySeverity);
 
   return (
     <Tooltip>
@@ -63,18 +62,19 @@ export function IssueCountBadge({ summary }: { summary: ReportedIssuesSummary })
             <p className="font-medium">
               {summary.total} reported {summary.total === 1 ? 'issue' : 'issues'}
             </p>
-            <ul>
-              {REPORTED_SEVERITIES.filter((tier) => summary.counts[tier] > 0).map((tier) => {
-                const { label } = severityDisplay[tier];
-                const { icon: TierIcon } = severityDisplay[groupBySeverity ? tier : SeverityEnum.Medium];
-                return (
-                  <li key={tier} className="flex items-center gap-1.5">
-                    <TierIcon className="size-3" />
-                    <span className="tabular-nums">{summary.counts[tier]}</span> {label}
-                  </li>
-                );
-              })}
-            </ul>
+            {breakdown.length > 0 && (
+              <ul>
+                {breakdown.map(({ severity: tier, count }) => {
+                  const { icon: TierIcon, label } = severityDisplay[tier];
+                  return (
+                    <li key={tier} className="flex items-center gap-1.5">
+                      <TierIcon className="size-3" />
+                      <span className="tabular-nums">{count}</span> {label}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
             <p className="opacity-70">Passing checks and resolved issues are not counted.</p>
           </div>
         )}
