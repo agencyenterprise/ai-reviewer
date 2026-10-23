@@ -14,8 +14,6 @@ from lib.api.services.workflow_runner import (
 )
 from lib.config.llm_models import (
     LLMModel,
-    claude_3_5_sonnet_model,
-    gemini_2_flash_model,
     gpt_5_6_sol_model,
     gpt_5_6_terra_model,
     web_search_tool,
@@ -28,6 +26,10 @@ from lib.services.file_artifacts_service.file_artifacts_service_type import (
 from lib.workflows.context import ContextSchema
 from lib.workflows.models import WorkflowGate, WorkflowRunType
 from lib.workflows.runner import create_context
+
+# Overrides accept any provider, so the non-OpenAI branches need models of their own.
+CLAUDE_MODEL = LLMModel(provider="anthropic", name="claude-sonnet-4-5-20250929")
+GEMINI_MODEL = LLMModel(provider="google_genai", name="gemini-2.5-flash-lite")
 
 
 def _context(model_override: LLMModel | None = None) -> ContextSchema:
@@ -47,7 +49,7 @@ class _TerraAgent(LangChainAgent):
         raise NotImplementedError
 
 
-@pytest.mark.parametrize("model", [gpt_5_6_sol_model, claude_3_5_sonnet_model])
+@pytest.mark.parametrize("model", [gpt_5_6_sol_model, CLAUDE_MODEL])
 def test_model_name_round_trips(model: LLMModel):
     assert LLMModel.from_model_name(model.model_name) == model
 
@@ -127,31 +129,31 @@ def test_openai_gets_its_reasoning_and_no_temperature():
 
 
 def test_claude_thinks_adaptively_at_the_agents_effort():
-    kwargs = _kwargs(claude_3_5_sonnet_model, {"effort": "high", "summary": "auto"})
+    kwargs = _kwargs(CLAUDE_MODEL, {"effort": "high", "summary": "auto"})
     assert kwargs["thinking"] == {"type": "adaptive", "display": "summarized"}
     assert kwargs["effort"] == "high"
     assert "temperature" not in kwargs and "reasoning" not in kwargs
 
 
 def test_claude_without_reasoning_does_not_think():
-    kwargs = _kwargs(claude_3_5_sonnet_model, None)
+    kwargs = _kwargs(CLAUDE_MODEL, None)
     assert "thinking" not in kwargs and "effort" not in kwargs
     assert "temperature" not in kwargs
 
 
 def test_other_providers_run_without_reasoning():
-    kwargs = _kwargs(gemini_2_flash_model, REASONING)
+    kwargs = _kwargs(GEMINI_MODEL, REASONING)
     assert "reasoning" not in kwargs and "thinking" not in kwargs
     assert "temperature" not in kwargs
 
 
 def test_each_provider_gets_its_own_web_search_declaration():
     assert web_search_tool(gpt_5_6_sol_model) == {"type": "web_search"}
-    assert web_search_tool(claude_3_5_sonnet_model) == {
+    assert web_search_tool(CLAUDE_MODEL) == {
         "type": "web_search_20250305",
         "name": "web_search",
     }
-    assert web_search_tool(gemini_2_flash_model) == {"google_search": {}}
+    assert web_search_tool(GEMINI_MODEL) == {"google_search": {}}
 
 
 @pytest.mark.parametrize("provider", ["", "mistralai"])

@@ -3,7 +3,7 @@ from decimal import Decimal
 from langchain_core.messages import AIMessage, HumanMessage
 from pydantic import BaseModel
 
-from lib.config.llm_models import ALL_MODELS
+from lib.config import llm_models
 from lib.services.workflow_runs.cost import pricing
 from lib.services.workflow_runs.cost.breakdown import UsageRecord
 from lib.services.workflow_runs.cost.extractor import walk_state_for_usage
@@ -248,9 +248,13 @@ def test_unpriced_model_does_not_sink_the_run():
 
 def test_every_model_this_codebase_can_select_is_priced():
     """The gap that made cost vanish on the RAND deployment: no rates for our models."""
+    models = [
+        m for m in vars(llm_models).values() if isinstance(m, llm_models.LLMModel)
+    ]
+    assert llm_models.gpt_5_6_terra_model in models
     unpriced = [
         model.name
-        for model in ALL_MODELS.values()
+        for model in models
         if compute_cost([_record(model_name=model.name, input_tokens=1_000)]) is None
     ]
     assert unpriced == []

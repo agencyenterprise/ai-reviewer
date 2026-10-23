@@ -56,27 +56,6 @@ gpt_5_6_luna_model = LLMModel(provider="openai", name="gpt-5.6-luna")
 # Not used by any workflow; offered in the /chat model picker (with the smaller
 # tier) so a reviewer can compare the tiers on a real question.
 gpt_5_6_sol_model = LLMModel(provider="openai", name="gpt-5.6-sol")
-gpt_4_1_model = LLMModel(provider="openai", name="gpt-4.1")
-
-# Anthropic models
-claude_3_5_sonnet_model = LLMModel(
-    provider="anthropic", name="claude-sonnet-4-5-20250929"
-)
-
-# Google models
-gemini_2_flash_model = LLMModel(provider="google_genai", name="gemini-2.5-flash-lite")
-
-
-# Registry of all available models for testing and comparison
-# Key: model.name, Value: model instance
-ALL_MODELS = {
-    "gpt-4.1": gpt_4_1_model,
-    "gpt-5.6-terra": gpt_5_6_terra_model,
-    "gpt-5.6-luna": gpt_5_6_luna_model,
-    "gpt-5.6-sol": gpt_5_6_sol_model,
-    "claude-sonnet-4-5-20250929": claude_3_5_sonnet_model,
-    "gemini-2.5-flash-lite": gemini_2_flash_model,
-}
 
 
 # Server-side web search is declared differently per provider: OpenAI's Responses API
